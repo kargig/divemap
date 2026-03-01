@@ -1,4 +1,4 @@
-import { Send, Loader2, X } from 'lucide-react';
+import { Send, Loader2, X, Info, ChevronLeft } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -10,16 +10,27 @@ import {
   editUserChatMessage,
   markChatRoomRead,
 } from '../../api';
+import Avatar from '../Avatar';
 
 import MessageBubble from './MessageBubble';
 
-const ChatRoom = ({ roomId, currentUserId }) => {
+const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
+  const [prevRoomId, setPrevRoomId] = useState(roomId);
   const scrollRef = useRef(null);
   const lastSyncTime = useRef(null);
+
+  // Reset state when room changes to prevent showing old messages or sending wrong cursor
+  if (roomId !== prevRoomId) {
+    setPrevRoomId(roomId);
+    setMessages([]);
+    setInputText('');
+    setEditingMessage(null);
+    lastSyncTime.current = null;
+  }
 
   // 1. Initial Load & Optimized Polling
   const { isFetching } = useQuery(
@@ -110,8 +121,45 @@ const ChatRoom = ({ roomId, currentUserId }) => {
     );
   }
 
+  // Determine display name and avatar (for DMs)
+  const otherMembers = room?.members?.filter(m => m.user_id !== currentUserId) || [];
+  const displayName = room?.is_group ? room.name : otherMembers[0]?.user?.username || 'Chat';
+  const displayAvatar = room?.is_group ? null : otherMembers[0]?.user?.avatar_url;
+
   return (
-    <div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900'>
+    <div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
+      {/* Header */}
+      <div className='p-3 md:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10'>
+        <div className='flex items-center gap-3 min-w-0'>
+          <button
+            onClick={onBack}
+            className='md:hidden p-1 mr-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+          >
+            <ChevronLeft className='h-6 w-6' />
+          </button>
+          <div className='relative shrink-0'>
+            <Avatar src={displayAvatar} alt={displayName} size='sm' username={displayName} />
+          </div>
+          <div className='min-w-0'>
+            <h3 className='text-sm font-bold text-gray-900 dark:text-white truncate'>
+              {displayName}
+            </h3>
+            {room?.is_group && (
+              <p className='text-[10px] text-gray-500 font-medium uppercase tracking-wider'>
+                {room.members.length} participants
+              </p>
+            )}
+          </div>
+        </div>
+        <button
+          onClick={onToggleSettings}
+          className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
+          title='Room Settings'
+        >
+          <Info className='h-5 w-5' />
+        </button>
+      </div>
+
       {/* Message List */}
       <div ref={scrollRef} className='flex-1 overflow-y-auto p-4 md:p-6'>
         {messages.map(msg => (
@@ -165,7 +213,10 @@ const ChatRoom = ({ roomId, currentUserId }) => {
 
 ChatRoom.propTypes = {
   roomId: PropTypes.number,
+  room: PropTypes.object,
   currentUserId: PropTypes.number.isRequired,
+  onToggleSettings: PropTypes.func.isRequired,
+  onBack: PropTypes.func.isRequired,
 };
 
 export default ChatRoom;

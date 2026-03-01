@@ -166,3 +166,90 @@ def test_mark_room_read(client, auth_headers, test_user_other, mock_master_key):
     
     res = client.put(f"/api/v1/user-chat/rooms/{room_id}/read", headers=auth_headers)
     assert res.status_code == 200
+
+def test_update_group_name(client, auth_headers, test_user_other, test_admin_user, mock_master_key):
+    # 1. Create a Group chat
+    response = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={
+            "is_group": True,
+            "name": "Initial Name",
+            "participant_ids": [test_user_other.id, test_admin_user.id]
+        }
+    )
+    assert response.status_code == 201
+    room_id = response.json()["id"]
+    
+    # 2. Update the name
+    update_res = client.put(
+        f"/api/v1/user-chat/rooms/{room_id}",
+        headers=auth_headers,
+        json={"name": "Updated Name"}
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["name"] == "Updated Name"
+    
+    # 3. Try to update a DM (should fail)
+    dm_res = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={
+            "is_group": False,
+            "participant_ids": [test_user_other.id]
+        }
+    )
+    dm_id = dm_res.json()["id"]
+    dm_update_res = client.put(
+        f"/api/v1/user-chat/rooms/{dm_id}",
+        headers=auth_headers,
+        json={"name": "Illegal Name"}
+    )
+    assert dm_update_res.status_code == 400
+
+def test_leave_group_chat(client, auth_headers, test_user_other, test_admin_user, mock_master_key):
+    # 1. Create a Group chat
+    response = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={
+            "is_group": True,
+            "name": "Group to Leave",
+            "participant_ids": [test_user_other.id, test_admin_user.id]
+        }
+    )
+    assert response.status_code == 201
+    room_id = response.json()["id"]
+    
+    # 2. Leave the group
+    leave_res = client.delete(
+        f"/api/v1/user-chat/rooms/{room_id}/leave",
+        headers=auth_headers
+    )
+    assert leave_res.status_code == 200
+    assert leave_res.json()["status"] == "success"
+    
+    # 3. Check membership - In list_chat_rooms, the room should no longer appear
+    list_res = client.get("/api/v1/user-chat/rooms", headers=auth_headers)
+    assert list_res.status_code == 200
+    rooms = list_res.json()
+    assert not any(r["id"] == room_id for r in rooms)
+
+def test_leave_dm_should_fail(client, auth_headers, test_user_other, mock_master_key):
+    # 1. Create a DM
+    response = client.post(
+        "/api/v1/user-chat/rooms",
+        headers=auth_headers,
+        json={
+            "is_group": False,
+            "participant_ids": [test_user_other.id]
+        }
+    )
+    room_id = response.json()["id"]
+    
+    # 2. Try to leave
+    leave_res = client.delete(
+        f"/api/v1/user-chat/rooms/{room_id}/leave",
+        headers=auth_headers
+    )
+    assert leave_res.status_code == 400

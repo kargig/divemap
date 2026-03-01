@@ -397,6 +397,16 @@ export const markChatRoomRead = async roomId => {
   return response.data;
 };
 
+export const updateChatRoom = async (roomId, name) => {
+  const response = await api.put(`/api/v1/user-chat/rooms/${roomId}`, { name });
+  return response.data;
+};
+
+export const leaveChatRoom = async roomId => {
+  const response = await api.delete(`/api/v1/user-chat/rooms/${roomId}/leave`);
+  return response.data;
+};
+
 // User Friendships (Mutual Buddy) APIs
 export const getUserFriendships = async (statusFilter = 'ACCEPTED') => {
   const response = await api.get('/api/v1/user-friendships', {

@@ -31,6 +31,9 @@ class ChatRoomCreate(BaseModel):
     name: Optional[constr(max_length=100)] = None
     participant_ids: List[int] = Field(default_factory=list, description="IDs of users to add. Current user is added automatically.")
 
+class ChatRoomUpdate(BaseModel):
+    name: Optional[constr(max_length=100)] = None
+
 class ChatRoomResponse(BaseModel):
     id: int
     is_group: bool

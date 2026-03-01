@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models import User, UserChatRoom, UserChatRoomMember, UserChatMessage
 from app.auth import get_current_active_user
 from app.schemas.user_chat import (
-    ChatRoomCreate, ChatRoomResponse, 
+    ChatRoomCreate, ChatRoomResponse, ChatRoomUpdate,
     ChatMessageCreate, ChatMessageResponse, ChatMessageUpdate
 )
 from app.services.encryption_service import (
@@ -132,7 +132,7 @@ async def list_chat_rooms(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """List all active chat rooms for the current user with unread counts."""
+    """List all active chat rooms for the current user with unread counts and latest message preview."""
     # Find all rooms where user is an active member
     active_memberships = db.query(UserChatRoomMember).filter(
         UserChatRoomMember.user_id == current_user.id,
@@ -324,3 +324,61 @@ async def mark_room_read(
     db.commit()
     
     return {"status": "success"}
+
+@router.put("/rooms/{room_id}", response_model=ChatRoomResponse)
+async def update_chat_room(
+    room_id: int,
+    room_in: ChatRoomUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update chat room details (e.g., name). Only admins can do this for groups."""
+    room, member = get_room_or_404(db, room_id, current_user.id)
+    
+    if not room.is_group:
+        raise HTTPException(status_code=400, detail="Cannot update details of a direct message room")
+        
+    if member.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Only admins can update group details")
+        
+    if room_in.name:
+        room.name = room_in.name
+        
+    db.commit()
+    db.refresh(room)
+    return room
+
+@router.delete("/rooms/{room_id}/leave", status_code=status.HTTP_200_OK)
+async def leave_chat_room(
+    room_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Leave a chat room."""
+    room, member = get_room_or_404(db, room_id, current_user.id)
+    
+    if not room.is_group:
+        raise HTTPException(status_code=400, detail="Cannot leave a direct message room. Use buddy removal to block/hide.")
+        
+    member.left_at = func.now()
+    
+    # Check if there are any members left
+    remaining_members = db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == room_id,
+        UserChatRoomMember.left_at.is_(None)
+    ).count()
+    
+    # If no members left, we could technically delete the room, 
+    # but for now we'll just keep it in the database for history/audit.
+    
+    # If the leaving member was the last admin, assign admin role to another member
+    if member.role == "ADMIN" and remaining_members > 0:
+        next_admin = db.query(UserChatRoomMember).filter(
+            UserChatRoomMember.room_id == room_id,
+            UserChatRoomMember.left_at.is_(None)
+        ).first()
+        if next_admin:
+            next_admin.role = "ADMIN"
+            
+    db.commit()
+    return {"status": "success", "message": "You have left the group chat"}

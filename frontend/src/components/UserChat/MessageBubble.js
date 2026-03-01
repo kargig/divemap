@@ -1,11 +1,50 @@
 import { format } from 'date-fns';
 import { Edit2 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import Avatar from '../Avatar';
 
+import LinkPreview from './LinkPreview';
+
 const MessageBubble = ({ message, isOwn, onEdit }) => {
+  // Parse content for mentions and URLs
+  const renderContent = text => {
+    // Split by @username mentions
+    const parts = text.split(/( @[a-zA-Z0-9_]+|^@[a-zA-Z0-9_]+)/);
+
+    return parts.map((part, i) => {
+      const mentionMatch = part.match(/^ ?@([a-zA-Z0-9_]+)$/);
+      if (mentionMatch) {
+        return (
+          <span
+            key={i}
+            className={`font-semibold cursor-pointer hover:underline ${isOwn ? 'text-blue-200 hover:text-white' : 'text-blue-600 dark:text-blue-400'}`}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <React.Fragment key={i}>{part}</React.Fragment>;
+    });
+  };
+
+  // Find all internal links for previews
+  const uniqueDiveSiteUrls = useMemo(() => {
+    const origin = window.location.origin;
+    // Matches relative links (/dive-sites/...) OR absolute links matching our domain
+    // We escape the origin to use it safely in the Regex
+    const escapedOrigin = origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(?:${escapedOrigin})?(\\/dive-sites\\/\\d+[\\w-]*)`, 'g');
+
+    const matches = [];
+    let match;
+    while ((match = regex.exec(message.content)) !== null) {
+      matches.push(match[1]); // Always use the relative path for the preview component
+    }
+    return [...new Set(matches)];
+  }, [message.content]);
+
   return (
     <div className={`flex w-full mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}>
       {!isOwn && (
@@ -31,7 +70,11 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
                 : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
             }`}
           >
-            <p className='whitespace-pre-wrap break-words'>{message.content}</p>
+            <p className='whitespace-pre-wrap break-words'>{renderContent(message.content)}</p>
+
+            {uniqueDiveSiteUrls.map((url, idx) => (
+              <LinkPreview key={idx} url={url} />
+            ))}
 
             <div
               className={`flex items-center space-x-1 mt-1 text-[9px] ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}

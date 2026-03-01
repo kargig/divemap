@@ -33,24 +33,17 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { getTotalUnreadChatMessages } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
+import ChatDropdown from './UserChat/ChatDropdown';
 
 const NavbarMobileControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const { data: unreadChatData } = useQuery('unreadChatCount', getTotalUnreadChatMessages, {
-    enabled: !!user,
-    refetchInterval: 30000, // Check every 30 seconds
-  });
-
-  const unreadChatCount = unreadChatData?.unread_count || 0;
 
   const handleLogout = () => {
     logout();
@@ -86,20 +79,7 @@ const NavbarMobileControls = () => {
   return (
     <>
       <div className='md:hidden flex items-center gap-4'>
-        {user && (
-          <button
-            onClick={() => handleNavigate('/messages')}
-            className='text-white hover:text-blue-200 transition-colors p-1 relative'
-            aria-label='Messages'
-          >
-            <MessageSquare className='h-6 w-6' />
-            {unreadChatCount > 0 && (
-              <span className='absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[1rem] translate-x-1/4 -translate-y-1/4'>
-                {unreadChatCount > 9 ? '9+' : unreadChatCount}
-              </span>
-            )}
-          </button>
-        )}
+        {user && <ChatDropdown />}
         {user && <NotificationBell />}
         <button
           onClick={toggleMobileMenu}

@@ -31,22 +31,15 @@ import {
 import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { getTotalUnreadChatMessages } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import NotificationBell from './NotificationBell';
+import ChatDropdown from './UserChat/ChatDropdown';
 
 const NavbarDesktopControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const { data: unreadChatData } = useQuery('unreadChatCount', getTotalUnreadChatMessages, {
-    enabled: !!user,
-    refetchInterval: 30000, // Check every 30 seconds
-  });
-
-  const unreadChatCount = unreadChatData?.unread_count || 0;
 
   const handleLogout = () => {
     logout();
@@ -162,18 +155,7 @@ const NavbarDesktopControls = () => {
 
         {user ? (
           <div className='flex items-center space-x-4'>
-            <Link
-              to='/messages'
-              className='flex items-center justify-center p-2 text-white hover:text-blue-200 transition-colors relative'
-              title='Messages'
-            >
-              <MessageSquare className='h-5 w-5' />
-              {unreadChatCount > 0 && (
-                <span className='absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center min-w-[1rem] translate-x-1/4 -translate-y-1/4'>
-                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
-                </span>
-              )}
-            </Link>
+            <ChatDropdown />
             <NotificationBell />
 
             {user.is_admin && (
