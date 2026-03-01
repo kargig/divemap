@@ -2,16 +2,48 @@ import { format } from 'date-fns';
 import { Edit2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { Link } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 
 import Avatar from '../Avatar';
+import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
 
 import LinkPreview from './LinkPreview';
 
 const MessageBubble = ({ message, isOwn, onEdit }) => {
-  // Parse content for mentions and URLs
-  const renderContent = text => {
-    // Split by @username mentions
-    const parts = text.split(/( @[a-zA-Z0-9_]+|^@[a-zA-Z0-9_]+)/);
+  const isBot = !message.sender_id && !message.sender;
+
+  // Custom link component for Markdown
+  const MarkdownLink = ({ href, children }) => {
+    const isInternal = href?.startsWith('/');
+    if (isInternal) {
+      return (
+        <Link
+          to={href}
+          className='text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-blue-500/30 underline-offset-2'
+        >
+          {children}
+        </Link>
+      );
+    }
+    return (
+      <a
+        href={href}
+        target='_blank'
+        rel='noopener noreferrer'
+        className='text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-blue-500/30 underline-offset-2'
+      >
+        {children}
+      </a>
+    );
+  };
+
+  // Custom text component to support @mentions within Markdown
+  const MarkdownText = ({ children }) => {
+    if (typeof children !== 'string') return children;
+
+    const parts = children.split(/( @[a-zA-Z0-9_]+|^@[a-zA-Z0-9_]+)/);
 
     return parts.map((part, i) => {
       const mentionMatch = part.match(/^ ?@([a-zA-Z0-9_]+)$/);
@@ -49,7 +81,17 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
     <div className={`flex w-full mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}>
       {!isOwn && (
         <div className='mr-2 mt-auto'>
-          <Avatar src={message.sender?.avatar_url} size='sm' username={message.sender?.username} />
+          {isBot ? (
+            <div className='w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100'>
+              <ChatbotIcon className='w-5 h-5 text-blue-600' />
+            </div>
+          ) : (
+            <Avatar
+              src={message.sender?.avatar_url}
+              size='sm'
+              username={message.sender?.username}
+            />
+          )}
         </div>
       )}
 
@@ -58,7 +100,7 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
       >
         {!isOwn && (
           <span className='text-[10px] text-gray-400 mb-1 ml-1 uppercase tracking-wider font-semibold'>
-            {message.sender?.username}
+            {isBot ? 'Divemap AI' : message.sender?.username}
           </span>
         )}
 
@@ -67,10 +109,27 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
             className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
               isOwn
                 ? 'bg-blue-600 text-white rounded-br-none'
-                : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
+                : isBot
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-gray-800 dark:text-gray-100 rounded-bl-none border border-blue-100 dark:border-blue-800'
+                  : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
             }`}
           >
-            <p className='whitespace-pre-wrap break-words'>{renderContent(message.content)}</p>
+            <div className='markdown-content break-words'>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  a: MarkdownLink,
+                  p: ({ children }) => <p className='mb-2 last:mb-0'>{children}</p>,
+                  text: MarkdownText,
+                  ul: ({ children }) => <ul className='list-disc ml-4 mb-2'>{children}</ul>,
+                  ol: ({ children }) => <ol className='list-decimal ml-4 mb-2'>{children}</ol>,
+                  li: ({ children }) => <li className='mb-1'>{children}</li>,
+                  strong: ({ children }) => <strong className='font-bold'>{children}</strong>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
 
             {uniqueDiveSiteUrls.map((url, idx) => (
               <LinkPreview key={idx} url={url} />

@@ -20,6 +20,11 @@ from app.services.wind_recommendation_service import calculate_wind_suitability
 
 logger = logging.getLogger(__name__)
 
+from app.physics import (
+    calculate_mod, calculate_sac, calculate_best_mix, 
+    calculate_min_gas, calculate_ead, calculate_end, GasMix
+)
+
 def degrees_to_cardinal(d):
     """
     Convert degrees to cardinal direction (N, NE, E, etc.)
@@ -90,8 +95,9 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - "gear_rental": Use this when the user asks about renting equipment, prices of tanks, regulators, wetsuits, etc. (e.g., "Cost of 12L tank in Athens", "Rent gear near me").
   - "career_path": Use this when the user asks about diving courses, certification progression, or what comes next in their training (e.g., "What comes after Open Water?", "PADI pro courses").
   - "marine_life": Use this when the user asks specifically about seeing certain animals or marine biology (e.g., "Where can I see turtles?", "Sites with nudibranchs").
-  - "knowledge": General diving facts.
-  - "chit_chat": Greeting or unrelated.
+  - \"knowledge\": General diving facts.
+  - \"calculator\": Use this when the user asks for diving calculations like MOD (Max Operating Depth), SAC (Surface Air Consumption), EAD (Equivalent Air Depth), END (Equivalent Narcotic Depth), Best Mix, or Minimum Gas.
+  - \"chit_chat\": Greeting or unrelated.
 - **Ratings & Popularity**: If the user asks for "highest rated", "best", "most popular", "top rated":
   - Set `intent_type` to "discovery".
   - Include "highest_rated" in `keywords` if they asked for ratings/best.
@@ -127,6 +133,10 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - "deep", "nitrox" -> 3
   - "technical", "tech" -> 4
 - **Technical Diving**: If the user asks for "technical" or "tech" dives, you **MUST** set `difficulty_level` to 4 AND include "tech" in `keywords`.
+- **Calculators**: If `intent_type` is "calculator", extract any numeric values into `calculator_params`.
+  - Keys: `depth`, `o2`, `he`, `duration`, `tank_volume`, `start_pressure`, `end_pressure`, `pp_o2_max`.
+  - Assume `pp_o2_max` is 1.4 for bottom and 1.6 for deco if not specified.
+  - Assume `tank_volume` is 12L if not specified.
 
 # Output Example
 {{
@@ -141,7 +151,8 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   "date_range": null,
   "difficulty_level": 2,
   "context_entity_id": null,
-  "context_entity_type": null
+  "context_entity_type": null,
+  "calculator_params": null
 }}
 """
         messages = [
@@ -1034,6 +1045,62 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                         "website": center.website
                     })
 
+        elif intent.intent_type == IntentType.CALCULATOR:
+            calc_results = {
+                "entity_type": "calculator_results", 
+                "name": "Diving Calculation Results",
+                "source": "Divemap Physics Engine"
+            }
+            params = intent.calculator_params or {}
+            specific_tool = "/resources/tools"
+            
+            # 1. MOD Calculation
+            if params.get('o2') is not None:
+                pp_o2 = params.get('pp_o2_max', 1.4)
+                mod = calculate_mod(GasMix(o2=params['o2'], he=params.get('he', 0.0) or 0.0), pp_o2)
+                calc_results['mod'] = f"{mod:.1f} meters (at {pp_o2} ppO2)"
+                specific_tool = "/resources/tools?tab=mod"
+            
+            # 2. SAC Calculation
+            if all(params.get(k) is not None for k in ['start_pressure', 'end_pressure', 'tank_volume', 'depth', 'duration']):
+                gas = GasMix(o2=params.get('o2', 21.0) or 21.0, he=params.get('he', 0.0) or 0.0)
+                sac = calculate_sac(
+                    params['depth'], params['duration'], params['tank_volume'], 
+                    params['start_pressure'], params['end_pressure'], gas
+                )
+                calc_results['sac_rate'] = f"{sac:.2f} L/min"
+                specific_tool = "/resources/tools?tab=sac"
+            
+            # 3. Best Mix
+            if params.get('depth') is not None and params.get('pp_o2_max') is not None:
+                best_mix = calculate_best_mix(params['depth'], params['pp_o2_max'])
+                calc_results['best_mix'] = f"{best_mix.o2:.1f}% O2"
+                specific_tool = "/resources/tools?tab=best-mix"
+            
+            # 4. EAD / END
+            if params.get('depth') is not None and (params.get('o2') is not None or params.get('he') is not None):
+                gas = GasMix(o2=params.get('o2', 21.0) or 21.0, he=params.get('he', 0.0) or 0.0)
+                ead = calculate_ead(params['depth'], gas)
+                end = calculate_end(params['depth'], gas)
+                calc_results['ead'] = f"{ead:.1f} meters"
+                if gas.he > 0:
+                    calc_results['end'] = f"{end:.1f} meters"
+            
+            # 5. Minimum Gas
+            if all(params.get(k) is not None for k in ['depth', 'duration', 'sac_rate', 'tank_volume']):
+                min_gas = calculate_min_gas(params['depth'], params['duration'], params['sac_rate'], params['tank_volume'])
+                calc_results['min_gas_reserve'] = f"{min_gas:.1f} bar"
+                specific_tool = "/resources/tools?tab=min-gas"
+            
+            results.append(calc_results)
+            # Add general info about tools
+            results.append({
+                "entity_type": "calculator_tools",
+                "name": "Divemap Tools",
+                "description": "Access to high-precision diving calculators.",
+                "route_path": specific_tool
+            })
+
         return results
 
     def _check_site_difficulty(self, site_id: int, max_level: int) -> bool:
@@ -1079,6 +1146,8 @@ Current Date: {current_date} ({current_weekday})
 9. **No Hallucinated Links**: You must ONLY use the links provided in the <search_results>. If you mention a place or site that is NOT in the search results (e.g. from your general knowledge), DO NOT create a link for it. Just write the name as text.
 10. **Tone**: Helpful and professional.
 11. **Data Absence**: If the information isn't in <search_results>, politely state that you don't have that specific data.
+12. **Calculations**: If the user asks for a diving calculation and `<search_results>` contains `CALCULATOR_RESULTS`, use those values to answer. They were calculated by Divemap's high-precision physics engine. Always point the user to the interactive tools at [Divemap Tools](/resources/tools) for more detailed planning.
+13. **Source Attribution**: Always mention when information comes from Divemap's database or internal tools. For example: "According to Divemap's database..." or "Using Divemap's physics engine...".
 """
         if ask_for_time:
             system_prompt += "\n**IMPORTANT**: The user requested a forecast but did not specify a time. Ask for a time (e.g., 'morning', '14:00') to check wind conditions."
@@ -1089,6 +1158,8 @@ Current Date: {current_date} ({current_weekday})
         else:
             for item in data:
                 data_context += f"## {item['entity_type'].upper()}: {item['name']}\n"
+                if item.get('source'):
+                    data_context += f"  Source: {item['source']}\n"
                 if item.get('route_path'):
                     data_context += f"  Link: {item['route_path']}\n"
                 
@@ -1132,6 +1203,12 @@ Current Date: {current_date} ({current_weekday})
                             data_context += f"    - {c['name']}{link_str}: Depth {c.get('max_depth', '?')}, Cat: {c.get('category', '?')}, Prereq: {c.get('prerequisites', 'None')}\n"
                     else:
                         data_context += f"  Courses/Levels: {', '.join(item.get('courses', []))}\n"
+
+                # Calculator
+                if item['entity_type'] == 'calculator_results':
+                    for key, val in item.items():
+                        if key not in ['entity_type', 'name']:
+                            data_context += f"  {key.upper().replace('_', ' ')}: {val}\n"
 
                 # Weather
                 if 'suitability' in item:

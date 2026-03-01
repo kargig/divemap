@@ -147,6 +147,64 @@ def calculate_mod(gas: GasMix, pp_o2_max: float) -> float:
     max_ata = pp_o2_max / f_o2
     return max(0.0, (max_ata - 1.0) * 10.0)
 
+def calculate_sac(depth_meters: float, duration_minutes: float, tank_volume: float, start_pressure: float, end_pressure: float, gas: GasMix = None) -> float:
+    """
+    Calculates Surface Air Consumption (SAC) rate in L/min.
+    Uses the Real Gas Law (accounting for compressibility) if gas is provided, 
+    otherwise falls back to Ideal Gas Law.
+    
+    Args:
+        depth_meters: Average depth of the dive.
+        duration_minutes: Duration of the dive in minutes.
+        tank_volume: Wet volume of the tank (e.g. 12L).
+        start_pressure: Starting tank pressure in bar.
+        end_pressure: Ending tank pressure in bar.
+        gas: Optional GasMix to use for real gas volume calculation.
+        
+    Returns:
+        float: SAC rate in L/min.
+    """
+    if duration_minutes <= 0:
+        return 0.0
+    
+    # Calculate pressure used
+    pressure_used = max(0.0, start_pressure - end_pressure)
+    
+    # Average pressure at depth (ATA)
+    avg_ata = (depth_meters / 10.0) + 1.0
+    
+    if gas:
+        # Use Real Gas Law
+        v_start = calculate_real_volume(tank_volume, start_pressure, gas)
+        v_end = calculate_real_volume(tank_volume, end_pressure, gas)
+        gas_used_liters = max(0.0, v_start - v_end)
+    else:
+        # Use Ideal Gas Law (PV = nRT fallback)
+        gas_used_liters = pressure_used * tank_volume
+        
+    # SAC = Total Gas Used / (Average ATA * Duration)
+    return gas_used_liters / (avg_ata * duration_minutes)
+
+def calculate_best_mix(depth_meters: float, pp_o2_max: float) -> GasMix:
+    """
+    Calculates the 'best mix' (highest O2 percentage) for a given depth and max ppO2.
+    fO2 = ppO2_max / ATA
+    """
+    ata = (depth_meters / 10.0) + 1.0
+    f_o2 = pp_o2_max / ata
+    o2_pct = min(100.0, max(21.0, f_o2 * 100.0))
+    return GasMix(o2=o2_pct, he=0.0)
+
+def calculate_min_gas(depth_meters: float, duration_at_depth: float, sac_rate: float, tank_volume: float) -> float:
+    """
+    Calculates Minimum Gas (Reserve) required for an ascent.
+    Simple reserve model: (Avg Depth ATA) * (Duration) * (SAC Rate)
+    Returns pressure in Bar.
+    """
+    avg_ata = (depth_meters / 2.0 / 10.0) + 1.0 # Average ATA during ascent
+    gas_required = avg_ata * duration_at_depth * sac_rate
+    return gas_required / tank_volume
+
 def calculate_end(depth_meters: float, gas: GasMix) -> float:
     """
     Calculates Equivalent Narcotic Depth (END).

@@ -3,7 +3,9 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc, or_, and_
 from typing import List, Optional
 from datetime import datetime, timezone
+import logging
 
+from fastapi import BackgroundTasks
 from app.database import get_db
 from app.models import User, UserChatRoom, UserChatRoomMember, UserChatMessage
 from app.auth import get_current_active_user
@@ -15,9 +17,12 @@ from app.services.encryption_service import (
     generate_room_dek, encrypt_room_dek, decrypt_message, encrypt_message
 )
 from app.services.sqs_service import SQSService
+from app.services.chat_service import ChatService
+from app.schemas.chat import ChatRequest
 
 router = APIRouter()
 sqs_service = SQSService()
+logger = logging.getLogger(__name__)
 
 def get_room_or_404(db: Session, room_id: int, user_id: int) -> UserChatRoom:
     """Helper to get a room and ensure the user is an active member."""
@@ -35,6 +40,52 @@ def get_room_or_404(db: Session, room_id: int, user_id: int) -> UserChatRoom:
         raise HTTPException(status_code=403, detail="You are not an active member of this room")
         
     return room, member
+
+async def process_bot_mention_task(room_id: int, user_message: str, sender_id: int, db: Session):
+    """Background task to generate and inject a chatbot response into a chat room."""
+    try:
+        room = db.query(UserChatRoom).filter(UserChatRoom.id == room_id).first()
+        if not room:
+            logger.error(f"process_bot_mention_task: Room {room_id} not found.")
+            return
+
+        current_user = db.query(User).filter(User.id == sender_id).first()
+        if not current_user:
+            logger.error(f"process_bot_mention_task: User {sender_id} not found.")
+            return
+
+        chat_service = ChatService(db)
+        
+        # Strip mentions to get a clean prompt
+        clean_message = user_message.replace("@bot ", "").replace("@divemap ", "").strip()
+        if not clean_message:
+            clean_message = user_message
+
+        request = ChatRequest(message=clean_message)
+        
+        # Process via the existing AI chatbot pipeline
+        response = await chat_service.process_message(request, current_user)
+        
+        # Encrypt the bot's response using the room's DEK
+        ciphertext = encrypt_message(response.response, room.encrypted_dek)
+        
+        # Create the message (sender_id=None indicates the system/bot author)
+        bot_message = UserChatMessage(
+            room_id=room_id,
+            sender_id=None,
+            content=ciphertext
+        )
+        db.add(bot_message)
+        
+        # Update room activity so buddies poll the new message
+        room.last_activity_at = func.now()
+        
+        db.commit()
+        logger.info(f"Successfully injected bot response into room {room_id}")
+        
+    except Exception as e:
+        logger.error(f"process_bot_mention_task: Error processing bot mention: {str(e)}")
+        db.rollback()
 
 @router.post("/rooms", response_model=ChatRoomResponse, status_code=status.HTTP_201_CREATED)
 async def create_chat_room(
@@ -192,6 +243,7 @@ async def get_total_unread_count(
 async def send_message(
     room_id: int,
     message_in: ChatMessageCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -216,8 +268,18 @@ async def send_message(
     db.commit()
     db.refresh(new_message)
     
+    # Check for bot mentions to trigger AI response
+    content_lower = message_in.content.lower()
+    if "@bot" in content_lower or "@divemap" in content_lower:
+        background_tasks.add_task(
+            process_bot_mention_task,
+            room_id=room_id,
+            user_message=message_in.content,
+            sender_id=current_user.id,
+            db=db
+        )
+    
     # Queue notification generation in SQS for offline users
-    # We pass only metadata, NOT the plaintext message
     if sqs_service.sqs_available:
         sqs_service.sqs_client.send_message(
             QueueUrl=sqs_service.queue_url,
