@@ -28,13 +28,15 @@ class DummyRequest:
 
 
 def test_get_client_ip_prefers_fly_header():
-    req = DummyRequest(headers={"Fly-Client-IP": "203.0.113.5", "X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
-    assert get_client_ip(req) == "203.0.113.5"
+    req = DummyRequest(headers={"Fly-Client-IP": "1.1.1.1", "X-Forwarded-For": "1.2.3.4, 5.6.7.8"})
+    assert get_client_ip(req) == "1.1.1.1"
 
 
 def test_get_client_ip_uses_x_forwarded_for_first_ip():
-    req = DummyRequest(headers={"X-Forwarded-For": "198.51.100.9, 203.0.113.7"})
-    assert get_client_ip(req) == "198.51.100.9"
+    # Chain: [Client] -> [Proxy 1] -> [Proxy 2 (Private)]
+    # Right to left: Skip 10.0.0.1, return 1.1.1.2
+    req = DummyRequest(headers={"X-Forwarded-For": "1.1.1.2, 10.0.0.1"})
+    assert get_client_ip(req) == "1.1.1.2"
 
 
 def test_get_client_ip_falls_back_to_client_host():
@@ -77,7 +79,7 @@ def test_is_private_ip_ipv4_and_ipv6():
     assert is_private_ip("fd00:abcd::1")
     assert is_private_ip("fe80::1")
     assert is_private_ip("fdaa::1")
-    assert not is_private_ip("203.0.113.10")
+    assert not is_private_ip("1.1.1.1")
     assert not is_private_ip("-")
 
 

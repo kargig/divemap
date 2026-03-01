@@ -1822,6 +1822,76 @@ async def get_dive_site(
         if user_rating_obj:
             user_rating = user_rating_obj.score
 
+    # Get thumbnail
+    thumbnail = None
+    thumbnail_type = None
+    thumbnail_source = None
+    thumbnail_id = None
+
+    # Get all media from SiteMedia (id, media_type, url, thumbnail_url)
+    site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url, SiteMedia.thumbnail_url).filter(
+        SiteMedia.dive_site_id == dive_site.id
+    ).all()
+    
+    # Get all media from DiveMedia (id, media_type, url, thumbnail_url)
+    dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url, DiveMedia.thumbnail_url).join(Dive).filter(
+        Dive.dive_site_id == dive_site.id
+    ).all()
+    
+    # Combine all media items with source info
+    # Format: (media_object, source_string)
+    all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
+    
+    if all_media:
+        import random
+        # If there's a defined media order, try to respect it
+        if dive_site.media_order and len(dive_site.media_order) > 0:
+            ordered_media = []
+            media_map = {f"{src}_{m.id}": (m, src) for m, src in all_media}
+            
+            # Add ordered items first
+            for key in dive_site.media_order:
+                if key in media_map:
+                    ordered_media.append(media_map[key])
+            
+            # If we found ordered items, pick the first one
+            if ordered_media:
+                selected_media, source = ordered_media[0]
+            else:
+                selected_media, source = random.choice(all_media)
+        else:
+            selected_media, source = random.choice(all_media)
+        
+        # Use thumbnail_url if available, otherwise fallback to url (original)
+        if selected_media.thumbnail_url:
+            thumbnail = selected_media.thumbnail_url
+        else:
+            thumbnail = selected_media.url
+            
+        thumbnail_id = selected_media.id
+        thumbnail_source = source
+        
+        # Determine media type
+        media_type_val = selected_media.media_type
+        if hasattr(media_type_val, 'value'):
+            thumbnail_type = media_type_val.value
+        else:
+            thumbnail_type = str(media_type_val)
+
+    if thumbnail:
+        if thumbnail.startswith('user_'):
+             r2_storage = get_r2_storage()
+             thumbnail = r2_storage.get_photo_url(thumbnail)
+        elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
+            import re
+            youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&]+)'
+            match = re.search(youtube_regex, thumbnail)
+            if match:
+                video_id = match.group(1)
+                thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+            if thumbnail_type != 'video':
+                thumbnail_type = 'video'
+
     # Prepare response data
     # Extract difficulty_code and difficulty_label from relationship
     difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
@@ -1852,7 +1922,11 @@ async def get_dive_site(
         "total_ratings": total_ratings,
         "tags": tags_dict,
         "aliases": aliases_dict,
-        "user_rating": user_rating
+        "user_rating": user_rating,
+        "thumbnail": thumbnail,
+        "thumbnail_type": thumbnail_type,
+        "thumbnail_source": thumbnail_source,
+        "thumbnail_id": thumbnail_id
     }
 
     # Only include view_count for admin users

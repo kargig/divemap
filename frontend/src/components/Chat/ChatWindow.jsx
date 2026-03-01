@@ -2,6 +2,7 @@ import { X, Send, Trash2, Maximize2, Minimize2, Lock } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+import ChatbotIcon from './ChatbotIcon';
 import MessageBubble from './MessageBubble';
 import SuggestionChips from './SuggestionChips';
 
@@ -83,7 +84,7 @@ const ChatWindow = ({
       {/* Header */}
       <div className='flex items-center justify-between px-4 py-3 bg-blue-600 text-white shrink-0'>
         <div className='flex items-center gap-2'>
-          <div className='w-2 h-2 rounded-full bg-green-400 animate-pulse' />
+          <ChatbotIcon size={20} className='text-blue-100' />
           <h3 className='font-semibold text-sm'>Divemap Assistant</h3>
         </div>
         <div className='flex items-center gap-1'>
