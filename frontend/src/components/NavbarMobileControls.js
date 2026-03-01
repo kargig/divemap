@@ -27,8 +27,10 @@ import {
   Route,
   User,
   Crown,
+  MessageSquare,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -36,6 +38,7 @@ import { useAuth } from '../contexts/AuthContext';
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
+import ChatDropdown from './UserChat/ChatDropdown';
 
 const NavbarMobileControls = () => {
   const { user, logout } = useAuth();
@@ -76,6 +79,7 @@ const NavbarMobileControls = () => {
   return (
     <>
       <div className='md:hidden flex items-center gap-4'>
+        {user && <ChatDropdown />}
         {user && <NotificationBell />}
         <button
           onClick={toggleMobileMenu}
@@ -137,7 +141,7 @@ const NavbarMobileControls = () => {
                   title={
                     <div className='flex items-center gap-2'>
                       <Compass className='h-5 w-5 text-blue-100' />
-                      <span>Diving</span>
+                      <span>Dive / Explore</span>
                     </div>
                   }
                 >
@@ -173,24 +177,25 @@ const NavbarMobileControls = () => {
                     >
                       Dive Routes
                     </List.Item>
+                    <List.Item
+                      prefix={<Building className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/diving-centers')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Diving Centers
+                    </List.Item>
+                    <List.Item
+                      prefix={<Calendar className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/dive-trips')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Dive Trips
+                    </List.Item>
                   </List>
                 </Collapse.Panel>
               </Collapse>
-
-              <List.Item
-                prefix={<Building className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/diving-centers')}
-                arrow={false}
-              >
-                Diving Centers
-              </List.Item>
-              <List.Item
-                prefix={<Calendar className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/dive-trips')}
-                arrow={false}
-              >
-                Dive Trips
-              </List.Item>
 
               <Collapse>
                 <Collapse.Panel

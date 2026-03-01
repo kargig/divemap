@@ -121,8 +121,4 @@ WindArrowLegend.propTypes = {
   onClose: PropTypes.func,
 };
 
-WindArrowLegend.defaultProps = {
-  onClose: null,
-};
-
 export default WindArrowLegend;
