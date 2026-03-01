@@ -1,10 +1,11 @@
 import { format } from 'date-fns';
+import { Edit3 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
 import Avatar from '../Avatar';
 
-const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, isLoading }) => {
+const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) => {
   if (isLoading) {
     return (
       <div className='flex flex-col space-y-4 p-4'>
@@ -32,8 +33,15 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, isLoading }) => {
 
   return (
     <div className='flex flex-col overflow-y-auto h-full border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'>
-      <div className='p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'>
+      <div className='p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center'>
         <h2 className='text-xl font-bold text-gray-900 dark:text-white'>Messages</h2>
+        <button
+          onClick={onNewChat}
+          className='p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors'
+          title='New Conversation'
+        >
+          <Edit3 className='h-5 w-5' />
+        </button>
       </div>
       <div className='flex-1 overflow-y-auto'>
         {rooms.map(room => {
@@ -81,13 +89,13 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, isLoading }) => {
                 <p
                   className={`text-xs truncate ${
                     room.unread_count > 0
-                      ? 'text-blue-600 dark:text-blue-400 font-medium'
-                      : 'text-gray-500 dark:text-gray-400'
+                      ? 'text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider'
+                      : 'text-gray-500 dark:text-gray-400 italic'
                   }`}
                 >
                   {room.unread_count > 0
-                    ? 'New message...'
-                    : room.latest_message || 'Start chatting'}
+                    ? `${room.unread_count} new message${room.unread_count > 1 ? 's' : ''}`
+                    : `Last activity: ${format(new Date(room.last_activity_at), 'MMM d, HH:mm')}`}
                 </p>
               </div>
             </button>
@@ -112,6 +120,7 @@ ChatInbox.propTypes = {
   ).isRequired,
   activeRoomId: PropTypes.number,
   onSelectRoom: PropTypes.func.isRequired,
+  onNewChat: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
 };
 

@@ -1,7 +1,8 @@
 # Chat Subsystem Implementation
 
-**Status:** Refining
+**Status:** Complete
 **Created:** 2026-02-22
+**Updated:** 2026-02-28
 **Agent PID:** 80812
 **Branch:** feature/chat-subsystem
 
@@ -25,41 +26,49 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 - **Server-Side Envelope Encryption:** A Master Encryption Key (MEK) encrypts unique Data Encryption Keys (DEKs) for each chat room. DEKs are cached in-memory using an LRU cache to save CPU cycles.
 - **Resilient Synchronization (Edits Included):** Cursor-based fetching (`after_updated_at`) allows clients to fetch missed messages and recent edits in a single request.
 - **Polling Stampede Protection:** A `last_activity_at` column on the room allows the API to return a `304 Not Modified` instantly if nothing has changed, completely bypassing the heavy messages table and decryption logic.
-- **AWS SQS Integration:** Asynchronous notification generation for offline users is offloaded to SQS to keep chat APIs blazing fast.
-  * *How it works:* The FastAPI `/messages` endpoint blindly pushes an event (`{"type": "new_chat_message"}`) to SQS immediately upon saving the message, rather than calculating who is online. A separate background worker reads this queue, checks the `last_read_at` and `last_accessed_at` timestamps of the room members to determine who is actually offline, and dispatches email notifications based on user preferences.
+- **Group Management:** Users can leave group chats, and admins can rename rooms with automatic admin role reassignment.
+- **Unified UI Notifications:** Chat and System notifications share a consistent, modern "at-a-glance" dropdown aesthetic in the Navbar.
+- **User Mentions:** Users can mention other existing users within a group chat using `@username`.
+- **Internal Link Previews:** Chat messages automatically detect and render links to internal Divemap resources (e.g., dive sites) with rich preview cards.
 
 ## Success Criteria
 
 ### Functional Requirements
-- [ ] **Functional**: Users can only create 1-on-1 DMs or Group Chats with users who have them listed as "buddies".
-- [ ] **Functional**: Messages are encrypted using room-specific DEKs before being stored.
-- [ ] **Functional**: Clients fetch new and edited messages using the `after_updated_at` cursor.
-- [ ] **Functional**: Senders can edit messages; the ciphertext updates and `is_edited` is set.
-- [ ] **Functional**: The `chat_rooms.last_activity_at` timestamp updates on every new message or edit.
-- [ ] **Functional**: Unread message counts are accurately tracked via `chat_room_members.last_read_at`.
-- [ ] **Functional**: Asynchronous notification generation for offline users is queued via AWS SQS.
+- [x] **Functional**: Users can only create 1-on-1 DMs or Group Chats with users who have them listed as "buddies".
+- [x] **Functional**: Messages are encrypted using room-specific DEKs before being stored.
+- [x] **Functional**: Clients fetch new and edited messages using the `after_updated_at` cursor.
+- [x] **Functional**: Senders can edit messages; the ciphertext updates and `is_edited` is set.
+- [x] **Functional**: The `chat_rooms.last_activity_at` timestamp updates on every new message or edit.
+- [x] **Functional**: Unread message counts are accurately tracked via `chat_room_members.last_read_at`.
+- [x] **Functional**: Asynchronous notification generation for offline users is queued via AWS SQS.
+- [x] **Functional**: Users can mention existing users in a group chat using `@username` syntax.
+- [x] **Functional**: Links to internal Divemap application pages render as mini preview cards within the chat.
+- [x] **Functional**: Users can leave group chats; admin roles are reassigned if the last admin leaves.
+- [x] **Functional**: Group admins can rename their chat rooms.
+- [x] **Functional**: A "Chat Dropdown" in the navbar provides quick access to recent activity without leaving the current page.
 
 ### Quality Requirements
-- [ ] **Quality**: The Master Encryption Key (MEK) is never logged or stored in the database.
-- [ ] **Quality**: Malformed ciphertexts return a `[Message unavailable]` placeholder instead of crashing.
-- [ ] **Quality**: Python's `functools.lru_cache` (or similar) is used to cache plaintext DEKs in FastAPI memory (e.g., max 1000 rooms, 10-minute TTL) to prevent symmetric decryption CPU thrashing.
-- [ ] **Quality**: All database queries strictly enforce the `created_at >= joined_at` authorization rule for group members.
+- [x] **Quality**: The Master Encryption Key (MEK) is never logged or stored in the database.
+- [x] **Quality**: Malformed ciphertexts return a `[Message unavailable]` placeholder instead of crashing.
+- [x] **Quality**: Python's `functools.lru_cache` (or similar) is used to cache plaintext DEKs in FastAPI memory (e.g., max 1000 rooms, 10-minute TTL) to prevent symmetric decryption CPU thrashing.
+- [x] **Quality**: All database queries strictly enforce the `created_at >= joined_at` authorization rule for group members.
+- [x] **Quality**: The `GET /rooms` listing is optimized to avoid decryption; it relies on unread counts and timestamps for at-a-glance status.
 
 ### Performance Requirements
-- [ ] **Performance**: The polling endpoint `GET /messages` must check `chat_rooms.last_activity_at` first. If no new activity occurred since the client's cursor, return `304 Not Modified` in < 10ms.
-- [ ] **Performance**: Database indexes on `chat_messages(room_id, updated_at)` and `chat_rooms(id, last_activity_at)` are implemented.
-- [ ] **Performance**: SQS queueing logic fails gracefully if AWS is unreachable, ensuring chat messages still deliver.
+- [x] **Performance**: The polling endpoint `GET /messages` must check `chat_rooms.last_activity_at` first. If no new activity occurred since the client's cursor, return `304 Not Modified` in < 10ms.
+- [x] **Performance**: Database indexes on `chat_messages(room_id, updated_at)` and `chat_rooms(id, last_activity_at)` are implemented.
+- [x] **Performance**: SQS queueing logic fails gracefully if AWS is unreachable, ensuring chat messages still deliver.
 
 ### Security Requirements
-- [ ] **Security**: Envelope encryption uses AES-128-CBC with HMAC (via Fernet) or AES-256-GCM.
-- [ ] **Security**: Chat API endpoints enforce standard Divemap JWT authentication.
+- [x] **Security**: Envelope encryption uses AES-128-CBC with HMAC (via Fernet) or AES-256-GCM.
+- [x] **Security**: Chat API endpoints enforce standard Divemap JWT authentication.
 
 ### User Validation
-- [ ] **User validation**: Minimizing the browser for 5 minutes and returning correctly fetches missed messages AND updates any messages edited by others during that time.
+- [x] **User validation**: Minimizing the browser for 5 minutes and returning correctly fetches missed messages AND updates any messages edited by others during that time.
 
 ### Documentation
-- [ ] **Documentation**: Cryptographic architecture and LRU caching strategy are documented.
-- [ ] **Documentation**: API endpoints (specifically the `304 Not Modified` behavior and `after_updated_at` cursor) are fully documented.
+- [x] **Documentation**: Cryptographic architecture and LRU caching strategy are documented.
+- [x] **Documentation**: API endpoints (specifically the `304 Not Modified` behavior and `after_updated_at` cursor) are fully documented.
 
 ## Implementation Plan
 
@@ -102,20 +111,40 @@ Heavy asynchronous tasks (like distributing notification alerts to offline users
 
 ### Phase 4: Frontend UI & Smart Polling
 
-- [ ] **Code change**: Create `ChatInbox` component (lists rooms with unread badges).
-- [ ] **Code change**: Create `ChatRoom` component (main message thread view).
-- [ ] **Code change**: Create `MessageBubble` component (handles display and edited state).
-- [ ] **Code change**: Implement smart polling using `react-query` or `useEffect`. 
+- [x] **Code change**: Create `ChatInbox` component (lists rooms with unread badges).
+- [x] **Code change**: Create `ChatRoom` component (main message thread view).
+- [x] **Code change**: Create `MessageBubble` component (handles display and edited state).
+- [x] **Code change**: Implement smart polling using `react-query`. 
     - The client tracks the highest `updated_at` timestamp it has seen in the current room.
     - It requests `?after_updated_at=<timestamp>` every ~3 seconds.
     - It correctly handles `304 Not Modified` responses without updating UI state.
     - When new/edited messages arrive, it merges them into the local state (appending new ones, replacing edited ones based on `message.id`).
-- [ ] **Code change**: Add a window focus event listener. When the user switches back to the app, instantly trigger the poll to catch up.
+- [x] **Code change**: Add global unread indicator to desktop and mobile navbars by polling `/api/v1/user-chat/unread-count`.
+- [x] **Code change**: Add a window focus event listener (via `react-query`'s default `refetchOnWindowFocus`) to catch up when user returns.
 
-### Phase 5: Administration Tools
+### Phase 5: UI Refinement & Integration
 
+- [x] **Code change**: Create `/buddies` management page for handling accepted friends and pending requests.
+- [x] **Code change**: Optimize Navbar layout. Consolidated "Diving Centers" and "Dive Trips" into "Dive / Explore" dropdown to save space for chat icons.
+- [x] **Code change**: Distinguish AI assistant icon (`ChatbotIcon`) from user messaging (`MessageSquare`).
+- [x] **Code change**: Fix mobile flexbox "squishing" issues in `ChatInbox` and `BuddyRequests` using `shrink-0` and `min-w-0`.
+- [x] **Code change**: Ensure corrupted ciphertexts return `[Message unavailable]` gracefully.
 - [ ] **Code change**: Create `scripts/rotate_chat_master_key.py`. Decrypts all `encrypted_dek` values and re-encrypts with a new MEK. Must also clear the LRU cache if run while the app is live.
-- [ ] **Code change**: Ensure corrupted ciphertexts return `[Message unavailable]` gracefully.
+
+### Phase 6: Rich Chat Features & Mentions
+
+- [x] **Code change**: Implement User Mentions parsing in frontend message input and display.
+- [x] **Code change**: Update `MessageBubble` component to detect internal Divemap URLs (e.g., `/dive-sites/:id`) and render a mini preview card containing basic details of the linked entity.
+
+### Phase 7: Group Management & Unified Navbar UI
+
+- [x] **Code change**: Implement `PUT /api/v1/user-chat/rooms/{room_id}` for group renaming (admin only).
+- [x] **Code change**: Implement `DELETE /api/v1/user-chat/rooms/{room_id}/leave` with automatic admin reassignment.
+- [x] **Code change**: Create `NewChatModal` with multi-buddy selection and group naming.
+- [x] **Code change**: Create `RoomSettings` side-panel for participant lists and group management.
+- [x] **Code change**: Create `ChatDropdown` for modern Navbar activity tracking.
+- [x] **Code change**: Refactor `NotificationBell` to match the new unified dropdown aesthetic.
+- [x] **Code change**: Optimize `GET /rooms` listing to remove message decryption and focus on timestamps/counts.
 
 ## Review
 

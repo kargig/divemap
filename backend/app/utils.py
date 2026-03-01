@@ -88,10 +88,9 @@ def get_client_ip(request: Request) -> str:
             if not is_private_ip(ip) and not is_localhost_ip(ip):
                 return ip
         
-        # If all IPs are private/internal, return the last one (rightmost) as fallback
-        # The last IP is the one added by the most recent proxy and is more trustworthy
-        # than the first IP which could be spoofed
-        return ips[-1]
+        # If all IPs in the chain are private or local, return the leftmost IP as fallback.
+        # This represents the original internal requester in a trusted internal network chain.
+        return ips[0]
 
     # Check True-Client-IP (Akamai, Cloudflare)
     if 'True-Client-IP' in request.headers:
