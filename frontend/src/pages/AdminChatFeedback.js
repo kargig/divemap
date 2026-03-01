@@ -17,6 +17,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import { getAdminChatFeedback, getAdminChatFeedbackStats, deleteAdminChatFeedback } from '../api';
+import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import AdminChatFeedbackTable from '../components/tables/AdminChatFeedbackTable';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
@@ -149,11 +150,11 @@ const AdminChatFeedback = () => {
   );
 
   return (
-    <div className='max-w-7xl mx-auto p-4 sm:p-6 lg:p-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>
-            <MessageSquare className='text-blue-600' />
+            <ChatbotIcon size={32} className='text-blue-600' />
             Chatbot Feedback Dashboard
           </h1>
           <p className='text-gray-600 dark:text-gray-400 mt-2'>
@@ -175,7 +176,7 @@ const AdminChatFeedback = () => {
         <div className='bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700'>
           <div className='flex items-center justify-between mb-2'>
             <span className='text-sm font-medium text-gray-500'>Total Feedback</span>
-            <MessageSquare className='text-blue-500' size={20} />
+            <ChatbotIcon size={20} className='text-blue-500' />
           </div>
           <div className='text-2xl font-bold dark:text-white'>{stats?.total_feedback || 0}</div>
         </div>

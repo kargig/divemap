@@ -30,7 +30,7 @@ Implement a secure password reset flow allowing users to reset their password vi
     - `POST /api/v1/auth/forgot-password`
         - Rate limit: 5 per day per IP
         - Input: `email_or_username`
-        - Logic: Check user. If Google auth, ignore but return success. Generate token. Send email. Log request to `AuthAuditLog`.
+        - Logic: Check user. If Google auth, ignore but return success. **If 'admin' username, ignore but return success.** Generate token. Send email. Log request to `AuthAuditLog`.
     - `GET /api/v1/auth/verify-reset-token?token=...`
         - Verify if token is valid and not expired
     - `POST /api/v1/auth/reset-password`
@@ -65,6 +65,7 @@ Implement a secure password reset flow allowing users to reset their password vi
 - [x] **Session Management:** Invalidate all existing sessions (Refresh Tokens) on password reset.
 - [x] **Notifications:** Send email on successful password change.
 - [x] **Audit:** Log reset requests and successes in `AuthAuditLog`.
+- [x] **Admin Restriction:** Specifically block 'admin' user from password reset.
 - [x] Ensure rate limiting is active and functional
 - [x] Verify token expiration (30 minutes)
 - [x] Ensure Google auth users don't get emails but requesting doesn't reveal account type
