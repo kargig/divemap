@@ -34,6 +34,7 @@ const AdminRecentActivity = lazy(() => import('./pages/AdminRecentActivity'));
 const AdminSystemMetrics = lazy(() => import('./pages/AdminSystemMetrics'));
 const AdminTags = lazy(() => import('./pages/AdminTags'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminChatFeedback = lazy(() => import('./pages/AdminChatFeedback'));
 const AdminChatHistory = lazy(() => import('./pages/AdminChatHistory'));
 const API = lazy(() => import('./pages/API'));
@@ -68,7 +69,9 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Buddies = lazy(() => import('./pages/Buddies'));
 const Register = lazy(() => import('./pages/Register'));
+const Messages = lazy(() => import('./pages/Messages'));
 const Resubscribe = lazy(() => import('./pages/Resubscribe'));
 const RouteDetail = lazy(() => import('./pages/RouteDetail'));
 const Tools = lazy(() => import('./pages/Tools'));
@@ -193,11 +196,20 @@ function App() {
                     <Route path='/forgot-password' element={<ForgotPassword />} />
                     <Route path='/reset-password' element={<ResetPassword />} />
                     <Route path='/register' element={<Register />} />
+                    <Route path='/messages' element={<Messages />} />
                     <Route path='/verify-email' element={<VerifyEmail />} />
                     <Route path='/check-email' element={<CheckYourEmail />} />
                     <Route path='/unsubscribe' element={<Unsubscribe />} />
                     <Route path='/resubscribe' element={<Resubscribe />} />
                     <Route path='/users/:username' element={<UserProfile />} />
+                    <Route
+                      path='/buddies'
+                      element={
+                        <ProtectedRoute>
+                          <Buddies />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path='/dive-sites' element={<DiveSites />} />
                     <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
                     <Route path='/dive-sites/:id/:slug' element={<DiveSiteDetail />} />
@@ -365,6 +377,14 @@ function App() {
                       element={
                         <ProtectedRoute requireAdmin={true}>
                           <AdminUsers />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/admin/audit-logs'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminAuditLogs />
                         </ProtectedRoute>
                       }
                     />

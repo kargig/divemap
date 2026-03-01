@@ -308,6 +308,7 @@ const AdminNotificationPreferences = () => {
     { value: 'new_diving_centers', label: 'New Diving Centers' },
     { value: 'new_dive_trips', label: 'New Dive Trips' },
     { value: 'admin_alerts', label: 'Admin Alerts' },
+    { value: 'system', label: 'System & Social' },
   ];
 
   if (!user?.is_admin) {
@@ -319,7 +320,7 @@ const AdminNotificationPreferences = () => {
   }
 
   return (
-    <div className='max-w-7xl mx-auto p-6'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
       <div className='mb-6'>
         <h1 className='text-3xl font-bold text-gray-900'>Manage User Notification Preferences</h1>
         <p className='text-gray-600 mt-2'>View and modify notification preferences for any user</p>
@@ -594,7 +595,12 @@ const AdminNotificationPreferences = () => {
                                         setEditingCategory(category.value);
                                         setPreferenceForm({
                                           category: category.value,
-                                          enable_website: category.value !== 'admin_alerts',
+                                          enable_website: [
+                                            'system',
+                                            'new_dive_sites',
+                                            'new_dive_trips',
+                                            'admin_alerts',
+                                          ].includes(category.value),
                                           enable_email: false,
                                           frequency: 'immediate',
                                           area_filter: null,

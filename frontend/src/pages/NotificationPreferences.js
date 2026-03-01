@@ -39,6 +39,11 @@ const NotificationPreferencesPage = () => {
       label: 'Admin Alerts',
       description: 'Admin-only notifications (user registrations, claims)',
     },
+    {
+      value: 'system',
+      label: 'System & Social',
+      description: 'Buddy requests, chat messages, and system announcements',
+    },
   ];
 
   const frequencies = [
@@ -96,7 +101,7 @@ const NotificationPreferencesPage = () => {
 
   if (isLoading) {
     return (
-      <div className='max-w-4xl mx-auto'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         <div className='mb-6'>
           <Link
             to='/profile'
@@ -115,7 +120,7 @@ const NotificationPreferencesPage = () => {
   }
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='mb-6'>
         <Link
           to='/profile'
@@ -134,8 +139,16 @@ const NotificationPreferencesPage = () => {
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {categories.map(category => {
             const preference = getPreference(category.value);
-            // Only use preference values if preference exists, otherwise show as not configured
-            const enableWebsite = preference?.enable_website ?? false;
+            // Default website notification should be true for 'system', 'new_dive_sites', 'new_dive_trips', 'admin_alerts'
+            const isDefaultEnabled = [
+              'system',
+              'new_dive_sites',
+              'new_dive_trips',
+              'admin_alerts',
+            ].includes(category.value);
+
+            // Only use preference values if preference exists, otherwise show as not configured (or default)
+            const enableWebsite = preference?.enable_website ?? isDefaultEnabled;
             const enableEmail = preference?.enable_email ?? false;
             const frequency = preference?.frequency ?? 'immediate';
 
@@ -143,7 +156,9 @@ const NotificationPreferencesPage = () => {
               <div
                 key={category.value}
                 className={`border rounded-lg p-4 ${
-                  preference ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                  preference || isDefaultEnabled
+                    ? 'border-gray-200 bg-white'
+                    : 'border-gray-100 bg-gray-50'
                 }`}
               >
                 <div className='flex items-start justify-between mb-4'>

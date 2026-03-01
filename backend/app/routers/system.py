@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc, asc, text, Integer
 from datetime import datetime, timedelta, timezone
@@ -13,12 +13,13 @@ from app.models import (
     User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
     SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
     DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, NotificationPreference, DiveRoute, RouteAnalytics
+    Notification, NotificationPreference, DiveRoute, RouteAnalytics,
+    AuthAuditLog
 )
 from app.auth import get_current_admin_user
 from app.schemas import (
     SystemHealthResponse, PlatformStatsResponse,
-    NotificationAnalyticsResponse, GrowthResponse
+    NotificationAnalyticsResponse, GrowthResponse, AuthAuditLogResponse
 )
 from app.utils import get_client_ip, format_ip_for_logging
 from app.monitoring import get_turnstile_stats
@@ -1299,3 +1300,63 @@ async def get_notification_analytics(
         },
         "timestamp": now.isoformat()
     }
+
+@router.get("/audit-logs", response_model=List[AuthAuditLogResponse])
+async def get_audit_logs(
+    response: Response,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(25, ge=1, le=100, description="Items per page"),
+    action: Optional[str] = Query(None, description="Filter by action"),
+    exclude_action: Optional[List[str]] = Query(None, description="Exclude specific actions"),
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    username: Optional[str] = Query(None, description="Filter by username"),
+    ip_address: Optional[str] = Query(None, description="Filter by IP address"),
+    success: Optional[bool] = Query(None, description="Filter by success status"),
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get auth audit logs with pagination and filtering (Admin only).
+    """
+    query = db.query(AuthAuditLog, User.username).join(User, AuthAuditLog.user_id == User.id)
+
+    # Filtering
+    if action:
+        query = query.filter(AuthAuditLog.action == action)
+    if exclude_action:
+        query = query.filter(AuthAuditLog.action.notin_(exclude_action))
+    if user_id:
+        query = query.filter(AuthAuditLog.user_id == user_id)
+    if username:
+        query = query.filter(User.username.ilike(f"%{username}%"))
+    if ip_address:
+        query = query.filter(AuthAuditLog.ip_address.ilike(f"%{ip_address}%"))
+    if success is not None:
+        query = query.filter(AuthAuditLog.success == success)
+
+    # Sorting (newest first)
+    query = query.order_by(AuthAuditLog.timestamp.desc())
+
+    # Pagination
+    total_count = query.count()
+    total_pages = (total_count + page_size - 1) // page_size
+    offset = (page - 1) * page_size
+    
+    logs = query.offset(offset).limit(page_size).all()
+
+    # Format response
+    result = []
+    for log, username in logs:
+        # Create response object and manually set username
+        # Use model_validate to convert SQLAlchemy model to Pydantic
+        log_data = AuthAuditLogResponse.model_validate(log)
+        log_data.username = username
+        result.append(log_data)
+
+    # Set pagination headers
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Total-Pages"] = str(total_pages)
+    response.headers["X-Current-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+
+    return result

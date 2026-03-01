@@ -52,3 +52,7 @@ Credentials in `local_testme` file. Use when necessary.
 - Never commit secrets to git
 - Use .env files for local development
 - Use pinned versions in requirements.txt
+
+## Admin UI Layout Standards
+- All admin pages MUST use the standard wide container: `max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6`.
+- Tables should prioritize information density and use horizontal scrolling (`scroll={{ x: 'max-content' }}` for AntD) rather than wrapping content vertically.

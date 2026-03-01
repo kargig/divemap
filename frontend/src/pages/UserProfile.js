@@ -12,23 +12,37 @@ import {
   Cylinder,
   Timer,
   Shield,
+  UserPlus,
+  UserCheck,
+  Clock,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
-import { getUserPublicProfile } from '../api';
+import {
+  getUserPublicProfile,
+  getUserFriendships,
+  sendFriendRequest,
+  createChatRoom,
+} from '../api';
 import Avatar from '../components/Avatar';
 import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
+import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
 const UserProfile = () => {
   // Set page title
   usePageTitle('Divemap - User Profile');
   const { username } = useParams();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [friendshipStatus, setFriendshipStatus] = useState(null); // null, 'PENDING', 'ACCEPTED'
+  const [isProcessingFriendship, setIsProcessingFriendship] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -37,6 +51,31 @@ const UserProfile = () => {
         setError(null);
         const data = await getUserPublicProfile(username);
         setProfile(data);
+
+        // Fetch friendship status if logged in and not viewing self
+        if (currentUser && currentUser.username !== username) {
+          try {
+            const friends = await getUserFriendships('ACCEPTED');
+            const isFriend = friends.some(
+              f =>
+                (f.user && f.user.username === username) ||
+                (f.friend && f.friend.username === username)
+            );
+            if (isFriend) {
+              setFriendshipStatus('ACCEPTED');
+            } else {
+              const pending = await getUserFriendships('PENDING');
+              const isPending = pending.some(
+                f =>
+                  (f.user && f.user.username === username) ||
+                  (f.friend && f.friend.username === username)
+              );
+              if (isPending) setFriendshipStatus('PENDING');
+            }
+          } catch (fErr) {
+            console.error('Failed to fetch friendship status', fErr);
+          }
+        }
       } catch (err) {
         if (err.response?.status === 404) {
           setError('User not found');
@@ -50,6 +89,37 @@ const UserProfile = () => {
 
     fetchProfile();
   }, [username]);
+
+  const handleBuddyAction = async () => {
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
+    if (friendshipStatus === 'ACCEPTED') {
+      // Logic to start chat
+      try {
+        const room = await createChatRoom([profile.id], false);
+        navigate('/messages', { state: { roomId: room.id } });
+      } catch (err) {
+        toast.error('Failed to start chat');
+      }
+      return;
+    }
+
+    if (!friendshipStatus) {
+      setIsProcessingFriendship(true);
+      try {
+        await sendFriendRequest(profile.id);
+        setFriendshipStatus('PENDING');
+        toast.success('Buddy request sent!');
+      } catch (err) {
+        toast.error('Failed to send buddy request');
+      } finally {
+        setIsProcessingFriendship(false);
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -208,15 +278,49 @@ const UserProfile = () => {
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
       <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-        <div className='flex items-center space-x-6'>
-          <Avatar
-            src={profile.avatar_url}
-            alt={profile.username}
-            size='2xl'
-            fallbackText={profile.username}
-          />
-          <div className='flex-1'>
-            <h1 className='text-3xl font-bold text-gray-900 mb-2'>{profile.username}</h1>
+        <div className='flex items-center space-x-6 w-full'>
+          <div className='shrink-0'>
+            <Avatar
+              src={profile.avatar_url}
+              alt={profile.username}
+              size='2xl'
+              fallbackText={profile.username}
+            />
+          </div>
+          <div className='flex-1 min-w-0'>
+            <div className='flex justify-between items-start w-full gap-4'>
+              <h1 className='text-3xl font-bold text-gray-900 mb-2 truncate'>{profile.username}</h1>
+              {currentUser && currentUser.username !== username && (
+                <button
+                  onClick={handleBuddyAction}
+                  disabled={isProcessingFriendship || friendshipStatus === 'PENDING'}
+                  className={`shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    friendshipStatus === 'ACCEPTED'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                      : friendshipStatus === 'PENDING'
+                        ? 'bg-gray-100 text-gray-500 cursor-default'
+                        : 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                  }`}
+                >
+                  {friendshipStatus === 'ACCEPTED' ? (
+                    <>
+                      <MessageSquare size={18} />
+                      <span>Message</span>
+                    </>
+                  ) : friendshipStatus === 'PENDING' ? (
+                    <>
+                      <Clock size={18} />
+                      <span>Request Sent</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={18} />
+                      <span>Add Buddy</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className='flex items-center space-x-4 text-gray-600'>
               <div className='flex items-center space-x-1'>
                 <MapPin className='h-4 w-4' />

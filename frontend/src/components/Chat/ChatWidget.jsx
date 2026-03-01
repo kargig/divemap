@@ -1,10 +1,10 @@
-import { MessageCircle } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../hooks/useChat';
 
+import ChatbotIcon from './ChatbotIcon';
 import ChatWindow from './ChatWindow';
 
 const ChatWidget = () => {
@@ -99,7 +99,7 @@ const ChatWidget = () => {
         `}
         aria-label={isOpen ? 'Close Chat' : 'Open Chat'}
       >
-        <MessageCircle size={28} />
+        <ChatbotIcon size={28} />
       </button>
     </div>
   );

@@ -697,6 +697,7 @@ class CertificationStats(BaseModel):
     max_stages: Optional[int] = None
 
 class UserPublicProfileResponse(BaseModel):
+    id: int
     username: str
     avatar_url: Optional[str] = None
     is_admin: bool = False
@@ -1351,7 +1352,7 @@ class NotificationPreferenceResponse(BaseModel):
 
 class NotificationPreferenceCreate(BaseModel):
     """Create notification preference"""
-    category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts")
+    category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts, system")
     enable_website: bool = True
     enable_email: bool = False
     frequency: str = Field("immediate", description="Frequency: immediate, daily_digest, weekly_digest")
@@ -1491,6 +1492,25 @@ class ApiKeyUpdate(BaseModel):
     description: Optional[str] = None
     expires_at: Optional[datetime] = None
     is_active: Optional[bool] = None
+
+class AuthAuditLogResponse(BaseModel):
+    """Response schema for auth audit logs"""
+    id: int
+    user_id: int
+    action: str
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    timestamp: datetime
+    success: bool
+    details: Optional[str] = None
+    username: Optional[str] = None  # Enriched field
+
+    @field_validator('timestamp', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
+        return normalize_datetime_to_utc(cls, v)
+
+    model_config = ConfigDict(from_attributes=True)
 
 class DeleteR2PhotoRequest(BaseModel):
     r2_path: str
