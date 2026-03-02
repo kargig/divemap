@@ -3,9 +3,13 @@ import { Edit3 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import { useAuth } from '../../contexts/AuthContext';
 import Avatar from '../Avatar';
 
 const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) => {
+  const { user } = useAuth();
+  const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
+
   if (isLoading) {
     return (
       <div className='flex flex-col space-y-4 p-4'>
@@ -47,9 +51,7 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) 
         {rooms.map(room => {
           const isActive = room.id === activeRoomId;
           // Determine display name and avatar (for DMs)
-          const otherMembers = room.members.filter(
-            m => m.user_id !== parseInt(localStorage.getItem('user_id'))
-          );
+          const otherMembers = room.members.filter(m => m.user_id !== currentUserId);
           const displayName = room.is_group
             ? room.name
             : otherMembers[0]?.user?.username || 'Unknown User';

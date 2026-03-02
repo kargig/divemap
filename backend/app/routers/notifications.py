@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi.responses import JSONResponse
 import os
 import logging
@@ -48,7 +48,6 @@ def _serialize_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
         return None
     
-    from datetime import timezone
     
     # If naive datetime, assume it's UTC (from database with timezone=True)
     if dt.tzinfo is None:
@@ -80,8 +79,7 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
     try:
         from app.models import ApiKey
         from app.auth import verify_password
-        from datetime import datetime
-        
+            
         # Get all active API keys
         active_keys = db.query(ApiKey).filter(
             ApiKey.is_active == True
@@ -232,7 +230,6 @@ def get_notifications(
                     # Ensure timezone-aware datetimes - if naive, assume UTC
                     if value.tzinfo is None:
                         # If naive datetime (shouldn't happen with timezone=True, but handle gracefully)
-                        from datetime import timezone
                         value = value.replace(tzinfo=timezone.utc)
                     # Convert to UTC if not already (normalize to UTC)
                     if value.tzinfo != timezone.utc:

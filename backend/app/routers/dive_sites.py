@@ -1230,7 +1230,7 @@ async def get_dive_sites(
                 elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
                     # Extract YouTube video ID and convert to thumbnail
                     import re
-                    youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&]+)'
+                    youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&\s]+)'
                     match = re.search(youtube_regex, thumbnail)
                     if match:
                         video_id = match.group(1)
@@ -1884,7 +1884,7 @@ async def get_dive_site(
              thumbnail = r2_storage.get_photo_url(thumbnail)
         elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
             import re
-            youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&]+)'
+            youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&\s]+)'
             match = re.search(youtube_regex, thumbnail)
             if match:
                 video_id = match.group(1)

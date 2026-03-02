@@ -9,15 +9,17 @@ import ChatInbox from '../components/UserChat/ChatInbox';
 import ChatRoom from '../components/UserChat/ChatRoom';
 import NewChatModal from '../components/UserChat/NewChatModal';
 import RoomSettings from '../components/UserChat/RoomSettings';
+import { useAuth } from '../contexts/AuthContext';
 
 const Messages = () => {
+  const { user } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const location = useLocation();
   const [activeRoomId, setActiveRoomId] = useState(
     location.state?.roomId || location.state?.activeRoomId || null
   );
-  const currentUserId = parseInt(localStorage.getItem('user_id'));
+  const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
 
   // Handle room selection from state (e.g. from Profile "Message" button or ChatDropdown)
   useEffect(() => {
