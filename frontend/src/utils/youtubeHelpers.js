@@ -13,19 +13,19 @@ export const extractYouTubeVideoId = url => {
   }
 
   // Regular YouTube URLs: https://www.youtube.com/watch?v=VIDEO_ID
-  const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#\s]+)/);
   if (watchMatch) {
     return watchMatch[1];
   }
 
   // Embed URLs: https://www.youtube.com/embed/VIDEO_ID
-  const embedMatch = url.match(/youtube\.com\/embed\/([^&\n?#]+)/);
+  const embedMatch = url.match(/youtube\.com\/embed\/([^&\n?#\s]+)/);
   if (embedMatch) {
     return embedMatch[1];
   }
 
   // Short URLs: https://youtu.be/VIDEO_ID
-  const shortMatch = url.match(/youtu\.be\/([^&\n?#]+)/);
+  const shortMatch = url.match(/youtu\.be\/([^&\n?#\s]+)/);
   if (shortMatch) {
     return shortMatch[1];
   }

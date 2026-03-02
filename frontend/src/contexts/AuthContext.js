@@ -97,6 +97,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const userData = await authService.getCurrentUser();
       setUser(userData);
+      if (userData?.id) {
+        localStorage.setItem('user_id', userData.id.toString());
+      }
       setLoading(false); // Successfully loaded user data
     } catch (error) {
       // Don't log out on gateway timeouts (504) or server errors (5xx)
@@ -280,6 +283,7 @@ export const AuthProvider = ({ children }) => {
     authService.logout().catch(console.error);
 
     localStorage.removeItem('access_token');
+    localStorage.removeItem('user_id');
     // Note: refresh_token cookie will be cleared by the backend logout endpoint
     setToken(null);
     setUser(null);
