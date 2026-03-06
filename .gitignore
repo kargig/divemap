@@ -148,7 +148,7 @@ celerybeat.pid
 dump.rdb
 
 # Local development
-.local/ 
+.local/
 
 # LLM Generated Content
 backend/llm_content/
@@ -156,7 +156,7 @@ backend/llm_content/
 # Temporary import scripts (agent-created)
 backend/import_kml_dive_sites.py
 backend/update_dive_site_tags.py
-backend/doc.kml 
+backend/doc.kml
 map/
 FLY_*
 local*sql*backup
@@ -173,7 +173,7 @@ nginx/frontend-build/
 .terraform*
 terraform.tfstate*
 terraform.tfvars
-terraform/lambda_email_processor.zip
+terraform/aws/lambda_email_processor.zip
 PR-description.txt
 commit-message.txt
 frontend/dev-dist/
