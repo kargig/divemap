@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
   plugins: [
@@ -15,6 +16,12 @@ export default defineConfig({
         titleProp: true,
       },
       include: '**/*.svg',
+    }),
+    visualizer({
+      open: false,
+      filename: 'bundle-stats.html',
+      gzipSize: true,
+      brotliSize: true,
     }),
     VitePWA({
       registerType: 'prompt',
@@ -112,7 +119,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB to match the large vendor chunk
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // Reduced from 4MB to 3MB as chunks are now split
         // Exclude non-SPA routes from navigation fallback
         navigateFallbackDenylist: [
           /^\/robots\.txt$/,
@@ -193,18 +200,27 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    // Increase chunk size limit slightly to avoid unnecessary warnings
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
+        // Group small icon and utility files into a single stable chunk
+        // to reduce the number of network requests (the "micro-chunk" problem).
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            // Put ALL node_modules into a single vendor chunk
-            // This is the safest strategy to prevent circular dependencies and
-            // initialization order issues (e.g. "Cannot read properties of undefined (reading 'forwardRef')")
-            return 'vendor';
+            // Group all icons and small common utilities together
+            if (
+              id.includes('lucide-react') || 
+              id.includes('@ant-design/icons') || 
+              id.includes('lodash') ||
+              id.includes('date-fns')
+            ) {
+              return 'assets-vendor';
+            }
           }
-        },
-      },
-    },
+        }
+      }
+    }
   },
   resolve: {
     alias: {
