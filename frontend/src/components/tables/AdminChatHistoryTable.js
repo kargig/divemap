@@ -9,6 +9,8 @@ import { Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-r
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import Pagination from '../ui/Pagination';
+
 const AdminChatHistoryTable = ({
   data = [],
   columns,
@@ -142,52 +144,15 @@ const AdminChatHistoryTable = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className='flex flex-col sm:flex-row justify-between items-center gap-4 px-2'>
-        {/* Page Size Selection */}
-        <div className='flex items-center gap-2'>
-          <label
-            htmlFor='page-size-select'
-            className='text-sm font-medium text-gray-700 dark:text-gray-300'
-          >
-            Show:
-          </label>
-          <select
-            id='page-size-select'
-            value={pagination.pageSize}
-            onChange={e => handlePageSizeChange(Number(e.target.value))}
-            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-          >
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-          <span className='text-sm text-gray-600 dark:text-gray-400'>per page</span>
-        </div>
-
-        {/* Pagination Info */}
-        <div className='text-sm text-gray-600 dark:text-gray-400'>
-          Page {pagination.pageIndex + 1}
-        </div>
-
-        {/* Pagination Navigation */}
-        <div className='flex items-center gap-2'>
-          <button
-            onClick={() => handlePageChange(pagination.pageIndex - 1)}
-            disabled={!hasPreviousPage}
-            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'
-          >
-            <ChevronLeft className='h-4 w-4' />
-          </button>
-
-          <button
-            onClick={() => handlePageChange(pagination.pageIndex + 1)}
-            disabled={!hasNextPage}
-            className='px-3 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors'
-          >
-            <ChevronRight className='h-4 w-4' />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={pagination.pageIndex + 1}
+        pageSize={pagination.pageSize}
+        totalCount={pagination.totalCount}
+        itemName='chat sessions'
+        onPageChange={newPage => handlePageChange(newPage - 1)}
+        onPageSizeChange={handlePageSizeChange}
+        className='mt-4'
+      />
     </div>
   );
 };

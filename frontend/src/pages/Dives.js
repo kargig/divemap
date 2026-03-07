@@ -43,6 +43,7 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
@@ -1005,64 +1006,15 @@ const Dives = () => {
       )}
 
       {/* Pagination Controls */}
-      <div className='mb-6 sm:mb-8'>
-        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-          <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-            {/* Pagination Controls */}
-            <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-              {/* Page Size Selection */}
-              <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700'>Show:</label>
-                <select
-                  value={pagination.per_page}
-                  onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                  className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <span className='text-sm text-gray-600'>per page</span>
-              </div>
-
-              {/* Pagination Info */}
-              {totalCount !== undefined && totalCount !== null && (
-                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                  Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
-                  {Math.min(pagination.page * pagination.per_page, totalCount)} of {totalCount}{' '}
-                  dives
-                </div>
-              )}
-
-              {/* Pagination Navigation */}
-              {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
-                <div className='flex items-center gap-2'>
-                  <button
-                    onClick={() => handlePageChange(pagination.page - 1)}
-                    disabled={pagination.page <= 1}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronLeft className='h-4 w-4' />
-                  </button>
-
-                  <span className='text-xs sm:text-sm text-gray-700'>
-                    Page {pagination.page} of{' '}
-                    {Math.max(1, Math.ceil(totalCount / pagination.per_page))}
-                  </span>
-
-                  <button
-                    onClick={() => handlePageChange(pagination.page + 1)}
-                    disabled={pagination.page >= Math.ceil(totalCount / pagination.per_page)}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronRight className='h-4 w-4' />
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Pagination
+        currentPage={pagination.page}
+        pageSize={pagination.per_page}
+        totalCount={totalCount}
+        itemName='dives'
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
+        className='mb-6 sm:mb-8'
+      />
 
       {/* Import Modal */}
       <ImportDivesModal
@@ -1467,64 +1419,15 @@ const Dives = () => {
 
       {/* Bottom Pagination Controls */}
       {dives && dives.length > 0 && (
-        <div className='mt-6 sm:mt-8'>
-          <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-            <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-              {/* Pagination Controls */}
-              <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-                {/* Page Size Selection */}
-                <div className='flex items-center gap-2'>
-                  <label className='text-sm font-medium text-gray-700'>Show:</label>
-                  <select
-                    value={pagination.per_page}
-                    onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span className='text-sm text-gray-600'>per page</span>
-                </div>
-
-                {/* Pagination Info */}
-                {totalCount !== undefined && totalCount !== null && (
-                  <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                    Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
-                    {Math.min(pagination.page * pagination.per_page, totalCount)} of {totalCount}{' '}
-                    dives
-                  </div>
-                )}
-
-                {/* Pagination Navigation */}
-                {totalCount !== undefined && totalCount !== null && totalCount > 0 && (
-                  <div className='flex items-center gap-2'>
-                    <button
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page <= 1}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                    </button>
-
-                    <span className='text-xs sm:text-sm text-gray-700'>
-                      Page {pagination.page} of{' '}
-                      {Math.max(1, Math.ceil(totalCount / pagination.per_page))}
-                    </span>
-
-                    <button
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={pagination.page >= Math.ceil(totalCount / pagination.per_page)}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronRight className='h-4 w-4' />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <Pagination
+          currentPage={pagination.page}
+          pageSize={pagination.per_page}
+          totalCount={totalCount}
+          itemName='dives'
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          className='mt-6 sm:mt-8'
+        />
       )}
     </div>
   );

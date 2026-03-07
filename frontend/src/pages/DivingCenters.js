@@ -28,6 +28,7 @@ import LoadingSkeleton from '../components/LoadingSkeleton';
 import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
 import RateLimitError from '../components/RateLimitError';
+import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';

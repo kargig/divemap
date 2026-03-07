@@ -8,6 +8,8 @@ import {
 import { Edit, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 
+import Pagination from '../ui/Pagination';
+
 /**
  * AdminUsersTable - TanStack Table implementation for users
  */
@@ -252,66 +254,15 @@ const AdminUsersTable = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className='flex flex-col sm:flex-row justify-between items-center gap-4'>
-        {/* Page Size Selection */}
-        <div className='flex items-center gap-2'>
-          <label htmlFor='page-size-select' className='text-sm font-medium text-gray-700'>
-            Show:
-          </label>
-          <select
-            id='page-size-select'
-            value={pagination.pageSize}
-            onChange={e => handlePageSizeChange(Number(e.target.value))}
-            className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-          >
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-          <span className='text-sm text-gray-600'>per page</span>
-        </div>
-
-        {/* Pagination Info */}
-        {pagination.totalCount !== undefined && (
-          <div className='text-sm text-gray-600'>
-            Showing {pagination.pageIndex * pagination.pageSize + 1} to{' '}
-            {Math.min((pagination.pageIndex + 1) * pagination.pageSize, table.getRowCount())} of{' '}
-            {table.getRowCount()} results
-          </div>
-        )}
-
-        {/* Pagination Navigation */}
-        {pagination.totalCount !== undefined && (
-          <div className='flex items-center gap-2'>
-            <button
-              onClick={() => handlePageChange(pagination.pageIndex - 1)}
-              disabled={!table.getCanPreviousPage()}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-            >
-              <ChevronLeft className='h-4 w-4' />
-            </button>
-
-            <span className='text-sm text-gray-700'>
-              Page {pagination.pageIndex + 1} of {table.getPageCount()}
-            </span>
-
-            <button
-              onClick={() => handlePageChange(pagination.pageIndex + 1)}
-              disabled={!table.getCanNextPage()}
-              className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-            >
-              <ChevronRight className='h-5 w-5' />
-            </button>
-            <button
-              onClick={() => handlePageChange(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-              className='relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed'
-            >
-              <ChevronRight className='h-5 w-5' />
-            </button>
-          </div>
-        )}
-      </div>
+      <Pagination
+        currentPage={pagination.pageIndex + 1}
+        pageSize={pagination.pageSize}
+        totalCount={pagination.totalCount}
+        itemName='users'
+        onPageChange={newPage => handlePageChange(newPage - 1)}
+        onPageSizeChange={handlePageSizeChange}
+        className='mt-4'
+      />
     </div>
   );
 };
