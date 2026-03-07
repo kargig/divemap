@@ -24,7 +24,7 @@ import {
   Globe,
   MapPin,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -32,7 +32,6 @@ import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-do
 import api from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
-import DivesMap from '../components/DivesMap';
 import EmptyState from '../components/EmptyState';
 import ErrorPage from '../components/ErrorPage';
 import FuzzySearchInput from '../components/FuzzySearchInput';
@@ -62,6 +61,8 @@ const getDiveSlug = dive => {
   const datePart = dive.dive_date;
   return slugify(`${slugText}-${datePart}-dive-${dive.id}`);
 };
+
+const DivesMap = lazy(() => import('../components/DivesMap'));
 
 const Dives = () => {
   const { user, isAdmin } = useAuth();
@@ -1034,13 +1035,22 @@ const Dives = () => {
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
         </div>
       ) : viewMode === 'map' ? (
-        <div className='mb-6 sm:mb-8'>
-          <DivesMap
-            key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
-            dives={dives || []}
-            viewport={viewport}
-            onViewportChange={setViewport}
-          />
+        <div className='mb-6 sm:mb-8 bg-gray-50 flex items-center justify-center min-h-[400px] rounded-lg border border-gray-200'>
+          <Suspense
+            fallback={
+              <div className='flex flex-col items-center gap-2'>
+                <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                <span>Loading Map...</span>
+              </div>
+            }
+          >
+            <DivesMap
+              key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
+              dives={dives || []}
+              viewport={viewport}
+              onViewportChange={setViewport}
+            />
+          </Suspense>
         </div>
       ) : (
         <>
@@ -1396,13 +1406,22 @@ const Dives = () => {
 
           {/* Dives Map */}
           {viewMode === 'map' && (
-            <div className='h-96 rounded-lg overflow-hidden border border-gray-200'>
-              <DivesMap
-                key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
-                dives={dives || []}
-                viewport={viewport}
-                onViewportChange={setViewport}
-              />
+            <div className='h-96 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
+              <Suspense
+                fallback={
+                  <div className='flex flex-col items-center gap-2'>
+                    <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                    <span>Loading Map...</span>
+                  </div>
+                }
+              >
+                <DivesMap
+                  key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
+                  dives={dives || []}
+                  viewport={viewport}
+                  onViewportChange={setViewport}
+                />
+              </Suspense>
             </div>
           )}
         </>

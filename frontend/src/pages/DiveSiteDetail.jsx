@@ -16,7 +16,7 @@ import {
   Globe,
   TrendingUp,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -42,7 +42,6 @@ import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
 import WeatherConditionsCard from '../components/MarineConditionsCard';
 import MaskedEmail from '../components/MaskedEmail';
-import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
@@ -65,6 +64,8 @@ import NotFound from './NotFound';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
+
+const MiniMap = lazy(() => import('../components/MiniMap'));
 
 const DiveSiteDetail = () => {
   const { id, slug } = useParams();
@@ -923,15 +924,23 @@ const DiveSiteDetail = () => {
                     </Button>
                   </div>
 
-                  <MiniMap
-                    latitude={diveSite.latitude}
-                    longitude={diveSite.longitude}
-                    name={diveSite.name}
-                    onMaximize={() => setIsMapMaximized(true)}
-                    showMaximizeButton={false}
-                    isMaximized={isMapMaximized}
-                    onClose={() => setIsMapMaximized(false)}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className='h-48 sm:h-64 bg-gray-50 flex items-center justify-center rounded border border-gray-200'>
+                        Loading Map...
+                      </div>
+                    }
+                  >
+                    <MiniMap
+                      latitude={diveSite.latitude}
+                      longitude={diveSite.longitude}
+                      name={diveSite.name}
+                      onMaximize={() => setIsMapMaximized(true)}
+                      showMaximizeButton={false}
+                      isMaximized={isMapMaximized}
+                      onClose={() => setIsMapMaximized(false)}
+                    />
+                  </Suspense>
                 </>
               )}
             </div>

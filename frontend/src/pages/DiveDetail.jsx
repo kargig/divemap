@@ -21,7 +21,7 @@ import {
   Video,
   TrendingUp,
 } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -38,7 +38,6 @@ import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api from '../api';
-import AdvancedDiveProfileChart from '../components/AdvancedDiveProfileChart';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DiveInfoGrid from '../components/DiveInfoGrid';
 import {
@@ -80,6 +79,8 @@ import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
+
+const AdvancedDiveProfileChart = lazy(() => import('../components/AdvancedDiveProfileChart'));
 
 const DiveDetail = () => {
   const { id, slug } = useParams();
@@ -945,23 +946,31 @@ const DiveDetail = () => {
                 {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
               </div>
 
-              <AdvancedDiveProfileChart
-                profileData={profileData}
-                isLoading={profileLoading}
-                error={profileError ? extractErrorMessage(profileError) : null}
-                showTemperature={true}
-                screenSize='desktop'
-                onDecoStatusChange={profileHasDeco => {
-                  // If profile data is available, use it; otherwise keep tag-based detection
-                  if (profileHasDeco !== undefined) {
-                    setProfileHasDeco(profileHasDeco);
-                  }
-                }}
-                onMaximize={handleOpenProfileModal}
-                onUpload={
-                  user && (user.id === dive.user_id || user.is_admin) ? handleUploadProfile : null
+              <Suspense
+                fallback={
+                  <div className='h-96 flex items-center justify-center bg-gray-50 rounded animate-pulse'>
+                    Loading Chart...
+                  </div>
                 }
-              />
+              >
+                <AdvancedDiveProfileChart
+                  profileData={profileData}
+                  isLoading={profileLoading}
+                  error={profileError ? extractErrorMessage(profileError) : null}
+                  showTemperature={true}
+                  screenSize='desktop'
+                  onDecoStatusChange={profileHasDeco => {
+                    // If profile data is available, use it; otherwise keep tag-based detection
+                    if (profileHasDeco !== undefined) {
+                      setProfileHasDeco(profileHasDeco);
+                    }
+                  }}
+                  onMaximize={handleOpenProfileModal}
+                  onUpload={
+                    user && (user.id === dive.user_id || user.is_admin) ? handleUploadProfile : null
+                  }
+                />
+              </Suspense>
               <input
                 type='file'
                 ref={fileInputRef}

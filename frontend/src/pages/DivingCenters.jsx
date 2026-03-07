@@ -13,14 +13,13 @@ import {
   Grid,
   Compass,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
-import DivingCentersMap from '../components/DivingCentersMap';
 import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
 import ErrorPage from '../components/ErrorPage';
 import HeroSection from '../components/HeroSection';
@@ -44,6 +43,8 @@ import { getSortOptions } from '../utils/sortOptions';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
+
+const DivingCentersMap = lazy(() => import('../components/DivingCentersMap'));
 
 const DivingCenters = () => {
   const { user } = useAuth();
@@ -597,13 +598,22 @@ const DivingCenters = () => {
                 <h2 className='text-xl font-semibold text-gray-900 mb-4'>
                   Map view of filtered Diving Centers
                 </h2>
-                <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200'>
-                  <DivingCentersMap
-                    divingCenters={(divingCenters || []).map(center => ({
-                      ...center,
-                      id: center.id.toString(),
-                    }))}
-                  />
+                <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
+                  <Suspense
+                    fallback={
+                      <div className='flex flex-col items-center gap-2'>
+                        <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                        <span>Loading Map...</span>
+                      </div>
+                    }
+                  >
+                    <DivingCentersMap
+                      divingCenters={(divingCenters || []).map(center => ({
+                        ...center,
+                        id: center.id.toString(),
+                      }))}
+                    />
+                  </Suspense>
                 </div>
               </div>
             )}
