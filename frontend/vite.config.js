@@ -212,19 +212,7 @@ export default defineConfig({
     },
     dedupe: ['react', 'react-dom'],
   },
-  // Ensure .js files with JSX are handled (until renamed)
-  esbuild: {
-    loader: 'jsx',
-    include: /src\/.*\.jsx?$/,
-    exclude: [],
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      loader: {
-        '.js': 'jsx',
-      },
-    },
-  },
+
   test: {
     globals: true,
     environment: 'jsdom',
