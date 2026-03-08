@@ -1,0 +1,134 @@
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+
+# Tool Schemas for OpenAI Function Calling
+
+class SearchDiveSitesTool(BaseModel):
+    """Search for dive sites based on location, keywords, difficulty, and geography."""
+    location: Optional[str] = Field(None, description="City, island, or specific area name (e.g. 'Athens', 'Naxos')")
+    parent_region: Optional[str] = Field(None, description="The larger administrative region (e.g. 'Attica', 'Cyclades')")
+    keywords: Optional[List[str]] = Field(None, description="Specific features or types (e.g. ['wreck', 'cave', 'deep', 'highest_rated'])")
+    latitude: Optional[float] = Field(None, description="Approximate latitude for spatial search")
+    longitude: Optional[float] = Field(None, description="Approximate longitude for spatial search")
+    radius: Optional[float] = Field(20.0, description="Search radius in kilometers")
+    direction: Optional[str] = Field(None, description="Cardinal direction relative to location (e.g. 'north', 'southeast')")
+    difficulty_level: Optional[int] = Field(None, description="1 (Beginner) to 4 (Technical)")
+
+class SearchDivingCentersTool(BaseModel):
+    """Search for diving centers based on location and keywords."""
+    location: Optional[str] = Field(None, description="City, island, or region name")
+    keywords: Optional[List[str]] = Field(None, description="Specific services or names (e.g. ['PADI', 'nitrox', 'rental'])")
+    latitude: Optional[float] = Field(None, description="Approximate latitude")
+    longitude: Optional[float] = Field(None, description="Approximate longitude")
+    radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
+
+class SearchMarineLifeTool(BaseModel):
+    """Find dive sites where specific marine life can be seen."""
+    marine_species: List[str] = Field(..., description="Species to look for (e.g. ['turtles', 'monk seals', 'nudibranchs'])")
+    location: Optional[str] = Field(None, description="Preferred area for the search")
+    latitude: Optional[float] = Field(None, description="Approximate latitude")
+    longitude: Optional[float] = Field(None, description="Approximate longitude")
+
+class CalculateDivingPhysicsTool(BaseModel):
+    """Perform diving calculations like MOD, SAC, EAD, or Minimum Gas."""
+    calculation_type: str = Field(..., description="Type of calculation: 'mod', 'sac', 'best_mix', 'ead_end', or 'min_gas'")
+    depth: Optional[float] = Field(None, description="Depth in meters")
+    o2_percent: Optional[float] = Field(None, description="Oxygen percentage (e.g. 21.0, 32.0)")
+    he_percent: Optional[float] = Field(None, description="Helium percentage (e.g. 0.0, 30.0)")
+    duration: Optional[float] = Field(None, description="Bottom time or segment duration in minutes")
+    tank_volume: Optional[float] = Field(12.0, description="Tank size in liters")
+    start_pressure: Optional[float] = Field(None, description="Starting tank pressure in bar")
+    end_pressure: Optional[float] = Field(None, description="Ending tank pressure in bar")
+    sac_rate: Optional[float] = Field(None, description="Surface Air Consumption rate in L/min")
+    pp_o2_max: Optional[float] = Field(1.4, description="Maximum partial pressure of oxygen. Assume 1.4 if not explicitly provided by the user.")
+
+class SearchCertificationsTool(BaseModel):
+    """Get information about diving certifications, career paths, and comparisons."""
+    query: str = Field(..., description="What the user wants to know (e.g. 'PADI vs SSI', 'How to become a pro', 'Open Water requirements')")
+    organization: Optional[str] = Field(None, description="Specific agency (e.g. 'PADI', 'SSI', 'GUE')")
+
+class GetWeatherSuitabilityTool(BaseModel):
+    """Get weather forecast and diving suitability for a specific location and time."""
+    location: Optional[str] = Field(None, description="Location name")
+    latitude: float = Field(..., description="Latitude of the site")
+    longitude: float = Field(..., description="Longitude of the site")
+    date: str = Field(..., description="Target date in YYYY-MM-DD format")
+    time: Optional[str] = Field("10:00", description="Target time in HH:MM format")
+
+class RecommendDiveSitesTool(BaseModel):
+    """Get personalized dive site recommendations for the user based on their skills and location."""
+    location: Optional[str] = Field(None, description="Preferred area for recommendations")
+    latitude: Optional[float] = Field(None, description="Approximate latitude")
+    longitude: Optional[float] = Field(None, description="Approximate longitude")
+
+class AskUserForClarificationTool(BaseModel):
+    """Ask the user for more information when the query is too ambiguous or missing vital data."""
+    question: str = Field(..., description="The clarification question to ask the user")
+
+# Helper to export as OpenAI tools format
+CHAT_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_dive_sites",
+            "description": SearchDiveSitesTool.__doc__,
+            "parameters": SearchDiveSitesTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_diving_centers",
+            "description": SearchDivingCentersTool.__doc__,
+            "parameters": SearchDivingCentersTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_marine_life",
+            "description": SearchMarineLifeTool.__doc__,
+            "parameters": SearchMarineLifeTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "calculate_diving_physics",
+            "description": CalculateDivingPhysicsTool.__doc__,
+            "parameters": CalculateDivingPhysicsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_certifications",
+            "description": SearchCertificationsTool.__doc__,
+            "parameters": SearchCertificationsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_weather_suitability",
+            "description": GetWeatherSuitabilityTool.__doc__,
+            "parameters": GetWeatherSuitabilityTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "recommend_dive_sites",
+            "description": RecommendDiveSitesTool.__doc__,
+            "parameters": RecommendDiveSitesTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "ask_user_for_clarification",
+            "description": AskUserForClarificationTool.__doc__,
+            "parameters": AskUserForClarificationTool.model_json_schema()
+        }
+    }
+]

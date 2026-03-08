@@ -59,7 +59,7 @@ const ChatWidget = () => {
     if (pathParts[0] === 'dive-sites' && pathParts[1] && !isNaN(pathParts[1])) {
       result.context_entity_type = 'dive_site';
       result.context_entity_id = parseInt(pathParts[1], 10);
-      
+
       // Check for nested route (e.g., /dive-sites/:id/route/:rid)
       if (pathParts[2] === 'route' && pathParts[3] && !isNaN(pathParts[3])) {
         result.page_context.route_id = parseInt(pathParts[3], 10);
