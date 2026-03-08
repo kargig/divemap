@@ -8,6 +8,7 @@ from app.models import User, ChatFeedback
 from app.schemas.chat import ChatRequest, ChatResponse, ChatFeedbackCreate
 from app.services.chat_service import ChatService
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.utils import get_client_ip
 
 router = APIRouter()
 
@@ -23,6 +24,9 @@ async def send_message(
     Main chatbot interaction endpoint.
     Processes natural language queries and returns relevant diving information.
     """
+    # Populate client IP for geolocation context
+    chat_request.client_ip = get_client_ip(request)
+    
     chat_service = ChatService(db)
     try:
         response = await chat_service.process_message(chat_request, current_user)

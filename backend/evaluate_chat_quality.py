@@ -37,6 +37,11 @@ TEST_CASES = [
     {"prompt": "do you know any snorkeling spots in Naxos ?", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "where can I see monk seals in Greece?", "type": "marine_life", "expected_min_sources": 1},
     {"prompt": "what are some good shore dive sites in Athens", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "give me a list of 10 dive sites in the South of Athens", "type": "discovery", "expected_min_sources": 2},
+    {"prompt": "give me a list of 5 dive sites east of Attica", "type": "discovery", "expected_min_sources": 3},
+    {"prompt": "find dive sites in the south of Attica near Anavyssos", "type": "discovery", "expected_min_sources": 2},
+    {"prompt": "give me dive sites in the south of Anavyssos", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "What are nearby dive sites to legrena car wrecks ?", "type": "discovery", "expected_min_sources": 5},
     {"prompt": "tell me a joke about diving", "type": "chit_chat", "expected_min_sources": 0},
 ]
 

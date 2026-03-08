@@ -54,6 +54,27 @@ class OpenAIService:
 
         self._initialized = True
 
+    def _repair_json(self, content: str) -> str:
+        """
+        Attempts to clean and repair JSON strings from LLM responses.
+        Handles markdown blocks and prefix/suffix filler text.
+        """
+        import re
+        # 1. Remove markdown code blocks if present
+        markdown_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+        if markdown_match:
+            content = markdown_match.group(1)
+        
+        # 2. Find the first '{' and last '}'
+        start = content.find('{')
+        end = content.rfind('}')
+        if start != -1 and end != -1:
+            content = content[start:end+1]
+            
+        # 3. Basic cleanup
+        content = content.strip()
+        return content
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -92,8 +113,7 @@ class OpenAIService:
             if json_schema:
                 # DeepSeek might not support beta.chat.completions.parse yet, check provider
                 if self.provider_name == "openai":
-                     # Use Beta features for structured output if schema is provided
-                    # Note: Requires openai>=1.40.0
+                    # Use Beta features for structured output if schema is provided
                     response = self.client.beta.chat.completions.parse(
                         **params,
                         response_format=json_schema
@@ -109,31 +129,32 @@ class OpenAIService:
                     
                     return response.choices[0].message.parsed, usage_dict
                 else:
-                     # Fallback for other providers
-                     if self.provider_name == "deepseek":
-                         params["response_format"] = {"type": "json_object"}
-                     
-                     response = self.client.chat.completions.create(**params)
-                     
-                     if response.usage:
+                    # Fallback for other providers (DeepSeek, etc.)
+                    if self.provider_name == "deepseek":
+                        params["response_format"] = {"type": "json_object"}
+                    
+                    response = self.client.chat.completions.create(**params)
+                    
+                    if response.usage:
                         usage_dict = {
                             "prompt_tokens": response.usage.prompt_tokens,
                             "completion_tokens": response.usage.completion_tokens,
                             "total_tokens": response.usage.total_tokens
                         }
-                     logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
-                     
-                     content = response.choices[0].message.content
-                     
-                     if json_schema:
-                         import orjson
-                         try:
-                             data = orjson.loads(content)
-                             return json_schema.model_validate(data), usage_dict
-                         except Exception as e:
-                             logger.error(f"Failed to parse JSON for {model}: {e}")
-                             raise
-                     return content, usage_dict
+                    logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
+                    
+                    content = response.choices[0].message.content
+                    
+                    # Robust JSON parsing
+                    repaired_content = self._repair_json(content)
+                    try:
+                        data = orjson.loads(repaired_content)
+                        return json_schema.model_validate(data), usage_dict
+                    except Exception as e:
+                        logger.error(f"JSON repair/parse failed for {model}. Original content: {content[:100]}...")
+                        logger.error(f"Error: {e}")
+                        # Re-raise so @retry can catch it and try again if it was a flake
+                        raise ValueError(f"Invalid JSON from LLM: {str(e)}")
             else:
                 response = self.client.chat.completions.create(**params)
                 
@@ -147,7 +168,9 @@ class OpenAIService:
                 
                 return response.choices[0].message.content, usage_dict
         except Exception as e:
-            logger.error(f"{self.provider_name} API error: {str(e)}")
+            # Only log as error if it's not a value error we expect to retry
+            if not isinstance(e, ValueError):
+                logger.error(f"{self.provider_name} API error: {str(e)}")
             raise
 
 # Global singleton instance

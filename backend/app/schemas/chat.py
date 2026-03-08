@@ -17,6 +17,9 @@ class ChatRequest(BaseModel):
     history: List[ChatMessage] = []
     session_id: Optional[str] = None # For persistence
     user_location: Optional[Tuple[float, float]] = None # (lat, lon)
+    client_ip: Optional[str] = None # For IP-based geolocation
+    map_context: Optional[Dict[str, float]] = None # {lat, lng, zoom} from URL
+    page_context: Optional[Dict] = None # Rich context about the current page
     context_entity_id: Optional[int] = None
     context_entity_type: Optional[str] = None # 'dive_site', 'diving_center', etc.
 
@@ -37,6 +40,9 @@ class SearchIntent(BaseModel):
     intent_type: IntentType
     keywords: List[str] = []
     location: Optional[str] = None
+    parent_region: Optional[str] = None # The larger administrative region containing the location
+    direction: Optional[str] = None # 'north', 'south', 'east', 'west', 'north_east', etc.
+    entity_type_filter: Optional[str] = None # 'dive_site', 'diving_center', 'dive_trip'
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     radius: Optional[float] = None # Search radius in km
@@ -48,12 +54,18 @@ class SearchIntent(BaseModel):
     context_entity_type: Optional[str] = None
     calculator_params: Optional[Dict[str, Optional[float]]] = None # Parameters for diving calculations
 
+class ChatIntermediateAction(BaseModel):
+    action_type: Literal["search", "resolve_location", "refine_intent", "final_answer"]
+    parameters: Dict = {}
+    reasoning: Optional[str] = None
+
 class ChatResponse(BaseModel):
     response: str
     message_id: str # UUID to link feedback
     session_id: str # UUID for history
     sources: List[Dict] = [] # Metadata about retrieved entities
     intent: Optional[SearchIntent] = None # For debugging/admin
+    intermediate_steps: List[ChatIntermediateAction] = []
 
 class ChatFeedbackCreate(BaseModel):
     message_id: str
