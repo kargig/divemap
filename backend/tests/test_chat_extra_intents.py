@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy import or_, and_
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import DivingOrganization, CertificationLevel, DiveSite
 
@@ -54,12 +55,12 @@ def setup_marine_data(db_session):
     db_session.commit()
     return {"s1": s1}
 
-def test_career_path_search(chat_service, setup_career_data):
+def test_career_path_search(db_session, chat_service, setup_career_data):
     intent = SearchIntent(
         intent_type=IntentType.CAREER_PATH,
         keywords=["TEST_CAREER_ORG"]
     )
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     assert len(results) > 0
     path = next(r for r in results if r["entity_type"] == "career_path")
@@ -74,21 +75,21 @@ def test_career_path_search(chat_service, setup_career_data):
     assert l1_detail["max_depth"] == "18m"
     assert l1_detail["category"] == "Recreational"
 
-def test_marine_life_search_strict(chat_service, setup_marine_data):
+def test_marine_life_search_strict(db_session, chat_service, setup_marine_data):
     # Search for "turtles" - should match sites with turtles
     intent = SearchIntent(
         intent_type=IntentType.MARINE_LIFE,
         keywords=["turtles"],
         location=None
     )
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     site_names = [r["name"] for r in results if r["entity_type"] == "dive_site"]
     assert "Turtle Site" in site_names
     assert "Mixed Site" in site_names
     assert "Shark Site" not in site_names
 
-def test_marine_life_search_and_logic_fallback(chat_service, setup_marine_data):
+def test_marine_life_search_and_logic_fallback(db_session, chat_service, setup_marine_data):
     # Search for "turtles" AND "sharks"
     # Strict AND: Mixed Site
     # Fallback OR: Turtle Site, Shark Site
@@ -97,7 +98,7 @@ def test_marine_life_search_and_logic_fallback(chat_service, setup_marine_data):
         keywords=["turtles", "sharks"],
         location=None
     )
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     site_names = [r["name"] for r in results if r["entity_type"] == "dive_site"]
     

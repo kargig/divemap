@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import DiveSite, SiteRating
 
@@ -55,14 +56,14 @@ def setup_rating_data(db_session):
     db_session.commit()
     return {"s1": s1, "s2": s2}
 
-def test_highest_rated_search(chat_service, setup_rating_data):
+def test_highest_rated_search(db_session, chat_service, setup_rating_data):
     intent = SearchIntent(
         intent_type=IntentType.DISCOVERY,
         keywords=["highest_rated"],
         location=None
     )
     
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     assert len(results) >= 2
     

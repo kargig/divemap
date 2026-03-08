@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import DivingCenter, GearRentalCost
 
@@ -39,7 +40,7 @@ def setup_gear_data(db_session):
     
     return {"c1": c1, "c2": c2, "c3": c3}
 
-def test_gear_rental_search(chat_service, setup_gear_data):
+def test_gear_rental_search(db_session, chat_service, setup_gear_data):
     # User asks: "cheaper to rent 12Lt tank air in Attica"
     # Intent extraction should yield:
     intent = SearchIntent(
@@ -48,7 +49,7 @@ def test_gear_rental_search(chat_service, setup_gear_data):
         location="Attica"
     )
     
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     # Analysis:
     # Should find g1 (15.00) and g2 (10.00)

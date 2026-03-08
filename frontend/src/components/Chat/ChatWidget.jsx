@@ -32,26 +32,60 @@ const ChatWidget = () => {
 
   // Extract context from location if possible
   const context = useMemo(() => {
-    const pathParts = location.pathname.split('/');
-    const result = {};
+    const pathParts = location.pathname.split('/').filter(Boolean);
+    const searchParams = new URLSearchParams(location.search);
+    const result = {
+      page_context: {
+        path: location.pathname,
+        params: Object.fromEntries(searchParams.entries()),
+      },
+    };
 
     if (userLocation) {
       result.user_location = userLocation;
     }
 
-    if (pathParts[1] === 'dive-sites' && pathParts[2] && !isNaN(pathParts[2])) {
+    // 1. Map Context
+    if (pathParts[0] === 'map') {
+      const lat = parseFloat(searchParams.get('lat'));
+      const lng = parseFloat(searchParams.get('lng'));
+      const zoom = parseFloat(searchParams.get('zoom'));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        result.map_context = { lat, lng, zoom: !isNaN(zoom) ? zoom : undefined };
+      }
+    }
+
+    // 2. Entity Context (Dive Sites, Centers, Dives, Trips)
+    if (pathParts[0] === 'dive-sites' && pathParts[1] && !isNaN(pathParts[1])) {
       result.context_entity_type = 'dive_site';
-      result.context_entity_id = parseInt(pathParts[2], 10);
-    } else if (pathParts[1] === 'diving-centers' && pathParts[2] && !isNaN(pathParts[2])) {
+      result.context_entity_id = parseInt(pathParts[1], 10);
+
+      // Check for nested route (e.g., /dive-sites/:id/route/:rid)
+      if (pathParts[2] === 'route' && pathParts[3] && !isNaN(pathParts[3])) {
+        result.page_context.route_id = parseInt(pathParts[3], 10);
+      }
+    } else if (pathParts[0] === 'diving-centers' && pathParts[1] && !isNaN(pathParts[1])) {
       result.context_entity_type = 'diving_center';
-      result.context_entity_id = parseInt(pathParts[2], 10);
-    } else if (pathParts[1] === 'dives' && pathParts[2] && !isNaN(pathParts[2])) {
+      result.context_entity_id = parseInt(pathParts[1], 10);
+    } else if (pathParts[0] === 'dives' && pathParts[1] && !isNaN(pathParts[1])) {
       result.context_entity_type = 'dive';
-      result.context_entity_id = parseInt(pathParts[2], 10);
+      result.context_entity_id = parseInt(pathParts[1], 10);
+    } else if (pathParts[0] === 'dive-trips' && pathParts[1] && !isNaN(pathParts[1])) {
+      result.context_entity_type = 'dive_trip';
+      result.context_entity_id = parseInt(pathParts[1], 10);
+    }
+
+    // 3. Category Context (Resources, Admin)
+    if (pathParts[0] === 'resources') {
+      result.page_context.category = 'resources';
+      result.page_context.subcategory = pathParts[1];
+    } else if (pathParts[0] === 'admin') {
+      result.page_context.category = 'admin';
+      result.page_context.subcategory = pathParts[1];
     }
 
     return result;
-  }, [location.pathname, userLocation]);
+  }, [location.pathname, location.search, userLocation]);
 
   const { messages, sendMessage, isLoading, giveFeedback, clearChat } = useChat(context);
 

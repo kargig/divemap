@@ -1,7 +1,9 @@
 import pytest
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.utils import get_user_difficulty_level
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import User, UserCertification, CertificationLevel, Dive, DiveSite, DifficultyLevel, DivingOrganization
 
@@ -54,13 +56,13 @@ def setup_recommendation_data(db_session, test_user):
     
     return {"user": test_user, "sites": [s1, s2, s3, s4]}
 
-def test_get_user_difficulty_level(chat_service, setup_recommendation_data):
+def test_get_user_difficulty_level(db_session, chat_service, setup_recommendation_data):
     user = setup_recommendation_data["user"]
     # User has AOW -> Level 2
-    level = chat_service._get_user_difficulty_level(user.id)
+    level = get_user_difficulty_level(db_session, user.id)
     assert level == 2
 
-def test_personal_recommendation_logic(chat_service, setup_recommendation_data):
+def test_personal_recommendation_logic(db_session, chat_service, setup_recommendation_data):
     user = setup_recommendation_data["user"]
     
     intent = SearchIntent(
@@ -69,7 +71,7 @@ def test_personal_recommendation_logic(chat_service, setup_recommendation_data):
         longitude=23.0
     )
     
-    results = chat_service.execute_search(intent, current_user=user)
+    results = execute_search_intent(db_session, intent, current_user=user)
     
     # Analysis:
     # Site A: Visited -> Exclude

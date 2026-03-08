@@ -2,7 +2,7 @@ import os
 import logging
 import asyncio
 import orjson
-from typing import Optional, List, Dict, Union, Type, Tuple
+from typing import Optional, List, Dict, Union, Type, Tuple, Any
 import openai
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -47,12 +47,33 @@ class OpenAIService:
             logger.warning(f"{self.provider_config['api_key_env']} not set or using placeholder. Chat features will fail.")
             self.client = None
         else:
-            self.client = openai.OpenAI(
+            self.client = openai.AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.provider_config["base_url"]
             )
 
         self._initialized = True
+
+    def _repair_json(self, content: str) -> str:
+        """
+        Attempts to clean and repair JSON strings from LLM responses.
+        Handles markdown blocks and prefix/suffix filler text.
+        """
+        import re
+        # 1. Remove markdown code blocks if present
+        markdown_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+        if markdown_match:
+            content = markdown_match.group(1)
+        
+        # 2. Find the first '{' and last '}'
+        start = content.find('{')
+        end = content.rfind('}')
+        if start != -1 and end != -1:
+            content = content[start:end+1]
+            
+        # 3. Basic cleanup
+        content = content.strip()
+        return content
 
     @retry(
         stop=stop_after_attempt(3),
@@ -65,12 +86,14 @@ class OpenAIService:
         model: Optional[str] = None,
         max_tokens: int = 2000,
         temperature: float = 0.7,
-        json_schema: Optional[Type[BaseModel]] = None
-    ) -> Tuple[Union[str, Dict], Dict[str, int]]:
+        json_schema: Optional[Type[BaseModel]] = None,
+        tools: Optional[List[Dict]] = None,
+        tool_choice: Optional[str] = None
+    ) -> Tuple[Union[str, Dict, Any], Dict[str, int]]:
         """
         Generic wrapper for OpenAI Chat Completions.
-        Supports structured output via Pydantic schemas.
-        Returns: (content, usage_dict)
+        Supports structured output via Pydantic schemas and Tool Calling.
+        Returns: (content or parsed_object or tool_calls, usage_dict)
         """
         if not self.client:
             raise ValueError(f"OpenAI client ({self.provider_name}) not initialized. Check API key.")
@@ -87,14 +110,17 @@ class OpenAIService:
                 "temperature": temperature,
             }
 
+            if tools:
+                params["tools"] = tools
+                if tool_choice:
+                    params["tool_choice"] = tool_choice
+
             usage_dict = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-            if json_schema:
-                # DeepSeek might not support beta.chat.completions.parse yet, check provider
+            if json_schema and not tools:
+                # Use Beta features for structured output if schema is provided AND no tools
                 if self.provider_name == "openai":
-                     # Use Beta features for structured output if schema is provided
-                    # Note: Requires openai>=1.40.0
-                    response = self.client.beta.chat.completions.parse(
+                    response = await self.client.beta.chat.completions.parse(
                         **params,
                         response_format=json_schema
                     )
@@ -109,33 +135,33 @@ class OpenAIService:
                     
                     return response.choices[0].message.parsed, usage_dict
                 else:
-                     # Fallback for other providers
-                     if self.provider_name == "deepseek":
-                         params["response_format"] = {"type": "json_object"}
-                     
-                     response = self.client.chat.completions.create(**params)
-                     
-                     if response.usage:
+                    # Fallback for other providers (DeepSeek, etc.)
+                    if self.provider_name == "deepseek":
+                        params["response_format"] = {"type": "json_object"}
+                    
+                    response = await self.client.chat.completions.create(**params)
+                    
+                    if response.usage:
                         usage_dict = {
                             "prompt_tokens": response.usage.prompt_tokens,
                             "completion_tokens": response.usage.completion_tokens,
                             "total_tokens": response.usage.total_tokens
                         }
-                     logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
-                     
-                     content = response.choices[0].message.content
-                     
-                     if json_schema:
-                         import orjson
-                         try:
-                             data = orjson.loads(content)
-                             return json_schema.model_validate(data), usage_dict
-                         except Exception as e:
-                             logger.error(f"Failed to parse JSON for {model}: {e}")
-                             raise
-                     return content, usage_dict
+                    logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
+                    
+                    content = response.choices[0].message.content
+                    
+                    # Robust JSON parsing
+                    repaired_content = self._repair_json(content)
+                    try:
+                        data = orjson.loads(repaired_content)
+                        return json_schema.model_validate(data), usage_dict
+                    except Exception as e:
+                        logger.error(f"JSON repair/parse failed for {model}. Original content: {content[:100]}...")
+                        logger.error(f"Error: {e}")
+                        raise ValueError(f"Invalid JSON from LLM: {str(e)}")
             else:
-                response = self.client.chat.completions.create(**params)
+                response = await self.client.chat.completions.create(**params)
                 
                 if response.usage:
                     usage_dict = {
@@ -145,9 +171,15 @@ class OpenAIService:
                     }
                 logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
                 
-                return response.choices[0].message.content, usage_dict
+                message = response.choices[0].message
+                if message.tool_calls:
+                    return message.tool_calls, usage_dict
+                
+                return message.content, usage_dict
         except Exception as e:
-            logger.error(f"{self.provider_name} API error: {str(e)}")
+            # Only log as error if it's not a value error we expect to retry
+            if not isinstance(e, ValueError):
+                logger.error(f"{self.provider_name} API error: {str(e)}")
             raise
 
 # Global singleton instance

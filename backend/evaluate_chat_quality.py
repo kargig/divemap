@@ -15,29 +15,58 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
 # Test Cases
+# Ordered by complexity: Simple intents -> Basic Tools -> Complex Discovery -> Calculators -> Agentic Multi-Step/Clarification
 TEST_CASES = [
-    {"prompt": "find dive sites near Peloponnese", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "what are some good dive sites in Egypt?", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "what are some good shore dive sites in Athens", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "wrecks near Makronisos", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "best diving in Crete", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "is there diving in Santorini?", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "show me sites with octopus", "type": "marine_life", "expected_min_sources": 1},
-    {"prompt": "show me deep dives in Attica", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "weather for diving in Anavyssos tomorrow", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "how much to rent a tank in Athens?", "type": "gear_rental", "expected_min_sources": 1},
+    # Tier 1: Simple Knowledge & Chit-Chat
+    {"prompt": "tell me a joke about diving", "type": "chit_chat", "expected_min_sources": 0},
+    {"prompt": "what are the requirements for the Rescue Diver certification?", "type": "knowledge", "expected_min_sources": 1},
+    {"prompt": "what comes after Open Water in SSI?", "type": "career_path", "expected_min_sources": 1},
     {"prompt": "PADI courses in Greece", "type": "career_path", "expected_min_sources": 1},
     {"prompt": "what is the difference between PADI TEC45 and SSI XR?", "type": "comparison", "expected_min_sources": 1},
-    {"prompt": "recommend a dive site for advanced divers near me", "type": "personal_recommendation", "expected_min_sources": 1},
-    {"prompt": "dive sites near Porto Ennea", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "cave diving in Greece", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "history of the wreck Kyra Leni", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "diving centers in Paros", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "boat dives near Sounio", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "do you know any snorkeling spots in Naxos ?", "type": "discovery", "expected_min_sources": 1},
+
+    # Tier 2: Single Tool Execution (Direct Mapping)
+    {"prompt": "show me sites with octopus", "type": "marine_life", "expected_min_sources": 1},
     {"prompt": "where can I see monk seals in Greece?", "type": "marine_life", "expected_min_sources": 1},
+    {"prompt": "dive sites with turtles near Zakynthos", "type": "marine_life", "expected_min_sources": 1},
+    {"prompt": "how much to rent a tank in Athens?", "type": "gear_rental", "expected_min_sources": 1},
+    {"prompt": "cost to rent BCD in Naxos", "type": "gear_rental", "expected_min_sources": 1},
+    {"prompt": "diving centers in Paros", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "where can I find a PADI diving center in Athens?", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "diving centers offering nitrox in Crete", "type": "discovery", "expected_min_sources": 1},
+
+    # Tier 3: Discovery with Filters (Spatial/Text Parsing)
+    {"prompt": "find dive sites near Peloponnese", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "what are some good dive sites in Egypt?", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "is there diving in Santorini?", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "history of the wreck Kyra Leni", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "what are some good shore dive sites in Athens", "type": "discovery", "expected_min_sources": 1},
-    {"prompt": "tell me a joke about diving", "type": "chit_chat", "expected_min_sources": 0},
+    {"prompt": "show me deep dives in Attica", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "cave diving in Greece", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "boat dives near Sounio", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "wrecks near Makronisos", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "do you know any snorkeling spots in Naxos ?", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "best diving in Crete", "type": "discovery", "expected_min_sources": 1},
+
+    # Tier 4: Complex Spatial & Contextual Queries (Agentic Heavy)
+    {"prompt": "dive sites near Porto Ennea", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "give me a list of 10 dive sites in the South of Athens", "type": "discovery", "expected_min_sources": 2},
+    {"prompt": "give me a list of 5 dive sites east of Attica", "type": "discovery", "expected_min_sources": 3},
+    {"prompt": "find dive sites in the south of Attica near Anavyssos", "type": "discovery", "expected_min_sources": 2},
+    {"prompt": "give me dive sites in the south of Anavyssos", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "What are nearby dive sites to legrena car wrecks ?", "type": "discovery", "expected_min_sources": 5},
+
+    # Tier 5: Physics Calculators (Parameter Mapping & Engine)
+    {"prompt": "What is the MOD for 32% Nitrox?", "type": "calculator", "expected_min_sources": 1},
+    {"prompt": "Calculate my SAC rate if I used 50 bar from a 12L tank in 30 mins at 15m depth.", "type": "calculator", "expected_min_sources": 1},
+    {"prompt": "What is the best nitrox mix for a dive to 30 meters?", "type": "calculator", "expected_min_sources": 1},
+    {"prompt": "Calculate minimum gas reserve for a 30m dive, 10 min duration, SAC 15, tank 12L.", "type": "calculator", "expected_min_sources": 1},
+
+    # Tier 6: Ambiguity & Multi-Step Logic (The true test of the loop)
+    {"prompt": "weather for diving in Anavyssos tomorrow", "type": "weather", "expected_min_sources": 1},
+    {"prompt": "is it safe to dive at Kyra Leni tomorrow at 10:00?", "type": "weather", "expected_min_sources": 1},
+    {"prompt": "recommend a dive site for advanced divers near me", "type": "personal_recommendation", "expected_min_sources": 1},
+    {"prompt": "Find me a dive site.", "type": "clarification", "expected_min_sources": 0},
+    {"prompt": "I want to rent gear.", "type": "clarification", "expected_min_sources": 0},
 ]
 
 async def login(client):
@@ -60,7 +89,7 @@ async def login(client):
         print(f"[!] Auth error: {e}")
         return None
 
-async def run_tests(filter_prompt=None):
+async def run_tests(filter_prompt=None, filter_type=None):
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=60.0) as client:
         token = await login(client)
         if not token:
@@ -69,12 +98,17 @@ async def run_tests(filter_prompt=None):
         
         headers = {"Authorization": f"Bearer {token}"}
         
-        # Filter test cases if prompt provided
+        # Filter test cases if prompt or type provided
         cases_to_run = TEST_CASES
         if filter_prompt:
-            cases_to_run = [case for case in TEST_CASES if filter_prompt.lower() in case["prompt"].lower()]
+            cases_to_run = [case for case in cases_to_run if filter_prompt.lower() in case["prompt"].lower()]
             if not cases_to_run:
-                print(f"[!] No test cases matched filter: '{filter_prompt}'")
+                print(f"[!] No test cases matched prompt filter: '{filter_prompt}'")
+                return
+        if filter_type:
+            cases_to_run = [case for case in cases_to_run if case.get("type") == filter_type]
+            if not cases_to_run:
+                print(f"[!] No test cases matched type filter: '{filter_type}'")
                 return
 
         results = []
@@ -120,7 +154,7 @@ async def run_tests(filter_prompt=None):
                         "don't have data on dive sites in"
                     ]
                     for phrase in negative_phrases:
-                        if phrase.lower() in response_text.lower() and case["type"] != "chit_chat":
+                        if phrase.lower() in response_text.lower() and case["type"] not in ["chit_chat", "clarification"]:
                             passed = False
                             fail_reason = f"Contains negative phrase: '{phrase}'"
                     
@@ -133,7 +167,9 @@ async def run_tests(filter_prompt=None):
                         "passed": passed,
                         "fail_reason": fail_reason,
                         "sources_count": sources_count,
-                        "response_snippet": response_text[:150] + "...",
+                        "sources": sources,
+                        "response_text": response_text,
+                        "base_url": BASE_URL,
                         "duration": duration,
                         "intent": data.get("intent")
                     })
@@ -144,6 +180,9 @@ async def run_tests(filter_prompt=None):
                         "passed": False,
                         "fail_reason": f"HTTP {resp.status_code}: {resp.text}",
                         "sources_count": 0,
+                        "sources": [],
+                        "response_text": "",
+                        "base_url": BASE_URL,
                         "duration": duration
                     })
                     
@@ -154,6 +193,9 @@ async def run_tests(filter_prompt=None):
                     "passed": False,
                     "fail_reason": f"Exception: {str(e)}",
                     "sources_count": 0,
+                    "sources": [],
+                    "response_text": "",
+                    "base_url": BASE_URL,
                     "duration": 0
                 })
 
@@ -181,6 +223,7 @@ async def run_tests(filter_prompt=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run chat quality evaluation harness.")
     parser.add_argument("--prompt", type=str, help="Filter test cases by prompt text (case-insensitive substring match).")
+    parser.add_argument("--type", type=str, help="Filter test cases by type (e.g., 'calculator', 'discovery', 'weather').")
     args = parser.parse_args()
     
-    asyncio.run(run_tests(args.prompt))
+    asyncio.run(run_tests(args.prompt, args.type))
