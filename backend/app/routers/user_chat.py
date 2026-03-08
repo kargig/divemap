@@ -17,7 +17,7 @@ from app.services.encryption_service import (
     generate_room_dek, encrypt_room_dek, decrypt_message, encrypt_message
 )
 from app.services.sqs_service import SQSService
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
 from app.schemas.chat import ChatRequest
 
 router = APIRouter()

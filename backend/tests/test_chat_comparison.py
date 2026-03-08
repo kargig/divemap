@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import DivingOrganization, CertificationLevel
 
@@ -53,13 +54,13 @@ def setup_comparison_data(db_session):
     
     return {"org1": org1, "org2": org2, "l1": l1, "l2": l2}
 
-def test_comparison_logic(chat_service, setup_comparison_data):
+def test_comparison_logic(db_session, chat_service, setup_comparison_data):
     intent = SearchIntent(
         intent_type=IntentType.COMPARISON,
         keywords=["TEST_Tec", "45", "TEST_XR"]
     )
     
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     # Should find at least the two relevant certs
     names = [r["name"] for r in results if r["entity_type"] == "certification"]
