@@ -1,10 +1,10 @@
 import { Modal } from 'antd';
 import PropTypes from 'prop-types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 
 import { useResponsive } from '../hooks/useResponsive';
 
-import AdvancedDiveProfileChart from './AdvancedDiveProfileChart';
+const AdvancedDiveProfileChart = lazy(() => import('./AdvancedDiveProfileChart'));
 
 const DiveProfileModal = ({
   isOpen,
@@ -58,15 +58,23 @@ const DiveProfileModal = ({
     >
       {/* Chart content - scrollable */}
       <div className={`flex-1 overflow-y-auto min-h-0 ${isMobileLandscape ? 'p-1' : 'p-6'}`}>
-        <AdvancedDiveProfileChart
-          profileData={profileData}
-          isLoading={isLoading}
-          error={error}
-          showTemperature={showTemperature}
-          screenSize={isMobileLandscape ? 'mobile' : screenSize}
-          onDecoStatusChange={onDecoStatusChange}
-          onClose={isMobileLandscape ? onClose : undefined}
-        />
+        <Suspense
+          fallback={
+            <div className='h-full flex items-center justify-center bg-gray-50 rounded'>
+              Loading Detailed Chart...
+            </div>
+          }
+        >
+          <AdvancedDiveProfileChart
+            profileData={profileData}
+            isLoading={isLoading}
+            error={error}
+            showTemperature={showTemperature}
+            screenSize={isMobileLandscape ? 'mobile' : screenSize}
+            onDecoStatusChange={onDecoStatusChange}
+            onClose={isMobileLandscape ? onClose : undefined}
+          />
+        </Suspense>
       </div>
     </Modal>
   );

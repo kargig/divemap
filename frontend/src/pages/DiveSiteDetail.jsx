@@ -16,7 +16,7 @@ import {
   Globe,
   TrendingUp,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -37,11 +37,11 @@ import api from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import CommunityVerdict from '../components/CommunityVerdict';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
+import DiveSiteSidebar from '../components/DiveSiteSidebar';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
 import WeatherConditionsCard from '../components/MarineConditionsCard';
 import MaskedEmail from '../components/MaskedEmail';
-import MiniMap from '../components/MiniMap';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
@@ -64,6 +64,8 @@ import NotFound from './NotFound';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
+
+const MiniMap = lazy(() => import('../components/MiniMap'));
 
 const DiveSiteDetail = () => {
   const { id, slug } = useParams();
@@ -922,15 +924,23 @@ const DiveSiteDetail = () => {
                     </Button>
                   </div>
 
-                  <MiniMap
-                    latitude={diveSite.latitude}
-                    longitude={diveSite.longitude}
-                    name={diveSite.name}
-                    onMaximize={() => setIsMapMaximized(true)}
-                    showMaximizeButton={false}
-                    isMaximized={isMapMaximized}
-                    onClose={() => setIsMapMaximized(false)}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className='h-48 sm:h-64 bg-gray-50 flex items-center justify-center rounded border border-gray-200'>
+                        Loading Map...
+                      </div>
+                    }
+                  >
+                    <MiniMap
+                      latitude={diveSite.latitude}
+                      longitude={diveSite.longitude}
+                      name={diveSite.name}
+                      onMaximize={() => setIsMapMaximized(true)}
+                      showMaximizeButton={false}
+                      isMaximized={isMapMaximized}
+                      onClose={() => setIsMapMaximized(false)}
+                    />
+                  </Suspense>
                 </>
               )}
             </div>
@@ -1239,154 +1249,16 @@ const DiveSiteDetail = () => {
         </div>
 
         {/* Sidebar */}
-        <div className='space-y-6'>
-          {/* Weather Conditions - Collapsible */}
-          <div className='bg-white rounded-lg shadow-md overflow-hidden'>
-            <Collapse
-              ghost
-              onChange={keys => setIsMarineExpanded(keys.includes('weather'))}
-              items={[
-                {
-                  key: 'weather',
-                  label: (
-                    <span className='text-lg font-semibold text-gray-900'>
-                      Current Weather Conditions
-                    </span>
-                  ),
-                  children: (
-                    <div className='-m-4'>
-                      {/* Negative margin to counteract Collapse padding */}
-                      <WeatherConditionsCard windData={windData} loading={isWindLoading} />
-                    </div>
-                  ),
-                },
-              ]}
-            />
-          </div>
-
-          {/* Site Info - Desktop View Only - REMOVED (Consolidated to Header) */}
-
-          {/* Access Instructions - Desktop View Only */}
-          {diveSite.access_instructions && (
-            <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Access Instructions</h3>
-              <p className='text-gray-700 text-sm'>
-                {decodeHtmlEntities(diveSite.access_instructions)}
-              </p>
-            </div>
-          )}
-
-          {/* Associated Diving Centers - Moved to Sidebar */}
-          {divingCenters && divingCenters.length > 0 && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Diving Centers</h3>
-              <div className='space-y-4'>
-                {divingCenters.map(center => (
-                  <div key={center.id} className='border rounded-lg p-3'>
-                    <div className='flex flex-col gap-1 mb-2'>
-                      <h4 className='font-medium text-gray-900 text-sm'>{center.name}</h4>
-                      {center.dive_cost && (
-                        <span className='text-green-600 font-medium text-xs'>
-                          {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}
-                        </span>
-                      )}
-                    </div>
-                    {center.description && (
-                      <p className='text-gray-600 text-xs mb-2 line-clamp-2'>
-                        {decodeHtmlEntities(center.description)}
-                      </p>
-                    )}
-                    <div className='flex flex-wrap gap-2 text-xs'>
-                      {center.email && (
-                        <a
-                          href={`mailto:${center.email}`}
-                          className='flex items-center text-blue-600 hover:text-blue-700'
-                          title='Email'
-                        >
-                          <Link className='h-3 w-3 mr-1' />
-                          Email
-                        </a>
-                      )}
-                      {center.phone && (
-                        <a
-                          href={`tel:${center.phone}`}
-                          className='flex items-center text-blue-600 hover:text-blue-700'
-                          title='Phone'
-                        >
-                          <Link className='h-3 w-3 mr-1' />
-                          Phone
-                        </a>
-                      )}
-                      {center.website && (
-                        <a
-                          href={center.website}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='flex items-center text-blue-600 hover:text-blue-700'
-                          title='Website'
-                        >
-                          <Link className='h-3 w-3 mr-1' />
-                          Web
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Nearby Dive Sites - Desktop View Only */}
-          {diveSite.latitude && diveSite.longitude && (
-            <div className='hidden lg:block bg-white rounded-lg shadow-md overflow-hidden'>
-              <Collapse
-                ghost
-                onChange={keys => setIsNearbyExpanded(keys.includes('nearby-desktop'))}
-                items={[
-                  {
-                    key: 'nearby-desktop',
-                    label: (
-                      <span className='text-lg font-semibold text-gray-900'>Nearby Dive Sites</span>
-                    ),
-                    children: (
-                      <div className='space-y-2'>
-                        {isNearbyLoading ? (
-                          <div className='text-center py-4 text-gray-500'>
-                            Loading nearby sites...
-                          </div>
-                        ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
-                          nearbyDiveSites.slice(0, 6).map(site => (
-                            <button
-                              key={site.id}
-                              onClick={() =>
-                                navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)
-                              }
-                              className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
-                            >
-                              <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
-                              <div className='min-w-0 flex-1'>
-                                <div className='font-medium text-gray-900 text-sm truncate'>
-                                  {site.name}
-                                </div>
-                                <div className='text-xs text-gray-500'>
-                                  {site.distance_km} km away
-                                </div>
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className='text-center py-4 text-gray-500'>
-                            No nearby dive sites found.
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-            </div>
-          )}
-        </div>
+        <DiveSiteSidebar
+          diveSite={diveSite}
+          windData={windData}
+          isWindLoading={isWindLoading}
+          setIsMarineExpanded={setIsMarineExpanded}
+          divingCenters={divingCenters}
+          nearbyDiveSites={nearbyDiveSites}
+          isNearbyLoading={isNearbyLoading}
+          setIsNearbyExpanded={setIsNearbyExpanded}
+        />
       </div>
     </div>
   );
