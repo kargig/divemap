@@ -9,21 +9,22 @@ class TestChatAPI:
     """Test Chatbot endpoints."""
 
     @pytest.mark.asyncio
-    @patch("app.services.chat.intent_extractor.openai_service.get_chat_completion", new_callable=AsyncMock)
+    @patch("app.services.chat.chat_service.openai_service.get_chat_completion", new_callable=AsyncMock)
     async def test_send_message_success(self, mock_openai, client, auth_headers):
         """Test successful chat message interaction."""
-        # Mock responses for intent extraction and response generation
-        # extract_search_intent uses json_schema=SearchIntent, so we return an actual SearchIntent
-        intent = SearchIntent(
-            intent_type=IntentType.DISCOVERY,
-            keywords=["wreck"],
-            location="Athens"
+        # Mock responses for tool call and then final response
+        tool_call = SimpleNamespace(
+            id="call_123",
+            function=SimpleNamespace(
+                name="search_dive_sites",
+                arguments='{"location": "Athens", "keywords": ["wreck"]}'
+            )
         )
         
         mock_openai.side_effect = [
-            # First call: extract_search_intent
-            (intent, {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}),
-            # Second call: generate_response
+            # First call: LLM decides to call a tool
+            ([tool_call], {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}),
+            # Second call: LLM provides final answer based on tool results
             ("I found some great wreck dives near Athens for you! [Alekos Wreck](/dive-sites/1)", {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30})
         ]
 
@@ -37,8 +38,12 @@ class TestChatAPI:
         assert "response" in data
         assert "message_id" in data
         assert "intent" in data
+        # Intent is populated from the tool call arguments in the new system
         assert data["intent"]["intent_type"] == "discovery"
         assert "wreck" in data["intent"]["keywords"]
+        assert "intermediate_steps" in data
+        assert len(data["intermediate_steps"]) > 0
+        assert data["intermediate_steps"][0]["action_type"] == "search"
 
     def test_submit_feedback_success(self, client, test_user):
         """Test submitting feedback for a chat message."""
@@ -87,14 +92,13 @@ class TestChatAPI:
         assert "category_breakdown" in data
 
     @pytest.mark.asyncio
-    @patch("app.services.chat.intent_extractor.openai_service.get_chat_completion", new_callable=AsyncMock)
+    @patch("app.services.chat.chat_service.openai_service.get_chat_completion", new_callable=AsyncMock)
     async def test_admin_get_sessions(self, mock_openai, client, admin_headers, test_user):
         """Test admin session listing and transcript view."""
         # 1. Create a session by sending a message
-        intent = SearchIntent(intent_type=IntentType.CHIT_CHAT)
         mock_openai.side_effect = [
-            (intent, {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}),
-            ("Hello!", {"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30})
+            # In agentic loop, chit-chat might not call tools
+            ("Hello!", {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15})
         ]
         
         # Use auth_headers for the user sending the message

@@ -2,7 +2,7 @@ import os
 import logging
 import asyncio
 import orjson
-from typing import Optional, List, Dict, Union, Type, Tuple
+from typing import Optional, List, Dict, Union, Type, Tuple, Any
 import openai
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -47,7 +47,7 @@ class OpenAIService:
             logger.warning(f"{self.provider_config['api_key_env']} not set or using placeholder. Chat features will fail.")
             self.client = None
         else:
-            self.client = openai.OpenAI(
+            self.client = openai.AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.provider_config["base_url"]
             )
@@ -86,12 +86,14 @@ class OpenAIService:
         model: Optional[str] = None,
         max_tokens: int = 2000,
         temperature: float = 0.7,
-        json_schema: Optional[Type[BaseModel]] = None
-    ) -> Tuple[Union[str, Dict], Dict[str, int]]:
+        json_schema: Optional[Type[BaseModel]] = None,
+        tools: Optional[List[Dict]] = None,
+        tool_choice: Optional[str] = None
+    ) -> Tuple[Union[str, Dict, Any], Dict[str, int]]:
         """
         Generic wrapper for OpenAI Chat Completions.
-        Supports structured output via Pydantic schemas.
-        Returns: (content, usage_dict)
+        Supports structured output via Pydantic schemas and Tool Calling.
+        Returns: (content or parsed_object or tool_calls, usage_dict)
         """
         if not self.client:
             raise ValueError(f"OpenAI client ({self.provider_name}) not initialized. Check API key.")
@@ -108,13 +110,17 @@ class OpenAIService:
                 "temperature": temperature,
             }
 
+            if tools:
+                params["tools"] = tools
+                if tool_choice:
+                    params["tool_choice"] = tool_choice
+
             usage_dict = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
-            if json_schema:
-                # DeepSeek might not support beta.chat.completions.parse yet, check provider
+            if json_schema and not tools:
+                # Use Beta features for structured output if schema is provided AND no tools
                 if self.provider_name == "openai":
-                    # Use Beta features for structured output if schema is provided
-                    response = self.client.beta.chat.completions.parse(
+                    response = await self.client.beta.chat.completions.parse(
                         **params,
                         response_format=json_schema
                     )
@@ -133,7 +139,7 @@ class OpenAIService:
                     if self.provider_name == "deepseek":
                         params["response_format"] = {"type": "json_object"}
                     
-                    response = self.client.chat.completions.create(**params)
+                    response = await self.client.chat.completions.create(**params)
                     
                     if response.usage:
                         usage_dict = {
@@ -153,10 +159,9 @@ class OpenAIService:
                     except Exception as e:
                         logger.error(f"JSON repair/parse failed for {model}. Original content: {content[:100]}...")
                         logger.error(f"Error: {e}")
-                        # Re-raise so @retry can catch it and try again if it was a flake
                         raise ValueError(f"Invalid JSON from LLM: {str(e)}")
             else:
-                response = self.client.chat.completions.create(**params)
+                response = await self.client.chat.completions.create(**params)
                 
                 if response.usage:
                     usage_dict = {
@@ -166,7 +171,11 @@ class OpenAIService:
                     }
                 logger.info(f"[{self.provider_name}] Tokens: {usage_dict}")
                 
-                return response.choices[0].message.content, usage_dict
+                message = response.choices[0].message
+                if message.tool_calls:
+                    return message.tool_calls, usage_dict
+                
+                return message.content, usage_dict
         except Exception as e:
             # Only log as error if it's not a value error we expect to retry
             if not isinstance(e, ValueError):

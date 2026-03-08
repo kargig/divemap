@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
+from types import SimpleNamespace
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import DiveSite, DivingOrganization, CertificationLevel, UserCertification, Dive
 from datetime import date
@@ -46,22 +47,30 @@ def setup_api_data(db_session, test_user):
 @pytest.mark.asyncio
 async def test_chat_personal_recommendation_api(client, auth_headers, setup_api_data):
     # Mock OpenAI Service
-    with patch("app.services.openai_service.openai_service.get_chat_completion", new_callable=AsyncMock) as mock_openai:
-        # Mock responses for the two calls:
-        # 1. Intent Extraction
-        intent_response = SearchIntent(
-            intent_type=IntentType.PERSONAL_RECOMMENDATION,
-            keywords=["weekend"],
-            latitude=37.0,
-            longitude=23.0,
-            location=None  # Use coordinates instead of non-matching location name
+    with patch("app.services.chat.chat_service.openai_service.get_chat_completion", new_callable=AsyncMock) as mock_openai:
+        # Mock tool call for personal recommendation
+        # NOTE: PERSONAL_RECOMMENDATION doesn't have a specific tool, 
+        # it might be handled by search_dive_sites with specific intent 
+        # but in our new loop we might need to map it.
+        # Looking at chat_service.py, I didn't add a specific tool for personal_recommendation.
+        # I should probably add it or map it.
+        
+        # Actually, let's map search_dive_sites to handle discovery.
+        # I'll update the test to use search_dive_sites which is the closest tool.
+        
+        tool_call = SimpleNamespace(
+            id="call_rec",
+            function=SimpleNamespace(
+                name="recommend_dive_sites",
+                arguments='{"latitude": 37.0, "longitude": 23.0}'
+            )
         )
         
-        # 2. Final Response Generation
+        # Final Response Generation
         final_text = "I recommend API Site C."
         
         mock_openai.side_effect = [
-            (intent_response, {"prompt_tokens": 10, "completion_tokens": 5}),
+            ([tool_call], {"prompt_tokens": 10, "completion_tokens": 5}),
             (final_text, {"prompt_tokens": 20, "completion_tokens": 10})
         ]
         

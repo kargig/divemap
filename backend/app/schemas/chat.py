@@ -52,7 +52,7 @@ class SearchIntent(BaseModel):
     difficulty_level: Optional[int] = None # 1-4
     context_entity_id: Optional[int] = None
     context_entity_type: Optional[str] = None
-    calculator_params: Optional[Dict[str, Optional[float]]] = None # Parameters for diving calculations
+    calculator_params: Optional[Dict[str, Union[float, str, None]]] = None # Parameters for diving calculations
 
 class ChatIntermediateAction(BaseModel):
     action_type: Literal["search", "resolve_location", "refine_intent", "final_answer"]

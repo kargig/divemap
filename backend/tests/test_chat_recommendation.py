@@ -2,7 +2,7 @@ import pytest
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 from app.services.chat import ChatService
-from app.services.chat.intent_extractor import get_user_difficulty_level
+from app.services.chat.utils import get_user_difficulty_level
 from app.services.chat.executors.dispatcher import execute_search_intent
 from app.schemas.chat import SearchIntent, IntentType
 from app.models import User, UserCertification, CertificationLevel, Dive, DiveSite, DifficultyLevel, DivingOrganization
