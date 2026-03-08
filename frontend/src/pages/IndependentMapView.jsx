@@ -17,7 +17,7 @@ import {
   Info,
   Waves,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useGeolocated } from 'react-geolocated';
 import toast from 'react-hot-toast';
 import { useQueryClient } from 'react-query';
@@ -25,7 +25,6 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import ErrorPage from '../components/ErrorPage';
-import LeafletMapView from '../components/LeafletMapView';
 import MapLayersPanel from '../components/MapLayersPanel';
 import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
@@ -34,6 +33,8 @@ import WindOverlayToggle from '../components/WindOverlayToggle';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
+
+const LeafletMapView = lazy(() => import('../components/LeafletMapView'));
 
 const IndependentMapView = () => {
   // Set page title
@@ -1232,33 +1233,42 @@ const IndependentMapView = () => {
 
           {/* Map area */}
           <div
-            className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container`}
+            className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container bg-gray-50 flex items-center justify-center`}
           >
-            <LeafletMapView
-              data={mapData}
-              selectedEntityType={selectedEntityType}
-              viewport={viewport}
-              onViewportChange={handleViewportChange}
-              popupInfo={popupInfo}
-              setPopupInfo={setPopupInfo}
-              popupPosition={popupPosition}
-              setPopupPosition={setPopupPosition}
-              isLoading={isLoading}
-              error={error}
-              selectedLayer={selectedLayer}
-              onLayerChange={handleLayerChange}
-              onMapInstance={setMapInstance}
-              resetTrigger={resetTrigger}
-              windOverlayEnabled={windOverlayEnabled}
-              setWindOverlayEnabled={setWindOverlayEnabled}
-              windAnimationEnabled={windAnimationEnabled}
-              setWindAnimationEnabled={setWindAnimationEnabled}
-              windDateTime={windDateTime}
-              setWindDateTime={setWindDateTime}
-              onWindFetchingChange={setIsWindFetching}
-              showWindLegend={showWindLegend}
-              setShowWindLegend={setShowWindLegend}
-            />
+            <Suspense
+              fallback={
+                <div className='flex flex-col items-center gap-4 text-blue-600'>
+                  <div className='w-12 h-12 border-4 border-current border-t-transparent rounded-full animate-spin'></div>
+                  <span className='font-medium'>Loading Map Application...</span>
+                </div>
+              }
+            >
+              <LeafletMapView
+                data={mapData}
+                selectedEntityType={selectedEntityType}
+                viewport={viewport}
+                onViewportChange={handleViewportChange}
+                popupInfo={popupInfo}
+                setPopupInfo={setPopupInfo}
+                popupPosition={popupPosition}
+                setPopupPosition={setPopupPosition}
+                isLoading={isLoading}
+                error={error}
+                selectedLayer={selectedLayer}
+                onLayerChange={handleLayerChange}
+                onMapInstance={setMapInstance}
+                resetTrigger={resetTrigger}
+                windOverlayEnabled={windOverlayEnabled}
+                setWindOverlayEnabled={setWindOverlayEnabled}
+                windAnimationEnabled={windAnimationEnabled}
+                setWindAnimationEnabled={setWindAnimationEnabled}
+                windDateTime={windDateTime}
+                setWindDateTime={setWindDateTime}
+                onWindFetchingChange={setIsWindFetching}
+                showWindLegend={showWindLegend}
+                setShowWindLegend={setShowWindLegend}
+              />
+            </Suspense>
 
             {/* Layers panel */}
             <MapLayersPanel
