@@ -183,11 +183,19 @@ Page Context: {page_context_summary}
                                 intent_date=args["date"],
                                 intent_time=args.get("time"),
                                 intent_lat=args["latitude"],
-                                intent_lon=args["longitude"]
+                                intent_lon=args["longitude"],
+                                intent_location=args.get("location")
                             )
                         )
                         tool_result = dummy_results
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, date=args["date"], time=args.get("time"), latitude=args["latitude"], longitude=args["longitude"])
+                        last_intent = SearchIntent(
+                            intent_type=IntentType.DISCOVERY, 
+                            location=args.get("location"),
+                            date=args["date"], 
+                            time=args.get("time"), 
+                            latitude=args["latitude"], 
+                            longitude=args["longitude"]
+                        )
                     elif name == "recommend_dive_sites":
                         tool_result = await run_in_threadpool(
                             lambda: execute_other_intents(
@@ -202,8 +210,9 @@ Page Context: {page_context_summary}
                         final_response_text = args["question"]
                         intermediate_steps.append(ChatIntermediateAction(
                             action_type="refine_intent",
+                            tool_name=name,
                             parameters=args,
-                            reasoning=f"Asking user for clarification: {args['question']}"
+                            reasoning=f"Step {current_step}: Asking user for clarification: {args['question']}"
                         ))
                         break # Exit the loop early
                     
@@ -224,9 +233,11 @@ Page Context: {page_context_summary}
                     })
                     
                     intermediate_steps.append(ChatIntermediateAction(
-                        action_type=action_type,
+                        action_type="tool_call",
+                        tool_name=name,
                         parameters=args,
-                        reasoning=f"Executed {name}"
+                        tool_result=context_result,
+                        reasoning=f"Step {current_step}: Executed {name}"
                     ))
                 
                 if final_response_text: # From clarification tool

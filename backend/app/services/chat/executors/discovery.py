@@ -1,6 +1,6 @@
 from .base import *
 import logging
-from datetime import date
+from datetime import date as py_date
 logger = logging.getLogger(__name__)
     
 def execute_discovery(
@@ -36,7 +36,9 @@ def execute_discovery(
             logger.info(f"Resolved location '{location}' to DiveSite '{site_match.name}' coordinates.")
             latitude = float(site_match.latitude)
             longitude = float(site_match.longitude)
-            location = None # Clear text location to force radius search
+            # We don't clear location=None anymore because it might be needed for Trip searches 
+            # and other text filters later in the function.
+            # Spatial search logic below uses latitude/longitude presence to prioritize radius.
     
     # 1. Search Dive Sites
     search_query = db.query(DiveSite).options(
@@ -396,13 +398,13 @@ def execute_discovery(
             trips_query = db.query(ParsedDiveTrip)
             if date:
                 try:
-                    d = date.fromisoformat(date)
+                    d = py_date.fromisoformat(date)
                     trips_query = trips_query.filter(ParsedDiveTrip.trip_date == d)
                 except ValueError: pass
             elif date_range and len(date_range) >= 2 and date_range[0] and date_range[1]:
                 try:
-                    d1 = date.fromisoformat(date_range[0])
-                    d2 = date.fromisoformat(date_range[1])
+                    d1 = py_date.fromisoformat(date_range[0])
+                    d2 = py_date.fromisoformat(date_range[1])
                     trips_query = trips_query.filter(
                         ParsedDiveTrip.trip_date >= d1,
                         ParsedDiveTrip.trip_date <= d2

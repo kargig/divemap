@@ -43,7 +43,7 @@ class TestChatAPI:
         assert "wreck" in data["intent"]["keywords"]
         assert "intermediate_steps" in data
         assert len(data["intermediate_steps"]) > 0
-        assert data["intermediate_steps"][0]["action_type"] == "search"
+        assert data["intermediate_steps"][0]["action_type"] == "tool_call"
 
     def test_submit_feedback_success(self, client, test_user):
         """Test submitting feedback for a chat message."""
