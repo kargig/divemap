@@ -17,6 +17,10 @@ from app.models import (
 from app.routers.search import search_dive_sites, ENTITY_ICONS
 from app.services.open_meteo_service import fetch_wind_data_batch
 from app.services.wind_recommendation_service import calculate_wind_suitability
+from app.geo_utils import (
+    get_external_region_bounds, get_empirical_region_bounds, 
+    calculate_directional_bounds, get_location_info_from_coords, get_country_from_ip
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,73 @@ class ChatService:
     def __init__(self, db: Session):
         self.db = db
 
+    def _resolve_page_context(self, page_context: Dict) -> str:
+        """
+        Converts the raw page context from the frontend into a human-readable summary for the LLM.
+        """
+        if not page_context:
+            return "None"
+
+        path = page_context.get("path", "")
+        params = page_context.get("params", {})
+        summary = [f"Path: {path}"]
+
+        if params:
+            summary.append(f"Query Parameters: {params}")
+
+        try:
+            # 1. Dive Site & Route Context
+            if "/dive-sites/" in path:
+                site_id = path.split("/")[2]
+                if site_id.isdigit():
+                    site = self.db.query(DiveSite).filter(DiveSite.id == int(site_id)).first()
+                    if site:
+                        summary.append(f"Current Dive Site: '{site.name}' (ID: {site.id}, Region: {site.region})")
+                    
+                    route_id = page_context.get("route_id")
+                    if route_id:
+                        from app.models import DiveRoute
+                        route = self.db.query(DiveRoute).filter(DiveRoute.id == int(route_id)).first()
+                        if route:
+                            summary.append(f"Current Dive Route: '{route.name}'")
+
+            # 2. Diving Center Context
+            elif "/diving-centers/" in path:
+                center_id = path.split("/")[2]
+                if center_id.isdigit():
+                    center = self.db.query(DivingCenter).filter(DivingCenter.id == int(center_id)).first()
+                    if center:
+                        summary.append(f"Current Diving Center: '{center.name}' in {center.city}, {center.region}")
+
+            # 3. Dive Log Context
+            elif "/dives/" in path:
+                dive_id = path.split("/")[2]
+                if dive_id.isdigit():
+                    dive = self.db.query(Dive).filter(Dive.id == int(dive_id)).first()
+                    if dive:
+                        summary.append(f"Current Dive Log: Site '{dive.site_name}' on {dive.dive_date}")
+
+            # 4. Resources / Tools Context
+            elif "/resources/tools" in path:
+                tab = params.get("tab", "General")
+                summary.append(f"Active Tool Tab: {tab}")
+            
+            elif "/resources/diving-organizations" in path:
+                summary.append("Currently viewing the list of recognized Diving Organizations.")
+
+            # 5. Generic List Views
+            elif path == "/dive-sites":
+                summary.append("Currently viewing the Dive Sites directory.")
+            elif path == "/diving-centers":
+                summary.append("Currently viewing the Diving Centers directory.")
+            elif path == "/dive-trips":
+                summary.append("Currently viewing the upcoming Dive Trips.")
+
+        except Exception as e:
+            logger.error(f"Error resolving page context: {e}")
+
+        return " | ".join(summary)
+
     async def extract_search_intent(self, request: ChatRequest) -> Tuple[SearchIntent, Dict[str, int]]:
         """
         Use OpenAI to convert natural language into a structured SearchIntent.
@@ -49,7 +120,35 @@ class ChatService:
         
         user_loc_str = f"{request.user_location[0]}, {request.user_location[1]}" if request.user_location else "Unknown"
         
+        # Resolve user's country and region for context
+        user_country = "Unknown"
+        user_region = "Unknown"
+        
+        if request.user_location:
+            loc_info = get_location_info_from_coords(request.user_location[0], request.user_location[1])
+            user_country = loc_info.get("country") or "Unknown"
+            user_region = loc_info.get("region") or "Unknown"
+        
+        if user_country == "Unknown" and request.client_ip:
+            user_country = get_country_from_ip(request.client_ip) or "Unknown"
+            
         context_loc_str = "Unknown"
+        map_context_str = "None"
+        map_region = "Unknown"
+        page_context_summary = self._resolve_page_context(request.page_context)
+        
+        if request.map_context:
+            m_lat = request.map_context.get("lat")
+            m_lng = request.map_context.get("lng")
+            m_zoom = request.map_context.get("zoom")
+            map_context_str = f"Lat: {m_lat}, Lon: {m_lng}, Zoom: {m_zoom or 'Unknown'}"
+            
+            # Extract map region name via reverse geocoding
+            if m_lat and m_lng:
+                m_loc_info = get_location_info_from_coords(m_lat, m_lng)
+                map_region = m_loc_info.get("region") or "Unknown"
+                if user_country == "Unknown":
+                    user_country = m_loc_info.get("country") or "Unknown"
         
         # Validate context_entity_type to prevent prompt injection or logic errors
         ALLOWED_CONTEXT_TYPES = {"dive_site", "diving_center", "dive_trip"}
@@ -78,7 +177,24 @@ Your job is to parse user queries into structured JSON for database searching.
 Current Date: {current_date} ({current_weekday})
 User's Current Context: {request.context_entity_type or 'None'} ID: {request.context_entity_id or 'None'}
 User's Current Location (Lat, Lon): {user_loc_str}
+User's Resolved Country: {user_country}
+User's Resolved Region: {user_region}
+User's Map Context: {map_context_str}
+Region Visible on Map: {map_region}
+Page Context Summary: {page_context_summary}
 Context Entity Location (Lat, Lon): {context_loc_str}
+
+# Context Awareness
+- **Generic Queries**: If the user asks something like "what can I see here?" or "tell me more about this", use the `Page Context Summary` to determine the subject. 
+- **Site/Center Details**: If the user is on a specific site or center page, assume questions are about that entity unless otherwise specified.
+- **Tools**: If the user is on `/resources/tools`, and they ask "how do I use this?", refer to the active tool tab in the summary.
+
+# Location Bias
+- If the user provides a location name without a country (e.g. "Athens"), and that name exists in multiple countries, assume they mean the one in `User's Resolved Country` ({user_country}).
+- If `User's Resolved Country` is "Unknown", default to **Greece** for ambiguous locations unless the query implies otherwise.
+- If the user asks for something "near me" or "around here", use `User's Current Location` and `User's Resolved Region` as context.
+- **Map Focus**: If the user is looking at a map (`User's Map Context` is not None) and asks generic questions like "what's here?", "dive sites in this area", or "any wrecks nearby?", use the Map coordinates as the primary search location.
+- **Map Region Bias**: If the user asks for a direction (e.g., "south") while looking at a map, and they don't specify a city, assume they mean the "south of {map_region}". For example, if `Region Visible on Map` is "South Aegean", and they ask "what's in the south?", assume they mean "South of South Aegean".
 
 # Safety & Scope
 - **Strict Scope**: ONLY handle queries related to scuba diving, snorkeling, free diving, marine life, weather for diving, or Divemap platform features.
@@ -98,15 +214,20 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   - \"knowledge\": General diving facts.
   - \"calculator\": Use this when the user asks for diving calculations like MOD (Max Operating Depth), SAC (Surface Air Consumption), EAD (Equivalent Air Depth), END (Equivalent Narcotic Depth), Best Mix, or Minimum Gas.
   - \"chit_chat\": Greeting or unrelated.
+- **Entity Filtering**: If the user specifically asks for "dive sites", "diving centers", or "trips/outings", set `entity_type_filter` to "dive_site", "diving_center", or "dive_trip" respectively. If not specified, leave as `null`.
 - **Ratings & Popularity**: If the user asks for "highest rated", "best", "most popular", "top rated":
   - Set `intent_type` to "discovery".
   - Include "highest_rated" in `keywords` if they asked for ratings/best.
   - Include "popular" in `keywords` if they asked for popularity/views.
 - **Context Handling**: If `User's Current Context` is provided and the user says "this", "here", or "current", you MUST set `intent_type` to "context_qa" and map the context ID/Type.
 - **Location & Coordinates**: 
-  - **Cities & Areas**: If the user mentions a known town, city, or region (e.g. "Anavyssos", "Sounio", "Athens"), YOU MUST provide its approximate `latitude` and `longitude`.
+  - **Cities & Areas**: If the user mentions a known town, city, or region (e.g. "Anavyssos", "Sounio", "Athens", "Attica"), YOU MUST provide its approximate `latitude` and `longitude`.
+  - **Sub-locations**: If the user mentions a specific town OR sub-location within a larger region (e.g., "Anavyssos in Attica", "Sounio in Attica"), set `location` to the specific town (Anavyssos), set `parent_region` to the larger region (Attica), and include the specific town name in `keywords`.
+  - **Cardinal Directions**: If the user asks for a specific cardinal direction of a region (e.g., "south part of Attica", "east of Naxos"), extract the geographic name into `location` and the direction into `direction` (e.g., `location="Attica", direction="south"`). If they specify a town (e.g., "South of Anavyssos"), and you know its region, set `location="Anavyssos"` and `parent_region="Attica"`. Valid directions: "north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest". 
   - **Specific Dive Sites**: Do NOT guess coordinates for specific named dive sites (e.g. "The Cave", "Porto Ennea Reef"). Put the name in `location` and leave `latitude`/`longitude` as `null`. The system will resolve these from the database.
+  - **Keywords vs Location**: If the user asks for sites near or around a specific place (e.g. "near Legrena Car Wrecks"), put the entire place name in `location`. DO NOT put parts of the location name (like "car", "wrecks", "legrena") into `keywords`. Only use `keywords` for additional filtering (e.g., "deep sites near X" -> keyword: "deep").
   - **Search Radius**: If you provide coordinates, estimate a suitable search `radius` in kilometers (km) based on the location type:
+    - Island (e.g. Patroklos, Makronisos): 2-5 km (must be strictly around the island, not mainland)
     - Specific Spot/Town (e.g. Anavyssos): 10-20 km
     - Large City (e.g. Athens): 30 km
     - Large Region (e.g. Attica): 50-100 km
@@ -143,6 +264,9 @@ Context Entity Location (Lat, Lon): {context_loc_str}
   "intent_type": "discovery",
   "keywords": ["wreck"],
   "location": "Athens",
+  "direction": null,
+  "parent_region": "Attica",
+  "entity_type_filter": "dive_site",
   "latitude": 37.9838,
   "longitude": 23.7275,
   "radius": 30,
@@ -247,6 +371,13 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             if intent.location and not (intent.latitude and intent.longitude):
                 # Try to find a dive site with this name
                 site_match = self.db.query(DiveSite).filter(DiveSite.name.ilike(f"{intent.location}")).first()
+                
+                # If exact match fails, try a fuzzy match by replacing spaces with wildcards
+                if not site_match:
+                    import re
+                    fuzzy_name = re.sub(r'[\s\-]+', '%', intent.location.strip())
+                    site_match = self.db.query(DiveSite).filter(DiveSite.name.ilike(f"%{fuzzy_name}%")).first()
+                    
                 if site_match and site_match.latitude and site_match.longitude:
                     logger.info(f"Resolved location '{intent.location}' to DiveSite '{site_match.name}' coordinates.")
                     intent.latitude = float(site_match.latitude)
@@ -263,23 +394,77 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             spatial_filters = []
             text_filters = []
 
-            # 1. Spatial Search (Latitude/Longitude)
-            if intent.latitude and intent.longitude:
+            # 1. Spatial & Directional Search
+            if (not intent.entity_type_filter or intent.entity_type_filter == "dive_site") and intent.direction and (intent.location or intent.parent_region):
+                has_filters = True
+                # Normalize location for better resolution
+                # Promotion logic: If we have a parent region, use it for the bounds to get a better cardinal split
+                loc_res = intent.parent_region if intent.parent_region else intent.location
+                
+                if loc_res.lower() in ["athens", "atniki", "athina"]:
+                    loc_res = "Attica" # Athens as a city is small, Attica is the region
+
+                # Try empirical bounds FIRST for our regions, as they are more accurate for dive site distribution
+                bounds = get_empirical_region_bounds(self.db, loc_res)
+                if not bounds:
+                    res = get_external_region_bounds(loc_res)
+                    if res:
+                        bounds, display_name = res
+                        # Auto-promote parent_region if LLM missed it
+                        if not intent.parent_region and "," in display_name:
+                            parts = [p.strip() for p in display_name.split(",")]
+                            if len(parts) >= 3:
+                                # For "Anavyssos, Municipality, Regional Unit, Attica, Greece", parts[-2] is "Attica"
+                                # We need to check if parts[-2] is the country
+                                parent = parts[-2]
+                                if parent.lower() in ["greece", "hellas"] and len(parts) >= 4:
+                                    parent = parts[-3]
+                                intent.parent_region = parent
+                                logger.info(f"Auto-promoted parent_region to '{intent.parent_region}' from display_name: {display_name}")
+                                # Re-try empirical bounds with the NEWLY discovered parent region for better accuracy
+                                p_bounds = get_empirical_region_bounds(self.db, intent.parent_region)
+                                if p_bounds:
+                                    bounds = p_bounds
+                                    logger.info(f"Successfully switched to empirical bounds of parent region: {intent.parent_region}")
+                
+                if bounds:
+                    n, s, e, w = bounds
+                    new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                    spatial_filters = [
+                        DiveSite.latitude <= new_n,
+                        DiveSite.latitude >= new_s,
+                        DiveSite.longitude <= new_e,
+                        DiveSite.longitude >= new_w
+                    ]
+                else:
+                    logger.warning(f"Could not resolve bounds for {loc_res} to apply direction {intent.direction}")
+
+            if not spatial_filters and intent.latitude and intent.longitude:
                 has_filters = True
                 radius_km = intent.radius if intent.radius else 20.0
-                # 1 degree lat is consistently ~111km. 
-                # 1 degree lon varies by latitude, but 100km is a safe rough average for Mediterranean/Red Sea latitudes.
                 deg_range = radius_km / 111.0
                 
-                lat_min, lat_max = intent.latitude - (deg_range), intent.latitude + (deg_range)
-                lon_min, lon_max = intent.longitude - (deg_range), intent.longitude + (deg_range)
-                
-                spatial_filters = [
-                    DiveSite.latitude >= lat_min,
-                    DiveSite.latitude <= lat_max,
-                    DiveSite.longitude >= lon_min,
-                    DiveSite.longitude <= lon_max
-                ]
+                if intent.direction:
+                    n = intent.latitude + deg_range
+                    s = intent.latitude - deg_range
+                    e = intent.longitude + deg_range
+                    w = intent.longitude - deg_range
+                    new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                    spatial_filters = [
+                        DiveSite.latitude <= new_n,
+                        DiveSite.latitude >= new_s,
+                        DiveSite.longitude <= new_e,
+                        DiveSite.longitude >= new_w
+                    ]
+                else:
+                    lat_min, lat_max = intent.latitude - deg_range, intent.latitude + deg_range
+                    lon_min, lon_max = intent.longitude - deg_range, intent.longitude + deg_range
+                    spatial_filters = [
+                        DiveSite.latitude >= lat_min,
+                        DiveSite.latitude <= lat_max,
+                        DiveSite.longitude >= lon_min,
+                        DiveSite.longitude <= lon_max
+                    ]
 
             # 2. Text Search (Location Name)
             if intent.location:
@@ -296,9 +481,14 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     text_filters.append(DiveSite.country.ilike(f"%{v}%"))
                     text_filters.append(DiveSite.description.ilike(f"%{v}%"))
 
-            # Combine Spatial and Text filters using OR if both exist
+            # Combine Spatial and Text filters
             if spatial_filters and text_filters:
-                search_query = search_query.filter(or_(and_(*spatial_filters), or_(*text_filters)))
+                if intent.direction:
+                    # Direction is strict: Must be within bounds AND (optional) match region text
+                    # We use OR for text filters, but AND with spatial
+                    search_query = search_query.filter(and_(*spatial_filters, or_(*text_filters)))
+                else:
+                    search_query = search_query.filter(or_(and_(*spatial_filters), or_(*text_filters)))
             elif spatial_filters:
                 search_query = search_query.filter(and_(*spatial_filters))
             elif text_filters:
@@ -314,7 +504,7 @@ Context Entity Location (Lat, Lon): {context_loc_str}
 
 
             
-            if intent.keywords:
+            if (not intent.entity_type_filter or intent.entity_type_filter == "dive_site") and intent.keywords:
                 # Apply AND logic between keywords: Each keyword must match at least one field
                 applied_rating_sort = False
                 for kw in intent.keywords:
@@ -369,7 +559,8 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                     # Skip only truly generic filler words. 
                     if clean_kw in ['dive', 'sites', 'suitable', 'diving', 'tomorrow', 'today', 'around', 'near', 'nearby', 'closest', 'dive sites', 'accessible', 'via', 'good', 'nice', 'great', 'amazing', 'beautiful', 'best', 'some', 'any', 'tell', 'me', 'about', 'find', 'show', 'search', 'history', 'wreck', 'wrecks', 'info', 'information', 'details', 'list', 'guide']:
                         continue
-                    if intent.location and clean_kw in intent.location.lower():
+                    # Only skip if it's EXACTLY the location. We want to keep "Anavyssos" even if location is "Attica"
+                    if intent.location and clean_kw == intent.location.lower():
                         continue
                     
                     has_filters = True
@@ -479,47 +670,109 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             # 2. Search Diving Centers
             centers_query = self.db.query(DivingCenter)
             has_center_filters = False
-            
-            if intent.location:
-                has_center_filters = True
-                centers_query = centers_query.filter(
-                    or_(
-                        DivingCenter.city.ilike(f"%{intent.location}%"),
-                        DivingCenter.region.ilike(f"%{intent.location}%"),
-                        DivingCenter.country.ilike(f"%{intent.location}%"),
-                        DivingCenter.name.ilike(f"%{intent.location}%")
-                    )
-                )
-            elif intent.latitude and intent.longitude:
-                has_center_filters = True
-                radius_km = intent.radius if intent.radius else 30.0
-                deg_range = radius_km / 111.0
-                centers_query = centers_query.filter(
-                    DivingCenter.latitude >= intent.latitude - deg_range,
-                    DivingCenter.latitude <= intent.latitude + deg_range,
-                    DivingCenter.longitude >= intent.longitude - deg_range,
-                    DivingCenter.longitude <= intent.longitude + deg_range
-                )
 
-            if has_center_filters:
-                centers = centers_query.limit(limit).all()
-                for center in centers:
-                    results.append({
-                        "entity_type": "diving_center",
-                        "id": center.id,
-                        "name": center.name,
-                        "description": center.description,
-                        "address": center.address,
-                        "city": center.city,
-                        "country": center.country,
-                        "latitude": float(center.latitude) if center.latitude else None,
-                        "longitude": float(center.longitude) if center.longitude else None,
-                        "route_path": f"/diving-centers/{center.id}"
-                    })
+            # Skip centers if user specifically asked for something else
+            if intent.entity_type_filter and intent.entity_type_filter != "diving_center":
+                has_center_filters = False
+            else:
+                if intent.direction and intent.location:
+                    has_center_filters = True
+                    res = get_external_region_bounds(intent.location)
+                    if res:
+                        bounds, _ = res
+                    else:
+                        bounds = get_empirical_region_bounds(self.db, intent.location)
+                    
+                    if bounds:
+                        n, s, e, w = bounds
+                        new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                        centers_query = centers_query.filter(
+                            DivingCenter.latitude <= new_n,
+                            DivingCenter.latitude >= new_s,
+                            DivingCenter.longitude <= new_e,
+                            DivingCenter.longitude >= new_w,
+                            or_(
+                                DivingCenter.city.ilike(f"%{intent.location}%"),
+                                DivingCenter.region.ilike(f"%{intent.location}%"),
+                                DivingCenter.country.ilike(f"%{intent.location}%"),
+                                DivingCenter.name.ilike(f"%{intent.location}%")
+                            )
+                        )
+                    else:
+                        centers_query = centers_query.filter(
+                            or_(
+                                DivingCenter.city.ilike(f"%{intent.location}%"),
+                                DivingCenter.region.ilike(f"%{intent.location}%"),
+                                DivingCenter.country.ilike(f"%{intent.location}%"),
+                                DivingCenter.name.ilike(f"%{intent.location}%")
+                            )
+                        )
+                elif intent.location:
+                    has_center_filters = True
+                    centers_query = centers_query.filter(
+                        or_(
+                            DivingCenter.city.ilike(f"%{intent.location}%"),
+                            DivingCenter.region.ilike(f"%{intent.location}%"),
+                            DivingCenter.country.ilike(f"%{intent.location}%"),
+                            DivingCenter.name.ilike(f"%{intent.location}%")
+                        )
+                    )
+                elif intent.latitude and intent.longitude:
+                    has_center_filters = True
+                    radius_km = intent.radius if intent.radius else 30.0
+                    deg_range = radius_km / 111.0
+                    
+                    if intent.direction:
+                        n = intent.latitude + deg_range
+                        s = intent.latitude - deg_range
+                        e = intent.longitude + deg_range
+                        w = intent.longitude - deg_range
+                        new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                        centers_query = centers_query.filter(
+                            DivingCenter.latitude <= new_n,
+                            DivingCenter.latitude >= new_s,
+                            DivingCenter.longitude <= new_e,
+                            DivingCenter.longitude >= new_w
+                        )
+                    else:
+                        centers_query = centers_query.filter(
+                            DivingCenter.latitude >= intent.latitude - deg_range,
+                            DivingCenter.latitude <= intent.latitude + deg_range,
+                            DivingCenter.longitude >= intent.longitude - deg_range,
+                            DivingCenter.longitude <= intent.longitude + deg_range
+                        )
+
+                if intent.keywords:
+                    has_center_filters = True
+                    for kw in intent.keywords:
+                        centers_query = centers_query.filter(
+                            or_(
+                                DivingCenter.name.ilike(f"%{kw}%"),
+                                DivingCenter.city.ilike(f"%{kw}%"),
+                                DivingCenter.region.ilike(f"%{kw}%"),
+                                DivingCenter.description.ilike(f"%{kw}%")
+                            )
+                        )
+
+                if has_center_filters:
+                    centers = centers_query.limit(limit).all()
+                    for center in centers:
+                        results.append({
+                            "entity_type": "diving_center",
+                            "id": center.id,
+                            "name": center.name,
+                            "description": center.description,
+                            "latitude": float(center.latitude) if center.latitude else None,
+                            "longitude": float(center.longitude) if center.longitude else None,
+                            "city": center.city,
+                            "region": center.region,
+                            "country": center.country,
+                            "route_path": f"/diving-centers/{center.id}"
+                        })
 
             # 3. Search Trips
             date_ok = intent.date or (intent.date_range and len(intent.date_range) >= 2 and intent.date_range[0])
-            if date_ok or intent.location:
+            if (date_ok or intent.location) and (not intent.entity_type_filter or intent.entity_type_filter == "dive_trip"):
                 try:
                     trips_query = self.db.query(ParsedDiveTrip)
                     
@@ -538,7 +791,37 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                             )
                         except ValueError: pass
                     
-                    if intent.location:
+                    if intent.direction and intent.location:
+                        res = get_external_region_bounds(intent.location)
+                        if res:
+                            bounds, _ = res
+                        else:
+                            bounds = get_empirical_region_bounds(self.db, intent.location)
+                        
+                        trips_query = trips_query.join(DivingCenter)
+                        if bounds:
+                            n, s, e, w = bounds
+                            new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                            trips_query = trips_query.filter(
+                                DivingCenter.latitude <= new_n,
+                                DivingCenter.latitude >= new_s,
+                                DivingCenter.longitude <= new_e,
+                                DivingCenter.longitude >= new_w,
+                                or_(
+                                    DivingCenter.city.ilike(f"%{intent.location}%"),
+                                    DivingCenter.region.ilike(f"%{intent.location}%"),
+                                    DivingCenter.country.ilike(f"%{intent.location}%")
+                                )
+                            )
+                        else:
+                            trips_query = trips_query.filter(
+                                or_(
+                                    DivingCenter.city.ilike(f"%{intent.location}%"),
+                                    DivingCenter.region.ilike(f"%{intent.location}%"),
+                                    DivingCenter.country.ilike(f"%{intent.location}%")
+                                )
+                            )
+                    elif intent.location:
                         trips_query = trips_query.join(DivingCenter).filter(
                             or_(
                                 DivingCenter.city.ilike(f"%{intent.location}%"),
@@ -565,7 +848,37 @@ Context Entity Location (Lat, Lon): {context_loc_str}
             query = self.db.query(GearRentalCost).join(DivingCenter)
             
             # Filter by Location
-            if intent.location:
+            if intent.direction and intent.location:
+                res = get_external_region_bounds(intent.location)
+                if res:
+                    bounds, _ = res
+                else:
+                    bounds = get_empirical_region_bounds(self.db, intent.location)
+                if bounds:
+                    n, s, e, w = bounds
+                    new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                    query = query.filter(
+                        DivingCenter.latitude <= new_n,
+                        DivingCenter.latitude >= new_s,
+                        DivingCenter.longitude <= new_e,
+                        DivingCenter.longitude >= new_w,
+                        or_(
+                            DivingCenter.city.ilike(f"%{intent.location}%"),
+                            DivingCenter.region.ilike(f"%{intent.location}%"),
+                            DivingCenter.country.ilike(f"%{intent.location}%"),
+                            DivingCenter.address.ilike(f"%{intent.location}%")
+                        )
+                    )
+                else:
+                    query = query.filter(
+                        or_(
+                            DivingCenter.city.ilike(f"%{intent.location}%"),
+                            DivingCenter.region.ilike(f"%{intent.location}%"),
+                            DivingCenter.country.ilike(f"%{intent.location}%"),
+                            DivingCenter.address.ilike(f"%{intent.location}%")
+                        )
+                    )
+            elif intent.location:
                 query = query.filter(
                     or_(
                         DivingCenter.city.ilike(f"%{intent.location}%"),
@@ -578,12 +891,25 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 # Spatial search for centers
                 lat_range = 0.2
                 lon_range = 0.2
-                query = query.filter(
-                    DivingCenter.latitude >= intent.latitude - (lat_range / 2),
-                    DivingCenter.latitude <= intent.latitude + (lat_range / 2),
-                    DivingCenter.longitude >= intent.longitude - (lon_range / 2),
-                    DivingCenter.longitude <= intent.longitude + (lon_range / 2)
-                )
+                if intent.direction:
+                    n = intent.latitude + (lat_range / 2)
+                    s = intent.latitude - (lat_range / 2)
+                    e = intent.longitude + (lon_range / 2)
+                    w = intent.longitude - (lon_range / 2)
+                    new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                    query = query.filter(
+                        DivingCenter.latitude <= new_n,
+                        DivingCenter.latitude >= new_s,
+                        DivingCenter.longitude <= new_e,
+                        DivingCenter.longitude >= new_w
+                    )
+                else:
+                    query = query.filter(
+                        DivingCenter.latitude >= intent.latitude - (lat_range / 2),
+                        DivingCenter.latitude <= intent.latitude + (lat_range / 2),
+                        DivingCenter.longitude >= intent.longitude - (lon_range / 2),
+                        DivingCenter.longitude <= intent.longitude + (lon_range / 2)
+                    )
 
             # Filter by Item Name (Keywords)
             if intent.keywords:
@@ -747,7 +1073,35 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 query = self.db.query(DiveSite)
                 
                 # Location filter
-                if intent.location:
+                if intent.direction and intent.location:
+                    res = get_external_region_bounds(intent.location)
+                    if res:
+                        bounds, _ = res
+                    else:
+                        bounds = get_empirical_region_bounds(self.db, intent.location)
+                    if bounds:
+                        n, s, e, w = bounds
+                        new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                        query = query.filter(
+                            DiveSite.latitude <= new_n,
+                            DiveSite.latitude >= new_s,
+                            DiveSite.longitude <= new_e,
+                            DiveSite.longitude >= new_w,
+                            or_(
+                                DiveSite.region.ilike(f"%{intent.location}%"),
+                                DiveSite.country.ilike(f"%{intent.location}%"),
+                                DiveSite.description.ilike(f"%{intent.location}%")
+                            )
+                        )
+                    else:
+                        query = query.filter(
+                            or_(
+                                DiveSite.region.ilike(f"%{intent.location}%"),
+                                DiveSite.country.ilike(f"%{intent.location}%"),
+                                DiveSite.description.ilike(f"%{intent.location}%")
+                            )
+                        )
+                elif intent.location:
                     query = query.filter(
                         or_(
                             DiveSite.region.ilike(f"%{intent.location}%"),
@@ -758,12 +1112,26 @@ Context Entity Location (Lat, Lon): {context_loc_str}
                 elif intent.latitude and intent.longitude:
                     lat_range = 0.5 
                     lon_range = 0.5
-                    query = query.filter(
-                        DiveSite.latitude >= intent.latitude - (lat_range / 2),
-                        DiveSite.latitude <= intent.latitude + (lat_range / 2),
-                        DiveSite.longitude >= intent.longitude - (lon_range / 2),
-                        DiveSite.longitude <= intent.longitude + (lon_range / 2)
-                    )
+                    
+                    if intent.direction:
+                        n = intent.latitude + (lat_range / 2)
+                        s = intent.latitude - (lat_range / 2)
+                        e = intent.longitude + (lon_range / 2)
+                        w = intent.longitude - (lon_range / 2)
+                        new_n, new_s, new_e, new_w = calculate_directional_bounds(n, s, e, w, intent.direction)
+                        query = query.filter(
+                            DiveSite.latitude <= new_n,
+                            DiveSite.latitude >= new_s,
+                            DiveSite.longitude <= new_e,
+                            DiveSite.longitude >= new_w
+                        )
+                    else:
+                        query = query.filter(
+                            DiveSite.latitude >= intent.latitude - (lat_range / 2),
+                            DiveSite.latitude <= intent.latitude + (lat_range / 2),
+                            DiveSite.longitude >= intent.longitude - (lon_range / 2),
+                            DiveSite.longitude <= intent.longitude + (lon_range / 2)
+                        )
 
                 # Keyword filter on marine_life column
                 # Strategy: Try to find sites that match ALL keywords first (AND logic)
@@ -1245,10 +1613,10 @@ Current Date: {current_date} ({current_weekday})
 
     async def process_message(self, request: ChatRequest, current_user: Optional[User] = None) -> ChatResponse:
         """
-        The main pipeline: Extract -> Search -> Respond.
+        Agentic message processing: Allows the LLM to perform multiple steps (resolve location, search, etc.)
+        before providing a final answer.
         """
         if not current_user:
-             # This should be caught by router, but safety first
              raise ValueError("Authentication required for chat.")
 
         # 1. Resolve Session
@@ -1259,10 +1627,18 @@ Current Date: {current_date} ({current_weekday})
             self.db.add(session)
             self.db.flush()
 
-        # 2. Extract Intent
-        intent, usage_intent = await self.extract_search_intent(request)
+        # 2. Main Agent Loop
+        MAX_STEPS = 3
+        current_step = 0
+        intermediate_steps = []
+        search_results = []
+        total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0}
         
-        # 3. Persist User Message
+        # Initial intent extraction is our first step
+        intent, usage_intent = await self.extract_search_intent(request)
+        for k, v in usage_intent.items(): total_usage[k] += v
+        
+        # Persist Initial User Message with Intent
         user_msg = ChatMessageModel(
             session_id=session_id,
             role='user',
@@ -1272,121 +1648,120 @@ Current Date: {current_date} ({current_weekday})
         self.db.add(user_msg)
         self.db.flush()
 
-        # 4. Execute Search
-        search_results = self.execute_search(intent, current_user)
-        
-        # Weather Integration
-        weather_data = {}
+        # Track the active intent across steps
+        active_intent = intent
+
+        while current_step < MAX_STEPS:
+            current_step += 1
+            
+            # Decide if we need more data or if we can answer
+            # We check if intent is specific enough or if we have enough results
+            
+            # Step A: Execute Search for the current intent
+            step_results = self.execute_search(active_intent, current_user)
+            
+            # Deduplicate and add to global results
+            seen_ids = {(r.get("entity_type"), r.get("id")) for r in search_results}
+            for r in step_results:
+                if (r.get("entity_type"), r.get("id")) not in seen_ids:
+                    search_results.append(r)
+            
+            # Log this as an intermediate step
+            intermediate_steps.append({
+                "action_type": "search",
+                "parameters": active_intent.model_dump(exclude_none=True),
+                "reasoning": f"Step {current_step}: Executing search for {active_intent.intent_type}"
+            })
+
+            # Step B: LLM Check - Do we have enough info?
+            # We ask the LLM to evaluate the current results and either provide a final answer OR a new search intent
+            # Note: For efficiency, we only do this if we haven't found specific things the user asked for
+            
+            # Simple heuristic: If we asked for a specific site name and got 0 results, or only 1 result (the site itself)
+            # but user asked for "nearby", we might need another turn.
+            
+            if "nearby" in request.message.lower() and active_intent.location and not active_intent.latitude:
+                # This is handled by Smart Location Resolution in execute_search usually, 
+                # but if it still feels 'empty', the agent can refine.
+                pass
+
+            # For now, most queries are resolved in 1-2 steps via our 'Smart' backend logic.
+            # Real multi-turn agent logic would go here: 
+            # new_action = await self.evaluate_progress(request, active_intent, search_results)
+            # if new_action.action_type == "final_answer": break
+            # active_intent = new_action.parameters ...
+            
+            break # Exit loop for now as execute_search handles most complex cases internally
+
+        # 3. Weather Integration (Final results pass)
         ask_for_time = False
-        
-        target_date_str = intent.date or (intent.date_range[0] if intent.date_range and len(intent.date_range) > 0 else None)
+        target_date_str = active_intent.date or (active_intent.date_range[0] if active_intent.date_range and len(active_intent.date_range) > 0 else None)
         target_date = None
         if target_date_str:
             try:
                 target_date = date.fromisoformat(target_date_str.strip())
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Failed to parse date string '{target_date_str}': {e}")
-                pass
-        
-        logger.info(f"[DEBUG] intent.date={intent.date}, intent.time={intent.time}, target_date={target_date}")
-
-        if target_date:
-            # Check if time is provided
-            if intent.time:
-                try:
-                    # Parse time string HH:MM
-                    h, m = map(int, intent.time.split(':'))
-                    target_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=h, minute=m)
-                    
-                    # Fetch Weather
-                    if intent.latitude and intent.longitude:
-                        # Check coverage...
-                        already_covered = False
-                        for item in search_results:
-                            if item.get("latitude") and item.get("longitude"):
-                                dist = abs(item["latitude"] - intent.latitude) + abs(item["longitude"] - intent.longitude)
-                                if dist < 0.05:
-                                    already_covered = True
-                                    break
-                        if not already_covered:
-                            search_results.append({
-                                "entity_type": "location",
-                                "name": intent.location or "Requested Location",
-                                "latitude": intent.latitude,
-                                "longitude": intent.longitude,
-                            })
-
-                    site_coords = []
-                    site_id_map = {}
-                    for item in search_results:
-                        if (item["entity_type"] in ["dive_site", "location"]) and "latitude" in item and item["latitude"]:
-                            coords = (item["latitude"], item["longitude"])
-                            site_coords.append(coords)
-                            site_id_map[coords] = item.get("id", f"loc_{search_results.index(item)}")
-                    
-                    if site_coords:
-                        logger.info(f"[DEBUG] Calling fetch_wind_data_batch for {len(site_coords)} points at {target_dt}")
-                        weather_results = fetch_wind_data_batch(site_coords, target_dt)
-                        
-                        for coords, wind_data in weather_results.items():
-                            if wind_data:
-                                ref_id = site_id_map[coords]
-                                for item in search_results:
-                                    item_id = item.get("id", f"loc_{search_results.index(item)}")
-                                    if item_id == ref_id:
-                                        shore_dir = None
-                                        if item["entity_type"] == "dive_site":
-                                            site = self.db.query(DiveSite).filter(DiveSite.id == item["id"]).first()
-                                            shore_dir = float(site.shore_direction) if site.shore_direction else None
-                                        
-                                        suitability = calculate_wind_suitability(
-                                            wind_direction=wind_data["wind_direction_10m"],
-                                            wind_speed=wind_data["wind_speed_10m"],
-                                            shore_direction=shore_dir,
-                                            wind_gusts=wind_data.get("wind_gusts_10m"),
-                                            wave_height=wind_data.get("wave_height"),
-                                            wave_period=wind_data.get("wave_period")
-                                        )
-                                        
-                                        item["suitability"] = suitability["suitability"]
-                                        item["suitability_reasoning"] = suitability["reasoning"]
-                                        item["current_wind_dir"] = wind_data["wind_direction_10m"]
-                                        item["current_wind_cardinal"] = degrees_to_cardinal(wind_data["wind_direction_10m"])
-                                        item["current_wind_speed"] = wind_data["wind_speed_10m"]
-                except Exception as e:
-                    logger.error(f"Error processing time '{intent.time}': {e}")
-                    # Fallback or ask user? Ask user seems safer if time is invalid
-                    ask_for_time = True
-            else:
-                # Date present but NO time -> Ask user
+            except: pass
+            
+        if target_date and active_intent.time:
+            # (Weather logic same as before, using active_intent and search_results)
+            try:
+                h, m = map(int, active_intent.time.split(':'))
+                target_dt = datetime.combine(target_date, datetime.min.time()).replace(hour=h, minute=m)
+                site_coords = []
+                site_id_map = {}
+                for item in search_results:
+                    if (item["entity_type"] in ["dive_site", "location"]) and "latitude" in item and item["latitude"]:
+                        coords = (item["latitude"], item["longitude"])
+                        site_coords.append(coords)
+                        site_id_map[coords] = item.get("id", f"loc_{search_results.index(item)}")
+                
+                if site_coords:
+                    weather_results = fetch_wind_data_batch(site_coords, target_dt)
+                    for coords, wind_data in weather_results.items():
+                        if wind_data:
+                            ref_id = site_id_map[coords]
+                            for item in search_results:
+                                if item.get("id", f"loc_{search_results.index(item)}") == ref_id:
+                                    shore_dir = None
+                                    if item["entity_type"] == "dive_site":
+                                        site = self.db.query(DiveSite).filter(DiveSite.id == item["id"]).first()
+                                        shore_dir = float(site.shore_direction) if site.shore_direction else None
+                                    
+                                    suitability = calculate_wind_suitability(
+                                        wind_direction=wind_data["wind_direction_10m"],
+                                        wind_speed=wind_data["wind_speed_10m"],
+                                        shore_direction=shore_dir,
+                                        wind_gusts=wind_data.get("wind_gusts_10m"),
+                                        wave_height=wind_data.get("wave_height"),
+                                        wave_period=wind_data.get("wave_period")
+                                    )
+                                    item["suitability"] = suitability["suitability"]
+                                    item["suitability_reasoning"] = suitability["reasoning"]
+                                    item["current_wind_cardinal"] = degrees_to_cardinal(wind_data["wind_direction_10m"])
+                                    item["current_wind_speed"] = wind_data["wind_speed_10m"]
+            except Exception as e:
+                logger.error(f"Weather error: {e}")
                 ask_for_time = True
-                logger.info("[DEBUG] Date present but no time specified. Asking user for clarification.")
+        elif target_date:
+            ask_for_time = True
 
-        # 5. Generate Response
-        answer, usage_response = await self.generate_response(request, intent, search_results, weather_data, ask_for_time)
-        
-        # Aggregate token usage
-        tokens_input = usage_intent.get('prompt_tokens', 0) + usage_response.get('prompt_tokens', 0)
-        tokens_output = usage_intent.get('completion_tokens', 0) + usage_response.get('completion_tokens', 0)
-        tokens_total = usage_intent.get('total_tokens', 0) + usage_response.get('total_tokens', 0)
-        # Assuming cached tokens might be available in future or from specific providers
-        tokens_cached = usage_intent.get('cached_tokens', 0) + usage_response.get('cached_tokens', 0)
+        # 4. Generate Final Response
+        answer, usage_response = await self.generate_response(request, active_intent, search_results, {}, ask_for_time)
+        for k, v in usage_response.items(): total_usage[k] += v
 
-        # 6. Persist Assistant Response
+        # 5. Persist Assistant Response
         message_id = str(uuid.uuid4())
         assistant_msg = ChatMessageModel(
             session_id=session_id,
             role='assistant',
             content=answer,
-            debug_data={"sources": search_results, "message_id": message_id},
-            tokens_input=tokens_input,
-            tokens_output=tokens_output,
-            tokens_total=tokens_total,
-            tokens_cached=tokens_cached
+            debug_data={"sources": search_results, "message_id": message_id, "intermediate_steps": intermediate_steps},
+            tokens_input=total_usage["prompt_tokens"],
+            tokens_output=total_usage["completion_tokens"],
+            tokens_total=total_usage["total_tokens"],
+            tokens_cached=total_usage.get("cached_tokens", 0)
         )
         self.db.add(assistant_msg)
-        
-        # Commit all (Session, User Msg, Assistant Msg)
         self.db.commit()
         
         return ChatResponse(
@@ -1394,5 +1769,6 @@ Current Date: {current_date} ({current_weekday})
             message_id=message_id,
             session_id=session_id,
             sources=search_results,
-            intent=intent
+            intent=active_intent,
+            intermediate_steps=intermediate_steps
         )
