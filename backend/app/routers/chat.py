@@ -6,7 +6,7 @@ from app.database import get_db
 from app.auth import get_current_user, get_current_user_optional
 from app.models import User, ChatFeedback
 from app.schemas.chat import ChatRequest, ChatResponse, ChatFeedbackCreate
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.utils import get_client_ip
 

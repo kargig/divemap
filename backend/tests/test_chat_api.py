@@ -9,7 +9,7 @@ class TestChatAPI:
     """Test Chatbot endpoints."""
 
     @pytest.mark.asyncio
-    @patch("app.services.chat_service.openai_service.get_chat_completion", new_callable=AsyncMock)
+    @patch("app.services.chat.intent_extractor.openai_service.get_chat_completion", new_callable=AsyncMock)
     async def test_send_message_success(self, mock_openai, client, auth_headers):
         """Test successful chat message interaction."""
         # Mock responses for intent extraction and response generation
@@ -87,7 +87,7 @@ class TestChatAPI:
         assert "category_breakdown" in data
 
     @pytest.mark.asyncio
-    @patch("app.services.chat_service.openai_service.get_chat_completion", new_callable=AsyncMock)
+    @patch("app.services.chat.intent_extractor.openai_service.get_chat_completion", new_callable=AsyncMock)
     async def test_admin_get_sessions(self, mock_openai, client, admin_headers, test_user):
         """Test admin session listing and transcript view."""
         # 1. Create a session by sending a message

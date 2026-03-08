@@ -1,7 +1,8 @@
 import pytest
 from app.geo_utils import calculate_directional_bounds, get_empirical_region_bounds
 from app.schemas.chat import SearchIntent, IntentType
-from app.services.chat_service import ChatService
+from app.services.chat import ChatService
+from app.services.chat.executors.dispatcher import execute_search_intent
 from app.models import DiveSite
 
 def test_calculate_directional_bounds():
@@ -58,14 +59,14 @@ def test_get_empirical_region_bounds(db_session):
     assert w == pytest.approx(22.95)
 
 def test_execute_search_with_direction(db_session, monkeypatch):
-    from app.services import chat_service as chat_service_mod
+    from app.services.chat.executors import discovery as discovery_mod
     
     # Mock external bounds to avoid hitting Nominatim and getting USA results
     # Attica roughly: N=38.4, S=37.5, E=24.2, W=22.8
     def mock_get_bounds(region_name):
         return ((38.4, 37.5, 24.2, 22.8), "Attica, Greece")
     
-    monkeypatch.setattr(chat_service_mod, "get_external_region_bounds", mock_get_bounds)
+    monkeypatch.setattr(discovery_mod, "get_external_region_bounds", mock_get_bounds)
     
     chat_service = ChatService(db_session)
     
@@ -83,7 +84,7 @@ def test_execute_search_with_direction(db_session, monkeypatch):
         direction="south"
     )
     
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     
     # Should only find the Southern Site
     site_names = [r["name"] for r in results if r["entity_type"] == "dive_site"]
@@ -92,7 +93,7 @@ def test_execute_search_with_direction(db_session, monkeypatch):
 
     # Search North of Attica
     intent.direction = "north"
-    results = chat_service.execute_search(intent)
+    results = execute_search_intent(db_session, intent)
     site_names = [r["name"] for r in results if r["entity_type"] == "dive_site"]
     assert "Northern Site" in site_names
     assert "Southern Site" not in site_names
