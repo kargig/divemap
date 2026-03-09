@@ -15,6 +15,8 @@ from app.services.openai_service import openai_service
 from app.services.chat.tools import CHAT_TOOLS
 from app.services.chat.executors.discovery import execute_discovery
 from app.services.chat.executors.others import execute_other_intents
+from app.services.chat.executors.user_data import execute_get_user_dive_logs
+from app.services.chat.executors.reviews import execute_get_reviews_and_comments
 from app.services.chat.weather_enricher import enrich_results_with_weather
 from app.services.chat.context_resolver import resolve_page_context
 
@@ -177,22 +179,55 @@ Page Context: {page_context_summary}
                             )
                         )
                         last_intent = SearchIntent(intent_type=IntentType.CALCULATOR, calculator_params=args)
-                    elif name == "search_certifications":
-                        query = args.get("query", "").lower()
-                        if any(kw in query for kw in ["vs", "difference", "compare"]):
-                            intent_to_use = IntentType.COMPARISON
-                        else:
-                            intent_to_use = IntentType.CAREER_PATH
-
+                    elif name == "compare_certifications":
+                        courses = args.pop("courses_to_compare", [])
                         tool_result = await run_in_threadpool(
                             lambda: execute_other_intents(
                                 db=self.db, 
-                                intent_type=intent_to_use, 
+                                intent_type=IntentType.COMPARISON, 
+                                keywords=courses,
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=intent_to_use, **args)
-                    elif name == "get_weather_suitability":
+                        last_intent = SearchIntent(intent_type=IntentType.COMPARISON, keywords=courses, **args)
+                    elif name == "get_certification_path":
+                        course_name = args.pop("course_name", None)
+                        kws = [course_name] if course_name else []
+                        tool_result = await run_in_threadpool(
+                            lambda: execute_other_intents(
+                                db=self.db, 
+                                intent_type=IntentType.CAREER_PATH, 
+                                keywords=kws,
+                                **args
+                            )
+                        )
+                        last_intent = SearchIntent(intent_type=IntentType.CAREER_PATH, keywords=kws, **args)
+                    elif name == "get_dive_site_details":
+                        site_name = args.pop("site_name", "")
+                        tool_result = await run_in_threadpool(
+                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_site", location=site_name, **args)
+                        )
+                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, location=site_name, **args)
+                    elif name == "get_user_dive_logs":
+                        tool_result = await run_in_threadpool(
+                            lambda: execute_get_user_dive_logs(db=self.db, current_user=current_user, **args)
+                        )
+                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args) # Dummy intent
+                    elif name == "get_reviews_and_comments":
+                        tool_result = await run_in_threadpool(
+                            lambda: execute_get_reviews_and_comments(db=self.db, **args)
+                        )
+                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args) # Dummy intent
+                    elif name == "search_diving_trips":
+                        start_date = args.pop("start_date", None)
+                        end_date = args.pop("end_date", None)
+                        date_range = None
+                        if start_date and end_date:
+                            date_range = [start_date, end_date]
+                        tool_result = await run_in_threadpool(
+                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_trip", date_range=date_range, **args)
+                        )
+                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, date_range=date_range, **args)
                         # We need to create a dummy result list for weather enricher
                         dummy_results = [{
                             "entity_type": "location",
@@ -248,7 +283,7 @@ Page Context: {page_context_summary}
                     
                     # Truncate results for context to avoid bloat
                     # For COMPARISON, we need more results to show a meaningful comparison table
-                    if name == "search_certifications" and intent_to_use == IntentType.COMPARISON:
+                    if name == "compare_certifications":
                         context_result = tool_result[:30] # Allow up to 30 certs for comparison
                     else:
                         context_result = tool_result[:5] # Max 5 results per tool call in context

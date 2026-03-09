@@ -54,7 +54,13 @@ def resolve_page_context(db: Session, page_context: Dict) -> str:
                 if dive_id.isdigit():
                     dive = db.query(Dive).filter(Dive.id == int(dive_id)).first()
                     if dive:
-                        summary.append(f"Current Dive Log: Site '{dive.site_name}' on {dive.dive_date}")
+                        site_name = dive.dive_site.name if dive.dive_site else "Unknown Site"
+                        log_context = f"Current Dive Log ID {dive.id}: Site '{site_name}' on {dive.dive_date}. Depth: {dive.max_depth}m, Avg Depth: {dive.average_depth}m, Duration: {dive.duration}m."
+                        if dive.dive_information:
+                            log_context += f" Dive Info: {dive.dive_information}"
+                        if dive.gas_bottles_used:
+                            log_context += f" Gases/Tanks: {dive.gas_bottles_used}"
+                        summary.append(log_context)
 
         # 4. Resources / Tools Context
         elif "/resources/tools" in path:
