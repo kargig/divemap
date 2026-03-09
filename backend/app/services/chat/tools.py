@@ -15,9 +15,17 @@ class SearchDiveSitesTool(BaseModel):
     difficulty_level: Optional[int] = Field(None, description="1 (Beginner) to 4 (Technical)")
 
 class SearchDivingCentersTool(BaseModel):
-    """Search for diving centers based on location and keywords."""
+    """Search for diving centers based on location and keywords. Use this to find courses and dive shop services."""
     location: Optional[str] = Field(None, description="City, island, or region name")
-    keywords: Optional[List[str]] = Field(None, description="Specific services or names (e.g. ['PADI', 'nitrox', 'rental'])")
+    keywords: Optional[List[str]] = Field(None, description="Specific services or names (e.g. ['PADI', 'nitrox'])")
+    latitude: Optional[float] = Field(None, description="Approximate latitude")
+    longitude: Optional[float] = Field(None, description="Approximate longitude")
+    radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
+
+class SearchGearRentalTool(BaseModel):
+    """Search for gear rental prices and diving centers that rent equipment (e.g., tanks, regulators, wetsuits)."""
+    location: Optional[str] = Field(None, description="City, island, or region name")
+    keywords: Optional[List[str]] = Field(None, description="Specific gear items (e.g. ['tank', 'regulator', 'wetsuit'])")
     latitude: Optional[float] = Field(None, description="Approximate latitude")
     longitude: Optional[float] = Field(None, description="Approximate longitude")
     radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
@@ -97,6 +105,14 @@ CHAT_TOOLS = [
             "name": "calculate_diving_physics",
             "description": CalculateDivingPhysicsTool.__doc__,
             "parameters": CalculateDivingPhysicsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_gear_rental",
+            "description": SearchGearRentalTool.__doc__,
+            "parameters": SearchGearRentalTool.model_json_schema()
         }
     },
     {
