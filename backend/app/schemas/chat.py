@@ -55,9 +55,12 @@ class SearchIntent(BaseModel):
     calculator_params: Optional[Dict[str, Union[float, str, None]]] = None # Parameters for diving calculations
 
 class ChatIntermediateAction(BaseModel):
-    action_type: Literal["search", "resolve_location", "refine_intent", "final_answer"]
-    parameters: Dict = {}
+    action_type: Literal["search", "resolve_location", "refine_intent", "final_answer", "tool_call"]
+    tool_name: Optional[str] = None
+    parameters: Dict = {} # tool_args
+    tool_result: Optional[Union[List, Dict]] = None
     reasoning: Optional[str] = None
+    execution_time_ms: Optional[float] = None
 
 class ChatResponse(BaseModel):
     response: str

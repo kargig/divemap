@@ -7,6 +7,7 @@ from app.models import (
     DivingOrganization, CertificationLevel, User
 )
 from app.schemas.chat import SearchIntent, IntentType
+from app.routers.search import ENTITY_ICONS
 from app.geo_utils import (
     get_external_region_bounds, get_empirical_region_bounds, 
     calculate_directional_bounds, get_location_info_from_coords

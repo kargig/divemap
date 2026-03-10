@@ -28,7 +28,7 @@ TEST_CASES = [
     {"prompt": "show me sites with octopus", "type": "marine_life", "expected_min_sources": 1},
     {"prompt": "where can I see monk seals in Greece?", "type": "marine_life", "expected_min_sources": 1},
     {"prompt": "dive sites with turtles near Zakynthos", "type": "marine_life", "expected_min_sources": 1},
-    {"prompt": "how much to rent a tank in Athens?", "type": "gear_rental", "expected_min_sources": 1},
+    {"prompt": "how much to rent a tank in Attica?", "type": "gear_rental", "expected_min_sources": 1},
     {"prompt": "cost to rent BCD in Naxos", "type": "gear_rental", "expected_min_sources": 1},
     {"prompt": "diving centers in Paros", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "where can I find a PADI diving center in Athens?", "type": "discovery", "expected_min_sources": 1},
@@ -73,7 +73,7 @@ async def login(client):
     if not ADMIN_USERNAME or not ADMIN_PASSWORD:
         print("[!] ADMIN_USERNAME or ADMIN_PASSWORD not set in environment.")
         return None
-        
+
     print(f"[*] Logging in as {ADMIN_USERNAME}...")
     try:
         resp = await client.post(f"{API_PREFIX}/auth/login", json={
@@ -83,7 +83,7 @@ async def login(client):
         if resp.status_code != 200:
             print(f"[!] Login failed ({resp.status_code}): {resp.text}")
             return None
-        
+
         return resp.json()["access_token"]
     except Exception as e:
         print(f"[!] Auth error: {e}")
@@ -95,9 +95,9 @@ async def run_tests(filter_prompt=None, filter_type=None):
         if not token:
             print("[!] Could not obtain auth token. Exiting.")
             sys.exit(1)
-        
+
         headers = {"Authorization": f"Bearer {token}"}
-        
+
         # Filter test cases if prompt or type provided
         cases_to_run = TEST_CASES
         if filter_prompt:
@@ -127,28 +127,28 @@ async def run_tests(filter_prompt=None, filter_type=None):
                     "history": [],
                     "user_location": [37.9838, 23.7275] # Athens coordinates for "near me" tests
                 }, headers=headers)
-                
+
                 duration = time.time() - start_time
-                
+
                 if resp.status_code == 200:
                     data = resp.json()
                     sources = data.get("sources", [])
                     response_text = data.get("response", "")
-                    
+
                     # Quality Checks
                     sources_count = len(sources)
                     passed = True
                     fail_reason = ""
-                    
+
                     # Check 1: Source Count (for discovery types)
                     if case["expected_min_sources"] > 0 and sources_count < case["expected_min_sources"]:
                         passed = False
                         fail_reason = f"Expected >={case['expected_min_sources']} sources, got {sources_count}"
-                    
+
                     # Check 2: Negative phrases
                     negative_phrases = [
-                        "I don't have specific", 
-                        "No relevant results found", 
+                        "I don't have specific",
+                        "No relevant results found",
                         "I don't have a specific list",
                         "don't have information about dive sites in",
                         "don't have data on dive sites in"
@@ -157,11 +157,11 @@ async def run_tests(filter_prompt=None, filter_type=None):
                         if phrase.lower() in response_text.lower() and case["type"] not in ["chit_chat", "clarification"]:
                             passed = False
                             fail_reason = f"Contains negative phrase: '{phrase}'"
-                    
+
                     status_str = "PASS" if passed else "FAIL"
-                    
+
                     print(f"{case['prompt'][:45]:<45} | {sources_count:<8} | {status_str:<10} | {duration:.2f}")
-                    
+
                     results.append({
                         "prompt": case["prompt"],
                         "passed": passed,
@@ -185,7 +185,7 @@ async def run_tests(filter_prompt=None, filter_type=None):
                         "base_url": BASE_URL,
                         "duration": duration
                     })
-                    
+
             except Exception as e:
                 print(f"{case['prompt'][:45]:<45} | {'EXC':<8} | {'ERROR':<10} | {0.00}")
                 results.append({
@@ -203,20 +203,20 @@ async def run_tests(filter_prompt=None, filter_type=None):
         print("-" * 110)
         passed_count = sum(1 for r in results if r["passed"])
         print(f"Total: {len(results)} | Passed: {passed_count} | Failed: {len(results) - passed_count}")
-        
+
         # Save detailed report with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         report_path = f"chat_quality_report_{timestamp}.json"
-        
+
         # Also update the 'latest' report for easy access
         latest_report_path = "chat_quality_report.json"
-        
+
         with open(report_path, "w") as f:
             json.dump(results, f, indent=2)
-            
+
         with open(latest_report_path, "w") as f:
             json.dump(results, f, indent=2)
-            
+
         print(f"[*] Detailed report saved to {report_path}")
         print(f"[*] Latest report also updated at {latest_report_path}")
 
@@ -225,5 +225,5 @@ if __name__ == "__main__":
     parser.add_argument("--prompt", type=str, help="Filter test cases by prompt text (case-insensitive substring match).")
     parser.add_argument("--type", type=str, help="Filter test cases by type (e.g., 'calculator', 'discovery', 'weather').")
     args = parser.parse_args()
-    
+
     asyncio.run(run_tests(args.prompt, args.type))

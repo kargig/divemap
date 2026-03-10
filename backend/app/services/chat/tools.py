@@ -15,9 +15,17 @@ class SearchDiveSitesTool(BaseModel):
     difficulty_level: Optional[int] = Field(None, description="1 (Beginner) to 4 (Technical)")
 
 class SearchDivingCentersTool(BaseModel):
-    """Search for diving centers based on location and keywords."""
+    """Search for diving centers based on location and keywords. Use this to find courses and dive shop services."""
     location: Optional[str] = Field(None, description="City, island, or region name")
-    keywords: Optional[List[str]] = Field(None, description="Specific services or names (e.g. ['PADI', 'nitrox', 'rental'])")
+    keywords: Optional[List[str]] = Field(None, description="Specific services or names (e.g. ['PADI', 'nitrox'])")
+    latitude: Optional[float] = Field(None, description="Approximate latitude")
+    longitude: Optional[float] = Field(None, description="Approximate longitude")
+    radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
+
+class SearchGearRentalTool(BaseModel):
+    """Search for gear rental prices and diving centers that rent equipment (e.g., tanks, regulators, wetsuits)."""
+    location: Optional[str] = Field(None, description="City, island, or region name")
+    keywords: Optional[List[str]] = Field(None, description="Specific gear items (e.g. ['tank', 'regulator', 'wetsuit'])")
     latitude: Optional[float] = Field(None, description="Approximate latitude")
     longitude: Optional[float] = Field(None, description="Approximate longitude")
     radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
@@ -42,10 +50,25 @@ class CalculateDivingPhysicsTool(BaseModel):
     sac_rate: Optional[float] = Field(None, description="Surface Air Consumption rate in L/min")
     pp_o2_max: Optional[float] = Field(1.4, description="Maximum partial pressure of oxygen. Assume 1.4 if not explicitly provided by the user.")
 
-class SearchCertificationsTool(BaseModel):
-    """Get information about diving certifications, career paths, and comparisons."""
-    query: str = Field(..., description="What the user wants to know (e.g. 'PADI vs SSI', 'How to become a pro', 'Open Water requirements')")
-    organization: Optional[str] = Field(None, description="Specific agency (e.g. 'PADI', 'SSI', 'GUE')")
+class CompareCertificationsTool(BaseModel):
+    """Compare the technical specifications, depths, and prerequisites of two or more diving certifications."""
+    courses_to_compare: List[str] = Field(..., description="The names of the courses to compare (e.g. ['Tec 45', 'XR Extended Range'])")
+
+class GetCertificationPathTool(BaseModel):
+    """Get the prerequisites or the next steps for a specific certification, or view an agency's entire career path."""
+    course_name: Optional[str] = Field(None, description="The specific course the user is asking about (e.g., 'Rescue Diver')")
+    organization: Optional[str] = Field(None, description="The agency (e.g., 'PADI', 'SSI')")
+    path_direction: Optional[str] = Field("full", description="'prerequisites', 'next_steps', or 'full'")
+
+class GetDiveSiteDetailsTool(BaseModel):
+    """Get detailed historical information, full descriptions, and access instructions for a specific named dive site."""
+    site_name: str = Field(..., description="The exact name of the dive site (e.g., 'Kyra Leni', 'Zenobia')")
+
+class SearchDivingTripsTool(BaseModel):
+    """Find scheduled boat trips or diving excursions happening on specific dates."""
+    location: Optional[str] = Field(None, description="Where the trip is taking place")
+    start_date: Optional[str] = Field(None, description="YYYY-MM-DD")
+    end_date: Optional[str] = Field(None, description="YYYY-MM-DD")
 
 class GetWeatherSuitabilityTool(BaseModel):
     """Get weather forecast and diving suitability for a specific location and time."""
@@ -60,6 +83,16 @@ class RecommendDiveSitesTool(BaseModel):
     location: Optional[str] = Field(None, description="Preferred area for recommendations")
     latitude: Optional[float] = Field(None, description="Approximate latitude")
     longitude: Optional[float] = Field(None, description="Approximate longitude")
+
+class GetUserDiveLogsTool(BaseModel):
+    """Retrieve the user's personal dive logs (history, dates, depths, sites)."""
+    limit: Optional[int] = Field(5, description="Number of recent dives to retrieve")
+    dive_site_name: Optional[str] = Field(None, description="Filter logs by a specific dive site")
+
+class GetReviewsAndCommentsTool(BaseModel):
+    """Fetch user reviews, ratings, and comments for a specific dive site or diving center."""
+    entity_type: str = Field(..., description="Must be 'dive_site' or 'diving_center'")
+    entity_name: str = Field(..., description="Name of the dive site or diving center")
 
 class AskUserForClarificationTool(BaseModel):
     """Ask the user for more information when the query is too ambiguous or missing vital data."""
@@ -102,9 +135,41 @@ CHAT_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "search_certifications",
-            "description": SearchCertificationsTool.__doc__,
-            "parameters": SearchCertificationsTool.model_json_schema()
+            "name": "search_gear_rental",
+            "description": SearchGearRentalTool.__doc__,
+            "parameters": SearchGearRentalTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_certifications",
+            "description": CompareCertificationsTool.__doc__,
+            "parameters": CompareCertificationsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_certification_path",
+            "description": GetCertificationPathTool.__doc__,
+            "parameters": GetCertificationPathTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_dive_site_details",
+            "description": GetDiveSiteDetailsTool.__doc__,
+            "parameters": GetDiveSiteDetailsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_diving_trips",
+            "description": SearchDivingTripsTool.__doc__,
+            "parameters": SearchDivingTripsTool.model_json_schema()
         }
     },
     {
@@ -121,6 +186,22 @@ CHAT_TOOLS = [
             "name": "recommend_dive_sites",
             "description": RecommendDiveSitesTool.__doc__,
             "parameters": RecommendDiveSitesTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_user_dive_logs",
+            "description": GetUserDiveLogsTool.__doc__,
+            "parameters": GetUserDiveLogsTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_reviews_and_comments",
+            "description": GetReviewsAndCommentsTool.__doc__,
+            "parameters": GetReviewsAndCommentsTool.model_json_schema()
         }
     },
     {

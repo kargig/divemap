@@ -128,7 +128,7 @@ def execute_other_intents(
             })
 
         if not results and (location or (latitude and longitude)):
-            centers_query = db.query(DivingCenter)
+            centers_query = db.query(DivingCenter).join(GearRentalCost).distinct()
             if location:
                 centers_query = centers_query.filter(
                     or_(
@@ -148,6 +148,11 @@ def execute_other_intents(
                 )
 
             centers = centers_query.limit(5).all()
+            if centers:
+                results.append({
+                    "entity_type": "system_message",
+                    "message": "Exact rental items not found, but these diving centers in the area are verified to offer gear rentals. Recommend them to the user."
+                })
             for center in centers:
                 results.append({
                     "entity_type": "diving_center",
@@ -162,20 +167,28 @@ def execute_other_intents(
     elif intent_type == IntentType.CAREER_PATH:
         org_name = organization
         org_match = None
+        
+        search_terms = keywords if keywords else ([query] if query else [])
+        
+        # Extract meaningful terms
+        import re as py_re
+        expanded_terms = []
+        stop_words = {"what", "are", "the", "requirements", "for", "how", "to", "become", "a", "an", "is", "there", "i", "want", "do", "you", "have", "any", "after", "before", "next", "course", "courses", "certification", "certifications", "level", "levels", "path", "career", "diving", "diver"}
+        for t in search_terms:
+            parts = py_re.findall(r'[a-zA-Z]+|\d+', t.lower())
+            for p in parts:
+                if p not in stop_words and len(p) > 1:
+                    expanded_terms.append(p)
 
-        if not org_name and keywords:
+        if not org_name and expanded_terms:
             known_orgs = ["PADI", "SSI", "CMAS", "NAUI", "BSAC", "TDI", "IANTD", "GUE", "SDI", "RAID"]
-            for kw in keywords:
+            for kw in expanded_terms:
                 if kw.upper() in known_orgs:
                     org_name = kw.upper()
                     break
 
-        if not org_name and (keywords or query):
-            search_terms = keywords if keywords else [query]
-            for kw in search_terms:
-                if kw.lower() in ["course", "certification", "level", "path", "career", "diving", "diver"]:
-                    continue
-
+        if not org_name and expanded_terms:
+            for kw in expanded_terms:
                 potential_org = db.query(DivingOrganization).filter(
                     or_(
                         DivingOrganization.name.ilike(f"%{kw}%"),
@@ -194,12 +207,10 @@ def execute_other_intents(
         elif org_match:
             query_cert = query_cert.filter(DivingOrganization.id == org_match.id)
 
-        if not org_name and not org_match and (keywords or query):
+        if not org_name and not org_match and expanded_terms:
             kw_filters = []
-            search_terms = keywords if keywords else [query]
-            for kw in search_terms:
-                if kw.lower() not in ["after", "before", "next", "course", "certification", "level", "path", "career"]:
-                    kw_filters.append(CertificationLevel.name.ilike(f"%{kw}%"))
+            for kw in expanded_terms:
+                kw_filters.append(CertificationLevel.name.ilike(f"%{kw}%"))
 
             if kw_filters:
                  query_cert = query_cert.filter(or_(*kw_filters))
@@ -345,6 +356,13 @@ def execute_other_intents(
                     })
 
     elif intent_type == IntentType.PERSONAL_RECOMMENDATION:
+        query_rec = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
+        
+        target_lat = latitude
+        target_lon = longitude
+        location_name = location
+        has_location = False
+
         if current_user:
             from app.services.chat.utils import get_user_difficulty_level
             user_max_difficulty = get_user_difficulty_level(db, current_user.id)
@@ -352,98 +370,211 @@ def execute_other_intents(
             past_dives = db.query(Dive).options(joinedload(Dive.dive_site)).filter(Dive.user_id == current_user.id).all()
             visited_site_ids = {d.dive_site_id for d in past_dives if d.dive_site_id}
 
-            target_lat = latitude
-            target_lon = longitude
-            location_name = location
-
             if not location_name and not (target_lat and target_lon):
                 last_dive = db.query(Dive).options(joinedload(Dive.dive_site)).filter(Dive.user_id == current_user.id).order_by(Dive.dive_date.desc()).first()
                 if last_dive and last_dive.dive_site:
                     target_lat = float(last_dive.dive_site.latitude)
                     target_lon = float(last_dive.dive_site.longitude)
 
-            query_rec = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
-
-            if user_max_difficulty:
+            # Only filter by difficulty if user has actual certs (> 1)
+            # If they are Level 1 (Beginner), we might filter out too many sites if none are explicitly level 1
+            if user_max_difficulty and user_max_difficulty > 1:
                 query_rec = query_rec.filter(DiveSite.difficulty_id <= user_max_difficulty)
 
             if visited_site_ids:
                 query_rec = query_rec.filter(DiveSite.id.notin_(visited_site_ids))
 
-            has_location = False
+        if location_name:
+            has_location = True
+            query_rec = query_rec.filter(
+                or_(
+                    DiveSite.region.ilike(f"%{location_name}%"),
+                    DiveSite.country.ilike(f"%{location_name}%"),
+                    DiveSite.description.ilike(f"%{location_name}%"),
+                    DiveSite.name.ilike(f"%{location_name}%")
+                )
+            )
+        elif target_lat and target_lon:
+            has_location = True
+            lat_range = 0.5 
+            lon_range = 0.5
+            query_rec = query_rec.filter(
+                DiveSite.latitude >= target_lat - (lat_range / 2),
+                DiveSite.latitude <= target_lat + (lat_range / 2),
+                DiveSite.longitude >= target_lon - (lon_range / 2),
+                DiveSite.longitude <= target_lon + (lon_range / 2)
+            )
+
+        RatingAlias = aliased(SiteRating)
+        query_rec = query_rec.outerjoin(RatingAlias, DiveSite.ratings).group_by(DiveSite.id)
+        query_rec = query_rec.order_by(func.avg(RatingAlias.score).desc())
+
+        # If we have location or a current user, we execute the query
+        if has_location or current_user:
+            sites = query_rec.limit(5).all()
+            
+            # Fallback if no sites found due to strict filters
+            if not sites and current_user:
+                fallback_query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
+                if has_location:
+                    if location_name:
+                        fallback_query = fallback_query.filter(
+                            or_(
+                                DiveSite.region.ilike(f"%{location_name}%"),
+                                DiveSite.country.ilike(f"%{location_name}%"),
+                                DiveSite.description.ilike(f"%{location_name}%"),
+                                DiveSite.name.ilike(f"%{location_name}%")
+                            )
+                        )
+                    elif target_lat and target_lon:
+                        fallback_query = fallback_query.filter(
+                            DiveSite.latitude >= target_lat - (lat_range / 2),
+                            DiveSite.latitude <= target_lat + (lat_range / 2),
+                            DiveSite.longitude >= target_lon - (lon_range / 2),
+                            DiveSite.longitude <= target_lon + (lon_range / 2)
+                        )
+                RatingAlias2 = aliased(SiteRating)
+                fallback_query = fallback_query.outerjoin(RatingAlias2, DiveSite.ratings).group_by(DiveSite.id)
+                fallback_query = fallback_query.order_by(func.avg(RatingAlias2.score).desc())
+                sites = fallback_query.limit(5).all()
+
+            for site in sites:
+                results.append({
+                    "entity_type": "dive_site",
+                    "id": site.id,
+                    "name": site.name,
+                    "description": site.description,
+                    "max_depth": float(site.max_depth) if site.max_depth else None,
+                    "difficulty": site.difficulty.label if site.difficulty else None,
+                    "shore_direction": float(site.shore_direction) if site.shore_direction else None,
+                    "route_path": f"/dive-sites/{site.id}"
+                })
+        else:
+            # If no user and no location, just return top 5 globally
+            sites = query_rec.limit(5).all()
+            for site in sites:
+                results.append({
+                    "entity_type": "dive_site",
+                    "id": site.id,
+                    "name": site.name,
+                    "description": site.description,
+                    "max_depth": float(site.max_depth) if site.max_depth else None,
+                    "difficulty": site.difficulty.label if site.difficulty else None,
+                    "shore_direction": float(site.shore_direction) if site.shore_direction else None,
+                    "route_path": f"/dive-sites/{site.id}"
+                })
+
+        if not results:
+            centers_query = db.query(DivingCenter)
             if location_name:
-                has_location = True
-                query_rec = query_rec.filter(
+                centers_query = centers_query.filter(
                     or_(
-                        DiveSite.region.ilike(f"%{location_name}%"),
-                        DiveSite.country.ilike(f"%{location_name}%"),
-                        DiveSite.description.ilike(f"%{location_name}%")
+                        DivingCenter.region.ilike(f"%{location_name}%"),
+                        DivingCenter.country.ilike(f"%{location_name}%"),
+                        DivingCenter.city.ilike(f"%{location_name}%"),
+                        DivingCenter.name.ilike(f"%{location_name}%")
                     )
                 )
             elif target_lat and target_lon:
-                has_location = True
                 lat_range = 0.5 
                 lon_range = 0.5
-                query_rec = query_rec.filter(
-                    DiveSite.latitude >= target_lat - (lat_range / 2),
-                    DiveSite.latitude <= target_lat + (lat_range / 2),
-                    DiveSite.longitude >= target_lon - (lon_range / 2),
-                    DiveSite.longitude <= target_lon + (lon_range / 2)
+                centers_query = centers_query.filter(
+                    DivingCenter.latitude >= target_lat - (lat_range / 2),
+                    DivingCenter.latitude <= target_lat + (lat_range / 2),
+                    DivingCenter.longitude >= target_lon - (lon_range / 2),
+                    DivingCenter.longitude <= target_lon + (lon_range / 2)
                 )
-
-            query_rec = query_rec.filter(
-                or_(
-                    DiveSite.access_instructions.ilike("%shore%"),
-                    DiveSite.access_instructions.ilike("%beach%"),
-                    DiveSite.access_instructions.ilike("%walk%"),
-                    DiveSite.description.ilike("%shore dive%"),
-                    DiveSite.shore_direction.isnot(None)
-                )
-            )
-
-            if has_location:
-                sites = query_rec.limit(5).all()
-                for site in sites:
+            
+            if location_name or (target_lat and target_lon):
+                centers = centers_query.limit(5).all()
+                if centers:
                     results.append({
-                        "entity_type": "dive_site",
-                        "id": site.id,
-                        "name": site.name,
-                        "description": site.description,
-                        "max_depth": float(site.max_depth) if site.max_depth else None,
-                        "difficulty": site.difficulty.label if site.difficulty else None,
-                        "shore_direction": float(site.shore_direction) if site.shore_direction else None,
-                        "route_path": f"/dive-sites/{site.id}"
+                        "entity_type": "system_message",
+                        "message": "No dive sites found matching the criteria. However, here are some diving centers in the area you could contact:"
+                    })
+                    for center in centers:
+                        results.append({
+                            "entity_type": "diving_center",
+                            "id": center.id,
+                            "name": center.name,
+                            "description": center.description,
+                            "latitude": float(center.latitude) if center.latitude else None,
+                            "longitude": float(center.longitude) if center.longitude else None,
+                            "city": center.city,
+                            "region": center.region,
+                            "country": center.country,
+                            "route_path": f"/diving-centers/{center.id}"
+                        })
+                else:
+                    results.append({
+                        "entity_type": "system_message",
+                        "error": "No dive sites or diving centers found matching the criteria in this area."
                     })
 
     elif intent_type == IntentType.COMPARISON:
         search_terms = keywords if keywords else ([query] if query else [])
-        query_str = " ".join(search_terms)
-        if query_str:
-            certs = db.query(CertificationLevel).filter(
-                or_(
-                    CertificationLevel.name.ilike(f"%{query_str}%"),
-                    CertificationLevel.category.ilike(f"%{query_str}%")
-                )
-            ).all()
+        
+        stop_words = {"vs", "difference", "compare", "comparison", "between", "and", "or", "what", "is", "the", "technical", "diving", "certification", "certifications", "course", "courses", "details"}
+        
+        # Extract meaningful terms
+        import re as py_re
+        expanded_terms = []
+        for t in search_terms:
+            parts = py_re.findall(r'[a-zA-Z]+|\d+', t.lower())
+            for p in parts:
+                if p not in stop_words and len(p) > 1:
+                    expanded_terms.append(p)
 
-            if len(certs) < 2: 
-                potential_certs = []
-                for kw in search_terms:
-                    matches = db.query(CertificationLevel).filter(
-                        or_(
-                            CertificationLevel.name.ilike(f"%{kw}%"),
-                            CertificationLevel.category.ilike(f"%{kw}%")
-                        )
-                    ).all()
-                    potential_certs.extend(matches)
+        certs = []
+        if expanded_terms:
+            potential_certs = []
+            
+            # Use the organization parameter if provided by the LLM
+            org_filter = None
+            if organization:
+                org_filter = organization.upper()
+            
+            # Query builder
+            base_query = db.query(CertificationLevel).join(DivingOrganization)
+            if org_filter:
+                base_query = base_query.filter(DivingOrganization.acronym == org_filter)
+                
+            # Search for the meaningful keywords
+            for kw in expanded_terms:
+                matches = base_query.filter(
+                    or_(
+                        CertificationLevel.name.ilike(f"%{kw}%"),
+                        CertificationLevel.category.ilike(f"%{kw}%"),
+                        DivingOrganization.acronym.ilike(f"{kw}")
+                    )
+                ).all()
+                potential_certs.extend(matches)
 
-                seen_ids = set()
-                for c in potential_certs:
-                    if c.id not in seen_ids:
-                        certs.append(c)
-                        seen_ids.add(c.id)
+            seen_ids = set()
+            for c in potential_certs:
+                if c.id not in seen_ids:
+                    certs.append(c)
+                    seen_ids.add(c.id)
 
-            for cert in certs:
+            def sort_score(c):
+                score = 0
+                c_name_lower = c.name.lower()
+                c_name_words = set(py_re.findall(r'[a-zA-Z]+|\d+', c_name_lower))
+                for kw in expanded_terms:
+                    kw_lower = kw.lower()
+                    if kw_lower == c_name_lower:
+                        score += 100  # Exact match
+                    elif kw_lower in c_name_words:
+                        score += 10   # Whole word match inside name
+                    elif kw_lower in c_name_lower:
+                        score += 1    # Substring match
+                return score
+
+            # Sort the results so that exact matches on the name come first
+            certs.sort(key=sort_score, reverse=True)
+
+            # Cap the results to a small number of highly relevant hits
+            for cert in certs[:20]:
                 org_name = cert.diving_organization.name if cert.diving_organization else "Unknown"
                 org_acronym = cert.diving_organization.acronym if cert.diving_organization else org_name
                 results.append({
