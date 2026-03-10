@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { Edit2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
@@ -138,7 +138,11 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
             <div
               className={`flex items-center space-x-1 mt-1 text-[9px] ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}
             >
-              <span>{format(new Date(message.created_at), 'HH:mm')}</span>
+              <span>
+                {isToday(new Date(message.created_at))
+                  ? format(new Date(message.created_at), 'HH:mm')
+                  : format(new Date(message.created_at), 'MMM d, yyyy HH:mm')}
+              </span>
               {message.is_edited && <span>• (Edited)</span>}
             </div>
           </div>
