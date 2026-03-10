@@ -102,7 +102,7 @@ const ChatDropdown = () => {
                 const displayName = room.is_group
                   ? room.name
                   : otherMembers[0]?.user?.username || 'Chat';
-                const displayAvatar = room.is_group ? null : otherMembers[0]?.user?.avatar_url;
+                const displayAvatar = room.is_group ? null : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
 
                 return (
                   <button

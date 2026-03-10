@@ -1,17 +1,27 @@
-import { format, isToday } from 'date-fns';
-import { Edit2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { Edit2, Check, CheckCheck, Clock } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
+import { parseUTCDate } from '../../utils/dateHelpers';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
 
 import LinkPreview from './LinkPreview';
 
-const MessageBubble = ({ message, isOwn, onEdit }) => {
+const MessageBubble = ({
+  message,
+  isOwn,
+  onEdit,
+  isGrouped,
+  isLastInGroup = true,
+  showName = true,
+  showAvatar = true,
+  readStatus,
+}) => {
   const isBot = !message.sender_id && !message.sender;
 
   // Custom link component for Markdown
@@ -78,40 +88,45 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
   }, [message.content]);
 
   return (
-    <div className={`flex w-full mb-4 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+    <div
+      className={`flex w-full ${isGrouped ? 'mb-[2px]' : 'mb-4'} ${isOwn ? 'justify-end' : 'justify-start'}`}
+    >
+      {/* Received Message Avatar (Left) */}
       {!isOwn && (
-        <div className='mr-2 mt-auto'>
-          {isBot ? (
-            <div className='w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100'>
-              <ChatbotIcon className='w-5 h-5 text-blue-600' />
-            </div>
-          ) : (
-            <Avatar
-              src={message.sender?.avatar_url}
-              size='sm'
-              username={message.sender?.username}
-            />
+        <div className='mr-2 mt-auto flex-shrink-0 w-8 h-8'>
+          {showAvatar && (
+            isBot ? (
+              <div className='w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100'>
+                <ChatbotIcon className='w-5 h-5 text-blue-600' />
+              </div>
+            ) : (
+              <Avatar
+                src={message.sender?.avatar_url}
+                size='sm'
+                username={message.sender?.username}
+              />
+            )
           )}
         </div>
       )}
 
       <div
-        className={`max-w-[75%] md:max-w-[60%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
+        className={`max-w-[75%] md:max-w-[65%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
       >
-        {!isOwn && (
+        {!isOwn && showName && (
           <span className='text-[10px] text-gray-400 mb-1 ml-1 uppercase tracking-wider font-semibold'>
             {isBot ? 'Divemap AI' : message.sender?.username}
           </span>
         )}
 
-        <div className='group relative'>
+        <div className='group relative flex items-end'>
           <div
-            className={`px-4 py-2 rounded-2xl text-sm shadow-sm ${
+            className={`px-4 py-2 text-sm shadow-sm transition-colors ${
               isOwn
-                ? 'bg-blue-600 text-white rounded-br-none'
+                ? `bg-blue-600 text-white rounded-2xl ${!showName ? 'rounded-tr-[4px]' : ''} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-[4px]'}`
                 : isBot
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-gray-800 dark:text-gray-100 rounded-bl-none border border-blue-100 dark:border-blue-800'
-                  : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-600'
+                  ? `bg-blue-50 dark:bg-blue-900/20 text-gray-800 dark:text-gray-100 border border-blue-100 dark:border-blue-800 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
+                  : `bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
             }`}
           >
             <div className='markdown-content break-words'>
@@ -136,14 +151,25 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
             ))}
 
             <div
-              className={`flex items-center space-x-1 mt-1 text-[9px] ${isOwn ? 'text-blue-100' : 'text-gray-400'}`}
+              className={`flex items-center space-x-1 mt-1 text-[9px] ${isOwn ? 'text-blue-100' : 'text-gray-400'} justify-end`}
             >
-              <span>
-                {isToday(new Date(message.created_at))
-                  ? format(new Date(message.created_at), 'HH:mm')
-                  : format(new Date(message.created_at), 'MMM d, yyyy HH:mm')}
+              <span title={format(parseUTCDate(message.created_at), 'MMM d, yyyy HH:mm:ss')}>
+                {format(parseUTCDate(message.created_at), 'HH:mm')}
               </span>
               {message.is_edited && <span>• (Edited)</span>}
+              {isOwn && readStatus && (
+                <span className='ml-0.5 flex items-center'>
+                  {readStatus === 'read' ? (
+                    <CheckCheck size={12} className='text-blue-300' />
+                  ) : readStatus === 'delivered' ? (
+                    <CheckCheck size={12} className='text-blue-100/70' />
+                  ) : readStatus === 'sent' ? (
+                    <Check size={12} className='text-blue-100/70' />
+                  ) : (
+                    <Clock size={10} className='text-blue-100/70' />
+                  )}
+                </span>
+              )}
             </div>
           </div>
 
@@ -158,6 +184,19 @@ const MessageBubble = ({ message, isOwn, onEdit }) => {
           )}
         </div>
       </div>
+
+      {/* Sent Message Avatar (Right) */}
+      {isOwn && (
+        <div className='ml-2 mt-auto flex-shrink-0 w-8 h-8'>
+          {showAvatar && (
+            <Avatar
+              src={message.sender?.avatar_url}
+              size='sm'
+              username={message.sender?.username}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -175,6 +214,11 @@ MessageBubble.propTypes = {
   }).isRequired,
   isOwn: PropTypes.bool.isRequired,
   onEdit: PropTypes.func,
+  isGrouped: PropTypes.bool,
+  isLastInGroup: PropTypes.bool,
+  showName: PropTypes.bool,
+  showAvatar: PropTypes.bool,
+  readStatus: PropTypes.string,
 };
 
 export default MessageBubble;

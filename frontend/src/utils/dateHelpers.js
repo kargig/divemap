@@ -4,7 +4,7 @@
  * @param {string|Date} dateString
  * @returns {Date} Date object
  */
-const parseUTCDate = dateString => {
+export const parseUTCDate = dateString => {
   if (!dateString) return new Date();
   if (dateString instanceof Date) return dateString;
 

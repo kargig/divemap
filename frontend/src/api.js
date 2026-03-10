@@ -374,8 +374,17 @@ export const getChatMessages = async (roomId, afterUpdatedAt = null) => {
   if (afterUpdatedAt) {
     params.after_updated_at = afterUpdatedAt;
   }
-  const response = await api.get(`/api/v1/user-chat/rooms/${roomId}/messages`, { params });
-  return response.data;
+  try {
+    const response = await api.get(`/api/v1/user-chat/rooms/${roomId}/messages`, { params });
+    return response.data;
+  } catch (error) {
+    // If the backend returns 304 Not Modified, it's not an error.
+    // It means there are no new messages. Return an empty array.
+    if (error.response && error.response.status === 304) {
+      return [];
+    }
+    throw error;
+  }
 };
 
 export const sendUserChatMessage = async (roomId, content) => {

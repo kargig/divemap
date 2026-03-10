@@ -1,8 +1,12 @@
-import { Send, Loader2, X, Info, ChevronLeft, HelpCircle } from 'lucide-react';
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+import { isSameDay, format, isToday, isYesterday, differenceInMinutes } from 'date-fns';
+import { Send, Loader2, X, Info, ChevronLeft, HelpCircle, Smile } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
+import TextareaAutosize from 'react-textarea-autosize';
 
 import {
   getChatMessages,
@@ -10,6 +14,7 @@ import {
   editUserChatMessage,
   markChatRoomRead,
 } from '../../api';
+import { parseUTCDate } from '../../utils/dateHelpers';
 import Avatar from '../Avatar';
 
 import MessageBubble from './MessageBubble';
@@ -39,6 +44,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
   const [isSending, setIsSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showHints, setShowHints] = useState(() => !localStorage.getItem('chat_hints_dismissed'));
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [prevRoomId, setPrevRoomId] = useState(roomId);
   const scrollRef = useRef(null);
   const lastSyncTime = useRef(null);
@@ -53,6 +59,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
     setMessages([]);
     setInputText('');
     setEditingMessage(null);
+    setShowEmojiPicker(false);
     lastSyncTime.current = null;
   }
 
@@ -82,12 +89,12 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
               }
             });
             // Sort by creation time to ensure order
-            return merged.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            return merged.sort((a, b) => parseUTCDate(a.created_at) - parseUTCDate(b.created_at));
           });
 
           // Update the high-watermark cursor
           const latestUpdate = newMessages.reduce(
-            (max, m) => (new Date(m.updated_at) > new Date(max) ? m.updated_at : max),
+            (max, m) => (parseUTCDate(m.updated_at) > parseUTCDate(max) ? m.updated_at : max),
             lastSyncTime.current || newMessages[0].updated_at
           );
           lastSyncTime.current = latestUpdate;
@@ -113,10 +120,11 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
 
   // 3. Handle Send / Edit
   const handleSubmit = async e => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!inputText.trim() || isSending) return;
 
     setIsSending(true);
+    setShowEmojiPicker(false);
     try {
       if (editingMessage) {
         await editUserChatMessage(editingMessage.id, inputText);
@@ -135,11 +143,17 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
   const handleEditInit = msg => {
     setEditingMessage(msg);
     setInputText(msg.content);
+    setShowEmojiPicker(false);
   };
 
   const cancelEdit = () => {
     setEditingMessage(null);
     setInputText('');
+    setShowEmojiPicker(false);
+  };
+
+  const onEmojiSelect = emoji => {
+    setInputText(prev => prev + emoji.native);
   };
 
   if (!roomId) {
@@ -153,10 +167,14 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
   // Determine display name and avatar (for DMs)
   const otherMembers = room?.members?.filter(m => m.user_id !== currentUserId) || [];
   const displayName = room?.is_group ? room.name : otherMembers[0]?.user?.username || 'Chat';
-  const displayAvatar = room?.is_group ? null : otherMembers[0]?.user?.avatar_url;
+  const displayAvatar = room?.is_group ? null : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+
+  const maxReadAt = otherMembers.length
+    ? new Date(Math.max(...otherMembers.map(m => parseUTCDate(m.last_read_at))))
+    : null;
 
   return (
-    <div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
+    <div className='flex flex-col h-full bg-[#f0f2f5] dark:bg-gray-900 overflow-hidden relative'>
       {/* Header */}
       <div className='p-3 md:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10'>
         <div className='flex items-center gap-3 min-w-0'>
@@ -208,15 +226,75 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
       </div>
 
       {/* Message List */}
-      <div ref={scrollRef} className='flex-1 overflow-y-auto p-4 md:p-6'>
-        {messages.map(msg => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isOwn={msg.sender_id === currentUserId}
-            onEdit={handleEditInit}
-          />
-        ))}
+      <div
+        ref={scrollRef}
+        className='flex-1 overflow-y-auto p-4 md:p-6 bg-[#efeae2] dark:bg-gray-900'
+      >
+        {messages.map((msg, index) => {
+          const prevMsg = index > 0 ? messages[index - 1] : null;
+          const nextMsg = index < messages.length - 1 ? messages[index + 1] : null;
+
+          const msgDate = parseUTCDate(msg.created_at);
+          const prevMsgDate = prevMsg ? parseUTCDate(prevMsg.created_at) : null;
+          const nextMsgDate = nextMsg ? parseUTCDate(nextMsg.created_at) : null;
+
+          const showDateDivider = !prevMsg || !isSameDay(msgDate, prevMsgDate);
+
+          const isGrouped =
+            Boolean(nextMsg) &&
+            Number(nextMsg.sender_id) === Number(msg.sender_id) &&
+            isSameDay(msgDate, nextMsgDate) &&
+            Math.abs(differenceInMinutes(nextMsgDate, msgDate)) < 5;
+
+          const isLastInGroup =
+            !nextMsg ||
+            Number(nextMsg.sender_id) !== Number(msg.sender_id) ||
+            !isSameDay(msgDate, nextMsgDate) ||
+            Math.abs(differenceInMinutes(nextMsgDate, msgDate)) >= 5;
+
+          const showName =
+            !prevMsg ||
+            Number(prevMsg.sender_id) !== Number(msg.sender_id) ||
+            !isSameDay(msgDate, prevMsgDate) ||
+            Math.abs(differenceInMinutes(msgDate, prevMsgDate)) >= 5;
+
+          let readStatus = 'sent';
+          if (maxReadAt && msgDate <= maxReadAt) {
+            readStatus = 'read';
+          } else {
+            // we could do more checks here like 'delivered' but we only track last_read_at
+            readStatus = 'sent';
+          }
+
+          let dateLabel = '';
+          if (showDateDivider) {
+            if (isToday(msgDate)) dateLabel = 'Today';
+            else if (isYesterday(msgDate)) dateLabel = 'Yesterday';
+            else dateLabel = format(msgDate, 'EEEE, MMMM d, yyyy');
+          }
+
+          return (
+            <React.Fragment key={msg.id}>
+              {showDateDivider && (
+                <div className='flex justify-center my-4'>
+                  <span className='bg-white/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 text-[11px] font-medium uppercase px-3 py-1 rounded-full shadow-sm'>
+                    {dateLabel}
+                  </span>
+                </div>
+              )}
+              <MessageBubble
+                message={msg}
+                isOwn={msg.sender_id === currentUserId}
+                onEdit={handleEditInit}
+                isGrouped={isGrouped}
+                isLastInGroup={isLastInGroup}
+                showName={showName}
+                showAvatar={isLastInGroup}
+                readStatus={readStatus}
+              />
+            </React.Fragment>
+          );
+        })}
         {isFetching && messages.length === 0 && (
           <div className='flex items-center justify-center h-full'>
             <Loader2 className='animate-spin text-blue-600' />
@@ -225,7 +303,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
       </div>
 
       {/* Input Area */}
-      <div className='p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700'>
+      <div className='p-2 md:p-4 bg-[#f0f2f5] dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 relative'>
         {editingMessage && (
           <div className='flex items-center justify-between mb-2 px-3 py-1 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-l-yellow-400 rounded'>
             <span className='text-xs text-yellow-700 dark:text-yellow-400 italic'>
@@ -237,20 +315,48 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className='flex space-x-2'>
-          <input
-            type='text'
-            value={inputText}
-            onChange={e => setInputText(e.target.value)}
-            placeholder='Type a message...'
-            className='flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 border-none rounded-full focus:ring-2 focus:ring-blue-500 dark:text-white text-sm outline-none'
-          />
+        {showEmojiPicker && (
+          <div className='absolute bottom-[100%] left-2 mb-2 z-50 shadow-xl rounded-xl border border-gray-200'>
+            <Picker data={data} onEmojiSelect={onEmojiSelect} theme='light' />
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className='flex items-end space-x-2'>
+          <button
+            type='button'
+            className='p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-1'
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          >
+            <Smile size={24} />
+          </button>
+
+          <div className='flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-shadow'>
+            <TextareaAutosize
+              minRows={1}
+              maxRows={5}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder='Type a message...'
+              className='w-full px-4 py-3 bg-transparent border-none focus:ring-0 dark:text-white text-sm outline-none resize-none m-0 focus:outline-none focus:ring-transparent'
+              style={{ boxShadow: 'none' }}
+            />
+          </div>
           <button
             type='submit'
             disabled={!inputText.trim() || isSending}
-            className='p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-10 h-10'
+            className='p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-12 h-12 mb-0.5 shadow-sm'
           >
-            {isSending ? <Loader2 size={18} className='animate-spin' /> : <Send size={18} />}
+            {isSending ? (
+              <Loader2 size={20} className='animate-spin' />
+            ) : (
+              <Send size={20} className='ml-1' />
+            )}
           </button>
         </form>
       </div>
