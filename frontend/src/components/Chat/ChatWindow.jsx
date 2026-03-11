@@ -54,6 +54,28 @@ const ChatWindow = ({
   const getSuggestions = () => {
     if (messages.length > 0) return [];
 
+    const GOOD_QUESTIONS = [
+      'what comes after Open Water in SSI?',
+      'best diving in Crete',
+      'show me deep dives in Attica',
+      'do you know any snorkeling spots in Naxos ?',
+      'what are the requirements for the Rescue Diver certification?',
+      'what are some good dive sites in Egypt?',
+      'what is the difference between PADI TEC45 and SSI XR?',
+      'give me a list of 10 dive sites in the South of Athens',
+      'give me wrecks near Makronisos island',
+      'where can I see monk seals in Greece?',
+      'Calculate my SAC rate if I used 140 bar from a 12L tank in 30 mins at 15m depth',
+      'What is the MOD for 32% Nitrox?',
+      'What are nearby dive sites to legrena car wrecks ?',
+      'is it safe to dive at Kyra Leni tomorrow at 10:00?',
+      'PADI courses in Greece',
+    ];
+
+    // Pick 2 random questions from the list
+    const shuffled = [...GOOD_QUESTIONS].sort(() => 0.5 - Math.random());
+    const randomQuestions = shuffled.slice(0, 2);
+
     const baseSuggestions = ['Find dive sites nearby', 'Check weather for today'];
 
     if (context.context_entity_type === 'dive_site') {
@@ -62,7 +84,7 @@ const ChatWindow = ({
         'What is the maximum depth here?',
         'Best time to dive this site?',
         ...baseSuggestions,
-      ];
+      ].slice(0, 4); // Keep to 4 max
     }
 
     if (context.context_entity_type === 'diving_center') {
@@ -71,10 +93,10 @@ const ChatWindow = ({
         'Do they have boat dives?',
         'Can I rent equipment here?',
         ...baseSuggestions,
-      ];
+      ].slice(0, 4); // Keep to 4 max
     }
 
-    return [...baseSuggestions, 'Suggest a wreck dive', 'Safety tips for deep diving'];
+    return [...baseSuggestions, ...randomQuestions];
   };
 
   const suggestions = getSuggestions();

@@ -56,7 +56,9 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) 
             ? room.name
             : otherMembers[0]?.user?.username || otherMembers[0]?.username || 'Unknown User';
           // Fallback to the member's avatar_url if the user object isn't fully populated
-          const displayAvatar = room.is_group ? null : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+          const displayAvatar = room.is_group
+            ? null
+            : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
 
           return (
             <button

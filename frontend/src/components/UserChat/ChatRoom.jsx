@@ -167,7 +167,9 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
   // Determine display name and avatar (for DMs)
   const otherMembers = room?.members?.filter(m => m.user_id !== currentUserId) || [];
   const displayName = room?.is_group ? room.name : otherMembers[0]?.user?.username || 'Chat';
-  const displayAvatar = room?.is_group ? null : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+  const displayAvatar = room?.is_group
+    ? null
+    : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
 
   const maxReadAt = otherMembers.length
     ? new Date(Math.max(...otherMembers.map(m => parseUTCDate(m.last_read_at))))

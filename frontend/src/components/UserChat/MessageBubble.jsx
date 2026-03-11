@@ -94,8 +94,8 @@ const MessageBubble = ({
       {/* Received Message Avatar (Left) */}
       {!isOwn && (
         <div className='mr-2 mt-auto flex-shrink-0 w-8 h-8'>
-          {showAvatar && (
-            isBot ? (
+          {showAvatar &&
+            (isBot ? (
               <div className='w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100'>
                 <ChatbotIcon className='w-5 h-5 text-blue-600' />
               </div>
@@ -105,8 +105,7 @@ const MessageBubble = ({
                 size='sm'
                 username={message.sender?.username}
               />
-            )
-          )}
+            ))}
         </div>
       )}
 
