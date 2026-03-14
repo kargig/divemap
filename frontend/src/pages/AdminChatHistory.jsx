@@ -16,6 +16,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import { getAdminChatSessions, getAdminChatSessionDetail, deleteAdminChatSession } from '../api';
+import AgentExecutionTimeline from '../components/Admin/AgentExecutionTimeline';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import AdminChatHistoryTable from '../components/tables/AdminChatHistoryTable';
 import Modal from '../components/ui/Modal';
@@ -261,14 +262,25 @@ const AdminChatHistory = () => {
                       )}
 
                       {msg.debug_data && (
-                        <details className='mt-2 pt-2 border-t border-white/20 dark:border-gray-700'>
-                          <summary className='text-[10px] cursor-pointer hover:opacity-100 opacity-60'>
-                            Debug Info
-                          </summary>
-                          <pre className='text-[10px] mt-1 font-mono p-2 bg-black/10 dark:bg-black/40 rounded overflow-x-auto'>
-                            {JSON.stringify(msg.debug_data, null, 2)}
-                          </pre>
-                        </details>
+                        <div className='mt-2 pt-2 border-t border-gray-100 dark:border-gray-700'>
+                          {msg.debug_data.intermediate_steps ? (
+                            <div className='space-y-2'>
+                              <div className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
+                                Agent Execution History
+                              </div>
+                              <AgentExecutionTimeline steps={msg.debug_data.intermediate_steps} />
+                            </div>
+                          ) : (
+                            <details>
+                              <summary className='text-[10px] cursor-pointer hover:opacity-100 opacity-60'>
+                                Legacy Debug Info
+                              </summary>
+                              <pre className='text-[10px] mt-1 font-mono p-2 bg-black/10 dark:bg-black/40 rounded overflow-x-auto text-gray-700 dark:text-gray-300'>
+                                {JSON.stringify(msg.debug_data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

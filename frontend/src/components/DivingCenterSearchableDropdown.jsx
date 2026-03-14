@@ -14,12 +14,19 @@ const DivingCenterSearchableDropdown = ({
   className = '',
   id = 'diving-center-search',
 }) => {
+  const [searchTerm, setSearchTerm] = React.useState('');
+
   const options = useMemo(() => {
-    return divingCenters.map(center => ({
+    const formattedOptions = divingCenters.map(center => ({
       value: center.id.toString(),
       label: center.country ? `${center.name} (${center.country})` : center.name,
     }));
-  }, [divingCenters]);
+
+    if (!searchTerm.trim()) return formattedOptions;
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    return formattedOptions.filter(option => option.label.toLowerCase().includes(lowerSearchTerm));
+  }, [divingCenters, searchTerm]);
 
   const handleValueChange = value => {
     const selectedCenter = divingCenters.find(c => c.id.toString() === value.toString());
@@ -33,6 +40,8 @@ const DivingCenterSearchableDropdown = ({
       value={selectedId ? selectedId.toString() : ''}
       onValueChange={handleValueChange}
       options={options}
+      searchTerm={searchTerm}
+      onSearchChange={setSearchTerm}
       placeholder={placeholder}
       searchPlaceholder='Type to filter diving centers...'
       emptyMessage='No diving centers found.'

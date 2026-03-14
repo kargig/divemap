@@ -95,7 +95,6 @@ Page Context: {page_context_summary}
         collected_results = []
         total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0}
         final_response_text = ""
-        last_intent = None
 
         while current_step < MAX_STEPS:
             current_step += 1
@@ -142,12 +141,10 @@ Page Context: {page_context_summary}
                         tool_result = await run_in_threadpool(
                             lambda: execute_discovery(db=self.db, entity_type_filter="dive_site", **args)
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args)
                     elif name == "search_diving_centers":
                         tool_result = await run_in_threadpool(
                             lambda: execute_discovery(db=self.db, entity_type_filter="diving_center", **args)
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args)
                     elif name == "search_gear_rental":
                         tool_result = await run_in_threadpool(
                             lambda: execute_other_intents(
@@ -156,7 +153,6 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.GEAR_RENTAL, **args)
                     elif name == "search_marine_life":
                         # Adapt args for execute_other_intents
                         species = args.pop("marine_species", [])
@@ -168,7 +164,6 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.MARINE_LIFE, keywords=species, **args)
                     elif name == "calculate_diving_physics":
                         tool_result = await run_in_threadpool(
                             lambda: execute_other_intents(
@@ -178,7 +173,6 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.CALCULATOR, calculator_params=args)
                     elif name == "compare_certifications":
                         courses = args.pop("courses_to_compare", [])
                         tool_result = await run_in_threadpool(
@@ -189,7 +183,6 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.COMPARISON, keywords=courses, **args)
                     elif name == "get_certification_path":
                         course_name = args.pop("course_name", None)
                         kws = [course_name] if course_name else []
@@ -201,23 +194,19 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.CAREER_PATH, keywords=kws, **args)
                     elif name == "get_dive_site_details":
                         site_name = args.pop("site_name", "")
                         tool_result = await run_in_threadpool(
                             lambda: execute_discovery(db=self.db, entity_type_filter="dive_site", location=site_name, **args)
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, location=site_name, **args)
                     elif name == "get_user_dive_logs":
                         tool_result = await run_in_threadpool(
                             lambda: execute_get_user_dive_logs(db=self.db, current_user=current_user, **args)
-                        )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args) # Dummy intent
+                        ) # Dummy intent
                     elif name == "get_reviews_and_comments":
                         tool_result = await run_in_threadpool(
                             lambda: execute_get_reviews_and_comments(db=self.db, **args)
-                        )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, **args) # Dummy intent
+                        ) # Dummy intent
                     elif name == "search_diving_trips":
                         start_date = args.pop("start_date", None)
                         end_date = args.pop("end_date", None)
@@ -227,7 +216,6 @@ Page Context: {page_context_summary}
                         tool_result = await run_in_threadpool(
                             lambda: execute_discovery(db=self.db, entity_type_filter="dive_trip", date_range=date_range, **args)
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.DISCOVERY, date_range=date_range, **args)
                         # We need to create a dummy result list for weather enricher
                         dummy_results = [{
                             "entity_type": "location",
@@ -247,14 +235,6 @@ Page Context: {page_context_summary}
                             )
                         )
                         tool_result = dummy_results
-                        last_intent = SearchIntent(
-                            intent_type=IntentType.DISCOVERY, 
-                            location=args.get("location"),
-                            date=args["date"], 
-                            time=args.get("time"), 
-                            latitude=args["latitude"], 
-                            longitude=args["longitude"]
-                        )
                     elif name == "recommend_dive_sites":
                         tool_result = await run_in_threadpool(
                             lambda: execute_other_intents(
@@ -264,13 +244,12 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
-                        last_intent = SearchIntent(intent_type=IntentType.PERSONAL_RECOMMENDATION, **args)
                     elif name == "ask_user_for_clarification":
                         final_response_text = args["question"]
                         intermediate_steps.append(ChatIntermediateAction(
                             action_type="refine_intent",
                             tool_name=name,
-                            parameters=args,
+                            tool_args=args,
                             reasoning=f"Step {current_step}: Asking user for clarification: {args['question']}"
                         ))
                         break # Exit the loop early
@@ -298,7 +277,7 @@ Page Context: {page_context_summary}
                     intermediate_steps.append(ChatIntermediateAction(
                         action_type="tool_call",
                         tool_name=name,
-                        parameters=args,
+                        tool_args=args,
                         tool_result=context_result,
                         reasoning=f"Step {current_step}: Executed {name}"
                     ))
@@ -323,7 +302,7 @@ Page Context: {page_context_summary}
                 session_id=session_id,
                 role="user",
                 content=request.message,
-                debug_data=last_intent.model_dump() if last_intent else {}
+                debug_data=None
             )
             self.db.add(user_msg)
             self.db.flush()
@@ -333,7 +312,6 @@ Page Context: {page_context_summary}
                 role="assistant",
                 content=final_response_text,
                 debug_data={
-                    "intent": last_intent.model_dump() if last_intent else {},
                     "sources": collected_results,
                     "message_id": message_id,
                     "intermediate_steps": [s.model_dump() for s in intermediate_steps]
@@ -353,6 +331,5 @@ Page Context: {page_context_summary}
             message_id=message_id,
             session_id=session_id,
             sources=collected_results,
-            intent=last_intent,
             intermediate_steps=intermediate_steps
         )

@@ -626,9 +626,12 @@ DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
   * "Παρασκευή 29 Αυγούστου" = "2025-08-29" (Friday August 29th)
 - Greek month names: Ιανουαρίου(January), Φεβρουαρίου(February), Μαρτίου(March), Απριλίου(April), Μαΐου(May), Ιουνίου(June), Ιουλίου(July), Αυγούστου(August), Σεπτεμβρίου(September), Οκτωβρίου(October), Νοεμβρίου(November), Δεκεμβρίου(December)
 - Greek day names: Δευτέρα(Monday), Τρίτη(Tuesday), Τετάρτη(Wednesday), Πέμπτη(Thursday), Παρασκευή(Friday), Σάββατο(Saturday), Κυριακή(Sunday)
+- Today's date is: {date.today().strftime('%Y-%m-%d')} (Day of week: {datetime.now().strftime('%A')})
 - If the content mentions "today", use today's date: {date.today().strftime('%Y-%m-%d')}
 - If the content mentions "tomorrow", use tomorrow's date: {(date.today() + timedelta(days=1)).strftime('%Y-%m-%d')}
 - If the content mentions "next week", add 7 days to today's date
+- If the content mentions a day name without a specific date (e.g., "Κυριακή 10:00 μόνη κατάδυση" or "Σάββατο 11:00"), you MUST calculate the date of the UPCOMING day of the week that matches the name relative to today's date.
+- For example, if today is Saturday Mar 14th 2026, and the text says "Κυριακή 10:00", you must calculate Sunday Mar 15th 2026. If today is Monday Mar 16th 2026, then "Κυριακή 10:00" would be Sunday Mar 22nd 2026.
 - NEVER use placeholder dates like "YYYY-MM-DD"
 - NEVER default to today's date unless explicitly mentioned
 - ALWAYS parse the actual Greek date format when present in the text

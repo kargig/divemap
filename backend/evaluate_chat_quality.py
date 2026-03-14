@@ -171,7 +171,7 @@ async def run_tests(filter_prompt=None, filter_type=None):
                         "response_text": response_text,
                         "base_url": BASE_URL,
                         "duration": duration,
-                        "intent": data.get("intent")
+                        "intent": data.get("intermediate_steps")[0]["tool_args"] if data.get("intermediate_steps") else None
                     })
                 else:
                     print(f"{case['prompt'][:45]:<45} | {'ERROR':<8} | {'HTTP ' + str(resp.status_code):<10} | {duration:.2f}")

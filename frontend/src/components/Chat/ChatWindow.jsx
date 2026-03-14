@@ -50,8 +50,8 @@ const ChatWindow = ({
     }
   };
 
-  // Dynamic suggestions based on context
-  const getSuggestions = () => {
+  // Dynamic suggestions based on context, memoized to prevent changing on every keystroke
+  const suggestions = React.useMemo(() => {
     if (messages.length > 0) return [];
 
     const GOOD_QUESTIONS = [
@@ -97,9 +97,7 @@ const ChatWindow = ({
     }
 
     return [...baseSuggestions, ...randomQuestions];
-  };
-
-  const suggestions = getSuggestions();
+  }, [messages.length, context.context_entity_type]);
 
   return (
     <div className='flex flex-col h-full bg-white dark:bg-gray-900 shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700'>

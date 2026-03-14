@@ -11,11 +11,14 @@ The user could then use this text file using: `git commit -F commit-message.txt`
     - Check the diff: `git diff --cached` (only take staged changes into account) not `git diff` (unstaged)
     - Never `git add` more files yourself
     - Understand what changed and why
-2. **Ask for issue key (optional)**
+2. **Security Scan (MANDATORY)**
+    - Carefully review the `git diff --cached` output specifically for hardcoded secrets, API keys, passwords, database credentials, or sensitive PII.
+    - If ANY potential secrets are found in the diff, you MUST abort the commit message generation immediately. Do not write to `commit-message.txt`. Instead, alert the user about the exposed secret and advise them to remove it from the code.
+3. **Ask for issue key (optional)**
     - Check the branch name for an issue key (Linear, Jira, GitHub issue, etc.)
     - If an issue key (e.g., POW-123, PROJ-456, #123) is not already available in the chat or commit context, optionally ask the user if they want to include one
     - This is optional - commits can be made without an issue key
-3. **Create a comprehensive git commit message**
+4. **Create a comprehensive git commit message**
     - Follow 7 rules of git commit messages
     - Base the message on the actual changes in the diff
 

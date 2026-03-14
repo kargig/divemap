@@ -57,7 +57,7 @@ class SearchIntent(BaseModel):
 class ChatIntermediateAction(BaseModel):
     action_type: Literal["search", "resolve_location", "refine_intent", "final_answer", "tool_call"]
     tool_name: Optional[str] = None
-    parameters: Dict = {} # tool_args
+    tool_args: Dict = {} 
     tool_result: Optional[Union[List, Dict]] = None
     reasoning: Optional[str] = None
     execution_time_ms: Optional[float] = None
@@ -67,7 +67,6 @@ class ChatResponse(BaseModel):
     message_id: str # UUID to link feedback
     session_id: str # UUID for history
     sources: List[Dict] = [] # Metadata about retrieved entities
-    intent: Optional[SearchIntent] = None # For debugging/admin
     intermediate_steps: List[ChatIntermediateAction] = []
 
 class ChatFeedbackCreate(BaseModel):

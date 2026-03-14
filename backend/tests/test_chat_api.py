@@ -37,10 +37,11 @@ class TestChatAPI:
         data = response.json()
         assert "response" in data
         assert "message_id" in data
-        assert "intent" in data
-        # Intent is populated from the tool call arguments in the new system
-        assert data["intent"]["intent_type"] == "discovery"
-        assert "wreck" in data["intent"]["keywords"]
+        assert "intermediate_steps" in data
+        assert len(data["intermediate_steps"]) > 0
+        step = data["intermediate_steps"][0]
+        assert step["tool_name"] == "search_dive_sites"
+        assert "wreck" in step["tool_args"]["keywords"]
         assert "intermediate_steps" in data
         assert len(data["intermediate_steps"]) > 0
         assert data["intermediate_steps"][0]["action_type"] == "tool_call"

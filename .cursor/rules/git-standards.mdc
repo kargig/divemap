@@ -10,6 +10,7 @@ See core-essentials.mdc for basic commit rules.
 
 ## Core Requirements
 
+- **Security Scan (MANDATORY)**: Before creating a commit message or staging files, carefully review the `git diff` output for hardcoded secrets, API keys, passwords, database credentials, or sensitive PII. If ANY potential secrets are found, abort the commit process immediately and alert the user.
 - Never commit automatically - Only when user explicitly requests
 - Always ask permission before committing
 - Never commit after being asked once - Always ask again
