@@ -126,7 +126,13 @@ export default defineConfig({
           /^\/sitemap\.xml$/,
           /^\/llms\.txt$/,
           /^\/.*\.md$/,
-          /^\/l\/.*$/
+          /^\/l\/.*$/,
+          /^\/api\/.*$/,
+          /^\/docs\/?.*$/,
+          /^\/redoc\/?.*$/,
+          /^\/openapi\.json$/,
+          /^\/health$/,
+          /^\/nginx-health$/
         ],
         runtimeCaching: [
           {
