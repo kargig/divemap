@@ -11,8 +11,7 @@ from datetime import datetime
 # Configuration
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 API_PREFIX = "/api/v1"
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_PAT = os.getenv("ADMIN_PAT")
 
 # Test Cases
 # Ordered by complexity: Simple intents -> Basic Tools -> Complex Discovery -> Calculators -> Agentic Multi-Step/Clarification
@@ -70,24 +69,14 @@ TEST_CASES = [
 ]
 
 async def login(client):
-    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
-        print("[!] ADMIN_USERNAME or ADMIN_PASSWORD not set in environment.")
+    """Authenticate with the API using a Personal Access Token."""
+    if not ADMIN_PAT:
+        print("[!] ADMIN_PAT not set in environment. CLI authentication requires a Personal Access Token.")
+        print("[*] Create one in your Profile under API Access.")
         return None
 
-    print(f"[*] Logging in as {ADMIN_USERNAME}...")
-    try:
-        resp = await client.post(f"{API_PREFIX}/auth/login", json={
-            "username": ADMIN_USERNAME,
-            "password": ADMIN_PASSWORD
-        })
-        if resp.status_code != 200:
-            print(f"[!] Login failed ({resp.status_code}): {resp.text}")
-            return None
-
-        return resp.json()["access_token"]
-    except Exception as e:
-        print(f"[!] Auth error: {e}")
-        return None
+    print("[*] Using Personal Access Token (PAT) for authentication...")
+    return ADMIN_PAT
 
 async def run_tests(filter_prompt=None, filter_type=None):
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=60.0) as client:

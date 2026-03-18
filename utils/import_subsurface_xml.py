@@ -113,27 +113,29 @@ class SubsurfaceXMLImporter:
         }
 
     def login(self) -> bool:
-        """Login to the backend API"""
+        """Verify authentication using Personal Access Token (PAT)"""
         try:
-            username, password = read_credentials_from_local_testme()
-
-            response = self.session.post(AUTH_ENDPOINT, json={
-                "username": username,
-                "password": password
-            })
-
-            if response.status_code == 200:
-                data = response.json()
-                self.auth_token = data.get("access_token")
-                self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-                print(f"✅ Successfully logged in as {username}")
-                return True
-            else:
-                print(f"❌ Login failed: {response.status_code} - {response.text}")
+            # Check environment variable first
+            self.auth_token = os.getenv("DIVEMAP_PAT")
+            
+            if not self.auth_token:
+                print("❌ DIVEMAP_PAT environment variable not set.")
+                print("Create a Personal Access Token in your Profile settings and export it:")
+                print("export DIVEMAP_PAT=dm_pat_...")
                 return False
 
+            self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
+            
+            # Verify the token works
+            verify_url = f"{BACKEND_URL}/api/v1/auth/me"
+            response = self.session.get(verify_url)
+            response.raise_for_status()
+            user_data = response.json()
+            
+            print(f"✅ Successfully authenticated with PAT as {user_data.get('username')}")
+            return True
         except Exception as e:
-            print(f"❌ Login error: {e}")
+            print(f"❌ Failed to authenticate with PAT: {e}")
             return False
 
     def parse_duration(self, duration_str: str) -> Optional[int]:

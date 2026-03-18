@@ -107,6 +107,18 @@ login() {
   user="${ADMIN_USER:-admin}"
   pass="${ADMIN_PASS:-admin123}"
 
+  # If PAT is provided, use it directly
+  if [[ -n "${ADMIN_PAT:-}" ]]; then
+    echo "Using provided ADMIN_PAT..."
+    local tfile
+    tfile=$(token_path)
+    printf '%s' "$ADMIN_PAT" > "$tfile"
+    echo "Token saved to $tfile"
+    return 0
+  fi
+
+  echo "No ADMIN_PAT set. Attempting legacy login (may fail if Turnstile is enabled)..."
+
   # Only read from local_testme if env is not set
   if [[ -z "${ADMIN_USER:-}" && -z "${ADMIN_PASS:-}" ]]; then
     read_local_testme || true

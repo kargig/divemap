@@ -411,31 +411,14 @@ The backend supports two ways to authenticate Lambda:
 - **Recommended mode**: **database-backed API key** managed through admin
   endpoints.
 
-### 7.1 Get an admin JWT token
+### 7.1 Set up an admin token (PAT)
 
-Make sure the backend is running, then from your shell:
+Make sure the backend is running and you have a **Personal Access Token (PAT)** from an admin account (created via the web interface under **Profile -> API Access**).
 
 ```bash
 BACKEND_URL="http://localhost:8000"  # adjust to your backend URL
-
-LOGIN_RESPONSE=$(curl -s -X POST "$BACKEND_URL/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin_username",
-    "password": "admin_password"
-  }')
-
-ADMIN_TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
-
-if [ -z "$ADMIN_TOKEN" ]; then
-  echo "Error: failed to obtain admin token. Check credentials and BACKEND_URL."
-  exit 1
-fi
-
-echo "Admin token obtained: ${ADMIN_TOKEN:0:20}..."
+ADMIN_TOKEN="dm_pat_admin_token_here"
 ```
-
-(Optionally use `jq` if installed to parse the JSON more cleanly.)
 
 ### 7.2 Create an API key for Lambda
 

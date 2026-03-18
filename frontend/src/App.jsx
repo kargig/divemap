@@ -70,6 +70,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Buddies = lazy(() => import('./pages/Buddies'));
+const PersonalAccessTokens = lazy(() => import('./pages/PersonalAccessTokens'));
 const Register = lazy(() => import('./pages/Register'));
 const Messages = lazy(() => import('./pages/Messages'));
 const Resubscribe = lazy(() => import('./pages/Resubscribe'));
@@ -279,6 +280,14 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/profile/pats'
+                      element={
+                        <ProtectedRoute>
+                          <PersonalAccessTokens />
                         </ProtectedRoute>
                       }
                     />

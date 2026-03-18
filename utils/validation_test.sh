@@ -12,6 +12,7 @@ WORKDIR="/tmp/validation_test"
 DIVE_SITE_ID=112  # Abu Dabab 2&3
 
 # Credentials from environment variables with fallbacks
+ADMIN_PAT="${ADMIN_PAT}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASS="${ADMIN_PASS:-admin123}"
 TEST_USER="${TEST_USER:-securitytest}"
@@ -49,7 +50,14 @@ login() {
     local username="$1"
     local password="$2"
     
-    print_status "Logging in as $username..."
+    # If PAT is provided, use it directly
+    if [ -n "$ADMIN_PAT" ] && [ "$username" = "$ADMIN_USER" ]; then
+        print_status "Using provided ADMIN_PAT for authentication..."
+        echo "$ADMIN_PAT" > "$WORKDIR/token_admin.txt"
+        return 0
+    fi
+    
+    print_warning "No PAT provided for $username. Attempting legacy login (will fail if Turnstile is enabled)..."
     
     local response=$(curl -sSL -X POST \
         -H "Content-Type: application/json" \

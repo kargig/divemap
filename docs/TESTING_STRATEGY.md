@@ -1214,11 +1214,10 @@ curl -s http://localhost:8000/api/v1/diving-centers/ | jq 'length'
 
 curl -s http://localhost:8000/api/v1/dive-sites/1 | jq '.name'
 
-#### Test authentication
+#### Test authentication (Personal Access Token)
 
-curl -s -X POST http://localhost:8000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"ADMIN_PASSWORD"}' | jq '.access_token'
+curl -s -X GET http://localhost:8000/api/v1/auth/me \
+  -H "Authorization: Bearer dm_pat_your_token_here" | jq .
 ```
 
 ### 5.5 Complete Test Suite

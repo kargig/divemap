@@ -113,26 +113,29 @@ class DiveSiteImporter:
         }
 
     def login(self) -> bool:
-        """Login to get authentication token"""
+        """Verify authentication using Personal Access Token (PAT)"""
         try:
-            # Read credentials from local_testme file
-            admin_username, admin_password = read_credentials_from_local_testme()
+            # Check environment variable first
+            self.token = os.getenv("DIVEMAP_PAT")
+            
+            if not self.token:
+                print("❌ DIVEMAP_PAT environment variable not set.")
+                print("Create a Personal Access Token in your Profile settings and export it:")
+                print("export DIVEMAP_PAT=dm_pat_...")
+                return False
 
-            print(f"Attempting login with username: {admin_username}")
-            response = self.session.post(AUTH_ENDPOINT, json={
-                "username": admin_username,
-                "password": admin_password
-            })
-            print(f"Login response status: {response.status_code}")
-            print(f"Login response: {response.text[:100]}")
-            response.raise_for_status()
-            data = response.json()
-            self.token = data["access_token"]
             self.session.headers.update({"Authorization": f"Bearer {self.token}"})
-            print(f"✅ Successfully logged in as {admin_username}")
+            
+            # Verify the token works
+            verify_url = f"{BACKEND_URL}/api/v1/auth/me"
+            response = self.session.get(verify_url)
+            response.raise_for_status()
+            user_data = response.json()
+            
+            print(f"✅ Successfully authenticated with PAT as {user_data.get('username')}")
             return True
         except Exception as e:
-            print(f"❌ Failed to login: {e}")
+            print(f"❌ Failed to authenticate with PAT: {e}")
             return False
 
     def calculate_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:

@@ -126,18 +126,16 @@ python utils/update_dive_site_locations.py --debug --max-requests-per-minute 60
 ```bash
 # Environment variables
 export DIVEMAP_BASE_URL="http://localhost:8000"
-export DIVEMAP_USERNAME="admin"
-export DIVEMAP_PASSWORD="your_admin_password"
+export DIVEMAP_PAT="dm_pat_admin_token_here"
 
 # Or use command line options
 python utils/update_dive_site_locations.py \
   --base-url "https://api.divemap.com" \
-  --username "admin" \
-  --password "admin123"
+  --pat "dm_pat_admin_token_here"
 ```
 
 #### API Endpoints Used
-- `POST /api/v1/auth/login` - Authentication
+- `GET /api/v1/auth/me` - Authentication check
 - `GET /api/v1/dive-sites/` - List all dive sites
 - `GET /api/v1/dive-sites/{id}` - Get specific dive site
 - `GET /api/v1/dive-sites/reverse-geocode` - Reverse geocoding

@@ -11,9 +11,12 @@ Use this skill when you need to:
 - Benchmark response times.
 
 ## Prerequisites
-- **Admin Credentials:** The harness requires an admin account to bypass rate limits. These should be available in a `local_testme` file in the project root (not committed to git).
-- **Python Environment:** Requires the backend virtual environment.
-- **Docker:** The backend and database must be running (`docker-compose up -d`).
+-   **Admin Credentials:** The harness requires an admin account to bypass rate limits. We highly recommend using a **Personal Access Token (PAT)** for the admin user.
+-   **Environment Variables:**
+    -   `ADMIN_PAT`: The admin's Personal Access Token (recommended).
+    -   `ADMIN_USERNAME` / `ADMIN_PASSWORD`: Standard credentials (will fail if Turnstile is enabled).
+-   **Python Environment:** Requires the backend virtual environment.
+-   **Docker:** The backend and database must be running (`docker-compose up -d`).
 
 ## Instructions
 
@@ -24,15 +27,17 @@ docker-compose up -d
 ```
 
 ### 2. Run the Harness
-Use the following command to source your local admin credentials and run the evaluation script. This assumes you have a `local_testme` file with `ADMIN_USERNAME` and `ADMIN_PASSWORD` exports.
+Use the following command to run the evaluation script with your admin PAT.
 
 ```bash
-source local_testme && 
-ADMIN_USERNAME=$ADMIN_USERNAME ADMIN_PASSWORD=$ADMIN_PASSWORD 
-backend/divemap_venv/bin/python backend/evaluate_chat_quality.py
+# Recommended: Using PAT
+ADMIN_PAT="dm_pat_admin_token_here" backend/divemap_venv/bin/python backend/evaluate_chat_quality.py
+
+# Alternative: Using credentials (legacy, blocked by Turnstile)
+# ADMIN_USERNAME="admin" ADMIN_PASSWORD="password" backend/divemap_venv/bin/python backend/evaluate_chat_quality.py
 ```
 
-**Note:** The script will automatically log in as the admin user to bypass the standard `5/minute` rate limit, allowing for faster execution of the test suite.
+**Note:** The script will automatically use the admin token to bypass the standard `5/minute` rate limit, allowing for faster execution of the test suite.
 
 ### 3. Interpret Results
 The script prints a summary table to the console:

@@ -4,15 +4,17 @@ from sqlalchemy import or_
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken
 from app.schemas import (
     UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
     ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
-    UserSocialLinkCreate, UserSocialLinkResponse
+    UserSocialLinkCreate, UserSocialLinkResponse,
+    PATCreate, PATResponse, PATCreateResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.limiter import skip_rate_limit_for_admin
+from app.utils import utcnow
 from sqlalchemy import func
 import secrets
 import base64
@@ -384,10 +386,6 @@ async def delete_user(
     return {"message": "User deleted successfully"}
 
 # Regular user endpoints
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_profile(current_user: User = Depends(get_current_active_user)):
-    return current_user
-
 @router.put("/me", response_model=UserResponse)
 async def update_current_user_profile(
     user_update: UserUpdate,
@@ -830,3 +828,105 @@ async def delete_api_key(
     db.commit()
     
     return {"message": "API key deleted successfully"}
+
+
+# Personal Access Token (PAT) Management
+@router.get("/me/tokens", response_model=List[PATResponse])
+async def list_pats(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """List all Personal Access Tokens for the current user"""
+    pats = db.query(PersonalAccessToken).filter(
+        PersonalAccessToken.user_id == current_user.id
+    ).order_by(PersonalAccessToken.created_at.desc()).all()
+    return pats
+
+
+@router.post("/me/tokens", response_model=PATCreateResponse)
+async def create_pat(
+    token_data: PATCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new Personal Access Token.
+    The actual token value is only returned once on creation.
+    """
+    # Check current number of active tokens
+    count = db.query(PersonalAccessToken).filter(
+        PersonalAccessToken.user_id == current_user.id,
+        PersonalAccessToken.is_active == True
+    ).count()
+    
+    if count >= 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum number of active tokens (10) reached. Please revoke an old token first."
+        )
+
+    # Generate secure PAT: "dm_pat_" prefix + base64(32 random bytes)
+    random_bytes = secrets.token_bytes(32)
+    token_suffix = base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
+    token_value = "dm_pat_" + token_suffix
+    
+    # Prefix for lookup (e.g., first 12 chars of the suffix)
+    token_prefix = token_suffix[:12]
+    
+    # Hash the token for storage
+    token_hash = get_password_hash(token_value)
+    
+    # Calculate expiration
+    expires_at = None
+    if token_data.expires_in_days:
+        from datetime import timedelta
+        expires_at = utcnow() + timedelta(days=token_data.expires_in_days)
+    
+    # Create PAT record
+    db_pat = PersonalAccessToken(
+        user_id=current_user.id,
+        name=token_data.name,
+        token_prefix=token_prefix,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        is_active=True
+    )
+    
+    db.add(db_pat)
+    db.commit()
+    db.refresh(db_pat)
+    
+    return PATCreateResponse(
+        id=db_pat.id,
+        name=db_pat.name,
+        token=token_value,
+        expires_at=db_pat.expires_at,
+        last_used_at=db_pat.last_used_at,
+        is_active=db_pat.is_active,
+        created_at=db_pat.created_at,
+        updated_at=db_pat.updated_at
+    )
+
+
+@router.delete("/me/tokens/{token_id}")
+async def delete_pat(
+    token_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Revoke/Delete a Personal Access Token"""
+    pat = db.query(PersonalAccessToken).filter(
+        PersonalAccessToken.id == token_id,
+        PersonalAccessToken.user_id == current_user.id
+    ).first()
+    
+    if not pat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Token not found"
+        )
+    
+    db.delete(pat)
+    db.commit()
+    
+    return {"message": "Token revoked successfully"}

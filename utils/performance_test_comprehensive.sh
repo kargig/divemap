@@ -15,6 +15,7 @@ TOTAL_ROUTES=1000
 BATCH_SIZE=50
 
 # Credentials from environment variables with fallbacks
+ADMIN_PAT="${ADMIN_PAT}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASS="${ADMIN_PASS:-admin123}"
 
@@ -50,7 +51,14 @@ login() {
     local username="$1"
     local password="$2"
     
-    print_status "Logging in as $username..."
+    # If PAT is provided, use it directly
+    if [ -n "$ADMIN_PAT" ]; then
+        print_status "Using provided ADMIN_PAT for authentication..."
+        echo "$ADMIN_PAT" > "$WORKDIR/token_admin.txt"
+        return 0
+    fi
+    
+    print_warning "No ADMIN_PAT provided. Attempting legacy login (will fail if Turnstile is enabled)..."
     
     local response=$(curl -sSL -X POST \
         -H "Content-Type: application/json" \

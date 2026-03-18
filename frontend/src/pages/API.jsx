@@ -117,41 +117,32 @@ const API = () => {
               </code>
 
               <div className='mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200'>
-                <h4 className='font-medium text-blue-900 mb-2'>How to Get Your Bearer Token</h4>
-                <ol className='list-decimal list-inside space-y-2 text-blue-800 text-sm'>
-                  <li>
-                    <strong>Register an account</strong> at{' '}
-                    <a href='/register' className='text-blue-600 hover:text-blue-800 underline'>
-                      /register
-                    </a>{' '}
-                    or log in at{' '}
-                    <a href='/login' className='text-blue-600 hover:text-blue-800 underline'>
-                      /login
-                    </a>
-                  </li>
-                  <li>
-                    <strong>Authenticate</strong> using your username/password or Google OAuth
-                  </li>
-                  <li>
-                    <strong>Get your token</strong> by making a POST request to{' '}
-                    <code className='bg-blue-100 px-2 py-1 rounded text-xs font-mono'>
-                      {backendUrl}/api/v1/auth/login
-                    </code>
-                  </li>
-                  <li>
-                    <strong>Use the token</strong> in your API requests as shown above
-                  </li>
-                </ol>
+                <h4 className='font-medium text-blue-900 mb-2'>How to Get Your Token</h4>
+                <div className='space-y-4 text-blue-800 text-sm'>
+                  <p>
+                    For programmatic access (CLI, scripts, bots), we recommend using{' '}
+                    <strong>Personal Access Tokens (PATs)</strong>. These are long-lived tokens that
+                    bypass the CAPTCHA requirement.
+                  </p>
+                  <ol className='list-decimal list-inside space-y-2'>
+                    <li>Log in to your account via the web interface.</li>
+                    <li>
+                      Go to your <strong>Profile</strong> settings.
+                    </li>
+                    <li>
+                      Click on <strong>Manage API Tokens</strong> in the sidebar.
+                    </li>
+                    <li>
+                      Generate a new token and <strong>copy it immediately</strong>.
+                    </li>
+                    <li>Use this token in your API requests as shown below.</li>
+                  </ol>
+                </div>
 
                 <div className='mt-3 p-3 bg-white rounded border'>
-                  <p className='text-blue-700 text-xs font-medium mb-2'>Example Login Request:</p>
+                  <p className='text-blue-700 text-xs font-medium mb-2'>Example Header:</p>
                   <code className='bg-gray-100 px-2 py-1 rounded text-xs font-mono block overflow-x-auto'>
-                    POST {backendUrl}/api/v1/auth/login
-                    <br />
-                    Content-Type: application/x-www-form-urlencoded
-                    <br />
-                    <br />
-                    username=your_username&password=your_password
+                    Authorization: Bearer dm_pat_your_token_here
                   </code>
                 </div>
               </div>
@@ -180,47 +171,29 @@ const API = () => {
               </p>
 
               <div className='space-y-4'>
-                <div className='p-4 bg-green-50 rounded-lg border border-green-200'>
-                  <h4 className='font-medium text-green-900 mb-2'>1. Get Bearer Token</h4>
-                  <p className='text-green-800 text-sm mb-3'>
-                    Authenticate and receive your access token:
-                  </p>
-                  <code className='bg-green-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-green-900'>
-                    curl -X POST {backendUrl}/api/v1/auth/login \
-                    <br />
-                    &nbsp;&nbsp;-H &quot;Content-Type: application/x-www-form-urlencoded&quot; \
-                    <br />
-                    &nbsp;&nbsp;-d &quot;username=your_username&password=your_password&quot;
-                  </code>
-                  <p className='text-green-700 text-xs mt-2'>
-                    Response will include:{' '}
-                    <code className='bg-green-100 px-1 rounded'>{tokenResponseExample}</code>
-                  </p>
-                </div>
-
                 <div className='p-4 bg-blue-50 rounded-lg border border-blue-200'>
-                  <h4 className='font-medium text-blue-900 mb-2'>2. Use Bearer Token</h4>
+                  <h4 className='font-medium text-blue-900 mb-2'>1. List Dive Sites</h4>
                   <p className='text-blue-800 text-sm mb-3'>
-                    Include the token in subsequent API requests:
+                    Include your token in subsequent API requests:
                   </p>
                   <code className='bg-blue-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-blue-900'>
                     curl -X GET {backendUrl}/api/v1/dive-sites \
                     <br />
-                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer dm_pat_your_token_here&quot; \
                     <br />
                     &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot;
                   </code>
                 </div>
 
                 <div className='p-4 bg-purple-50 rounded-lg border border-purple-200'>
-                  <h4 className='font-medium text-purple-900 mb-2'>3. Create a Dive Site</h4>
+                  <h4 className='font-medium text-purple-900 mb-2'>2. Create a Dive Site</h4>
                   <p className='text-purple-800 text-sm mb-3'>
                     Example of a POST request with JSON data:
                   </p>
                   <code className='bg-purple-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-purple-900'>
                     curl -X POST {backendUrl}/api/v1/dive-sites \
                     <br />
-                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer dm_pat_your_token_here&quot; \
                     <br />
                     &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \
                     <br />
@@ -229,14 +202,14 @@ const API = () => {
                 </div>
 
                 <div className='p-4 bg-orange-50 rounded-lg border border-orange-200'>
-                  <h4 className='font-medium text-orange-900 mb-2'>4. Update a Resource</h4>
+                  <h4 className='font-medium text-orange-900 mb-2'>3. Update a Resource</h4>
                   <p className='text-orange-800 text-sm mb-3'>
                     Example of a PUT request to update existing data:
                   </p>
                   <code className='bg-orange-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-orange-900'>
                     curl -X PUT {backendUrl}/api/v1/dive-sites/123 \
                     <br />
-                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot; \
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer dm_pat_your_token_here&quot; \
                     <br />
                     &nbsp;&nbsp;-H &quot;Content-Type: application/json&quot; \
                     <br />
@@ -245,12 +218,12 @@ const API = () => {
                 </div>
 
                 <div className='p-4 bg-red-50 rounded-lg border border-red-200'>
-                  <h4 className='font-medium text-red-900 mb-2'>5. Delete a Resource</h4>
+                  <h4 className='font-medium text-red-900 mb-2'>4. Delete a Resource</h4>
                   <p className='text-red-800 text-sm mb-3'>Example of a DELETE request:</p>
                   <code className='bg-red-100 px-3 py-2 rounded text-sm font-mono block overflow-x-auto text-red-900'>
                     curl -X DELETE {backendUrl}/api/v1/dive-sites/123 \
                     <br />
-                    &nbsp;&nbsp;-H &quot;Authorization: Bearer YOUR_TOKEN_HERE&quot;
+                    &nbsp;&nbsp;-H &quot;Authorization: Bearer dm_pat_your_token_here&quot;
                   </code>
                 </div>
               </div>

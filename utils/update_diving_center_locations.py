@@ -6,12 +6,11 @@ This script can update a single diving center by ID or all diving centers that h
 but are missing country/region/city information.
 
 Usage:
-    python update_diving_center_locations.py [--diving-center-id ID] [--base-url URL] [--username USER] [--password PASS] [--dry-run] [--force]
+    python update_diving_center_locations.py [--diving-center-id ID] [--base-url URL] [--pat TOKEN] [--dry-run] [--force]
 
 Environment Variables:
     DIVEMAP_BASE_URL: Base URL for the Divemap API (default: http://localhost:8000)
-    DIVEMAP_USERNAME: Username for authentication
-    DIVEMAP_PASSWORD: Password for authentication
+    DIVEMAP_PAT: Personal Access Token for authentication
 
 Rate Limit Handling:
     The script automatically handles rate limits (HTTP 429) from the backend API:
@@ -76,15 +75,14 @@ class DivingCenterLocationUpdater:
     - Proactive rate limit checking before making requests
     """
     
-    def __init__(self, base_url: str, username: str, password: str, dry_run: bool = False, force: bool = False, debug: bool = False):
+    def __init__(self, base_url: str, pat: str, dry_run: bool = False, force: bool = False, debug: bool = False):
         self.base_url = base_url.rstrip('/')
-        self.username = username
-        self.password = password
+        self.pat = pat
         self.dry_run = dry_run
         self.force = force
         self.debug = debug
         self.session = requests.Session()
-        self.auth_token = None
+        self.auth_token = pat
         
         # Rate limiting for Nominatim API (1 request per second)
         self.last_request_time = 0
@@ -157,30 +155,34 @@ class DivingCenterLocationUpdater:
         self.requests_this_minute += 1
     
     def authenticate(self) -> bool:
-        """Authenticate with the Divemap API and get access token."""
+        """Verify the Personal Access Token (PAT) and get user info."""
         try:
-            auth_url = urljoin(self.base_url, "/api/v1/auth/login")
-            auth_data = {
-                "username": self.username,
-                "password": self.password
-            }
+            # Check environment variable if not provided
+            if not self.pat:
+                self.pat = os.getenv("DIVEMAP_PAT")
+
+            if not self.pat:
+                print(f"[{get_timestamp()}] ❌ Error: Personal Access Token (PAT) is required.")
+                return False
+
+            print(f"[{get_timestamp()}] 🔐 Verifying PAT with {self.base_url}...")
             
-            print(f"[{get_timestamp()}] 🔐 Authenticating with {self.base_url}...")
-            response = self.session.post(auth_url, json=auth_data, timeout=30)
+            # Set authorization header
+            self.session.headers.update({"Authorization": f"Bearer {self.pat}"})
+            self.auth_token = self.pat
+            
+            url = urljoin(self.base_url, "/api/v1/auth/me")
+            response = self.session.get(url, timeout=30)
             response.raise_for_status()
             
-            auth_response = response.json()
-            self.auth_token = auth_response.get("access_token")
-            
-            if not self.auth_token:
-                print(f"[{get_timestamp()}] ❌ No access token received from authentication")
+            user_data = response.json()
+            if not user_data.get("is_admin"):
+                print(f"[{get_timestamp()}] ❌ Error: Authenticated user is not an admin.")
                 return False
-                
-            # Set authorization header for future requests
-            self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
-            print(f"[{get_timestamp()}] ✅ Authentication successful")
+
+            print(f"[{get_timestamp()}] ✅ PAT verified. Logged in as: {user_data.get('username')}")
             return True
-            
+
         except requests.exceptions.RequestException as e:
             print(f"[{get_timestamp()}] ❌ Authentication failed: {e}")
             return False
@@ -630,17 +632,10 @@ def main():
     )
     
     parser.add_argument(
-        "--username", "-U",
-        default=os.getenv("DIVEMAP_USERNAME"),
-        help="Username for authentication (default: DIVEMAP_USERNAME env var)"
-    )
-    
-    parser.add_argument(
-        "--password", "-P",
-        default=os.getenv("DIVEMAP_PASSWORD", "admin123"),
-        help="Password for authentication (default: DIVEMAP_PASSWORD env var)"
-    )
-    
+        "--pat", "-t",
+        default=os.getenv("DIVEMAP_PAT"),
+        help="Personal Access Token for authentication (default: DIVEMAP_PAT env var)"
+    )    
     parser.add_argument(
         "--dry-run", "-d",
         action="store_true",
@@ -683,16 +678,12 @@ def main():
     args = parser.parse_args()
     
     # Validate required arguments
-    if not args.username:
-        print("❌ Username is required. Set DIVEMAP_USERNAME environment variable or use --username")
-        sys.exit(1)
-    
-    if not args.password:
-        print("❌ Password is required. Set DIVEMAP_PASSWORD environment variable or use --password")
+    if not args.pat:
+        print("❌ Personal Access Token (PAT) is required. Set DIVEMAP_PAT environment variable or use --pat")
         sys.exit(1)
     
     # Create updater and run
-    updater = DivingCenterLocationUpdater(args.base_url, args.username, args.password, args.dry_run, args.force, args.debug)
+    updater = DivingCenterLocationUpdater(args.base_url, args.pat, args.dry_run, args.force, args.debug)
     
     # Update rate limit settings from command line arguments
     updater.max_retries = args.max_retries

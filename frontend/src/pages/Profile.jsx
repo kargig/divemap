@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import {
   User,
   Mail,
@@ -11,6 +12,11 @@ import {
   Trash2,
   X,
   Building2,
+  Key,
+  Users,
+  Bell,
+  Settings,
+  ExternalLink,
   Link as LinkIcon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -1066,100 +1072,6 @@ const Profile = () => {
               </div>
             )}
           </div>
-
-          {/* Password Change Section */}
-          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-xl font-semibold text-gray-900'>Change Password</h2>
-              <button
-                onClick={() => {
-                  if (isChangingPassword) {
-                    resetPassword();
-                  }
-                  setIsChangingPassword(!isChangingPassword);
-                }}
-                className='px-4 py-2 text-blue-600 hover:text-blue-700 font-medium'
-              >
-                {isChangingPassword ? 'Cancel' : 'Change Password'}
-              </button>
-            </div>
-
-            {isChangingPassword ? (
-              <FormProvider {...passwordMethods}>
-                <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='space-y-4'>
-                  <div>
-                    <FormField name='current_password' label='Current Password'>
-                      {({ register, name }) => (
-                        <input
-                          type='password'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                            passwordErrors.current_password ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='new_password' label='New Password'>
-                      {({ register, name }) => (
-                        <input
-                          type='password'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                            passwordErrors.new_password ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
-                    <FormField name='confirm_password' label='Confirm New Password'>
-                      {({ register, name }) => (
-                        <input
-                          type='password'
-                          {...register(name)}
-                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                            passwordErrors.confirm_password ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div className='flex justify-end space-x-3'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        setIsChangingPassword(false);
-                        resetPassword();
-                      }}
-                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type='submit'
-                      disabled={changePasswordMutation.isLoading}
-                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-                    >
-                      {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
-                    </button>
-                  </div>
-                </form>
-              </FormProvider>
-            ) : (
-              <div className='flex items-center'>
-                <Lock className='h-5 w-5 text-gray-400 mr-3' />
-                <div>
-                  <span className='text-sm text-gray-500'>Password</span>
-                  <p className='text-gray-900'>••••••••</p>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Sidebar */}
@@ -1225,53 +1137,145 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Profile Actions */}
           <div className='bg-white p-6 rounded-lg shadow-md'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Actions</h3>
-            <div className='space-y-3'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account</h3>
+            <div className='space-y-2'>
               <Link
                 to={`/users/${user.username}`}
-                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
               >
+                <ExternalLink size={18} className='mr-3' />
                 View Public Profile
               </Link>
               <Link
                 to='/buddies'
-                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
               >
+                <Users size={18} className='mr-3' />
                 Manage Buddies
               </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}
-                className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
               >
+                <Lock size={18} className='mr-3' />
                 Change Password
               </button>
-              <button
-                onClick={() => setIsAddingCertification(true)}
-                className='w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
-              >
-                Add Certification
-              </button>
+            </div>
+
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 mt-6'>Privacy & API</h3>
+            <div className='space-y-2'>
               <Link
                 to='/notifications'
-                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
               >
+                <Bell size={18} className='mr-3' />
                 View Notifications
               </Link>
               <Link
                 to='/notifications/preferences'
-                className='block w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
               >
+                <Settings size={18} className='mr-3' />
                 Notification Preferences
               </Link>
-              <button className='w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'>
+              <Link
+                to='/profile/pats'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+              >
+                <Key size={18} className='mr-3' />
+                Manage API Tokens
+              </Link>
+            </div>
+
+            <div className='mt-8 pt-6 border-t'>
+              <button className='flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'>
+                <Trash2 size={18} className='mr-3' />
                 Delete Account
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <Modal
+        title='Change Your Password'
+        open={isChangingPassword}
+        onCancel={() => {
+          setIsChangingPassword(false);
+          resetPassword();
+        }}
+        footer={null}
+        destroyOnClose
+      >
+        <FormProvider {...passwordMethods}>
+          <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='space-y-4 mt-4'>
+            <div>
+              <FormField name='current_password' label='Current Password'>
+                {({ register, name }) => (
+                  <input
+                    type='password'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      passwordErrors.current_password ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='new_password' label='New Password'>
+                {({ register, name }) => (
+                  <input
+                    type='password'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      passwordErrors.new_password ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div>
+              <FormField name='confirm_password' label='Confirm New Password'>
+                {({ register, name }) => (
+                  <input
+                    type='password'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                      passwordErrors.confirm_password ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                )}
+              </FormField>
+            </div>
+
+            <div className='flex justify-end space-x-3 pt-4 border-t mt-6'>
+              <button
+                type='button'
+                onClick={() => {
+                  setIsChangingPassword(false);
+                  resetPassword();
+                }}
+                className='px-4 py-2 text-gray-600 hover:text-gray-700'
+              >
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={changePasswordMutation.isLoading}
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+              >
+                {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
+              </button>
+            </div>
+          </form>
+        </FormProvider>
+      </Modal>
     </div>
   );
 };

@@ -391,7 +391,8 @@ class TestAuth:
             
             response = client.post("/api/v1/auth/login", json={
                 "username": "testuser",
-                "password": "TestPass123!"
+                "password": "TestPass123!",
+                "turnstile_token": "valid_token"
             })
 
         assert response.status_code == status.HTTP_200_OK
@@ -497,7 +498,8 @@ class TestAuth:
             
             response = client.post("/api/v1/auth/login", json={
                 "username": "testuser",
-                "password": "TestPass123!"
+                "password": "TestPass123!",
+                "turnstile_token": "valid_token"
             })
 
         assert response.status_code == status.HTTP_200_OK
@@ -547,7 +549,8 @@ class TestAuth:
             response = client.post("/api/v1/auth/register", json={
                 "username": "turnstileuser",
                 "email": "turnstile@example.com",
-                "password": "Password123!"
+                "password": "Password123!",
+                "turnstile_token": "valid_token"
             })
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -566,7 +569,8 @@ class TestAuth:
             
             response = client.post("/api/v1/auth/login", json={
                 "username": "testuser",
-                "password": "TestPass123!"
+                "password": "TestPass123!",
+                "turnstile_token": "valid_token"
             })
 
         assert response.status_code == status.HTTP_200_OK
@@ -585,16 +589,85 @@ class TestAuth:
             # Test that login succeeds with Turnstile enabled
             response = client.post("/api/v1/auth/login", json={
                 "username": "testuser",
-                "password": "TestPass123!"
+                "password": "TestPass123!",
+                "turnstile_token": "valid_token"
             })
 
         # Login should succeed
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Verify the user's Turnstile verification timestamp was updated
         db_session.refresh(test_user)
         assert test_user.turnstile_verified_at is not None
 
+    def test_turnstile_registration_missing_token(self, client):
+        """Test registration fails when Turnstile is enabled but token is missing."""
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+
+            response = client.post("/api/v1/auth/register", json={
+                "username": "notokenuser",
+                "email": "notoken@example.com",
+                "password": "Password123!"
+            })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "CAPTCHA verification required" in response.json()["detail"]
+
+    def test_turnstile_login_missing_token(self, client, test_user):
+        """Test login fails when Turnstile is enabled but token is missing."""
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+
+            response = client.post("/api/v1/auth/login", json={
+                "username": test_user.username,
+                "password": "TestPass123!"
+            })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "CAPTCHA verification required" in response.json()["detail"]
+
+    def test_turnstile_login_invalid_token(self, client, test_user):
+        """Test login fails with invalid Turnstile token."""
+        from fastapi import HTTPException
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = True
+            mock_service.verify_token = AsyncMock(side_effect=HTTPException(status_code=400, detail="Turnstile verification failed: invalid-input-response"))
+
+            response = client.post("/api/v1/auth/login", json={
+                "username": test_user.username,
+                "password": "TestPass123!",
+                "turnstile_token": "invalid_token"
+            })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Turnstile verification failed" in response.json()["detail"]
+
+    def test_login_works_when_turnstile_disabled(self, client, test_user):
+        """Test that login works without a token if Turnstile is disabled."""
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+
+            response = client.post("/api/v1/auth/login", json={
+                "username": test_user.username,
+                "password": "TestPass123!"
+            })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "access_token" in response.json()
+
+    def test_register_works_when_turnstile_disabled(self, client):
+        """Test that registration works without a token if Turnstile is disabled."""
+        with patch('app.routers.auth.turnstile_service') as mock_service:
+            mock_service.is_enabled.return_value = False
+
+            response = client.post("/api/v1/auth/register", json={
+                "username": "noturnstileuser",
+                "email": "noturnstile@example.com",
+                "password": "Password123!"
+            })
+
+        assert response.status_code == status.HTTP_201_CREATED
 
 class TestDivingCenterAuthorization:
     """Test diving center authorization functions."""

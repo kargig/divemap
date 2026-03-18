@@ -10,13 +10,11 @@ This script:
 
 Environment Variables:
     DIVEMAP_URL: Base URL of the Divemap API (e.g., http://localhost:8000)
-    DIVEMAP_USERNAME: Username for authentication
-    DIVEMAP_PASSWORD: Password for authentication
+    DIVEMAP_PAT: Personal Access Token for authentication
 
 Usage:
     export DIVEMAP_URL="http://localhost:8000"
-    export DIVEMAP_USERNAME="admin"
-    export DIVEMAP_PASSWORD="password"
+    export DIVEMAP_PAT="dm_pat_..."
     python scripts/bulk_update_shore_direction.py [OPTIONS]
 
 Options:
@@ -24,8 +22,7 @@ Options:
     --force, -f                 Skip confirmation prompt
     --ids IDS                   Comma-separated list of dive site IDs to process (e.g., 1,2,3)
     --base-url, -u URL          Base URL for the Divemap API (default: DIVEMAP_URL env var or http://localhost:8000)
-    --username, -U USER         Username for authentication (default: DIVEMAP_USERNAME env var)
-    --password, -P PASS         Password for authentication (default: DIVEMAP_PASSWORD env var)
+    --pat, -t TOKEN             Personal Access Token for authentication (default: DIVEMAP_PAT env var)
     --debug, -D                 Enable debug logging in backend API calls
     --max-retries, -r N         Maximum number of retries for rate-limited requests (default: 3)
     --base-wait-time, -w SEC    Base wait time in seconds for rate limits (default: 120)
@@ -85,13 +82,12 @@ def get_timestamp():
 class DivemapAPI:
     """Client for interacting with Divemap API."""
 
-    def __init__(self, base_url: str, username: str, password: str, debug: bool = False,
+    def __init__(self, base_url: str, pat: str, debug: bool = False,
                  max_retries: int = 3, base_wait_time: int = 120, max_requests_per_minute: int = 60):
         self.base_url = base_url.rstrip('/')
-        self.username = username
-        self.password = password
+        self.pat = pat
         self.debug = debug
-        self.access_token: Optional[str] = None
+        self.access_token: Optional[str] = pat
         self.session = requests.Session()
 
         # Rate limit handling - optimized for SLIDING WINDOW rate limiting (slowapi 0.1.9)
@@ -200,30 +196,30 @@ class DivemapAPI:
         return True
 
     def login(self) -> bool:
-        """Authenticate and get access token."""
-        url = f"{self.base_url}/api/v1/auth/login"
-        payload = {
-            "username": self.username,
-            "password": self.password
-        }
+        """Verify the PAT is valid and user has required permissions."""
+        if not self.pat:
+            print(f"[{get_timestamp()}] ❌ Error: Personal Access Token (PAT) is required.")
+            return False
 
+        print(f"[{get_timestamp()}] 🔐 Verifying PAT with {self.base_url}...")
         try:
-            print(f"[{get_timestamp()}] 🔐 Authenticating with {self.base_url}...")
-            response = self.session.post(url, json=payload, timeout=10)
+            # Set authorization header
+            self.session.headers.update({"Authorization": f"Bearer {self.pat}"})
+            self.access_token = self.pat
+            
+            url = f"{self.base_url}/api/v1/auth/me"
+            response = self.session.get(url, timeout=10)
             response.raise_for_status()
-            data = response.json()
-            self.access_token = data.get("access_token")
-            if not self.access_token:
-                print(f"[{get_timestamp()}] ❌ No access token in response: {data}")
+            
+            user_data = response.json()
+            if not user_data.get("is_admin"):
+                print(f"[{get_timestamp()}] ❌ Error: Authenticated user is not an admin.")
                 return False
-            # Set authorization header for future requests
-            self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
-            print(f"[{get_timestamp()}] ✅ Authentication successful")
+
+            print(f"[{get_timestamp()}] ✅ PAT verified. Logged in as: {user_data.get('username')}")
             return True
         except requests.exceptions.RequestException as e:
             print(f"[{get_timestamp()}] ❌ Authentication failed: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text}")
             return False
 
     def get_dive_sites(self, page_size: int = 100) -> List[Dict]:
@@ -437,8 +433,7 @@ def main():
         epilog="""
 Environment Variables:
     DIVEMAP_URL: Base URL of the Divemap API (e.g., http://localhost:8000)
-    DIVEMAP_USERNAME: Username for authentication
-    DIVEMAP_PASSWORD: Password for authentication
+    DIVEMAP_PAT: Personal Access Token for authentication
 
 Examples:
     # Dry run to see what would be updated
@@ -472,14 +467,9 @@ Examples:
         help="Base URL for the Divemap API (default: DIVEMAP_URL env var or http://localhost:8000)"
     )
     parser.add_argument(
-        "--username", "-U",
-        default=os.getenv("DIVEMAP_USERNAME"),
-        help="Username for authentication (default: DIVEMAP_USERNAME env var)"
-    )
-    parser.add_argument(
-        "--password", "-P",
-        default=os.getenv("DIVEMAP_PASSWORD"),
-        help="Password for authentication (default: DIVEMAP_PASSWORD env var)"
+        "--pat", "-t",
+        default=os.getenv("DIVEMAP_PAT"),
+        help="Personal Access Token for authentication (default: DIVEMAP_PAT env var)"
     )
     parser.add_argument(
         "--debug", "-D",
@@ -508,17 +498,12 @@ Examples:
     args = parser.parse_args()
 
     # Validate required arguments
-    if not args.username:
-        print("❌ Username is required. Set DIVEMAP_USERNAME environment variable or use --username")
-        sys.exit(1)
-
-    if not args.password:
-        print("❌ Password is required. Set DIVEMAP_PASSWORD environment variable or use --password")
+    if not args.pat:
+        print("❌ Personal Access Token (PAT) is required. Set DIVEMAP_PAT environment variable or use --pat")
         sys.exit(1)
 
     base_url = args.base_url
-    username = args.username
-    password = args.password
+    pat = args.pat
 
     print(f"[{get_timestamp()}] 🚀 Divemap Bulk Shore Direction Update")
     if args.dry_run:
@@ -531,7 +516,7 @@ Examples:
 
     # Initialize API client
     api = DivemapAPI(
-        base_url, username, password,
+        base_url, pat,
         debug=args.debug,
         max_retries=args.max_retries,
         base_wait_time=args.base_wait_time,

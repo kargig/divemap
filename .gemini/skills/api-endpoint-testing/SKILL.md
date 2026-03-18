@@ -10,34 +10,22 @@ This skill defines the standard workflow for testing protected FastAPI endpoints
 ## Prerequisites
 
 -   Access to the running backend (usually `http://localhost:8000`).
--   Valid credentials. Check the `local_testme` file in the root directory if it exists, otherwise ask the user.
+-   A **Personal Access Token (PAT)**. Create one in your Profile under **API Access**.
 -   `jq` installed (highly recommended for JSON parsing).
 
-## 1. Authentication (Get Token)
+## 1. Authentication (Personal Access Token)
 
-First, obtain a JWT access token. Always check `local_testme` for current credentials.
+Personal Access Tokens are the preferred way to interact with the API from the command line, as they bypass the Cloudflare Turnstile requirement mandatory for standard web logins.
 
 ```bash
-# 1. Retrieve credentials (manual check or automate)
-# Example manual check:
-# cat local_testme
+# Set your token in a variable
+# Replace with your actual token (starts with dm_pat_)
+TOKEN="dm_pat_your_token_here"
 
-# 2. Capture token in a variable
-# Replace 'admin' and 'PASSWORD' with actual credentials
-TOKEN=$(curl -s -X POST 'http://localhost:8000/api/v1/auth/login' \
-  -H 'Content-Type: application/json' \
-  -d '{"username": "admin", "password": "YOUR_PASSWORD"}' \
-  | jq -r '.access_token')
-
-# 3. Verify token exists
-if [ -z "$TOKEN" ] || [ "$TOKEN" == "null" ]; then
-  echo "Error: Failed to obtain token"
-  exit 1
-fi
-echo "Token obtained: ${TOKEN:0:15}..."
+# Verify the token works
+curl -s -X GET "http://localhost:8000/api/v1/auth/me" \
+  -H "Authorization: Bearer $TOKEN" | jq .
 ```
-
-*Note: If the endpoint uses `x-www-form-urlencoded` (standard OAuth2 form), change `-H` to `application/x-www-form-urlencoded` and `-d` to `username=admin&password=...`.*
 
 ## 2. Making Authenticated Requests
 
@@ -45,7 +33,7 @@ Use the `$TOKEN` in the `Authorization` header.
 
 ### GET Request
 ```bash
-curl -s -X GET "http://localhost:8000/api/v1/users/me" \
+curl -s -X GET "http://localhost:8000/api/v1/dives/me" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | jq .
 ```
@@ -63,20 +51,15 @@ curl -s -X POST "http://localhost:8000/api/v1/chat/message" \
 
 ## 3. Debugging Tips
 
-*   **401 Unauthorized**: Token is expired or missing. Re-login to get a fresh token.
+*   **401 Unauthorized**: Token is invalid, expired, or missing the `dm_pat_` prefix.
+*   **400 Bad Request (Turnstile)**: You are trying to hit `/login` or `/register` directly without a Turnstile token. Use a PAT instead for CLI operations.
 *   **422 Unprocessable Entity**: The JSON body is invalid or missing required fields.
-    *   *Check*: Did you pass a list `[]` instead of an object `{}`? Or vice-versa?
-    *   *Check*: Are the field names correct?
 *   **500 Internal Error**: Check backend logs immediately.
     *   `docker-compose logs --tail=50 backend`
 
 ## One-Liner for Quick Checks
 
-If you just need to hit an endpoint quickly without setting variables:
-
 ```bash
-# Edit username/password as needed
-curl -s http://localhost:8000/api/v1/users/me \
-  -H "Authorization: Bearer $(curl -s -X POST 'http://localhost:8000/api/v1/auth/login' -H 'Content-Type: application/json' -d '{"username":"admin","password":"YOUR_PASSWORD"}' | jq -r .access_token)" \
-  | jq .
+curl -s http://localhost:8000/api/v1/auth/me -H "Authorization: Bearer $PAT_TOKEN" | jq .
 ```
+

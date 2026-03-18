@@ -5,13 +5,17 @@ from jwt.exceptions import InvalidTokenError
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import os
 import re
+import logging
 
 from app.database import get_db
-from app.models import User
+from app.models import User, PersonalAccessToken
 from app.schemas import TokenData
+from app.utils import utcnow
+
+logger = logging.getLogger(__name__)
 
 # Configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
@@ -81,6 +85,53 @@ def verify_token(token: str) -> Optional[TokenData]:
     except InvalidTokenError:
         return None
 
+def verify_pat(token: str, db: Session) -> Optional[User]:
+    """Verify a Personal Access Token (PAT) using efficient prefix lookup."""
+    if not token.startswith("dm_pat_"):
+        return None
+        
+    try:
+        # Extract prefix (first 12 chars of the part after 'dm_pat_')
+        token_suffix = token[7:]
+        prefix = token_suffix[:12]
+        
+        # Look up tokens matching this prefix (using index)
+        # We also filter for is_active here for efficiency
+        matching_pats = db.query(PersonalAccessToken).options(
+            joinedload(PersonalAccessToken.user)
+        ).filter(
+            PersonalAccessToken.token_prefix == prefix,
+            PersonalAccessToken.is_active == True
+        ).all()
+        
+        if not matching_pats:
+            return None
+
+        now = utcnow()
+        for pat in matching_pats:
+            # 1. Check expiration
+            if pat.expires_at:
+                expires_at = pat.expires_at
+                if expires_at.tzinfo is None:
+                    from datetime import timezone
+                    expires_at = expires_at.replace(tzinfo=timezone.utc)
+                
+                if expires_at < now:
+                    continue
+            
+            # 2. Verify slow Bcrypt hash (only for prefix matches)
+            if verify_password(token, pat.token_hash):
+                # Update last used timestamp
+                pat.last_used_at = now
+                db.commit()
+                return pat.user
+                
+    except Exception as e:
+        logger.error(f"Error in verify_pat: {e}", exc_info=True)
+        return None
+            
+    return None
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
@@ -91,7 +142,17 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token_data = verify_token(credentials.credentials)
+    token = credentials.credentials
+    
+    # Try PAT first if it has the prefix
+    if token.startswith("dm_pat_"):
+        user = verify_pat(token, db)
+        if user:
+            return user
+        raise credentials_exception
+
+    # Otherwise try JWT
+    token_data = verify_token(token)
     if token_data is None:
         raise credentials_exception
 
@@ -151,6 +212,11 @@ async def get_current_user_optional(
     if not token:
         return None
     try:
+        # Try PAT first if it has the prefix
+        if token.startswith("dm_pat_"):
+            return verify_pat(token, db)
+
+        # Otherwise try JWT
         token_data = verify_token(token)
         if token_data is None:
             return None

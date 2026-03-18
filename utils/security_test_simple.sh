@@ -11,8 +11,10 @@ API_BASE="$BASE_URL/api/v1"
 WORKDIR="/tmp/security_test"
 
 # Credentials from environment variables with fallbacks
+ADMIN_PAT="${ADMIN_PAT}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASS="${ADMIN_PASS:-admin123}"
+TEST_USER_PAT="${TEST_USER_PAT}"
 TEST_USER="${TEST_USER:-securitytest}"
 TEST_PASS="${TEST_PASS:-SecurityTest123!}"
 
@@ -48,7 +50,21 @@ login() {
     local username="$1"
     local password="$2"
     
-    print_status "Logging in as $username..."
+    # Check if we have a PAT for this user
+    local pat_val=""
+    if [ "$username" = "$ADMIN_USER" ] && [ -n "$ADMIN_PAT" ]; then
+        pat_val="$ADMIN_PAT"
+    elif [ "$username" = "$TEST_USER" ] && [ -n "$TEST_USER_PAT" ]; then
+        pat_val="$TEST_USER_PAT"
+    fi
+
+    if [ -n "$pat_val" ]; then
+        print_status "Using provided PAT for $username..."
+        echo "$pat_val" > "$WORKDIR/token_${username}.txt"
+        return 0
+    fi
+    
+    print_warning "No PAT provided for $username. Attempting legacy login (will fail if Turnstile is enabled)..."
     
     local response=$(curl -sSL -X POST \
         -H "Content-Type: application/json" \

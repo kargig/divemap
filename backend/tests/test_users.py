@@ -6,7 +6,7 @@ class TestUsers:
 
     def test_get_current_user_success(self, client, auth_headers, test_user):
         """Test getting current user profile with valid authentication."""
-        response = client.get("/api/v1/users/me", headers=auth_headers)
+        response = client.get("/api/v1/auth/me", headers=auth_headers)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -17,7 +17,7 @@ class TestUsers:
 
     def test_get_current_user_unauthorized(self, client):
         """Test getting current user profile without authentication."""
-        response = client.get("/api/v1/users/me")
+        response = client.get("/api/v1/auth/me")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

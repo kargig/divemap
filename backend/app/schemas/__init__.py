@@ -6,6 +6,7 @@ import enum
 
 # Import auth schemas
 from .auth import PasswordResetRequest, PasswordResetConfirm
+from .pats import PATCreate, PATResponse, PATCreateResponse
 
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
@@ -34,6 +35,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=128)
+    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token")
 
 class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -137,6 +139,7 @@ class UserResponse(UserBase):
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=255, description="Username or email address")
     password: str = Field(..., min_length=1, max_length=128)
+    turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token")
 
 class Token(BaseModel):
     access_token: str

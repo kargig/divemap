@@ -58,11 +58,21 @@ async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
-    # Verify Turnstile if enabled (token verification handled by frontend widget)
+    # Verify Turnstile if enabled
     if turnstile_service.is_enabled():
-        # Note: Turnstile verification is handled by the frontend widget
-        # We only store the verification timestamp for audit purposes
-        pass
+        client_ip = get_client_ip(request)
+        
+        if not user_data.turnstile_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CAPTCHA verification required"
+            )
+        
+        try:
+            await turnstile_service.verify_token(user_data.turnstile_token, client_ip)
+        except HTTPException:
+            # Re-raise Turnstile verification errors
+            raise
     
     # Validate password strength
     if not validate_password_strength(user_data.password):
@@ -169,35 +179,33 @@ async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
-    # Authenticate user first
-    user = authenticate_user(db, login_data.username, login_data.password)
-    
-    # Update Turnstile verification timestamp if enabled
-    if turnstile_service.is_enabled() and user:
-        # Note: Turnstile verification is handled by the frontend widget
-        # We only store the verification timestamp for audit purposes
-        turnstile_verified_at = datetime.now(timezone.utc)
-        
-        # Try to update the database, but don't fail if it doesn't work
-        try:
-            user.turnstile_verified_at = turnstile_verified_at
-            # Update last_accessed_at
-            user.last_accessed_at = func.now()
-            db.commit()
-        except Exception as e:
-            # Log the error but don't fail the login
-            print(f"Failed to update Turnstile verification timestamp: {e}")
-            # Rollback and continue without Turnstile persistence
-            db.rollback()
-            # Don't refresh the user object - just continue with login
-    elif user:
-        # Update last_accessed_at even if Turnstile is disabled
-        try:
-            user.last_accessed_at = func.now()
-            db.commit()
-        except Exception as e:
-            db.rollback()
+    # Verify Turnstile before authenticating
+    if turnstile_service.is_enabled():
+        client_ip = get_client_ip(request)
 
+        if not login_data.turnstile_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CAPTCHA verification required"
+            )
+
+        try:
+            await turnstile_service.verify_token(login_data.turnstile_token, client_ip)
+        except HTTPException:
+            raise
+
+    # Authenticate user
+    user = authenticate_user(db, login_data.username, login_data.password)
+
+    # Update last_accessed_at and Turnstile timestamp
+    if user:
+        try:
+            if turnstile_service.is_enabled():
+                user.turnstile_verified_at = datetime.now(timezone.utc)
+            user.last_accessed_at = func.now()
+            db.commit()
+        except Exception as e:
+            db.rollback()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

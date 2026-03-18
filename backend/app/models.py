@@ -803,6 +803,33 @@ class ApiKey(Base):
     )
 
 
+class PersonalAccessToken(Base):
+    """Personal Access Tokens for user programmatic authentication."""
+    __tablename__ = "personal_access_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)  # e.g., "Python CLI", "Dev Machine"
+    token_prefix = Column(String(16), nullable=False, index=True)  # First 12-16 chars for lookup
+    token_hash = Column(String(255), nullable=False, unique=True, index=True)  # Bcrypt hash
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, server_default='1')
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+    __table_args__ = (
+        sa.Index('idx_pat_user_id', 'user_id'),
+        sa.Index('idx_pat_token_hash', 'token_hash'),
+        sa.Index('idx_pat_prefix', 'token_prefix'),
+        sa.Index('idx_pat_active', 'is_active'),
+        sa.Index('idx_pat_expires', 'expires_at'),
+    )
+
+
 class EmailVerificationToken(Base):
     """Email verification tokens for user email validation."""
     __tablename__ = "email_verification_tokens"

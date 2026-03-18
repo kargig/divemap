@@ -74,8 +74,34 @@ through login endpoints and must be included in subsequent requests.
 ```bash
 # Include token in Authorization header
 curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     https://divemap-backend.fly.dev/api/v1/users/me
+     https://divemap-backend.fly.dev/api/v1/auth/me
 ```text
+
+### Personal Access Tokens (PAT)
+
+Personal Access Tokens are designed for programmatic access to the Divemap API from CLI tools, scripts, or other applications. Unlike JWTs, they are long-lived and do not require a browser-based CAPTCHA to use.
+
+#### Managing PATs
+
+Users can create and manage their tokens from the **Profile -> API Access** section of the web interface.
+
+*   **Security:** The token value is only shown once upon creation. Store it securely.
+*   **Prefix:** All tokens start with `dm_pat_`.
+*   **Limit:** Each user can have a maximum of 10 active tokens.
+*   **Expiration:** Tokens can be configured to expire after 7, 30, 90 days, 1 year, or never.
+
+#### Using PATs
+
+Pass your PAT in the `Authorization` header just like a standard JWT:
+
+```bash
+curl -H "Authorization: Bearer dm_pat_abc123..." \
+     https://divemap.gr/api/v1/auth/me
+```text
+
+#### Rate Limiting for PATs
+
+Requests using Personal Access Tokens are subject to a rate limit of **100 requests per minute** per user. Exceeding this limit will result in a `429 Too Many Requests` error.
 
 ### Google OAuth
 
@@ -1842,17 +1868,9 @@ curl -X POST "https://divemap-backend.fly.dev/api/v1/auth/register" \
        "password": "SecurePassword123!"
      }'
 
-# 2. Login to get JWT token
-curl -X POST "https://divemap-backend.fly.dev/api/v1/auth/login" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "username": "newuser",
-       "password": "SecurePassword123!"
-     }'
-
-# 3. Use token for authenticated requests
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-     "https://divemap-backend.fly.dev/api/v1/users/me"
+# Use a Personal Access Token for authenticated requests
+curl -H "Authorization: Bearer dm_pat_your_token_here" \
+     "https://divemap-backend.fly.dev/api/v1/auth/me"
 ```text
 
 ### Creating a Dive Site
@@ -3005,10 +3023,8 @@ curl -X PUT "http://localhost/api/v1/settings/disable_diving_center_reviews" \
 #### Complete Settings Management Example
 
 ```bash
-# Get admin token
-TOKEN=$(curl -X POST "http://localhost/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "Admin123!"}' | jq -r '.access_token')
+# Set your Personal Access Token (must belong to an admin)
+TOKEN="dm_pat_admin_token_here"
 
 # Get a specific setting (public, no auth required)
 curl -X GET "http://localhost/api/v1/settings/disable_diving_center_reviews"

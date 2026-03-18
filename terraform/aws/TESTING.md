@@ -18,42 +18,13 @@ Before testing, ensure:
 
 This method sends a test email directly to verify the basic email sending flow.
 
-### Step 1: Get Admin JWT Token
+### Step 1: Set up an Admin Token (PAT)
 
-Login as an admin user to get a JWT token:
+Ensure you have an admin account and have generated a **Personal Access Token (PAT)** via the web interface (**Profile -> API Access**).
 
 ```bash
 BACKEND_URL="http://localhost:8000"  # Adjust to your backend URL
-
-# Login
-LOGIN_RESPONSE=$(curl -s -X POST "$BACKEND_URL/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin_username",
-    "password": "admin_password"
-  }')
-
-# Extract token
-ADMIN_TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
-
-# Verify token was obtained
-if [ -z "$ADMIN_TOKEN" ]; then
-  echo "Error: Failed to get admin token. Check credentials."
-  exit 1
-fi
-
-echo "Admin token obtained: ${ADMIN_TOKEN:0:20}..."
-```
-
-**Alternative using `jq` (if installed):**
-
-```bash
-ADMIN_TOKEN=$(curl -s -X POST "$BACKEND_URL/api/v1/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin_username",
-    "password": "admin_password"
-  }' | jq -r '.access_token')
+ADMIN_TOKEN="dm_pat_admin_token_here"
 ```
 
 ### Step 2: Send Test Email (Direct SES)
@@ -160,16 +131,16 @@ category.
 2. Navigate to `/notifications/preferences`
 3. Enable email notifications for a category (e.g., `new_dive_sites`)
 4. Set frequency to `immediate`
-
 **Option B: Via API**
 
 ```bash
-# Get test user JWT token (replace with test user credentials)
-TEST_USER_TOKEN="<test-user-jwt-token>"
+# Set your Personal Access Token (PAT)
+TEST_USER_TOKEN="dm_pat_test_user_token_here"
 
 # Create or update notification preference
 curl -X POST "$BACKEND_URL/api/v1/notifications/preferences" \
   -H "Authorization: Bearer $TEST_USER_TOKEN" \
+...
   -H "Content-Type: application/json" \
   -d '{
     "category": "new_dive_sites",

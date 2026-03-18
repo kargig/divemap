@@ -6,33 +6,22 @@ import sys
 
 # Configuration
 # NOTE: This targets the production API as requested
-BASE_URL = "https://divemap.gr" 
+BASE_URL = "https://divemap.gr"
 API_PREFIX = "/api/v1"
 SESSION_ID = "52af2018-515b-4f46-bfab-45c044638115"
 
 # Credentials (from environment)
-ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+ADMIN_PAT = os.getenv("ADMIN_PAT")
 
 async def login(client):
-    if not ADMIN_USERNAME or not ADMIN_PASSWORD:
-        print("[!] ADMIN_USERNAME or ADMIN_PASSWORD not set in environment.")
+    """Authenticate with the API using a Personal Access Token."""
+    if not ADMIN_PAT:
+        print("[!] ADMIN_PAT not set in environment. CLI authentication requires a Personal Access Token.")
+        print("[*] Create one in your Profile under API Access.")
         return None
-        
-    print(f"[*] Logging in as {ADMIN_USERNAME} to {BASE_URL}...")
-    try:
-        resp = await client.post(f"{API_PREFIX}/auth/login", json={
-            "username": ADMIN_USERNAME,
-            "password": ADMIN_PASSWORD
-        })
-        if resp.status_code != 200:
-            print(f"[!] Login failed ({resp.status_code}): {resp.text}")
-            return None
-        
-        return resp.json()["access_token"]
-    except Exception as e:
-        print(f"[!] Auth error: {e}")
-        return None
+
+    print(f"[*] Using Personal Access Token (PAT) for authentication to {BASE_URL}...")
+    return ADMIN_PAT
 
 async def fetch_session_details(token):
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=30.0) as client:

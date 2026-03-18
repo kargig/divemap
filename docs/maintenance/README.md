@@ -519,10 +519,8 @@ fly ssh console -a divemap-backend -C "python run_migrations.py"
 # Check authentication logs
 fly logs -n -a divemap-backend | grep -i auth
 
-# Test authentication
-curl -X POST https://divemap-backend.fly.dev/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test"}'
+# Test authentication (using PAT)
+curl -H "Authorization: Bearer dm_pat_your_token_here" https://divemap-backend.fly.dev/api/v1/auth/me
 ```
 
 #### 4. Migration Failures
