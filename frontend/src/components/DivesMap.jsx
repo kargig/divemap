@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
+import escape from 'lodash/escape';
 import { Calendar, Clock, Thermometer, Star } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -101,7 +102,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
         <div class="p-2">
           <div class="flex items-center justify-between mb-2">
             <h3 class="font-semibold text-gray-900">
-              ${marker.name || marker.dive_site?.name || 'Unnamed Dive'}
+              ${escape(marker.name || marker.dive_site?.name || 'Unnamed Dive')}
             </h3>
             <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
               Dive
@@ -166,7 +167,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
             ${
               marker.dive_information
                 ? `
-              <p class="text-sm text-gray-700 line-clamp-2">${marker.dive_information}</p>
+              <p class="text-sm text-gray-700 line-clamp-2">${escape(marker.dive_information)}</p>
             `
                 : ''
             }
@@ -178,7 +179,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                   .map(
                     tag => `
                   <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                    ${tag.name}
+                    ${escape(tag.name)}
                   </span>
                 `
                   )

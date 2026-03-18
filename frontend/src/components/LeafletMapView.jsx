@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
+import escape from 'lodash/escape';
 import { Info } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -24,8 +25,11 @@ import WindOverlayToggle from './WindOverlayToggle';
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
   if (!text || typeof text !== 'string') return text;
-  return text.replace(
-    /(https?:\/\/[^\s<]+)/g,
+  // First escape the whole text to be safe
+  const escapedText = escape(text);
+  // Then find and linkify URLs using a stricter regex
+  return escapedText.replace(
+    /(https?:\/\/[^\s<>"]+)/g,
     '<a href="$1" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 underline">$1</a>'
   );
 };
@@ -35,6 +39,7 @@ const trimWithMore = (text, maxLen, moreUrl) => {
   if (!text || typeof text !== 'string') return '';
   const needsTrim = text.length > maxLen;
   const sliced = needsTrim ? text.slice(0, maxLen) : text;
+  // linkifyText already handles escaping
   const linked = linkifyText(sliced);
   if (!needsTrim) return linked;
   const moreLink = moreUrl
@@ -389,18 +394,46 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                       : 'dive-trips'
               }/${marker.data.id}"
                  class="text-blue-600 hover:text-blue-800 hover:underline">
-                ${marker.entityType === 'dive_site' ? marker.data.name || `Dive Site #${marker.data.id}` : ''}
-                ${marker.entityType === 'diving_center' ? marker.data.name : ''}
+                ${
+                  marker.entityType === 'dive_site'
+                    ? escape(marker.data.name) || `Dive Site #${marker.data.id}`
+                    : ''
+                }
+                ${marker.entityType === 'diving_center' ? escape(marker.data.name) : ''}
                 ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
                 ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
               </a>
             </h3>
             <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none">
-              ${marker.entityType === 'dive_site' && marker.data.description ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`) : ''}
-              ${marker.entityType === 'diving_center' ? trimWithMore(marker.data.description || '', 150, `/diving-centers/${marker.data.id}`) : ''}
-              ${marker.entityType === 'dive' ? `Dive at ${marker.data.dive_site?.name || 'Unknown Site'}` : ''}
-              ${marker.entityType === 'dive_trip' ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${marker.data.diving_center_name || 'Unknown Center'}` : ''}
-              ${marker.entityType === 'dive_trip' && marker.data.trip_description ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>` : ''}
+              ${
+                marker.entityType === 'dive_site' && marker.data.description
+                  ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`)
+                  : ''
+              }
+              ${
+                marker.entityType === 'diving_center'
+                  ? trimWithMore(
+                      marker.data.description || '',
+                      150,
+                      `/diving-centers/${marker.data.id}`
+                    )
+                  : ''
+              }
+              ${
+                marker.entityType === 'dive'
+                  ? `Dive at ${escape(marker.data.dive_site?.name || 'Unknown Site')}`
+                  : ''
+              }
+              ${
+                marker.entityType === 'dive_trip'
+                  ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}`
+                  : ''
+              }
+              ${
+                marker.entityType === 'dive_trip' && marker.data.trip_description
+                  ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>`
+                  : ''
+              }
             </p>
             ${
               marker.entityType === 'diving_center'

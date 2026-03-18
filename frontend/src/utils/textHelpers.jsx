@@ -11,7 +11,7 @@ import escape from 'lodash/escape';
  */
 export const isValidUrl = urlString => {
   try {
-    const url = new URL(urlString);
+    const url = new window.URL(urlString);
     return ['http:', 'https:'].includes(url.protocol);
   } catch (e) {
     return false;

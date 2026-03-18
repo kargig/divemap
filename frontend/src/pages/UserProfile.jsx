@@ -466,10 +466,7 @@ const UserProfile = () => {
                       prefix={<Clock className='h-4 w-4 inline mr-1 text-teal-500' />}
                     />
                     <div className='text-xs text-gray-500 mt-1'>
-                      ≈{' '}
-                      {Math.round(
-                        (profile.diving_stats.total_bottom_time_minutes || 0) / 60
-                      )}{' '}
+                      ≈ {Math.round((profile.diving_stats.total_bottom_time_minutes || 0) / 60)}{' '}
                       hours
                     </div>
                   </Card>
@@ -516,33 +513,35 @@ const UserProfile = () => {
                   </h3>
                   {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 ? (
                     <div className='space-y-4'>
-                      {Object.entries(profile.diving_stats.suit_preferences).map(([suit, count]) => {
-                        const total = Object.values(profile.diving_stats.suit_preferences).reduce(
-                          (a, b) => a + b,
-                          0
-                        );
-                        const percent = Math.round((count / total) * 100);
-                        const labelMap = {
-                          wet_suit: 'Wetsuit',
-                          dry_suit: 'Drysuit',
-                          shortie: 'Shortie',
-                        };
-                        return (
-                          <div key={suit}>
-                            <div className='flex justify-between mb-1 text-sm'>
-                              <span className='text-gray-600 font-medium'>
-                                {labelMap[suit] || suit}
-                              </span>
-                              <span className='text-gray-400'>{count} dives</span>
+                      {Object.entries(profile.diving_stats.suit_preferences).map(
+                        ([suit, count]) => {
+                          const total = Object.values(profile.diving_stats.suit_preferences).reduce(
+                            (a, b) => a + b,
+                            0
+                          );
+                          const percent = Math.round((count / total) * 100);
+                          const labelMap = {
+                            wet_suit: 'Wetsuit',
+                            dry_suit: 'Drysuit',
+                            shortie: 'Shortie',
+                          };
+                          return (
+                            <div key={suit}>
+                              <div className='flex justify-between mb-1 text-sm'>
+                                <span className='text-gray-600 font-medium'>
+                                  {labelMap[suit] || suit}
+                                </span>
+                                <span className='text-gray-400'>{count} dives</span>
+                              </div>
+                              <Progress
+                                percent={percent}
+                                size='small'
+                                strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
+                              />
                             </div>
-                            <Progress
-                              percent={percent}
-                              size='small'
-                              strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
-                            />
-                          </div>
-                        );
-                      })}
+                          );
+                        }
+                      )}
                     </div>
                   ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='No suit data' />

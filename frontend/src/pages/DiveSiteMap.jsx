@@ -1,4 +1,6 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
+import escape from 'lodash/escape';
 import 'leaflet/dist/leaflet.css';
 import { ArrowLeft, Route, Layers } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
@@ -164,13 +166,14 @@ const RouteLayer = ({ routes, diveSiteId }) => {
       const decodedDescription = route.description
         ? decodeHtmlEntities(route.description)
         : 'No description';
-      routeLayer.bindPopup(`
+
+      const popupContent = `
         <div class="p-2">
-          <h3 class="font-semibold text-gray-800 mb-1">${route.name}</h3>
-          <p class="text-sm text-gray-600 mb-2">${decodedDescription}</p>
+          <h3 class="font-semibold text-gray-800 mb-1">${escape(route.name)}</h3>
+          <p class="text-sm text-gray-600 mb-2">${escape(decodedDescription)}</p>
           <div class="flex items-center gap-2 text-xs text-gray-500">
-            <span class="px-2 py-1 bg-gray-100 rounded">${route.route_type}</span>
-            <span>by ${route.creator?.username || 'Unknown'}</span>
+            <span class="px-2 py-1 bg-gray-100 rounded">${escape(route.route_type)}</span>
+            <span>by ${escape(route.creator?.username || 'Unknown')}</span>
           </div>
           <button 
             onclick="window.open('/dive-sites/${diveSiteId}/route/${route.id}/${slugify(route.name)}', '_blank')"
@@ -179,7 +182,13 @@ const RouteLayer = ({ routes, diveSiteId }) => {
             View Details
           </button>
         </div>
-      `);
+      `;
+
+      routeLayer.bindPopup(
+        DOMPurify.sanitize(popupContent, {
+          ADD_ATTR: ['onclick'],
+        })
+      );
 
       map.addLayer(routeLayer);
       routeLayersRef.current.push(routeLayer);

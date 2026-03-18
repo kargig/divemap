@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L from 'leaflet';
 import escape from 'lodash/escape';
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -114,12 +115,14 @@ export const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
         }),
       });
 
-      diveSiteMarker.bindPopup(`
+      diveSiteMarker.bindPopup(
+        DOMPurify.sanitize(`
         <div class="p-2">
           <h3 class="font-semibold text-gray-800 mb-1">${escape(diveSite.name)}</h3>
           <p class="text-sm text-gray-600">Dive Site</p>
         </div>
-      `);
+      `)
+      );
 
       map.addLayer(diveSiteMarker);
       diveSiteMarkerRef.current = diveSiteMarker;
@@ -167,7 +170,8 @@ export const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
     });
 
     // Add popup to route
-    routeLayer.bindPopup(`
+    routeLayer.bindPopup(
+      DOMPurify.sanitize(`
       <div class="p-2">
         <h3 class="font-semibold text-gray-800 mb-1">${escape(route.name)}</h3>
         <p class="text-sm text-gray-600 mb-2">${escape(route.description || 'No description')}</p>
@@ -176,7 +180,8 @@ export const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
           <span>by ${escape(route.creator_username || 'Unknown')}</span>
         </div>
       </div>
-    `);
+    `)
+    );
 
     map.addLayer(routeLayer);
     routeLayerRef.current = routeLayer;

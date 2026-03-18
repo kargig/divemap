@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import PropTypes from 'prop-types';
 import { useMemo, useEffect, useRef } from 'react';
@@ -309,7 +310,7 @@ const WindOverlay = ({
         </div>
       `;
 
-      marker.bindPopup(popupContent);
+      marker.bindPopup(DOMPurify.sanitize(popupContent));
 
       // Add to layer group
       layerGroup.addLayer(marker);

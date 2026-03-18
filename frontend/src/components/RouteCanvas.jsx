@@ -1,4 +1,6 @@
+import DOMPurify from 'dompurify';
 import L from 'leaflet';
+import escape from 'lodash/escape';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import 'leaflet-draw';
@@ -488,10 +490,10 @@ const MapInitializer = ({
 
           // Bind Popup with comment, media and edit button
           let popupContent = `<div class="text-sm min-w-[200px]">
-            <div class="font-semibold mb-1">${markerConfig.name}</div>`;
+            <div class="font-semibold mb-1">${escape(markerConfig.name)}</div>`;
 
           if (segment.properties.comment) {
-            popupContent += `<div class="mb-2">${segment.properties.comment}</div>`;
+            popupContent += `<div class="mb-2">${escape(segment.properties.comment)}</div>`;
           }
 
           if (segment.properties.mediaUrl) {
@@ -507,8 +509,10 @@ const MapInitializer = ({
               if (embedUrl.includes('watch?v=')) {
                 embedUrl = embedUrl.replace('watch?v=', 'embed/');
               } else if (embedUrl.includes('youtu.be/')) {
-                embedUrl = embedUrl.replace('youtu.be/', 'www.youtube.com/embed/');
+                embedUrl = embedUrl.replace('youtu.be/', 'https://www.youtube.com/embed/');
               }
+              // We don't escape embedUrl here because we trust our YouTube conversion logic,
+              // but DOMPurify will sanitize the iframe.
               popupContent += `<div class="mb-2 aspect-video"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
             } else if (segment.properties.mediaType === 'video') {
               popupContent += `<div class="mb-2"><video src="${segment.properties.mediaUrl}" controls class="w-full rounded"></video></div>`;
@@ -523,8 +527,12 @@ const MapInitializer = ({
             </button>
           </div>`;
 
-          layer.bindPopup(popupContent);
-
+          layer.bindPopup(
+            DOMPurify.sanitize(popupContent, {
+              ADD_ATTR: ['onclick'],
+              ADD_TAGS: ['iframe'], // Allow iframes for youtube
+            })
+          );
           // Handle click to edit (if not dragging)
 
           layer.on('click', () => {

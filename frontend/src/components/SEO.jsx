@@ -68,7 +68,13 @@ const SEO = ({
       {image && <meta name='twitter:image' content={image} />}
 
       {/* Structured Data (JSON-LD) */}
-      {schema && <script type='application/ld+json'>{JSON.stringify(schema)}</script>}
+      {schema && (
+        <script type='application/ld+json'>
+          {JSON.stringify(schema)
+            .replace(/<\/script>/g, '<\\/script>')
+            .replace(/<!--/g, '<\\!--')}
+        </script>
+      )}
     </Helmet>
   );
 };

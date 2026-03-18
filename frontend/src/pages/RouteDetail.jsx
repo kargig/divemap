@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import L from 'leaflet';
 import escape from 'lodash/escape';
 import {
@@ -38,6 +39,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
+import { renderTextWithLinks } from '../utils/textHelpers';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -273,7 +275,12 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
                  ${comment ? `<div>${escape(comment)}</div>` : ''}
                </div>
              `;
-            layer.bindPopup(popupContent);
+            layer.bindPopup(
+              DOMPurify.sanitize(popupContent, {
+                ADD_TAGS: ['iframe'],
+                ADD_ATTR: ['allowfullscreen', 'frameborder'],
+              })
+            );
           }
         }
       },
@@ -973,7 +980,12 @@ const RouteDetail = () => {
         {route.description && (
           <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-3'>Description</h2>
-            <p className='text-gray-700'>{decodeHtmlEntities(route.description)}</p>
+            <p className='text-gray-700 whitespace-pre-wrap'>
+              {renderTextWithLinks(decodeHtmlEntities(route.description), {
+                shorten: false,
+                isUGC: true,
+              })}
+            </p>
           </div>
         )}
 

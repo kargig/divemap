@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
+import escape from 'lodash/escape';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
@@ -98,7 +99,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
       const popupContent = `
         <div class="p-2">
           <div class="flex justify-between items-start mb-2">
-            <h3 class="text-lg font-semibold text-gray-900 pr-2">${marker.name}</h3>
+            <h3 class="text-lg font-semibold text-gray-900 pr-2">${escape(marker.name)}</h3>
             ${
               marker.average_rating
                 ? `
@@ -109,7 +110,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 : ''
             }
           </div>
-          ${marker.description ? `<p class="text-sm text-gray-600 mb-3 line-clamp-2">${marker.description}</p>` : ''}
+          ${marker.description ? `<p class="text-sm text-gray-600 mb-3 line-clamp-2">${escape(marker.description)}</p>` : ''}
           <div class="space-y-1 mb-3">
             ${
               marker.email

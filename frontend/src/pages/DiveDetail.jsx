@@ -852,7 +852,12 @@ const DiveDetail = () => {
                     <h3 className='text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-3'>
                       Dive Description
                     </h3>
-                    <p className='text-gray-600 whitespace-pre-wrap'>{dive.dive_information}</p>
+                    <p className='text-gray-600 whitespace-pre-wrap'>
+                      {renderTextWithLinks(dive.dive_information, {
+                        shorten: false,
+                        isUGC: true,
+                      })}
+                    </p>
                   </div>
                 )}
               </div>
@@ -1082,7 +1087,13 @@ const DiveDetail = () => {
                       </div>
                       {dive.selected_route.description && (
                         <p className='text-gray-600 mt-2'>
-                          {decodeHtmlEntities(dive.selected_route.description)}
+                          {renderTextWithLinks(
+                            decodeHtmlEntities(dive.selected_route.description),
+                            {
+                              shorten: false,
+                              isUGC: true,
+                            }
+                          )}
                         </p>
                       )}
                     </div>
