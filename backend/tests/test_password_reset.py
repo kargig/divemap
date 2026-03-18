@@ -62,11 +62,11 @@ class TestPasswordReset:
         assert token is None
 
     def test_request_password_reset_admin_user(self, client, db_session):
-        """Test password reset request for 'admin' user (Security restriction)."""
-        # Create 'admin' user
+        """Test password reset request for any admin user (Security restriction)."""
+        # Create an admin user with a non-default username
         admin_user = User(
-            username="admin",
-            email="admin@example.com",
+            username="superadmin",
+            email="superadmin@example.com",
             password_hash="dummy",
             is_admin=True,
             enabled=True
@@ -75,7 +75,7 @@ class TestPasswordReset:
         db_session.commit()
         
         response = client.post("/api/v1/auth/forgot-password", json={
-            "email_or_username": "admin"
+            "email_or_username": "superadmin"
         })
         
         # Should return 200 OK with success message to prevent enumeration
