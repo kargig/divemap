@@ -1,8 +1,22 @@
 import {
+  Card,
+  Statistic,
+  Row,
+  Col,
+  Tooltip,
+  Progress,
+  List,
+  Typography,
+  Divider,
+  Empty,
+  Tag,
+} from 'antd';
+import { format, subDays, isSameDay, parseISO } from 'date-fns';
+import {
   Star,
   MapPin,
   MessageSquare,
-  Calendar,
+  Calendar as CalendarIcon,
   Map,
   Activity,
   Building2,
@@ -15,10 +29,16 @@ import {
   UserPlus,
   UserCheck,
   Clock,
+  Waves,
+  History,
+  Anchor,
+  Shirt,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+
+const { Title, Text } = Typography;
 
 import {
   getUserPublicProfile,
@@ -31,6 +51,44 @@ import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+
+const ActivityHeatmap = ({ data }) => {
+  const today = new Date();
+  const days = useMemo(() => {
+    const result = [];
+    for (let i = 364; i >= 0; i--) {
+      const date = subDays(today, i);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      result.push({
+        date,
+        dateStr,
+        count: data[dateStr] || 0,
+      });
+    }
+    return result;
+  }, [data]);
+
+  const getColor = count => {
+    if (count === 0) return 'bg-gray-100';
+    if (count === 1) return 'bg-blue-200';
+    if (count === 2) return 'bg-blue-400';
+    if (count >= 3) return 'bg-blue-600';
+    return 'bg-gray-100';
+  };
+
+  return (
+    <div className='flex flex-wrap gap-1'>
+      {days.map(day => (
+        <Tooltip
+          key={day.dateStr}
+          title={`${day.count} dives on ${format(day.date, 'MMM d, yyyy')}`}
+        >
+          <div className={`w-3 h-3 rounded-sm ${getColor(day.count)} transition-colors`} />
+        </Tooltip>
+      ))}
+    </div>
+  );
+};
 
 const UserProfile = () => {
   // Set page title
@@ -277,7 +335,7 @@ const UserProfile = () => {
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+      <div className='bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'>
         <div className='flex items-center space-x-6 w-full'>
           <div className='shrink-0'>
             <Avatar
@@ -323,11 +381,11 @@ const UserProfile = () => {
             </div>
             <div className='flex items-center space-x-4 text-gray-600'>
               <div className='flex items-center space-x-1'>
-                <MapPin className='h-4 w-4' />
+                <Waves className='h-4 w-4' />
                 <span>{totalDives} dives</span>
               </div>
               <div className='flex items-center space-x-1'>
-                <Calendar className='h-4 w-4' />
+                <CalendarIcon className='h-4 w-4' />
                 <span>Member since {formatDate(profile.member_since)}</span>
               </div>
               <div className='flex items-center space-x-1'>
@@ -361,6 +419,174 @@ const UserProfile = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-6'>
+          {/* Hero Stats */}
+          {profile.diving_stats && (
+            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2'>
+                <Activity className='h-5 w-5 text-blue-600' />
+                Diving Logbook Summary
+              </h2>
+              <Row gutter={[16, 16]}>
+                <Col xs={12} md={8}>
+                  <Card
+                    bordered={false}
+                    className='bg-blue-50 text-center hover:shadow-sm transition-shadow'
+                  >
+                    <Statistic
+                      title='Max Depth'
+                      value={profile.diving_stats.max_depth || 0}
+                      suffix='m'
+                      precision={1}
+                      prefix={<Waves className='h-4 w-4 inline mr-1 text-blue-500' />}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={12} md={8}>
+                  <Card
+                    bordered={false}
+                    className='bg-indigo-50 text-center hover:shadow-sm transition-shadow'
+                  >
+                    <Statistic
+                      title='Longest Dive'
+                      value={profile.diving_stats.longest_dive_minutes || 0}
+                      suffix='min'
+                      prefix={<History className='h-4 w-4 inline mr-1 text-indigo-500' />}
+                    />
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card
+                    bordered={false}
+                    className='bg-teal-50 text-center hover:shadow-sm transition-shadow'
+                  >
+                    <Statistic
+                      title='Total Bottom Time'
+                      value={profile.diving_stats.total_bottom_time_minutes || 0}
+                      suffix='min'
+                      prefix={<Clock className='h-4 w-4 inline mr-1 text-teal-500' />}
+                    />
+                    <div className='text-xs text-gray-500 mt-1'>
+                      ≈{' '}
+                      {Math.round(
+                        (profile.diving_stats.total_bottom_time_minutes || 0) / 60
+                      )}{' '}
+                      hours
+                    </div>
+                  </Card>
+                </Col>
+              </Row>
+
+              <Divider />
+
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+                {/* Favorite Sites */}
+                <div>
+                  <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
+                    <Anchor className='h-4 w-4 text-blue-500' />
+                    Favorite Dive Sites
+                  </h3>
+                  {profile.diving_stats.favorite_sites?.length > 0 ? (
+                    <List
+                      itemLayout='horizontal'
+                      dataSource={profile.diving_stats.favorite_sites}
+                      renderItem={(site, index) => (
+                        <List.Item className='px-0 py-2 border-none'>
+                          <div className='flex items-center justify-between w-full'>
+                            <Link
+                              to={`/dive-sites/${site.id}`}
+                              className='text-blue-600 hover:underline font-medium'
+                            >
+                              {index + 1}. {site.name}
+                            </Link>
+                            <Tag color='blue'>{site.visit_count} visits</Tag>
+                          </div>
+                        </List.Item>
+                      )}
+                    />
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='No sites logged yet' />
+                  )}
+                </div>
+
+                {/* Suit Preferences */}
+                <div>
+                  <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
+                    <Shirt className='h-4 w-4 text-blue-500' />
+                    Suit & Gear Preferences
+                  </h3>
+                  {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 ? (
+                    <div className='space-y-4'>
+                      {Object.entries(profile.diving_stats.suit_preferences).map(([suit, count]) => {
+                        const total = Object.values(profile.diving_stats.suit_preferences).reduce(
+                          (a, b) => a + b,
+                          0
+                        );
+                        const percent = Math.round((count / total) * 100);
+                        const labelMap = {
+                          wet_suit: 'Wetsuit',
+                          dry_suit: 'Drysuit',
+                          shortie: 'Shortie',
+                        };
+                        return (
+                          <div key={suit}>
+                            <div className='flex justify-between mb-1 text-sm'>
+                              <span className='text-gray-600 font-medium'>
+                                {labelMap[suit] || suit}
+                              </span>
+                              <span className='text-gray-400'>{count} dives</span>
+                            </div>
+                            <Progress
+                              percent={percent}
+                              size='small'
+                              strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='No suit data' />
+                  )}
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* Activity Heatmap */}
+              <div>
+                <div className='flex justify-between items-center mb-4'>
+                  <h3 className='text-lg font-medium text-gray-800 flex items-center gap-2 m-0'>
+                    <CalendarIcon className='h-4 w-4 text-blue-500' />
+                    Diving Activity (Last 365 Days)
+                  </h3>
+                  {profile.diving_stats.most_active_month && (
+                    <Tooltip title='All-time personal record'>
+                      <Tag
+                        color='orange'
+                        className='mr-0 border-none px-3 py-1 flex items-center gap-2'
+                      >
+                        <Star className='w-3 h-3' />
+                        <span className='text-xs uppercase font-bold tracking-wider'>Record:</span>
+                        <span className='text-xs font-semibold'>
+                          {profile.diving_stats.most_active_month}
+                        </span>
+                      </Tag>
+                    </Tooltip>
+                  )}
+                </div>
+                <ActivityHeatmap data={profile.diving_stats.activity_heatmap || {}} />
+                <div className='flex items-center justify-end gap-2 mt-2 text-xs text-gray-400'>
+                  <span>Less</span>
+                  <div className='w-2.5 h-2.5 rounded-sm bg-gray-100' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-200' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-400' />
+                  <div className='w-2.5 h-2.5 rounded-sm bg-blue-600' />
+                  <span>More</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Certification Stats */}
           {profile.certification_stats && (
             <CertificationStats stats={profile.certification_stats} />
@@ -368,7 +594,7 @@ const UserProfile = () => {
 
           {/* Certifications */}
           {profile.certifications && profile.certifications.length > 0 && (
-            <div className='bg-white rounded-lg shadow-md p-6'>
+            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
               <h2 className='text-xl font-semibold text-gray-900 mb-4'>Certifications</h2>
               <div className='space-y-3'>
                 {profile.certifications.map((cert, index) => (
@@ -419,65 +645,16 @@ const UserProfile = () => {
               </div>
             </div>
           )}
-
-          {/* Activity Stats */}
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h2 className='text-xl font-semibold text-gray-900 mb-4'>Activity</h2>
-            <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-              <StatCard
-                icon={<Activity className='h-6 w-6 text-indigo-600' />}
-                value={totalDives}
-                label='Total Dives'
-                color='indigo'
-              />
-              <StatCard
-                icon={<Activity className='h-6 w-6 text-green-600' />}
-                value={profile.stats.dives_created}
-                label='Dives Created'
-                link={`/dives?username=${profile.username}`}
-                color='green'
-              />
-              <StatCard
-                icon={<Users className='h-6 w-6 text-teal-600' />}
-                value={profile.stats.buddy_dives_count}
-                label='Dives as Buddy'
-                link={`/dives?buddy_username=${profile.username}`}
-                color='teal'
-              />
-              <StatCard
-                icon={<Map className='h-6 w-6 text-blue-600' />}
-                value={profile.stats.dive_sites_created}
-                label='Dive Sites Created'
-                link={`/dive-sites?created_by_username=${profile.username}`}
-                color='blue'
-              />
-              <StatCard
-                icon={<Star className='h-6 w-6 text-yellow-600' />}
-                value={profile.stats.site_ratings_count}
-                label='Dive Site Ratings'
-                color='yellow'
-              />
-              <StatCard
-                icon={<MessageSquare className='h-6 w-6 text-orange-600' />}
-                value={profile.stats.site_comments_count}
-                label='Dive Site Comments'
-                color='orange'
-              />
-              <StatCard
-                icon={<Building2 className='h-6 w-6 text-purple-600' />}
-                value={profile.stats.diving_centers_owned}
-                label='Diving Centers Owned'
-                color='purple'
-              />
-            </div>
-          </div>
         </div>
 
         {/* Sidebar */}
         <div className='space-y-6'>
           {/* Quick Stats */}
-          <div className='bg-white rounded-lg shadow-md p-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Quick Stats</h3>
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+              <Gauge className='h-5 w-5 text-gray-400' />
+              Community Impact
+            </h3>
             <div className='space-y-3'>
               <div className='flex justify-between'>
                 <span className='text-gray-600'>Total Dives:</span>
@@ -549,7 +726,7 @@ const UserProfile = () => {
 
           {/* No certifications message */}
           {(!profile.certifications || profile.certifications.length === 0) && (
-            <div className='bg-white rounded-lg shadow-md p-6'>
+            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
               <h3 className='text-lg font-semibold text-gray-900 mb-2'>Certifications</h3>
               <p className='text-gray-600 text-sm'>No certifications listed yet.</p>
             </div>

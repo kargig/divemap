@@ -10,12 +10,12 @@ from app.schemas import (
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
     ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
     UserSocialLinkCreate, UserSocialLinkResponse,
-    PATCreate, PATResponse, PATCreateResponse
+    PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.limiter import skip_rate_limit_for_admin
 from app.utils import utcnow
-from sqlalchemy import func
+from sqlalchemy import func, extract, desc
 import secrets
 import base64
 import re
@@ -633,6 +633,113 @@ async def get_user_public_profile(
     # Calculate certification stats
     cert_stats = calculate_certification_stats(user.certifications)
 
+    # Calculate diving logbook stats
+    from datetime import datetime, timedelta
+    
+    # 2. Max Depth, Longest Dive, TBT
+    # first() on an aggregate query returns a Row object with the values
+    stats_row = db.query(
+        func.max(Dive.max_depth).label('max_depth'),
+        func.max(Dive.duration).label('longest_dive_minutes'),
+        func.sum(Dive.duration).label('total_bottom_time_minutes')
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False
+    ).first()
+    
+    # 3. Favorite Dive Sites (Top 3)
+    favorite_sites_query = db.query(
+        DiveSite.id,
+        DiveSite.name,
+        func.count(Dive.id).label('visit_count')
+    ).join(
+        Dive, Dive.dive_site_id == DiveSite.id
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False
+    ).group_by(
+        DiveSite.id, DiveSite.name
+    ).order_by(
+        desc(func.count(Dive.id))
+    ).limit(3).all()
+    
+    favorite_sites = [
+        {"id": site.id, "name": site.name, "visit_count": site.visit_count}
+        for site in favorite_sites_query
+    ]
+    
+    # 4. Activity Heatmap (Last 365 days)
+    # Get dives from the last year
+    one_year_ago = utcnow().date() - timedelta(days=365)
+    
+    heatmap_query = db.query(
+        Dive.dive_date,
+        func.count(Dive.id).label('dive_count')
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False,
+        Dive.dive_date >= one_year_ago
+    ).group_by(
+        Dive.dive_date
+    ).all()
+    
+    activity_heatmap = {
+        date_obj.strftime("%Y-%m-%d"): count
+        for date_obj, count in heatmap_query
+        if date_obj
+    }
+
+    # 5. Most Active Month (All time)
+    year_expr = extract('year', Dive.dive_date)
+    month_expr = extract('month', Dive.dive_date)
+    most_active_month_query = db.query(
+        year_expr.label('year'),
+        month_expr.label('month'),
+        func.count(Dive.id).label('dive_count')
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False
+    ).group_by(
+        year_expr, month_expr
+    ).order_by(
+        desc(func.count(Dive.id))
+    ).first()
+
+    most_active_month = None
+    if most_active_month_query:
+        import calendar
+        month_name = calendar.month_name[int(most_active_month_query.month)]
+        most_active_month = f"{month_name} {int(most_active_month_query.year)} ({most_active_month_query.dive_count} dives)"
+    
+    # 6. Suit/Gear Preferences
+    suit_query = db.query(
+        Dive.suit_type,
+        func.count(Dive.id).label('count')
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False,
+        Dive.suit_type.isnot(None)
+    ).group_by(
+        Dive.suit_type
+    ).all()
+    
+    suit_preferences = {}
+    for suit_type, count in suit_query:
+        if suit_type:
+            # Handle both Enum members and strings
+            key = suit_type.value if hasattr(suit_type, 'value') else str(suit_type)
+            suit_preferences[key] = count
+    
+    diving_stats = DivingStatsResponse(
+        max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,
+        longest_dive_minutes=int(stats_row.longest_dive_minutes) if stats_row and stats_row.longest_dive_minutes else None,
+        total_bottom_time_minutes=int(stats_row.total_bottom_time_minutes) if stats_row and stats_row.total_bottom_time_minutes else None,
+        most_active_month=most_active_month,
+        favorite_sites=favorite_sites,
+        activity_heatmap=activity_heatmap,
+        suit_preferences=suit_preferences
+    )
+
     # Create response object
     response = UserPublicProfileResponse(
         id=user.id,
@@ -645,7 +752,8 @@ async def get_user_public_profile(
         certifications=user.certifications,
         social_links=user.social_links,
         stats=stats,
-        certification_stats=cert_stats
+        certification_stats=cert_stats,
+        diving_stats=diving_stats
     )
 
     return response

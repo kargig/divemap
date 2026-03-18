@@ -699,6 +699,20 @@ class CertificationStats(BaseModel):
     max_trimix_pct: Optional[str] = None # e.g. "10/50" or just "Hypoxic"
     max_stages: Optional[int] = None
 
+class FavoriteDiveSite(BaseModel):
+    id: int
+    name: str
+    visit_count: int
+
+class DivingStatsResponse(BaseModel):
+    max_depth: Optional[float] = None
+    longest_dive_minutes: Optional[int] = None
+    total_bottom_time_minutes: Optional[int] = None
+    most_active_month: Optional[str] = None # e.g. "August 2024 (15 dives)"
+    favorite_sites: List[FavoriteDiveSite] = []
+    activity_heatmap: Dict[str, int] = {} # Date (YYYY-MM-DD) -> Dive Count
+    suit_preferences: Dict[str, int] = {} # SuitType -> Count
+
 class UserPublicProfileResponse(BaseModel):
     id: int
     username: str
@@ -711,6 +725,7 @@ class UserPublicProfileResponse(BaseModel):
     social_links: List[UserSocialLinkResponse] = []
     stats: UserProfileStats
     certification_stats: Optional[CertificationStats] = None
+    diving_stats: Optional[DivingStatsResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 
