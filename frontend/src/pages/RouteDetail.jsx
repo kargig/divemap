@@ -41,6 +41,8 @@ import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../uti
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import NotFound from './NotFound';
+
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -790,6 +792,10 @@ const RouteDetail = () => {
   }
 
   if (error) {
+    if (error.response?.status === 404) {
+      return <NotFound />;
+    }
+
     return (
       <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
         <div className='text-center'>
@@ -849,6 +855,23 @@ const RouteDetail = () => {
             { label: route?.name || 'Route Detail' },
           ]}
         />
+
+        {/* Archived Site Banner */}
+        {diveSite?.deleted_at && (
+          <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 mt-4'>
+            <div className='flex items-center'>
+              <div className='flex-shrink-0'>
+                <AlertCircle className='h-5 w-5 text-yellow-500' />
+              </div>
+              <div className='ml-3'>
+                <p className='text-sm text-yellow-800'>
+                  <strong>Warning:</strong> This route belongs to an archived dive site and is
+                  currently hidden from the public.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>

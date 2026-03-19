@@ -104,12 +104,12 @@ def get_all_dives_count_admin(
     if search:
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
-        
+
         # Ensure DiveSite is joined (it might already be joined if dive_site_name filter is used)
         dive_site_joined = dive_site_name is not None
         if not dive_site_joined:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        
+
         # Search across dive name, user username, dive site name, and dive information
         query = query.filter(
             or_(
@@ -267,13 +267,13 @@ def get_all_dives_admin(
     if search:
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
-        
+
         # Ensure DiveSite is joined (it might already be joined if dive_site_name filter is used)
         # Check if DiveSite is already joined by checking if dive_site_name filter was used
         dive_site_joined = dive_site_name is not None
         if not dive_site_joined:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        
+
         # Search across dive name, user username, dive site name, and dive information
         query = query.filter(
             or_(
@@ -423,7 +423,8 @@ def get_all_dives_admin(
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                     "country": dive_site.country,
-                    "region": dive_site.region
+                    "region": dive_site.region,
+                    "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
                 }
 
         # Get diving center information if available
@@ -585,7 +586,7 @@ def update_dive_admin(
         # Get current tags for this dive
         current_tags = db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
         current_tag_ids = [tag.tag_id for tag in current_tags]
-        
+
         # Add new tags
         for tag_id in dive_update.tags:
             if tag_id not in current_tag_ids:
@@ -596,11 +597,11 @@ def update_dive_admin(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Tag with ID {tag_id} not found"
                     )
-                
+
                 # Create new dive tag
                 new_dive_tag = DiveTag(dive_id=dive_id, tag_id=tag_id)
                 db.add(new_dive_tag)
-        
+
         # Remove tags that are no longer selected
         for current_tag in current_tags:
             if current_tag.tag_id not in dive_update.tags:
@@ -622,7 +623,8 @@ def update_dive_admin(
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                 "country": dive_site.country,
-                "region": dive_site.region
+                "region": dive_site.region,
+                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
             }
 
     # Get diving center information if available

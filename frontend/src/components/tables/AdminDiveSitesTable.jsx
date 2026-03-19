@@ -5,7 +5,17 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { Edit, Trash2, Eye, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Archive,
+} from 'lucide-react';
 import PropTypes from 'prop-types';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../../utils/difficultyHelpers';
@@ -32,6 +42,8 @@ const AdminDiveSitesTable = ({
   onView,
   onEdit,
   onDelete,
+  onRestore,
+  onHardDelete,
   isLoading = false,
 }) => {
   // Table instance
@@ -199,7 +211,16 @@ const AdminDiveSitesTable = ({
                 <div key={row.id} className='p-4 hover:bg-gray-50'>
                   <div className='flex items-start justify-between mb-2'>
                     <div className='flex-1 min-w-0'>
-                      <h3 className='text-sm font-semibold text-gray-900 truncate'>{site.name}</h3>
+                      <div className='flex items-center gap-2'>
+                        <h3 className='text-sm font-semibold text-gray-900 truncate'>
+                          {site.name}
+                        </h3>
+                        {site.deleted_at && (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 uppercase tracking-wider'>
+                            Archived
+                          </span>
+                        )}
+                      </div>
                       {site.description && (
                         <p className='text-xs text-gray-500 mt-1 line-clamp-2'>
                           {decodeHtmlEntities(site.description)}
@@ -221,13 +242,32 @@ const AdminDiveSitesTable = ({
                       >
                         <Edit className='h-4 w-4' />
                       </button>
-                      <button
-                        onClick={() => onDelete(site)}
-                        className='text-red-600 hover:text-red-900 p-1'
-                        title='Delete'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
+                      {site.deleted_at ? (
+                        <>
+                          <button
+                            onClick={() => onRestore(site)}
+                            className='text-yellow-600 hover:text-yellow-900 p-1'
+                            title='Restore dive site'
+                          >
+                            <RotateCcw className='h-4 w-4' />
+                          </button>
+                          <button
+                            onClick={() => onHardDelete(site)}
+                            className='text-red-600 hover:text-red-900 p-1'
+                            title='Permanently delete dive site'
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => onDelete(site)}
+                          className='text-orange-600 hover:text-orange-900 p-1'
+                          title='Archive dive site'
+                        >
+                          <Archive className='h-4 w-4' />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className='grid grid-cols-2 gap-2 mt-3 text-xs'>
@@ -328,6 +368,8 @@ AdminDiveSitesTable.propTypes = {
   onView: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onRestore: PropTypes.func.isRequired,
+  onHardDelete: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
 };
 

@@ -259,6 +259,7 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
 class DiveSiteResponse(DiveSiteBase):
     id: int
     created_at: datetime
+    deleted_at: Optional[datetime] = None
     created_by: Optional[int] = None
     updated_at: datetime
     average_rating: Optional[float] = None
@@ -1288,9 +1289,9 @@ class DiveSiteBasic(BaseModel):
     name: str
     country: Optional[str] = None
     region: Optional[str] = None
-    
-    model_config = ConfigDict(from_attributes=True)
+    deleted_at: Optional[datetime] = None
 
+    model_config = ConfigDict(from_attributes=True)
 
 class DiveRouteWithDetails(DiveRouteResponse):
     """Extended response with related data"""

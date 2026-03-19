@@ -745,7 +745,7 @@ const DiveDetail = () => {
                 </div>
               </button>
             )}
-            {dive.selected_route && (
+            {dive.selected_route && !dive.dive_site?.deleted_at && (
               <button
                 onClick={() => handleTabChange('route')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -1058,7 +1058,7 @@ const DiveDetail = () => {
             </div>
           )}
 
-          {activeTab === 'route' && dive.selected_route && (
+          {activeTab === 'route' && dive.selected_route && !dive.dive_site?.deleted_at && (
             <div className='bg-white rounded-lg shadow p-6'>
               <div className='flex items-center gap-2 mb-4'>
                 <Route className='h-5 w-5 text-blue-600' />
@@ -1170,16 +1170,18 @@ const DiveDetail = () => {
 
                 {/* Route Actions */}
                 <div className='flex gap-2 pt-4 border-t border-gray-200'>
-                  <button
-                    onClick={() =>
-                      navigate(
-                        `/dive-sites/${dive.dive_site_id}/route/${dive.selected_route.id}/${slugify(dive.selected_route.name)}`
-                      )
-                    }
-                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700'
-                  >
-                    View Full Route
-                  </button>
+                  {!dive.dive_site?.deleted_at && (
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/dive-sites/${dive.dive_site_id}/route/${dive.selected_route.id}/${slugify(dive.selected_route.name)}`
+                        )
+                      }
+                      className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                    >
+                      View Full Route
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

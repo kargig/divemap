@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import {
   ArrowLeft,
   Edit,
+  Trash2,
   Star,
   MapPin,
   MessageCircle,
@@ -15,6 +16,7 @@ import {
   Lock,
   Globe,
   TrendingUp,
+  RotateCcw,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -577,7 +579,7 @@ const DiveSiteDetail = () => {
 
         {/* Action Buttons (Share, Edit) */}
         <div className='flex gap-2 flex-wrap sm:justify-end'>
-          {diveSite && (
+          {diveSite && !diveSite.deleted_at && (
             <ShareButton
               entityType='dive-site'
               entityData={diveSite}
@@ -589,17 +591,74 @@ const DiveSiteDetail = () => {
             const isAdmin = user?.is_admin;
             const isModerator = user?.is_moderator;
             const shouldShowEdit = isOwner || isAdmin || isModerator;
+            const shouldShowDelete = (isOwner || isAdmin) && !diveSite?.deleted_at;
+            const shouldShowRestore = isAdmin && diveSite?.deleted_at;
+
+            const handleDelete = async () => {
+              if (
+                window.confirm(
+                  `Are you sure you want to archive the dive site "${diveSite.name}"?\n\nDives linked to this site will be preserved, but the site itself will be hidden from others (Soft Delete).`
+                )
+              ) {
+                try {
+                  await api.delete(`/api/v1/dive-sites/${id}`);
+                  queryClient.invalidateQueries(['dive-site', id]);
+                  toast.success('Dive site archived successfully');
+                  navigate('/dive-sites');
+                } catch (error) {
+                  toast.error(getErrorMessage(error));
+                }
+              }
+            };
+
+            const handleRestore = async () => {
+              if (
+                window.confirm(
+                  `Are you sure you want to restore the archived dive site "${diveSite.name}"?\n\nIt will become visible to the public again.`
+                )
+              ) {
+                try {
+                  await api.post(`/api/v1/dive-sites/${id}/restore`);
+                  queryClient.invalidateQueries(['dive-site', id]);
+                  toast.success('Dive site restored successfully');
+                } catch (error) {
+                  toast.error(getErrorMessage(error));
+                }
+              }
+            };
 
             return (
-              shouldShowEdit && (
-                <Button
-                  to={`/dive-sites/${id}/edit`}
-                  variant='primary'
-                  icon={<Edit className='h-4 w-4' />}
-                >
-                  Edit
-                </Button>
-              )
+              <>
+                {shouldShowEdit && (
+                  <Button
+                    to={`/dive-sites/${id}/edit`}
+                    variant='primary'
+                    icon={<Edit className='h-4 w-4' />}
+                  >
+                    Edit
+                  </Button>
+                )}
+                {shouldShowDelete && (
+                  <button
+                    onClick={handleDelete}
+                    className='inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm'
+                    title='Archive dive site'
+                  >
+                    <Trash2 className='h-4 w-4 mr-2' />
+                    Archive
+                  </button>
+                )}
+                {shouldShowRestore && (
+                  <button
+                    onClick={handleRestore}
+                    className='inline-flex items-center px-4 py-2 border border-yellow-400 text-sm font-medium rounded-md text-yellow-700 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 shadow-sm'
+                    title='Restore dive site'
+                  >
+                    <RotateCcw className='h-4 w-4 mr-2' />
+                    Restore
+                  </button>
+                )}
+              </>
             );
           })()}
         </div>
@@ -628,6 +687,11 @@ const DiveSiteDetail = () => {
                 <div className='min-w-0 flex-1'>
                   <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words'>
                     {diveSite.name}
+                    {diveSite.deleted_at && (
+                      <span className='ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 align-middle'>
+                        ARCHIVED
+                      </span>
+                    )}
                   </h1>
                   {diveSite.country && diveSite.region && (
                     <p className='text-sm sm:text-base text-gray-600'>

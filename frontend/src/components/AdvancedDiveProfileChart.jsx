@@ -497,6 +497,30 @@ const AdvancedDiveProfileChart = ({
   }
 
   if (error) {
+    const isMissing =
+      (typeof error === 'string' && error.includes('No profile uploaded')) ||
+      error.response?.status === 404 ||
+      (error.response?.data?.detail && error.response.data.detail.includes('No profile uploaded'));
+
+    if (isMissing) {
+      return (
+        <div className='text-center py-8 text-gray-600 bg-gray-50 rounded-lg'>
+          <Activity className='h-12 w-12 mx-auto mb-4 text-gray-400' />
+          <p className='font-semibold'>No dive profile uploaded</p>
+          <p className='text-sm mb-4'>Upload a dive profile to see the visualization</p>
+          {onUpload && (
+            <button
+              onClick={onUpload}
+              className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+            >
+              <Upload className='mr-2 h-4 w-4' />
+              Upload Profile (XML/UDDF)
+            </button>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className='text-center py-8 text-red-600 bg-red-50 rounded-lg'>
         <AlertTriangle className='h-12 w-12 mx-auto mb-4 text-red-500' />

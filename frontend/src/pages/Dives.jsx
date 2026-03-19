@@ -1077,6 +1077,7 @@ const Dives = () => {
                               className='hover:underline'
                             >
                               {dive.dive_site_info.name}
+                              {dive.dive_site_info.deleted_at && ' (Archived)'}
                             </Link>
                           </div>
                         )}
@@ -1318,6 +1319,7 @@ const Dives = () => {
                         <div className='text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
                           <MapPin className='w-2.5 h-2.5' />
                           {dive.dive_site_info.name}
+                          {dive.dive_site_info.deleted_at && ' (Archived)'}
                         </div>
                       )}
                       <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>

@@ -135,7 +135,7 @@ async def create_dive(
     db.add(db_dive)
     db.commit()
     db.refresh(db_dive)
-    
+
     # Notify users about new dive
     try:
         from app.services.notification_service import NotificationService
@@ -156,24 +156,24 @@ async def create_dive(
             User.enabled == True,
             User.buddy_visibility == 'public'
         ).all()
-        
+
         # Check if all requested buddies were found and valid
         found_buddy_ids = {user.id for user in buddy_users}
         missing_buddy_ids = set(buddy_ids) - found_buddy_ids
-        
+
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
-        
+
         # Prevent adding yourself as a buddy
         if current_user.id in buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot add yourself as a buddy"
             )
-        
+
         # Create DiveBuddy records
         for buddy_user in buddy_users:
             # Check if buddy relationship already exists (shouldn't happen due to unique constraint, but check anyway)
@@ -181,14 +181,14 @@ async def create_dive(
                 DiveBuddy.dive_id == db_dive.id,
                 DiveBuddy.user_id == buddy_user.id
             ).first()
-            
+
             if not existing_buddy:
                 dive_buddy = DiveBuddy(
                     dive_id=db_dive.id,
                     user_id=buddy_user.id
                 )
                 db.add(dive_buddy)
-        
+
         db.commit()
 
     # Get dive site information if available
@@ -203,7 +203,8 @@ async def create_dive(
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                 "country": dive_site.country,
-                "region": dive_site.region
+                "region": dive_site.region,
+                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
             }
 
     # Get diving center information if available
@@ -440,7 +441,7 @@ def get_dives_count(
             buddy_id = None
         else:
             buddy_id = buddy_user.id
-    
+
     if buddy_id:
         # Filter dives that have this user as a buddy
         query = query.join(DiveBuddy, Dive.id == DiveBuddy.dive_id)
@@ -570,10 +571,10 @@ def get_dives(
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
         search_query_for_fuzzy = sanitized_search
-        
+
         # Always join with DiveSite for search to ensure we have access to dive site fields
         query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        
+
         # Search across dive site name, dive site description, and dive information
         query = query.filter(
             or_(
@@ -657,7 +658,7 @@ def get_dives(
             buddy_id = None
         else:
             buddy_id = buddy_user.id
-    
+
     if buddy_id:
         # Filter dives that have this user as a buddy
         query = query.join(DiveBuddy, Dive.id == DiveBuddy.dive_id)
@@ -670,23 +671,23 @@ def get_dives(
     if sort_by:
         # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
-            'dive_date', 'max_depth', 'duration', 'difficulty_level', 
+            'dive_date', 'max_depth', 'duration', 'difficulty_level',
             'visibility_rating', 'user_rating', 'view_count', 'created_at', 'updated_at'
         }
-        
+
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
             )
-        
+
         # Validate sort_order parameter
         if sort_order not in ['asc', 'desc']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="sort_order must be 'asc' or 'desc'"
             )
-        
+
         # Apply sorting based on field
         if sort_by == 'dive_date':
             sort_field = Dive.dive_date
@@ -714,7 +715,7 @@ def get_dives(
             sort_field = Dive.created_at
         elif sort_by == 'updated_at':
             sort_field = Dive.updated_at
-        
+
         # Apply the sorting
         if sort_order == 'desc':
             query = query.order_by(sort_field.desc())
@@ -732,30 +733,30 @@ def get_dives(
 
     # Apply pagination
     dives = query.offset(offset).limit(page_size).all()
-    
+
     # Apply fuzzy search if we have a search query and should use fuzzy search
     match_types = {}
     if search:
         # Check if we should use fuzzy search based on unified conditions
         should_use_fuzzy = get_unified_fuzzy_trigger_conditions(search, len(dives))
-        
+
         if should_use_fuzzy:
             # Get the search query for fuzzy search
             search_query_for_fuzzy = search.strip()[:200]
-            
+
             # Perform fuzzy search to enhance results
             enhanced_results = search_dives_with_fuzzy(
-                search_query_for_fuzzy, 
-                dives, 
-                db, 
-                similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'], 
+                search_query_for_fuzzy,
+                dives,
+                db,
+                similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
                 max_fuzzy_results=10,
                 exclude_unspecified_difficulty=exclude_unspecified_difficulty
             )
-            
+
             # Update dives with enhanced results
             dives = [result['dive'] for result in enhanced_results]
-            
+
             # Create match types mapping for frontend
             for result in enhanced_results:
                 match_types[result['dive'].id] = {
@@ -778,7 +779,8 @@ def get_dives(
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                     "country": dive_site.country,
-                    "region": dive_site.region
+                    "region": dive_site.region,
+                    "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
                 }
 
         # Get diving center information if available
@@ -864,7 +866,7 @@ def get_dives(
     response.headers["X-Page-Size"] = str(page_size)
     response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
     response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
-    
+
     # Add match types header if available
     if match_types:
         # Optimize match_types to prevent extremely large headers
@@ -876,10 +878,10 @@ def get_dives(
                 'type': match_info.get('type', 'unknown'),
                 'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
             }
-        
+
         # Convert to JSON and check size
         match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
-        
+
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
             # Log warning about large header
@@ -955,7 +957,8 @@ def get_dive(
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                 "country": dive_site.country,
-                "region": dive_site.region
+                "region": dive_site.region,
+                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
             }
 
     # Get diving center information if available
@@ -1304,12 +1307,12 @@ def update_dive(
 
     # Update other fields (exclude difficulty_code - handle separately)
     update_data = dive_update.model_dump(exclude_unset=True)
-    
+
     # Convert difficulty_code to difficulty_id if provided
     if 'difficulty_code' in update_data:
         difficulty_code = update_data.pop('difficulty_code')
         dive.difficulty_id = get_difficulty_id_by_code(db, difficulty_code)
-    
+
     for field, value in update_data.items():
         if field not in ['dive_date', 'dive_time', 'name', 'tags', 'buddies']:
             setattr(dive, field, value)
@@ -1319,7 +1322,7 @@ def update_dive(
         # Get current buddies for this dive
         current_buddies = db.query(DiveBuddy).filter(DiveBuddy.dive_id == dive_id).all()
         current_buddy_ids = [buddy.user_id for buddy in current_buddies]
-        
+
         # Validate all buddy user IDs exist and have public visibility
         buddy_ids = list(set(dive_update.buddies))  # Remove duplicates
         buddy_users = db.query(User).filter(
@@ -1327,30 +1330,30 @@ def update_dive(
             User.enabled == True,
             User.buddy_visibility == 'public'
         ).all()
-        
+
         # Check if all requested buddies were found and valid
         found_buddy_ids = {user.id for user in buddy_users}
         missing_buddy_ids = set(buddy_ids) - found_buddy_ids
-        
+
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
-        
+
         # Prevent adding yourself as a buddy
         if current_user.id in buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot add yourself as a buddy"
             )
-        
+
         # Add new buddies
         for buddy_user in buddy_users:
             if buddy_user.id not in current_buddy_ids:
                 new_dive_buddy = DiveBuddy(dive_id=dive_id, user_id=buddy_user.id)
                 db.add(new_dive_buddy)
-        
+
         # Remove buddies that are no longer selected
         for current_buddy in current_buddies:
             if current_buddy.user_id not in buddy_ids:
@@ -1361,7 +1364,7 @@ def update_dive(
         # Get current tags for this dive
         current_tags = db.query(DiveTag).filter(DiveTag.dive_id == dive_id).all()
         current_tag_ids = [tag.tag_id for tag in current_tags]
-        
+
         # Add new tags
         for tag_id in dive_update.tags:
             if tag_id not in current_tag_ids:
@@ -1372,11 +1375,11 @@ def update_dive(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail=f"Tag with ID {tag_id} not found"
                     )
-                
+
                 # Create new dive tag
                 new_dive_tag = DiveTag(dive_id=dive_id, tag_id=tag_id)
                 db.add(new_dive_tag)
-        
+
         # Remove tags that are no longer selected
         for current_tag in current_tags:
             if current_tag.tag_id not in dive_update.tags:
@@ -1384,7 +1387,7 @@ def update_dive(
 
     dive.updated_at = datetime.utcnow()
     db.commit()
-    
+
     # Eager load difficulty for response
     dive = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.id == dive_id).first()
 
@@ -1400,7 +1403,8 @@ def update_dive(
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                 "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                 "country": dive_site.country,
-                "region": dive_site.region
+                "region": dive_site.region,
+                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
             }
 
     # Get diving center information if available
@@ -1541,7 +1545,7 @@ def add_buddies_to_dive(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
         )
-    
+
     # Check if dive exists and user owns it
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
     if not dive:
@@ -1549,14 +1553,14 @@ def add_buddies_to_dive(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive not found"
         )
-    
+
     # Only dive owner can add buddies
     if dive.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the dive owner can add buddies"
         )
-    
+
     # Validate all buddy user IDs exist and have public visibility
     # Remove duplicates to prevent adding the same buddy multiple times
     buddy_ids = list(set(request.buddy_ids))
@@ -1566,24 +1570,24 @@ def add_buddies_to_dive(
         User.enabled == True,
         User.buddy_visibility == 'public'
     ).all()
-    
+
     # Check if all requested buddies were found and valid
     found_buddy_ids = {user.id for user in buddy_users}
     missing_buddy_ids = set(buddy_ids) - found_buddy_ids
-    
+
     if missing_buddy_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
         )
-    
+
     # Prevent adding yourself as a buddy
     if current_user.id in buddy_ids:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot add yourself as a buddy"
         )
-    
+
     # Add buddies (skip if already exists due to unique constraint)
     added_count = 0
     for buddy_user in buddy_users:
@@ -1591,7 +1595,7 @@ def add_buddies_to_dive(
             DiveBuddy.dive_id == dive_id,
             DiveBuddy.user_id == buddy_user.id
         ).first()
-        
+
         if not existing_buddy:
             dive_buddy = DiveBuddy(
                 dive_id=dive_id,
@@ -1599,9 +1603,9 @@ def add_buddies_to_dive(
             )
             db.add(dive_buddy)
             added_count += 1
-    
+
     db.commit()
-    
+
     return {"message": f"Added {added_count} buddy(ies) to dive", "added_count": added_count}
 
 
@@ -1618,7 +1622,7 @@ def replace_dive_buddies(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
         )
-    
+
     # Check if dive exists and user owns it
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
     if not dive:
@@ -1626,14 +1630,14 @@ def replace_dive_buddies(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive not found"
         )
-    
+
     # Only dive owner can replace buddies
     if dive.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the dive owner can replace buddies"
         )
-    
+
     # Validate all buddy user IDs exist and have public visibility
     buddy_ids = list(set(request.buddy_ids))  # Remove duplicates
     if buddy_ids:  # Only validate if list is not empty
@@ -1642,33 +1646,33 @@ def replace_dive_buddies(
             User.enabled == True,
             User.buddy_visibility == 'public'
         ).all()
-        
+
         # Check if all requested buddies were found and valid
         found_buddy_ids = {user.id for user in buddy_users}
         missing_buddy_ids = set(buddy_ids) - found_buddy_ids
-        
+
         if missing_buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Some user IDs are invalid or users have private visibility. {len(missing_buddy_ids)} user(s) could not be added."
             )
-        
+
         # Prevent adding yourself as a buddy
         if current_user.id in buddy_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot add yourself as a buddy"
             )
-    
+
     # Get current buddies
     current_buddies = db.query(DiveBuddy).filter(DiveBuddy.dive_id == dive_id).all()
     current_buddy_ids = {buddy.user_id for buddy in current_buddies}
-    
+
     # Remove buddies that are no longer in the list
     for current_buddy in current_buddies:
         if current_buddy.user_id not in buddy_ids:
             db.delete(current_buddy)
-    
+
     # Add new buddies
     for buddy_id in buddy_ids:
         if buddy_id not in current_buddy_ids:
@@ -1677,9 +1681,9 @@ def replace_dive_buddies(
                 user_id=buddy_id
             )
             db.add(dive_buddy)
-    
+
     db.commit()
-    
+
     return {"message": "Buddies updated successfully"}
 
 
@@ -1696,7 +1700,7 @@ def remove_buddy_from_dive(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is disabled"
         )
-    
+
     # Check if dive exists
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
     if not dive:
@@ -1704,31 +1708,31 @@ def remove_buddy_from_dive(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive not found"
         )
-    
+
     # Check if user is the dive owner or the buddy themselves
     is_owner = dive.user_id == current_user.id
     is_buddy = user_id == current_user.id
-    
+
     if not (is_owner or is_buddy):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the dive owner or the buddy themselves can remove a buddy"
         )
-    
+
     # Find the buddy relationship
     dive_buddy = db.query(DiveBuddy).filter(
         DiveBuddy.dive_id == dive_id,
         DiveBuddy.user_id == user_id
     ).first()
-    
+
     if not dive_buddy:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Buddy relationship not found"
         )
-    
+
     # Remove the buddy
     db.delete(dive_buddy)
     db.commit()
-    
+
     return {"message": "Buddy removed successfully"}

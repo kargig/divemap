@@ -288,6 +288,12 @@ async def get_route(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Route not found"
         )
+        
+    if route.dive_site and route.dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Route not found"
+        )
     
     # Increment view count without updating updated_at
     db.query(DiveRoute).filter(DiveRoute.id == route.id).update(
@@ -306,7 +312,8 @@ async def get_route(
         'id': route.dive_site.id,
         'name': route.dive_site.name,
         'country': route.dive_site.country,
-        'region': route.dive_site.region
+        'region': route.dive_site.region,
+        'deleted_at': route.dive_site.deleted_at
     } if route.dive_site else None
     
     route_dict['creator'] = {

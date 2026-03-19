@@ -18,6 +18,8 @@ import {
   X,
   Download,
   Columns,
+  RotateCcw,
+  Archive,
 } from 'lucide-react';
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -76,6 +78,7 @@ const AdminDiveSites = () => {
     region: '',
     min_rating: '',
     max_rating: '',
+    include_archived: true,
   });
 
   // Local search input state for immediate visual feedback
@@ -172,6 +175,7 @@ const AdminDiveSites = () => {
       if (filters.region) params.append('region', filters.region);
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
+      if (filters.include_archived) params.append('include_archived', 'true');
 
       return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
@@ -235,6 +239,7 @@ const AdminDiveSites = () => {
       region: '',
       min_rating: '',
       max_rating: '',
+      include_archived: true,
     });
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
   };
@@ -243,10 +248,20 @@ const AdminDiveSites = () => {
   const deleteDiveSiteMutation = useMutation(id => api.delete(`/api/v1/dive-sites/${id}`), {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-dive-sites']);
-      toast.success('Dive site deleted successfully!');
+      toast.success('Dive site archived successfully!');
     },
     onError: () => {
-      toast.error('Failed to delete dive site');
+      toast.error('Failed to archive dive site');
+    },
+  });
+
+  const restoreDiveSiteMutation = useMutation(id => api.post(`/api/v1/dive-sites/${id}/restore`), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-dive-sites']);
+      toast.success('Dive site restored successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to restore dive site');
     },
   });
 
@@ -256,10 +271,37 @@ const AdminDiveSites = () => {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-dive-sites']);
         setRowSelection({});
-        toast.success(`${Object.keys(rowSelection).length} dive site(s) deleted successfully!`);
+        toast.success(`${Object.keys(rowSelection).length} dive site(s) archived successfully!`);
       },
       onError: () => {
-        toast.error('Failed to delete some dive sites');
+        toast.error('Failed to archive some dive sites');
+      },
+    }
+  );
+
+  const hardDeleteDiveSiteMutation = useMutation(
+    id => api.delete(`/api/v1/dive-sites/${id}?force=true`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-dive-sites']);
+        toast.success('Dive site permanently deleted!');
+      },
+      onError: () => {
+        toast.error('Failed to permanently delete dive site');
+      },
+    }
+  );
+
+  const massHardDeleteMutation = useMutation(
+    ids => Promise.all(ids.map(id => api.delete(`/api/v1/dive-sites/${id}?force=true`))),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-dive-sites']);
+        setRowSelection({});
+        toast.success(`${Object.keys(rowSelection).length} dive site(s) permanently deleted!`);
+      },
+      onError: () => {
+        toast.error('Failed to permanently delete some dive sites');
       },
     }
   );
@@ -274,8 +316,32 @@ const AdminDiveSites = () => {
   };
 
   const handleDeleteDiveSite = diveSite => {
-    if (window.confirm(`Are you sure you want to delete the dive site "${diveSite.name}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to archive the dive site "${diveSite.name}"?\n\nDives linked to this site will be preserved, but the site itself will be hidden from others (Soft Delete).`
+      )
+    ) {
       deleteDiveSiteMutation.mutate(diveSite.id);
+    }
+  };
+
+  const handleRestoreDiveSite = diveSite => {
+    if (
+      window.confirm(
+        `Are you sure you want to restore the archived dive site "${diveSite.name}"?\n\nIt will become visible to the public again.`
+      )
+    ) {
+      restoreDiveSiteMutation.mutate(diveSite.id);
+    }
+  };
+
+  const handleHardDeleteDiveSite = diveSite => {
+    if (
+      window.confirm(
+        `DANGER: Are you sure you want to PERMANENTLY delete the archived dive site "${diveSite.name}"?\n\nThis action cannot be undone and will permanently remove all associated media, routes, and comments.`
+      )
+    ) {
+      hardDeleteDiveSiteMutation.mutate(diveSite.id);
     }
   };
 
@@ -289,10 +355,27 @@ const AdminDiveSites = () => {
 
     if (
       window.confirm(
-        `Are you sure you want to delete ${selectedIds.length} dive site(s)?\n\n${itemNames.join('\n')}`
+        `Are you sure you want to archive ${selectedIds.length} dive site(s)?\n\nDives linked to these sites will be preserved, but the sites will be hidden from others (Soft Delete).\n\n${itemNames.join('\n')}`
       )
     ) {
       massDeleteMutation.mutate(selectedIds.map(id => parseInt(id)));
+    }
+  };
+
+  const handleMassHardDelete = () => {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0) return;
+
+    const itemNames = selectedIds
+      .map(id => diveSites?.find(site => site.id === parseInt(id))?.name)
+      .filter(Boolean);
+
+    if (
+      window.confirm(
+        `DANGER: Are you sure you want to PERMANENTLY delete ${selectedIds.length} dive site(s)?\n\nThis action cannot be undone and will permanently remove all associated media, routes, and comments.\n\n${itemNames.join('\n')}`
+      )
+    ) {
+      massHardDeleteMutation.mutate(selectedIds.map(id => parseInt(id)));
     }
   };
 
@@ -332,7 +415,16 @@ const AdminDiveSites = () => {
         size: 250,
         cell: ({ row }) => (
           <div className='max-w-[250px]'>
-            <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
+            <div className='flex items-center gap-2'>
+              <div className='text-sm font-medium text-gray-900 break-words'>
+                {row.original.name}
+              </div>
+              {row.original.deleted_at && (
+                <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 uppercase tracking-wider flex-shrink-0'>
+                  Archived
+                </span>
+              )}
+            </div>
             {row.original.description && (
               <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
                 {decodeHtmlEntities(row.original.description)}
@@ -507,13 +599,23 @@ const AdminDiveSites = () => {
               >
                 <Edit className='h-4 w-4' />
               </button>
-              <button
-                onClick={() => handleDeleteDiveSite(site)}
-                className='text-red-600 hover:text-red-900'
-                title='Delete dive site'
-              >
-                <Trash2 className='h-4 w-4' />
-              </button>
+              {site.deleted_at ? (
+                <button
+                  onClick={() => handleRestoreDiveSite(site)}
+                  className='text-yellow-600 hover:text-yellow-900'
+                  title='Restore dive site'
+                >
+                  <RotateCcw className='h-4 w-4' />
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleDeleteDiveSite(site)}
+                  className='text-red-600 hover:text-red-900'
+                  title='Archive dive site'
+                >
+                  <Trash2 className='h-4 w-4' />
+                </button>
+              )}
             </div>
           );
         },
@@ -563,14 +665,24 @@ const AdminDiveSites = () => {
                 {Object.keys(rowSelection).length} item(s) selected
               </span>
             </div>
-            <button
-              onClick={handleMassDelete}
-              disabled={massDeleteMutation.isLoading}
-              className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete Selected ({Object.keys(rowSelection).length})
-            </button>
+            <div className='flex gap-2'>
+              <button
+                onClick={handleMassDelete}
+                disabled={massDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
+              >
+                <Archive className='h-4 w-4 mr-2' />
+                Archive Selected ({Object.keys(rowSelection).length})
+              </button>
+              <button
+                onClick={handleMassHardDelete}
+                disabled={massHardDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+              >
+                <Trash2 className='h-4 w-4 mr-2' />
+                Hard Delete Selected
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -692,6 +804,17 @@ const AdminDiveSites = () => {
               <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
             )}
           </div>
+        </div>
+        <div className='mt-4 flex items-center'>
+          <label className='flex items-center text-sm font-medium text-gray-700 cursor-pointer'>
+            <input
+              type='checkbox'
+              checked={filters.include_archived}
+              onChange={e => handleFilterChange('include_archived', e.target.checked)}
+              className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+            />
+            Include Archived (Soft Deleted) Sites
+          </label>
         </div>
       </div>
 
@@ -888,6 +1011,7 @@ const AdminDiveSites = () => {
                   if (filters.region) params.append('region', filters.region);
                   if (filters.min_rating) params.append('min_rating', filters.min_rating);
                   if (filters.max_rating) params.append('max_rating', filters.max_rating);
+                  if (filters.include_archived) params.append('include_archived', 'true');
 
                   // Add sorting if any
                   const sortParams = getSortParams();
@@ -996,6 +1120,8 @@ const AdminDiveSites = () => {
         onView={handleViewDiveSite}
         onEdit={handleEditDiveSite}
         onDelete={handleDeleteDiveSite}
+        onRestore={handleRestoreDiveSite}
+        onHardDelete={handleHardDeleteDiveSite}
         isLoading={isLoading}
       />
     </div>

@@ -438,6 +438,10 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     # Build a filtered query that respects the same filters as the main query
     filtered_query = db.query(DiveSite)
     
+    show_archived = filters.get('show_archived', False)
+    if not show_archived:
+        filtered_query = filtered_query.filter(DiveSite.deleted_at.is_(None))
+    
     # Apply the same filters that were used in the main query
     if 'difficulty_code' in filters and filters['difficulty_code']:
         from app.models import get_difficulty_id_by_code
@@ -777,6 +781,7 @@ async def get_dive_sites(
     east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
     west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
     detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)"),
+    include_archived: bool = Query(False, description="Include soft-deleted (archived) dive sites (Admin only)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -847,8 +852,13 @@ async def get_dive_sites(
                 detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
             )
 
+    # Check if we should include archived sites (admin only feature)
+    show_archived = include_archived and current_user and current_user.is_admin
+
     # Eager load difficulty relationship for efficient access
     query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
+    if not show_archived:
+        query = query.filter(DiveSite.deleted_at.is_(None))
 
     # Store the search query for potential fuzzy search enhancement
     search_query_for_fuzzy = None
@@ -1054,6 +1064,8 @@ async def get_dive_sites(
     if sort_by == 'average_rating':
         # Get all dive sites with their average ratings for proper sorting
         all_dive_sites_query = db.query(DiveSite)
+        if not show_archived:
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.deleted_at.is_(None))
         
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
@@ -1116,7 +1128,8 @@ async def get_dive_sites(
                 region=region,
                 min_rating=min_rating,
                 my_dive_sites=my_dive_sites,
-                current_user=current_user
+                current_user=current_user,
+                show_archived=show_archived
             )
             
             # Transform enhanced results back to the expected format
@@ -1324,6 +1337,7 @@ async def get_dive_sites(
                 "region": site.region,
                 "created_at": site.created_at.isoformat() if site.created_at else None,
                 "updated_at": site.updated_at.isoformat() if site.updated_at else None,
+                "deleted_at": site.deleted_at.isoformat() if site.deleted_at else None,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
                 "comment_count": comment_count,
@@ -1497,7 +1511,7 @@ async def get_wind_recommendations(
             )
         
         # Query dive sites
-        query = db.query(DiveSite)
+        query = db.query(DiveSite).filter(DiveSite.deleted_at.is_(None))
         
         # Filter by bounds if provided
         if all(x is not None for x in [north, south, east, west]):
@@ -1596,11 +1610,15 @@ async def get_dive_sites_count(
     region: Optional[str] = Query(None, max_length=100),
     my_dive_sites: Optional[bool] = Query(None, description="Filter to show only dive sites created by the current user"),
     created_by_username: Optional[str] = Query(None, description="Filter by username of the user who created the dive sites"),
+    include_archived: bool = Query(False, description="Include soft-deleted (archived) dive sites (Admin only)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """Get total count of dive sites matching the filters"""
+    show_archived = include_archived and current_user and current_user.is_admin
     query = db.query(DiveSite)
+    if not show_archived:
+        query = query.filter(DiveSite.deleted_at.is_(None))
 
     # Apply all filters using utility functions
     query = apply_search_filters(query, None, name, db)  # No search parameter in count function
@@ -1753,6 +1771,12 @@ async def get_dive_site(
 
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+        
+    if dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
@@ -1917,6 +1941,7 @@ async def get_dive_site(
         "shore_direction_distance_m": float(dive_site.shore_direction_distance_m) if dive_site.shore_direction_distance_m else None,
         "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
         "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
+        "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None,
         "created_by": dive_site.created_by,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
@@ -2701,18 +2726,53 @@ async def update_dive_site(
         "shore_direction_distance_m": float(dive_site.shore_direction_distance_m) if dive_site.shore_direction_distance_m else None,
         "created_at": dive_site.created_at.isoformat() if dive_site.created_at else None,
         "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
+        "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None,
         "created_by": dive_site.created_by,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict
     }
 
+@router.post("/{dive_site_id}/restore")
+@skip_rate_limit_for_admin("15/minute")
+async def restore_dive_site(
+    request: Request,
+    dive_site_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Restore a soft-deleted dive site (Admin only)"""
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+    
+    if dive_site.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dive site is not archived"
+        )
+        
+    try:
+        dive_site.deleted_at = None
+        db.commit()
+        return {"message": "Dive site restored successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error restoring dive site: {str(e)}"
+        )
+
 @router.delete("/{dive_site_id}")
 @skip_rate_limit_for_admin("15/minute")
 async def delete_dive_site(
     request: Request,
     dive_site_id: int,
-    current_user: User = Depends(get_current_admin_user),
+    force: bool = Query(False, description="Hard delete (admin only)"),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     # Check if dive site exists
@@ -2723,11 +2783,26 @@ async def delete_dive_site(
             detail="Dive site not found"
         )
     
+    # Permission check: must be admin or the creator
+    if not current_user.is_admin and dive_site.created_by != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this dive site"
+        )
+    
     try:
-        # Delete the dive site (cascade will handle related records)
-        db.delete(dive_site)
+        if current_user.is_admin and force:
+            # Hard delete
+            db.delete(dive_site)
+            message = "Dive site permanently deleted"
+        else:
+            # Soft delete
+            from datetime import datetime, timezone
+            dive_site.deleted_at = datetime.now(timezone.utc)
+            message = "Dive site archived successfully"
+
         db.commit()
-        return {"message": "Dive site deleted successfully"}
+        return {"message": message}
     except HTTPException as e:
         # Re-raise HTTP exceptions (like 404 Not Found) as-is
         db.rollback()
@@ -3063,7 +3138,8 @@ async def get_dive_site_dives(
                     "latitude": float(dive_site.latitude) if dive_site.latitude else None,
                     "longitude": float(dive_site.longitude) if dive_site.longitude else None,
                     "country": dive_site.country,
-                    "region": dive_site.region
+                    "region": dive_site.region,
+                    "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
                 }
 
         # Get tags for this dive
@@ -3270,6 +3346,12 @@ async def get_dive_site_routes(
     # Verify dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dive site not found"
+        )
+        
+    if dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
