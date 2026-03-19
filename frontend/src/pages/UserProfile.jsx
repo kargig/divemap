@@ -11,7 +11,7 @@ import {
   Empty,
   Tag,
 } from 'antd';
-import { format, subDays, isSameDay, parseISO } from 'date-fns';
+import { format, subDays, isSameDay, parseISO, startOfWeek, addDays, getMonth } from 'date-fns';
 import {
   Star,
   MapPin,
@@ -53,39 +53,107 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 
 const ActivityHeatmap = ({ data }) => {
-  const today = new Date();
-  const days = useMemo(() => {
-    const result = [];
-    for (let i = 364; i >= 0; i--) {
-      const date = subDays(today, i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      result.push({
-        date,
-        dateStr,
-        count: data[dateStr] || 0,
-      });
+  const { weeks, monthLabels } = useMemo(() => {
+    const today = new Date();
+    // Start 364 days ago
+    const startDate = subDays(today, 364);
+    // Start on the Monday of that week to align columns
+    const startOfGrid = startOfWeek(startDate, { weekStartsOn: 1 }); // 1 = Monday
+
+    const weeksArray = [];
+    const labels = [];
+    let currentMonth = -1;
+
+    for (let w = 0; w < 53; w++) {
+      const weekDays = [];
+      let weekHasNewMonth = false;
+      let monthForLabel = null;
+
+      for (let d = 0; d < 7; d++) {
+        const date = addDays(startOfGrid, w * 7 + d);
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const month = getMonth(date);
+
+        // Check if the date is within the last 364 days + today
+        const isOutOfRange = date < startDate || date > today;
+
+        if (!isOutOfRange && month !== currentMonth) {
+          currentMonth = month;
+          weekHasNewMonth = true;
+          monthForLabel = date; // Record the date to format the month label
+        }
+
+        weekDays.push({
+          date,
+          dateStr,
+          count: isOutOfRange ? 0 : data[dateStr] || 0,
+          isOutOfRange,
+        });
+      }
+
+      if (weekHasNewMonth && monthForLabel) {
+        // We only want to label the month if it started in this week
+        labels.push({ weekIndex: w, monthName: format(monthForLabel, 'MMM') });
+      }
+
+      weeksArray.push(weekDays);
     }
-    return result;
+
+    return { weeks: weeksArray, monthLabels: labels };
   }, [data]);
 
   const getColor = count => {
-    if (count === 0) return 'bg-gray-100';
-    if (count === 1) return 'bg-blue-200';
-    if (count === 2) return 'bg-blue-400';
-    if (count >= 3) return 'bg-blue-600';
-    return 'bg-gray-100';
+    if (count === 0) return 'bg-gray-100 dark:bg-gray-800';
+    if (count === 1) return 'bg-blue-200 dark:bg-blue-900';
+    if (count === 2) return 'bg-blue-400 dark:bg-blue-700';
+    if (count >= 3) return 'bg-blue-600 dark:bg-blue-500';
+    return 'bg-gray-100 dark:bg-gray-800';
   };
 
   return (
-    <div className='flex flex-wrap gap-1'>
-      {days.map(day => (
-        <Tooltip
-          key={day.dateStr}
-          title={`${day.count} dives on ${format(day.date, 'MMM d, yyyy')}`}
-        >
-          <div className={`w-3 h-3 rounded-sm ${getColor(day.count)} transition-colors`} />
-        </Tooltip>
-      ))}
+    <div className='flex flex-col gap-1 overflow-x-auto pb-2'>
+      {/* Months Row (With padding-left to account for day labels) */}
+      <div className='flex relative h-4 text-xs text-gray-500 dark:text-gray-400 ml-8'>
+        {monthLabels.map((label, index) => (
+          <span
+            key={index}
+            className='absolute text-[10px]'
+            style={{ left: `${label.weekIndex * 16}px` }} // w-3 (12px) + gap-1 (4px)
+          >
+            {label.monthName}
+          </span>
+        ))}
+      </div>
+
+      <div className='flex items-center gap-1'>
+        {/* Day Labels Column - Exactly aligned to Mon and Sun rows */}
+        <div className='flex flex-col justify-between h-[108px] w-7 text-[10px] text-gray-400 dark:text-gray-500 py-px'>
+          <span>Mon</span>
+          <span>Sun</span>
+        </div>
+
+        {/* Grid Body */}
+        <div className='flex gap-1'>
+          {weeks.map((week, wIndex) => (
+            <div key={wIndex} className='flex flex-col gap-1'>
+              {week.map(day =>
+                day.isOutOfRange ? (
+                  <div key={day.dateStr} className='w-3 h-3 rounded-sm bg-transparent' />
+                ) : (
+                  <Tooltip
+                    key={day.dateStr}
+                    title={`${day.count} dives on ${format(day.date, 'MMM d, yyyy')}`}
+                  >
+                    <div
+                      className={`w-3 h-3 rounded-sm ${getColor(day.count)} transition-colors`}
+                    />
+                  </Tooltip>
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
