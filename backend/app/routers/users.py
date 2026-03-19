@@ -630,8 +630,11 @@ async def get_user_public_profile(
         buddy_dives_count=buddy_dives_count or 0
     )
 
-    # Calculate certification stats
-    cert_stats = calculate_certification_stats(user.certifications)
+    # Filter active certifications for public profile
+    active_certifications = [cert for cert in user.certifications if cert.is_active]
+
+    # Calculate certification stats using only active certifications
+    cert_stats = calculate_certification_stats(active_certifications)
 
     # Calculate diving logbook stats
     from datetime import datetime, timedelta
@@ -749,7 +752,7 @@ async def get_user_public_profile(
         is_moderator=user.is_moderator,
         number_of_dives=user.number_of_dives,
         member_since=user.created_at,
-        certifications=user.certifications,
+        certifications=active_certifications,
         social_links=user.social_links,
         stats=stats,
         certification_stats=cert_stats,

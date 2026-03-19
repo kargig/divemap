@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useLocation } from 'react-router-dom';
 
-import { getChatRooms } from '../api';
+import { getChatRooms, getUserFriendships } from '../api';
 import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
 import ChatInbox from '../components/UserChat/ChatInbox';
@@ -30,9 +30,14 @@ const Messages = () => {
     }
   }, [location.state]);
 
-  const { data: rooms = [], isLoading } = useQuery('chat-rooms', getChatRooms, {
+  const { data: rooms = [], isLoading: isRoomsLoading } = useQuery('chat-rooms', getChatRooms, {
     refetchInterval: 10000, // Refresh inbox every 10 seconds
   });
+
+  const { data: friendships = [], isLoading: isFriendshipsLoading } = useQuery(
+    ['user-friendships', 'ACCEPTED'],
+    () => getUserFriendships('ACCEPTED')
+  );
 
   const activeRoom = rooms.find(r => r.id === activeRoomId);
 
@@ -60,7 +65,8 @@ const Messages = () => {
             activeRoomId={activeRoomId}
             onSelectRoom={setActiveRoomId}
             onNewChat={() => setIsNewChatOpen(true)}
-            isLoading={isLoading}
+            isLoading={isRoomsLoading || isFriendshipsLoading}
+            buddyCount={friendships.length}
           />
         </div>
 

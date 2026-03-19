@@ -6,7 +6,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import Avatar from '../Avatar';
 
-const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) => {
+const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, buddyCount }) => {
   const { user } = useAuth();
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
 
@@ -28,9 +28,27 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading }) 
 
   if (rooms.length === 0) {
     return (
-      <div className='flex flex-col items-center justify-center h-full p-8 text-center'>
-        <p className='text-gray-500 italic'>No active conversations yet.</p>
-        <p className='text-sm text-gray-400 mt-2'>Start a chat from a buddy's profile!</p>
+      <div className='flex flex-col items-center justify-center h-full p-8 text-center bg-white dark:bg-gray-800'>
+        <div className='mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-full'>
+          <Edit3 className='h-8 w-8 text-blue-600 dark:text-blue-400' />
+        </div>
+        <h3 className='text-lg font-bold text-gray-900 dark:text-white mb-2'>No messages yet</h3>
+        <p className='text-gray-600 dark:text-gray-400 mb-6'>
+          {buddyCount === 0
+            ? "You need to add buddies before you can start a conversation. Visit other users' public profile pages at /users/<username> to send buddy requests!"
+            : 'Start a new conversation with one of your buddies to see messages here.'}
+        </p>
+        <button
+          onClick={onNewChat}
+          disabled={buddyCount === 0}
+          className={`px-6 py-2 rounded-lg font-medium transition-all ${
+            buddyCount === 0
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+          }`}
+        >
+          New Conversation
+        </button>
       </div>
     );
   }
@@ -127,6 +145,7 @@ ChatInbox.propTypes = {
   onSelectRoom: PropTypes.func.isRequired,
   onNewChat: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
+  buddyCount: PropTypes.number,
 };
 
 export default ChatInbox;

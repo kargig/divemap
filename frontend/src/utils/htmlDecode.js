@@ -12,7 +12,7 @@ export const decodeHtmlEntities = html => {
 
   // Create a reusable element for decoding
   // Note: Since this is used in the replace callback, we don't worry about state
-  const doc = new DOMParser().parseFromString('', 'text/html');
+  const doc = new window.DOMParser().parseFromString('', 'text/html');
   const textarea = doc.createElement('textarea');
 
   // Match entities like &amp;, &#123;, &#xabc;

@@ -636,6 +636,7 @@ class DiveRoute(Base):
     dive_site = relationship("DiveSite", back_populates="routes")
     creator = relationship("User", back_populates="created_routes", foreign_keys=[created_by])
     deleter = relationship("User", foreign_keys=[deleted_by])
+    analytics = relationship("RouteAnalytics", back_populates="route", cascade="all, delete-orphan")
 
     @property
     def is_deleted(self) -> bool:
