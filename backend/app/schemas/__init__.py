@@ -615,6 +615,14 @@ class DivingOrganizationUpdate(BaseModel):
     country: Optional[str] = Field(None, max_length=100)
     founded_year: Optional[int] = Field(None, ge=1800, le=2100)
 
+class DivingOrganizationSummaryResponse(DivingOrganizationBase):
+    id: int
+    view_count: int = 0
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 class DivingOrganizationResponse(DivingOrganizationBase):
     id: int
     view_count: int = 0
@@ -638,7 +646,7 @@ class DivingCenterOrganizationUpdate(BaseModel):
 class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
     id: int
     diving_center_id: int
-    diving_organization: DivingOrganizationResponse
+    diving_organization: DivingOrganizationSummaryResponse
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -662,7 +670,7 @@ class UserCertificationUpdate(BaseModel):
 class UserCertificationResponse(UserCertificationBase):
     id: int
     user_id: int
-    diving_organization: DivingOrganizationResponse
+    diving_organization: DivingOrganizationSummaryResponse
     certification_level_link: Optional[CertificationLevelResponse] = None
     created_at: datetime
     updated_at: datetime
