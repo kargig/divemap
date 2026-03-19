@@ -425,12 +425,8 @@ class TestAuth:
                 "password": "password"
             })
 
-        assert response.status_code == status.HTTP_200_OK  # Login succeeds
-        # But accessing protected endpoints should fail
-        token = response.json()["access_token"]
-        me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
-        assert me_response.status_code == status.HTTP_403_FORBIDDEN
-        assert "User account is disabled" in me_response.json()["detail"]
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Account is disabled or archived" in response.json()["detail"]
 
     def test_login_invalid_username(self, client):
         """Test login with invalid username or email."""

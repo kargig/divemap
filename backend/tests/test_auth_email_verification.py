@@ -150,13 +150,7 @@ class TestAuthEmailVerification:
                 "password": "Password123!"
             })
         
-        # Login should succeed (enabled check happens after login in get_current_active_user)
-        # But accessing protected endpoints should fail
-        assert response.status_code == status.HTTP_200_OK
-        token = response.json()["access_token"]
-        
-        # Accessing protected endpoint should fail
-        me_response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
-        assert me_response.status_code == status.HTTP_403_FORBIDDEN
-        assert "disabled" in me_response.json()["detail"].lower()
+        # Login should fail because the account is disabled (checked during login now)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert "Account is disabled or archived" in response.json()["detail"]
 
