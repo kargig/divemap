@@ -134,6 +134,7 @@ class User(Base):
     email_notifications_opted_out = Column(Boolean, default=False, nullable=False)  # Global email opt-out flag
     email_opt_out_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when user opted out of all emails
     last_accessed_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when user last accessed the application
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Timestamp when user archived their account
 
     # Relationships
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")

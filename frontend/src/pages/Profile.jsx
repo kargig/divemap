@@ -46,7 +46,7 @@ import { slugify } from '../utils/slugify';
 const Profile = () => {
   // Set page title
   usePageTitle('Divemap - Profile');
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isAddingCertification, setIsAddingCertification] = useState(false);
@@ -244,6 +244,26 @@ const Profile = () => {
       },
     }
   );
+
+  const deleteAccountMutation = useMutation(() => api.delete('/api/v1/users/me'), {
+    onSuccess: () => {
+      toast.success('Your account has been successfully archived.');
+      logout(); // Logs the user out and redirects to home
+    },
+    onError: error => {
+      toast.error(error.response?.data?.detail || 'Failed to archive account');
+    },
+  });
+
+  const handleDeleteAccount = () => {
+    if (
+      window.confirm(
+        'DANGER: Are you sure you want to archive your account?\n\nThis will hide your profile and log you out immediately. To restore your account in the future, you will need to contact an administrator.'
+      )
+    ) {
+      deleteAccountMutation.mutate();
+    }
+  };
 
   // Fetch certifications and organizations using react-query
   const { data: certifications = [], refetch: refetchCertifications } = useQuery(
@@ -1190,9 +1210,13 @@ const Profile = () => {
             </div>
 
             <div className='mt-8 pt-6 border-t'>
-              <button className='flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors'>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteAccountMutation.isLoading}
+                className='flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50'
+              >
                 <Trash2 size={18} className='mr-3' />
-                Delete Account
+                {deleteAccountMutation.isLoading ? 'Archiving...' : 'Archive Account'}
               </button>
             </div>
           </div>

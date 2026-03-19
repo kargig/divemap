@@ -5,7 +5,16 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
-import { Edit, Trash2, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+  Archive,
+} from 'lucide-react';
 import PropTypes from 'prop-types';
 
 import Pagination from '../ui/Pagination';
@@ -26,6 +35,8 @@ const AdminUsersTable = ({
   onColumnVisibilityChange,
   onEdit,
   onDelete,
+  onRestore,
+  onHardDelete,
   isLoading = false,
   currentUserId = null, // To disable selection for current user
 }) => {
@@ -186,26 +197,49 @@ const AdminUsersTable = ({
                           className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50'
                         />
                         <h3 className='text-sm font-semibold text-gray-900'>{user.username}</h3>
+                        {user.deleted_at && (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 uppercase tracking-wider ml-2'>
+                            Archived
+                          </span>
+                        )}
                       </div>
                       <p className='text-xs text-gray-600'>{user.email}</p>
                     </div>
                     <div className='flex space-x-2'>
                       <button
                         onClick={() => onEdit(user)}
-                        className='text-blue-600 hover:text-blue-900'
+                        className='text-blue-600 hover:text-blue-900 p-1'
                         title='Edit user'
                       >
                         <Edit className='h-4 w-4' />
                       </button>
-                      {!isCurrentUser && (
-                        <button
-                          onClick={() => onDelete(user)}
-                          className='text-red-600 hover:text-red-900'
-                          title='Delete user'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </button>
-                      )}
+                      {!isCurrentUser &&
+                        (user.deleted_at ? (
+                          <>
+                            <button
+                              onClick={() => onRestore(user)}
+                              className='text-yellow-600 hover:text-yellow-900 p-1'
+                              title='Restore user'
+                            >
+                              <RotateCcw className='h-4 w-4' />
+                            </button>
+                            <button
+                              onClick={() => onHardDelete(user)}
+                              className='text-red-600 hover:text-red-900 p-1'
+                              title='Permanently delete user'
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => onDelete(user)}
+                            className='text-orange-600 hover:text-orange-900 p-1'
+                            title='Archive user'
+                          >
+                            <Archive className='h-4 w-4' />
+                          </button>
+                        ))}
                     </div>
                   </div>
                   <div className='grid grid-cols-2 gap-2 text-xs'>
@@ -285,6 +319,8 @@ AdminUsersTable.propTypes = {
   onColumnVisibilityChange: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onRestore: PropTypes.func.isRequired,
+  onHardDelete: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
   currentUserId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };

@@ -1,4 +1,16 @@
-import { Trash2, Edit, Plus, X, Loader, Save, Download, Columns, Search } from 'lucide-react';
+import {
+  Trash2,
+  Edit,
+  Plus,
+  X,
+  Loader,
+  Save,
+  Download,
+  Columns,
+  Search,
+  RotateCcw,
+  Archive,
+} from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -237,12 +249,38 @@ const AdminUsers = () => {
   const deleteUserMutation = useMutation(id => api.delete(`/api/v1/users/admin/users/${id}`), {
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-users']);
-      toast.success('User deleted successfully!');
+      toast.success('User archived successfully!');
     },
     onError: _error => {
-      toast.error('Failed to delete user');
+      toast.error('Failed to archive user');
     },
   });
+
+  const restoreUserMutation = useMutation(
+    id => api.post(`/api/v1/users/admin/users/${id}/restore`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        toast.success('User restored successfully!');
+      },
+      onError: _error => {
+        toast.error('Failed to restore user');
+      },
+    }
+  );
+
+  const hardDeleteUserMutation = useMutation(
+    id => api.delete(`/api/v1/users/admin/users/${id}?force=true`),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        toast.success('User permanently deleted!');
+      },
+      onError: _error => {
+        toast.error('Failed to permanently delete user');
+      },
+    }
+  );
 
   // Mass delete mutation
   const massDeleteMutation = useMutation(
@@ -252,10 +290,25 @@ const AdminUsers = () => {
         queryClient.invalidateQueries(['admin-users']);
         setRowSelection({});
         const selectedCount = Object.keys(rowSelection).length;
-        toast.success(`${selectedCount} user(s) deleted successfully!`);
+        toast.success(`${selectedCount} user(s) archived successfully!`);
       },
       onError: _error => {
-        toast.error('Failed to delete some users');
+        toast.error('Failed to archive some users');
+      },
+    }
+  );
+
+  const massHardDeleteMutation = useMutation(
+    ids => Promise.all(ids.map(id => api.delete(`/api/v1/users/admin/users/${id}?force=true`))),
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['admin-users']);
+        setRowSelection({});
+        const selectedCount = Object.keys(rowSelection).length;
+        toast.success(`${selectedCount} user(s) permanently deleted!`);
+      },
+      onError: _error => {
+        toast.error('Failed to permanently delete some users');
       },
     }
   );
@@ -271,10 +324,27 @@ const AdminUsers = () => {
 
     if (
       window.confirm(
-        `Are you sure you want to delete ${selectedIds.length} user(s)?\n\n${itemNames.join('\n')}`
+        `Are you sure you want to archive ${selectedIds.length} user(s)?\n\nThese users will be hidden and no longer be able to log in.\n\n${itemNames.join('\n')}`
       )
     ) {
       massDeleteMutation.mutate(selectedIds.map(id => parseInt(id)));
+    }
+  };
+
+  const handleMassHardDelete = () => {
+    const selectedIds = Object.keys(rowSelection);
+    if (selectedIds.length === 0) return;
+
+    const itemNames = selectedIds
+      .map(id => users?.find(userItem => userItem.id === parseInt(id))?.username)
+      .filter(Boolean);
+
+    if (
+      window.confirm(
+        `DANGER: Are you sure you want to PERMANENTLY delete ${selectedIds.length} user(s)?\n\nThis action cannot be undone and will permanently remove all associated data.\n\n${itemNames.join('\n')}`
+      )
+    ) {
+      massHardDeleteMutation.mutate(selectedIds.map(id => parseInt(id)));
     }
   };
 
@@ -320,12 +390,41 @@ const AdminUsers = () => {
 
   const handleDeleteUser = userItem => {
     if (userItem.id === user?.id) {
-      toast.error('You cannot delete your own account');
+      toast.error('You cannot archive your own account from here');
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete the user "${userItem.username}"?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to archive the user "${userItem.username}"?\n\nThe user's profile will be hidden and they will no longer be able to log in.`
+      )
+    ) {
       deleteUserMutation.mutate(userItem.id);
+    }
+  };
+
+  const handleRestoreUser = userItem => {
+    if (
+      window.confirm(
+        `Are you sure you want to restore the archived user "${userItem.username}"?\n\nTheir profile will become visible and they will be able to log in again.`
+      )
+    ) {
+      restoreUserMutation.mutate(userItem.id);
+    }
+  };
+
+  const handleHardDeleteUser = userItem => {
+    if (userItem.id === user?.id) {
+      toast.error('You cannot hard delete your own account');
+      return;
+    }
+
+    if (
+      window.confirm(
+        `DANGER: Are you sure you want to PERMANENTLY delete the user "${userItem.username}"?\n\nThis action cannot be undone and will permanently remove all associated data.`
+      )
+    ) {
+      hardDeleteUserMutation.mutate(userItem.id);
     }
   };
 
@@ -396,6 +495,21 @@ const AdminUsers = () => {
         header: 'Username',
         enableSorting: true,
         size: 150,
+        cell: ({ row }) => {
+          const userItem = row.original;
+          return (
+            <div className='flex items-center gap-2'>
+              <span className='font-medium text-gray-900 truncate max-w-[120px]'>
+                {userItem.username}
+              </span>
+              {userItem.deleted_at && (
+                <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-800 uppercase tracking-wider flex-shrink-0'>
+                  Archived
+                </span>
+              )}
+            </div>
+          );
+        },
       },
       {
         id: 'email',
@@ -567,15 +681,33 @@ const AdminUsers = () => {
               >
                 <Edit className='h-4 w-4' />
               </button>
-              {!isCurrentUser && (
-                <button
-                  onClick={() => handleDeleteUser(userItem)}
-                  className='text-red-600 hover:text-red-900'
-                  title='Delete user'
-                >
-                  <Trash2 className='h-4 w-4' />
-                </button>
-              )}
+              {!isCurrentUser &&
+                (userItem.deleted_at ? (
+                  <>
+                    <button
+                      onClick={() => handleRestoreUser(userItem)}
+                      className='text-yellow-600 hover:text-yellow-900'
+                      title='Restore user'
+                    >
+                      <RotateCcw className='h-4 w-4' />
+                    </button>
+                    <button
+                      onClick={() => handleHardDeleteUser(userItem)}
+                      className='text-red-600 hover:text-red-900'
+                      title='Permanently delete user'
+                    >
+                      <Trash2 className='h-4 w-4' />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleDeleteUser(userItem)}
+                    className='text-orange-600 hover:text-orange-900'
+                    title='Archive user'
+                  >
+                    <Archive className='h-4 w-4' />
+                  </button>
+                ))}
             </div>
           );
         },
@@ -771,14 +903,24 @@ const AdminUsers = () => {
                 {Object.keys(rowSelection).length} item(s) selected
               </span>
             </div>
-            <button
-              onClick={handleMassDelete}
-              disabled={massDeleteMutation.isLoading}
-              className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete Selected ({Object.keys(rowSelection).length})
-            </button>
+            <div className='flex gap-2'>
+              <button
+                onClick={handleMassDelete}
+                disabled={massDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
+              >
+                <Archive className='h-4 w-4 mr-2' />
+                Archive Selected ({Object.keys(rowSelection).length})
+              </button>
+              <button
+                onClick={handleMassHardDelete}
+                disabled={massHardDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+              >
+                <Trash2 className='h-4 w-4 mr-2' />
+                Hard Delete Selected
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1063,6 +1205,8 @@ const AdminUsers = () => {
         onColumnVisibilityChange={setColumnVisibility}
         onEdit={handleEditUser}
         onDelete={handleDeleteUser}
+        onRestore={handleRestoreUser}
+        onHardDelete={handleHardDeleteUser}
         isLoading={isLoading}
         currentUserId={user?.id}
       />

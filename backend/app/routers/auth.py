@@ -213,6 +213,13 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Check if user is enabled
+    if not user.enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is disabled or archived",
+        )
+
     # Check if email verification is required
     email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
     if email_verification_required and not user.email_verified:

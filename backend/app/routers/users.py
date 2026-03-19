@@ -357,6 +357,7 @@ async def update_user(
 @router.delete("/admin/users/{user_id}")
 async def delete_user(
     user_id: int,
+    force: bool = Query(False, description="Hard delete (admin only)"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
@@ -376,16 +377,63 @@ async def delete_user(
             detail="Cannot delete your own account"
         )
 
-    # Delete related email verification tokens first to avoid foreign key issues
-    from app.models import EmailVerificationToken
-    db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == db_user.id).delete()
+    if force:
+        # Delete related email verification tokens first to avoid foreign key issues
+        from app.models import EmailVerificationToken
+        db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == db_user.id).delete()
 
-    db.delete(db_user)
+        db.delete(db_user)
+        message = "User permanently deleted"
+    else:
+        from datetime import datetime, timezone
+        db_user.deleted_at = datetime.now(timezone.utc)
+        db_user.enabled = False
+        message = "User archived successfully"
+
     db.commit()
 
-    return {"message": "User deleted successfully"}
+    return {"message": message}
+
+@router.post("/admin/users/{user_id}/restore")
+async def restore_user(
+    user_id: int,
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Restore an archived user (admin only)"""
+    db_user = db.query(User).filter(User.id == user_id).first()
+
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if db_user.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not archived"
+        )
+
+    db_user.deleted_at = None
+    db_user.enabled = True
+    db.commit()
+
+    return {"message": "User restored successfully"}
 
 # Regular user endpoints
+@router.delete("/me")
+async def delete_current_user(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Archive current user account (soft delete)"""
+    from datetime import datetime, timezone
+    current_user.deleted_at = datetime.now(timezone.utc)
+    current_user.enabled = False
+    db.commit()
+    return {"message": "Account archived successfully"}
+
 @router.put("/me", response_model=UserResponse)
 async def update_current_user_profile(
     user_update: UserUpdate,

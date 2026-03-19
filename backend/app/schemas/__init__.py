@@ -127,6 +127,7 @@ class UserResponse(UserBase):
     buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime
+    deleted_at: Optional[datetime] = None
     social_links: List[UserSocialLinkResponse] = []
 
     @field_validator('created_at', 'updated_at', mode='before')
@@ -191,6 +192,7 @@ class UserListResponse(BaseModel):
     email_verified_at: Optional[datetime] = None
     created_at: datetime
     last_accessed_at: Optional[datetime] = None
+    deleted_at: Optional[datetime] = None
 
     @field_validator('created_at', 'email_verified_at', 'last_accessed_at', mode='before')
     @classmethod
@@ -730,6 +732,7 @@ class UserPublicProfileResponse(BaseModel):
     is_moderator: bool = False
     number_of_dives: int
     member_since: datetime
+    deleted_at: Optional[datetime] = None
     certifications: List[UserCertificationResponse] = []
     social_links: List[UserSocialLinkResponse] = []
     stats: UserProfileStats

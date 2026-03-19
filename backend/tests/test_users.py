@@ -278,7 +278,7 @@ class TestAdminUserManagement:
                                headers=admin_headers)
 
         assert response.status_code == status.HTTP_200_OK
-        assert "User deleted successfully" in response.json()["message"]
+        assert "User archived successfully" in response.json()["message"]
 
     def test_delete_user_non_admin(self, client, auth_headers, test_user):
         """Test deleting user as non-admin user."""
