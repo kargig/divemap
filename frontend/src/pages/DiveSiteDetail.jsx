@@ -63,6 +63,7 @@ import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
+import UnprocessableEntity from './UnprocessableEntity';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
@@ -109,7 +110,7 @@ const DiveSiteDetail = () => {
   } = useQuery(['dive-site', id], () => api.get(`/api/v1/dive-sites/${id}`), {
     select: response => response.data,
     retry: (failureCount, error) => {
-      if (error.response?.status === 404) return false;
+      if (error.response?.status === 404 || error.response?.status === 422) return false;
       return failureCount < 3;
     },
     onSuccess: _data => {},
@@ -401,6 +402,10 @@ const DiveSiteDetail = () => {
 
     if (error.response?.status === 404) {
       return <NotFound />;
+    }
+
+    if (error.response?.status === 422) {
+      return <UnprocessableEntity />;
     }
 
     return (

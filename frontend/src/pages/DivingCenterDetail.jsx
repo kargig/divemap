@@ -44,6 +44,7 @@ import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
+import UnprocessableEntity from './UnprocessableEntity';
 
 // Use extractErrorMessage from api.js
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
@@ -79,7 +80,7 @@ const DivingCenterDetail = () => {
     {
       enabled: !!id,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 3;
       },
       retryDelay: 1000,
@@ -119,7 +120,7 @@ const DivingCenterDetail = () => {
     {
       enabled: !!id && !!center,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 3;
       },
       retryDelay: 1000,
@@ -151,7 +152,7 @@ const DivingCenterDetail = () => {
       select: response => response.data,
       enabled: !!id && !!center,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 3;
       },
       retryDelay: 1000,
@@ -215,7 +216,7 @@ const DivingCenterDetail = () => {
     {
       enabled: !!id && !!center, // Fetch for all users to show preview
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 2;
       },
       staleTime: 2 * 60 * 1000, // 2 minutes
@@ -510,6 +511,10 @@ const DivingCenterDetail = () => {
 
     if (error.response?.status === 404) {
       return <NotFound />;
+    }
+
+    if (error.response?.status === 422) {
+      return <UnprocessableEntity />;
     }
 
     return (

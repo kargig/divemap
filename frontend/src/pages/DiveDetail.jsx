@@ -79,6 +79,7 @@ import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
+import UnprocessableEntity from './UnprocessableEntity';
 
 const AdvancedDiveProfileChart = lazy(() => import('../components/AdvancedDiveProfileChart'));
 
@@ -207,7 +208,7 @@ const DiveDetail = () => {
     {
       enabled: !!id,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 3;
       },
     }
@@ -568,6 +569,10 @@ const DiveDetail = () => {
 
     if (error.response?.status === 404) {
       return <NotFound />;
+    }
+
+    if (error.response?.status === 422) {
+      return <UnprocessableEntity />;
     }
 
     let errorMessage = 'Unknown error occurred';

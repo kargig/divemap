@@ -42,6 +42,7 @@ import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
+import UnprocessableEntity from './UnprocessableEntity';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -794,6 +795,10 @@ const RouteDetail = () => {
   if (error) {
     if (error.response?.status === 404) {
       return <NotFound />;
+    }
+
+    if (error.response?.status === 422) {
+      return <UnprocessableEntity />;
     }
 
     return (

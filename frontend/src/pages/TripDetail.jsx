@@ -17,6 +17,7 @@ import { renderTextWithLinks } from '../utils/textHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 import NotFound from './NotFound';
+import UnprocessableEntity from './UnprocessableEntity';
 
 const TripDetail = () => {
   const { id, slug } = useParams();
@@ -32,7 +33,7 @@ const TripDetail = () => {
   } = useQuery(['parsedTrip', id], () => getParsedTrip(id), {
     enabled: !!id,
     retry: (failureCount, error) => {
-      if (error.response?.status === 404) return false;
+      if (error.response?.status === 404 || error.response?.status === 422) return false;
       return failureCount < 1;
     },
   });
@@ -55,7 +56,7 @@ const TripDetail = () => {
     {
       enabled: !!trip?.dive_site_id,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 1;
       },
     }
@@ -67,7 +68,7 @@ const TripDetail = () => {
     {
       enabled: !!trip?.diving_center_id,
       retry: (failureCount, error) => {
-        if (error.response?.status === 404) return false;
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
         return failureCount < 1;
       },
     }
@@ -215,6 +216,9 @@ const TripDetail = () => {
   if (tripError) {
     if (tripError.response?.status === 404) {
       return <NotFound />;
+    }
+    if (tripError.response?.status === 422) {
+      return <UnprocessableEntity />;
     }
     return (
       <div className='text-center py-8'>
