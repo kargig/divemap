@@ -1,6 +1,6 @@
-import { X, Send, Trash2, Maximize2, Minimize2, Lock } from 'lucide-react';
+import { X, Send, Trash2, Maximize2, Minimize2, Lock, History } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import ChatbotIcon from './ChatbotIcon';
 import MessageBubble from './MessageBubble';
@@ -17,10 +17,12 @@ const ChatWindow = ({
   isAuthenticated = false,
   isExpanded = false,
   onToggleExpand,
+  isEmbedded = false, // New prop to hide close/expand when embedded in the Messages page
 }) => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -100,14 +102,31 @@ const ChatWindow = ({
   }, [messages.length, context.context_entity_type]);
 
   return (
-    <div className='flex flex-col h-full bg-white dark:bg-gray-900 shadow-2xl rounded-t-2xl md:rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700'>
+    <div
+      className={`flex flex-col h-full bg-white dark:bg-gray-900 shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 ${isEmbedded ? 'rounded-none border-0' : 'rounded-t-2xl md:rounded-2xl'}`}
+    >
       {/* Header */}
-      <div className='flex items-center justify-between px-4 py-3 bg-blue-600 text-white shrink-0'>
+      <div
+        className={`flex items-center px-4 py-3 bg-blue-600 text-white shrink-0 ${isEmbedded ? 'justify-center relative' : 'justify-between'}`}
+      >
         <div className='flex items-center gap-2'>
           <ChatbotIcon size={20} className='text-blue-100' />
           <h3 className='font-semibold text-sm'>Divemap Assistant</h3>
         </div>
-        <div className='flex items-center gap-1'>
+
+        <div className={`flex items-center gap-1 ${isEmbedded ? 'absolute right-4' : ''}`}>
+          {isAuthenticated && (
+            <button
+              onClick={() => {
+                if (onClose) onClose(); // Close the floating widget if it's open
+                navigate('/ai-chat-history');
+              }}
+              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
+              title='View Chat History'
+            >
+              <History size={16} />
+            </button>
+          )}
           {isAuthenticated && messages.length > 0 && (
             <button
               data-testid='chat-clear-button'
@@ -119,22 +138,26 @@ const ChatWindow = ({
             </button>
           )}
           {/* Expand/Collapse Button (Desktop only) */}
-          <button
-            data-testid='chat-expand-button'
-            onClick={onToggleExpand}
-            className='p-1.5 hover:bg-blue-700 rounded-full transition-colors hidden md:block'
-            title={isExpanded ? 'Collapse' : 'Expand'}
-          >
-            {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-          </button>
-          <button
-            data-testid='chat-close-button'
-            onClick={onClose}
-            className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
-            title='Close'
-          >
-            <X size={18} />
-          </button>
+          {!isEmbedded && (
+            <button
+              data-testid='chat-expand-button'
+              onClick={onToggleExpand}
+              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors hidden md:block'
+              title={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          )}
+          {!isEmbedded && (
+            <button
+              data-testid='chat-close-button'
+              onClick={onClose}
+              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
+              title='Close'
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
       </div>
 

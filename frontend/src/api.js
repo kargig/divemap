@@ -309,6 +309,26 @@ export const submitChatFeedback = async (
   }
 };
 
+// Get last interaction with AI Assistant
+export const getAIChatLastActivity = async () => {
+  try {
+    const response = await api.get('/api/v1/chat/last-activity');
+    return response.data;
+  } catch (error) {
+    throw extractErrorMessage(error);
+  }
+};
+
+export const getAIChatSessions = async (params = {}) => {
+  const response = await api.get('/api/v1/chat/sessions', { params });
+  return response.data;
+};
+
+export const getAIChatSessionDetail = async sessionId => {
+  const response = await api.get(`/api/v1/chat/sessions/${sessionId}`);
+  return response.data;
+};
+
 // Admin Chat Feedback APIs
 export const getAdminChatFeedback = async (params = {}) => {
   const response = await api.get('/api/v1/admin/chat/feedback', { params });

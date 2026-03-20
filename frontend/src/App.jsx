@@ -37,6 +37,8 @@ const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminAuditLogs = lazy(() => import('./pages/AdminAuditLogs'));
 const AdminChatFeedback = lazy(() => import('./pages/AdminChatFeedback'));
 const AdminChatHistory = lazy(() => import('./pages/AdminChatHistory'));
+const AIChatHistory = lazy(() => import('./pages/AIChatHistory'));
+const AIChatHistoryDetail = lazy(() => import('./pages/AIChatHistoryDetail'));
 const API = lazy(() => import('./pages/API'));
 const Changelog = lazy(() => import('./pages/Changelog'));
 const CheckYourEmail = lazy(() => import('./pages/CheckYourEmail'));
@@ -197,7 +199,30 @@ function App() {
                     <Route path='/forgot-password' element={<ForgotPassword />} />
                     <Route path='/reset-password' element={<ResetPassword />} />
                     <Route path='/register' element={<Register />} />
-                    <Route path='/messages' element={<Messages />} />
+                    <Route
+                      path='/messages'
+                      element={
+                        <ProtectedRoute>
+                          <Messages />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/ai-chat-history'
+                      element={
+                        <ProtectedRoute>
+                          <AIChatHistory />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/ai-chat-history/:id'
+                      element={
+                        <ProtectedRoute>
+                          <AIChatHistoryDetail />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path='/verify-email' element={<VerifyEmail />} />
                     <Route path='/check-email' element={<CheckYourEmail />} />
                     <Route path='/unsubscribe' element={<Unsubscribe />} />

@@ -244,6 +244,25 @@ Page Context: {page_context_summary}
                                 **args
                             )
                         )
+                    elif name == "get_weather_suitability":
+                        dummy_results = [{
+                            "entity_type": "location",
+                            "name": args.get("location", "Requested Location"),
+                            "latitude": args.get("latitude"),
+                            "longitude": args.get("longitude")
+                        }]
+                        await run_in_threadpool(
+                            lambda: enrich_results_with_weather(
+                                db=self.db,
+                                results=dummy_results,
+                                intent_date=args.get("date"),
+                                intent_time=args.get("time"),
+                                intent_lat=args.get("latitude"),
+                                intent_lon=args.get("longitude"),
+                                intent_location=args.get("location")
+                            )
+                        )
+                        tool_result = dummy_results
                     elif name == "ask_user_for_clarification":
                         final_response_text = args["question"]
                         intermediate_steps.append(ChatIntermediateAction(

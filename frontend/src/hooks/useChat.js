@@ -13,7 +13,7 @@ export const useChat = (context = {}) => {
       if (!text.trim()) return;
 
       // 1. Add user message
-      const userMessage = { role: 'user', content: text };
+      const userMessage = { role: 'user', content: text, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, userMessage]);
       setIsLoading(true);
 
@@ -37,6 +37,7 @@ export const useChat = (context = {}) => {
           message_id: response.message_id,
           sources: response.sources,
           intent: response.intent,
+          timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, botMessage]);
       } catch (error) {
@@ -48,6 +49,7 @@ export const useChat = (context = {}) => {
           {
             role: 'system',
             content: 'Sorry, I encountered an error. Please try again later.',
+            timestamp: new Date().toISOString(),
           },
         ]);
       } finally {
