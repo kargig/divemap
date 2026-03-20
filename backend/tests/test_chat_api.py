@@ -58,7 +58,7 @@ class TestChatAPI:
         })
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.json()["message"] == "Feedback submitted successfully"
+        assert response.json()["message"] == "Feedback recorded successfully"
 
     def test_admin_get_feedback_unauthorized(self, client, auth_headers):
         """Test that regular users cannot access admin feedback (Forbidden)."""
