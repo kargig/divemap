@@ -80,10 +80,13 @@ const AdminChatHistory = () => {
     () => [
       {
         accessorKey: 'id',
-        header: 'Session ID',
+        header: 'Session',
         cell: ({ row }) => (
-          <span className='font-mono text-gray-500 truncate max-w-[120px] block'>
-            {row.original.id}
+          <span
+            className='font-medium text-blue-600 truncate max-w-[250px] block'
+            title={row.original.first_question || row.original.id}
+          >
+            {row.original.first_question ? `"${row.original.first_question}"` : row.original.id}
           </span>
         ),
       },
@@ -95,6 +98,13 @@ const AdminChatHistory = () => {
             <UserIcon size={14} className='text-gray-400' />
             {row.original.user?.username || `User #${row.original.user_id}`}
           </div>
+        ),
+      },
+      {
+        accessorKey: 'prompt_count',
+        header: 'Prompts',
+        cell: ({ row }) => (
+          <span className='font-mono text-gray-600'>{row.original.prompt_count || 0}</span>
         ),
       },
       {

@@ -18,6 +18,7 @@ import {
   Settings,
   ExternalLink,
   Link as LinkIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -1174,6 +1175,13 @@ const Profile = () => {
               >
                 <Users size={18} className='mr-3' />
                 Manage Buddies
+              </Link>
+              <Link
+                to='/ai-chat-history'
+                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+              >
+                <MessageSquare size={18} className='mr-3' />
+                AI Chat History
               </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}

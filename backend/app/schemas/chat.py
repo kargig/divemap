@@ -130,6 +130,8 @@ class ChatSessionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     total_tokens: int = 0
+    first_question: Optional[str] = None
+    prompt_count: int = 0
     
     class Config:
         from_attributes = True

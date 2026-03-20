@@ -1,21 +1,34 @@
 import { format } from 'date-fns';
 import { ChevronLeft, MessageSquare, Loader2 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import { getAIChatSessions } from '../api';
 import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
+import Pagination from '../components/ui/Pagination';
 
 const AIChatHistory = () => {
-  const {
-    data: sessions,
-    isLoading,
-    error,
-  } = useQuery(['ai-chat-sessions'], () => getAIChatSessions());
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 20,
+  });
 
-  if (isLoading) {
+  const { data, isLoading, error } = useQuery(
+    ['ai-chat-sessions', pagination],
+    () =>
+      getAIChatSessions({
+        limit: pagination.pageSize,
+        offset: pagination.pageIndex * pagination.pageSize,
+      }),
+    { keepPreviousData: true }
+  );
+
+  const sessions = data?.sessions || [];
+  const totalCount = data?.totalCount || 0;
+
+  if (isLoading && !data) {
     return (
       <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
         <Loader2 className='w-8 h-8 text-blue-600 animate-spin' />
@@ -72,10 +85,17 @@ const AIChatHistory = () => {
                         <div className='min-w-0 flex-1 px-4'>
                           <div>
                             <p className='text-sm font-medium text-blue-600 truncate'>
-                              Session {session.id.slice(0, 8)}...
+                              {session.first_question
+                                ? `"${session.first_question}"`
+                                : `Session ${session.id.slice(0, 8)}...`}
                             </p>
-                            <p className='mt-1 flex items-center text-sm text-gray-500'>
-                              {format(new Date(session.updated_at), 'PPP p')}
+                            <p className='mt-1 flex items-center text-sm text-gray-500 space-x-2'>
+                              <span>{format(new Date(session.updated_at), 'PPP p')}</span>
+                              <span>&bull;</span>
+                              <span>
+                                {session.prompt_count}{' '}
+                                {session.prompt_count === 1 ? 'prompt' : 'prompts'}
+                              </span>
                             </p>
                           </div>
                         </div>
@@ -94,6 +114,21 @@ const AIChatHistory = () => {
             </div>
           )}
         </div>
+
+        {totalCount > 0 && (
+          <div className='mt-6'>
+            <Pagination
+              currentPage={pagination.pageIndex + 1}
+              pageSize={pagination.pageSize}
+              totalCount={totalCount}
+              itemName='chat sessions'
+              onPageChange={newPage => setPagination(prev => ({ ...prev, pageIndex: newPage - 1 }))}
+              onPageSizeChange={newPageSize =>
+                setPagination(prev => ({ ...prev, pageIndex: 0, pageSize: newPageSize }))
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );

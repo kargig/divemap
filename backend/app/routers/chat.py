@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional, List
 
@@ -82,6 +82,7 @@ async def get_last_activity(
 
 @router.get("/sessions", response_model=List[ChatSessionResponse])
 async def get_my_chat_sessions(
+    response: Response,
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
@@ -97,13 +98,45 @@ async def get_my_chat_sessions(
 
     query = db.query(ChatSession, func.coalesce(token_subquery.c.total_tokens, 0))\
         .outerjoin(token_subquery, ChatSession.id == token_subquery.c.session_id)\
-        .filter(ChatSession.user_id == current_user.id)
+        .filter(ChatSession.user_id == current_user.id)\
+        .filter(ChatSession.messages.any(ChatMessage.role == "user"))
+
+    total_count = query.count()
+    response.headers["X-Total-Count"] = str(total_count)
 
     results = query.order_by(desc(ChatSession.updated_at)).offset(offset).limit(limit).all()
+
+    session_ids = [s.id for s, _ in results]
+    prompt_counts = {}
+    first_questions = {}
+    
+    if session_ids:
+        counts = db.query(
+            ChatMessage.session_id,
+            func.count(ChatMessage.id).label("count")
+        ).filter(
+            ChatMessage.session_id.in_(session_ids),
+            ChatMessage.role == "user"
+        ).group_by(ChatMessage.session_id).all()
+        prompt_counts = {row.session_id: row.count for row in counts}
+        
+        user_messages = db.query(
+            ChatMessage.session_id, 
+            ChatMessage.content
+        ).filter(
+            ChatMessage.session_id.in_(session_ids),
+            ChatMessage.role == "user"
+        ).order_by(ChatMessage.created_at).all()
+        
+        for msg in user_messages:
+            if msg.session_id not in first_questions:
+                first_questions[msg.session_id] = msg.content
 
     response = []
     for session, total_tokens in results:
         session.total_tokens = int(total_tokens) if total_tokens else 0
+        session.first_question = first_questions.get(session.id)
+        session.prompt_count = prompt_counts.get(session.id, 0)
         response.append(session)
 
     return response

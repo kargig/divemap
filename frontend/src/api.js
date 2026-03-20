@@ -321,7 +321,10 @@ export const getAIChatLastActivity = async () => {
 
 export const getAIChatSessions = async (params = {}) => {
   const response = await api.get('/api/v1/chat/sessions', { params });
-  return response.data;
+  return {
+    sessions: response.data,
+    totalCount: parseInt(response.headers['x-total-count'] || '0', 10),
+  };
 };
 
 export const getAIChatSessionDetail = async sessionId => {

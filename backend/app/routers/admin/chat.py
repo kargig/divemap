@@ -33,18 +33,47 @@ async def get_chat_sessions(
 
     query = db.query(ChatSession, func.coalesce(token_subquery.c.total_tokens, 0))\
         .outerjoin(token_subquery, ChatSession.id == token_subquery.c.session_id)\
-        .options(joinedload(ChatSession.user))
+        .options(joinedload(ChatSession.user))\
+        .filter(ChatSession.messages.any(ChatMessageModel.role == "user"))
 
     if username:
         query = query.join(ChatSession.user).filter(User.username.ilike(f"%{username}%"))
         
     results = query.order_by(desc(ChatSession.updated_at)).offset(offset).limit(limit).all()
     
+    session_ids = [s.id for s, _ in results]
+    prompt_counts = {}
+    first_questions = {}
+    
+    if session_ids:
+        counts = db.query(
+            ChatMessageModel.session_id,
+            func.count(ChatMessageModel.id).label("count")
+        ).filter(
+            ChatMessageModel.session_id.in_(session_ids),
+            ChatMessageModel.role == "user"
+        ).group_by(ChatMessageModel.session_id).all()
+        prompt_counts = {row.session_id: row.count for row in counts}
+        
+        user_messages = db.query(
+            ChatMessageModel.session_id, 
+            ChatMessageModel.content
+        ).filter(
+            ChatMessageModel.session_id.in_(session_ids),
+            ChatMessageModel.role == "user"
+        ).order_by(ChatMessageModel.created_at).all()
+        
+        for msg in user_messages:
+            if msg.session_id not in first_questions:
+                first_questions[msg.session_id] = msg.content
+
     # Map results to response
     response = []
     for session, total_tokens in results:
         # Attach the calculated value (Pydantic will pick it up)
         session.total_tokens = int(total_tokens) if total_tokens else 0
+        session.first_question = first_questions.get(session.id)
+        session.prompt_count = prompt_counts.get(session.id, 0)
         response.append(session)
         
     return response
