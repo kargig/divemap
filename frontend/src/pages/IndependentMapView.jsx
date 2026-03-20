@@ -963,8 +963,8 @@ const IndependentMapView = () => {
             {/* Collapsible Controls Section */}
             {showMobileControls && (
               <div className='mt-4 pt-4 border-t border-gray-200'>
-                <div className='flex items-center justify-between'>
-                  <div className='flex items-center space-x-1 sm:space-x-2 flex-wrap gap-1 sm:gap-0 max-w-full overflow-hidden'>
+                <div className='flex items-center'>
+                  <div className='flex items-center flex-nowrap space-x-0.5 sm:space-x-2 max-w-full overflow-x-auto pb-1 no-scrollbar'>
                     {/* Performance indicator - Hidden on mobile */}
                     {performanceMetrics.dataPoints > 0 && (
                       <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
@@ -976,7 +976,7 @@ const IndependentMapView = () => {
                     {/* Filter button - Smaller on mobile */}
                     <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
                         showFilters
                           ? 'bg-blue-100 text-blue-600'
                           : hasActiveFilters()
@@ -985,7 +985,7 @@ const IndependentMapView = () => {
                       }`}
                       title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
                     >
-                      <Filter className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      <Filter className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                     </button>
 
                     {/* Layers button - Smaller on mobile */}
@@ -993,31 +993,31 @@ const IndependentMapView = () => {
                       onClick={() => {
                         setShowLayers(!showLayers);
                       }}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
                         showLayers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'
                       }`}
                       title='Map layers'
                     >
-                      <Layers className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      <Layers className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                     </button>
 
                     {/* Wind Overlay Toggle - only show for dive sites */}
                     {selectedEntityType === 'dive-sites' && (
-                      <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden'>
+                      <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden scale-[0.85] sm:scale-100 origin-left'>
                         <WindOverlayToggle
                           isOverlayEnabled={windOverlayEnabled}
                           onToggle={handleWindOverlayToggle}
                           zoomLevel={currentZoom}
                           isLoading={isWindLoading}
                           disabled={false}
-                          className='!rounded-none !border-none !shadow-none'
+                          className='!rounded-none !border-none !shadow-none !p-1 sm:!p-2'
                         />
                         <div className='w-px h-5 bg-gray-200 my-auto'></div>
                         <button
                           onClick={() => setWindAnimationEnabled(!windAnimationEnabled)}
                           disabled={!windOverlayEnabled || currentZoom < 13}
                           className={`
-                            p-2 transition-colors
+                            p-1 sm:p-2 transition-colors
                             ${
                               !windOverlayEnabled || currentZoom < 13
                                 ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
@@ -1036,7 +1036,7 @@ const IndependentMapView = () => {
                                   : 'Enable wind animation'
                           }
                         >
-                          <Waves className='w-4 h-4' />
+                          <Waves className='w-3.5 h-3.5' />
                         </button>
                       </div>
                     )}
@@ -1045,7 +1045,7 @@ const IndependentMapView = () => {
                     <button
                       onClick={handleGeolocationRequest}
                       disabled={geolocationStatus === 'requesting'}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
                         geolocationStatus === 'granted'
                           ? 'bg-green-100 text-green-600'
                           : geolocationStatus === 'denied' || geolocationStatus === 'error'
@@ -1064,46 +1064,46 @@ const IndependentMapView = () => {
                     >
                       {geolocationStatus === 'requesting' ? (
                         <div className='animate-spin'>
-                          <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                          <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                         </div>
                       ) : (
-                        <MapPin className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        <MapPin className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                       )}
                     </button>
 
                     {/* Reset zoom button - Smaller on mobile */}
                     <button
                       onClick={handleResetZoom}
-                      className='p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                      className='p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
                       title={
                         geolocationStatus === 'granted'
                           ? 'Reset to your location'
                           : 'Reset to show all points'
                       }
                     >
-                      <RotateCcw className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                      <RotateCcw className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                     </button>
 
                     {/* Share button - Smaller on mobile */}
                     <button
                       onClick={handleShareClick}
                       disabled={isGeneratingLink}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title='Share current map view'
                     >
                       {isGeneratingLink ? (
                         <div className='animate-spin'>
-                          <Loader2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                          <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                         </div>
                       ) : (
-                        <Share2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        <Share2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                       )}
                     </button>
 
                     {/* Fullscreen button - Smaller on mobile */}
                     <button
                       onClick={toggleFullscreen}
-                      className={`p-1 xs:p-1.5 sm:p-2 rounded-lg transition-colors ${
+                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
                         isFullscreen
                           ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
                           : 'hover:bg-gray-100 text-gray-600'
@@ -1111,9 +1111,9 @@ const IndependentMapView = () => {
                       title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                     >
                       {isFullscreen ? (
-                        <X className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        <X className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                       ) : (
-                        <Maximize2 className='w-3 h-3 xs:w-4 xs:h-4 sm:w-5 sm:h-5' />
+                        <Maximize2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
                       )}
                     </button>
                   </div>

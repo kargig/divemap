@@ -11,9 +11,41 @@ const ChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
+  const [isInactive, setIsInactive] = useState(false);
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const location = useLocation();
+
+  // Handle inactivity timeout to trigger "edge peek"
+  useEffect(() => {
+    if (isOpen) {
+      setIsInactive(false);
+      return;
+    }
+
+    let timeout;
+    const resetTimer = () => {
+      setIsInactive(false);
+      clearTimeout(timeout);
+      // Wait 3 seconds of inactivity before sliding out
+      timeout = setTimeout(() => setIsInactive(true), 3000);
+    };
+
+    // Attach to scroll and touch events
+    window.addEventListener('scroll', resetTimer, { passive: true });
+    window.addEventListener('touchstart', resetTimer, { passive: true });
+    window.addEventListener('mousemove', resetTimer, { passive: true });
+
+    // Start timer on mount
+    resetTimer();
+
+    return () => {
+      window.removeEventListener('scroll', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+      window.removeEventListener('mousemove', resetTimer);
+      clearTimeout(timeout);
+    };
+  }, [isOpen]);
 
   // Get user location on mount or when chat opens
   useEffect(() => {
@@ -125,11 +157,20 @@ const ChatWidget = () => {
       {/* FAB (Floating Action Button) */}
       <button
         data-testid='chat-fab'
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isInactive && !isOpen) {
+            // First tap when inactive just wakes it up
+            setIsInactive(false);
+          } else {
+            setIsOpen(!isOpen);
+            setIsInactive(false);
+          }
+        }}
         className={`
           pointer-events-auto
-          flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95
+          flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
           ${isOpen ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-blue-600 text-white'}
+          ${isInactive && !isOpen ? 'translate-x-10 opacity-75 hover:opacity-100 hover:translate-x-0' : 'translate-x-0 opacity-100'}
         `}
         aria-label={isOpen ? 'Close Chat' : 'Open Chat'}
       >
