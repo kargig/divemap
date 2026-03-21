@@ -14,6 +14,16 @@ class SearchDiveSitesTool(BaseModel):
     direction: Optional[str] = Field(None, description="Cardinal direction relative to location (e.g. 'north', 'southeast')")
     difficulty_level: Optional[int] = Field(None, description="1 (Beginner) to 4 (Technical)")
 
+class SearchDiveRoutesTool(BaseModel):
+    """Search for specific user-created dive routes and paths based on points of interest (POIs), marine life sightings in comments, or route types. Combined with 'location', this is the best way to find specific features like 'corals' in a specific area."""
+    location: Optional[str] = Field(None, description="General area, city, island, or dive site name to look for routes")
+    poi_types: Optional[List[str]] = Field(None, description="Specific features marked on the route map. PREFER using this over 'poi_search' for common items like ['wreck', 'cave', 'coral', 'life', 'artifacts', 'hazard', 'rock', 'wall', 'canyon'].")
+    route_type: Optional[str] = Field(None, description="'scuba', 'swim' or 'walk'")
+    poi_search: Optional[str] = Field(None, description="Specific text to search for inside marker comments. Use singular, root keywords (e.g., 'brain coral', not 'brain corals') for better matches.")
+    latitude: Optional[float] = Field(None, description="Approximate latitude for spatial search")
+    longitude: Optional[float] = Field(None, description="Approximate longitude for spatial search")
+    radius: Optional[float] = Field(20.0, description="Search radius in kilometers")
+
 class SearchDivingCentersTool(BaseModel):
     """Search for diving centers based on location and keywords. Use this to find courses and dive shop services."""
     location: Optional[str] = Field(None, description="City, island, or region name")
@@ -31,7 +41,7 @@ class SearchGearRentalTool(BaseModel):
     radius: Optional[float] = Field(30.0, description="Search radius in kilometers")
 
 class SearchMarineLifeTool(BaseModel):
-    """Find dive sites where specific marine life can be seen."""
+    """Find dive sites where specific marine life can be seen. For more detailed user-reported sightings, also check dive routes."""
     marine_species: List[str] = Field(..., description="Species to look for (e.g. ['turtles', 'monk seals', 'nudibranchs'])")
     location: Optional[str] = Field(None, description="Preferred area for the search")
     latitude: Optional[float] = Field(None, description="Approximate latitude")
@@ -106,6 +116,14 @@ CHAT_TOOLS = [
             "name": "search_dive_sites",
             "description": SearchDiveSitesTool.__doc__,
             "parameters": SearchDiveSitesTool.model_json_schema()
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_dive_routes",
+            "description": SearchDiveRoutesTool.__doc__,
+            "parameters": SearchDiveRoutesTool.model_json_schema()
         }
     },
     {

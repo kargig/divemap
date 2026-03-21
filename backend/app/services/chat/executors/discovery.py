@@ -502,4 +502,85 @@ def execute_discovery(
         except Exception as e:
             logger.error(f"Error searching trips: {e}")
     
-    return results
+    # 4. Search Dive Routes
+    if not entity_type_filter or entity_type_filter == "dive_route":
+        try:
+            route_query = db.query(DiveRoute).options(
+                joinedload(DiveRoute.dive_site)
+            ).filter(DiveRoute.deleted_at.is_(None))
+            
+            # Extract kwargs specific to dive routes
+            poi_types = kwargs.get("poi_types")
+            route_type = kwargs.get("route_type")
+            poi_search = kwargs.get("poi_search")
+            
+            if location:
+                # If they provided a location, search within route name, description, or the parent dive site name
+                route_query = route_query.join(DiveSite, DiveRoute.dive_site_id == DiveSite.id, isouter=True).filter(
+                    or_(
+                        DiveRoute.name.ilike(f"%{location}%"),
+                        DiveRoute.description.ilike(f"%{location}%"),
+                        DiveSite.name.ilike(f"%{location}%"),
+                        DiveSite.region.ilike(f"%{location}%"),
+                        DiveSite.country.ilike(f"%{location}%")
+                    )
+                )
+            
+            if route_type:
+                route_query = route_query.filter(DiveRoute.route_type == route_type)
+                
+            if poi_types:
+                poi_filters = []
+                for marker_type in poi_types:
+                    search_fragment = f'{{"properties": {{"markerType": "{marker_type}"}}}}'
+                    poi_filters.append(func.json_contains(DiveRoute.route_data, search_fragment, '$.features'))
+                route_query = route_query.filter(or_(*poi_filters))
+                
+            if poi_search:
+                route_query = route_query.filter(func.lower(DiveRoute.route_data.cast(String)).like(func.lower(f'%{poi_search}%')))
+                
+            # If coordinates are provided, order by distance (if dive site has coordinates)
+            if latitude and longitude:
+                # Need to join DiveSite to get coordinates if not already joined
+                if not location: # Already joined if location was provided
+                     route_query = route_query.join(DiveSite, DiveRoute.dive_site_id == DiveSite.id, isouter=True)
+                route_query = route_query.order_by(
+                    func.pow(DiveSite.latitude - latitude, 2) +
+                    func.pow(DiveSite.longitude - longitude, 2)
+                )
+                
+            routes = route_query.limit(limit).all()
+            for route in routes:
+                metadata = {}
+                if route.dive_site:
+                    metadata["dive_site"] = route.dive_site.name
+                if route.route_type:
+                    metadata["route_type"] = route.route_type.value if hasattr(route.route_type, 'value') else str(route.route_type)
+                
+                # Check for POIs to mention in metadata
+                matched_pois = []
+                if poi_types and route.route_data and "features" in route.route_data:
+                    for feature in route.route_data["features"]:
+                        if feature.get("geometry", {}).get("type") == "Point":
+                            props = feature.get("properties", {})
+                            m_type = props.get("markerType")
+                            if m_type in poi_types and m_type not in matched_pois:
+                                matched_pois.append(m_type)
+                if matched_pois:
+                    metadata["found_poi_types"] = matched_pois
+                    
+                dive_site_id = route.dive_site_id if route.dive_site else None
+                route_path = f"/dive-sites/{dive_site_id}/route/{route.id}" if dive_site_id else f"/dive-routes/{route.id}"
+                
+                results.append({
+                    "entity_type": "dive_route",
+                    "id": route.id,
+                    "name": route.name,
+                    "route_path": route_path,
+                    "icon_name": ENTITY_ICONS.get("dive_route", "map-pin"),
+                    "metadata": metadata if metadata else None
+                })
+        except Exception as e:
+            logger.error(f"Error searching dive routes: {e}")
+
+    return clean_results(results)

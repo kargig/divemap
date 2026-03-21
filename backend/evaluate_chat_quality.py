@@ -48,6 +48,7 @@ TEST_CASES = [
 
     # Tier 4: Complex Spatial & Contextual Queries (Agentic Heavy)
     {"prompt": "dive sites near Porto Ennea", "type": "discovery", "expected_min_sources": 1},
+    {"prompt": "where can I find brain corals in the Red Sea ?", "type": "discovery", "expected_min_sources": 1},
     {"prompt": "give me a list of 10 dive sites in the South of Athens", "type": "discovery", "expected_min_sources": 2},
     {"prompt": "give me a list of 5 dive sites east of Attica", "type": "discovery", "expected_min_sources": 3},
     {"prompt": "find dive sites in the south of Attica near Anavyssos", "type": "discovery", "expected_min_sources": 2},

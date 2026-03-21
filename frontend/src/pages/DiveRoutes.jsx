@@ -29,6 +29,7 @@ import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDiveRoutes } from '../services/diveSites';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -40,6 +41,7 @@ const DiveRoutes = () => {
   // State for filters
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [routeType, setRouteType] = useState(searchParams.get('route_type') || '');
+  const [poiTypes, setPoiTypes] = useState(searchParams.getAll('poi_types') || []);
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1', 10));
   const [pageSize, setPageSize] = useState(parseInt(searchParams.get('page_size') || '20', 10));
 
@@ -65,11 +67,12 @@ const DiveRoutes = () => {
     isLoading,
     error,
   } = useQuery(
-    ['dive-routes', search, routeType, page, pageSize, sortBy, sortOrder],
+    ['dive-routes', search, routeType, poiTypes, page, pageSize, sortBy, sortOrder],
     () =>
       getDiveRoutes({
         search,
         route_type: routeType,
+        poi_types: poiTypes,
         page,
         page_size: pageSize,
         sort_by: sortBy,
@@ -83,16 +86,20 @@ const DiveRoutes = () => {
 
   // Update URL params
   useEffect(() => {
-    const params = {};
-    if (search) params.search = search;
-    if (routeType) params.route_type = routeType;
-    if (page > 1) params.page = page;
-    if (pageSize !== 20) params.page_size = pageSize;
-    if (sortBy) params.sort_by = sortBy;
-    if (sortOrder) params.sort_order = sortOrder;
-    if (viewMode !== 'list') params.view = viewMode;
-    setSearchParams(params, { replace: true });
-  }, [search, routeType, page, pageSize, sortBy, sortOrder, viewMode, setSearchParams]);
+    const urlParams = new URLSearchParams();
+    if (search) urlParams.append('search', search);
+    if (routeType) urlParams.append('route_type', routeType);
+    if (poiTypes.length > 0) {
+      poiTypes.forEach(t => urlParams.append('poi_types', t));
+    }
+    if (page > 1) urlParams.append('page', page);
+    if (pageSize !== 20) urlParams.append('page_size', pageSize);
+    if (sortBy) urlParams.append('sort_by', sortBy);
+    if (sortOrder) urlParams.append('sort_order', sortOrder);
+    if (viewMode !== 'list') urlParams.append('view', viewMode);
+
+    setSearchParams(urlParams, { replace: true });
+  }, [search, routeType, poiTypes, page, pageSize, sortBy, sortOrder, viewMode, setSearchParams]);
 
   const handleSearchChange = value => {
     setSearch(value);
@@ -104,9 +111,15 @@ const DiveRoutes = () => {
     setPage(1);
   };
 
+  const handlePoiTypeToggle = type => {
+    setPoiTypes(prev => (prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]));
+    setPage(1);
+  };
+
   const clearFilters = () => {
     setSearch('');
     setRouteType('');
+    setPoiTypes([]);
     setPage(1);
     resetSorting();
   };
@@ -220,6 +233,33 @@ const DiveRoutes = () => {
             >
               Walk
             </button>
+          </div>
+
+          {/* POI Feature Filter Pills */}
+          <div className='flex flex-wrap items-center gap-2 mt-3 px-1'>
+            <span className='text-sm font-medium text-gray-500 mr-2 flex items-center gap-1'>
+              <MapPin className='w-4 h-4' /> Features:
+            </span>
+            {Object.values(MARKER_TYPES)
+              .filter(t => t.id !== 'generic')
+              .map(poi => {
+                const Icon = poi.icon;
+                const isSelected = poiTypes.includes(poi.id);
+                return (
+                  <button
+                    key={poi.id}
+                    onClick={() => handlePoiTypeToggle(poi.id)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                      isSelected
+                        ? 'bg-gray-800 text-white border-gray-800'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <Icon className='w-3 h-3' style={{ color: isSelected ? 'white' : poi.color }} />
+                    {poi.name}
+                  </button>
+                );
+              })}
           </div>
         </div>
 

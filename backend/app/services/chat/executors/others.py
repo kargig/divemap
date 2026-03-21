@@ -727,4 +727,4 @@ def execute_other_intents(
             "route_path": specific_tool
         })
 
-    return results
+    return clean_results(results)

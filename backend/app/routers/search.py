@@ -190,7 +190,7 @@ def search_dive_routes(query: str, limit: int, db: Session) -> List[GlobalSearch
             metadata["dive_site_id"] = route.dive_site.id
             metadata["dive_site_name"] = route.dive_site.name
         if route.route_type:
-            metadata["route_type"] = route.route_type
+            metadata["route_type"] = route.route_type.value if hasattr(route.route_type, 'value') else str(route.route_type)
         
         dive_site_id = route.dive_site_id if route.dive_site else None
         if dive_site_id:

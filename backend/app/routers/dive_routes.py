@@ -11,7 +11,7 @@ import re
 import html
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, desc, asc, func
+from sqlalchemy import and_, or_, desc, asc, func, String
 from slowapi.util import get_remote_address
 
 from app.database import get_db
@@ -478,6 +478,8 @@ async def list_routes(
     created_by: Optional[int] = Query(None, description="Filter by creator ID"),
     route_type: Optional[str] = Query(None, description="Filter by route type"),
     search: Optional[str] = Query(None, description="Search in route names and descriptions"),
+    poi_types: Optional[List[str]] = Query(None, description="Filter routes containing specific POI marker types (e.g., 'wreck', 'coral')"),
+    poi_search: Optional[str] = Query(None, description="Search for text within POI comments"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     sort_by: str = Query("created_at", description="Sort field"),
@@ -488,6 +490,7 @@ async def list_routes(
     """List dive routes with filtering and pagination"""
     # Sanitize search input
     sanitized_search = sanitize_input(search) if search else None
+    sanitized_poi_search = sanitize_input(poi_search) if poi_search else None
     
     # Build query
     query = db.query(DiveRoute).options(
@@ -511,6 +514,19 @@ async def list_routes(
             DiveRoute.description.ilike(f"%{sanitized_search}%")
         )
         query = query.filter(search_filter)
+
+    if poi_types:
+        poi_filters = []
+        for marker_type in poi_types:
+            search_fragment = f'{{"properties": {{"markerType": "{marker_type}"}}}}'
+            poi_filters.append(func.json_contains(DiveRoute.route_data, search_fragment, '$.features'))
+        query = query.filter(or_(*poi_filters))
+
+    if sanitized_poi_search:
+        # Since JSON_SEARCH with wildcards might be complex depending on MySQL version and SQLAlchemy dialects,
+        # we can use a simpler approach of casting to string and using LIKE on lowercased values for comment searches.
+        # This handles case-sensitivity issues with casted JSON in MySQL.
+        query = query.filter(func.lower(DiveRoute.route_data.cast(String)).like(func.lower(f'%{sanitized_poi_search}%')))
     
     # Apply sorting
     if sort_by == "name":

@@ -58,9 +58,9 @@ def execute_get_reviews_and_comments(
             "recent_comments": [c.comment_text for c in comments]
         })
     else:
-        return [{
+        return clean_results([{
             "entity_type": "system_message",
             "error": "Invalid entity_type. Must be 'dive_site' or 'diving_center'."
-        }]
+        }])
 
-    return results
+    return clean_results(results)

@@ -62,6 +62,18 @@ export const updateMediaOrder = async (diveSiteId, order) => {
 
 // Dive Routes API functions
 export const getDiveRoutes = async (params = {}) => {
-  const response = await api.get('/api/v1/dive-routes/', { params });
+  // Pass POI types as multiple query params (e.g., ?poi_types=wreck&poi_types=coral)
+  const apiParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      if (key === 'poi_types' && Array.isArray(value)) {
+        value.forEach(v => apiParams.append('poi_types', v));
+      } else {
+        apiParams.append(key, value);
+      }
+    }
+  });
+
+  const response = await api.get(`/api/v1/dive-routes/?${apiParams.toString()}`);
   return response.data;
 };
