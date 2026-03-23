@@ -16,7 +16,15 @@ export const TANK_SIZES = [
     material: 'alu',
     emptyWeight: 6.9,
   },
-  { id: '7', name: '7 Liters', size: 7, defaultPressure: 232, material: 'steel', emptyWeight: 8.5 },
+  {
+    id: 'alu7',
+    name: 'ALU7 (7L)',
+    size: 7,
+    defaultPressure: 207,
+    material: 'alu',
+    emptyWeight: 8.8,
+  },
+  { id: '7', name: '7 Liters', size: 7, defaultPressure: 232, material: 'steel', emptyWeight: 8.0 },
   {
     id: '8.5',
     name: '8.5 Liters',

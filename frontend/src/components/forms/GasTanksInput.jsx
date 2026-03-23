@@ -421,10 +421,13 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                 >
                   <optgroup label='Stage Tanks'>
                     <option value='al40'>AL40 (5.7L)</option>
+                    <option value='alu7'>ALU7 (7L)</option>
                     <option value='al80'>AL80 (11.1L)</option>
                   </optgroup>
                   <optgroup label='Other Sizes'>
-                    {TANK_SIZES.filter(t => t.id !== 'al40' && t.id !== 'al80').map(t => (
+                    {TANK_SIZES.filter(
+                      t => t.id !== 'al40' && t.id !== 'alu7' && t.id !== 'al80'
+                    ).map(t => (
                       <option key={t.id} value={t.id}>
                         {t.name}
                       </option>

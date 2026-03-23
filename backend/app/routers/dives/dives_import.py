@@ -773,6 +773,7 @@ def parse_suit_type(suit_str):
 TANK_DEFINITIONS = [
     {'id': '3', 'size': 3.0},
     {'id': 'al40', 'size': 5.7},
+    {'id': 'alu7', 'size': 7.0},
     {'id': '7', 'size': 7.0},
     {'id': '8.5', 'size': 8.5},
     {'id': '10', 'size': 10.0},

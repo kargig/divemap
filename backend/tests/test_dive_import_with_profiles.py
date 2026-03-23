@@ -403,7 +403,7 @@ class TestDiveImportWithProfiles:
         assert result['back_gas']['tank'] == '12'
         # Stage should be cylinders[0] (7L)
         assert len(result['stages']) == 1
-        assert result['stages'][0]['tank'] == '7'
+        assert result['stages'][0]['tank'] == 'alu7'
 
     def test_create_structured_gas_data_gaschange_at_zero(self):
         """Test backgas identification with gaschange event at time 0."""
@@ -444,4 +444,4 @@ class TestDiveImportWithProfiles:
         # Backgas should be cylinders[1] (12L)
         assert result['back_gas']['tank'] == '15'
         assert len(result['stages']) == 1
-        assert result['stages'][0]['tank'] == '7'
+        assert result['stages'][0]['tank'] == 'alu7'
