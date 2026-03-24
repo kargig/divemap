@@ -103,11 +103,11 @@ const ActivityHeatmap = ({ data }) => {
   }, [data]);
 
   const getColor = count => {
-    if (count === 0) return 'bg-gray-100 dark:bg-gray-800';
-    if (count === 1) return 'bg-blue-200 dark:bg-blue-900';
-    if (count === 2) return 'bg-blue-400 dark:bg-blue-700';
-    if (count >= 3) return 'bg-blue-600 dark:bg-blue-500';
-    return 'bg-gray-100 dark:bg-gray-800';
+    if (count === 0) return 'bg-gray-100';
+    if (count === 1) return 'bg-blue-200';
+    if (count === 2) return 'bg-blue-400';
+    if (count >= 3) return 'bg-blue-600';
+    return 'bg-gray-100';
   };
 
   return (
