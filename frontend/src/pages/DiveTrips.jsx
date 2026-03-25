@@ -30,7 +30,7 @@ import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-do
 
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import FuzzySearchInput from '../components/FuzzySearchInput';
-import HeroSection from '../components/HeroSection';
+import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
@@ -673,37 +673,29 @@ const DiveTrips = () => {
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        {/* Hero Section */}
-        <HeroSection
+        <PageHeader
           title='Dive Trips'
-          subtitle='Discover upcoming dive trips from local diving centers'
-          background='ocean'
-          size='large'
-          showLogo={false}
-          logoBackground={true}
-          threeColumnLayout={true}
-        >
-          <div className='flex flex-col justify-center gap-3 sm:flex-row sm:gap-36'>
-            <button
-              onClick={() => {
-                navigate('/map?type=dive-trips');
-              }}
-              className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Compass className='w-5 h-5' />
-              Explore Map
-            </button>
-            {user && (
-              <button
-                onClick={() => navigate('/dive-trips/create')}
-                className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-              >
-                <Plus size={20} />
-                Create Trip
-              </button>
-            )}
-          </div>
-        </HeroSection>
+          titleIcon={Calendar}
+          breadcrumbItems={[{ label: 'Dive Trips' }]}
+          actions={[
+            {
+              label: 'Explore Map',
+              icon: Compass,
+              onClick: () => navigate('/map?type=dive-trips'),
+              variant: 'primary',
+            },
+            ...(user
+              ? [
+                  {
+                    label: 'Create Trip',
+                    icon: Plus,
+                    onClick: () => navigate('/dive-trips/create'),
+                    variant: 'secondary',
+                  },
+                ]
+              : []),
+          ]}
+        />
 
         {/* Desktop Search Bar - Only visible on desktop/tablet and for authenticated users */}
         {!isMobile && user && (
@@ -986,7 +978,7 @@ const DiveTrips = () => {
                 return (
                   <div
                     key={trip.id}
-                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-shadow ${
+                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] p-6 transition-shadow ${
                       compactLayout ? 'p-4' : 'p-6'
                     } ${
                       isBlurred ? 'pointer-events-none relative overflow-hidden' : 'hover:shadow-md'
@@ -1357,7 +1349,7 @@ const DiveTrips = () => {
                 return (
                   <div
                     key={trip.id}
-                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow ${
+                    className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden transition-shadow ${
                       compactLayout ? 'p-4' : 'p-6'
                     } ${isBlurred ? 'pointer-events-none relative' : 'hover:shadow-md'}`}
                     style={

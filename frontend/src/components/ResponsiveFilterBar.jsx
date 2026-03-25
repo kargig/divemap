@@ -427,7 +427,7 @@ const ResponsiveFilterBar = ({
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                   showFilters
                     ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 active:bg-blue-300'
                 }`}
               >
                 <Filter className='h-4 w-4' />

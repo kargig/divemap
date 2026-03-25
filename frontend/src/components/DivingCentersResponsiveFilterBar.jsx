@@ -168,30 +168,30 @@ const DivingCentersResponsiveFilterBar = ({
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4'>
           {/* Quick Filters */}
           {showQuickFilters && (
-            <div className='flex items-center gap-2 overflow-x-auto'>
+            <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end overflow-x-auto'>
               {reviewsEnabled && (
                 <button
                   onClick={() => onQuickFilter('min_rating')}
-                  className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors ${
+                  className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
                     quickFilter === 'min_rating'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                      ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                      : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
-                  <Star className='h-4 w-4 inline mr-1' />
-                  4+ Stars
+                  <Star className='h-4 w-4' />
+                  <span>4+ Stars</span>
                 </button>
               )}
               <button
                 onClick={() => onQuickFilter('country')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors ${
+                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
                   quickFilter === 'country'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                 }`}
               >
-                <MapPin className='h-4 w-4 inline mr-1' />
-                Greece
+                <MapPin className='h-4 w-4' />
+                <span>Greece</span>
               </button>
             </div>
           )}
