@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import React from 'react';
 
 import Breadcrumbs from './Breadcrumbs';
 
@@ -9,7 +8,13 @@ import Breadcrumbs from './Breadcrumbs';
  * A functional header for internal utility pages (Dives, Dive Sites, etc.)
  * that replaces marketing-heavy heroes.
  */
-const PageHeader = ({ title, titleIcon: TitleIcon, breadcrumbItems = [], actions = [], className = '' }) => {
+const PageHeader = ({
+  title,
+  titleIcon: TitleIcon,
+  breadcrumbItems = [],
+  actions = [],
+  className = '',
+}) => {
   return (
     <div className={`mb-8 ${className}`}>
       {/* Navigation Context */}

@@ -166,77 +166,77 @@ const DivingCentersResponsiveFilterBar = ({
         className={`bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40 ${className}`}
       >
         <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 p-4'>
-            {/* Quick Filters */}
-            {showQuickFilters && (
-              <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end overflow-x-auto'>
-                {reviewsEnabled && (
-                  <button
-                    onClick={() => onQuickFilter('min_rating')}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                      quickFilter === 'min_rating'
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
-                        : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
-                    }`}
-                  >
-                    <Star className='h-4 w-4' />
-                    <span>4+ Stars</span>
-                  </button>
-                )}
+          {/* Quick Filters */}
+          {showQuickFilters && (
+            <div className='flex items-center gap-2 sm:ml-2 w-full sm:w-auto justify-center sm:justify-end overflow-x-auto'>
+              {reviewsEnabled && (
                 <button
-                  onClick={() => onQuickFilter('country')}
+                  onClick={() => onQuickFilter('min_rating')}
                   className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
-                    quickFilter === 'country'
+                    quickFilter === 'min_rating'
                       ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
                       : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
                   }`}
                 >
-                  <MapPin className='h-4 w-4' />
-                  <span>Greece</span>
+                  <Star className='h-4 w-4' />
+                  <span>4+ Stars</span>
                 </button>
-              </div>
-            )}
-
-            {/* Advanced Filters Toggle */}
-            {showAdvancedToggle && (
+              )}
               <button
-                onClick={onToggleFilters}
-                className='flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors'
+                onClick={() => onQuickFilter('country')}
+                className={`flex items-center gap-1 px-3 py-2 text-sm rounded-md transition-colors ${
+                  quickFilter === 'country'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-300 shadow-sm'
+                    : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100 active:bg-gray-200'
+                }`}
               >
-                <Filter className='h-4 w-4' />
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-                {activeFiltersCount > 0 && (
-                  <span className='bg-blue-600 text-white text-xs rounded-full px-2 py-1'>
-                    {activeFiltersCount}
-                  </span>
-                )}
+                <MapPin className='h-4 w-4' />
+                <span>Greece</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Advanced Filters Toggle */}
+          {showAdvancedToggle && (
+            <button
+              onClick={onToggleFilters}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors'
+            >
+              <Filter className='h-4 w-4' />
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+              {activeFiltersCount > 0 && (
+                <span className='bg-blue-600 text-white text-xs rounded-full px-2 py-1'>
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Active Filters Display */}
         {activeFilters.length > 0 && (
           <div className='border-t border-gray-200 py-2 px-3 bg-blue-50'>
-              <div className='flex items-center gap-2 mb-1.5'>
-                <span className='text-xs font-medium text-blue-900'>Active Filters:</span>
-              </div>
-              <div className='flex flex-wrap gap-1 justify-start'>
-                {activeFilters.map(filter => (
-                  <div
-                    key={filter.key}
-                    className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200'
+            <div className='flex items-center gap-2 mb-1.5'>
+              <span className='text-xs font-medium text-blue-900'>Active Filters:</span>
+            </div>
+            <div className='flex flex-wrap gap-1 justify-start'>
+              {activeFilters.map(filter => (
+                <div
+                  key={filter.key}
+                  className='inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-200'
+                >
+                  <span className='font-medium'>{filter.label}:</span>
+                  <span className='max-w-[100px] truncate'>{filter.value}</span>
+                  <button
+                    onClick={() => onFilterChange(filter.key, '')}
+                    className='ml-1 text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors p-0.5 rounded-full hover:bg-blue-200 active:bg-blue-300'
+                    title={`Remove ${filter.label} filter`}
                   >
-                    <span className='font-medium'>{filter.label}:</span>
-                    <span className='max-w-[100px] truncate'>{filter.value}</span>
-                    <button
-                      onClick={() => onFilterChange(filter.key, '')}
-                      className='ml-1 text-blue-600 hover:text-blue-800 active:text-blue-900 transition-colors p-0.5 rounded-full hover:bg-blue-200 active:bg-blue-300'
-                      title={`Remove ${filter.label} filter`}
-                    >
-                      <X className='h-2.5 w-2.5' />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                    <X className='h-2.5 w-2.5' />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
