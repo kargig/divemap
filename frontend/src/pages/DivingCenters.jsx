@@ -514,7 +514,7 @@ const DivingCenters = () => {
           logoBackground={true}
           threeColumnLayout={true}
         >
-          <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+          <div className='flex flex-col justify-center gap-3 sm:flex-row sm:gap-36'>
             <button
               onClick={() => {
                 navigate('/map?type=diving-centers');

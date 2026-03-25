@@ -122,16 +122,24 @@ const Home = () => {
 
       {/* Visual Banner - Contained and Compact with Overlaid Headline - Visible only on Desktop */}
 
-      <div className='hidden md:block w-full mb-10 shadow-sm bg-white rounded-2xl overflow-hidden border border-gray-100 relative'>
+      <div className='hidden md:block isolate w-full mb-10 shadow-sm bg-[#cee5f4] rounded-2xl overflow-hidden border border-[#c2d9ea] relative'>
+        <div
+          className='pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[clamp(3.25rem,12vmin,6rem)] overflow-hidden'
+          aria-hidden
+        >
+          <div className='absolute inset-0 bg-gradient-to-t from-[#64939e] from-0% via-[#7baab5]/80 via-45% to-transparent to-100%' />
+          <div className='absolute -bottom-[46%] left-1/2 h-[89%] w-[min(185%,78rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#4d828c]/90' />
+          <div className='absolute -bottom-[47%] left-1/2 z-[1] h-[58%] w-[min(200%,88rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#7bb0b9]' />
+        </div>
         <img
-          src='/divemap_logo_domain_top5_extend.jpg'
+          src='/divemap_logo_domain_top5_extend.png'
           alt='Divemap Banner'
-          className='w-full h-auto object-contain max-h-[400px] mx-auto'
+          className='relative z-[1] w-full h-auto object-contain max-h-[400px] mx-auto'
         />
 
         {/* Overlaid Headline on top part - Hidden on Mobile */}
 
-        <div className='hidden md:block absolute top-0 left-0 right-0 pt-6 md:pt-10 px-4 text-center pointer-events-none'>
+        <div className='hidden md:block absolute top-0 left-0 right-0 z-[2] pt-6 md:pt-10 px-4 text-center pointer-events-none'>
           <h1 className='text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
             Discover Amazing <span className='text-blue-600'>Dive Sites</span>
           </h1>

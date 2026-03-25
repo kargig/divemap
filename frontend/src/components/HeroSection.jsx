@@ -60,24 +60,36 @@ const HeroSection = ({
         </section>
 
         {/* Desktop Layout */}
-        <section className='hidden md:flex'>
+        <section className='hidden md:flex w-full mb-10'>
           <div
-            className={`${logoBackground ? 'relative overflow-hidden' : backgroundClasses[background]} py-4 px-8 ${
-              centered ? 'text-center' : ''
-            } flex items-center justify-center min-h-[220px] w-full`}
+            className={`${
+              logoBackground
+                ? 'isolate relative overflow-hidden bg-[#cee5f4] rounded-2xl border border-[#c2d9ea] shadow-sm'
+                : `${backgroundClasses[background]} relative overflow-hidden`
+            } py-4 px-8 ${centered ? 'text-center' : ''} flex items-center justify-center min-h-[220px] w-full`}
           >
             {logoBackground && (
-              <div className='absolute inset-0 flex items-center justify-center opacity-8 bg-white'>
-                <img
-                  src='/divemap_logo_domain_top5_extend.jpg'
-                  alt=''
-                  className='h-full w-full object-contain'
-                  fetchpriority='high'
-                />
-              </div>
+              <>
+                <div
+                  className='pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[clamp(3.25rem,12vmin,6rem)] overflow-hidden'
+                  aria-hidden
+                >
+                  <div className='absolute inset-0 bg-gradient-to-t from-[#64939e] from-0% via-[#7baab5]/80 via-45% to-transparent to-100%' />
+                  <div className='absolute -bottom-[46%] left-1/2 h-[89%] w-[min(185%,78rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#4d828c]/90' />
+                  <div className='absolute -bottom-[47%] left-1/2 z-[1] h-[58%] w-[min(200%,88rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#7bb0b9]' />
+                </div>
+                <div className='pointer-events-none absolute inset-0 z-[1] flex items-center justify-center'>
+                  <img
+                    src='/divemap_logo_domain_top5_extend.png'
+                    alt=''
+                    className='max-h-[min(280px,55vh)] w-full object-contain object-center'
+                    fetchpriority='high'
+                  />
+                </div>
+              </>
             )}
 
-            <div className='max-w-7xl mx-auto relative z-10 flex items-center justify-between w-full px-4'>
+            <div className='max-w-7xl mx-auto relative z-[2] flex items-center justify-between w-full px-4'>
               {/* Left Column - Title (Vertical) */}
               <div className='flex flex-col items-center text-center max-w-[200px]'>
                 <h1 className='sr-only'>{title}</h1>
@@ -93,7 +105,7 @@ const HeroSection = ({
               </div>
 
               {/* Center Column - Logo Background */}
-              <div className='flex-shrink-0 mx-4'>
+              <div className='mx-4 flex-shrink-0'>
                 {/* Logo is already in the background, this creates space */}
               </div>
 
@@ -117,8 +129,8 @@ const HeroSection = ({
 
             {/* Bottom Section - Buttons */}
             {children && (
-              <div className='absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-5xl px-4 pb-4'>
-                <div className='flex flex-col sm:flex-row flex-wrap gap-3 justify-center'>
+              <div className='absolute bottom-0 left-1/2 z-[3] w-full max-w-5xl -translate-x-1/2 transform px-4 pb-4'>
+                <div className='flex flex-col flex-wrap justify-center gap-3 sm:flex-row'>
                   {children}
                 </div>
               </div>
