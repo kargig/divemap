@@ -198,6 +198,8 @@ class DiveSite(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    # Geometry column exists in DB via migration; declare minimally for ORM usage
+    location = Column(sa.Text, nullable=False)
 
     # Relationships
     difficulty = relationship("DifficultyLevel", back_populates="dive_sites")
@@ -226,6 +228,22 @@ class DiveSiteAlias(Base):
     __table_args__ = (
         sa.UniqueConstraint('dive_site_id', 'alias', name='_dive_site_alias_uc'),
     )
+
+# ORM-level hooks to keep POINT(location) in sync with lat/lng (avoids DB triggers)
+@event.listens_for(DiveSite, "before_insert")
+def _dive_site_set_location_before_insert(mapper, connection, target):
+    lat = target.latitude if target.latitude is not None else 0
+    lng = target.longitude if target.longitude is not None else 0
+    # Use MySQL spatial function directly in VALUES to satisfy NOT NULL
+    target.location = text(f"ST_SRID(POINT({float(lng)}, {float(lat)}), 4326)")
+
+
+@event.listens_for(DiveSite, "before_update")
+def _dive_site_set_location_before_update(mapper, connection, target):
+    lat = target.latitude if target.latitude is not None else 0
+    lng = target.longitude if target.longitude is not None else 0
+    target.location = text(f"ST_SRID(POINT({float(lng)}, {float(lat)}), 4326)")
+
 
 class SiteMedia(Base):
     __tablename__ = "site_media"

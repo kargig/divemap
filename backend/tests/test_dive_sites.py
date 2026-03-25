@@ -836,6 +836,7 @@ class TestDiveSitesNearby:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "coordinates" in response.json()["detail"].lower()
 
+    @pytest.mark.spatial
     def test_get_nearby_dive_sites_basic_functionality(self, client, db_session, test_dive_site):
         """Test basic nearby dive sites functionality without complex SQL."""
         # Test that the endpoint exists and handles basic requests
