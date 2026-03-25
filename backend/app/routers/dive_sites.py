@@ -2970,7 +2970,8 @@ async def get_nearby_dive_sites(
 ):
     """
     Get nearby dive sites based on geographic proximity.
-    Uses Haversine formula to calculate distances.
+    Uses MySQL native spatial functions (ST_Distance_Sphere) with Spatial Index for performance.
+    Falls back to Haversine formula for non-MySQL dialects.
     """
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -2987,38 +2988,58 @@ async def get_nearby_dive_sites(
             detail="Dive site does not have location coordinates"
         )
 
-    # Haversine formula to calculate distances
-    # Formula: 2 * R * asin(sqrt(sin²(Δφ/2) + cos(φ1) * cos(φ2) * sin²(Δλ/2)))
-    # Where R = 6371 km (Earth's radius)
     from sqlalchemy import text
+    bind = db.get_bind()
+    dialect = bind.dialect.name if bind is not None else None
 
-    haversine_query = text("""
-        SELECT
-            ds.id, ds.name, ds.description, 
-            dl.code AS difficulty_code, dl.label AS difficulty_label,
-            ds.latitude, ds.longitude,
-            ds.access_instructions, ds.safety_information, ds.marine_life,
-            ds.created_at, ds.updated_at,
-            (6371 * acos(
-                cos(radians(:lat)) * cos(radians(ds.latitude)) *
-                cos(radians(ds.longitude) - radians(:lng)) +
-                sin(radians(:lat)) * sin(radians(ds.latitude))
-            )) AS distance_km
-        FROM dive_sites ds
-        LEFT JOIN difficulty_levels dl ON ds.difficulty_id = dl.id
-        WHERE ds.id != :site_id
-        AND ds.latitude IS NOT NULL
-        AND ds.longitude IS NOT NULL
-        HAVING distance_km <= 100
-        ORDER BY distance_km ASC
-        LIMIT :limit
-    """)
+    if dialect == 'mysql':
+        # Optimized Spatial Query using MySQL 8.0 native functions and Spatial Index
+        # ST_Distance_Sphere returns distance in meters, we divide by 1000 for km
+        nearby_query = text("""
+            SELECT
+                ds.id, ds.name, ds.description, 
+                dl.code AS difficulty_code, dl.label AS difficulty_label,
+                ds.latitude, ds.longitude,
+                ds.access_instructions, ds.safety_information, ds.marine_life,
+                ds.created_at, ds.updated_at,
+                ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) / 1000.0 AS distance_km
+            FROM dive_sites ds
+            LEFT JOIN difficulty_levels dl ON ds.difficulty_id = dl.id
+            WHERE ds.id != :site_id
+            AND ds.location IS NOT NULL
+            AND ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) <= 100000
+            ORDER BY distance_km ASC
+            LIMIT :limit
+        """)
+    else:
+        # Fallback to Haversine formula for non-MySQL dialects (e.g., SQLite in tests)
+        nearby_query = text("""
+            SELECT
+                ds.id, ds.name, ds.description, 
+                dl.code AS difficulty_code, dl.label AS difficulty_label,
+                ds.latitude, ds.longitude,
+                ds.access_instructions, ds.safety_information, ds.marine_life,
+                ds.created_at, ds.updated_at,
+                (6371 * acos(
+                    cos(radians(:lat)) * cos(radians(ds.latitude)) *
+                    cos(radians(ds.longitude) - radians(:lng)) +
+                    sin(radians(:lat)) * sin(radians(ds.latitude))
+                )) AS distance_km
+            FROM dive_sites ds
+            LEFT JOIN difficulty_levels dl ON ds.difficulty_id = dl.id
+            WHERE ds.id != :site_id
+            AND ds.latitude IS NOT NULL
+            AND ds.longitude IS NOT NULL
+            HAVING distance_km <= 100
+            ORDER BY distance_km ASC
+            LIMIT :limit
+        """)
 
     result = db.execute(
-        haversine_query,
+        nearby_query,
         {
-            "lat": dive_site.latitude,
-            "lng": dive_site.longitude,
+            "lat": float(dive_site.latitude),
+            "lng": float(dive_site.longitude),
             "site_id": dive_site_id,
             "limit": limit
         }
