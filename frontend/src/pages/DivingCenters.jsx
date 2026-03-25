@@ -22,10 +22,10 @@ import api from '../api';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
 import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
 import ErrorPage from '../components/ErrorPage';
-import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import MaskedEmail from '../components/MaskedEmail';
 import MatchTypeBadge from '../components/MatchTypeBadge';
+import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
@@ -504,41 +504,31 @@ const DivingCenters = () => {
     <div className='min-h-screen bg-gray-50'>
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        {/* Hero Section */}
-        <HeroSection
+        <PageHeader
           title='Diving Centers'
-          subtitle='Discover and connect with professional diving centers worldwide'
-          background='ocean'
-          size='large'
-          showLogo={false}
-          logoBackground={true}
-          threeColumnLayout={true}
-        >
-          <div className='flex flex-col justify-center gap-3 sm:flex-row sm:gap-36'>
-            <button
-              onClick={() => {
-                navigate('/map?type=diving-centers');
-              }}
-              className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Compass className='w-5 h-5' />
-              Explore Map
-            </button>
-            <button
-              onClick={() => {
+          titleIcon={Building}
+          breadcrumbItems={[{ label: 'Diving Centers' }]}
+          actions={[
+            {
+              label: 'Explore Map',
+              icon: Compass,
+              onClick: () => navigate('/map?type=diving-centers'),
+              variant: 'primary',
+            },
+            {
+              label: 'Add Center',
+              icon: Plus,
+              onClick: () => {
                 if (!user) {
                   window.alert('You need an account for this action.\nPlease Login or Register.');
                   return;
                 }
                 navigate('/diving-centers/create');
-              }}
-              className='bg-green-600 hover:bg-green-700 text-white px-12 py-2 text-sm sm:text-base font-semibold min-w-[200px] whitespace-nowrap rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105'
-            >
-              <Plus size={20} />
-              Add Center
-            </button>
-          </div>
-        </HeroSection>
+              },
+              variant: 'secondary',
+            },
+          ]}
+        />
 
         {/* Desktop Search Bar - Only visible on desktop/tablet */}
         {!isMobile && (
@@ -626,7 +616,7 @@ const DivingCenters = () => {
         ) : (
           divingCenters &&
           divingCenters.length > 0 && (
-            <div className='mb-4 sm:mb-6 lg:mb-8 mx-3 sm:mx-4 lg:mx-6 xl:mx-8'>
+            <div className='mb-4 sm:mb-6 lg:mb-8'>
               <div className='bg-white rounded-lg shadow-md p-2 sm:p-4 lg:p-6'>
                 <div className='flex flex-col lg:flex-row justify-between items-center gap-2 sm:gap-4'>
                   {/* Pagination Controls */}
@@ -713,7 +703,7 @@ const DivingCenters = () => {
         )}
 
         {/* Content Container */}
-        <div className='px-3 sm:px-4 lg:px-6 xl:px-8'>
+        <div>
           {error ? (
             <ErrorPage error={error} onRetry={() => window.location.reload()} />
           ) : isLoading ? (
@@ -726,12 +716,12 @@ const DivingCenters = () => {
             <>
               {/* Diving Centers List */}
               {viewMode === 'list' && (
-                <div className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}>
+                <div className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
                   {divingCenters?.map(center => (
                     <div
                       key={center.id}
-                      className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
-                        compactLayout ? 'p-3' : 'p-4'
+                      className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
+                        compactLayout ? 'p-4' : 'p-6'
                       }`}
                     >
                       {/* Main content row */}
@@ -893,7 +883,7 @@ const DivingCenters = () => {
                   {divingCenters?.map(center => (
                     <div
                       key={center.id}
-                      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
                         compactLayout ? 'p-4' : 'p-6'
                       }`}
                     >

@@ -17,7 +17,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
-import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import EmptyState from '../components/EmptyState';
 import ErrorPage from '../components/ErrorPage';
@@ -146,11 +145,7 @@ const DiveRoutes = () => {
   return (
     <div className='min-h-screen bg-gray-50'>
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        {/* Breadcrumbs */}
-        <Breadcrumbs items={[{ label: 'Dive Routes' }]} />
-
-        {/* Page Header */}
-        <PageHeader title='Dive Routes' actions={[]} />
+        <PageHeader title='Dive Routes' titleIcon={Route} breadcrumbItems={[{ label: 'Dive Routes' }]} />
 
         {/* Responsive Filter Bar */}
         <div className='mb-8'>
@@ -344,7 +339,7 @@ const DiveRoutes = () => {
               return (
                 <div
                   key={route.id}
-                  className={`bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-4' : 'p-6'}`}
+                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
                   {/* Header: Title & Type */}
                   <div className='mb-2'>

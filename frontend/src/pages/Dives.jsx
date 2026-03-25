@@ -23,6 +23,7 @@ import {
   MessageCircle,
   Globe,
   MapPin,
+  Anchor,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -30,7 +31,6 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
-import Breadcrumbs from '../components/Breadcrumbs';
 import DesktopSearchBar from '../components/DesktopSearchBar';
 import EmptyState from '../components/EmptyState';
 import ErrorPage from '../components/ErrorPage';
@@ -909,6 +909,7 @@ const Dives = () => {
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <PageHeader
         title='Dive Log'
+        titleIcon={Anchor}
         breadcrumbItems={[{ label: 'Dive Log' }]}
         actions={[
           {
@@ -1060,7 +1061,7 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
                     dive.is_private ? 'bg-purple-50/30' : 'bg-white'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >
@@ -1308,7 +1309,7 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
                     dive.is_private ? 'bg-purple-50/30' : 'bg-white'
                   }`}
                 >

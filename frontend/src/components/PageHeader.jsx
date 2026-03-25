@@ -9,16 +9,23 @@ import Breadcrumbs from './Breadcrumbs';
  * A functional header for internal utility pages (Dives, Dive Sites, etc.)
  * that replaces marketing-heavy heroes.
  */
-const PageHeader = ({ title, breadcrumbItems = [], actions = [], className = '' }) => {
+const PageHeader = ({ title, titleIcon: TitleIcon, breadcrumbItems = [], actions = [], className = '' }) => {
   return (
     <div className={`mb-8 ${className}`}>
       {/* Navigation Context */}
-      {breadcrumbItems.length > 0 && <Breadcrumbs items={breadcrumbItems} />}
+      {breadcrumbItems.length > 0 && (
+        <div className='mb-3 sm:mb-4'>
+          <Breadcrumbs items={breadcrumbItems} />
+        </div>
+      )}
 
       <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6'>
         {/* Title Group */}
         <div className='flex-1 min-w-0'>
-          <h1 className='text-3xl font-bold text-gray-900 tracking-tight'>{title}</h1>
+          <h1 className='text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3'>
+            {TitleIcon && <TitleIcon className='w-7 h-7 text-gray-700' aria-hidden='true' />}
+            <span>{title}</span>
+          </h1>
         </div>
 
         {/* Action Toolbar */}
@@ -71,6 +78,7 @@ const PageHeader = ({ title, breadcrumbItems = [], actions = [], className = '' 
 
 PageHeader.propTypes = {
   title: PropTypes.string.isRequired,
+  titleIcon: PropTypes.elementType,
   breadcrumbItems: PropTypes.array,
   actions: PropTypes.arrayOf(
     PropTypes.shape({

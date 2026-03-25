@@ -17,7 +17,7 @@ export const DiveSiteListCard = ({
 }) => {
   return (
     <div
-      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 relative ${compactLayout ? 'p-4' : 'p-6'}`}
+      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 relative ${compactLayout ? 'p-4' : 'p-6'}`}
     >
       <div className='flex gap-4 sm:gap-6'>
         {site.thumbnail && (
@@ -245,7 +245,7 @@ export const DiveSiteGridCard = ({
   handleFilterChange,
 }) => {
   return (
-    <div className='dive-item bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden'>
+    <div className='dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 overflow-hidden'>
       {site.thumbnail && (
         <Link
           to={getMediaLink(site)}

@@ -15,7 +15,7 @@ const DivingCentersDesktopSearchBar = ({
   return (
     <div
       data-testid='diving-centers-desktop-search-bar'
-      className={`p-4 border-b border-gray-200 ${className}`}
+      className={`px-3 sm:px-4 mb-3 sm:mb-4 ${className}`}
     >
       <div className='max-w-2xl mx-auto'>
         <FuzzySearchInput
