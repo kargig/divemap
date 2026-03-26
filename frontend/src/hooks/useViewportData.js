@@ -316,6 +316,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
                 'search',
                 'dive_site_id',
                 'diving_center_id',
+                'my_dives',
                 'min_rating',
                 'max_rating',
                 'min_depth',

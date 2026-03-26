@@ -94,6 +94,7 @@ const Dives = () => {
       exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
       date_from: searchParams.get('date_from') || '',
       date_to: searchParams.get('date_to') || '',
+      my_dives: searchParams.get('my_dives') === 'true',
       tag_ids: searchParams
         .getAll('tag_ids')
         .map(id => parseInt(id))
@@ -939,7 +940,7 @@ const Dives = () => {
           {
             label: 'View My Map',
             icon: Map,
-            onClick: () => navigate('/map?type=dives'),
+            onClick: () => navigate('/map?type=dives&my_dives=true'),
             variant: 'ghost',
           },
         ]}
