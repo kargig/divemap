@@ -337,6 +337,7 @@ const IndependentMapView = () => {
     const filterKeys = [
       'search',
       'difficulty_code',
+      'my_dives',
       'exclude_unspecified_difficulty',
       'wind_suitability',
       'min_rating',
