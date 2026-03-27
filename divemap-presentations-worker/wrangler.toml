@@ -1,0 +1,14 @@
+name = "divemap-presentations"
+main = "src/index.js"
+compatibility_date = "2024-03-26"
+
+# Route mapping so that the worker intercepts this path on your main domain.
+# This prevents the request from reaching Fly.io
+routes = [
+  { pattern = "divemap.gr/presentations/*", zone_name = "divemap.gr" }
+]
+
+# Bind the R2 bucket to the worker using the environment variable PRESENTATIONS_BUCKET
+[[r2_buckets]]
+binding = "PRESENTATIONS_BUCKET"
+bucket_name = "divemap-presentations"

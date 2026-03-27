@@ -183,3 +183,6 @@ frontend/bundle-stats.html
 divemap-android/
 *.keystore
 *.jks
+
+# Cloudflare Workers
+.wrangler/

@@ -132,7 +132,8 @@ export default defineConfig({
           /^\/redoc\/?.*$/,
           /^\/openapi\.json$/,
           /^\/health$/,
-          /^\/nginx-health$/
+          /^\/nginx-health$/,
+          /^\/presentations\/?.*$/
         ],
         runtimeCaching: [
           {
@@ -216,8 +217,8 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             // Group all icons and small common utilities together
             if (
-              id.includes('lucide-react') || 
-              id.includes('@ant-design/icons') || 
+              id.includes('lucide-react') ||
+              id.includes('@ant-design/icons') ||
               id.includes('lodash') ||
               id.includes('date-fns')
             ) {
