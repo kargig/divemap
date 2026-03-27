@@ -18,6 +18,14 @@ import urllib.parse
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+# Web Push imports (Must be imported before sys.path manipulation)
+try:
+    from pywebpush import webpush, WebPushException
+    WEB_PUSH_AVAILABLE = True
+except ImportError as e:
+    WEB_PUSH_AVAILABLE = False
+    logger.error(f"pywebpush not available: {e}")
+
 # AWS SDK imports
 try:
     import boto3
@@ -37,14 +45,6 @@ try:
 except Exception as e:
     logger.warning(f"Email service imports not available: {e}")
     EMAIL_SERVICE_AVAILABLE = False
-
-# Web Push imports
-try:
-    from pywebpush import webpush, WebPushException
-    WEB_PUSH_AVAILABLE = True
-except ImportError:
-    WEB_PUSH_AVAILABLE = False
-    logger.error("pywebpush not available")
 
 
 def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Optional[Dict]:

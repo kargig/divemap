@@ -410,7 +410,7 @@ class NotificationService:
             'title': 'Divemap Notification',
             'body': 'You have a new update on Divemap',
             'url': notification.link_url or '/',
-            'tag': notification.category
+            'tag': getattr(notification, '_push_tag', notification.category)
         }
         
         # Override body for specific categories with generic but helpful text
@@ -729,29 +729,49 @@ class NotificationService:
                 if not user or not user.enabled:
                     continue
 
-                # Create the in-app notification record
-                link_url = f"/messages" # Frontend handles opening the correct room
-                notification = self.create_notification(
-                    user_id=user.id,
-                    category='user_chat_message',
-                    title=f"New message from {sender_name}",
-                    message="You have a new message in your chat.",
-                    link_url=link_url,
-                    entity_type='chat_message',
-                    entity_id=message_id,
-                    db=db
-                )
+                # Check for an existing unread chat notification for this room
+                existing_notification = db.query(Notification).filter(
+                    Notification.user_id == user.id,
+                    Notification.category == 'user_chat_message',
+                    Notification.entity_type == 'chat_message',
+                    Notification.is_read == False,
+                    Notification.link_url == link_url
+                ).order_by(desc(Notification.created_at)).first()
+
+                if existing_notification:
+                    # Update the existing notification's timestamp and ID to the latest message
+                    existing_notification.entity_id = message_id
+                    existing_notification.created_at = utcnow()
+                    # We don't increment the notification_count because no *new* DB row was created,
+                    # but we STILL want to send the push notification to wake up their phone.
+                    notification = existing_notification
+                else:
+                    # Create a new in-app notification record
+                    notification = self.create_notification(
+                        user_id=user.id,
+                        category='user_chat_message',
+                        title=f"New message from {sender_name}",
+                        message="You have a new message in your chat.",
+                        link_url=link_url,
+                        entity_type='chat_message',
+                        entity_id=message_id,
+                        db=db
+                    )
+                    if notification:
+                        notification_count += 1
 
                 if notification:
-                    notification_count += 1
-                    
-                    # Queue email if requested
-                    if should_notify_email:
+                    # Queue email if requested (only for the first message to avoid email spam)
+                    if should_notify_email and not existing_notification:
                         self._queue_email_notification(notification, user, 'user_chat_message', db)
                     
                     # Always queue push if website notifications are allowed (app-like behavior)
                     if should_notify_website:
-                        self._queue_push_notifications(notification, user, db)
+                        # For push, we want a room-specific tag so Android groups them by room
+                        notification_for_push = notification
+                        # We temporarily attach the room_id to the object just for the push payload builder
+                        setattr(notification_for_push, '_push_tag', f'chat_room_{room_id}')
+                        self._queue_push_notifications(notification_for_push, user, db)
 
         return notification_count
 

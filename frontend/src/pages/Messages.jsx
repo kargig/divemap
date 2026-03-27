@@ -1,9 +1,10 @@
+import { Smartphone, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 import { useLocation } from 'react-router-dom';
 
-import { getChatRooms, getUserFriendships, getAIChatLastActivity } from '../api';
-import { Smartphone, X } from 'lucide-react';
+import api, { getChatRooms, getUserFriendships, getAIChatLastActivity } from '../api';
 import ChatWindow from '../components/Chat/ChatWindow';
 import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
@@ -13,8 +14,6 @@ import NewChatModal from '../components/UserChat/NewChatModal';
 import RoomSettings from '../components/UserChat/RoomSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../hooks/useChat';
-import api from '../api';
-import toast from 'react-hot-toast';
 
 const urlBase64ToUint8Array = base64String => {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -36,7 +35,8 @@ const Messages = () => {
 
   useEffect(() => {
     // Only show banner if supported and not already decided
-    const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+    const isSupported =
+      'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     if (isSupported && Notification.permission === 'default') {
       // Small delay before showing banner for better UX
       const timer = setTimeout(() => setShowPushBanner(true), 2000);

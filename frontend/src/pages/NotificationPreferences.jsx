@@ -1,10 +1,10 @@
 import { Mail, Globe, MapPin, Trash2, ArrowLeft, Smartphone } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
-import api from '../api';
-import toast from 'react-hot-toast';
 
+import api from '../api';
 import { useNotifications } from '../hooks/useNotifications';
 import usePageTitle from '../hooks/usePageTitle';
 import { getNotificationPreferences } from '../services/notifications';
@@ -35,7 +35,11 @@ const NotificationPreferencesPage = () => {
   const [pushStatus, setPushStatus] = useState('loading'); // 'loading', 'supported', 'unsupported', 'denied', 'granted'
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
       setPushStatus('unsupported');
       return;
     }

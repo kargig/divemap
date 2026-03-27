@@ -404,7 +404,11 @@ const Profile = () => {
   const [pushStatus, setPushStatus] = useState('loading'); // 'loading', 'supported', 'unsupported', 'denied', 'granted'
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
       setPushStatus('unsupported');
       return;
     }
@@ -1304,6 +1308,15 @@ const Profile = () => {
                 <div className='flex items-center w-full px-3 py-2 text-red-600 bg-red-50 rounded-md border border-red-100'>
                   <Smartphone size={18} className='mr-3' />
                   <span className='font-medium'>Notifications Blocked</span>
+                </div>
+              )}
+
+              {pushStatus === 'unsupported' && (
+                <div className='flex items-center w-full px-3 py-2 text-gray-500 bg-gray-50 rounded-md border border-gray-100'>
+                  <Smartphone size={18} className='mr-3' />
+                  <span className='text-xs italic'>
+                    Notifications not supported (Requires HTTPS)
+                  </span>
                 </div>
               )}
 
