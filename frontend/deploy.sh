@@ -47,6 +47,15 @@ else
     TURNSTILE_BUILD_ARG=""
 fi
 
+# Check if VITE_VAPID_PUBLIC_KEY is set (optional)
+if [ -n "$VITE_VAPID_PUBLIC_KEY" ]; then
+    echo "VAPID Public Key: ${VITE_VAPID_PUBLIC_KEY:0:15}..."
+    VAPID_BUILD_ARG="--build-arg VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY}"
+else
+    echo "VAPID Public Key: Not set (Push notifications will be disabled)"
+    VAPID_BUILD_ARG=""
+fi
+
 echo "Deploying frontend with configuration from $ENV_FILE file..."
 echo "Google Client ID: ${VITE_GOOGLE_CLIENT_ID:0:20}..."
 echo "API URL: $VITE_API_URL"
@@ -55,7 +64,8 @@ echo "API URL: $VITE_API_URL"
 fly deploy -a divemap-frontend \
   --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" \
   --build-arg VITE_API_URL="$VITE_API_URL" \
-  $TURNSTILE_BUILD_ARG
+  $TURNSTILE_BUILD_ARG \
+  $VAPID_BUILD_ARG
 
 echo "Deployment completed successfully!"
 echo "Visit your app at: https://divemap.gr/" 

@@ -182,3 +182,85 @@ class SQSService:
         
         logger.info(f"Queued {success_count}/{len(tasks)} email tasks")
         return success_count
+
+    def send_push_task(
+        self,
+        subscription_id: int,
+        endpoint: str,
+        p256dh: str,
+        auth: str,
+        payload: Dict[str, Any],
+        delay_seconds: int = 0
+    ) -> bool:
+        """
+        Send a single push notification task to SQS.
+        
+        Args:
+            subscription_id: ID of the push subscription record
+            endpoint: Push service endpoint URL
+            p256dh: Client public key (base64)
+            auth: Client auth secret (base64)
+            payload: Generic notification payload (title, body, url, tag)
+            delay_seconds: Optional delay (0-900s)
+        """
+        if not self.sqs_available or not self.sqs_client:
+            return False
+            
+        try:
+            message_body = {
+                'type': 'push',
+                'subscription_id': subscription_id,
+                'endpoint': endpoint,
+                'p256dh': p256dh,
+                'auth': auth,
+                'payload': payload
+            }
+            
+            self.sqs_client.send_message(
+                QueueUrl=self.queue_url,
+                MessageBody=orjson.dumps(message_body).decode('utf-8'),
+                DelaySeconds=min(delay_seconds, 900)
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error sending push task to SQS: {e}")
+            return False
+
+    def send_push_tasks(self, tasks: list[Dict[str, Any]], delay_seconds: int = 0) -> int:
+        """
+        Send multiple push notification tasks to SQS in batch.
+        """
+        if not self.sqs_available or not self.sqs_client or not tasks:
+            return 0
+            
+        batch_size = 10
+        success_count = 0
+        
+        for i in range(0, len(tasks), batch_size):
+            batch = tasks[i:i + batch_size]
+            try:
+                entries = []
+                for idx, task in enumerate(batch):
+                    message_body = {
+                        'type': 'push',
+                        'subscription_id': task['subscription_id'],
+                        'endpoint': task['endpoint'],
+                        'p256dh': task['p256dh'],
+                        'auth': task['auth'],
+                        'payload': task['payload']
+                    }
+                    entries.append({
+                        'Id': str(i + idx),
+                        'MessageBody': orjson.dumps(message_body).decode('utf-8'),
+                        'DelaySeconds': min(delay_seconds, 900)
+                    })
+                
+                response = self.sqs_client.send_message_batch(
+                    QueueUrl=self.queue_url,
+                    Entries=entries
+                )
+                success_count += len(response.get('Successful', []))
+            except Exception as e:
+                logger.error(f"Error sending push batch to SQS: {e}")
+                
+        return success_count

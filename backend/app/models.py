@@ -121,9 +121,9 @@ class User(Base):
     google_id = Column(String(255), unique=True, index=True, nullable=True)  # Google OAuth ID
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    is_admin = Column(Boolean, default=False)
-    is_moderator = Column(Boolean, default=False)
-    enabled = Column(Boolean, default=True)  # New field for user activation
+    is_admin = Column(Boolean, default=False, nullable=False)
+    is_moderator = Column(Boolean, default=False, nullable=False)
+    enabled = Column(Boolean, default=True, nullable=False)  # New field for user activation
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
@@ -154,6 +154,7 @@ class User(Base):
     unsubscribe_token = relationship("UnsubscribeToken", back_populates="user", uselist=False, cascade="all, delete-orphan")
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     social_links = relationship("UserSocialLink", back_populates="user", cascade="all, delete-orphan")
+    push_subscriptions = relationship("PushSubscription", back_populates="user", cascade="all, delete-orphan")
 
 class UserSocialLink(Base):
     __tablename__ = "user_social_links"
@@ -1061,3 +1062,17 @@ class UserChatMessage(Base):
     # Relationships
     room = relationship("UserChatRoom", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    endpoint = Column(String(2048), nullable=False)
+    p256dh = Column(String(255), nullable=False)
+    auth = Column(String(255), nullable=False)
+    fail_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    user = relationship("User", back_populates="push_subscriptions")

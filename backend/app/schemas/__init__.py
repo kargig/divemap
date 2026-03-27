@@ -1544,3 +1544,19 @@ class AuthAuditLogResponse(BaseModel):
 
 class DeleteR2PhotoRequest(BaseModel):
     r2_path: str
+
+class PushSubscriptionBase(BaseModel):
+    endpoint: str
+    p256dh: str
+    auth: str
+
+class PushSubscriptionCreate(PushSubscriptionBase):
+    pass
+
+class PushSubscriptionResponse(PushSubscriptionBase):
+    id: int
+    user_id: int
+    fail_count: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

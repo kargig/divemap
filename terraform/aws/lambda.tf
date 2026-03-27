@@ -119,10 +119,10 @@ resource "aws_cloudwatch_log_group" "lambda_email_processor" {
 # See terraform/README.md for instructions
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/../backend/lambda"
+  source_dir  = "${path.module}/../../backend/lambda"
   output_path = "${path.module}/lambda_email_processor.zip"
   excludes    = ["__pycache__", "*.pyc", "README.md", "requirements.txt"]
-  
+
   # Note: Email templates and services are copied during manual packaging
   # See README.md section "Prepare Lambda Deployment Package"
 }
@@ -149,6 +149,8 @@ resource "aws_lambda_function" "email_processor" {
         SES_FROM_NAME   = var.ses_from_name
         FRONTEND_URL    = var.frontend_url
         LOG_LEVEL       = "INFO"
+        VAPID_PRIVATE_KEY = var.vapid_private_key
+        VAPID_ADMIN_EMAIL = var.vapid_admin_email
       },
       var.cloudflare_api_token != "" ? { CLOUDFLARE_API_TOKEN = var.cloudflare_api_token } : {}
     )

@@ -1,9 +1,9 @@
 """
-AWS Lambda Function: Email Notification Processor
+AWS Lambda Function: Notification Processor
 
-Processes email notification tasks from SQS queue.
+Processes email and web push notification tasks from SQS queue.
 Uses backend API instead of direct database access.
-Triggered by SQS events, sends emails via AWS SES.
+Triggered by SQS events, sends emails via AWS SES and push via Web Push.
 """
 
 import json
@@ -37,6 +37,14 @@ try:
 except Exception as e:
     logger.warning(f"Email service imports not available: {e}")
     EMAIL_SERVICE_AVAILABLE = False
+
+# Web Push imports
+try:
+    from pywebpush import webpush, WebPushException
+    WEB_PUSH_AVAILABLE = True
+except ImportError:
+    WEB_PUSH_AVAILABLE = False
+    logger.error("pywebpush not available")
 
 
 def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Optional[Dict]:
@@ -86,7 +94,7 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
         
         # Create request - User-Agent must be set via add_header to override urllib default
         req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
-        req.add_header("User-Agent", "Divemap-Lambda-EmailProcessor/1.0")
+        req.add_header("User-Agent", "Divemap-Lambda-NotificationProcessor/1.0")
         
         # Make request
         # Increased timeout to 30 seconds to handle slower backend responses or Cloudflare delays
@@ -241,15 +249,78 @@ def process_email_notification(
             return False
 
 
+def process_push_notification(
+    subscription_id: int,
+    endpoint: str,
+    p256dh: str,
+    auth: str,
+    payload: Dict[str, Any]
+) -> bool:
+    """
+    Process a single web push notification task.
+    
+    Args:
+        subscription_id: ID of the push subscription record
+        endpoint: Push service endpoint URL
+        p256dh: Client public key
+        auth: Client auth secret
+        payload: Notification payload (generic)
+        
+    Returns:
+        True if push was sent successfully, False otherwise
+    """
+    if not WEB_PUSH_AVAILABLE:
+        logger.error("Web push library (pywebpush) not available")
+        return False
+        
+    vapid_private_key = os.getenv('VAPID_PRIVATE_KEY')
+    vapid_admin_email = os.getenv('VAPID_ADMIN_EMAIL')
+    
+    if not vapid_private_key or not vapid_admin_email:
+        logger.error("VAPID credentials not set in environment")
+        return False
+        
+    try:
+        webpush(
+            subscription_info={
+                "endpoint": endpoint,
+                "keys": {
+                    "p256dh": p256dh,
+                    "auth": auth
+                }
+            },
+            data=json.dumps(payload),
+            vapid_private_key=vapid_private_key,
+            vapid_claims={"sub": vapid_admin_email}
+        )
+        logger.info(f"Push notification sent successfully to subscription {subscription_id}")
+        return True
+        
+    except WebPushException as ex:
+        logger.warning(f"WebPush error for subscription {subscription_id}: {ex}")
+        # 410 Gone means the subscription has expired or user has unsubscribed
+        # We also treat 404 as a permanent failure for some push services
+        if ex.response is not None and ex.response.status_code in [404, 410]:
+            logger.info(f"Subscription {subscription_id} is dead (status {ex.response.status_code}). Reporting failure to backend.")
+            call_backend_api(
+                f"/api/v1/notifications/internal/push-subscriptions/{subscription_id}/fail",
+                method="PUT"
+            )
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error sending push notification: {e}")
+        return False
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
-    Lambda handler for SQS email notification processing.
+    Lambda handler for SQS notification processing.
     
     Event structure:
     {
         "Records": [
             {
-                "body": "{\"notification_id\": 123, \"user_email\": \"...\", \"notification\": {...}}",
+                "body": "{\"type\": \"email|push\", ...}",
                 ...
             }
         ]
@@ -264,42 +335,77 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             try:
                 # Parse message body
                 body = json.loads(record['body'])
-                notification_id = body.get('notification_id')
-                user_email = body.get('user_email')
-                notification_data = body.get('notification')
-                user_id = body.get('user_id')  # Optional: from SQS message
-                unsubscribe_token = body.get('unsubscribe_token')  # Optional: from SQS message
                 
-                if not all([notification_id, user_email, notification_data]):
-                    logger.error(f"Invalid message format: {body}")
-                    failure_count += 1
-                    continue
+                # Branch based on task type
+                task_type = body.get('type', 'email') # Default to email for backward compatibility
                 
-                # Process email notification
-                # If process_email_notification raises an exception (e.g., 5xx errors),
-                # we need to re-raise it so SQS will redeliver the message for retry
-                try:
-                    if process_email_notification(
-                        notification_id,
-                        user_email,
-                        notification_data,
-                        user_id=user_id,
-                        unsubscribe_token=unsubscribe_token
+                if task_type == 'push':
+                    # Process Web Push Notification
+                    if process_push_notification(
+                        subscription_id=body.get('subscription_id'),
+                        endpoint=body.get('endpoint'),
+                        p256dh=body.get('p256dh'),
+                        auth=body.get('auth'),
+                        payload=body.get('payload')
                     ):
                         success_count += 1
                     else:
                         failure_count += 1
-                except Exception as e:
-                    # Re-raise retryable errors (5xx) to trigger SQS redelivery
-                    # The exception message should indicate if it's retryable
-                    error_msg = str(e)
-                    if "Backend API returned 5" in error_msg or "504" in error_msg or "503" in error_msg or "502" in error_msg or "500" in error_msg:
-                        logger.warning(f"Retryable error for notification {notification_id}: {e} - re-raising to trigger SQS redelivery")
-                        raise  # Re-raise to trigger SQS retry
-                    else:
-                        # Non-retryable errors - log and continue
-                        logger.error(f"Non-retryable error processing notification {notification_id}: {e}")
+                elif task_type == 'new_chat_message':
+                    # Call backend to generate notifications for chat message
+                    room_id = body.get('room_id')
+                    sender_id = body.get('sender_id')
+                    message_id = body.get('message_id')
+                    
+                    if not all([room_id, sender_id, message_id]):
+                        logger.error(f"Invalid new_chat_message format: {body}")
                         failure_count += 1
+                        continue
+                        
+                    result = call_backend_api(
+                        f"/api/v1/notifications/internal/notify-chat-message?room_id={room_id}&sender_id={sender_id}&message_id={message_id}",
+                        method="POST"
+                    )
+                    
+                    if result and result.get('status') == 'success':
+                        success_count += 1
+                        logger.info(f"Chat notifications triggered successfully for room {room_id}")
+                    else:
+                        failure_count += 1
+                else:
+                    # Process Email Notification
+                    notification_id = body.get('notification_id')
+                    user_email = body.get('user_email')
+                    notification_data = body.get('notification')
+                    user_id = body.get('user_id')
+                    unsubscribe_token = body.get('unsubscribe_token')
+                    
+                    if not all([notification_id, user_email, notification_data]):
+                        logger.error(f"Invalid email message format: {body}")
+                        failure_count += 1
+                        continue
+                        
+                    # Process email notification
+                    try:
+                        if process_email_notification(
+                            notification_id,
+                            user_email,
+                            notification_data,
+                            user_id=user_id,
+                            unsubscribe_token=unsubscribe_token
+                        ):
+                            success_count += 1
+                        else:
+                            failure_count += 1
+                    except Exception as e:
+                        # Re-raise retryable errors (5xx) to trigger SQS redelivery
+                        error_msg = str(e)
+                        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+                            raise  # Re-raise to trigger SQS retry
+                        else:
+                            # Non-retryable errors - log and continue
+                            logger.error(f"Non-retryable error processing notification {notification_id}: {e}")
+                            failure_count += 1
                     
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse message body: {e}")
@@ -308,7 +414,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # This catches retryable exceptions that were re-raised above
                 # Re-raise them so Lambda fails and SQS redelivers
                 error_msg = str(e)
-                if "Backend API returned 5" in error_msg or "504" in error_msg or "503" in error_msg or "502" in error_msg or "500" in error_msg:
+                if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
                     logger.error(f"Retryable error - re-raising to trigger SQS redelivery: {e}")
                     raise  # Re-raise to fail Lambda and trigger SQS retry
                 else:
@@ -319,7 +425,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         result = {
             'statusCode': 200,
             'body': json.dumps({
-                'message': 'Email processing completed',
+                'message': 'Notification processing completed',
                 'success_count': success_count,
                 'failure_count': failure_count,
                 'total_processed': success_count + failure_count
@@ -356,6 +462,7 @@ if __name__ == '__main__':
         'Records': [
             {
                 'body': json.dumps({
+                    'type': 'email',
                     'notification_id': 1,
                     'user_email': 'test@example.com',
                     'notification': {

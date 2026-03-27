@@ -127,3 +127,14 @@ variable "weekly_digest_schedule" {
   type        = string
   default     = "cron(0 8 ? * MON *)" # 8 AM UTC every Monday
 }
+
+variable "vapid_private_key" {
+  description = "VAPID private key for web push notifications"
+  type        = string
+  sensitive   = true
+}
+
+variable "vapid_admin_email" {
+  description = "Admin email for VAPID contact (e.g., mailto:admin@example.com)"
+  type        = string
+}

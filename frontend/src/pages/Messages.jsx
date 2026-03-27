@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import { useLocation } from 'react-router-dom';
 
 import { getChatRooms, getUserFriendships, getAIChatLastActivity } from '../api';
+import { Smartphone, X } from 'lucide-react';
 import ChatWindow from '../components/Chat/ChatWindow';
 import PageHeader from '../components/PageHeader';
 import SEO from '../components/SEO';
@@ -12,12 +13,72 @@ import NewChatModal from '../components/UserChat/NewChatModal';
 import RoomSettings from '../components/UserChat/RoomSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../hooks/useChat';
+import api from '../api';
+import toast from 'react-hot-toast';
+
+const urlBase64ToUint8Array = base64String => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
 
 const Messages = () => {
   const { user } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [showPushBanner, setShowPushBanner] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    // Only show banner if supported and not already decided
+    const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+    if (isSupported && Notification.permission === 'default') {
+      // Small delay before showing banner for better UX
+      const timer = setTimeout(() => setShowPushBanner(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setShowPushBanner(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+      if (!vapidPublicKey) {
+        setShowPushBanner(false);
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+
+      const { endpoint, keys } = subscription.toJSON();
+      await api.post('/api/v1/notifications/push/subscribe', {
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+
+      setShowPushBanner(false);
+      toast.success('Push notifications enabled!');
+    } catch (error) {
+      console.error('Failed to enable push', error);
+      setShowPushBanner(false);
+    }
+  };
   const [activeRoomId, setActiveRoomId] = useState(
     location.state?.roomId || location.state?.activeRoomId || null
   );
@@ -111,6 +172,36 @@ const Messages = () => {
         <div
           className={`flex-1 flex flex-col h-full overflow-hidden ${!activeRoomId ? 'hidden md:flex' : 'flex'}`}
         >
+          {showPushBanner && (
+            <div className='bg-blue-600 text-white p-3 flex items-center justify-between shadow-md relative z-10'>
+              <div className='flex items-center space-x-3'>
+                <div className='bg-white/20 p-2 rounded-full'>
+                  <Smartphone size={20} />
+                </div>
+                <div>
+                  <p className='font-medium text-sm sm:text-base'>Never miss a buddy's message!</p>
+                  <p className='text-xs text-blue-100 opacity-90'>
+                    Enable push notifications to see when buddies reply.
+                  </p>
+                </div>
+              </div>
+              <div className='flex items-center space-x-4'>
+                <button
+                  onClick={handleEnablePush}
+                  className='bg-white text-blue-600 px-4 py-1.5 rounded-full text-sm font-bold hover:bg-blue-50 transition-colors whitespace-nowrap shadow-sm'
+                >
+                  Turn On
+                </button>
+                <button
+                  onClick={() => setShowPushBanner(false)}
+                  className='text-white/60 hover:text-white transition-colors p-1'
+                  aria-label='Dismiss'
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+          )}
           {activeRoomId === 'ai-assistant' ? (
             <div className='flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900'>
               {/* Mobile Back Button Header */}
