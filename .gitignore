@@ -178,3 +178,8 @@ PR-description.txt
 commit-message.txt
 frontend/dev-dist/
 frontend/bundle-stats.html
+
+# Android / Bubblewrap
+divemap-android/
+*.keystore
+*.jks

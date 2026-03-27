@@ -28,9 +28,9 @@ echo "🧹 Cleaning up previous build..."
 rm -rf nginx/frontend-build
 mkdir -p nginx/frontend-build
 
-# Copy frontend build to nginx directory
+# Copy frontend build to nginx directory (including hidden files like .well-known)
 echo "📋 Copying frontend build to nginx directory..."
-cp -r frontend/dist/* nginx/frontend-build/
+cp -a frontend/dist/. nginx/frontend-build/
 
 # Show build summary
 echo "✅ Build complete! Summary:"

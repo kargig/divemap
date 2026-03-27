@@ -37,7 +37,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
-        orientation: 'portrait-primary',
+        orientation: 'any',
         dir: 'ltr',
         prefer_related_applications: false,
         related_applications: [],

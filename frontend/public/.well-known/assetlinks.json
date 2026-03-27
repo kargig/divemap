@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "gr.divemap.twa",
+      "sha256_cert_fingerprints": [
+        "2B:22:6E:52:6C:C7:FA:4E:25:67:C2:B7:86:FD:4C:B0:BA:BB:96:6D:34:69:87:50:96:7E:62:61:AB:02:15:DD",
+        "99:C4:54:FE:D7:C8:8B:7F:42:EE:93:B3:7A:50:04:3E:DE:19:1E:D3:3C:F3:71:ED:DB:08:EF:18:71:FC:A2:94"
+      ]
+    }
+  }
+]
