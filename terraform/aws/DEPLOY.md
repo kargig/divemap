@@ -246,11 +246,11 @@ This is the **recommended approach** - configure Cloudflare to skip security cha
 3. **Create a Custom Rule**
    - Click "Create rule" button
    - **Rule name**: `Allow Lambda API Requests`
-   
+
 4. **Define Matching Conditions**
    - Under "When incoming requests match", configure:
      - **Field**: Select `http.request.headers.names` or use the expression editor
-     - **Expression** (recommended): 
+     - **Expression** (recommended):
        ```
        http.request.headers["X-API-Key"] ne ""
        ```
@@ -258,21 +258,21 @@ This is the **recommended approach** - configure Cloudflare to skip security cha
    - **OR** use the field dropdown:
      - **Field**: `http.request.headers.x-api-key` (if available)
      - **Operator**: `is present` or `is not empty`
-   
+
 5. **Set the Action**
    - Under "Then take action":
      - **Choose action**: Select `Skip`
-   
+
 6. **Configure Skip Options**
    - A modal will appear with skip configuration options
    - **Log matching requests**: Toggle ON (recommended) to see these requests in Security overview
-   
+
    - **WAF components to skip**: Check the boxes for what to bypass:
      - ✅ **All remaining custom rules** (recommended - stops evaluating other custom rules)
      - ☐ **All rate limiting rules** (check if you want to bypass rate limits)
      - ☐ **All managed rules** (check if you want to bypass managed WAF rules)
      - ✅ **All Super Bot Fight Mode Rules** (recommended for API requests)
-   
+
    - **More components to skip**: Click to expand and see additional options:
      - ☐ **Zone Lockdown**
      - ☐ **User Agent Blocking**
@@ -281,20 +281,20 @@ This is the **recommended approach** - configure Cloudflare to skip security cha
      - ☐ **Security Level**
      - ☐ **Rate limiting rules (Previous version)**
      - ☐ **Managed rules (Previous version)**
-   
+
    - **Recommended configuration for Lambda API requests**:
      - ✅ All remaining custom rules
      - ✅ All Super Bot Fight Mode Rules
      - ✅ Browser Integrity Check
      - ✅ Log matching requests (to monitor)
-   
+
    - Click **Save** or **Deploy** to apply the rule
 
 7. **Alternative: Skip by User-Agent**
    - If you prefer to identify Lambda by User-Agent:
-   - **Expression**: 
+   - **Expression**:
      ```
-     http.request.headers["user-agent"] eq "Divemap-Lambda-EmailProcessor/1.0"
+     http.request.headers["user-agent"] eq "Divemap-Lambda-NotificationProcessor/1.0"
      ```
    - **Action**: `Skip`
    - **Skip options**: Configure the same skip options as above:
@@ -322,7 +322,7 @@ If Firewall Rules don't work or you need more control, you can use a Cloudflare 
 
 3. **Configure Token Details**
    - **Token name**: `Divemap Lambda Email Processor`
-   
+
 4. **Set Permissions**
    - **Scope**: Select `Zone`
    - **Permission Group**: Select `Firewall Services`
@@ -352,7 +352,7 @@ If Firewall Rules don't work or you need more control, you can use a Cloudflare 
 
 4. **Add Token to Terraform Configuration**
    - Edit `terraform/terraform.tfvars`:
-   
+
    ```hcl
    cloudflare_api_token = "your-cloudflare-api-token-here"
    ```
@@ -360,12 +360,12 @@ If Firewall Rules don't work or you need more control, you can use a Cloudflare 
 5. **Update Lambda Environment Variables**
    - Run `terraform apply` to update Lambda with the token
    - OR update manually via AWS CLI:
-   
+
    ```bash
    cd terraform
    LAMBDA_NAME=$(terraform output -raw lambda_function_name)
    CLOUDFLARE_TOKEN="your-cloudflare-api-token-here"
-   
+
    aws lambda update-function-configuration \
      --function-name "$LAMBDA_NAME" \
      --environment "Variables={CLOUDFLARE_API_TOKEN=$CLOUDFLARE_TOKEN,...existing vars...}" \
@@ -376,8 +376,8 @@ If Firewall Rules don't work or you need more control, you can use a Cloudflare 
    - The Lambda code now includes support for Cloudflare tokens
    - Rebuild the package (see section 3) and upload it
 
-**Note**: 
-- The Cloudflare API token approach (Option B) is primarily for managing Cloudflare resources via API, not for bypassing challenges. 
+**Note**:
+- The Cloudflare API token approach (Option B) is primarily for managing Cloudflare resources via API, not for bypassing challenges.
 - **Option A (WAF Custom Rules with Skip action) is strongly recommended** as it's the proper way to allow specific requests to bypass Cloudflare's security challenges.
 - The "Skip" action replaces the old "Allow" action and provides more granular control over which security products to bypass.
 
@@ -640,7 +640,7 @@ aws sqs get-queue-attributes \
 
 - **Visibility Timeout**: 120 seconds (2 minutes) - message becomes visible again after this time
 - **Max Receive Count**: 3 - message will be retried up to 3 times
-- **Retry Timeline**: 
+- **Retry Timeline**:
   - Attempt 1: Immediate
   - Attempt 2: After 2 minutes (visibility timeout)
   - Attempt 3: After 4 minutes total

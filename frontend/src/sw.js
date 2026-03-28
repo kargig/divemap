@@ -33,7 +33,7 @@ registerRoute(
 
 // Map Tiles Cache
 registerRoute(
-  /^https:\/\/.*\.openstreetmap\.org\/.*/,
+  /^https:\/\/[^\/]*\.openstreetmap\.org\/.*/,
   new CacheFirst({
     cacheName: 'map-tiles-cache',
     plugins: [

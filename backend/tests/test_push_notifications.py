@@ -118,7 +118,8 @@ def test_notification_service_triggers_push(mock_send, db_session: Session, test
     assert args[0]["subscription_id"] == sub.id
     assert args[0]["payload"]["tag"] == "new_dive_sites"
 
-def test_internal_notify_chat_message(client, db_session: Session, test_user):
+@patch("app.services.sqs_service.SQSService.send_push_tasks", return_value=1)
+def test_internal_notify_chat_message(mock_send, client, db_session: Session, test_user):
     # Setup room and members
     from app.models import UserChatRoom, UserChatRoomMember
     room = UserChatRoom(is_group=False, encrypted_dek="test_dek")
@@ -146,6 +147,8 @@ def test_internal_notify_chat_message(client, db_session: Session, test_user):
             f"/api/v1/notifications/internal/notify-chat-message?room_id={room.id}&sender_id=999&message_id=888", 
             headers=headers
         )
+        if response.status_code != 200:
+            print(f"ERROR BODY: {response.text}")
         assert response.status_code == 200
         assert response.json()["notifications_created"] == 1
         
@@ -154,4 +157,7 @@ def test_internal_notify_chat_message(client, db_session: Session, test_user):
         notif = db_session.query(Notification).filter(Notification.user_id == test_user.id).first()
         assert notif is not None
         assert notif.category == "user_chat_message"
+        
+        # Verify the SQS mock was called indicating the pipeline worked
+        assert mock_send.called
 

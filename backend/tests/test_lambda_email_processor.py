@@ -49,12 +49,12 @@ class TestLambdaCallBackendAPI:
         mock_response.reason = 'OK'
         mock_response.read.return_value = b'{"id": 1, "title": "Test"}'
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         mock_request = MagicMock()
         mock_request_class.return_value = mock_request
-        
+
         result = call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert result == {"id": 1, "title": "Test"}
         mock_urlopen.assert_called_once()
         # Verify timeout is 30 seconds
@@ -82,10 +82,10 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         with pytest.raises(Exception) as exc_info:
             call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert "Backend API returned 500" in str(exc_info.value)
 
     @patch.dict(os.environ, {
@@ -106,10 +106,10 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         with pytest.raises(Exception) as exc_info:
             call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert "Backend API returned 502" in str(exc_info.value)
 
     @patch.dict(os.environ, {
@@ -130,10 +130,10 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         with pytest.raises(Exception) as exc_info:
             call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert "Backend API returned 503" in str(exc_info.value)
 
     @patch.dict(os.environ, {
@@ -154,10 +154,10 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         with pytest.raises(Exception) as exc_info:
             call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert "Backend API returned 504" in str(exc_info.value)
         assert "error code: 504" in str(exc_info.value)
 
@@ -179,9 +179,9 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         result = call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert result is None
 
     @patch.dict(os.environ, {
@@ -202,9 +202,9 @@ class TestLambdaCallBackendAPI:
             error_response
         )
         mock_urlopen.side_effect = mock_http_error
-        
+
         result = call_backend_api('/api/v1/notifications/internal/1')
-        
+
         assert result is None
 
     @patch.dict(os.environ, {
@@ -221,12 +221,12 @@ class TestLambdaCallBackendAPI:
         mock_response.reason = 'OK'
         mock_response.read.return_value = b'{}'
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         mock_request = MagicMock()
         mock_request_class.return_value = mock_request
-        
+
         call_backend_api('/api/v1/notifications/internal/1')
-        
+
         # Verify Request was created
         mock_request_class.assert_called_once()
         # Verify CF-Access-Token header was added
@@ -247,18 +247,18 @@ class TestLambdaCallBackendAPI:
         mock_response.reason = 'OK'
         mock_response.read.return_value = b'{}'
         mock_urlopen.return_value.__enter__.return_value = mock_response
-        
+
         mock_request = MagicMock()
         mock_request_class.return_value = mock_request
-        
+
         call_backend_api('/api/v1/notifications/internal/1')
-        
+
         # Verify add_header was called with User-Agent
         mock_request.add_header.assert_called()
-        user_agent_calls = [call for call in mock_request.add_header.call_args_list 
+        user_agent_calls = [call for call in mock_request.add_header.call_args_list
                            if call[0][0] == 'User-Agent']
         assert len(user_agent_calls) > 0
-        assert user_agent_calls[0][0][1] == 'Divemap-Lambda-EmailProcessor/1.0'
+        assert user_agent_calls[0][0][1] == 'Divemap-Lambda-NotificationProcessor/1.0'
 
 
 class TestLambdaProcessEmailNotification:
@@ -271,17 +271,17 @@ class TestLambdaProcessEmailNotification:
         """Test that retryable errors (5xx) are re-raised for SQS retry."""
         # Mock 504 error from backend API
         mock_call_api.side_effect = Exception("Backend API returned 504 Gateway Timeout: error code: 504")
-        
+
         notification_data = {
             'title': 'Test',
             'message': 'Test message',
             'link_url': None,
             'category': 'test'
         }
-        
+
         with pytest.raises(Exception) as exc_info:
             process_email_notification(1, 'test@example.com', notification_data)
-        
+
         assert "Backend API returned 504" in str(exc_info.value) or "504" in str(exc_info.value)
 
     @patch.object(email_processor, 'call_backend_api')
@@ -296,20 +296,20 @@ class TestLambdaProcessEmailNotification:
             'message': 'Test',
             'email_sent': False
         }
-        
+
         mock_email_service = MagicMock()
         mock_email_service_class.return_value = mock_email_service
         mock_email_service.send_notification_email.return_value = False
-        
+
         notification_data = {
             'title': 'Test',
             'message': 'Test message',
             'link_url': None,
             'category': 'test'
         }
-        
+
         result = process_email_notification(1, 'test@example.com', notification_data)
-        
+
         assert result is False
 
 
@@ -323,7 +323,7 @@ class TestLambdaHandler:
     def test_lambda_handler_retryable_error_propagation(self):
         """Test that retryable errors are re-raised to fail Lambda."""
         from unittest.mock import patch
-        
+
         # Create test event
         test_event = {
             'Records': [
@@ -341,14 +341,14 @@ class TestLambdaHandler:
                 }
             ]
         }
-        
+
         # Mock process_email_notification to raise retryable error
         with patch.object(email_processor, 'process_email_notification') as mock_process:
             mock_process.side_effect = Exception("Backend API returned 504 Gateway Timeout: error code: 504")
-            
+
             with pytest.raises(Exception) as exc_info:
                 lambda_handler(test_event, None)
-            
+
             assert "Backend API returned 504" in str(exc_info.value) or "504" in str(exc_info.value)
 
     @patch.dict(os.environ, {
@@ -374,13 +374,13 @@ class TestLambdaHandler:
                 }
             ]
         }
-        
+
         # Mock process_email_notification to raise non-retryable error
         with patch.object(email_processor, 'process_email_notification') as mock_process:
             mock_process.side_effect = Exception("Template rendering failed")
-            
+
             result = lambda_handler(test_event, None)
-            
+
             # Non-retryable errors should result in 200 status with failure_count > 0
             assert result['statusCode'] == 200
             body_data = json.loads(result['body'])
@@ -411,15 +411,15 @@ class TestLambdaHandler:
                 }
             ]
         }
-        
+
         # Mock process_email_notification to raise retryable error
         with patch.object(email_processor, 'process_email_notification') as mock_process:
             # Simulate a retryable error being raised
             mock_process.side_effect = Exception("Backend API returned 503 Service Unavailable")
-            
+
             with pytest.raises(Exception) as exc_info:
                 lambda_handler(test_event, None)
-            
+
             # Should re-raise because it's a retryable error
             error_msg = str(exc_info.value)
             assert "Backend API returned 503" in error_msg or "503" in error_msg

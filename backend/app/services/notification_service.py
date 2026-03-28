@@ -11,7 +11,7 @@ import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, desc
 
 from app.models import (
     User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip, PushSubscription,
@@ -735,7 +735,7 @@ class NotificationService:
                     Notification.category == 'user_chat_message',
                     Notification.entity_type == 'chat_message',
                     Notification.is_read == False,
-                    Notification.link_url == link_url
+                    Notification.link_url == f"/messages"
                 ).order_by(desc(Notification.created_at)).first()
 
                 if existing_notification:
@@ -752,7 +752,7 @@ class NotificationService:
                         category='user_chat_message',
                         title=f"New message from {sender_name}",
                         message="You have a new message in your chat.",
-                        link_url=link_url,
+                        link_url=f"/messages",
                         entity_type='chat_message',
                         entity_id=message_id,
                         db=db
