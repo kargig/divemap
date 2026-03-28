@@ -104,3 +104,29 @@ export const renderTextWithLinks = (text, options = {}) => {
     return part.text;
   });
 };
+
+/**
+ * Formats gas strings for display, e.g., "Nitrox 32%" to "EAN32"
+ * @param {string} gasStr - The gas string to format
+ * @returns {string} Formatted gas string
+ */
+export const formatGases = gasStr => {
+  if (!gasStr) return '';
+
+  let formatted = gasStr;
+
+  // 1. Nitrox XX% -> EANXX
+  formatted = formatted.replace(/Nitrox\s*(\d+)\s*%?/gi, 'EAN$1');
+
+  // 2. Nitrox up to XX% -> EANXX
+  formatted = formatted.replace(/Nitrox\s*up\s*to\s*(\d+)\s*%?/gi, 'EAN$1');
+
+  // 3. Air/Nitrox -> Air/EAN
+  formatted = formatted.replace(/Nitrox/gi, 'EAN');
+
+  // 4. SafeAir XX% -> EANXX
+  formatted = formatted.replace(/SafeAir\s*(\d+)\s*%?/gi, 'EAN$1');
+  formatted = formatted.replace(/SafeAir/gi, 'EAN');
+
+  return formatted;
+};

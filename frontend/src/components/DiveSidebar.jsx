@@ -1,4 +1,4 @@
-import { MapPin } from 'lucide-react';
+import { MapPin, Waves, Gauge } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -66,10 +66,16 @@ const DiveSidebar = ({ dive, formatDate }) => {
 
       {/* Statistics */}
       <div className='bg-white rounded-lg shadow p-6'>
-        <h2 className='text-xl font-semibold mb-4'>Statistics</h2>
+        <h2 className='text-xl font-semibold mb-4 flex items-center gap-2'>
+          <Gauge className='h-5 w-5 text-gray-400' />
+          Statistics
+        </h2>
         <div className='space-y-3'>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Total Dives</span>
+          <div className='flex justify-between items-center'>
+            <div className='flex items-center gap-2'>
+              <Waves size={15} className='text-gray-500' />
+              <span className='text-gray-600'>Total Dives</span>
+            </div>
             <span className='font-medium'>{dive.user?.number_of_dives || 0}</span>
           </div>
           <div className='flex justify-between'>

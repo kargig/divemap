@@ -776,19 +776,91 @@ async def get_user_public_profile(
     
     suit_preferences = {}
     for suit_type, count in suit_query:
-        if suit_type:
-            # Handle both Enum members and strings
-            key = suit_type.value if hasattr(suit_type, 'value') else str(suit_type)
-            suit_preferences[key] = count
+      if suit_type:
+        # Handle both Enum members and strings
+        key = suit_type.value if hasattr(suit_type, 'value') else str(suit_type)
+        suit_preferences[key] = count
+
+    # 7. Gear Preferences (Singles vs Doubles vs Doubles+Stage)
+    gear_query = db.query(
+      Dive.gas_bottles_used
+    ).filter(
+      Dive.user_id == user.id,
+      Dive.is_private == False,
+      Dive.gas_bottles_used.isnot(None)
+    ).all()
+
+    gear_preferences = {"Singles": 0, "Doubles": 0, "Doubles + Stage": 0, "Singles + Stage": 0}
+    
+    def is_doubles_check(name):
+      if not name: return False
+      n = str(name).lower()
+      # Explicit names
+      if 'double' in n or 'twin' in n or n.startswith('d'):
+        return True
+      # Volumes that are definitely doubles (14=2x7, 16=2x8, 20=2x10, 24=2x12, 30=2x15)
+      if n in ['14', '16', '20', '24', '30']:
+        return True
+      return False
+
+    for (gear_str,) in gear_query:
+      if not gear_str:
+        continue
+      
+      try:
+        # Check for structured JSON
+        if gear_str.startswith('{'):
+          import json
+          data = json.loads(gear_str)
+          if data.get('mode') == 'structured':
+            back_gas = data.get('back_gas', {})
+            tank_name = back_gas.get('tank', '')
+            stages = data.get('stages', [])
+            
+            is_doubles = is_doubles_check(tank_name)
+            
+            if is_doubles:
+              if stages:
+                gear_preferences["Doubles + Stage"] += 1
+              else:
+                gear_preferences["Doubles"] += 1
+            else:
+              if stages:
+                gear_preferences["Singles + Stage"] += 1
+              else:
+                gear_preferences["Singles"] += 1
+            continue
+      except:
+        pass
+      
+      # Fallback for simple string format
+      lower_gear = gear_str.lower()
+      is_doubles = is_doubles_check(lower_gear)
+      has_stage = 'stage' in lower_gear or '+' in lower_gear
+      
+      if is_doubles:
+        if has_stage:
+          gear_preferences["Doubles + Stage"] += 1
+        else:
+          gear_preferences["Doubles"] += 1
+      else:
+        if has_stage:
+          gear_preferences["Singles + Stage"] += 1
+        else:
+          gear_preferences["Singles"] += 1
+
+    # Remove empty categories
+    gear_preferences = {k: v for k, v in gear_preferences.items() if v > 0}
     
     diving_stats = DivingStatsResponse(
-        max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,
-        longest_dive_minutes=int(stats_row.longest_dive_minutes) if stats_row and stats_row.longest_dive_minutes else None,
-        total_bottom_time_minutes=int(stats_row.total_bottom_time_minutes) if stats_row and stats_row.total_bottom_time_minutes else None,
-        most_active_month=most_active_month,
-        favorite_sites=favorite_sites,
-        activity_heatmap=activity_heatmap,
-        suit_preferences=suit_preferences
+      max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,
+      longest_dive_minutes=int(stats_row.longest_dive_minutes) if stats_row and stats_row.longest_dive_minutes else None,
+      total_bottom_time_minutes=int(stats_row.total_bottom_time_minutes) if stats_row and stats_row.total_bottom_time_minutes else None,
+      most_active_month=most_active_month,
+      favorite_sites=favorite_sites,
+      activity_heatmap=activity_heatmap,
+      suit_preferences=suit_preferences,
+      gear_preferences=gear_preferences
     )
 
     # Create response object

@@ -32,7 +32,6 @@ import {
   Space,
   Divider,
   Steps,
-  List,
   Alert,
   Tag,
   Button,
@@ -236,9 +235,8 @@ const Help = () => {
                     Divemap is a Progressive Web App (PWA). You can install it on your device for a
                     native-like experience and offline access.
                   </Paragraph>
-                  <List
-                    size='small'
-                    dataSource={[
+                  <div className='space-y-3 mt-4'>
+                    {[
                       {
                         key: 'android',
                         content: (
@@ -270,9 +268,15 @@ const Help = () => {
                           </span>
                         ),
                       },
-                    ]}
-                    renderItem={item => <List.Item key={item.key}>{item.content}</List.Item>}
-                  />
+                    ].map(item => (
+                      <div
+                        key={item.key}
+                        className='text-sm py-1 border-b border-gray-50 last:border-0'
+                      >
+                        {item.content}
+                      </div>
+                    ))}
+                  </div>
                 </Card>
 
                 <Card
@@ -427,20 +431,18 @@ const Help = () => {
                   Access a global database of dive locations. Each site features detailed
                   descriptions, community ratings, and user-submitted photos.
                 </Paragraph>
-                <List
-                  size='small'
-                  dataSource={[
+                <div className='space-y-2 mt-4'>
+                  {[
                     'Unified Search: Search by name, country, or region instantly.',
                     "Quick Filters: One-click filtering for 'Wreck', 'Reef', 'Boat', or 'Shore' dives.",
                     'Map Toggle: Switch between list view and map view to explore geographically.',
                     'Community Verdict: See at a glance if a site is recommended by other divers.',
-                  ]}
-                  renderItem={item => (
-                    <List.Item>
-                      <CheckCircleOutlined className='text-green-500 mr-2' /> {item}
-                    </List.Item>
-                  )}
-                />
+                  ].map((item, i) => (
+                    <div key={i} className='flex items-start text-sm'>
+                      <CheckCircleOutlined className='text-green-500 mr-2 mt-1' /> {item}
+                    </div>
+                  ))}
+                </div>
                 <Button type='primary' className='mt-4' href='/dive-sites'>
                   Browse Dive Sites
                 </Button>
@@ -465,19 +467,17 @@ const Help = () => {
                   Find professional dive operators for your next adventure. Connect with centers
                   that offer the gear, courses, and trips you need.
                 </Paragraph>
-                <List
-                  size='small'
-                  dataSource={[
+                <div className='space-y-2 mt-4'>
+                  {[
                     'Rating Filter: Find top-rated centers with the minimum rating slider.',
                     "Services: View offered services like 'Nitrox', 'Trimix', or 'Gear Rental'.",
                     'Affiliations: See associated training agencies (PADI, SSI, etc.).',
-                  ]}
-                  renderItem={item => (
-                    <List.Item>
-                      <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
-                    </List.Item>
-                  )}
-                />
+                  ].map((item, i) => (
+                    <div key={i} className='flex items-start text-sm'>
+                      <CheckCircleOutlined className='text-blue-500 mr-2 mt-1' /> {item}
+                    </div>
+                  ))}
+                </div>
 
                 <Divider dashed />
 
@@ -488,19 +488,17 @@ const Help = () => {
                   <Paragraph className='text-sm mb-2'>
                     Do you own a diving center? Take control of your listing!
                   </Paragraph>
-                  <List
-                    size='small'
-                    dataSource={[
+                  <div className='space-y-2'>
+                    {[
                       'Claim Ownership: Click "Claim Ownership" on your center\'s page.',
                       'Manage Services: Update your contact info, services, and rental gear.',
                       'Promote Trips: Add upcoming dive trips to the global calendar.',
-                    ]}
-                    renderItem={item => (
-                      <List.Item>
-                        <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
-                      </List.Item>
-                    )}
-                  />
+                    ].map((item, i) => (
+                      <div key={i} className='flex items-start text-xs'>
+                        <CheckCircleOutlined className='text-blue-500 mr-2 mt-1' /> {item}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <Button type='primary' className='mt-4' href='/diving-centers'>
@@ -548,20 +546,18 @@ const Help = () => {
                   Looking for an organized excursion? Browse upcoming trips aggregated from
                   newsletters and centers.
                 </Paragraph>
-                <List
-                  size='small'
-                  dataSource={[
+                <div className='space-y-2 mt-4'>
+                  {[
                     'Advanced Search: Filter by price range, duration, and difficulty.',
                     'Calendar View: See trips scheduled for specific dates.',
                     "Status: Identify 'Scheduled' vs 'Confirmed' trips easily.",
                     'Newsletter Integration: Automatically parsed from diving center newsletters.',
-                  ]}
-                  renderItem={item => (
-                    <List.Item>
-                      <CheckCircleOutlined className='text-purple-500 mr-2' /> {item}
-                    </List.Item>
-                  )}
-                />
+                  ].map((item, i) => (
+                    <div key={i} className='flex items-start text-sm'>
+                      <CheckCircleOutlined className='text-purple-500 mr-2 mt-1' /> {item}
+                    </div>
+                  ))}
+                </div>
                 <Button type='primary' className='mt-4' href='/dive-trips'>
                   View Upcoming Trips
                 </Button>
@@ -751,20 +747,18 @@ const Help = () => {
                 On any Dive Site page, click <strong>Draw Route</strong> to map your path, or browse
                 community routes to plan your next dive.
               </Paragraph>
-              <List
-                size='small'
-                dataSource={[
+              <div className='space-y-2 mt-4'>
+                {[
                   'Mixed Segments: Walk (shore entry), Swim (surface), or Scuba (underwater).',
                   'Interactive Map: View compass bearings and distances.',
                   'Points of Interest: Add markers for caves, wrecks, or specific marine life.',
                   'Sharing & Export: Share with friends or export to GPX/KML formats.',
-                ]}
-                renderItem={item => (
-                  <List.Item>
-                    <CheckCircleOutlined className='text-blue-500 mr-2' /> {item}
-                  </List.Item>
-                )}
-              />
+                ].map((item, i) => (
+                  <div key={i} className='flex items-start text-sm'>
+                    <CheckCircleOutlined className='text-blue-500 mr-2 mt-1' /> {item}
+                  </div>
+                ))}
+              </div>
               <Button type='primary' ghost href='/dive-sites' className='mt-2'>
                 Find a Site to Map
               </Button>

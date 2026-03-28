@@ -723,6 +723,7 @@ class DivingStatsResponse(BaseModel):
     favorite_sites: List[FavoriteDiveSite] = []
     activity_heatmap: Dict[str, int] = {} # Date (YYYY-MM-DD) -> Dive Count
     suit_preferences: Dict[str, int] = {} # SuitType -> Count
+    gear_preferences: Dict[str, int] = {} # GearType -> Count
 
 class UserPublicProfileResponse(BaseModel):
     id: int

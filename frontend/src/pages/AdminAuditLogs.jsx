@@ -242,7 +242,11 @@ const AdminAuditLogs = () => {
         </Space>
       </div>
 
-      <Card className='mb-6' bordered={false} style={{ boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}>
+      <Card
+        className='mb-6'
+        variant='borderless'
+        style={{ boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+      >
         <Space direction='vertical' size='middle' style={{ width: '100%' }}>
           <div className='flex items-center justify-between'>
             <Space>

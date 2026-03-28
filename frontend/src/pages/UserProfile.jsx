@@ -5,7 +5,6 @@ import {
   Col,
   Tooltip,
   Progress,
-  List,
   Typography,
   Divider,
   Empty,
@@ -22,7 +21,6 @@ import {
   Building2,
   Users,
   Gauge,
-  Wind,
   Cylinder,
   Timer,
   Shield,
@@ -33,6 +31,10 @@ import {
   History,
   Anchor,
   Shirt,
+  TrendingUp,
+  Wind,
+  Droplets,
+  Award,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -51,6 +53,7 @@ import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatGases } from '../utils/textHelpers';
 
 const ActivityHeatmap = ({ data }) => {
   const { weeks, monthLabels } = useMemo(() => {
@@ -282,6 +285,83 @@ const UserProfile = () => {
     return null;
   }
 
+  const renderCertificationFeatures = cert => {
+    if (!cert.certification_level_link) return null;
+
+    const features = [];
+    const { max_depth, gases, equipment, tanks, deco_time_limit } = cert.certification_level_link;
+
+    if (max_depth) {
+      let shortDepth = max_depth;
+      const depthMatch = max_depth.match(/^(\d+)\s*m/i);
+      if (depthMatch) {
+        shortDepth = `${depthMatch[1]}m`;
+      } else if (/^\d+$/.test(max_depth)) {
+        shortDepth = `${max_depth}m`;
+      }
+
+      features.push({
+        icon: <TrendingUp className='h-3 w-3' />,
+        label: shortDepth,
+        title: `Max Depth: ${max_depth}`,
+        color: 'bg-blue-50 text-blue-700 border-blue-100',
+      });
+    }
+
+    if (gases) {
+      features.push({
+        icon: <Wind className='h-3 w-3' />,
+        label: formatGases(gases),
+        title: `Gases: ${gases}`,
+        color: 'bg-green-50 text-green-700 border-green-100',
+      });
+    }
+
+    const tankInfo = tanks || equipment;
+    if (tankInfo) {
+      const isDoubles =
+        tankInfo.toLowerCase().includes('double') || tankInfo.toLowerCase().includes('twin');
+      features.push({
+        icon: (
+          <img
+            src={isDoubles ? '/doubles.png' : '/single.png'}
+            alt='tank'
+            className='h-3.5 w-3.5 object-contain'
+          />
+        ),
+        label: tankInfo,
+        title: `Tanks/Equip: ${tankInfo}`,
+        color: 'bg-purple-50 text-purple-700 border-purple-100',
+      });
+    }
+
+    if (deco_time_limit) {
+      features.push({
+        icon: <Droplets className='h-3 w-3' />,
+        label: `Deco: ${deco_time_limit}`,
+        title: `Deco Limit: ${deco_time_limit}`,
+        color: 'bg-red-50 text-red-700 border-red-100',
+      });
+    }
+
+    if (features.length === 0) return null;
+
+    return (
+      <div className='flex flex-wrap gap-1.5 mt-2'>
+        {features.map((f, i) => (
+          <div
+            key={i}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold ${f.color}`}
+            title={f.title}
+          >
+            {f.icon}
+            <span className='whitespace-nowrap'>{f.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const totalDives =
     (profile.number_of_dives || 0) +
     (profile.stats?.dives_created || 0) +
@@ -295,7 +375,7 @@ const UserProfile = () => {
     });
   };
 
-  const StatCard = ({ icon, value, label, link, color }) => {
+  const StatCard = ({ icon, value, label, link, color, isSmall = false }) => {
     const colorClasses = {
       blue: 'bg-blue-50 text-blue-600',
       green: 'bg-green-50 text-green-600',
@@ -314,11 +394,19 @@ const UserProfile = () => {
 
     const content = (
       <div
-        className={`text-center p-4 ${colorClasses[color] || colorClasses.blue} rounded-lg ${link ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
+        className={`text-center ${isSmall ? 'p-1.5' : 'p-4'} ${colorClasses[color] || colorClasses.blue} rounded-lg ${link ? 'hover:shadow-md transition-shadow cursor-pointer' : ''}`}
       >
-        <div className='flex items-center justify-center mb-2'>{icon}</div>
-        <div className='text-xl font-bold break-words'>{value}</div>
-        <div className='text-sm text-gray-600 mt-1'>{label}</div>
+        <div className={`flex items-center justify-center ${isSmall ? 'mb-0.5' : 'mb-2'}`}>
+          {icon}
+        </div>
+        <div className={`${isSmall ? 'text-xs' : 'text-xl'} font-bold break-words leading-tight`}>
+          {value}
+        </div>
+        <div
+          className={`${isSmall ? 'text-[9px]' : 'text-sm'} text-gray-600 ${isSmall ? 'mt-0' : 'mt-1'} uppercase tracking-tighter opacity-70`}
+        >
+          {label}
+        </div>
       </div>
     );
 
@@ -329,7 +417,7 @@ const UserProfile = () => {
     return content;
   };
 
-  const CertificationStats = ({ stats }) => {
+  const CertificationStats = ({ stats, isEmbedded = false }) => {
     if (!stats) return null;
     // Don't render if all stats are empty
     if (
@@ -356,43 +444,77 @@ const UserProfile = () => {
     if (stats.largest_tanks && stats.largest_tanks.length > 0) {
       bestTanksValue = stats.largest_tanks[0];
     }
+    const isDoubles = (() => {
+      const n = String(bestTanksValue).toLowerCase();
+      return (
+        n.includes('double') ||
+        n.includes('twin') ||
+        n.startsWith('d') ||
+        ['14', '16', '20', '24', '30'].includes(n)
+      );
+    })();
+
     if (stats.max_stages > 0) {
       bestTanksValue += ` + ${stats.max_stages} Stg`;
     }
 
     return (
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Certification Level Overview</h2>
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+      <div
+        className={
+          isEmbedded
+            ? 'mt-4 lg:mt-0'
+            : 'bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'
+        }
+      >
+        {!isEmbedded && (
+          <h2 className='text-xl font-semibold text-gray-900 mb-4 uppercase tracking-tight'>
+            Certification Level Overview
+          </h2>
+        )}
+        <div
+          className={`grid ${isEmbedded ? 'grid-cols-2 lg:grid-cols-4 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'}`}
+        >
           {stats.max_depth_str && (
             <StatCard
-              icon={<Gauge className='h-6 w-6 text-cyan-600' />}
+              icon={
+                <TrendingUp className={`${isEmbedded ? 'h-4 w-4' : 'h-6 w-6'} text-blue-600`} />
+              }
               value={stats.max_depth_str}
               label='Max Depth'
-              color='cyan'
+              color='blue'
+              isSmall={isEmbedded}
             />
           )}
 
           <StatCard
-            icon={<Wind className='h-6 w-6 text-rose-600' />}
-            value={bestGasValue}
+            icon={<Wind className={`${isEmbedded ? 'h-4 w-4' : 'h-6 w-6'} text-green-600`} />}
+            value={formatGases(bestGasValue)}
             label='Best Gas'
-            color='rose'
+            color='green'
+            isSmall={isEmbedded}
           />
 
           <StatCard
-            icon={<Cylinder className='h-6 w-6 text-amber-600' />}
+            icon={
+              <img
+                src={isDoubles ? '/doubles.png' : '/single.png'}
+                alt='tank'
+                className={`${isEmbedded ? 'h-6 w-6' : 'h-8 w-8'} object-contain`}
+              />
+            }
             value={bestTanksValue}
             label='Best Tanks'
             color='amber'
+            isSmall={isEmbedded}
           />
 
           {stats.max_deco_time && (
             <StatCard
-              icon={<Timer className='h-6 w-6 text-emerald-600' />}
+              icon={<Droplets className={`${isEmbedded ? 'h-4 w-4' : 'h-6 w-6'} text-red-600`} />}
               value={stats.max_deco_time}
               label='Max Deco Time'
-              color='emerald'
+              color='rose'
+              isSmall={isEmbedded}
             />
           )}
         </div>
@@ -401,139 +523,367 @@ const UserProfile = () => {
   };
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8'>
       {/* Header */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'>
-        <div className='flex items-center space-x-6 w-full'>
+      <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'>
+        <div className='flex flex-col sm:flex-row items-center sm:items-start sm:space-x-6 w-full text-center sm:text-left gap-4'>
           <div className='shrink-0'>
             <Avatar
               src={profile.avatar_url}
               alt={profile.username}
-              size='2xl'
+              size='xl'
+              className='sm:w-32 sm:h-32'
               fallbackText={profile.username}
             />
           </div>
-          <div className='flex-1 min-w-0'>
-            <div className='flex justify-between items-start w-full gap-4'>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2 truncate'>{profile.username}</h1>
+          <div className='flex-1 min-w-0 w-full'>
+            <div className='flex flex-col lg:flex-row justify-between items-center lg:items-start w-full gap-6 mb-4'>
+              <div className='flex-1 min-w-0 text-center sm:text-left'>
+                <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 truncate mb-2'>
+                  {profile.username}
+                </h1>
+
+                <div className='flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-2 text-gray-600 text-sm mb-4'>
+                  <div className='flex items-center space-x-1'>
+                    <Waves className='h-4 w-4 text-blue-500' />
+                    <span className='font-semibold'>{totalDives} dives</span>
+                  </div>
+                  <div className='flex items-center space-x-1'>
+                    <CalendarIcon className='h-4 w-4 text-blue-500' />
+                    <span>Joined {formatDate(profile.member_since)}</span>
+                  </div>
+                  <div className='flex items-center space-x-1'>
+                    <Shield className='h-4 w-4 text-blue-500' />
+                    <span className='font-medium'>
+                      {profile.is_admin
+                        ? 'Administrator'
+                        : profile.is_moderator
+                          ? 'Moderator'
+                          : 'User'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Social Media Links */}
+                {profile.social_links && profile.social_links.length > 0 && (
+                  <div className='flex flex-wrap justify-center sm:justify-start gap-2'>
+                    {profile.social_links.map(link => (
+                      <a
+                        key={link.platform}
+                        href={link.url}
+                        target='_blank'
+                        rel='noopener noreferrer nofollow'
+                        className='group flex items-center bg-gray-50 hover:bg-white border border-gray-200 rounded-full px-3 py-1.5 transition-all shadow-sm hover:shadow-md'
+                        title={link.platform}
+                      >
+                        <div className='group-hover:scale-110 transition-transform mr-1.5'>
+                          {getSocialMediaIcon(link.platform, {
+                            color: '000000',
+                            className: 'w-4 h-4',
+                          })}
+                        </div>
+                        <span className='font-bold text-xs text-gray-700 capitalize'>
+                          {link.platform}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Certification Overview on the Right for Desktop */}
+              <div className='hidden lg:block shrink-0'>
+                <CertificationStats stats={profile.certification_stats} isEmbedded={true} />
+              </div>
+
               {currentUser && currentUser.username !== username && (
-                <button
-                  onClick={handleBuddyAction}
-                  disabled={isProcessingFriendship || friendshipStatus === 'PENDING'}
-                  className={`shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                    friendshipStatus === 'ACCEPTED'
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
-                      : friendshipStatus === 'PENDING'
-                        ? 'bg-gray-100 text-gray-500 cursor-default'
-                        : 'bg-green-600 hover:bg-green-700 text-white shadow-md'
-                  }`}
-                >
-                  {friendshipStatus === 'ACCEPTED' ? (
-                    <>
-                      <MessageSquare size={18} />
-                      <span>Message</span>
-                    </>
-                  ) : friendshipStatus === 'PENDING' ? (
-                    <>
-                      <Clock size={18} />
-                      <span>Request Sent</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus size={18} />
-                      <span>Add Buddy</span>
-                    </>
-                  )}
-                </button>
+                <div className='shrink-0 pt-1'>
+                  <button
+                    onClick={handleBuddyAction}
+                    disabled={isProcessingFriendship || friendshipStatus === 'PENDING'}
+                    className={`flex items-center justify-center space-x-2 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm hover:shadow-md ${
+                      friendshipStatus === 'ACCEPTED'
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : friendshipStatus === 'PENDING'
+                          ? 'bg-gray-100 text-gray-500 cursor-default shadow-none'
+                          : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                  >
+                    {friendshipStatus === 'ACCEPTED' ? (
+                      <>
+                        <MessageSquare size={18} />
+                        <span>Message</span>
+                      </>
+                    ) : friendshipStatus === 'PENDING' ? (
+                      <>
+                        <Clock size={18} />
+                        <span>Request Sent</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus size={18} />
+                        <span>Add Buddy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
-            <div className='flex items-center space-x-4 text-gray-600'>
-              <div className='flex items-center space-x-1'>
-                <Waves className='h-4 w-4' />
-                <span>{totalDives} dives</span>
-              </div>
-              <div className='flex items-center space-x-1'>
-                <CalendarIcon className='h-4 w-4' />
-                <span>Member since {formatDate(profile.member_since)}</span>
-              </div>
-              <div className='flex items-center space-x-1'>
-                <Shield className='h-4 w-4' />
-                <span>
-                  {profile.is_admin ? 'Administrator' : profile.is_moderator ? 'Moderator' : 'User'}
-                </span>
-              </div>
-            </div>
-            {/* Social Media Links */}
-            {profile.social_links && profile.social_links.length > 0 && (
-              <div className='mt-4 flex flex-wrap gap-3'>
-                {profile.social_links.map(link => (
-                  <a
-                    key={link.platform}
-                    href={link.url}
-                    target='_blank'
-                    rel='noopener noreferrer nofollow'
-                    className='text-gray-500 hover:text-blue-600 transition-colors bg-gray-100 hover:bg-gray-200 p-2 rounded-full'
-                    title={link.platform}
-                  >
-                    {getSocialMediaIcon(link.platform, { color: '000000', className: 'w-5 h-5' })}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        {/* Main Content */}
-        <div className='lg:col-span-2 space-y-6'>
+      {/* Mobile Certification Overview - Only visible on small screens */}
+      {profile.certification_stats && (
+        <div className='lg:hidden mb-6'>
+          <CertificationStats stats={profile.certification_stats} />
+        </div>
+      )}
+
+      <div className='flex flex-col lg:grid lg:grid-cols-3 gap-6 sm:gap-8'>
+        {/* Sidebar - Order 1 on mobile, Order 2 on desktop */}
+        <div className='space-y-6 order-1 lg:order-2'>
+          {/* Quick Stats */}
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+              <Gauge className='h-5 w-5 text-gray-400' />
+              Community Impact
+            </h3>
+            <div className='space-y-3'>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <Waves size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Total Dives:</span>
+                </div>
+                <span className='font-semibold flex-1 text-right'>{totalDives}</span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <Activity size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dives Created:</span>
+                </div>
+                <div className='flex-1 text-right'>
+                  {profile.stats.dives_created > 0 ? (
+                    <Link
+                      to={`/dives?username=${profile.username}`}
+                      className='text-blue-600 hover:underline font-semibold'
+                    >
+                      {profile.stats.dives_created}
+                    </Link>
+                  ) : (
+                    <span className='font-semibold'>{profile.stats.dives_created}</span>
+                  )}
+                </div>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <Users size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dives as Buddy:</span>
+                </div>
+                <div className='flex-1 text-right'>
+                  {profile.stats.buddy_dives_count > 0 ? (
+                    <Link
+                      to={`/dives?buddy_username=${profile.username}`}
+                      className='text-blue-600 hover:underline font-semibold'
+                    >
+                      {profile.stats.buddy_dives_count}
+                    </Link>
+                  ) : (
+                    <span className='font-semibold'>{profile.stats.buddy_dives_count}</span>
+                  )}
+                </div>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <MapPin size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dive Sites Created:</span>
+                </div>
+                <div className='flex-1 text-right'>
+                  {profile.stats.dive_sites_created > 0 ? (
+                    <Link
+                      to={`/dive-sites?created_by_username=${profile.username}`}
+                      className='text-blue-600 hover:underline font-semibold'
+                    >
+                      {profile.stats.dive_sites_created}
+                    </Link>
+                  ) : (
+                    <span className='font-semibold'>{profile.stats.dive_sites_created}</span>
+                  )}
+                </div>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <Star size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dive Site Ratings:</span>
+                </div>
+                <span className='font-semibold flex-1 text-right'>
+                  {profile.stats.site_ratings_count}
+                </span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <MessageSquare size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dive Site Comments:</span>
+                </div>
+                <span className='font-semibold flex-1 text-right'>
+                  {profile.stats.site_comments_count}
+                </span>
+              </div>
+              <div className='flex justify-between items-center'>
+                <div className='flex items-center gap-2'>
+                  <Building2 size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Diving Centers Owned:</span>
+                </div>
+                <span className='font-semibold flex-1 text-right'>
+                  {profile.stats.diving_centers_owned}
+                </span>
+              </div>
+              <div className='flex justify-between items-center border-t pt-2 mt-2'>
+                <div className='flex items-center gap-2'>
+                  <CalendarIcon size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Member Since:</span>
+                </div>
+                <span className='font-semibold flex-1 text-right'>
+                  {formatDate(profile.member_since)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Certifications in Sidebar for Desktop */}
+          {profile.certifications && profile.certifications.length > 0 && (
+            <div className='hidden lg:block bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+              <h2 className='text-lg font-bold text-gray-900 mb-4 uppercase tracking-tight flex items-center gap-2'>
+                <Award className='h-5 w-5 text-gray-400' />
+                Certifications
+              </h2>
+              <div className='space-y-4'>
+                {profile.certifications.map((cert, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 border rounded-lg ${
+                      cert.is_active
+                        ? 'border-green-100 bg-green-50/30'
+                        : 'border-gray-100 bg-gray-50/30'
+                    }`}
+                  >
+                    <div className='flex items-start gap-3'>
+                      <div className='shrink-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block'
+                          title={`View ${cert.diving_organization.acronym} details`}
+                        >
+                          <OrganizationLogo
+                            org={cert.diving_organization}
+                            size='h-10 w-10'
+                            textSize='text-[10px]'
+                          />
+                        </Link>
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block group'
+                        >
+                          <div className='flex items-center space-x-1.5 mb-1'>
+                            <div
+                              className={`h-2 w-2 rounded-full shrink-0 ${
+                                cert.is_active
+                                  ? 'bg-green-500 shadow-[0_0_3px_rgba(34,197,94,0.5)]'
+                                  : 'bg-gray-400'
+                              }`}
+                            />
+                            <span className='font-bold text-gray-900 leading-tight text-xs group-hover:text-blue-600 transition-colors'>
+                              {cert.diving_organization.acronym} - {cert.certification_level}
+                            </span>
+                          </div>
+                        </Link>
+                        {renderCertificationFeatures(cert)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* No certifications message */}
+          {(!profile.certifications || profile.certifications.length === 0) && (
+            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Certifications</h3>
+              <p className='text-gray-600 text-sm'>No certifications listed yet.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content - Order 2 on mobile, Order 1 on desktop */}
+        <div className='lg:col-span-2 space-y-6 order-2 lg:order-1'>
           {/* Hero Stats */}
           {profile.diving_stats && (
-            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-100'>
               <h2 className='text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2'>
-                <Activity className='h-5 w-5 text-blue-600' />
+                <Waves className='h-5 w-5 text-blue-600' />
                 Diving Logbook Summary
               </h2>
-              <Row gutter={[16, 16]}>
+              <Row gutter={[12, 12]}>
                 <Col xs={12} md={8}>
                   <Card
-                    bordered={false}
+                    variant='borderless'
                     className='bg-blue-50 text-center hover:shadow-sm transition-shadow'
+                    styles={{ body: { padding: '12px 8px' } }}
                   >
                     <Statistic
-                      title='Max Depth'
+                      title={
+                        <span className='text-[10px] uppercase tracking-wide opacity-70'>
+                          Max Depth
+                        </span>
+                      }
                       value={profile.diving_stats.max_depth || 0}
-                      suffix='m'
+                      suffix={<span className='text-xs font-normal opacity-50'>m</span>}
                       precision={1}
-                      prefix={<Waves className='h-4 w-4 inline mr-1 text-blue-500' />}
+                      prefix={<TrendingUp className='h-3.5 w-3.5 inline mr-1 text-blue-500' />}
+                      styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
                     />
                   </Card>
                 </Col>
                 <Col xs={12} md={8}>
                   <Card
-                    bordered={false}
+                    variant='borderless'
                     className='bg-indigo-50 text-center hover:shadow-sm transition-shadow'
+                    styles={{ body: { padding: '12px 8px' } }}
                   >
                     <Statistic
-                      title='Longest Dive'
+                      title={
+                        <span className='text-[10px] uppercase tracking-wide opacity-70'>
+                          Longest Dive
+                        </span>
+                      }
                       value={profile.diving_stats.longest_dive_minutes || 0}
-                      suffix='min'
-                      prefix={<History className='h-4 w-4 inline mr-1 text-indigo-500' />}
+                      suffix={<span className='text-xs font-normal opacity-50'>min</span>}
+                      prefix={<Clock className='h-3.5 w-3.5 inline mr-1 text-indigo-500' />}
+                      styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
                     />
                   </Card>
                 </Col>
                 <Col xs={24} md={8}>
                   <Card
-                    bordered={false}
+                    variant='borderless'
                     className='bg-teal-50 text-center hover:shadow-sm transition-shadow'
+                    styles={{ body: { padding: '12px 8px' } }}
                   >
                     <Statistic
-                      title='Total Bottom Time'
+                      title={
+                        <span className='text-[10px] uppercase tracking-wide opacity-70'>
+                          Total Time
+                        </span>
+                      }
                       value={profile.diving_stats.total_bottom_time_minutes || 0}
-                      suffix='min'
-                      prefix={<Clock className='h-4 w-4 inline mr-1 text-teal-500' />}
+                      suffix={<span className='text-xs font-normal opacity-50'>min</span>}
+                      prefix={<Clock className='h-3.5 w-3.5 inline mr-1 text-teal-500' />}
+                      styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
                     />
-                    <div className='text-xs text-gray-500 mt-1'>
+                    <div className='text-[10px] text-gray-500 mt-1 opacity-70 uppercase tracking-tighter'>
                       ≈ {Math.round((profile.diving_stats.total_bottom_time_minutes || 0) / 60)}{' '}
                       hours
                     </div>
@@ -551,69 +901,126 @@ const UserProfile = () => {
                     Favorite Dive Sites
                   </h3>
                   {profile.diving_stats.favorite_sites?.length > 0 ? (
-                    <List
-                      itemLayout='horizontal'
-                      dataSource={profile.diving_stats.favorite_sites}
-                      renderItem={(site, index) => (
-                        <List.Item className='px-0 py-2 border-none'>
-                          <div className='flex items-center justify-between w-full'>
-                            <Link
-                              to={`/dive-sites/${site.id}`}
-                              className='text-blue-600 hover:underline font-medium'
-                            >
-                              {index + 1}. {site.name}
-                            </Link>
-                            <Tag color='blue'>{site.visit_count} visits</Tag>
-                          </div>
-                        </List.Item>
-                      )}
-                    />
+                    <div className='space-y-2'>
+                      {profile.diving_stats.favorite_sites.map((site, index) => (
+                        <div
+                          key={site.id}
+                          className='flex items-center justify-between w-full py-2'
+                        >
+                          <Link
+                            to={`/dive-sites/${site.id}`}
+                            className='text-blue-600 hover:underline font-medium'
+                          >
+                            {index + 1}. {site.name}
+                          </Link>
+                          <Tag color='blue'>{site.visit_count} visits</Tag>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='No sites logged yet' />
                   )}
                 </div>
 
-                {/* Suit Preferences */}
+                {/* Suit & Gear Preferences */}
                 <div>
                   <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
                     <Shirt className='h-4 w-4 text-blue-500' />
                     Suit & Gear Preferences
                   </h3>
-                  {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 ? (
-                    <div className='space-y-4'>
-                      {Object.entries(profile.diving_stats.suit_preferences).map(
-                        ([suit, count]) => {
-                          const total = Object.values(profile.diving_stats.suit_preferences).reduce(
-                            (a, b) => a + b,
-                            0
-                          );
-                          const percent = Math.round((count / total) * 100);
-                          const labelMap = {
-                            wet_suit: 'Wetsuit',
-                            dry_suit: 'Drysuit',
-                            shortie: 'Shortie',
-                          };
-                          return (
-                            <div key={suit}>
-                              <div className='flex justify-between mb-1 text-sm'>
-                                <span className='text-gray-600 font-medium'>
-                                  {labelMap[suit] || suit}
-                                </span>
-                                <span className='text-gray-400'>{count} dives</span>
+                  <div className='space-y-6'>
+                    {/* Suit Stats */}
+                    {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 && (
+                      <div className='space-y-3'>
+                        <span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                          Suits
+                        </span>
+                        {Object.entries(profile.diving_stats.suit_preferences).map(
+                          ([suit, count]) => {
+                            const total = Object.values(
+                              profile.diving_stats.suit_preferences
+                            ).reduce((a, b) => a + b, 0);
+                            const percent = Math.round((count / total) * 100);
+                            const labelMap = {
+                              wet_suit: 'Wetsuit',
+                              dry_suit: 'Drysuit',
+                              shortie: 'Shortie',
+                            };
+                            return (
+                              <div key={suit}>
+                                <div className='flex justify-between mb-1 text-sm'>
+                                  <span className='text-gray-600 font-medium'>
+                                    {labelMap[suit] || suit}
+                                  </span>
+                                  <span className='text-gray-400'>{count} dives</span>
+                                </div>
+                                <Progress
+                                  percent={percent}
+                                  size='small'
+                                  strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
+                                />
                               </div>
-                              <Progress
-                                percent={percent}
-                                size='small'
-                                strokeColor={suit === 'dry_suit' ? '#1890ff' : '#40a9ff'}
-                              />
-                            </div>
-                          );
-                        }
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
+
+                    {/* Gear Stats */}
+                    {Object.keys(profile.diving_stats.gear_preferences || {}).length > 0 && (
+                      <div className='space-y-3'>
+                        <span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                          Tanks
+                        </span>
+                        {Object.entries(profile.diving_stats.gear_preferences).map(
+                          ([gear, count]) => {
+                            const total = Object.values(
+                              profile.diving_stats.gear_preferences
+                            ).reduce((a, b) => a + b, 0);
+                            const percent = Math.round((count / total) * 100);
+                            const n = gear.toLowerCase();
+                            const isDoubles =
+                              n.includes('double') ||
+                              n.includes('twin') ||
+                              n.startsWith('d') ||
+                              ['14', '16', '20', '24', '30'].includes(n);
+                            const hasStage = n.includes('stage') || n.includes('+');
+
+                            return (
+                              <div key={gear}>
+                                <div className='flex justify-between mb-1 text-sm'>
+                                  <div className='flex items-center gap-1.5'>
+                                    <img
+                                      src={isDoubles ? '/doubles.png' : '/single.png'}
+                                      className='h-3.5 w-3.5 object-contain opacity-70'
+                                      alt=''
+                                    />
+                                    <span className='text-gray-600 font-medium'>{gear}</span>
+                                  </div>
+                                  <span className='text-gray-400'>{count} dives</span>
+                                </div>
+                                <Progress
+                                  percent={percent}
+                                  size='small'
+                                  strokeColor={
+                                    hasStage ? '#722ed1' : isDoubles ? '#13c2c2' : '#faad14'
+                                  }
+                                />
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
+
+                    {Object.keys(profile.diving_stats.suit_preferences || {}).length === 0 &&
+                      Object.keys(profile.diving_stats.gear_preferences || {}).length === 0 && (
+                        <Empty
+                          image={Empty.PRESENTED_IMAGE_SIMPLE}
+                          description='No data available'
+                        />
                       )}
-                    </div>
-                  ) : (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='No suit data' />
-                  )}
+                  </div>
                 </div>
               </div>
 
@@ -654,148 +1061,56 @@ const UserProfile = () => {
             </div>
           )}
 
-          {/* Certification Stats */}
-          {profile.certification_stats && (
-            <CertificationStats stats={profile.certification_stats} />
-          )}
-
-          {/* Certifications */}
+          {/* Mobile Certifications (hidden on lg) */}
           {profile.certifications && profile.certifications.length > 0 && (
-            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>Certifications</h2>
+            <div className='lg:hidden bg-white rounded-lg shadow-md p-4 border border-gray-100 mt-6'>
+              <h2 className='text-lg font-bold text-gray-900 mb-4 uppercase tracking-tight'>
+                Certifications
+              </h2>
               <div className='space-y-3'>
                 {profile.certifications.map((cert, index) => (
                   <div
                     key={index}
-                    className='flex items-start justify-between p-3 bg-gray-50 rounded-lg'
+                    className={`p-3 border rounded-lg ${
+                      cert.is_active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                    }`}
                   >
                     <div className='flex items-start gap-3'>
-                      <OrganizationLogo org={cert.diving_organization} />
-                      <div>
-                        <div className='font-medium text-gray-900'>{cert.certification_level}</div>
-                        <div className='text-sm text-gray-600'>
-                          {cert.diving_organization.name} ({cert.diving_organization.acronym})
-                        </div>
-                        {cert.certification_level_link && (
-                          <div className='mt-2 flex flex-wrap gap-2 text-xs'>
-                            {cert.certification_level_link.max_depth && (
-                              <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
-                                Depth: {cert.certification_level_link.max_depth}
-                              </span>
-                            )}
-                            {cert.certification_level_link.gases && (
-                              <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
-                                Gases: {cert.certification_level_link.gases}
-                              </span>
-                            )}
-                            {cert.certification_level_link.tanks && (
-                              <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
-                                Tanks: {cert.certification_level_link.tanks}
-                              </span>
-                            )}
-                            {cert.certification_level_link.deco_time_limit && (
-                              <span className='bg-red-100 text-red-800 px-2 py-0.5 rounded'>
-                                Deco: {cert.certification_level_link.deco_time_limit}
-                              </span>
-                            )}
+                      <div className='shrink-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block'
+                          title={`View ${cert.diving_organization.acronym} details`}
+                        >
+                          <OrganizationLogo
+                            org={cert.diving_organization}
+                            size='h-10 w-10'
+                            textSize='text-[10px]'
+                          />
+                        </Link>
+                      </div>
+                      <div className='flex-1 min-w-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block group'
+                        >
+                          <div className='flex items-center space-x-1.5 mb-1'>
+                            <div
+                              className={`h-2 w-2 rounded-full shrink-0 ${
+                                cert.is_active ? 'bg-green-500' : 'bg-gray-400'
+                              }`}
+                            />
+                            <span className='font-bold text-gray-900 text-xs uppercase group-hover:text-blue-600 transition-colors'>
+                              {cert.diving_organization.acronym} - {cert.certification_level}
+                            </span>
                           </div>
-                        )}
+                        </Link>
+                        {renderCertificationFeatures(cert)}
                       </div>
                     </div>
-                    {cert.is_active && (
-                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-                        Active
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className='space-y-6'>
-          {/* Quick Stats */}
-          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-              <Gauge className='h-5 w-5 text-gray-400' />
-              Community Impact
-            </h3>
-            <div className='space-y-3'>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Total Dives:</span>
-                <span className='font-semibold'>{totalDives}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dives Created:</span>
-                <span className='font-semibold'>
-                  {profile.stats.dives_created > 0 ? (
-                    <Link
-                      to={`/dives?username=${profile.username}`}
-                      className='text-blue-600 hover:underline'
-                    >
-                      {profile.stats.dives_created}
-                    </Link>
-                  ) : (
-                    profile.stats.dives_created
-                  )}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dives as Buddy:</span>
-                <span className='font-semibold'>
-                  {profile.stats.buddy_dives_count > 0 ? (
-                    <Link
-                      to={`/dives?buddy_username=${profile.username}`}
-                      className='text-blue-600 hover:underline'
-                    >
-                      {profile.stats.buddy_dives_count}
-                    </Link>
-                  ) : (
-                    profile.stats.buddy_dives_count
-                  )}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dive Sites Created:</span>
-                <span className='font-semibold'>
-                  {profile.stats.dive_sites_created > 0 ? (
-                    <Link
-                      to={`/dive-sites?created_by_username=${profile.username}`}
-                      className='text-blue-600 hover:underline'
-                    >
-                      {profile.stats.dive_sites_created}
-                    </Link>
-                  ) : (
-                    profile.stats.dive_sites_created
-                  )}
-                </span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dive Site Ratings:</span>
-                <span className='font-semibold'>{profile.stats.site_ratings_count}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dive Site Comments:</span>
-                <span className='font-semibold'>{profile.stats.site_comments_count}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Diving Centers Owned:</span>
-                <span className='font-semibold'>{profile.stats.diving_centers_owned}</span>
-              </div>
-              <div className='flex justify-between border-t pt-2 mt-2'>
-                <span className='text-gray-600'>Member Since:</span>
-                <span className='font-semibold'>{formatDate(profile.member_since)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* No certifications message */}
-          {(!profile.certifications || profile.certifications.length === 0) && (
-            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Certifications</h3>
-              <p className='text-gray-600 text-sm'>No certifications listed yet.</p>
             </div>
           )}
         </div>

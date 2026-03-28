@@ -21,6 +21,13 @@ import {
   Smartphone,
   Link as LinkIcon,
   MessageSquare,
+  TrendingUp,
+  Wind,
+  Droplets,
+  Waves,
+  MapPin,
+  Star,
+  Gauge,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -45,6 +52,7 @@ import {
   getErrorMessage,
 } from '../utils/formHelpers';
 import { slugify } from '../utils/slugify';
+import { formatGases } from '../utils/textHelpers';
 
 const Profile = () => {
   // Set page title
@@ -367,22 +375,121 @@ const Profile = () => {
     }
   };
 
+  const renderCertificationFeatures = cert => {
+    if (!cert.certification_level_link) return null;
+
+    const features = [];
+    const { max_depth, gases, equipment, tanks, deco_time_limit } = cert.certification_level_link;
+
+    if (max_depth) {
+      // If it's just numbers, add 'm'. If it already has units, use as is.
+      // But for label, try to keep it short (e.g. "18m (60ft)" -> "18m")
+      let shortDepth = max_depth;
+      const depthMatch = max_depth.match(/^(\d+)\s*m/i);
+      if (depthMatch) {
+        shortDepth = `${depthMatch[1]}m`;
+      } else if (/^\d+$/.test(max_depth)) {
+        shortDepth = `${max_depth}m`;
+      }
+
+      features.push({
+        icon: <TrendingUp className='h-3 w-3' />,
+        label: shortDepth,
+        title: `Max Depth: ${max_depth}`,
+        color: 'bg-blue-50 text-blue-700 border-blue-100',
+      });
+    }
+
+    if (gases) {
+      features.push({
+        icon: <Wind className='h-3 w-3' />,
+        label: formatGases(gases),
+        title: `Gases: ${gases}`,
+        color: 'bg-green-50 text-green-700 border-green-100',
+      });
+    }
+
+    const tankInfo = tanks || equipment;
+    if (tankInfo) {
+      const isDoubles =
+        tankInfo.toLowerCase().includes('double') || tankInfo.toLowerCase().includes('twin');
+      features.push({
+        icon: (
+          <img
+            src={isDoubles ? '/doubles.png' : '/single.png'}
+            alt='tank'
+            className='h-3.5 w-3.5 object-contain'
+          />
+        ),
+        label: tankInfo,
+        title: `Tanks/Equip: ${tankInfo}`,
+        color: 'bg-purple-50 text-purple-700 border-purple-100',
+      });
+    }
+
+    if (deco_time_limit) {
+      features.push({
+        icon: <Droplets className='h-3 w-3' />,
+        label: `Deco: ${deco_time_limit}`,
+        title: `Deco Limit: ${deco_time_limit}`,
+        color: 'bg-red-50 text-red-700 border-red-100',
+      });
+    }
+
+    if (features.length === 0) return null;
+
+    return (
+      <div className='flex flex-wrap gap-1.5 mt-2'>
+        {features.map((f, i) => (
+          <div
+            key={i}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold ${f.color}`}
+            title={f.title}
+          >
+            {f.icon}
+            <span className='whitespace-nowrap'>{f.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   const startEditCertification = certification => {
     setEditingCertification(certification);
     setValueCert('diving_organization_id', certification.diving_organization.id);
-    // Determine if we have a linked level ID or just text
-    if (certification.certification_level_link) {
-      setValueCert('certification_level_id', certification.certification_level_link.id);
-    } else {
-      // Fallback or handle appropriately if we want to allow editing text-only legacy certs
-      // ideally we push them to select a new one
-      setValueCert('certification_level_id', '');
-    }
+    setValueCert('is_active', certification.is_active);
+
+    // We need to wait for availableLevels to be fetched before we can set certification_level_id
+    // But since it is fetched via useEffect on diving_organization_id change, we can't do it here easily
+    // unless we use a temporary variable or another useEffect.
+    // Let's set it here, and also add a useEffect to catch it when levels load.
   };
+
+  // Effect to sync certification level when levels are loaded during edit
+  useEffect(() => {
+    if (editingCertification && availableLevels.length > 0) {
+      if (editingCertification.certification_level_link) {
+        const found = availableLevels.find(
+          l => l.id === editingCertification.certification_level_link.id
+        );
+        if (found) {
+          setValueCert('certification_level_id', found.id);
+        }
+      }
+    }
+  }, [availableLevels, editingCertification, setValueCert]);
 
   const cancelCertificationEdit = () => {
     setEditingCertification(null);
     resetCert();
+  };
+
+  const startEditSocialLink = link => {
+    setIsAddingSocialLink(true);
+    resetSocialLink({
+      platform: link.platform,
+      url: link.url,
+    });
   };
 
   const supportedPlatforms = [
@@ -486,18 +593,22 @@ const Profile = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
-        <p className='text-gray-600'>Manage your account settings and diving information</p>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='mb-6 sm:mb-8'>
+        <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
+        <p className='text-sm sm:text-base text-gray-600'>
+          Manage your account settings and diving information
+        </p>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8'>
         {/* Profile Information */}
         <div className='lg:col-span-2'>
-          <div className='bg-white p-6 rounded-lg shadow-md'>
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-xl font-semibold text-gray-900'>Account Information</h2>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='flex items-center justify-between mb-4 sm:mb-6'>
+              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 uppercase tracking-tight'>
+                Account Information
+              </h2>
               <button
                 onClick={() => {
                   if (isEditing) {
@@ -505,7 +616,7 @@ const Profile = () => {
                   }
                   setIsEditing(!isEditing);
                 }}
-                className='px-4 py-2 text-blue-600 hover:text-blue-700 font-medium'
+                className='px-3 py-1.5 sm:px-4 sm:py-2 text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base transition-colors duration-200'
               >
                 {isEditing ? 'Cancel' : 'Edit'}
               </button>
@@ -514,7 +625,7 @@ const Profile = () => {
             {isEditing ? (
               <FormProvider {...profileMethods}>
                 <form onSubmit={handleSubmitProfile(onProfileSubmit)} className='space-y-4'>
-                  <div>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                     <FormField name='username' label='Username'>
                       {({ register, name }) => (
                         <>
@@ -527,27 +638,13 @@ const Profile = () => {
                               profileErrors.username ? 'border-red-500' : 'border-gray-300'
                             }`}
                           />
-                          <p className='mt-1 text-xs text-gray-500'>Username cannot be changed</p>
+                          <p className='mt-1 text-[10px] text-gray-500'>
+                            Username cannot be changed
+                          </p>
                         </>
                       )}
                     </FormField>
-                  </div>
 
-                  <div>
-                    <FormField name='name' label='Full Name'>
-                      {({ register, name }) => (
-                        <input
-                          id='name'
-                          type='text'
-                          {...register(name)}
-                          placeholder='Enter your full name'
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                        />
-                      )}
-                    </FormField>
-                  </div>
-
-                  <div>
                     <FormField name='email' label='Email'>
                       {({ register, name }) => (
                         <>
@@ -560,13 +657,25 @@ const Profile = () => {
                               profileErrors.email ? 'border-red-500' : 'border-gray-300'
                             }`}
                           />
-                          <p className='mt-1 text-xs text-gray-500'>Email cannot be changed</p>
+                          <p className='mt-1 text-[10px] text-gray-500'>Email cannot be changed</p>
                         </>
                       )}
                     </FormField>
                   </div>
 
-                  <div>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                    <FormField name='name' label='Full Name'>
+                      {({ register, name }) => (
+                        <input
+                          id='name'
+                          type='text'
+                          {...register(name)}
+                          placeholder='Enter your full name'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-shadow focus:ring-1'
+                        />
+                      )}
+                    </FormField>
+
                     <FormField name='number_of_dives' label='Number of Dives'>
                       {({ register, name }) => (
                         <input
@@ -581,42 +690,38 @@ const Profile = () => {
                     </FormField>
                   </div>
 
-                  <div>
-                    <FormField name='buddy_visibility' label='Buddy Visibility'>
-                      {({ register, name }) => (
-                        <>
-                          <select
-                            {...register(name)}
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                          >
-                            <option value='public'>
-                              Public - Others can add me as a dive buddy
-                            </option>
-                            <option value='private'>Private - Hide me from buddy search</option>
-                          </select>
-                          <p className='mt-1 text-xs text-gray-500'>
-                            Control whether other users can find and add you as a dive buddy
-                          </p>
-                        </>
-                      )}
-                    </FormField>
-                  </div>
+                  <FormField name='buddy_visibility' label='Buddy Visibility'>
+                    {({ register, name }) => (
+                      <>
+                        <select
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                        >
+                          <option value='public'>Public - Others can add me as a dive buddy</option>
+                          <option value='private'>Private - Hide me from buddy search</option>
+                        </select>
+                        <p className='mt-1 text-xs text-gray-500'>
+                          Control whether other users can find and add you as a dive buddy
+                        </p>
+                      </>
+                    )}
+                  </FormField>
 
-                  <div className='flex justify-end space-x-3'>
+                  <div className='flex justify-end gap-3 pt-2'>
                     <button
                       type='button'
                       onClick={() => {
                         resetProfile();
                         setIsEditing(false);
                       }}
-                      className='px-4 py-2 text-gray-600 hover:text-gray-700'
+                      className='px-4 py-2 text-gray-600 hover:text-gray-700 font-medium'
                     >
                       Cancel
                     </button>
                     <button
                       type='submit'
                       disabled={updateProfileMutation.isLoading}
-                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+                      className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-sm transition-all duration-200'
                     >
                       {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -624,80 +729,100 @@ const Profile = () => {
                 </form>
               </FormProvider>
             ) : (
-              <div className='space-y-4'>
-                <div className='flex items-center'>
-                  <User className='h-5 w-5 text-gray-400 mr-3' />
-                  <div>
-                    <span className='text-sm text-gray-500'>Username</span>
-                    <p className='text-gray-900'>{user.username}</p>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6'>
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <User className='h-5 w-5 text-blue-600' />
+                  </div>
+                  <div className='min-w-0'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Username
+                    </span>
+                    <p className='text-gray-900 font-semibold truncate'>{user.username}</p>
                   </div>
                 </div>
 
-                <div className='flex items-center'>
-                  <User className='h-5 w-5 text-gray-400 mr-3' />
-                  <div>
-                    <span className='text-sm text-gray-500'>Full Name</span>
-                    <p className='text-gray-900'>{user.name || 'Not set'}</p>
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <User className='h-5 w-5 text-blue-600' />
+                  </div>
+                  <div className='min-w-0'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Full Name
+                    </span>
+                    <p className='text-gray-900 font-semibold truncate'>{user.name || 'Not set'}</p>
                   </div>
                 </div>
 
-                <div className='flex items-center'>
-                  <Mail className='h-5 w-5 text-gray-400 mr-3' />
-                  <div>
-                    <span className='text-sm text-gray-500'>Email</span>
-                    <p className='text-gray-900'>
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <Mail className='h-5 w-5 text-blue-600' />
+                  </div>
+                  <div className='min-w-0'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Email
+                    </span>
+                    <p className='text-gray-900 font-semibold truncate'>
                       <MaskedEmail email={user.email} />
                     </p>
                   </div>
                 </div>
 
-                <div className='flex items-center'>
-                  <Activity className='h-5 w-5 text-gray-400 mr-3' />
-                  <div>
-                    <span className='text-sm text-gray-500'>Number of Dives</span>
-                    <p className='text-gray-900 font-medium'>
-                      Total:{' '}
-                      {(user?.number_of_dives || 0) +
-                        (userStats?.dives_created || 0) +
-                        (userStats?.buddy_dives_count || 0)}
-                    </p>
-                    <p className='text-xs text-gray-500 mt-0.5'>
-                      [{user?.number_of_dives || 0} (From Profile) + {userStats?.dives_created || 0}{' '}
-                      (Created) + {userStats?.buddy_dives_count || 0} (Participated)]
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <Activity className='h-5 w-5 text-blue-600' />
+                  </div>
+                  <div className='min-w-0'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Total Dives
+                    </span>
+                    <div className='flex items-baseline gap-2'>
+                      <p className='text-gray-900 font-bold text-lg'>
+                        {(user?.number_of_dives || 0) +
+                          (userStats?.dives_created || 0) +
+                          (userStats?.buddy_dives_count || 0)}
+                      </p>
+                    </div>
+                    <p className='text-[9px] leading-tight text-gray-400 mt-0.5'>
+                      {user?.number_of_dives || 0} prof. + {userStats?.dives_created || 0} built +{' '}
+                      {userStats?.buddy_dives_count || 0} buddy
                     </p>
                   </div>
                 </div>
 
-                <div className='flex items-center'>
-                  <Shield className='h-5 w-5 text-gray-400 mr-3' />
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <Shield className='h-5 w-5 text-blue-600' />
+                  </div>
                   <div>
-                    <span className='text-sm text-gray-500'>Buddy Visibility</span>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Buddy Visibility
+                    </span>
                     <p className='text-gray-900'>
                       {(user.buddy_visibility || 'public') === 'public' ? (
-                        <span className='text-green-600 font-medium'>Public</span>
+                        <span className='text-green-600 font-bold text-sm'>Public</span>
                       ) : (
-                        <span className='text-gray-600 font-medium'>Private</span>
+                        <span className='text-gray-600 font-bold text-sm'>Private</span>
                       )}
-                    </p>
-                    <p className='text-xs text-gray-500 mt-1'>
-                      {(user.buddy_visibility || 'public') === 'public'
-                        ? 'Others can add you as a dive buddy'
-                        : 'You are hidden from buddy search'}
                     </p>
                   </div>
                 </div>
 
                 {ownedDivingCenters && ownedDivingCenters.length > 0 && (
                   <div className='flex items-start'>
-                    <Building2 className='h-5 w-5 text-gray-400 mr-3 mt-1' />
-                    <div className='flex-1'>
-                      <span className='text-sm text-gray-500'>Owned Diving Centers</span>
-                      <div className='mt-1 space-y-1'>
+                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                      <Building2 className='h-5 w-5 text-blue-600' />
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                        Owned Centers
+                      </span>
+                      <div className='flex flex-wrap gap-1.5 mt-1'>
                         {ownedDivingCenters.map(center => (
                           <Link
                             key={center.id}
                             to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                            className='block text-blue-600 hover:text-blue-800 font-medium text-sm'
+                            className='inline-block px-2 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-xs font-medium transition-colors border border-blue-100'
                           >
                             {center.name}
                           </Link>
@@ -707,21 +832,29 @@ const Profile = () => {
                   </div>
                 )}
 
-                <div className='flex items-center'>
-                  <Calendar className='h-5 w-5 text-gray-400 mr-3' />
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <Calendar className='h-5 w-5 text-blue-600' />
+                  </div>
                   <div>
-                    <span className='text-sm text-gray-500'>Member Since</span>
-                    <p className='text-gray-900'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Member Since
+                    </span>
+                    <p className='text-gray-900 font-semibold text-sm'>
                       {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
-                <div className='flex items-center'>
-                  <Shield className='h-5 w-5 text-gray-400 mr-3' />
+                <div className='flex items-start'>
+                  <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
+                    <Shield className='h-5 w-5 text-blue-600' />
+                  </div>
                   <div>
-                    <span className='text-sm text-gray-500'>Role</span>
-                    <p className='text-gray-900'>
+                    <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      Role
+                    </span>
+                    <p className='text-gray-900 font-semibold text-sm'>
                       {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'User'}
                     </p>
                   </div>
@@ -731,9 +864,11 @@ const Profile = () => {
           </div>
 
           {/* Social Media Links Section */}
-          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-xl font-semibold text-gray-900'>Social Media Links</h2>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
+              <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                Social Media Links
+              </h2>
               <button
                 onClick={() => {
                   if (isAddingSocialLink) {
@@ -741,7 +876,7 @@ const Profile = () => {
                   }
                   setIsAddingSocialLink(!isAddingSocialLink);
                 }}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                className='flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold shadow-sm transition-all w-full sm:w-auto'
               >
                 <Plus className='h-4 w-4 mr-2' />
                 Add Link
@@ -818,51 +953,58 @@ const Profile = () => {
               <div className='text-center py-8'>
                 <LinkIcon className='h-12 w-12 text-gray-400 mx-auto mb-4' />
                 <p className='text-gray-500'>No social media links added yet.</p>
-                <p className='text-sm text-gray-400'>
-                  Add links to your social profiles so others can connect with you.
+                <p className='text-[10px] text-gray-400'>
+                  Connect your social profiles to your dive profile.
                 </p>
               </div>
             ) : (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              <div className='flex flex-wrap gap-3'>
                 {user.social_links.map(link => (
                   <div
                     key={link.platform}
-                    className='flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50'
+                    className='group relative flex items-center bg-gray-50 hover:bg-white border border-gray-200 rounded-full pl-1.5 pr-2 py-1.5 transition-all shadow-sm hover:shadow-md'
                   >
                     <a
                       href={link.url}
                       target='_blank'
                       rel='noopener noreferrer'
-                      className='flex items-center space-x-3 flex-1 min-w-0'
+                      className='flex items-center space-x-2'
+                      title={link.url}
                     >
-                      <div className='bg-gray-100 p-2 rounded-full'>
+                      <div className='bg-white p-1.5 rounded-full shadow-sm border border-gray-100 group-hover:scale-110 transition-transform'>
                         {getSocialMediaIcon(link.platform, {
                           color: '000000',
-                          className: 'w-5 h-5',
+                          className: 'w-4 h-4',
                         })}
                       </div>
-                      <div className='truncate'>
-                        <span className='font-medium text-gray-900 capitalize block'>
-                          {link.platform}
-                        </span>
-                        <span className='text-xs text-gray-500 truncate block'>{link.url}</span>
-                      </div>
+                      <span className='font-bold text-xs text-gray-700 capitalize pr-1'>
+                        {link.platform}
+                      </span>
                     </a>
-                    <button
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Are you sure you want to remove your ${link.platform} link?`
-                          )
-                        ) {
-                          removeSocialLinkMutation.mutate(link.platform);
-                        }
-                      }}
-                      className='ml-2 p-1 text-gray-400 hover:text-red-600'
-                      title='Remove link'
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </button>
+                    <div className='flex items-center border-l border-gray-200 ml-2 pl-2 space-x-1'>
+                      <button
+                        onClick={() => startEditSocialLink(link)}
+                        className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
+                        title='Edit link'
+                      >
+                        <Edit className='h-3.5 w-3.5' />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Are you sure you want to remove your ${link.platform} link?`
+                            )
+                          ) {
+                            removeSocialLinkMutation.mutate(link.platform);
+                          }
+                        }}
+                        className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+                        title='Remove link'
+                      >
+                        <Trash2 className='h-3.5 w-3.5' />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -870,9 +1012,11 @@ const Profile = () => {
           </div>
 
           {/* Certifications Section */}
-          <div className='bg-white p-6 rounded-lg shadow-md mt-6'>
-            <div className='flex items-center justify-between mb-6'>
-              <h2 className='text-xl font-semibold text-gray-900'>Diving Certifications</h2>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
+              <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                Diving Certifications
+              </h2>
               <button
                 onClick={() => {
                   if (isAddingCertification) {
@@ -880,7 +1024,7 @@ const Profile = () => {
                   }
                   setIsAddingCertification(!isAddingCertification);
                 }}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                className='flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold shadow-sm transition-all w-full sm:w-auto'
               >
                 <Plus className='h-4 w-4 mr-2' />
                 Add Certification
@@ -898,6 +1042,7 @@ const Profile = () => {
                       <FormField name='diving_organization_id' label='Diving Organization'>
                         {({ register, name }) => (
                           <select
+                            id='add_diving_organization_id'
                             {...register(name)}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                               certErrors.diving_organization_id
@@ -929,6 +1074,7 @@ const Profile = () => {
 
                           return (
                             <select
+                              id='add_certification_level_id'
                               {...register(name)}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                                 certErrors.certification_level_id
@@ -954,6 +1100,26 @@ const Profile = () => {
                     </div>
                   </div>
 
+                  <div className='mt-2'>
+                    <FormField name='is_active'>
+                      {({ register, name }) => (
+                        <div className='flex items-center'>
+                          <input
+                            id='add_is_active'
+                            type='checkbox'
+                            {...register(name)}
+                            className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                          />
+                          <label
+                            htmlFor='add_is_active'
+                            className='ml-2 block text-sm text-gray-900 font-medium'
+                          >
+                            Active Certification
+                          </label>
+                        </div>
+                      )}
+                    </FormField>
+                  </div>
                   <div className='flex justify-end space-x-3 mt-4'>
                     <button
                       type='button'
@@ -999,6 +1165,7 @@ const Profile = () => {
                       <FormField name='diving_organization_id' label='Diving Organization'>
                         {({ register, name }) => (
                           <select
+                            id='edit_diving_organization_id'
                             {...register(name)}
                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                               certErrors.diving_organization_id
@@ -1030,6 +1197,7 @@ const Profile = () => {
 
                           return (
                             <select
+                              id='edit_certification_level_id'
                               {...register(name)}
                               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                                 certErrors.certification_level_id
@@ -1055,6 +1223,26 @@ const Profile = () => {
                     </div>
                   </div>
 
+                  <div className='mt-2'>
+                    <FormField name='is_active'>
+                      {({ register, name }) => (
+                        <div className='flex items-center'>
+                          <input
+                            id='edit_is_active'
+                            type='checkbox'
+                            {...register(name)}
+                            className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                          />
+                          <label
+                            htmlFor='edit_is_active'
+                            className='ml-2 block text-sm text-gray-900 font-medium'
+                          >
+                            Active Certification
+                          </label>
+                        </div>
+                      )}
+                    </FormField>
+                  </div>
                   <div className='flex justify-end space-x-3 mt-4'>
                     <button
                       type='button'
@@ -1092,78 +1280,65 @@ const Profile = () => {
                       cert.is_active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
                     }`}
                   >
-                    <div className='flex items-start justify-between'>
-                      <div className='flex items-start gap-3'>
-                        <OrganizationLogo org={cert.diving_organization} />
-                        <div className='flex-1'>
-                          <div className='flex items-center space-x-2 mb-2'>
-                            <span className='font-medium text-gray-900'>
-                              {cert.diving_organization.acronym} - {cert.certification_level}
-                            </span>
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                cert.is_active
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {cert.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </div>
-
-                          <div className='text-sm text-gray-600 space-y-1'>
-                            <p>Organization: {cert.diving_organization.name}</p>
-                            {cert.certification_level_link && (
-                              <div className='mt-1 flex flex-wrap gap-2 text-xs'>
-                                {cert.certification_level_link.max_depth && (
-                                  <span className='bg-blue-100 text-blue-800 px-2 py-0.5 rounded'>
-                                    Depth: {cert.certification_level_link.max_depth}
-                                  </span>
-                                )}
-                                {cert.certification_level_link.gases && (
-                                  <span className='bg-purple-100 text-purple-800 px-2 py-0.5 rounded'>
-                                    Gases: {cert.certification_level_link.gases}
-                                  </span>
-                                )}
-                                {cert.certification_level_link.tanks && (
-                                  <span className='bg-gray-100 text-gray-800 px-2 py-0.5 rounded border border-gray-300'>
-                                    Tanks: {cert.certification_level_link.tanks}
-                                  </span>
-                                )}
-                                {cert.certification_level_link.deco_time_limit && (
-                                  <span className='bg-red-100 text-red-800 px-2 py-0.5 rounded'>
-                                    Deco: {cert.certification_level_link.deco_time_limit}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                    <div className='flex items-start gap-4'>
+                      {/* Left side: Logo + Actions */}
+                      <div className='flex flex-col items-center space-y-2 shrink-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='transition-transform hover:scale-105'
+                          title={`View ${cert.diving_organization.acronym} details`}
+                        >
+                          <OrganizationLogo
+                            org={cert.diving_organization}
+                            size='h-12 w-12'
+                            textSize='text-sm'
+                          />
+                        </Link>
+                        <div className='flex flex-col items-center space-y-0'>
+                          <button
+                            onClick={() => startEditCertification(cert)}
+                            className='p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors'
+                            title='Edit'
+                          >
+                            <Edit className='h-4 w-4' />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCertification(cert.id)}
+                            className='p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors'
+                            title='Delete'
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </button>
                         </div>
                       </div>
 
-                      <div className='flex items-center space-x-2 ml-4'>
-                        <button
-                          onClick={() => handleToggleCertification(cert.id)}
-                          className={`px-2 py-1 text-xs rounded ${
-                            cert.is_active
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
+                      {/* Right side: Info */}
+                      <div className='flex-1 min-w-0'>
+                        <Link
+                          to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                          className='block group'
                         >
-                          {cert.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => startEditCertification(cert)}
-                          className='p-1 text-gray-500 hover:text-blue-600'
-                        >
-                          <Edit className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCertification(cert.id)}
-                          className='p-1 text-gray-500 hover:text-red-600'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </button>
+                          <div className='flex items-center space-x-2 mb-2'>
+                            <div
+                              className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                cert.is_active
+                                  ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]'
+                                  : 'bg-gray-400'
+                              }`}
+                              title={cert.is_active ? 'Active' : 'Inactive'}
+                            />
+                            <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors'>
+                              {cert.diving_organization.acronym} - {cert.certification_level}
+                            </span>
+                          </div>
+                        </Link>
+
+                        <div className='text-sm text-gray-600 space-y-1'>
+                          <p className='hidden md:block text-xs uppercase tracking-tighter opacity-70'>
+                            Organization: {cert.diving_organization.name}
+                          </p>
+                          {renderCertificationFeatures(cert)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1177,114 +1352,151 @@ const Profile = () => {
         <div className='space-y-6'>
           {/* Account Stats */}
           <div className='bg-white p-6 rounded-lg shadow-md'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account Stats</h3>
+            <h3 className='text-lg font-bold text-gray-900 mb-4 border-b pb-2 uppercase tracking-tight flex items-center gap-2'>
+              <Gauge className='h-5 w-5 text-gray-400' />
+              Account Stats
+            </h3>
             <div className='space-y-3'>
-              <div className='flex justify-between items-center font-bold border-b pb-2 mb-2'>
-                <span className='text-gray-900'>Total Dives</span>
-                <span className='text-gray-900'>
+              <div className='flex justify-between items-center font-bold pb-1'>
+                <div className='flex items-center gap-2'>
+                  <Waves size={16} className='text-blue-600' />
+                  <span className='text-gray-900'>Total Dives</span>
+                </div>
+                <span className='text-blue-600 bg-blue-50 px-2 py-0.5 rounded ml-4'>
                   {(user?.number_of_dives || 0) +
                     (userStats?.dives_created || 0) +
                     (userStats?.buddy_dives_count || 0)}
                 </span>
               </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-gray-600'>Dives from Profile</span>
-                <span className='font-medium'>{user?.number_of_dives || 0}</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-gray-600'>Dives Created</span>
-                <Link
-                  to='/dives?my_dives=true'
-                  className='font-medium text-blue-600 hover:text-blue-800'
-                >
-                  {userStats?.dives_created || 0}
-                </Link>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-gray-600'>Dives Participated</span>
-                <span className='font-medium'>{userStats?.buddy_dives_count || 0}</span>
-              </div>
-              <div className='flex justify-between items-center'>
-                <span className='text-gray-600'>Dive Sites Created</span>
-                <Link
-                  to='/dive-sites?my_dive_sites=true'
-                  className='font-medium text-blue-600 hover:text-blue-800'
-                >
-                  {userStats?.dive_sites_created || 0}
-                </Link>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Dive Sites Rated</span>
-                <span className='font-medium'>{userStats?.dive_sites_rated || 0}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Comments Posted</span>
-                <span className='font-medium'>{userStats?.comments_posted || 0}</span>
-              </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Certifications</span>
-                <span className='font-medium'>
-                  {certifications.filter(c => c.is_active).length}
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <User size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dives from Profile</span>
+                </div>
+                <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  {user?.number_of_dives || 0}
                 </span>
               </div>
-              <div className='flex justify-between'>
-                <span className='text-gray-600'>Member Since</span>
-                <span className='font-medium'>
-                  {new Date(user.created_at).toLocaleDateString()}
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <Activity size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dives Created</span>
+                </div>
+                <div className='flex-1 text-right'>
+                  <Link
+                    to='/dives?my_dives=true'
+                    className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                  >
+                    {userStats?.dives_created || 0}
+                  </Link>
+                </div>
+              </div>
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <Users size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dives Participated</span>
+                </div>
+                <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  {userStats?.buddy_dives_count || 0}
+                </span>
+              </div>
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <MapPin size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dive Sites Created</span>
+                </div>
+                <div className='flex-1 text-right'>
+                  <Link
+                    to='/dive-sites?my_dive_sites=true'
+                    className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                  >
+                    {userStats?.dive_sites_created || 0}
+                  </Link>
+                </div>
+              </div>
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <Star size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Dive Site Rated</span>
+                </div>
+                <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  {userStats?.dive_sites_rated || 0}
+                </span>
+              </div>
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <MessageSquare size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Comments Posted</span>
+                </div>
+                <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  {userStats?.comments_posted || 0}
+                </span>
+              </div>
+              <div className='flex justify-between items-center text-sm'>
+                <div className='flex items-center gap-2'>
+                  <Award size={16} className='text-gray-400' />
+                  <span className='text-gray-600'>Certifications</span>
+                </div>
+                <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  {certifications.filter(c => c.is_active).length}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Profile Actions */}
-          <div className='bg-white p-6 rounded-lg shadow-md'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Account</h3>
-            <div className='space-y-2'>
+          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <h3 className='text-md font-bold text-gray-900 mb-4 border-b pb-1 uppercase tracking-wider'>
+              Account
+            </h3>
+            <div className='space-y-1'>
               <Link
                 to={`/users/${user.username}`}
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <ExternalLink size={18} className='mr-3' />
-                View Public Profile
+                <ExternalLink size={18} className='mr-3 text-gray-400' />
+                Public Profile
               </Link>
               <Link
                 to='/buddies'
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <Users size={18} className='mr-3' />
-                Manage Buddies
+                <Users size={18} className='mr-3 text-gray-400' />
+                My Buddies
               </Link>
               <Link
                 to='/ai-chat-history'
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <MessageSquare size={18} className='mr-3' />
-                AI Chat History
+                <MessageSquare size={18} className='mr-3 text-gray-400' />
+                Chat History
               </Link>
               <button
                 onClick={() => setIsChangingPassword(true)}
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <Lock size={18} className='mr-3' />
-                Change Password
+                <Lock size={18} className='mr-3 text-gray-400' />
+                Password
               </button>
             </div>
 
-            <h3 className='text-lg font-semibold text-gray-900 mb-4 mt-6'>Privacy & API</h3>
-            <div className='space-y-2'>
+            <h3 className='text-md font-bold text-gray-900 mb-4 mt-6 border-b pb-1 uppercase tracking-wider'>
+              Privacy & API
+            </h3>
+            <div className='space-y-1'>
               <Link
                 to='/notifications'
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <Bell size={18} className='mr-3' />
-                View Notifications
+                <Bell size={18} className='mr-3 text-gray-400' />
+                Notifications
               </Link>
               <Link
                 to='/notifications/preferences'
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <Settings size={18} className='mr-3' />
-                Notification Preferences
+                <Settings size={18} className='mr-3 text-gray-400' />
+                Preferences
               </Link>
 
               {/* Push Notifications Toggle/Status */}
@@ -1323,18 +1535,18 @@ const Profile = () => {
 
               <Link
                 to='/profile/pats'
-                className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'
+                className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
               >
-                <Key size={18} className='mr-3' />
-                Manage API Tokens
+                <Key size={18} className='mr-3 text-gray-400' />
+                API Tokens
               </Link>
             </div>
 
-            <div className='mt-8 pt-6 border-t'>
+            <div className='mt-8 pt-4 border-t'>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleteAccountMutation.isLoading}
-                className='flex items-center w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50'
+                className='flex items-center w-full px-3 py-2.5 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 text-sm font-bold uppercase tracking-tight'
               >
                 <Trash2 size={18} className='mr-3' />
                 {deleteAccountMutation.isLoading ? 'Archiving...' : 'Archive Account'}
@@ -1353,7 +1565,7 @@ const Profile = () => {
           resetPassword();
         }}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <FormProvider {...passwordMethods}>
           <form onSubmit={handleSubmitPassword(onPasswordSubmit)} className='space-y-4 mt-4'>

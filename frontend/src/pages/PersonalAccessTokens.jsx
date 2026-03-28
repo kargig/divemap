@@ -218,7 +218,7 @@ const PersonalAccessTokens = () => {
         open={isCreateModalVisible}
         onCancel={() => setIsCreateModalVisible(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout='vertical' onFinish={handleCreateToken} className='mt-4'>
           <Form.Item
