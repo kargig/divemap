@@ -1,10 +1,25 @@
-import { Mail, Globe, MapPin, Trash2, ArrowLeft } from 'lucide-react';
+/* global Notification */
+import { Mail, Globe, MapPin, Trash2, ArrowLeft, Smartphone } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
+import api from '../api';
 import { useNotifications } from '../hooks/useNotifications';
 import usePageTitle from '../hooks/usePageTitle';
 import { getNotificationPreferences } from '../services/notifications';
+
+const urlBase64ToUint8Array = base64String => {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
 
 const NotificationPreferencesPage = () => {
   usePageTitle('Divemap - Notification Preferences');
@@ -16,6 +31,71 @@ const NotificationPreferencesPage = () => {
       enabled: true,
     }
   );
+
+  // --- Push Notification Logic ---
+  const [pushStatus, setPushStatus] = useState('loading'); // 'loading', 'supported', 'unsupported', 'denied', 'granted'
+
+  useEffect(() => {
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
+      setPushStatus('unsupported');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      setPushStatus('denied');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setPushStatus('granted');
+      return;
+    }
+
+    setPushStatus('supported');
+  }, []);
+
+  const handleEnablePush = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushStatus('denied');
+        toast.error('Permission for notifications was denied');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+      if (!vapidPublicKey) {
+        console.error('VITE_VAPID_PUBLIC_KEY is not set');
+        toast.error('Push notification configuration is missing');
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+
+      // Send to backend
+      const { endpoint, keys } = subscription.toJSON();
+      await api.post('/api/v1/notifications/push/subscribe', {
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+
+      setPushStatus('granted');
+      toast.success('Push notifications enabled for this device!');
+    } catch (error) {
+      console.error('Failed to subscribe to push notifications', error);
+      toast.error('Failed to enable push notifications');
+    }
+  };
 
   const categories = [
     {
@@ -133,6 +213,51 @@ const NotificationPreferencesPage = () => {
         <p className='text-gray-600'>
           Configure how you want to receive notifications for different types of updates.
         </p>
+      </div>
+
+      <div className='bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-blue-600'>
+        <div className='flex items-start justify-between'>
+          <div className='flex-1'>
+            <div className='flex items-center space-x-2 mb-2'>
+              <Smartphone className='h-6 w-6 text-blue-600' />
+              <h2 className='text-xl font-bold text-gray-900'>Device Push Notifications</h2>
+            </div>
+            <p className='text-gray-600 max-w-2xl'>
+              Receive instant alerts on your Android phone or desktop browser even when Divemap is
+              closed. Perfect for chat replies and important site updates.
+            </p>
+          </div>
+
+          <div className='ml-4'>
+            {pushStatus === 'supported' && (
+              <button
+                onClick={handleEnablePush}
+                className='px-6 py-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+              >
+                Enable for this Device
+              </button>
+            )}
+
+            {pushStatus === 'granted' && (
+              <div className='flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 rounded-full border border-green-200 font-medium'>
+                <div className='h-2 w-2 bg-green-500 rounded-full animate-pulse'></div>
+                <span>Active on this Device</span>
+              </div>
+            )}
+
+            {pushStatus === 'denied' && (
+              <div className='px-4 py-2 bg-red-50 text-red-700 rounded-full border border-red-200 font-medium'>
+                Notifications Blocked in Browser
+              </div>
+            )}
+
+            {pushStatus === 'unsupported' && (
+              <div className='text-sm text-gray-400 italic'>
+                Not supported by this browser or device
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className='bg-white rounded-lg shadow-md p-6'>

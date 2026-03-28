@@ -1,3 +1,4 @@
+/* global Notification */
 import { Modal } from 'antd';
 import {
   User,
@@ -17,6 +18,7 @@ import {
   Bell,
   Settings,
   ExternalLink,
+  Smartphone,
   Link as LinkIcon,
   MessageSquare,
 } from 'lucide-react';
@@ -398,6 +400,82 @@ const Profile = () => {
     'Threads',
     'Signal',
   ];
+
+  // --- Push Notification Logic ---
+  const [pushStatus, setPushStatus] = useState('loading'); // 'loading', 'supported', 'unsupported', 'denied', 'granted'
+
+  useEffect(() => {
+    if (
+      !('serviceWorker' in navigator) ||
+      !('PushManager' in window) ||
+      !('Notification' in window)
+    ) {
+      setPushStatus('unsupported');
+      return;
+    }
+
+    if (Notification.permission === 'denied') {
+      setPushStatus('denied');
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      setPushStatus('granted');
+      return;
+    }
+
+    setPushStatus('supported');
+  }, []);
+
+  const urlBase64ToUint8Array = base64String => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const handleEnablePush = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setPushStatus('denied');
+        toast.error('Permission for notifications was denied');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+      if (!vapidPublicKey) {
+        console.error('VITE_VAPID_PUBLIC_KEY is not set');
+        toast.error('Push notification configuration is missing');
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+
+      // Send to backend
+      const { endpoint, keys } = subscription.toJSON();
+      await api.post('/api/v1/notifications/push/subscribe', {
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+
+      setPushStatus('granted');
+      toast.success('Push notifications enabled for this device!');
+    } catch (error) {
+      console.error('Failed to subscribe to push notifications', error);
+      toast.error('Failed to enable push notifications');
+    }
+  };
 
   if (!user) {
     return (
@@ -1208,6 +1286,41 @@ const Profile = () => {
                 <Settings size={18} className='mr-3' />
                 Notification Preferences
               </Link>
+
+              {/* Push Notifications Toggle/Status */}
+              {pushStatus === 'supported' && (
+                <button
+                  onClick={handleEnablePush}
+                  className='flex items-center w-full px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors font-medium border border-blue-100'
+                >
+                  <Smartphone size={18} className='mr-3' />
+                  Enable Device Notifications
+                </button>
+              )}
+
+              {pushStatus === 'granted' && (
+                <div className='flex items-center w-full px-3 py-2 text-green-600 bg-green-50 rounded-md border border-green-100'>
+                  <Smartphone size={18} className='mr-3' />
+                  <span className='font-medium'>Device Notifications Active</span>
+                </div>
+              )}
+
+              {pushStatus === 'denied' && (
+                <div className='flex items-center w-full px-3 py-2 text-red-600 bg-red-50 rounded-md border border-red-100'>
+                  <Smartphone size={18} className='mr-3' />
+                  <span className='font-medium'>Notifications Blocked</span>
+                </div>
+              )}
+
+              {pushStatus === 'unsupported' && (
+                <div className='flex items-center w-full px-3 py-2 text-gray-500 bg-gray-50 rounded-md border border-gray-100'>
+                  <Smartphone size={18} className='mr-3' />
+                  <span className='text-xs italic'>
+                    Notifications not supported (Requires HTTPS)
+                  </span>
+                </div>
+              )}
+
               <Link
                 to='/profile/pats'
                 className='flex items-center w-full px-3 py-2 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors'

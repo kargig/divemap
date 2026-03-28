@@ -14,7 +14,7 @@ import os
 import logging
 
 from app.database import get_db
-from app.models import User, Notification, NotificationPreference, EmailConfig
+from app.models import User, Notification, NotificationPreference, EmailConfig, PushSubscription
 from app.auth import get_current_active_user, get_current_admin_user
 from app.utils import utcnow
 from fastapi.security import APIKeyHeader
@@ -25,7 +25,9 @@ from app.schemas import (
     NotificationPreferenceUpdate,
     EmailConfigResponse,
     EmailConfigCreate,
-    EmailConfigUpdate
+    EmailConfigUpdate,
+    PushSubscriptionCreate,
+    PushSubscriptionResponse
 )
 from app.services.email_service import EmailService
 from app.services.notification_service import NotificationService
@@ -1075,3 +1077,143 @@ def delete_user_notification_preference(
     logger.info(f"Admin {current_user.id} deleted notification preference for user {user_id}, category: {category}")
     
     return {"message": f"Preference for category '{category}' deleted for user {user_id}"}
+
+
+# --- Push Notification Endpoints ---
+
+@router.post("/push/subscribe", response_model=PushSubscriptionResponse)
+def subscribe_push(
+    subscription_in: PushSubscriptionCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Subscribe current user to push notifications.
+    """
+    # Check if subscription already exists for this endpoint
+    existing_sub = db.query(PushSubscription).filter(
+        PushSubscription.endpoint == subscription_in.endpoint
+    ).first()
+    
+    if existing_sub:
+        # Update user_id if it changed, and reset fail_count
+        existing_sub.user_id = current_user.id
+        existing_sub.p256dh = subscription_in.p256dh
+        existing_sub.auth = subscription_in.auth
+        existing_sub.fail_count = 0
+        db.commit()
+        db.refresh(existing_sub)
+        return existing_sub
+
+    # Create new subscription
+    new_sub = PushSubscription(
+        user_id=current_user.id,
+        endpoint=subscription_in.endpoint,
+        p256dh=subscription_in.p256dh,
+        auth=subscription_in.auth
+    )
+    db.add(new_sub)
+    db.commit()
+    db.refresh(new_sub)
+    
+    logger.info(f"User {current_user.id} subscribed to push notifications for endpoint: {new_sub.endpoint[:50]}...")
+    return new_sub
+
+
+@router.delete("/push/unsubscribe")
+def unsubscribe_push(
+    endpoint: str = Query(..., description="The push endpoint to remove"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Unsubscribe current user from push notifications for a specific endpoint.
+    """
+    subscription = db.query(PushSubscription).filter(
+        PushSubscription.endpoint == endpoint,
+        PushSubscription.user_id == current_user.id
+    ).first()
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Subscription not found"
+        )
+    
+    db.delete(subscription)
+    db.commit()
+    
+    logger.info(f"User {current_user.id} unsubscribed from push notifications for endpoint: {endpoint[:50]}...")
+    return {"message": "Unsubscribed successfully"}
+
+
+@router.get("/internal/push-subscriptions/{user_id}", response_model=List[PushSubscriptionResponse])
+def get_user_push_subscriptions_for_lambda(
+    user_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to fetch user's push subscriptions.
+    """
+    subscriptions = db.query(PushSubscription).filter(
+        PushSubscription.user_id == user_id,
+        PushSubscription.fail_count < 10
+    ).all()
+    
+    return subscriptions
+
+
+@router.put("/internal/push-subscriptions/{subscription_id}/fail")
+def fail_push_subscription(
+    subscription_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to report a failed push delivery.
+    Increments fail_count and deletes if >= 10.
+    """
+    subscription = db.query(PushSubscription).filter(
+        PushSubscription.id == subscription_id
+    ).first()
+    
+    if not subscription:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Subscription {subscription_id} not found"
+        )
+    
+    subscription.fail_count += 1
+    
+    if subscription.fail_count >= 10:
+        logger.warning(f"Push subscription {subscription_id} reached 10 failures. Deleting.")
+        db.delete(subscription)
+        db.commit()
+        message = "Subscription deleted due to excessive failures"
+    else:
+        db.commit()
+        message = f"Subscription failure recorded. Count: {subscription.fail_count}"
+    
+    return {"status": "success", "message": message, "fail_count": subscription.fail_count}
+
+
+@router.post("/internal/notify-chat-message")
+async def trigger_notify_chat_message(
+    room_id: int = Query(...),
+    sender_id: int = Query(...),
+    message_id: int = Query(...),
+    db: Session = Depends(get_db),
+    notification_service: NotificationService = Depends(NotificationService),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to trigger chat message notifications.
+    """
+    count = await notification_service.notify_chat_message(
+        room_id=room_id,
+        sender_id=sender_id,
+        message_id=message_id,
+        db=db
+    )
+    return {"status": "success", "notifications_created": count}

@@ -24,6 +24,9 @@ export default defineConfig({
       brotliSize: true,
     }),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'prompt',
       devOptions: {
         enabled: false
@@ -118,83 +121,8 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // Reduced from 4MB to 3MB as chunks are now split
-        // Exclude non-SPA routes from navigation fallback
-        navigateFallbackDenylist: [
-          /^\/robots\.txt$/,
-          /^\/sitemap\.xml$/,
-          /^\/llms\.txt$/,
-          /^\/.*\.md$/,
-          /^\/l\/.*$/,
-          /^\/api\/.*$/,
-          /^\/docs\/?.*$/,
-          /^\/redoc\/?.*$/,
-          /^\/openapi\.json$/,
-          /^\/health$/,
-          /^\/nginx-health$/,
-          /^\/presentations\/?.*$/
-        ],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\/v1\/.*/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              networkTimeoutSeconds: 10 // Fallback to cache if network takes > 10s
-            }
-          },
-          {
-            urlPattern: /^https:\/\/.*\.openstreetmap\.org\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'map-tiles-cache',
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'image-cache',
-              expiration: {
-                maxEntries: 60,
-                maxAgeSeconds: 30 * 24 * 60 * 60 // 30 Days
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-stylesheets'
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       }
     })
   ],

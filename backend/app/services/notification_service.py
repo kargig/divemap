@@ -11,10 +11,11 @@ import logging
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, desc
 
 from app.models import (
-    User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip
+    User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip, PushSubscription,
+    UserChatRoom, UserChatRoomMember, UserChatMessage
 )
 from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService
@@ -375,6 +376,69 @@ class NotificationService:
             return email_success
         
         return sqs_success
+
+    def _queue_push_notifications(
+        self,
+        notification: Notification,
+        user: User,
+        db: Session
+    ) -> int:
+        """
+        Queue push notifications for all active user devices.
+        
+        Args:
+            notification: Notification object
+            user: User object
+            db: Database session
+            
+        Returns:
+            Number of push notifications queued
+        """
+        # Fetch active subscriptions (fail_count < 10)
+        subscriptions = db.query(PushSubscription).filter(
+            PushSubscription.user_id == user.id,
+            PushSubscription.fail_count < 10
+        ).all()
+        
+        if not subscriptions:
+            return 0
+            
+        # Construct generic payload
+        # IMPORTANT: We never send the actual notification message/PII in the push
+        # to prevent lock-screen shoulder surfing.
+        payload = {
+            'title': 'Divemap Notification',
+            'body': 'You have a new update on Divemap',
+            'url': notification.link_url or '/',
+            'tag': getattr(notification, '_push_tag', notification.category)
+        }
+        
+        # Override body for specific categories with generic but helpful text
+        if notification.category == 'user_chat_message':
+            payload['body'] = 'You have a new message from a buddy'
+        elif notification.category == 'new_dive_sites':
+            payload['body'] = 'A new dive site was added in your area'
+        elif notification.category == 'new_dives':
+            payload['body'] = 'A buddy just logged a new dive'
+            
+        # Prepare batch tasks
+        tasks = []
+        for sub in subscriptions:
+            tasks.append({
+                'subscription_id': sub.id,
+                'endpoint': sub.endpoint,
+                'p256dh': sub.p256dh,
+                'auth': sub.auth,
+                'payload': payload
+            })
+            
+        if not tasks:
+            return 0
+            
+        # Send to SQS
+        success_count = self.sqs_service.send_push_tasks(tasks)
+        logger.info(f"Queued {success_count} push notifications for user {user.id}")
+        return success_count
     
     async def notify_users_for_new_dive_site(self, dive_site_id: int, db: Session) -> int:
         """
@@ -442,6 +506,10 @@ class NotificationService:
                 # Queue email if enabled and frequency is immediate
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive_site', db)
+                
+                # Queue push notification if enabled for website/app
+                if preference.enable_website:
+                    self._queue_push_notifications(notification, user, db)
         
         logger.info(f"Created {notification_count} notifications for dive site {dive_site_id}")
         return notification_count
@@ -497,6 +565,10 @@ class NotificationService:
                 notification_count += 1
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive', db)
+                
+                # Queue push notification if enabled for website/app
+                if preference.enable_website:
+                    self._queue_push_notifications(notification, user, db)
         
         return notification_count
     
@@ -618,7 +690,91 @@ class NotificationService:
                     self._queue_email_notification(notification, user, 'new_dive_trip', db)
         
         return notification_count
-    
+
+    async def notify_chat_message(self, room_id: int, sender_id: int, message_id: int, db: Session) -> int:
+        """
+        Notify chat room members about a new message.
+        Only notifies users who are currently 'offline' for this room.
+        """
+        room = db.query(UserChatRoom).filter(UserChatRoom.id == room_id).first()
+        if not room:
+            logger.error(f"Chat room {room_id} not found")
+            return 0
+
+        sender = db.query(User).filter(User.id == sender_id).first()
+        sender_name = sender.name or sender.username if sender else "A buddy"
+
+        # Find all active members of the room except the sender
+        members = db.query(UserChatRoomMember).filter(
+            UserChatRoomMember.room_id == room_id,
+            UserChatRoomMember.user_id != sender_id,
+            UserChatRoomMember.left_at.is_(None)
+        ).all()
+
+        notification_count = 0
+        for member in members:
+            # Check if user has a preference for chat notifications
+            # We use a default 'website' notification if no preference exists
+            preference = db.query(NotificationPreference).filter(
+                NotificationPreference.user_id == member.user_id,
+                NotificationPreference.category == 'user_chat_message'
+            ).first()
+
+            # If no preference or explicitly enabled
+            should_notify_website = not preference or preference.enable_website
+            should_notify_email = preference and preference.enable_email and preference.frequency == 'immediate'
+
+            if should_notify_website or should_notify_email:
+                user = db.query(User).filter(User.id == member.user_id).first()
+                if not user or not user.enabled:
+                    continue
+
+                # Check for an existing unread chat notification for this room
+                existing_notification = db.query(Notification).filter(
+                    Notification.user_id == user.id,
+                    Notification.category == 'user_chat_message',
+                    Notification.entity_type == 'chat_message',
+                    Notification.is_read == False,
+                    Notification.link_url == f"/messages"
+                ).order_by(desc(Notification.created_at)).first()
+
+                if existing_notification:
+                    # Update the existing notification's timestamp and ID to the latest message
+                    existing_notification.entity_id = message_id
+                    existing_notification.created_at = utcnow()
+                    # We don't increment the notification_count because no *new* DB row was created,
+                    # but we STILL want to send the push notification to wake up their phone.
+                    notification = existing_notification
+                else:
+                    # Create a new in-app notification record
+                    notification = self.create_notification(
+                        user_id=user.id,
+                        category='user_chat_message',
+                        title=f"New message from {sender_name}",
+                        message="You have a new message in your chat.",
+                        link_url=f"/messages",
+                        entity_type='chat_message',
+                        entity_id=message_id,
+                        db=db
+                    )
+                    if notification:
+                        notification_count += 1
+
+                if notification:
+                    # Queue email if requested (only for the first message to avoid email spam)
+                    if should_notify_email and not existing_notification:
+                        self._queue_email_notification(notification, user, 'user_chat_message', db)
+                    
+                    # Always queue push if website notifications are allowed (app-like behavior)
+                    if should_notify_website:
+                        # For push, we want a room-specific tag so Android groups them by room
+                        notification_for_push = notification
+                        # We temporarily attach the room_id to the object just for the push payload builder
+                        setattr(notification_for_push, '_push_tag', f'chat_room_{room_id}')
+                        self._queue_push_notifications(notification_for_push, user, db)
+
+        return notification_count
+
     def _get_admins_to_notify(self, db: Session) -> List[User]:
         """
         Get list of admin users who should receive admin alerts.

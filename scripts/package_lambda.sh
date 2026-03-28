@@ -52,19 +52,22 @@ done
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TERRAFORM_DIR="$PROJECT_ROOT/terraform"
+TERRAFORM_DIR="$PROJECT_ROOT/terraform/aws"
 BACKEND_DIR="$PROJECT_ROOT/backend"
 
-# Script can be run from project root or terraform directory
-# If run from terraform directory, adjust paths
-if [[ -f "$SCRIPT_DIR/lambda.tf" ]]; then
-  # Running from terraform directory
-  TERRAFORM_DIR="$SCRIPT_DIR"
+# Detect where we are running from and adjust
+if [[ -f "./lambda.tf" ]]; then
+  # Running directly from the terraform directory (e.g. terraform/aws)
+  TERRAFORM_DIR="$(pwd)"
 elif [[ ! -f "$TERRAFORM_DIR/lambda.tf" ]]; then
-  echo -e "${RED}Error: This script must be run from the project root or terraform/ directory${NC}"
-  echo "Usage: ./scripts/package_lambda.sh [--deploy]"
-  echo "   or: cd terraform && ../scripts/package_lambda.sh [--deploy]"
-  exit 1
+  # Fallback: check if we are in the root and 'terraform' is just a container
+  if [[ -f "$PROJECT_ROOT/terraform/lambda.tf" ]]; then
+      TERRAFORM_DIR="$PROJECT_ROOT/terraform"
+  else
+      echo -e "${RED}Error: lambda.tf not found in $TERRAFORM_DIR or $PROJECT_ROOT/terraform${NC}"
+      echo "This script must be run from the project root or the terraform/aws/ directory"
+      exit 1
+  fi
 fi
 
 # Check required directories exist
@@ -145,18 +148,33 @@ if ! command -v pip &> /dev/null && ! command -v pip3 &> /dev/null; then
   exit 1
 fi
 
-# Use pip3 if available, otherwise pip
-PIP_CMD="pip3"
-if ! command -v pip3 &> /dev/null; then
-  PIP_CMD="pip"
+# 3. Install dependencies using an AWS Lambda compatible Docker image
+# This guarantees that C-bound libraries (orjson, cryptography) are compiled
+# specifically for the Amazon Linux environment that Lambda uses.
+echo -e "${YELLOW}Building dependencies via Docker (amazon/aws-lambda-python:3.11)...${NC}"
+
+# Ensure Docker is running
+if ! docker info > /dev/null 2>&1; then
+  echo -e "${RED}Error: Docker is not running. Please start Docker to package binary dependencies.${NC}"
+  exit 1
 fi
 
-# Install dependencies (only boto3 and jinja2 are needed)
-echo -e "${YELLOW}Installing dependencies (boto3, jinja2)...${NC}"
-$PIP_CMD install boto3 jinja2 -t . --quiet
+# Create a temporary requirements file for the builder
+cat << 'EOF' > requirements_lambda.txt
+boto3
+jinja2
+pywebpush
+cryptography
+orjson
+EOF
+
+docker run --rm -v "$PWD":/var/task "public.ecr.aws/sam/build-python3.11" \
+  /bin/sh -c "pip install -r requirements_lambda.txt -t . && chown -R $(id -u):$(id -g) ."
+
+rm requirements_lambda.txt
 
 # Verify dependencies were installed
-if [[ ! -d "boto3" ]] || [[ ! -d "jinja2" ]]; then
+if [[ ! -d "boto3" ]] || [[ ! -d "jinja2" ]] || [[ ! -d "pywebpush" ]] || [[ ! -d "cryptography" ]] || [[ ! -d "orjson" ]]; then
   echo -e "${RED}Error: Dependencies not installed correctly${NC}"
   exit 1
 fi
