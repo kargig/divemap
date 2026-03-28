@@ -5,6 +5,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Outfit"', 'system-ui', 'sans-serif'],
+      },
       colors: {
         'dive-primary': '#2563eb', // blue-600
         'dive-success': '#15803d', // green-700

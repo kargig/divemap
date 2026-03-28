@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  /* 
+   * ANT DESIGN OVERRIDES 
+   * AntD injects aggressive global CSS resets (like Normalize.css) that assume it is the 
+   * only styling system in the app. This directly fights with Tailwind's "Preflight" reset.
+   * We apply these !important or targeted overrides to restore Tailwind's default behavior,
+   * ensuring that our utility classes behave predictably.
+   */
+
+  /* 1. Typography Font Family: Force AntD to respect our Google Fonts */
+  html, body {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* 2. Typography Margins: AntD adds unexpected bottom margins to headings and paragraphs. 
+     This restores Tailwind's "zero styling" so spacing utilities (like mb-4) work correctly. */
+  h1, h2, h3, h4, h5, h6, p {
+    margin: 0;
+  }
+
+  /* 3. Link Styling: AntD aggressively forces all <a> tags to be blue (#1677ff) and adds underlines on hover.
+     This restores Tailwind's behavior where links inherit the color of their parent text. */
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  a:hover {
+    color: inherit;
+  }
+}
 /* Colorblind-Safe Tag Colors using Okabe-Ito Palette */
 @layer components {
   .tag-color-okabe-blue {
