@@ -742,6 +742,7 @@ class NotificationPreference(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     category = Column(String(50), nullable=False, index=True)
     enable_website = Column(Boolean, default=True, nullable=False)
+    enable_push = Column(Boolean, default=True, nullable=False)
     enable_email = Column(Boolean, default=False, nullable=False)
     frequency = Column(String(20), default="immediate", nullable=False)  # 'immediate', 'daily_digest', 'weekly_digest'
     area_filter = Column(sa.JSON, nullable=True)  # {country, region, radius_km, center_lat, center_lng}

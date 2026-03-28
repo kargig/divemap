@@ -69,9 +69,8 @@ async def send_friend_request(
             # Send notification
             from app.services.notification_service import NotificationService
             notification_service = NotificationService()
-            notification_service.create_notification(
+            await notification_service.notify_system_event(
                 user_id=req.friend_id,
-                category="system",
                 title="New Buddy Request",
                 message=f"{current_user.username} sent you a buddy request.",
                 link_url=f"/users/{current_user.username}",
@@ -152,9 +151,8 @@ async def accept_friend_request(
     # Send notification to the initiator
     from app.services.notification_service import NotificationService
     notification_service = NotificationService()
-    notification_service.create_notification(
+    await notification_service.notify_system_event(
         user_id=friendship.initiator_id,
-        category="system",
         title="Buddy Request Accepted",
         message=f"{current_user.username} accepted your buddy request.",
         link_url=f"/users/{current_user.username}",
@@ -203,3 +201,4 @@ async def remove_friend(
     db.delete(friendship)
     db.commit()
     return None
+rn None

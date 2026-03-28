@@ -1366,6 +1366,7 @@ class NotificationPreferenceResponse(BaseModel):
     user_id: int
     category: str
     enable_website: bool
+    enable_push: bool
     enable_email: bool
     frequency: str
     area_filter: Optional[dict] = None
@@ -1384,6 +1385,7 @@ class NotificationPreferenceCreate(BaseModel):
     """Create notification preference"""
     category: str = Field(..., description="Category: new_dive_sites, new_dives, new_diving_centers, new_dive_trips, admin_alerts, system")
     enable_website: bool = True
+    enable_push: bool = True
     enable_email: bool = False
     frequency: str = Field("immediate", description="Frequency: immediate, daily_digest, weekly_digest")
     area_filter: Optional[dict] = None
@@ -1392,6 +1394,7 @@ class NotificationPreferenceCreate(BaseModel):
 class NotificationPreferenceUpdate(BaseModel):
     """Update notification preference"""
     enable_website: Optional[bool] = None
+    enable_push: Optional[bool] = None
     enable_email: Optional[bool] = None
     frequency: Optional[str] = None
     area_filter: Optional[dict] = None

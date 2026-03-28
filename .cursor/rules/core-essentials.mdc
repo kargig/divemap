@@ -26,6 +26,11 @@ alwaysApply: true
 - Linting checks must pass
 - Consistent formatting required
 
+## Agent Tooling Rules
+
+- **File Modifications:** NEVER use shell commands like `cat << 'EOF'` or `echo ... > ...` to create or modify files. ALWAYS use native agent tools (`write_file`, `replace`) or Serena semantic tools (`mcp_serena_replace_content`, `mcp_serena_replace_symbol_body`, `mcp_serena_insert_after_symbol`, `mcp_serena_insert_before_symbol`, `mcp_serena_write_memory`).
+- **File Searching:** Prefer semantic tools (`mcp_serena_find_symbol`, `mcp_serena_search_for_pattern`, `grep_search`) over generic shell utilities (`cat`, `grep`, `sed`).
+
 ## Docker Rules
 
 - Container names: `divemap_db`, `divemap_backend`, `divemap_frontend`

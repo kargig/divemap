@@ -224,12 +224,13 @@ class NotificationService:
         Returns:
             List of User instances
         """
-        # Get all preferences for this category with website or email enabled
+        # Get all preferences for this category with website, email, or push enabled
         preferences = db.query(NotificationPreference).filter(
             NotificationPreference.category == category,
             or_(
                 NotificationPreference.enable_website == True,
-                NotificationPreference.enable_email == True
+                NotificationPreference.enable_email == True,
+                NotificationPreference.enable_push == True
             )
         ).all()
         
@@ -507,8 +508,8 @@ class NotificationService:
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive_site', db)
                 
-                # Queue push notification if enabled for website/app
-                if preference.enable_website:
+                # Queue push notification if enabled
+                if preference.enable_push:
                     self._queue_push_notifications(notification, user, db)
         
         logger.info(f"Created {notification_count} notifications for dive site {dive_site_id}")
@@ -566,8 +567,8 @@ class NotificationService:
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive', db)
                 
-                # Queue push notification if enabled for website/app
-                if preference.enable_website:
+                # Queue push notification if enabled
+                if preference.enable_push:
                     self._queue_push_notifications(notification, user, db)
         
         return notification_count
@@ -722,9 +723,10 @@ class NotificationService:
 
             # If no preference or explicitly enabled
             should_notify_website = not preference or preference.enable_website
+            should_notify_push = not preference or preference.enable_push
             should_notify_email = preference and preference.enable_email and preference.frequency == 'immediate'
 
-            if should_notify_website or should_notify_email:
+            if should_notify_website or should_notify_push or should_notify_email:
                 user = db.query(User).filter(User.id == member.user_id).first()
                 if not user or not user.enabled:
                     continue
@@ -745,8 +747,8 @@ class NotificationService:
                     # We don't increment the notification_count because no *new* DB row was created,
                     # but we STILL want to send the push notification to wake up their phone.
                     notification = existing_notification
-                else:
-                    # Create a new in-app notification record
+                elif should_notify_website:
+                    # Create a new in-app notification record only if website notifications are enabled
                     notification = self.create_notification(
                         user_id=user.id,
                         category='user_chat_message',
@@ -759,14 +761,27 @@ class NotificationService:
                     )
                     if notification:
                         notification_count += 1
+                else:
+                    # If website notifications are off but push or email is on, we still need a notification object
+                    # to generate the payload, but we don't save it to the DB as an in-app alert.
+                    notification = Notification(
+                        user_id=user.id,
+                        category='user_chat_message',
+                        title=f"New message from {sender_name}",
+                        message="You have a new message in your chat.",
+                        link_url=f"/messages",
+                        entity_type='chat_message',
+                        entity_id=message_id,
+                        created_at=utcnow()
+                    )
 
                 if notification:
                     # Queue email if requested (only for the first message to avoid email spam)
                     if should_notify_email and not existing_notification:
                         self._queue_email_notification(notification, user, 'user_chat_message', db)
                     
-                    # Always queue push if website notifications are allowed (app-like behavior)
-                    if should_notify_website:
+                    # Always queue push if push notifications are allowed
+                    if should_notify_push:
                         # For push, we want a room-specific tag so Android groups them by room
                         notification_for_push = notification
                         # We temporarily attach the room_id to the object just for the push payload builder
@@ -774,6 +789,57 @@ class NotificationService:
                         self._queue_push_notifications(notification_for_push, user, db)
 
         return notification_count
+
+    async def notify_system_event(self, user_id: int, title: str, message: str, link_url: str, db: Session) -> Optional[Notification]:
+        """
+        Send a system notification (e.g., buddy requests) respecting user preferences.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user or not user.enabled:
+            return None
+
+        preference = db.query(NotificationPreference).filter(
+            NotificationPreference.user_id == user_id,
+            NotificationPreference.category == 'system'
+        ).first()
+
+        # Default website and push to True if no preference exists, email defaults to False
+        should_notify_website = not preference or preference.enable_website
+        should_notify_push = not preference or preference.enable_push
+        should_notify_email = preference and preference.enable_email and preference.frequency == 'immediate'
+
+        notification = None
+
+        if should_notify_website or should_notify_push or should_notify_email:
+            if should_notify_website:
+                notification = self.create_notification(
+                    user_id=user_id,
+                    category='system',
+                    title=title,
+                    message=message,
+                    link_url=link_url,
+                    db=db
+                )
+            else:
+                notification = Notification(
+                    user_id=user_id,
+                    category='system',
+                    title=title,
+                    message=message,
+                    link_url=link_url,
+                    created_at=utcnow()
+                )
+
+            if notification:
+                if should_notify_push:
+                    self._queue_push_notifications(notification, user, db)
+                
+                if should_notify_email:
+                    # We fall back to a generic template if a specific one isn't created yet
+                    # 'test_email' is safe as a fallback, but 'system_alert' would be better if we add one.
+                    self._queue_email_notification(notification, user, 'test_email', db)
+
+        return notification
 
     def _get_admins_to_notify(self, db: Session) -> List[User]:
         """
@@ -894,14 +960,15 @@ class NotificationService:
                 # Get admin's preference from the map (already loaded)
                 preference = preferences_map.get(admin.id)
                 
-                # Queue email if enabled and frequency is immediate
-                if preference and preference.enable_email and preference.frequency == 'immediate':
+                # Default behavior if no preference exists: website and push ON, email OFF
+                should_queue_push = not preference or preference.enable_push
+                should_queue_email = preference and preference.enable_email and preference.frequency == 'immediate'
+
+                if should_queue_push:
+                    self._queue_push_notifications(notification, admin, db)
+                
+                if should_queue_email:
                     self._queue_email_notification(notification, admin, 'admin_alert', db)
-                elif not preference:
-                    # If no preference exists, check if admin wants email notifications
-                    # Default is website only, but we can still queue if they have email enabled elsewhere
-                    # For now, only queue if they explicitly have admin_alerts preference with email enabled
-                    pass
         
         logger.info(f"Created {notification_count} admin notifications for user registration {user_id}")
         return notification_count
@@ -973,14 +1040,15 @@ class NotificationService:
                 # Get admin's preference from the map (already loaded)
                 preference = preferences_map.get(admin.id)
                 
-                # Queue email if enabled and frequency is immediate
-                if preference and preference.enable_email and preference.frequency == 'immediate':
+                # Default behavior if no preference exists: website and push ON, email OFF
+                should_queue_push = not preference or preference.enable_push
+                should_queue_email = preference and preference.enable_email and preference.frequency == 'immediate'
+
+                if should_queue_push:
+                    self._queue_push_notifications(notification, admin, db)
+                
+                if should_queue_email:
                     self._queue_email_notification(notification, admin, 'admin_alert', db)
-                elif not preference:
-                    # If no preference exists, check if admin wants email notifications
-                    # Default is website only, but we can still queue if they have email enabled elsewhere
-                    # For now, only queue if they explicitly have admin_alerts preference with email enabled
-                    pass
         
         logger.info(f"Created {notification_count} admin notifications for diving center claim {diving_center_id}")
         return notification_count

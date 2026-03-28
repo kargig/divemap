@@ -8,6 +8,10 @@ alwaysApply: true
 
 See core-essentials.mdc for universal Docker/env rules.
 
+## Agent Tooling
+- Never use shell commands like `cat << 'EOF'` or `echo` to modify files. Use native tools (`write_file`, `replace`) or Serena semantic tools (`mcp_serena_replace_content`, `mcp_serena_replace_symbol_body`, `mcp_serena_insert_after_symbol`, `mcp_serena_insert_before_symbol`).
+- Prefer semantic search tools (`mcp_serena_search_for_pattern`, `mcp_serena_find_symbol`) instead of `cat` + `grep`.
+
 ## Docker Container Management
 - Use docker to manage containers
 - Never start services directly on system

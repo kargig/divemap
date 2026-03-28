@@ -443,6 +443,7 @@ def get_notification_preferences(
             user_id=p.user_id,
             category=p.category,
             enable_website=p.enable_website,
+            enable_push=p.enable_push,
             enable_email=p.enable_email,
             frequency=p.frequency,
             area_filter=p.area_filter,
@@ -484,6 +485,7 @@ def create_notification_preference(
         user_id=current_user.id,
         category=preference.category,
         enable_website=preference.enable_website,
+        enable_push=preference.enable_push,
         enable_email=preference.enable_email,
         frequency=preference.frequency,
         area_filter=preference.area_filter
@@ -498,6 +500,7 @@ def create_notification_preference(
         user_id=new_preference.user_id,
         category=new_preference.category,
         enable_website=new_preference.enable_website,
+        enable_push=new_preference.enable_push,
         enable_email=new_preference.enable_email,
         frequency=new_preference.frequency,
         area_filter=new_preference.area_filter,
@@ -536,6 +539,8 @@ def update_notification_preference(
     # Update fields
     if preference_update.enable_website is not None:
         preference.enable_website = preference_update.enable_website
+    if preference_update.enable_push is not None:
+        preference.enable_push = preference_update.enable_push
     if preference_update.enable_email is not None:
         preference.enable_email = preference_update.enable_email
     if preference_update.frequency is not None:
@@ -551,6 +556,7 @@ def update_notification_preference(
         user_id=preference.user_id,
         category=preference.category,
         enable_website=preference.enable_website,
+        enable_push=preference.enable_push,
         enable_email=preference.enable_email,
         frequency=preference.frequency,
         area_filter=preference.area_filter,
@@ -921,6 +927,7 @@ def get_user_notification_preferences(
             user_id=p.user_id,
             category=p.category,
             enable_website=p.enable_website,
+            enable_push=p.enable_push,
             enable_email=p.enable_email,
             frequency=p.frequency,
             area_filter=p.area_filter,
@@ -964,6 +971,7 @@ def create_user_notification_preference(
         user_id=user_id,
         category=preference.category,
         enable_website=preference.enable_website,
+        enable_push=preference.enable_push,
         enable_email=preference.enable_email,
         frequency=preference.frequency,
         area_filter=preference.area_filter
@@ -980,6 +988,7 @@ def create_user_notification_preference(
         user_id=new_preference.user_id,
         category=new_preference.category,
         enable_website=new_preference.enable_website,
+        enable_push=new_preference.enable_push,
         enable_email=new_preference.enable_email,
         frequency=new_preference.frequency,
         area_filter=new_preference.area_filter,
@@ -1019,6 +1028,8 @@ def update_user_notification_preference(
     # Update fields
     if preference_update.enable_website is not None:
         preference.enable_website = preference_update.enable_website
+    if preference_update.enable_push is not None:
+        preference.enable_push = preference_update.enable_push
     if preference_update.enable_email is not None:
         preference.enable_email = preference_update.enable_email
     if preference_update.frequency is not None:
@@ -1036,6 +1047,7 @@ def update_user_notification_preference(
         user_id=preference.user_id,
         category=preference.category,
         enable_website=preference.enable_website,
+        enable_push=preference.enable_push,
         enable_email=preference.enable_email,
         frequency=preference.frequency,
         area_filter=preference.area_filter,

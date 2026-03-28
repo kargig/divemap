@@ -530,6 +530,7 @@ def create_default_notification_preferences(user_id: int, db: Session) -> list:
             user_id=user_id,
             category=category,
             enable_website=True,  # Website notifications enabled by default
+            enable_push=True,    # Push notifications enabled by default
             enable_email=False,  # Email notifications disabled by default
             frequency='immediate',  # Immediate notifications
             area_filter=None  # No area filtering (all areas)

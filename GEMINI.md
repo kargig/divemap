@@ -37,6 +37,10 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 
 ## Development Workflow
 
+### Agent Tooling Rules
+- **File Modifications:** NEVER use `cat << 'EOF'` or `echo ... > ...` in `run_shell_command` to write or edit files. You MUST use Serena tools (`mcp_serena_replace_content`, `mcp_serena_replace_symbol_body`, `mcp_serena_insert_after_symbol`, `mcp_serena_insert_before_symbol`, `mcp_serena_write_memory`) or native Gemini tools (`write_file`, `replace`).
+- **File Searching:** Use `mcp_serena_search_for_pattern`, `mcp_serena_find_symbol`, or `grep_search` instead of shell commands like `cat`, `grep`, or `sed` where possible.
+
 ### Prerequisites
 - Docker & Docker Compose
 - Node.js (for local frontend dev/testing)
