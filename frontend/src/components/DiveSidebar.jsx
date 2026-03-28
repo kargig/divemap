@@ -1,4 +1,4 @@
-import { MapPin, Waves, Gauge } from 'lucide-react';
+import { MapPin, Notebook, Gauge } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 

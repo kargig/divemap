@@ -24,7 +24,7 @@ import {
   TrendingUp,
   Wind,
   Droplets,
-  Waves,
+  Notebook,
   MapPin,
   Star,
   Gauge,

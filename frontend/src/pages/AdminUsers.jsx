@@ -12,16 +12,19 @@ import {
   Archive,
 } from 'lucide-react';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import { FormField } from '../components/forms/FormField';
 import AdminUsersTable from '../components/tables/AdminUsersTable';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { userAdminSchema, createResolver } from '../utils/formHelpers';
 
 const AdminUsers = () => {
   const { user } = useAuth();
@@ -64,13 +67,27 @@ const AdminUsers = () => {
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [userForm, setUserForm] = useState({
-    username: '',
-    email: '',
-    full_name: '',
-    is_admin: false,
-    is_active: true,
+
+  // react-hook-form setup
+  const methods = useForm({
+    resolver: createResolver(userAdminSchema),
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      is_admin: false,
+      is_moderator: false,
+      enabled: true,
+      is_edit: false,
+    },
   });
+
+  const {
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = methods;
 
   // Update URL when pagination changes
   const updateURL = useCallback(
@@ -204,44 +221,52 @@ const AdminUsers = () => {
 
   // User mutations
   const createUserMutation = useMutation(
-    userData => api.post('/api/v1/users/admin/users', userData),
+    userData => {
+      // Remove is_edit virtual field
+      const { is_edit: _, ...data } = userData;
+      return api.post('/api/v1/users/admin/users', data);
+    },
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-users']);
         toast.success('User created successfully!');
         setShowCreateUserModal(false);
-        setUserForm({
-          username: '',
-          email: '',
-          full_name: '',
-          is_admin: false,
-          is_active: true,
-        });
+        reset();
       },
-      onError: _error => {
-        toast.error('Failed to create user');
+      onError: error => {
+        const detail = error.response?.data?.detail;
+        if (typeof detail === 'string') {
+          toast.error(detail);
+        } else {
+          toast.error('Failed to create user');
+        }
       },
     }
   );
 
   const updateUserMutation = useMutation(
-    ({ id, data }) => api.put(`/api/v1/users/admin/users/${id}`, data),
+    ({ id, data }) => {
+      // Remove is_edit virtual field
+      const { is_edit: _, ...payload } = data;
+      // Remove password if empty
+      if (!payload.password) delete payload.password;
+      return api.put(`/api/v1/users/admin/users/${id}`, payload);
+    },
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['admin-users']);
         toast.success('User updated successfully!');
         setShowEditUserModal(false);
         setEditingUser(null);
-        setUserForm({
-          username: '',
-          email: '',
-          full_name: '',
-          is_admin: false,
-          is_active: true,
-        });
+        reset();
       },
-      onError: _error => {
-        toast.error('Failed to update user');
+      onError: error => {
+        const detail = error.response?.data?.detail;
+        if (typeof detail === 'string') {
+          toast.error(detail);
+        } else {
+          toast.error('Failed to update user');
+        }
       },
     }
   );
@@ -349,43 +374,42 @@ const AdminUsers = () => {
   };
 
   // User handlers
-  const handleCreateUser = () => {
-    if (!userForm.username.trim() || !userForm.email.trim() || !userForm.password.trim()) {
-      toast.error('Username, email, and password are required');
-      return;
+  const onProfileSubmit = data => {
+    if (showCreateUserModal) {
+      createUserMutation.mutate(data);
+    } else if (showEditUserModal && editingUser) {
+      updateUserMutation.mutate({
+        id: editingUser.id,
+        data: data,
+      });
     }
-    createUserMutation.mutate(userForm);
+  };
+
+  const openCreateModal = () => {
+    reset({
+      username: '',
+      email: '',
+      password: '',
+      is_admin: false,
+      is_moderator: false,
+      enabled: true,
+      is_edit: false,
+    });
+    setShowCreateUserModal(true);
   };
 
   const handleEditUser = userItem => {
     setEditingUser(userItem);
-    setUserForm({
+    reset({
       username: userItem.username,
       email: userItem.email,
-      password: '', // Don't pre-fill password for security
+      password: '',
       is_admin: userItem.is_admin,
       is_moderator: userItem.is_moderator,
       enabled: userItem.enabled,
+      is_edit: true,
     });
     setShowEditUserModal(true);
-  };
-
-  const handleUpdateUser = () => {
-    if (!userForm.username.trim() || !userForm.email.trim()) {
-      toast.error('Username and email are required');
-      return;
-    }
-
-    // Only include password if it's been changed
-    const updateData = { ...userForm };
-    if (!updateData.password) {
-      delete updateData.password;
-    }
-
-    updateUserMutation.mutate({
-      id: editingUser.id,
-      data: updateData,
-    });
   };
 
   const handleDeleteUser = userItem => {
@@ -428,16 +452,11 @@ const AdminUsers = () => {
     }
   };
 
-  const resetUserForm = () => {
-    setUserForm({
-      username: '',
-      email: '',
-      password: '',
-      is_admin: false,
-      is_moderator: false,
-      enabled: true,
-    });
+  const handleCloseModals = () => {
+    setShowCreateUserModal(false);
+    setShowEditUserModal(false);
     setEditingUser(null);
+    reset();
   };
 
   // Define columns
@@ -791,7 +810,7 @@ const AdminUsers = () => {
           <p className='text-gray-600 mt-2'>Manage all users in the system</p>
         </div>
         <button
-          onClick={() => setShowCreateUserModal(true)}
+          onClick={openCreateModal}
           className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto justify-center'
         >
           <Plus className='h-4 w-4 mr-2' />
@@ -1003,15 +1022,17 @@ const AdminUsers = () => {
                   'Created',
                   'Last Active',
                 ];
-                const rows = (users || []).map(user => [
-                  user.id,
-                  user.username || '',
-                  user.email || '',
-                  user.is_admin ? 'Admin' : user.is_moderator ? 'Moderator' : 'User',
-                  user.enabled ? 'Enabled' : 'Disabled',
-                  user.email_verified ? 'Yes' : 'No',
-                  new Date(user.created_at).toLocaleDateString(),
-                  user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : '-',
+                const rows = (users || []).map(userItem => [
+                  userItem.id,
+                  userItem.username || '',
+                  userItem.email || '',
+                  userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
+                  userItem.enabled ? 'Enabled' : 'Disabled',
+                  userItem.email_verified ? 'Yes' : 'No',
+                  new Date(userItem.created_at).toLocaleDateString(),
+                  userItem.last_accessed_at
+                    ? new Date(userItem.last_accessed_at).toLocaleString()
+                    : '-',
                 ]);
 
                 const csvContent = [
@@ -1141,15 +1162,17 @@ const AdminUsers = () => {
                   'Created',
                   'Last Active',
                 ];
-                const rows = allUsers.map(user => [
-                  user.id,
-                  user.username || '',
-                  user.email || '',
-                  user.is_admin ? 'Admin' : user.is_moderator ? 'Moderator' : 'User',
-                  user.enabled ? 'Enabled' : 'Disabled',
-                  user.email_verified ? 'Yes' : 'No',
-                  new Date(user.created_at).toLocaleDateString(),
-                  user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleString() : '-',
+                const rows = allUsers.map(userItem => [
+                  userItem.id,
+                  userItem.username || '',
+                  userItem.email || '',
+                  userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
+                  userItem.enabled ? 'Enabled' : 'Disabled',
+                  userItem.email_verified ? 'Yes' : 'No',
+                  new Date(userItem.created_at).toLocaleDateString(),
+                  userItem.last_accessed_at
+                    ? new Date(userItem.last_accessed_at).toLocaleString()
+                    : '-',
                 ]);
 
                 const csvContent = [
@@ -1211,242 +1234,129 @@ const AdminUsers = () => {
         currentUserId={user?.id}
       />
 
-      {/* Create User Modal */}
+      {/* Create/Edit User Modal */}
       <Modal
-        isOpen={showCreateUserModal}
-        onClose={() => {
-          setShowCreateUserModal(false);
-          resetUserForm();
-        }}
-        title='Create New User'
+        isOpen={showCreateUserModal || showEditUserModal}
+        onClose={handleCloseModals}
+        title={showCreateUserModal ? 'Create New User' : 'Edit User'}
         className='max-w-md'
       >
-        <div className='space-y-4'>
-          <div>
-            <label
-              htmlFor='create-user-username'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Username *
-            </label>
-            <input
-              id='create-user-username'
-              type='text'
-              value={userForm.username}
-              onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter username'
-              maxLength={50}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='create-user-email'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Email *
-            </label>
-            <input
-              id='create-user-email'
-              type='email'
-              value={userForm.email}
-              onChange={e => setUserForm({ ...userForm, email: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter email'
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='create-user-password'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Password *
-            </label>
-            <input
-              id='create-user-password'
-              type='password'
-              value={userForm.password}
-              onChange={e => setUserForm({ ...userForm, password: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter password'
-              minLength={6}
-            />
-          </div>
-          <div className='space-y-2'>
-            <label htmlFor='create-user-admin' className='flex items-center'>
-              <input
-                id='create-user-admin'
-                type='checkbox'
-                checked={userForm.is_admin}
-                onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Admin privileges</span>
-            </label>
-            <label htmlFor='create-user-moderator' className='flex items-center'>
-              <input
-                id='create-user-moderator'
-                type='checkbox'
-                checked={userForm.is_moderator}
-                onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Moderator privileges</span>
-            </label>
-            <label htmlFor='create-user-enabled' className='flex items-center'>
-              <input
-                id='create-user-enabled'
-                type='checkbox'
-                checked={userForm.enabled}
-                onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Account enabled</span>
-            </label>
-          </div>
-        </div>
-        <div className='flex justify-end space-x-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowCreateUserModal(false);
-              resetUserForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateUser}
-            disabled={createUserMutation.isLoading}
-            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {createUserMutation.isLoading ? (
-              <Loader className='h-4 w-4 mr-2 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4 mr-2' />
-            )}
-            Create User
-          </button>
-        </div>
-      </Modal>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onProfileSubmit)} className='space-y-4'>
+            <FormField name='username' label='Username *'>
+              {({ register, name }) => (
+                <input
+                  id={name}
+                  type='text'
+                  {...register(name)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.username ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder='Enter username'
+                />
+              )}
+            </FormField>
 
-      {/* Edit User Modal */}
-      <Modal
-        isOpen={showEditUserModal && !!editingUser}
-        onClose={() => {
-          setShowEditUserModal(false);
-          resetUserForm();
-        }}
-        title='Edit User'
-        className='max-w-md'
-      >
-        <div className='space-y-4'>
-          <div>
-            <label
-              htmlFor='edit-user-username'
-              className='block text-sm font-medium text-gray-700 mb-1'
+            <FormField name='email' label='Email *'>
+              {({ register, name }) => (
+                <input
+                  id={name}
+                  type='email'
+                  {...register(name)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder='Enter email'
+                />
+              )}
+            </FormField>
+
+            <FormField
+              name='password'
+              label={showCreateUserModal ? 'Password *' : 'Password (leave blank to keep current)'}
             >
-              Username *
-            </label>
-            <input
-              id='edit-user-username'
-              type='text'
-              value={userForm.username}
-              onChange={e => setUserForm({ ...userForm, username: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter username'
-              maxLength={50}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='edit-user-email'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Email *
-            </label>
-            <input
-              id='edit-user-email'
-              type='email'
-              value={userForm.email}
-              onChange={e => setUserForm({ ...userForm, email: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter email'
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='edit-user-password'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Password (leave blank to keep current)
-            </label>
-            <input
-              id='edit-user-password'
-              type='password'
-              value={userForm.password}
-              onChange={e => setUserForm({ ...userForm, password: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter new password (optional)'
-              minLength={6}
-            />
-          </div>
-          <div className='space-y-2'>
-            <label htmlFor='edit-user-admin' className='flex items-center'>
-              <input
-                id='edit-user-admin'
-                type='checkbox'
-                checked={userForm.is_admin}
-                onChange={e => setUserForm({ ...userForm, is_admin: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Admin privileges</span>
-            </label>
-            <label htmlFor='edit-user-moderator' className='flex items-center'>
-              <input
-                id='edit-user-moderator'
-                type='checkbox'
-                checked={userForm.is_moderator}
-                onChange={e => setUserForm({ ...userForm, is_moderator: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Moderator privileges</span>
-            </label>
-            <label htmlFor='edit-user-enabled' className='flex items-center'>
-              <input
-                id='edit-user-enabled'
-                type='checkbox'
-                checked={userForm.enabled}
-                onChange={e => setUserForm({ ...userForm, enabled: e.target.checked })}
-                className='mr-2'
-              />
-              <span className='text-sm text-gray-700'>Account enabled</span>
-            </label>
-          </div>
-        </div>
-        <div className='flex justify-end space-x-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowEditUserModal(false);
-              resetUserForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateUser}
-            disabled={updateUserMutation.isLoading}
-            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {updateUserMutation.isLoading ? (
-              <Loader className='h-4 w-4 mr-2 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4 mr-2' />
-            )}
-            Update User
-          </button>
-        </div>
+              {({ register, name }) => (
+                <input
+                  id={name}
+                  type='password'
+                  {...register(name)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder={
+                    showCreateUserModal ? 'Enter password' : 'Enter new password (optional)'
+                  }
+                />
+              )}
+            </FormField>
+
+            <div className='space-y-2 pt-2'>
+              <FormField name='is_admin'>
+                {({ register, name }) => (
+                  <label htmlFor={name} className='flex items-center cursor-pointer'>
+                    <input
+                      id={name}
+                      type='checkbox'
+                      {...register(name)}
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                    />
+                    <span className='ml-2 text-sm text-gray-700'>Admin privileges</span>
+                  </label>
+                )}
+              </FormField>
+
+              <FormField name='is_moderator'>
+                {({ register, name }) => (
+                  <label htmlFor={name} className='flex items-center cursor-pointer'>
+                    <input
+                      id={name}
+                      type='checkbox'
+                      {...register(name)}
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                    />
+                    <span className='ml-2 text-sm text-gray-700'>Moderator privileges</span>
+                  </label>
+                )}
+              </FormField>
+
+              <FormField name='enabled'>
+                {({ register, name }) => (
+                  <label htmlFor={name} className='flex items-center cursor-pointer'>
+                    <input
+                      id={name}
+                      type='checkbox'
+                      {...register(name)}
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                    />
+                    <span className='ml-2 text-sm text-gray-700'>Account enabled</span>
+                  </label>
+                )}
+              </FormField>
+            </div>
+
+            <div className='flex justify-end space-x-3 mt-6 pt-2 border-t'>
+              <button
+                type='button'
+                onClick={handleCloseModals}
+                className='px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
+              >
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={createUserMutation.isLoading || updateUserMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm'
+              >
+                {createUserMutation.isLoading || updateUserMutation.isLoading ? (
+                  <Loader className='h-4 w-4 mr-2 animate-spin' />
+                ) : (
+                  <Save className='h-4 w-4 mr-2' />
+                )}
+                {showCreateUserModal ? 'Create User' : 'Update User'}
+              </button>
+            </div>
+          </form>
+        </FormProvider>
       </Modal>
     </div>
   );

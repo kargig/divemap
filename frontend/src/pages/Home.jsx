@@ -1,6 +1,6 @@
 import { Grid, Button, Typography, Space } from 'antd';
 import { Grid as MobileGrid } from 'antd-mobile';
-import { Map, Star, Anchor, BookOpen, Calendar, HelpCircle } from 'lucide-react';
+import { Map, Star, Anchor, Notebook, Calendar, HelpCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';

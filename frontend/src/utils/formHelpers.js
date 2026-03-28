@@ -11,12 +11,12 @@ export const commonSchemas = {
     .email('Please enter a valid email address')
     .max(255, 'Email must be at most 255 characters'),
   username: z.string().min(3, 'Username must be at least 3 characters long'),
-  password: z
-    .string()
-    .min(1, 'Password is required')
-    .refine(
+  password: (required = true) => {
+    const base = z.string();
+    const schema = base.refine(
       password => {
-        if (!password) return false;
+        if (!password && !required) return true; // Valid if not required and empty
+        if (!password && required) return false;
         if (password.length < 8) return false;
         if (!/[A-Z]/.test(password)) return false;
         if (!/[a-z]/.test(password)) return false;
@@ -28,7 +28,9 @@ export const commonSchemas = {
         message:
           'Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character (!@#$%^&*(),.?":{}|<>)',
       }
-    ),
+    );
+    return required ? schema.min(1, 'Password is required') : schema.optional().or(z.literal(''));
+  },
   latitude: z.preprocess(
     val => {
       // Handle empty string, null, undefined
@@ -224,6 +226,71 @@ export const profileSchema = z.object({
 });
 
 /**
+ * User schema for admin management (creation and editing)
+ */
+export const userAdminSchema = z
+  .object({
+    username: commonSchemas.username,
+    email: commonSchemas.email,
+    password: z.string().optional().or(z.literal('')),
+    is_admin: z.boolean().default(false),
+    is_moderator: z.boolean().default(false),
+    enabled: z.boolean().default(true),
+    is_edit: z.boolean().default(false), // Virtual field for conditional validation
+  })
+  .superRefine((data, ctx) => {
+    // Determine strict requirement based on context
+    const isRequired = !data.is_edit;
+
+    // Skip if not required and empty
+    if (!isRequired && (!data.password || data.password.length === 0)) {
+      return;
+    }
+
+    // Manual check using the same logic as commonSchemas.password for consistency
+    if (!data.password || data.password.length < 8) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password must be at least 8 characters long',
+        path: ['password'],
+      });
+      return;
+    }
+
+    if (!/[A-Z]/.test(data.password)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password must contain at least one uppercase letter',
+        path: ['password'],
+      });
+    }
+
+    if (!/[a-z]/.test(data.password)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password must contain at least one lowercase letter',
+        path: ['password'],
+      });
+    }
+
+    if (!/\d/.test(data.password)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password must contain at least one number',
+        path: ['password'],
+      });
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(data.password)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)',
+        path: ['password'],
+      });
+    }
+  });
+
+/**
  * Certification schema
  */
 export const certificationSchema = z.object({
@@ -243,7 +310,7 @@ export const certificationSchema = z.object({
 export const changePasswordSchema = z
   .object({
     current_password: z.string().min(1, 'Current password is required'),
-    new_password: commonSchemas.password,
+    new_password: commonSchemas.password(true),
     confirm_password: z.string().min(1, 'Please confirm your new password'),
   })
   .refine(data => data.new_password === data.confirm_password, {

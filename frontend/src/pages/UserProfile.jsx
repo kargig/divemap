@@ -545,7 +545,7 @@ const UserProfile = () => {
 
                 <div className='flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-2 text-gray-600 text-sm mb-4'>
                   <div className='flex items-center space-x-1'>
-                    <Waves className='h-4 w-4 text-blue-500' />
+                    <Notebook className='h-4 w-4 text-blue-500' />
                     <span className='font-semibold'>{totalDives} dives</span>
                   </div>
                   <div className='flex items-center space-x-1'>
