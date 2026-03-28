@@ -1,3 +1,4 @@
+/* global Notification */
 import { Mail, Globe, MapPin, Trash2, ArrowLeft, Smartphone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';

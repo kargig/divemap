@@ -1,4 +1,5 @@
 import { Smartphone, X } from 'lucide-react';
+/* global Notification */
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';

@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-disable no-restricted-globals */
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -33,7 +34,7 @@ registerRoute(
 
 // Map Tiles Cache
 registerRoute(
-  /^https:\/\/[^\/]*\.openstreetmap\.org\/.*/,
+  /^https:\/\/[^/]*\.openstreetmap\.org\/.*/,
   new CacheFirst({
     cacheName: 'map-tiles-cache',
     plugins: [
@@ -98,7 +99,7 @@ self.addEventListener('push', function (event) {
   if (event.data) {
     try {
       data = event.data.json();
-    } catch (e) {
+    } catch (err) {
       data = { title: 'Divemap', body: event.data.text() };
     }
   }

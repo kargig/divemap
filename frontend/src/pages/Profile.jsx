@@ -1,3 +1,4 @@
+/* global Notification */
 import { Modal } from 'antd';
 import {
   User,
