@@ -20,6 +20,7 @@ from app.models import (
 from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService
 from app.services.unsubscribe_token_service import unsubscribe_token_service
+from app.utils import utcnow
 
 logger = logging.getLogger(__name__)
 

@@ -201,4 +201,3 @@ async def remove_friend(
     db.delete(friendship)
     db.commit()
     return None
-rn None
