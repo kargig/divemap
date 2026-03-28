@@ -27,7 +27,7 @@ import {
   UserPlus,
   UserCheck,
   Clock,
-  Waves,
+  Notebook,
   History,
   Anchor,
   Shirt,
@@ -652,7 +652,7 @@ const UserProfile = () => {
             <div className='space-y-3'>
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
-                  <Waves size={16} className='text-gray-400' />
+                  <Notebook size={16} className='text-gray-400' />
                   <span className='text-gray-600'>Total Dives:</span>
                 </div>
                 <span className='font-semibold flex-1 text-right'>{totalDives}</span>
@@ -823,7 +823,7 @@ const UserProfile = () => {
           {profile.diving_stats && (
             <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-100'>
               <h2 className='text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2'>
-                <Waves className='h-5 w-5 text-blue-600' />
+                <Notebook className='h-5 w-5 text-blue-600' />
                 Diving Logbook Summary
               </h2>
               <Row gutter={[12, 12]}>
@@ -897,7 +897,7 @@ const UserProfile = () => {
                 {/* Favorite Sites */}
                 <div>
                   <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
-                    <Anchor className='h-4 w-4 text-blue-500' />
+                    <MapPin className='h-4 w-4 text-blue-500' />
                     Favorite Dive Sites
                   </h3>
                   {profile.diving_stats.favorite_sites?.length > 0 ? (

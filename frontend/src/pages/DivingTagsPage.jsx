@@ -1,6 +1,7 @@
-import { Tags, Search, Hash } from 'lucide-react';
+import { Tags, Search, Hash, MapPin, Notebook } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
+import { Link } from 'react-router-dom';
 
 import usePageTitle from '../hooks/usePageTitle';
 import { getTagsWithCounts } from '../services/tags';
@@ -74,13 +75,28 @@ const DivingTagsPage = () => {
                         </span>
                         <h3 className='text-lg font-medium text-gray-900'>{tag.name}</h3>
                       </div>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTagColor(
-                          tag.name
-                        )}`}
-                      >
-                        {tag.dive_site_count} {tag.dive_site_count === 1 ? 'site' : 'sites'}
-                      </span>
+                      <div className='flex flex-col items-end gap-1'>
+                        <Link
+                          to={`/dive-sites?tag_ids=${tag.id}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
+                            tag.name
+                          )} transition-transform hover:scale-105 active:scale-95`}
+                          title={`View ${tag.dive_site_count} dive sites tagged with ${tag.name}`}
+                        >
+                          <MapPin className='h-3 w-3 mr-1' />
+                          {tag.dive_site_count} {tag.dive_site_count === 1 ? 'site' : 'sites'}
+                        </Link>
+                        <Link
+                          to={`/dives?tag_ids=${tag.id}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
+                            tag.name
+                          )} opacity-80 transition-transform hover:scale-105 active:scale-95`}
+                          title={`View ${tag.dive_count} dive logs tagged with ${tag.name}`}
+                        >
+                          <Notebook className='h-3 w-3 mr-1' />
+                          {tag.dive_count} {tag.dive_count === 1 ? 'log' : 'logs'}
+                        </Link>
+                      </div>
                     </div>
                     {tag.description && (
                       <p className='mt-3 text-sm text-gray-500 line-clamp-3'>

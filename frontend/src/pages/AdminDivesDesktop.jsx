@@ -11,7 +11,7 @@ import {
   Search,
   X,
   Loader,
-  Anchor,
+  Notebook,
   User,
   MapPin,
   Calendar,
@@ -176,7 +176,7 @@ const AdminDivesDesktop = () => {
           const dive = row.original;
           return (
             <div className='flex items-center'>
-              <Anchor className='h-5 w-5 text-blue-600 mr-2' />
+              <Notebook className='h-5 w-5 text-blue-600 mr-2' />
               <div>
                 <div className='text-sm font-medium text-gray-900'>{dive.name}</div>
                 <div className='text-sm text-gray-500'>

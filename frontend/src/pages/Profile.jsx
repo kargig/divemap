@@ -1359,7 +1359,7 @@ const Profile = () => {
             <div className='space-y-3'>
               <div className='flex justify-between items-center font-bold pb-1'>
                 <div className='flex items-center gap-2'>
-                  <Waves size={16} className='text-blue-600' />
+                  <Notebook size={16} className='text-blue-600' />
                   <span className='text-gray-900'>Total Dives</span>
                 </div>
                 <span className='text-blue-600 bg-blue-50 px-2 py-0.5 rounded ml-4'>

@@ -27,7 +27,7 @@ router = APIRouter()
 ENTITY_ICONS = {
     "dive_site": "Map",
     "diving_center": "Building",
-    "dive": "Anchor",
+    "dive": "Notebook",
     "dive_route": "Route",
     "dive_trip": "Calendar"
 }

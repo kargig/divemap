@@ -1,6 +1,6 @@
 import { Row, Col } from 'antd';
 import { Grid } from 'antd-mobile';
-import { Calendar, Clock, Eye, TrendingUp, User, Waves, Wind, Droplets } from 'lucide-react';
+import { Calendar, Clock, Eye, TrendingUp, User, Notebook, Wind, Droplets } from 'lucide-react';
 import React from 'react';
 
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -67,7 +67,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
   return (
     <>
       <div className='flex items-center gap-2 mb-4 pb-2 border-b border-gray-100'>
-        <Waves className='h-5 w-5 text-blue-600' />
+        <Notebook className='h-5 w-5 text-blue-600' />
         <h2 className='text-xl font-semibold'>Dive Information</h2>
         {hasDeco && (
           <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1'>

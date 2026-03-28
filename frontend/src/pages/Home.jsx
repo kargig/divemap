@@ -35,7 +35,7 @@ const Home = () => {
       description:
         'Record your diving experiences, track your progress, and share your adventures with the community.',
       shortDescription: 'Record dives, track progress, and share.',
-      icon: BookOpen,
+      icon: Notebook,
       link: '/dives',
       color: 'green',
       bgColor: 'bg-green-50',

@@ -14,7 +14,7 @@ import {
   Info,
   Building,
   Tags,
-  Anchor,
+  Notebook,
   Calendar,
   HelpCircle,
   Shield,
@@ -154,7 +154,7 @@ const NavbarMobileControls = () => {
                     }}
                   >
                     <List.Item
-                      prefix={<Anchor className='h-4 w-4 text-blue-200' />}
+                      prefix={<Notebook className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/dives')}
                       className='text-white'
                       arrow={false}
@@ -355,7 +355,7 @@ const NavbarMobileControls = () => {
                           }}
                         >
                           <List.Item
-                            prefix={<Anchor className='h-4 w-4 text-blue-200' />}
+                            prefix={<Notebook className='h-4 w-4 text-blue-200' />}
                             onClick={() => handleNavigate('/admin/dives')}
                             className='text-white pl-4 bg-[#265e79]'
                             arrow={false}

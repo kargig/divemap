@@ -349,7 +349,7 @@ const DiveTrips = () => {
     () => getDivingCenters({ page_size: 50, detail_level: 'basic' }),
     {
       staleTime: 300000, // 5 minutes
-      enabled: showFilters, // Only fetch when filters are shown
+      enabled: showFilters || Boolean(filters.diving_center_id),
     }
   );
 
@@ -362,7 +362,7 @@ const DiveTrips = () => {
     () => getDiveSites({ page_size: 50, detail_level: 'basic' }),
     {
       staleTime: 300000, // 5 minutes
-      enabled: showFilters, // Only fetch when filters are shown
+      enabled: showFilters || Boolean(filters.dive_site_id),
     }
   );
 
@@ -827,7 +827,7 @@ const DiveTrips = () => {
         )}
 
         {/* Responsive Filter Bar */}
-        {(!isMobile || searchBarVisible) && (
+        {(!isMobile || searchBarVisible || getActiveFiltersCount() > 0) && (
           <ResponsiveFilterBar
             showFilters={showFilters}
             onToggleFilters={toggleFilters}

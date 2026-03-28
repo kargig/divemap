@@ -24,6 +24,7 @@ import {
   Globe,
   MapPin,
   Anchor,
+  Notebook,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -467,13 +468,13 @@ const Dives = () => {
     queryClient.invalidateQueries(['dives']);
   }, [sortBy, sortOrder, queryClient]);
 
-  // Fetch available tags for filtering - only when filters are shown
+  // Fetch available tags for filtering - also when tag filters are active in URL
   const { data: availableTags } = useQuery(
     ['available-tags'],
     () => api.get('/api/v1/tags/').then(res => res.data),
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      enabled: showFilters, // Only fetch when filters are shown
+      enabled: showFilters || (filters.tag_ids && filters.tag_ids.length > 0),
     }
   );
 
@@ -486,7 +487,7 @@ const Dives = () => {
     () => getDiveSite(diveSiteIdFromURL),
     {
       staleTime: 10 * 60 * 1000, // 10 minutes
-      enabled: Boolean(diveSiteIdFromURL) && showFilters, // Only fetch when filters are shown AND there's a dive_site_id in URL
+      enabled: Boolean(diveSiteIdFromURL), // Always fetch if present in URL to resolve name
       retry: false, // Don't retry if site doesn't exist
     }
   );
@@ -904,13 +905,18 @@ const Dives = () => {
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
+  // Calculate active filters count for UI
+  const activeFiltersCount = Object.values(filters).filter(
+    value => value !== '' && value !== false && (Array.isArray(value) ? value.length > 0 : true)
+  ).length;
+
   // Error handling is now done within the content area to preserve hero section
 
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <PageHeader
         title='Dive Log'
-        titleIcon={Anchor}
+        titleIcon={Notebook}
         breadcrumbItems={[{ label: 'Dive Log' }]}
         actions={[
           {
@@ -968,18 +974,13 @@ const Dives = () => {
       )}
 
       {/* Responsive Filter Bar */}
-      {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-      {(!isMobile || searchBarVisible) && (
+      {/* Hide on mobile when scrolling up unless filters are active */}
+      {(!isMobile || searchBarVisible || activeFiltersCount > 0) && (
         <ResponsiveFilterBar
           showFilters={showFilters}
           onToggleFilters={toggleFilters}
           onClearFilters={clearFilters}
-          activeFiltersCount={
-            Object.values(filters).filter(
-              value =>
-                value !== '' && value !== false && (Array.isArray(value) ? value.length > 0 : true)
-            ).length
-          }
+          activeFiltersCount={activeFiltersCount}
           filters={{
             ...filters,
             availableTags: availableTags || [],
@@ -1062,7 +1063,7 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-6 hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
                     dive.is_private ? 'bg-purple-50/30' : 'bg-white'
                   } ${compactLayout ? 'p-4' : 'p-6'}`}
                 >

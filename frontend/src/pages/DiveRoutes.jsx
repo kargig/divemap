@@ -138,6 +138,14 @@ const DiveRoutes = () => {
     }
   };
 
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (search) count++;
+    if (routeType) count++;
+    if (poiTypes.length > 0) count++;
+    return count;
+  };
+
   const routes = routesData?.routes || [];
   const totalPages = routesData?.pages || 1;
   const totalCount = routesData?.total || 0;
@@ -167,35 +175,37 @@ const DiveRoutes = () => {
             />
           )}
 
-          <ResponsiveFilterBar
-            showFilters={showFilters}
-            onToggleFilters={() => setShowFilters(!showFilters)}
-            onClearFilters={clearFilters}
-            activeFiltersCount={routeType ? 1 : 0}
-            filters={{}} // No complex filters yet besides quick ones
-            onFilterChange={() => {}}
-            onQuickFilter={handleQuickFilter}
-            quickFilters={routeType ? [routeType] : []}
-            variant='sticky'
-            showQuickFilters={false} // We handle custom quick filters below or repurpose
-            showAdvancedToggle={false}
-            searchQuery={search}
-            onSearchChange={handleSearchChange}
-            onSearchSubmit={() => {}}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            sortOptions={[
-              { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
-              { value: 'name', label: 'Name', defaultOrder: 'asc' },
-            ]}
-            onSortChange={handleSortChange}
-            onReset={resetSorting}
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
-            pageType='dive-routes'
-          />
+          {(!isMobile || searchBarVisible || getActiveFiltersCount() > 0) && (
+            <ResponsiveFilterBar
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters(!showFilters)}
+              onClearFilters={clearFilters}
+              activeFiltersCount={getActiveFiltersCount()}
+              filters={{}} // No complex filters yet besides quick ones
+              onFilterChange={() => {}}
+              onQuickFilter={handleQuickFilter}
+              quickFilters={routeType ? [routeType] : []}
+              variant='sticky'
+              showQuickFilters={false} // We handle custom quick filters below or repurpose
+              showAdvancedToggle={false}
+              searchQuery={search}
+              onSearchChange={handleSearchChange}
+              onSearchSubmit={() => {}}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              sortOptions={[
+                { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
+                { value: 'name', label: 'Name', defaultOrder: 'asc' },
+              ]}
+              onSortChange={handleSortChange}
+              onReset={resetSorting}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              compactLayout={compactLayout}
+              onDisplayOptionChange={handleDisplayOptionChange}
+              pageType='dive-routes'
+            />
+          )}
 
           {/* Custom Route Type Filter Pills (acting as Quick Filters) */}
           <div className='flex flex-wrap items-center gap-2 mt-4 px-1'>

@@ -238,13 +238,21 @@ const ResponsiveFilterBar = ({
       active.push({ key: 'username', label: 'Username', value: filters.username });
     if (filters.buddy_username)
       active.push({ key: 'buddy_username', label: 'Buddy', value: filters.buddy_username });
-    if (filters.dive_site_id && pageType === 'dives' && filters.availableDiveSites) {
-      const selectedSite = filters.availableDiveSites.find(
+    if (filters.dive_site_id && pageType === 'dives') {
+      const selectedSite = filters.availableDiveSites?.find(
         site => site.id.toString() === filters.dive_site_id.toString()
       );
-      if (selectedSite) {
-        active.push({ key: 'dive_site_id', label: 'Dive Site', value: selectedSite.name });
-      }
+      active.push({
+        key: 'dive_site_id',
+        label: 'Dive Site',
+        value: selectedSite ? selectedSite.name : `Site #${filters.dive_site_id}`,
+      });
+    }
+    if (filters.owner_id) {
+      active.push({ key: 'owner_id', label: 'Owner', value: `User #${filters.owner_id}` });
+    }
+    if (filters.buddy_id) {
+      active.push({ key: 'buddy_id', label: 'Buddy', value: `User #${filters.buddy_id}` });
     }
     if (filters.country) active.push({ key: 'country', label: 'Country', value: filters.country });
     if (filters.region) active.push({ key: 'region', label: 'Region', value: filters.region });
@@ -270,9 +278,11 @@ const ResponsiveFilterBar = ({
         ?.filter(tag => filters.tag_ids.includes(tag.id))
         .map(tag => tag.name)
         .join(', ');
-      if (tagNames) {
-        active.push({ key: 'tag_ids', label: 'Tags', value: tagNames });
-      }
+      active.push({
+        key: 'tag_ids',
+        label: 'Tags',
+        value: tagNames || `${filters.tag_ids.length} tags selected`,
+      });
     }
     return active;
   };
@@ -972,6 +982,33 @@ const ResponsiveFilterBar = ({
               )}
             </div>
           </div>
+
+          {/* Mobile Active Filters Display */}
+          {activeFilters.length > 0 && (
+            <div className='border-t border-gray-100 py-2 px-3 bg-blue-50/50 overflow-x-auto whitespace-nowrap scrollbar-hide'>
+              <div className='flex items-center gap-2'>
+                <span className='text-[10px] font-bold text-blue-900/50 uppercase tracking-tighter shrink-0'>
+                  Active:
+                </span>
+                {activeFilters.map(filter => (
+                  <div
+                    key={filter.key}
+                    className='inline-flex items-center gap-1 px-2 py-1 bg-white text-blue-800 text-[10px] font-medium rounded-full border border-blue-100 shadow-sm'
+                  >
+                    <span>{filter.label}:</span>
+                    <span className='max-w-[80px] truncate'>{filter.value}</span>
+                    <button
+                      onClick={() => onFilterChange(filter.key, '')}
+                      className='ml-0.5 text-blue-400 hover:text-blue-600 p-0.5'
+                      title={`Remove ${filter.label} filter`}
+                    >
+                      <X className='h-2.5 w-2.5' />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

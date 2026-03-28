@@ -13,7 +13,7 @@ import {
   MessageSquare,
   Building,
   Tags,
-  Anchor,
+  Notebook,
   Calendar,
   HelpCircle,
   Shield,
@@ -82,7 +82,7 @@ const NavbarDesktopControls = () => {
               {
                 key: 'dive-log',
                 label: 'Dive Log',
-                icon: <Anchor className='h-4 w-4' />,
+                icon: <Notebook className='h-4 w-4' />,
                 onClick: () => navigate('/dives'),
               },
               {
@@ -177,7 +177,7 @@ const NavbarDesktopControls = () => {
                         {
                           key: 'dives',
                           label: 'Dives',
-                          icon: <Anchor className='h-4 w-4' />,
+                          icon: <Notebook className='h-4 w-4' />,
                           onClick: () => navigate('/admin/dives'),
                         },
                         {

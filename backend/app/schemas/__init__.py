@@ -520,6 +520,7 @@ class TagWithCountResponse(BaseModel):
     created_by: Optional[int] = None
     created_at: datetime
     dive_site_count: int
+    dive_count: int
 
     model_config = ConfigDict(from_attributes=True)
 

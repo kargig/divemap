@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from app.database import get_db
-from app.models import AvailableTag, DiveSiteTag, User
+from app.models import AvailableTag, DiveSiteTag, DiveTag, User
 from app.schemas import TagCreate, TagResponse, TagUpdate, DiveSiteTagCreate, DiveSiteTagResponse, TagWithCountResponse
 from app.auth import get_current_user, is_admin_or_moderator
 
@@ -17,7 +17,7 @@ def get_all_tags(db: Session = Depends(get_db)):
 
 @router.get("/with-counts", response_model=List[TagWithCountResponse])
 def get_all_tags_with_counts(db: Session = Depends(get_db)):
-    """Get all available tags with count of associated dive sites"""
+    """Get all available tags with counts of associated dive sites and dive logs"""
     # Get all tags
     tags = db.query(AvailableTag).order_by(AvailableTag.name.asc()).all()
 
@@ -25,6 +25,8 @@ def get_all_tags_with_counts(db: Session = Depends(get_db)):
     for tag in tags:
         # Count associated dive sites for this tag
         dive_site_count = db.query(DiveSiteTag).filter(DiveSiteTag.tag_id == tag.id).count()
+        # Count associated dive logs for this tag
+        dive_count = db.query(DiveTag).filter(DiveTag.tag_id == tag.id).count()
 
         tag_dict = {
             "id": tag.id,
@@ -32,7 +34,8 @@ def get_all_tags_with_counts(db: Session = Depends(get_db)):
             "description": tag.description,
             "created_by": tag.created_by,
             "created_at": tag.created_at,
-            "dive_site_count": dive_site_count
+            "dive_site_count": dive_site_count,
+            "dive_count": dive_count
         }
         result.append(tag_dict)
 

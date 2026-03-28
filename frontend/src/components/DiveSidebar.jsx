@@ -73,7 +73,7 @@ const DiveSidebar = ({ dive, formatDate }) => {
         <div className='space-y-3'>
           <div className='flex justify-between items-center'>
             <div className='flex items-center gap-2'>
-              <Waves size={15} className='text-gray-500' />
+              <Notebook size={15} className='text-gray-500' />
               <span className='text-gray-600'>Total Dives</span>
             </div>
             <span className='font-medium'>{dive.user?.number_of_dives || 0}</span>
