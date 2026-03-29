@@ -420,85 +420,87 @@ const DivingCentersResponsiveFilterBar = ({
   // Mobile version with scroll-based behavior
   return (
     <>
-      {/* Mobile Search Bar - visible when scrolling down */}
-      {searchBarVisible && (
-        <div
-          ref={searchBarRef}
-          data-testid='diving-centers-mobile-search-bar'
-          className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
-          style={{ transform: searchBarVisible ? 'translateY(0)' : 'translateY(-100%)' }}
-        >
-          <div className='p-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-              <input
-                type='text'
-                placeholder='Search diving centers...'
-                value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-              />
-            </div>
+      {/* Mobile Unified Header - Search + Filter Toggle */}
+      <div
+        data-testid='diving-centers-mobile-unified-header'
+        className='bg-white border border-gray-200 rounded-xl shadow-sm mb-4 sm:hidden'
+      >
+        <div className='p-2 flex items-center gap-2'>
+          <div className='relative flex-1'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
+            <input
+              type='text'
+              placeholder='Search centers...'
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
+              className='w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-gray-50'
+            />
           </div>
+          <button
+            onClick={handleFilterOverlayToggle}
+            className='flex items-center justify-center p-2 bg-blue-100 text-blue-700 rounded-lg min-h-[38px] min-w-[38px] relative'
+          >
+            <Filter className='h-4 w-4' />
+            {activeFiltersCount > 0 && (
+              <span className='absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center border-2 border-white font-bold'>
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
         </div>
-      )}
 
-      {/* Mobile Quick Filters Bar - visible when scrolling up or down */}
-      {quickFiltersVisible && (
-        <div
-          data-testid='diving-centers-mobile-quick-filters'
-          className='fixed left-0 right-0 z-[99] bg-white border-b border-gray-200 shadow-sm transition-all duration-300 ease-in-out'
-          style={{
-            top: searchBarVisible ? `${searchBarHeight}px` : '0px',
-            transform: quickFiltersVisible ? 'translateY(0)' : 'translateY(-100%)',
-          }}
-        >
-          <div className='flex items-center justify-between p-3'>
-            {/* Filter Icon with Count */}
+        {/* Quick Filters Row - Ultra Compact */}
+        <div className='flex items-center gap-2 overflow-x-auto px-2 pb-2 scrollbar-hide'>
+          {reviewsEnabled && (
             <button
-              data-testid='diving-centers-mobile-filter-button'
-              onClick={handleFilterOverlayToggle}
-              className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors min-h-[44px]'
+              onClick={() => onQuickFilter('min_rating')}
+              className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors border ${
+                quickFilter === 'min_rating'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200'
+              }`}
             >
-              <Wrench className='h-5 w-5' />
-              {activeFiltersCount > 0 && (
-                <span className='bg-blue-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center'>
-                  {activeFiltersCount}
-                </span>
-              )}
+              4+ Stars
             </button>
-
-            {/* Quick Filter Buttons */}
-            <div className='flex items-center gap-2 overflow-x-auto flex-1 ml-3'>
-              {reviewsEnabled && (
-                <button
-                  onClick={() => onQuickFilter('min_rating')}
-                  className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                    quickFilter === 'min_rating'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                  }`}
-                >
-                  <Star className='h-4 w-4 inline mr-1' />
-                  4+ Stars
-                </button>
-              )}
-              <button
-                onClick={() => onQuickFilter('country')}
-                className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
-                  quickFilter === 'country'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                <MapPin className='h-4 w-4 inline mr-1' />
-                Greece
-              </button>
-            </div>
-          </div>
+          )}
+          <button
+            onClick={() => onQuickFilter('country')}
+            className={`flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full transition-colors border ${
+              quickFilter === 'country'
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-600 border-gray-200'
+            }`}
+          >
+            Greece
+          </button>
+          {activeFilters.length > 0 && (
+            <button
+              onClick={onClearFilters}
+              className='flex-shrink-0 px-2.5 py-1 text-[11px] font-medium rounded-full bg-red-50 text-red-600 border border-red-100'
+            >
+              Clear All
+            </button>
+          )}
         </div>
-      )}
+
+        {/* Active Filters Summary - Removable bubbles */}
+        {activeFilters.length > 0 && (
+          <div className='px-2 pb-2 flex flex-wrap gap-1 border-t border-gray-50 pt-2'>
+            {activeFilters.map(filter => (
+              <div
+                key={filter.key}
+                className='inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded-full border border-blue-100 max-w-[120px]'
+              >
+                <span className='truncate'>{filter.value}</span>
+                <button onClick={() => onFilterChange(filter.key, '')} className='p-0.5'>
+                  <X className='h-2.5 w-2.5' />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Mobile Filter Overlay - Full Page with Tabs */}
       <Modal

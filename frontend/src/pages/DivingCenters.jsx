@@ -1,3 +1,4 @@
+import debounce from 'lodash/debounce';
 import {
   Plus,
   Eye,
@@ -12,6 +13,8 @@ import {
   Map,
   Grid,
   Compass,
+  ChevronRight,
+  Wrench,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -33,74 +36,46 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
-import useSorting from '../hooks/useSorting';
-import { extractErrorMessage } from '../utils/apiErrors';
-import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
-import { getSortOptions } from '../utils/sortOptions';
 
-// Use extractErrorMessage from api.js
-const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
-
+// Lazy load the map component
 const DivingCentersMap = lazy(() => import('../components/DivingCentersMap'));
 
 const DivingCenters = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const { isMobile } = useResponsive();
+  const { searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
+  const { compactLayout, handleDisplayOptionChange: setCompactLayout } = useCompactLayout({
+    urlParam: 'diving-centers-compact',
+    defaultCompact: false,
+  });
+
+  // Fetch reviews disabled setting
+  const { data: disableReviewsSetting } = useSetting('disable_diving_center_reviews');
+  const reviewsEnabled = !disableReviewsSetting?.value;
 
   // Set page title
   usePageTitle('Divemap - Diving Centers');
 
-  // Check if reviews are enabled
-  const { data: reviewsDisabledSetting } = useSetting('disable_diving_center_reviews');
-  const reviewsEnabled = reviewsDisabledSetting?.value === false;
+  // Sorting state
+  const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
+  const [sortOrder, setSortOrder] = useState(searchParams.get('sort_order') || 'asc');
 
-  // View mode state
-  const [viewMode, setViewMode] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('view') || 'list';
-  });
-  // Compact layout state management
-  const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
+  // View mode state (list, grid, map)
+  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'list');
 
-  // Filter visibility state
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-
-  // Quick filter state
-  const [quickFilter, setQuickFilter] = useState('');
-  // Track which center emails are revealed in grid view
-  const [revealedEmails, setRevealedEmails] = useState({});
-  // Track expanded descriptions per center in grid view
-  const [expandedDescriptions, setExpandedDescriptions] = useState({});
-
-  const maskEmailForTooltip = email => {
-    if (!email || !email.includes('@')) return email;
-    const [localPart, domain] = email.split('@');
-    if (localPart.length <= 2) {
-      return `${localPart.charAt(0)}***@${domain}`;
-    } else {
-      const firstChar = localPart.charAt(0);
-      const lastChar = localPart.charAt(localPart.length - 1);
-      const maskedPart = '*'.repeat(localPart.length - 2);
-      return `${firstChar}${maskedPart}${lastChar}@${domain}`;
-    }
-  };
-
-  // Responsive detection using custom hook
-  const { isMobile } = useResponsive();
-  const { searchBarVisible } = useResponsiveScroll();
-
-  // Get initial values from URL parameters
+  // Initialize filters from URL
   const getInitialFilters = () => {
     return {
       search: searchParams.get('search') || '',
       name: searchParams.get('name') || '',
       min_rating: searchParams.get('min_rating') || '',
+      services: searchParams.get('services') || '',
       country: searchParams.get('country') || '',
       region: searchParams.get('region') || '',
       city: searchParams.get('city') || '',
@@ -121,9 +96,7 @@ const DivingCenters = () => {
     name: getInitialFilters().name,
   });
 
-  // Initialize sorting
-  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
-    useSorting('diving-centers');
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
@@ -140,12 +113,9 @@ const DivingCenters = () => {
           }
 
           // Add filters
-          if (newFilters.search) newSearchParams.set('search', newFilters.search);
-          if (newFilters.name) newSearchParams.set('name', newFilters.name);
-          if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-          if (newFilters.country) newSearchParams.set('country', newFilters.country);
-          if (newFilters.region) newSearchParams.set('region', newFilters.region);
-          if (newFilters.city) newSearchParams.set('city', newFilters.city);
+          Object.entries(newFilters).forEach(([key, value]) => {
+            if (value) newSearchParams.set(key, value.toString());
+          });
 
           // Add sorting parameters
           const sortParams = getSortParams();
@@ -175,12 +145,9 @@ const DivingCenters = () => {
       }
 
       // Add filters
-      if (newFilters.search) newSearchParams.set('search', newFilters.search);
-      if (newFilters.name) newSearchParams.set('name', newFilters.name);
-      if (newFilters.min_rating) newSearchParams.set('min_rating', newFilters.min_rating);
-      if (newFilters.country) newSearchParams.set('country', newFilters.country);
-      if (newFilters.region) newSearchParams.set('region', newFilters.region);
-      if (newFilters.city) newSearchParams.set('city', newFilters.city);
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value) newSearchParams.set(key, value.toString());
+      });
 
       // Add sorting parameters
       const sortParams = getSortParams();
@@ -197,295 +164,176 @@ const DivingCenters = () => {
     [navigate, sortBy, sortOrder]
   );
 
-  // Update URL when view mode or pagination change (immediate)
-  useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
-  }, [viewMode, pagination, immediateUpdateURL]);
+  // Map sort labels to API fields
+  const getSortParams = () => {
+    return {
+      sort_by: sortBy,
+      sort_order: sortOrder,
+    };
+  };
 
-  // Debounced URL update for search inputs
+  // Helper to count active filters
   useEffect(() => {
-    debouncedUpdateURL(filters, pagination, viewMode);
-  }, [filters.search, debouncedUpdateURL]);
+    let count = 0;
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value && key !== 'search' && key !== 'name') count++;
+    });
+    // Count search as one filter if either is present
+    if (filters.search || filters.name) count++;
+    setActiveFiltersCount(count);
+  }, [filters]);
 
-  // Debounced search terms for query key
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchTerms({
-        search: filters.search,
-        name: filters.name,
-      });
-    }, 800);
-    return () => clearTimeout(timeoutId);
-  }, [filters.search, filters.name]);
-
-  // Set debounced search terms immediately on initial load if URL has search parameters
-  useEffect(() => {
-    if (filters.search || filters.name) {
-      setDebouncedSearchTerms({
-        search: filters.search,
-        name: filters.name,
-      });
-    }
-  }, []); // Only run once on mount
-
-  // Immediate URL update for non-search filters
-  useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
-  }, [filters.min_rating, filters.country, filters.region, filters.city, immediateUpdateURL]);
-
-  // Invalidate query when sorting changes to ensure fresh data
-  useEffect(() => {
-    queryClient.invalidateQueries(['diving-centers']);
-  }, [sortBy, sortOrder, queryClient]);
-
-  // Fetch diving centers with pagination
   const {
-    data: divingCenters,
+    data: divingCentersResponse,
     isLoading,
     error,
+    isPreviousData,
   } = useQuery(
-    [
-      'diving-centers',
-      debouncedSearchTerms.search,
-      debouncedSearchTerms.name,
-      filters.min_rating,
-      filters.country,
-      filters.region,
-      filters.city,
-      pagination.page,
-      pagination.page_size,
-      sortBy,
-      sortOrder,
-    ],
+    ['diving-centers', filters, pagination, sortBy, sortOrder],
     () => {
-      // Create URLSearchParams to properly handle parameters
       const params = new URLSearchParams();
-
-      // Add filter parameters
-      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
-      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
-      if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.country) params.append('country', filters.country);
-      if (filters.region) params.append('region', filters.region);
-      if (filters.city) params.append('city', filters.city);
-
-      // Add sorting parameters directly from state (not from getSortParams)
-      if (sortBy) params.append('sort_by', sortBy);
-      if (sortOrder) params.append('sort_order', sortOrder);
-
-      // Add pagination parameters
       params.append('page', pagination.page.toString());
       params.append('page_size', pagination.page_size.toString());
+
+      // Add sorting
+      params.append('sort_by', sortBy);
+      params.append('sort_order', sortOrder);
+
+      // Add filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value.toString());
+      });
 
       return api.get(`/api/v1/diving-centers/?${params.toString()}`);
     },
     {
+      keepPreviousData: true,
+      staleTime: 5000,
       select: response => {
-        // Store pagination info from headers
-        const paginationInfo = {
-          totalCount: parseInt(response.headers['x-total-count'] || '0'),
-          totalPages: parseInt(response.headers['x-total-pages'] || '0'),
-          currentPage: parseInt(response.headers['x-current-page'] || '1'),
-          pageSize: parseInt(response.headers['x-page-size'] || '25'),
-          hasNextPage: response.headers['x-has-next-page'] === 'true',
-          hasPrevPage: response.headers['x-has-prev-page'] === 'true',
+        // Get pagination info from headers
+        const getHeader = name => {
+          return (
+            response.headers[name] ||
+            response.headers[name.toLowerCase()] ||
+            response.headers[name.toUpperCase()] ||
+            '0'
+          );
         };
 
-        // Extract match types from headers if available
-        let matchTypes = {};
-        try {
-          if (response.headers['x-match-types']) {
-            matchTypes = JSON.parse(response.headers['x-match-types']);
-          }
-        } catch (error) {
-          console.warn('Failed to parse match types header:', error);
-        }
+        const totalCount = parseInt(getHeader('x-total-count'));
+        const totalPages = parseInt(getHeader('x-total-pages'));
 
-        // Store pagination info in the query cache
-        queryClient.setQueryData(
-          ['diving-centers-pagination', filters, pagination],
-          paginationInfo
-        );
-
-        // Store match types in the query cache
-        queryClient.setQueryData(
-          [
-            'diving-centers-match-types',
-            debouncedSearchTerms.search,
-            debouncedSearchTerms.name,
-            filters.min_rating,
-            filters.country,
-            filters.region,
-            filters.city,
-            pagination.page,
-            pagination.page_size,
-            sortBy,
-            sortOrder,
-          ],
-          matchTypes
-        );
+        // Store pagination info
+        queryClient.setQueryData(['diving-centers-pagination'], {
+          totalCount,
+          totalPages,
+          currentPage: pagination.page,
+          pageSize: pagination.page_size,
+          hasNextPage: pagination.page < totalPages,
+          hasPrevPage: pagination.page > 1,
+        });
 
         return response.data;
       },
-      keepPreviousData: true,
     }
   );
 
-  // Show toast notifications for rate limiting errors
-  useEffect(() => {
-    handleRateLimitError(error, 'diving centers', () => window.location.reload());
-  }, [error]);
-
-  // Get pagination info from cached data
-  const paginationInfo = queryClient.getQueryData([
-    'diving-centers-pagination',
-    filters,
-    pagination,
-  ]) || {
+  const divingCenters = divingCentersResponse;
+  const paginationInfo = queryClient.getQueryData(['diving-centers-pagination']) || {
     totalCount: 0,
     totalPages: 0,
-    currentPage: pagination.page,
-    pageSize: pagination.page_size,
-    hasNextPage: false,
-    hasPrevPage: pagination.page > 1,
   };
+  const totalCount = paginationInfo.totalCount;
 
-  // Get match types from cached data
-  const matchTypes =
-    queryClient.getQueryData([
-      'diving-centers-match-types',
-      debouncedSearchTerms.search,
-      debouncedSearchTerms.name,
-      filters.min_rating,
-      filters.country,
-      filters.region,
-      filters.city,
-      pagination.page,
-      pagination.page_size,
-      sortBy,
-      sortOrder,
-    ]) || {};
+  // Track match types for diving centers (if search results contain scoring info)
+  const [matchTypes, setMatchTypes] = useState({});
 
-  // Rating mutation
-  const rateMutation = useMutation(
-    ({ centerId, score }) => api.post(`/api/v1/diving-centers/${centerId}/rate`, { score }),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['diving-centers']);
-        toast.success('Rating submitted successfully!');
-      },
-      onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to submit rating');
-      },
+  useEffect(() => {
+    if (divingCenters && Array.isArray(divingCenters)) {
+      const newMatchTypes = {};
+      divingCenters.forEach(center => {
+        if (center.match_type) {
+          newMatchTypes[center.id] = {
+            type: center.match_type,
+            score: center.match_score,
+          };
+        }
+      });
+      setMatchTypes(newMatchTypes);
     }
-  );
+  }, [divingCenters]);
 
-  const handleSearchChange = e => {
-    const { name, value } = e.target;
-    setFilters(_prev => ({
-      ..._prev,
-      [name]: value,
-    }));
-    // Reset to first page when filters change
-    setPagination(_prev => ({ ..._prev, page: 1 }));
+  // Handle filter changes
+  const handleFilterChange = (name, value) => {
+    const newFilters = { ...filters, [name]: value };
+    setFilters(newFilters);
+
+    // Reset to first page
+    const newPagination = { ...pagination, page: 1 };
+    setPagination(newPagination);
+
+    // Update URL - use debounced for search/name, immediate for others
+    if (name === 'search' || name === 'name') {
+      setDebouncedSearchTerms(prev => ({ ...prev, [name]: value }));
+      debouncedUpdateURL(newFilters, newPagination, viewMode);
+    } else {
+      immediateUpdateURL(newFilters, newPagination, viewMode);
+    }
   };
 
   const handlePageChange = newPage => {
-    setPagination(prev => ({
-      ...prev,
-      page: newPage,
-    }));
+    const newPagination = { ...pagination, page: newPage };
+    setPagination(newPagination);
+    immediateUpdateURL(filters, newPagination, viewMode);
   };
 
   const handlePageSizeChange = newPageSize => {
-    setPagination(_prev => ({
-      page: 1, // Reset to first page when changing page size
-      page_size: newPageSize,
-    }));
+    const newPagination = { page: 1, page_size: newPageSize };
+    setPagination(newPagination);
+    immediateUpdateURL(filters, newPagination, viewMode);
   };
 
-  const handleRating = (centerId, score) => {
-    if (!user) {
-      toast.error('Please log in to rate diving centers');
-      return;
-    }
-    rateMutation.mutate({ centerId, score });
+  const handleSortChange = (newSortBy, newSortOrder) => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    const newPagination = { ...pagination, page: 1 };
+    setPagination(newPagination);
+    immediateUpdateURL(filters, newPagination, viewMode);
   };
 
-  // Helper function to count active filters
-  const getActiveFiltersCount = () => {
-    let count = 0;
-    if (filters.search) count++;
-    if (filters.name) count++;
-    if (filters.min_rating) count++;
-    if (filters.country) count++;
-    if (filters.region) count++;
-    if (filters.city) count++;
-    return count;
-  };
-
-  // Function to clear all filters
   const clearFilters = () => {
     const clearedFilters = {
       search: '',
       name: '',
       min_rating: '',
+      services: '',
       country: '',
       region: '',
       city: '',
     };
     setFilters(clearedFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
-    immediateUpdateURL(clearedFilters, { ...pagination, page: 1 }, viewMode);
+    const newPagination = { ...pagination, page: 1 };
+    setPagination(newPagination);
+    immediateUpdateURL(clearedFilters, newPagination, viewMode);
   };
 
   const handleViewModeChange = newViewMode => {
     setViewMode(newViewMode);
-
-    // Update URL with new view mode
-    const urlParams = new URLSearchParams(window.location.search);
-    if (newViewMode === 'list') {
-      urlParams.delete('view'); // Default view, no need for parameter
-    } else {
-      urlParams.set('view', newViewMode);
-    }
-
-    // Update URL without triggering a page reload
-    navigate(`?${urlParams.toString()}`, { replace: true });
+    immediateUpdateURL(filters, pagination, newViewMode);
   };
 
-  const handleQuickFilter = filterType => {
-    // Toggle the quick filter - if it's already active, deactivate it
-    if (quickFilter === filterType) {
-      setQuickFilter('');
-      // Clear the corresponding filter
-      switch (filterType) {
-        case 'min_rating':
-          setFilters(prev => ({ ...prev, min_rating: '' }));
-          break;
-        case 'country':
-          setFilters(prev => ({ ...prev, country: '' }));
-          break;
-        default:
-          break;
-      }
-    } else {
-      setQuickFilter(filterType);
-      // Apply the quick filter
-      switch (filterType) {
-        case 'min_rating':
-          setFilters(prev => ({ ...prev, min_rating: '4' }));
-          break;
-        case 'country':
-          setFilters(prev => ({ ...prev, country: 'Greece' }));
-          break;
-        default:
-          break;
-      }
+  const handleQuickFilter = type => {
+    const newFilters = { ...filters };
+    if (type === 'min_rating') {
+      newFilters.min_rating = filters.min_rating === '4' ? '' : '4';
+    } else if (type === 'country') {
+      newFilters.country = filters.country === 'Greece' ? '' : 'Greece';
     }
 
-    // Reset to first page
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setFilters(newFilters);
+    const newPagination = { ...pagination, page: 1 };
+    setPagination(newPagination);
+    immediateUpdateURL(newFilters, newPagination, viewMode);
   };
 
   // Apply a filter when clicking a badge (country, region, city)
@@ -498,533 +346,205 @@ const DivingCenters = () => {
     immediateUpdateURL(newFilters, newPagination, viewMode);
   };
 
-  // Error handling is now done within the content area to preserve hero section
+  const sortOptions = [
+    { value: 'name', label: 'Name', defaultOrder: 'asc' },
+    { value: 'city', label: 'City', defaultOrder: 'asc' },
+    { value: 'country', label: 'Country', defaultOrder: 'asc' },
+    { value: 'rating', label: 'Rating', defaultOrder: 'desc' },
+    { value: 'created_at', label: 'Date Added', defaultOrder: 'desc' },
+  ];
 
   return (
-    <div className='min-h-screen bg-gray-50'>
-      {/* Mobile-First Responsive Container */}
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-        <PageHeader
-          title='Diving Centers'
-          titleIcon={Building}
-          breadcrumbItems={[{ label: 'Diving Centers' }]}
-          actions={[
-            {
-              label: 'Explore Map',
-              icon: Compass,
-              onClick: () => navigate('/map?type=diving-centers'),
-              variant: 'primary',
-            },
-            {
-              label: 'Add Center',
-              icon: Plus,
-              onClick: () => {
-                if (!user) {
-                  window.alert('You need an account for this action.\nPlease Login or Register.');
-                  return;
-                }
-                navigate('/diving-centers/create');
-              },
-              variant: 'secondary',
-            },
-          ]}
-        />
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <PageHeader
+        title='Diving Centers'
+        titleIcon={Building}
+        breadcrumbItems={[{ label: 'Diving Centers' }]}
+        actions={[
+          {
+            label: 'Explore Map',
+            icon: Map,
+            variant: 'primary',
+            onClick: () => handleViewModeChange('map'),
+          },
+          {
+            label: 'Add Center',
+            icon: Plus,
+            variant: 'secondary',
+            onClick: () => navigate('/diving-centers/new'),
+          },
+        ]}
+        className='mb-4 sm:mb-6 lg:mb-8'
+      />
 
-        {/* Desktop Search Bar - Only visible on desktop/tablet */}
-        {!isMobile && (
-          <DivingCentersDesktopSearchBar
-            searchValue={filters.search}
-            onSearchChange={handleSearchChange}
-            onSearchSelect={selectedItem => {
-              handleSearchChange({ target: { name: 'search', value: selectedItem.name } });
-            }}
-            data={divingCenters || []}
-            configType='divingCenters'
-            placeholder='Search diving centers by name, location, or services...'
-          />
-        )}
+      <div className='flex flex-col lg:flex-row gap-6 lg:gap-8'>
+        {/* Main Content Area */}
+        <div className='flex-1 min-w-0'>
+          {/* Desktop Search Bar */}
+          <div className='hidden lg:block mb-6'>
+            <DivingCentersDesktopSearchBar
+              searchValue={filters.search}
+              onSearchChange={val => handleFilterChange('search', val.target.value)}
+              onSearchSelect={() => {}}
+            />
+          </div>
 
-        {/* Responsive Filter Bar - Handles both desktop and mobile */}
-        {/* Hide on mobile when scrolling up (searchBarVisible is false) */}
-        {(!isMobile || searchBarVisible) && (
+          {/* Responsive Filter Bar */}
           <DivingCentersResponsiveFilterBar
-            showFilters={showAdvancedFilters}
-            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            onClearFilters={clearFilters}
-            activeFiltersCount={getActiveFiltersCount()}
             filters={filters}
-            onFilterChange={(key, value) => {
-              handleSearchChange({ target: { name: key, value } });
-            }}
-            onQuickFilter={handleQuickFilter}
-            quickFilter={quickFilter}
-            variant='inline'
-            showQuickFilters={true}
-            showAdvancedToggle={true}
+            onFilterChange={handleFilterChange}
+            onClearFilters={clearFilters}
+            activeFiltersCount={activeFiltersCount}
             searchQuery={filters.search}
-            onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+            onSearchChange={val => handleFilterChange('search', val)}
             onSearchSubmit={() => {}}
-            // Sorting and view props
             sortBy={sortBy}
             sortOrder={sortOrder}
-            sortOptions={getSortOptions('diving-centers')}
+            sortOptions={sortOptions}
             onSortChange={handleSortChange}
-            onReset={resetSorting}
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
+            onDisplayOptionChange={setCompactLayout}
+            onQuickFilter={handleQuickFilter}
             reviewsEnabled={reviewsEnabled}
+            quickFilter={
+              filters.min_rating === '4'
+                ? 'min_rating'
+                : filters.country === 'Greece'
+                  ? 'country'
+                  : ''
+            }
+            className='mb-6'
           />
-        )}
 
-        {/* Map Section - Show immediately when in map view */}
-        {viewMode === 'map' && (
-          <div className='mb-8'>
-            {isLoading ? (
-              <LoadingSkeleton type='map' />
-            ) : (
-              <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-                  Map view of filtered Diving Centers
-                </h2>
-                <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
-                  <Suspense
-                    fallback={
-                      <div className='flex flex-col items-center gap-2'>
-                        <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
-                        <span>Loading Map...</span>
-                      </div>
-                    }
-                  >
-                    <DivingCentersMap
-                      divingCenters={(divingCenters || []).map(center => ({
-                        ...center,
-                        id: center.id.toString(),
-                      }))}
-                    />
-                  </Suspense>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Pagination Controls - Mobile-first responsive design */}
-        {isLoading ? (
-          <LoadingSkeleton type='pagination' className='mb-4 sm:mb-6 lg:mb-8' />
-        ) : (
-          divingCenters &&
-          divingCenters.length > 0 && (
-            <div className='mb-4 sm:mb-6 lg:mb-8'>
-              <div className='bg-white rounded-lg shadow-md p-2 sm:p-4 lg:p-6'>
-                <div className='flex flex-col lg:flex-row justify-between items-center gap-2 sm:gap-4'>
-                  {/* Pagination Controls */}
-                  <div className='flex flex-col sm:flex-row items-center gap-2 sm:gap-4 w-full sm:w-auto'>
-                    {/* Page Size Selection */}
-                    <div className='flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center sm:justify-start'>
-                      <label
-                        htmlFor='page-size-select-top'
-                        className='text-xs sm:text-sm font-medium text-gray-700'
-                      >
-                        Show:
-                      </label>
-                      <select
-                        id='page-size-select-top'
-                        value={pagination.page_size}
-                        onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                        className='px-1 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[36px] sm:min-h-0 touch-manipulation'
-                      >
-                        <option value={25}>25</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                      </select>
-                      <span className='text-xs sm:text-sm text-gray-600'>per page</span>
-                    </div>
-
-                    {/* Pagination Info */}
-                    <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                      Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-                      {Math.min(pagination.page * pagination.page_size, paginationInfo.totalCount)}{' '}
-                      of {paginationInfo.totalCount} diving centers
-                    </div>
-
-                    {/* Pagination Navigation */}
-                    <div className='flex items-center gap-1 sm:gap-2'>
-                      <button
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={!paginationInfo.hasPrevPage}
-                        className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
-                      >
-                        <svg
-                          className='w-4 h-4'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M15 19l-7-7 7-7'
-                          />
-                        </svg>
-                      </button>
-
-                      <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
-                        Page {pagination.page} of {paginationInfo.totalPages}
-                      </span>
-
-                      <button
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={!paginationInfo.hasNextPage}
-                        className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
-                      >
-                        <svg
-                          className='w-4 h-4'
-                          fill='none'
-                          stroke='currentColor'
-                          viewBox='0 0 24 24'
-                        >
-                          <path
-                            strokeLinecap='round'
-                            strokeLinejoin='round'
-                            strokeWidth={2}
-                            d='M9 5l7 7-7 7'
-                          />
-                        </svg>
-                      </button>
-                    </div>
+          {/* Map Section - Show immediately when in map view */}
+          {viewMode === 'map' && (
+            <div className='mb-4 sm:mb-8'>
+              {isLoading ? (
+                <LoadingSkeleton type='map' />
+              ) : (
+                <div className='bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 border border-gray-100'>
+                  <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+                    Map view of filtered Diving Centers
+                  </h2>
+                  <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
+                    <Suspense
+                      fallback={
+                        <div className='flex flex-col items-center gap-2'>
+                          <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
+                          <span>Loading Map...</span>
+                        </div>
+                      }
+                    >
+                      <DivingCentersMap
+                        data-testid='diving-centers-map'
+                        divingCenters={divingCenters || []}
+                      />
+                    </Suspense>
                   </div>
                 </div>
-              </div>
-            </div>
-          )
-        )}
-
-        {/* Content Container */}
-        <div>
-          {error ? (
-            <ErrorPage error={error} onRetry={() => window.location.reload()} />
-          ) : isLoading ? (
-            <LoadingSkeleton
-              type='card'
-              count={pagination.page_size || 25}
-              className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}
-            />
-          ) : (
-            <>
-              {/* Diving Centers List */}
-              {viewMode === 'list' && (
-                <div className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
-                  {divingCenters?.map(center => (
-                    <div
-                      key={center.id}
-                      className={`dive-item bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md transition-all duration-200 hover:border-blue-300 ${
-                        compactLayout ? 'p-4' : 'p-6'
-                      }`}
-                    >
-                      {/* Main content row */}
-                      <div className='flex items-start gap-3'>
-                        {/* Left side - Main info */}
-                        <div className='flex-1 min-w-0'>
-                          {/* Title and rating row */}
-                          <div className='flex items-center justify-between mb-2'>
-                            <div className='flex items-center gap-2 flex-1 min-w-0'>
-                              <h3 className='font-semibold text-gray-900 text-sm flex-1 min-w-0'>
-                                <Link
-                                  to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                                  state={{
-                                    from: window.location.pathname + window.location.search,
-                                  }}
-                                  className='text-blue-600 hover:text-blue-800 transition-colors block truncate'
-                                >
-                                  {center.name}
-                                </Link>
-                              </h3>
-                              {/* Match type badge */}
-                              {matchTypes[center.id] && (
-                                <div className='flex-shrink-0'>
-                                  <MatchTypeBadge
-                                    matchType={matchTypes[center.id].type}
-                                    score={matchTypes[center.id].score}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            {center.average_rating && (
-                              <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full'>
-                                <Star className='w-3 h-3 text-yellow-500 fill-current' />
-                                <span className='text-[11px] font-medium text-yellow-700'>
-                                  {center.average_rating.toFixed(1)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Contact and location info row */}
-                          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-2'>
-                            {/* Email */}
-                            {center.email && (
-                              <div className='flex items-center gap-1 text-xs text-gray-600'>
-                                <Mail className='w-3 h-3 text-gray-400' />
-                                <span className='truncate'>
-                                  <MaskedEmail email={center.email} />
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Website */}
-                            {center.website && (
-                              <div className='flex items-center gap-1 text-xs text-gray-600'>
-                                <Globe className='w-3 h-3 text-gray-400 flex-shrink-0' />
-                                <a
-                                  href={
-                                    center.website.startsWith('http')
-                                      ? center.website
-                                      : `https://${center.website}`
-                                  }
-                                  target='_blank'
-                                  rel='noopener noreferrer'
-                                  className='truncate text-blue-600 hover:text-blue-800 transition-colors min-w-0'
-                                >
-                                  {center.website.replace(/^https?:\/\//, '')}
-                                </a>
-                              </div>
-                            )}
-
-                            {/* Coordinates removed to save space */}
-
-                            {/* Geographic fields (clickable badges) - now in a single flex container */}
-                            {(center.country || center.region || center.city) && (
-                              <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap'>
-                                {center.country && (
-                                  <button
-                                    type='button'
-                                    onClick={() => applyFilterTag('country', center.country)}
-                                    className='flex items-center gap-1 text-[10px] text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded flex-shrink-0'
-                                    title={`Filter by country: ${center.country}`}
-                                  >
-                                    <Globe className='w-3 h-3 text-blue-600' />
-                                    <span className='truncate'>{center.country}</span>
-                                  </button>
-                                )}
-
-                                {center.region && (
-                                  <button
-                                    type='button'
-                                    onClick={() => applyFilterTag('region', center.region)}
-                                    className='flex items-center gap-1 text-[10px] text-green-700 bg-green-50 hover:bg-green-100 px-2 py-1 rounded flex-shrink-0'
-                                    title={`Filter by region: ${center.region}`}
-                                  >
-                                    <MapPin className='w-3 h-3 text-green-600' />
-                                    <span className='truncate'>{center.region}</span>
-                                  </button>
-                                )}
-
-                                {center.city && (
-                                  <button
-                                    type='button'
-                                    onClick={() => applyFilterTag('city', center.city)}
-                                    className='flex items-center gap-1 text-[10px] text-purple-700 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded flex-shrink-0'
-                                    title={`Filter by city: ${center.city}`}
-                                  >
-                                    <Building className='w-3 h-3 text-purple-600' />
-                                    <span className='truncate'>{center.city}</span>
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Description - truncated for compactness */}
-                          {center.description && (
-                            <p
-                              className={`text-gray-700 line-clamp-2 ${compactLayout ? 'text-xs' : 'text-sm'}`}
-                            >
-                              {decodeHtmlEntities(center.description)}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Right side - Actions */}
-                        <div className='flex flex-col gap-2 flex-shrink-0'>
-                          <Link
-                            to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                            state={{ from: location.pathname + location.search }}
-                            className='hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors'
-                          >
-                            <Eye className='w-3 h-3' />
-                            Details
-                          </Link>
-
-                          {center.phone && (
-                            <a
-                              href={`tel:${center.phone}`}
-                              className='inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors'
-                              title='Call center'
-                            >
-                              <Phone className='w-3 h-3' />
-                              Call
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               )}
+            </div>
+          )}
 
-              {/* Diving Centers Grid */}
-              {viewMode === 'grid' && (
-                <div
-                  className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
-                >
-                  {divingCenters?.map(center => (
-                    <div
-                      key={center.id}
-                      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
-                        compactLayout ? 'p-4' : 'p-6'
-                      }`}
-                    >
-                      {/* Header thumbnail removed */}
+          {/* Content Container */}
+          <div className='content-section mb-4 sm:mb-8'>
+            {!isLoading && !error && (
+              <Pagination
+                currentPage={pagination.page}
+                pageSize={pagination.page_size}
+                totalCount={totalCount}
+                itemName='diving centers'
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                className='mb-3 sm:mb-6'
+              />
+            )}
 
-                      <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
-                        {/* Title and rating row */}
-                        <div className='flex items-start justify-between mb-2'>
-                          <div className='flex-1 pr-3 min-w-0'>
-                            <div className='flex items-start gap-2 mb-1'>
-                              <h3
-                                className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
-                              >
-                                <Link
-                                  to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                                  state={{
-                                    from: window.location.pathname + window.location.search,
-                                  }}
-                                  className='text-blue-600 hover:text-blue-800 transition-colors hover:underline block'
-                                >
-                                  {center.name}
-                                </Link>
-                              </h3>
-                              {/* Match type badge */}
-                              {matchTypes[center.id] && (
-                                <div className='flex-shrink-0'>
-                                  <MatchTypeBadge
-                                    matchType={matchTypes[center.id].type}
-                                    score={matchTypes[center.id].score}
-                                  />
+            {error ? (
+              <ErrorPage error={error} onRetry={() => window.location.reload()} />
+            ) : isLoading ? (
+              <LoadingSkeleton
+                type='card'
+                count={pagination.page_size || 25}
+                className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}
+              />
+            ) : (
+              <>
+                {/* Diving Centers List */}
+                {viewMode === 'list' && (
+                  <div
+                    className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
+                  >
+                    {divingCenters?.map(center => (
+                      <div
+                        key={center.id}
+                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
+                      >
+                        {/* Main content column */}
+                        <div className='flex flex-col'>
+                          {/* Main info */}
+                          <div className='flex-1 min-w-0 flex flex-col'>
+                            {/* Title row */}
+                            <div className='flex items-start justify-between gap-2'>
+                              <div className='flex-1 min-w-0 pr-2'>
+                                <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
+                                  <Link
+                                    to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                                    state={{
+                                      from: window.location.pathname + window.location.search,
+                                    }}
+                                    className='hover:text-blue-600 transition-colors'
+                                  >
+                                    {center.name}
+                                  </Link>
+                                </h3>
+                              </div>
+                              {center.average_rating && (
+                                <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
+                                  <Star className='w-2.5 h-2.5 fill-current' />
+                                  <span>{center.average_rating.toFixed(1)}</span>
                                 </div>
                               )}
                             </div>
-                          </div>
 
-                          {/* Rating badge - positioned to the right of title */}
-                          {center.average_rating && (
-                            <div className='bg-yellow-100 rounded-full px-3 py-1 shadow-sm border border-yellow-200 flex-shrink-0'>
-                              <div className='flex items-center gap-1'>
-                                <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                                <span className='text-[11px] font-semibold text-yellow-800'>
-                                  {center.average_rating}/10
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Geolocation removed to save space */}
-
-                        {/* Geographic fields */}
-                        {(center.country || center.region || center.city) && (
-                          <div className='flex items-center gap-1.5 flex-wrap sm:flex-nowrap mb-4'>
-                            {center.country && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('country', center.country)}
-                                className='flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-full hover:bg-blue-100 flex-shrink-0'
-                                title={`Filter by country: ${center.country}`}
-                              >
-                                <Globe className='w-3 h-3 text-blue-600' />
-                                <span className='text-[10px] font-medium text-blue-700'>
-                                  {center.country}
-                                </span>
-                              </button>
-                            )}
-                            {center.region && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('region', center.region)}
-                                className='flex items-center gap-1 bg-green-50 px-2 py-1 rounded-full hover:bg-green-100 flex-shrink-0'
-                                title={`Filter by region: ${center.region}`}
-                              >
-                                <MapPin className='w-3 h-3 text-green-600' />
-                                <span className='text-[10px] font-medium text-green-700'>
-                                  {center.region}
-                                </span>
-                              </button>
-                            )}
-                            {center.city && (
-                              <button
-                                type='button'
-                                onClick={() => applyFilterTag('city', center.city)}
-                                className='flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-full hover:bg-purple-100 flex-shrink-0'
-                                title={`Filter by city: ${center.city}`}
-                              >
-                                <Building className='w-3 h-3 text-purple-600' />
-                                <span className='text-[10px] font-medium text-purple-700'>
-                                  {center.city}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Key information grid */}
-                        <div className='grid grid-cols-2 gap-3 mb-4'>
-                          {/* Show email if available, otherwise rating */}
-                          {center.email ? (
-                            <div className='flex items-center justify-center bg-blue-50 rounded-lg px-3 py-2'>
-                              {revealedEmails[center.id] ? (
-                                <a
-                                  href={`mailto:${center.email}`}
-                                  className='text-blue-500 hover:text-blue-700 transition-colors'
-                                  aria-label={`Send email to ${center.name}`}
-                                  title={`Send email to ${center.email}`}
-                                >
-                                  <Mail className='w-5 h-5' />
-                                </a>
-                              ) : (
-                                <button
-                                  type='button'
-                                  onClick={() =>
-                                    setRevealedEmails(prev => ({ ...prev, [center.id]: true }))
-                                  }
-                                  className='text-blue-500 hover:text-blue-700 transition-colors'
-                                  aria-label='Reveal email'
-                                  title='Click to reveal'
-                                >
-                                  <Mail className='w-5 h-5' />
-                                </button>
+                            {/* Location & Metadata Row - Very compact */}
+                            <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
+                              {(center.country || center.region || center.city) && (
+                                <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 font-semibold'>
+                                  <MapPin className='w-2.5 h-2.5 text-blue-400 flex-shrink-0' />
+                                  <span className='truncate max-w-[200px] sm:max-w-[300px]'>
+                                    {Array.from(
+                                      new Set(
+                                        [center.country, center.region, center.city]
+                                          .filter(Boolean)
+                                          .flatMap(s => s.split(',').map(p => p.trim()))
+                                      )
+                                    ).join(', ')}
+                                  </span>
+                                </div>
+                              )}
+                              {matchTypes[center.id] && (
+                                <MatchTypeBadge
+                                  matchType={matchTypes[center.id].type}
+                                  score={matchTypes[center.id].score}
+                                  className='scale-75 origin-left -ml-2'
+                                />
                               )}
                             </div>
-                          ) : center.average_rating ? (
-                            <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
-                              <div className='flex items-center gap-1'>
-                                <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                                <span className='text-[11px] font-medium text-gray-700'>
-                                  {center.average_rating}/10
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
-                              <span className='text-sm text-gray-500'>No email</span>
-                            </div>
-                          )}
 
-                          {/* Show website if available, otherwise show rating if no email */}
-                          {center.website ? (
-                            <div className='flex items-center justify-center bg-green-50 rounded-lg px-3 py-2'>
+                            {/* Description - expanded to fill space */}
+                            {center.description && (
+                              <p className='text-[10px] sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
+                                {decodeHtmlEntities(center.description)}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Bottom row - Quick Action Row (High consistency) */}
+                          <div className='flex flex-row items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-50'>
+                            {center.website && (
                               <a
                                 href={
                                   center.website.startsWith('http')
@@ -1033,179 +553,183 @@ const DivingCenters = () => {
                                 }
                                 target='_blank'
                                 rel='noopener noreferrer'
-                                className='text-green-500 hover:text-green-700 transition-colors'
-                                title={`Visit ${center.website}`}
+                                className='w-8 h-8 inline-flex items-center justify-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 active:scale-95 transition-all'
+                                title='Website'
                               >
-                                <Globe className='w-5 h-5' />
+                                <Globe className='w-4 h-4 text-blue-700 flex-shrink-0' />
                               </a>
-                            </div>
-                          ) : center.average_rating && !center.email ? (
-                            <div className='flex items-center justify-center bg-yellow-50 rounded-lg px-3 py-2'>
-                              <div className='flex items-center gap-1'>
-                                <Star className='w-4 h-4 text-yellow-500 fill-current' />
-                                <span className='text-[11px] font-medium text-gray-700'>
-                                  {center.average_rating}/10
+                            )}
+                            {center.email &&
+                              (isMobile ? (
+                                <a
+                                  href={`mailto:${center.email}`}
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:scale-95 transition-all'
+                                  title='Email'
+                                >
+                                  <Mail className='w-4 h-4 text-green-700 flex-shrink-0' />
+                                </a>
+                              ) : (
+                                <MaskedEmail
+                                  email={center.email}
+                                  label=''
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:scale-95 transition-all cursor-pointer'
+                                >
+                                  <Mail className='w-4 h-4 text-green-700 flex-shrink-0' />
+                                </MaskedEmail>
+                              ))}
+                            {center.phone && (
+                              <a
+                                href={`tel:${center.phone}`}
+                                className='w-8 h-8 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 active:scale-95 transition-all'
+                                title='Call'
+                              >
+                                <Phone className='w-4 h-4 text-indigo-700 flex-shrink-0' />
+                              </a>
+                            )}
+                            <Link
+                              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                              className='w-8 h-8 inline-flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 active:scale-95 transition-all'
+                              title='View Details'
+                            >
+                              <ChevronRight className='w-4 h-4 text-gray-600 flex-shrink-0' />
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Diving Centers Grid */}
+                {viewMode === 'grid' && (
+                  <div
+                    className={`grid grid-cols-1 md:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
+                  >
+                    {divingCenters?.map(center => (
+                      <div
+                        key={center.id}
+                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                          compactLayout ? 'p-4' : 'p-6'
+                        }`}
+                      >
+                        <div className={`${compactLayout ? 'p-3' : 'p-5'}`}>
+                          {/* Title and rating row */}
+                          <div className='flex items-start justify-between mb-2'>
+                            <div className='flex-1 pr-3 min-w-0'>
+                              <div className='flex items-start gap-2 mb-1'>
+                                <h3
+                                  className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                                >
+                                  <Link
+                                    to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                                    className='hover:text-blue-600 transition-colors'
+                                  >
+                                    {center.name}
+                                  </Link>
+                                </h3>
+                              </div>
+
+                              <div className='flex items-center gap-1.5 text-xs text-gray-500'>
+                                <MapPin className='w-3 h-3 text-blue-500' />
+                                <span className='truncate'>
+                                  {center.city ? `${center.city}, ` : ''}
+                                  {center.country || 'Global'}
                                 </span>
                               </div>
                             </div>
-                          ) : (
-                            <div className='flex items-center justify-center bg-gray-50 rounded-lg px-3 py-2'>
-                              <span className='text-sm text-gray-500'>No website</span>
-                            </div>
+
+                            {center.average_rating && (
+                              <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100'>
+                                <Star className='w-3.5 h-3.5 text-yellow-500 fill-current' />
+                                <span className='text-sm font-bold text-yellow-700'>
+                                  {center.average_rating.toFixed(1)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Description */}
+                          {center.description && (
+                            <p className='text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed'>
+                              {decodeHtmlEntities(center.description)}
+                            </p>
                           )}
-                        </div>
 
-                        {/* Description with expandable toggle for long texts */}
-                        <div className='mb-4'>
-                          <p
-                            className={`text-gray-600 ${
-                              expandedDescriptions[center.id] ? '' : 'line-clamp-3'
-                            } ${compactLayout ? 'text-sm' : 'text-base'}`}
-                          >
-                            {decodeHtmlEntities(center.description) || 'No description available'}
-                          </p>
-                          {center.description && center.description.length > 180 && (
-                            <button
-                              type='button'
-                              onClick={() =>
-                                setExpandedDescriptions(prev => ({
-                                  ...prev,
-                                  [center.id]: !prev[center.id],
-                                }))
-                              }
-                              className='mt-1 text-blue-600 hover:text-blue-700 text-sm font-medium'
-                              aria-expanded={!!expandedDescriptions[center.id]}
-                            >
-                              {expandedDescriptions[center.id] ? 'Less' : 'More'}
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className='flex gap-2'>
-                          <Link
-                            to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                            state={{ from: location.pathname + location.search }}
-                            className='hidden sm:flex-1 sm:inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors hover:shadow-md'
-                          >
-                            <Eye className='w-4 h-4' />
-                            View Details
-                          </Link>
-
-                          {center.phone && (
-                            <a
-                              href={`tel:${center.phone}`}
-                              className='inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors'
-                              title='Call center'
-                            >
-                              <Phone className='w-4 h-4' />
-                            </a>
-                          )}
-                        </div>
-
-                        {/* Additional info badges */}
-                        {center.services && center.services.length > 0 && (
-                          <div className='mt-4 pt-4 border-t border-gray-100'>
-                            <div className='flex flex-wrap gap-2'>
-                              {center.services.slice(0, 3).map((service, index) => (
-                                <span
-                                  key={index}
-                                  className='inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'
+                          {/* Footer with actions */}
+                          <div className='flex items-center justify-between pt-4 border-t border-gray-50 mt-auto'>
+                            <div className='flex items-center gap-2'>
+                              {center.phone && (
+                                <a
+                                  href={`tel:${center.phone}`}
+                                  className='p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors'
+                                  title='Call'
                                 >
-                                  {service}
-                                </span>
-                              ))}
-                              {center.services.length > 3 && (
-                                <span className='inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full'>
-                                  +{center.services.length - 3} more
-                                </span>
+                                  <Phone className='w-4 h-4' />
+                                </a>
+                              )}
+                              {center.website && (
+                                <a
+                                  href={
+                                    center.website.startsWith('http')
+                                      ? center.website
+                                      : `https://${center.website}`
+                                  }
+                                  target='_blank'
+                                  rel='noopener noreferrer'
+                                  className='p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors'
+                                  title='Website'
+                                >
+                                  <Globe className='w-4 h-4' />
+                                </a>
                               )}
                             </div>
+
+                            <Link
+                              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                              className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
+                            >
+                              Explore
+                              <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
+                            </Link>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {divingCenters?.length === 0 && (
-                <div className='text-center py-12'>
-                  <p className='text-gray-500 text-lg'>
-                    No diving centers found matching your criteria.
-                  </p>
-                </div>
-              )}
-
-              {/* Bottom Pagination Controls */}
-              {divingCenters && divingCenters.length > 0 && (
-                <div className='mt-6 sm:mt-8'>
-                  <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-                    <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-                      <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-                        {/* Pagination Info */}
-                        <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                          Showing {(pagination.page - 1) * pagination.page_size + 1} to{' '}
-                          {Math.min(
-                            pagination.page * pagination.page_size,
-                            paginationInfo.totalCount
-                          )}{' '}
-                          of {paginationInfo.totalCount} diving centers
-                        </div>
-
-                        {/* Pagination Navigation */}
-                        <div className='flex items-center gap-1 sm:gap-2'>
-                          <button
-                            onClick={() => handlePageChange(pagination.page - 1)}
-                            disabled={!paginationInfo.hasPrevPage}
-                            className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
-                          >
-                            <svg
-                              className='w-4 h-4'
-                              fill='none'
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M15 19l-7-7 7-7'
-                              />
-                            </svg>
-                          </button>
-
-                          <span className='text-xs sm:text-sm text-gray-700 px-1 sm:px-2'>
-                            Page {pagination.page} of {paginationInfo.totalPages}
-                          </span>
-
-                          <button
-                            onClick={() => handlePageChange(pagination.page + 1)}
-                            disabled={!paginationInfo.hasNextPage}
-                            className='px-2 sm:px-3 py-1 sm:py-1 border border-gray-300 rounded-md text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 min-h-[36px] sm:min-h-0 touch-manipulation transition-colors'
-                          >
-                            <svg
-                              className='w-4 h-4'
-                              fill='none'
-                              stroke='currentColor'
-                              viewBox='0 0 24 24'
-                            >
-                              <path
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                                strokeWidth={2}
-                                d='M9 5l7 7-7 7'
-                              />
-                            </svg>
-                          </button>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+
+                {/* Empty State */}
+                {divingCenters?.length === 0 && (
+                  <div className='text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300'>
+                    <Building className='w-12 h-12 text-gray-300 mx-auto mb-4' />
+                    <h3 className='text-lg font-medium text-gray-900'>No diving centers found</h3>
+                    <p className='text-gray-500 mt-2 max-w-xs mx-auto'>
+                      Try adjusting your filters or search terms to find what you're looking for.
+                    </p>
+                    <button
+                      onClick={clearFilters}
+                      className='mt-4 text-blue-600 font-semibold hover:underline'
+                    >
+                      Clear all filters
+                    </button>
+                  </div>
+                )}
+
+                {/* Bottom Pagination Controls */}
+                {divingCenters && divingCenters.length > 0 && (
+                  <Pagination
+                    currentPage={pagination.page}
+                    pageSize={pagination.page_size}
+                    totalCount={totalCount}
+                    itemName='diving centers'
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                    className='mt-6 sm:mt-8'
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

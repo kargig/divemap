@@ -819,24 +819,26 @@ const ResponsiveFilterBar = ({
   // Mobile version with scroll-based behavior
   return (
     <>
-      {/* Sticky Container for Search & Filters */}
-      <div className='sticky top-0 left-0 right-0 z-[100] w-full'>
+      {/* Container for Search & Filters */}
+      <div
+        className={`${variant === 'sticky' ? 'sticky top-0 left-0 right-0 z-[100] w-full' : 'bg-white border border-gray-200 rounded-xl shadow-sm mb-4'}`}
+      >
         {/* Mobile Search Bar */}
         <div
           ref={searchBarRef}
           data-testid='mobile-search-bar'
-          className='bg-white border-b border-gray-200 shadow-sm'
+          className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : ''}`}
         >
-          <div className='p-3'>
+          <div className='p-2 sm:p-3'>
             <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
               <input
                 type='text'
                 placeholder='Search dive sites...'
                 value={searchQuery}
                 onChange={e => onSearchChange(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
-                className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                className='w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
               />
             </div>
           </div>
@@ -845,18 +847,18 @@ const ResponsiveFilterBar = ({
         {/* Mobile Quick Filters Bar */}
         <div
           data-testid='mobile-quick-filters'
-          className='bg-white border-b border-gray-200 shadow-sm'
+          className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : 'border-t border-gray-100'}`}
         >
-          <div className='flex items-center justify-between p-3'>
+          <div className='flex items-center justify-between p-2 sm:p-3'>
             {/* Filter Icon with Count */}
             <button
               data-testid='mobile-filter-button'
               onClick={handleFilterOverlayToggle}
-              className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors min-h-[44px]'
+              className='flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors min-h-[38px] sm:min-h-[44px]'
             >
-              <Wrench className='h-5 w-5' />
+              <Wrench className='h-4 w-4' />
               {activeFiltersCount > 0 && (
-                <span className='bg-blue-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center'>
+                <span className='bg-blue-600 text-white text-[10px] rounded-full px-2 py-0.5 min-w-[18px] text-center font-bold'>
                   {activeFiltersCount}
                 </span>
               )}
@@ -872,7 +874,7 @@ const ResponsiveFilterBar = ({
                     <button
                       onClick={() => onQuickFilter('my_dives')}
                       aria-label='My Dives'
-                      className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                      className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                         quickFilters.includes('my_dives')
                           ? 'bg-blue-100 text-blue-700 border border-blue-300'
                           : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -885,7 +887,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('wrecks')}
                     aria-label='Wreck Dives'
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -897,7 +899,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('reefs')}
                     aria-label='Reef Dives'
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -909,7 +911,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
                     aria-label='Boat Dives'
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -921,7 +923,7 @@ const ResponsiveFilterBar = ({
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
                     aria-label='Shore Dives'
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -936,7 +938,7 @@ const ResponsiveFilterBar = ({
                 <>
                   <button
                     onClick={() => onQuickFilter('wrecks')}
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('wrecks')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -947,7 +949,7 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onQuickFilter('reefs')}
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('reefs')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -958,7 +960,7 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onQuickFilter('boat_dive')}
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -969,7 +971,7 @@ const ResponsiveFilterBar = ({
                   </button>
                   <button
                     onClick={() => onQuickFilter('shore_dive')}
-                    className={`flex-shrink-0 px-3 py-2 text-sm rounded-lg transition-colors min-h-[44px] ${
+                    className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 text-blue-700 border border-blue-300'
                         : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
@@ -1032,7 +1034,7 @@ const ResponsiveFilterBar = ({
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
           >
-            <Filter className='h-4 w-4 inline mr-2' />
+            <Filter className='h-3.5 w-3.5 inline mr-2' />
             Filters
           </button>
 
@@ -1044,7 +1046,7 @@ const ResponsiveFilterBar = ({
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
             }`}
           >
-            <Settings className='h-4 w-4 inline mr-2' />
+            <Settings className='h-3.5 w-3.5 inline mr-2' />
             Sorting & View
           </button>
         </div>

@@ -36,7 +36,7 @@ import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
@@ -120,7 +120,6 @@ const DiveTrips = () => {
   const [showDateFilterMessage, setShowDateFilterMessage] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const { isMobile } = useResponsive();
-  const { searchBarVisible } = useResponsiveScroll();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Helper function to get active filters count
@@ -716,9 +715,9 @@ const DiveTrips = () => {
           />
         )}
 
-        {/* Mobile Search Bar - Only visible on mobile when scrolling down and for authenticated users */}
-        {isMobile && searchBarVisible && user && (
-          <div className='sticky-below-navbar bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0'>
+        {/* Mobile Search Bar - Only visible on mobile for authenticated users */}
+        {isMobile && user && (
+          <div className='bg-white border-b border-gray-200 shadow-sm -mx-4 sm:mx-0 mb-4'>
             <div className='p-3'>
               <div className='relative'>
                 <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
@@ -827,37 +826,35 @@ const DiveTrips = () => {
         )}
 
         {/* Responsive Filter Bar */}
-        {(!isMobile || searchBarVisible || getActiveFiltersCount() > 0) && (
-          <ResponsiveFilterBar
-            showFilters={showFilters}
-            onToggleFilters={toggleFilters}
-            onClearFilters={clearFilters}
-            activeFiltersCount={getActiveFiltersCount()}
-            filters={{
-              ...filters,
-              availableDivingCenters: allDivingCenters || [],
-              availableDiveSites: allDiveSites || [],
-            }}
-            onFilterChange={handleFilterChange}
-            variant='sticky'
-            showQuickFilters={true}
-            showAdvancedToggle={true}
-            searchQuery={filters.search_query}
-            onSearchChange={value => handleFilterChange('search_query', value)}
-            onSearchSubmit={() => {}}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            sortOptions={getAvailableSortOptions()}
-            onSortChange={handleSortChangeWrapper}
-            onReset={resetSortingWrapper}
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            compactLayout={compactLayout}
-            onDisplayOptionChange={handleDisplayOptionChange}
-            pageType='dive-trips'
-            user={user}
-          />
-        )}
+        <ResponsiveFilterBar
+          showFilters={showFilters}
+          onToggleFilters={toggleFilters}
+          onClearFilters={clearFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+          filters={{
+            ...filters,
+            availableDivingCenters: allDivingCenters || [],
+            availableDiveSites: allDiveSites || [],
+          }}
+          onFilterChange={handleFilterChange}
+          variant='inline'
+          showQuickFilters={true}
+          showAdvancedToggle={true}
+          searchQuery={filters.search_query}
+          onSearchChange={value => handleFilterChange('search_query', value)}
+          onSearchSubmit={() => {}}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={getAvailableSortOptions()}
+          onSortChange={handleSortChangeWrapper}
+          onReset={resetSortingWrapper}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          compactLayout={compactLayout}
+          onDisplayOptionChange={handleDisplayOptionChange}
+          pageType='dive-trips'
+          user={user}
+        />
 
         {/* Distance Sorting Warning */}
         {sortBy === 'distance' && (!userLocation.latitude || !userLocation.longitude) && (

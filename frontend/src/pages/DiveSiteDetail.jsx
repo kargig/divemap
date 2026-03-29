@@ -17,6 +17,10 @@ import {
   Globe,
   TrendingUp,
   RotateCcw,
+  Clock,
+  Info,
+  CloudSun,
+  Route,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -91,6 +95,8 @@ const DiveSiteDetail = () => {
   // Collapse states for lazy loading
   const [isMarineExpanded, setIsMarineExpanded] = useState(false);
   const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
+  const [isTopDivesExpanded, setIsTopDivesExpanded] = useState(false);
+  const [isRoutesExpanded, setIsRoutesExpanded] = useState(false);
 
   // Helper to check if URL is video
   const isVideoUrl = useCallback(url => {
@@ -528,8 +534,115 @@ const DiveSiteDetail = () => {
     setRating(score);
   };
 
+  const renderTopDivesList = () => (
+    <>
+      <div className='space-y-3'>
+        {topDives.map(dive => (
+          <div
+            key={dive.id}
+            className='border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors bg-gray-50/30'
+          >
+            <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 mb-2'>
+              <RouterLink
+                to={`/dives/${dive.id}/${slugify(`${dive.name || dive.dive_site?.name || diveSite?.name || 'dive'}-${dive.dive_date}-dive-${dive.id}`)}`}
+                className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-sm sm:text-base leading-tight'
+              >
+                {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
+              </RouterLink>
+              {dive.user_rating && (
+                <div className='flex items-center bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100 shrink-0'>
+                  <Star className='h-3 w-3 text-yellow-500 mr-1 fill-current' />
+                  <span className='text-[11px] font-bold text-yellow-700'>
+                    {dive.user_rating}/10
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className='text-[11px] sm:text-sm text-gray-500 space-y-1.5 mb-2'>
+              <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
+                <div className='flex items-center gap-1'>
+                  <span className='font-semibold text-gray-400 uppercase text-[9px]'>Date:</span>
+                  <span className='text-gray-700'>
+                    {new Date(dive.dive_date).toLocaleDateString()}
+                  </span>
+                </div>
+
+                {dive.user_username && (
+                  <div className='flex items-center gap-1'>
+                    <span className='font-semibold text-gray-400 uppercase text-[9px]'>By:</span>
+                    <RouterLink
+                      to={`/users/${dive.user_username}`}
+                      className='text-blue-500 hover:text-blue-700 font-medium'
+                    >
+                      {dive.user_username}
+                    </RouterLink>
+                  </div>
+                )}
+              </div>
+
+              <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5'>
+                {dive.max_depth && (
+                  <div className='flex items-center gap-1'>
+                    <TrendingUp className='w-3 h-3 text-gray-300' />
+                    <span className='text-gray-700 font-medium'>{dive.max_depth}m</span>
+                  </div>
+                )}
+
+                {dive.duration && (
+                  <div className='flex items-center gap-1'>
+                    <Clock className='w-3 h-3 text-gray-300' />
+                    <span className='text-gray-700 font-medium'>{dive.duration}min</span>
+                  </div>
+                )}
+
+                {dive.difficulty_code && (
+                  <div className='flex items-center gap-1'>
+                    <span
+                      className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                    >
+                      {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {dive.dive_information && (
+              <p className='text-[13px] text-gray-600 line-clamp-2 leading-relaxed border-t border-gray-100 pt-2'>
+                {decodeHtmlEntities(dive.dive_information)}
+              </p>
+            )}
+
+            {dive.tags && dive.tags.length > 0 && (
+              <div className='flex flex-wrap gap-1 mt-2'>
+                {dive.tags.map(tag => (
+                  <span
+                    key={tag.id}
+                    className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full ${getTagColor(tag.name)}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className='mt-3 sm:mt-4 text-center'>
+        <RouterLink
+          to={`/dives?dive_site_id=${id}`}
+          className='inline-block px-3 py-1.5 text-blue-600 hover:text-blue-800 transition-colors text-xs sm:text-sm font-medium rounded-md'
+        >
+          View All Dives at This Site →
+        </RouterLink>
+      </div>
+    </>
+  );
+
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2.5 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       {diveSite && (
         <StickyRateBar
           diveSite={diveSite}
@@ -554,12 +667,12 @@ const DiveSiteDetail = () => {
         />
       )}
       {/* Top Bar: Breadcrumbs and Actions */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4'>
         {diveSite && (
-          <div className='flex-1'>
+          <div className='flex-1 min-w-0'>
             <Breadcrumbs
               items={[
-                { label: 'Dive Sites', to: '/dive-sites' },
+                { label: 'Sites', to: '/dive-sites' },
                 ...(diveSite.country
                   ? [
                       {
@@ -588,7 +701,7 @@ const DiveSiteDetail = () => {
             <ShareButton
               entityType='dive-site'
               entityData={diveSite}
-              className='inline-flex items-center'
+              className='inline-flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
             />
           )}
           {(() => {
@@ -638,7 +751,8 @@ const DiveSiteDetail = () => {
                   <Button
                     to={`/dive-sites/${id}/edit`}
                     variant='primary'
-                    icon={<Edit className='h-4 w-4' />}
+                    icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+                    className='px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
                   >
                     Edit
                   </Button>
@@ -646,20 +760,20 @@ const DiveSiteDetail = () => {
                 {shouldShowDelete && (
                   <button
                     onClick={handleDelete}
-                    className='inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm'
+                    className='inline-flex items-center px-3 py-1.5 border border-red-300 text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm transition-colors'
                     title='Archive dive site'
                   >
-                    <Trash2 className='h-4 w-4 mr-2' />
+                    <Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                     Archive
                   </button>
                 )}
                 {shouldShowRestore && (
                   <button
                     onClick={handleRestore}
-                    className='inline-flex items-center px-4 py-2 border border-yellow-400 text-sm font-medium rounded-md text-yellow-700 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 shadow-sm'
+                    className='inline-flex items-center px-3 py-1.5 border border-yellow-400 text-xs sm:text-sm font-medium rounded-md text-yellow-700 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 shadow-sm transition-colors'
                     title='Restore dive site'
                   >
-                    <RotateCcw className='h-4 w-4 mr-2' />
+                    <RotateCcw className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                     Restore
                   </button>
                 )}
@@ -670,12 +784,15 @@ const DiveSiteDetail = () => {
       </div>
 
       {/* Header */}
-      <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6'>
-        <div className='flex flex-col lg:flex-row gap-6'>
+      <div
+        id='overview'
+        className='bg-white p-2.5 sm:p-6 rounded-xl shadow-sm border border-gray-100 mb-4 sm:mb-6 scroll-mt-20'
+      >
+        <div className='flex flex-col lg:flex-row gap-2 sm:gap-6'>
           {/* Left Column: Title & Metadata */}
           <div className='flex-1'>
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
-              <div className='flex items-center gap-3 sm:gap-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-3 sm:gap-4'>
+              <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
                 <button
                   onClick={() => {
                     const from = location.state?.from;
@@ -685,38 +802,53 @@ const DiveSiteDetail = () => {
                       navigate('/dive-sites');
                     }
                   }}
-                  className='text-gray-600 hover:text-gray-800 p-1'
+                  className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
                 >
-                  <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
+                  <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
                 </button>
                 <div className='min-w-0 flex-1'>
-                  <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words'>
+                  <h1 className='text-[17px] sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words leading-tight'>
                     {diveSite.name}
                     {diveSite.deleted_at && (
-                      <span className='ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 align-middle'>
+                      <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
                         ARCHIVED
                       </span>
                     )}
                   </h1>
-                  {diveSite.country && diveSite.region && (
-                    <p className='text-sm sm:text-base text-gray-600'>
-                      {diveSite.region}, {diveSite.country}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
 
             {/* Metadata Grid */}
-            <div className='grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-x-4 gap-y-6 sm:gap-8'>
+            <div className='grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-x-3 gap-y-3 sm:gap-8 pl-1 sm:pl-0'>
+              {/* Rating (Mobile Only) */}
+              <div className='flex flex-col lg:hidden'>
+                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
+                  Rating
+                </span>
+                <div className='flex items-center gap-1 mt-0.5'>
+                  <img
+                    src='/arts/divemap_shell.png'
+                    alt='Rating'
+                    className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
+                  />
+                  <span className='text-xs sm:text-sm font-bold text-gray-900 leading-none'>
+                    {diveSite.average_rating ? Number(diveSite.average_rating).toFixed(1) : '-'}
+                  </span>
+                  <span className='text-[10px] text-gray-400 font-medium ml-0.5 leading-none'>
+                    ({diveSite.total_ratings || 0})
+                  </span>
+                </div>
+              </div>
+
               {/* Difficulty */}
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                   Difficulty
                 </span>
                 <div className='flex items-center mt-0.5'>
                   <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
                   >
                     {diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)}
                   </span>
@@ -726,14 +858,14 @@ const DiveSiteDetail = () => {
               {/* Max Depth */}
               {diveSite.max_depth && (
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                     Max Depth
                   </span>
-                  <div className='flex items-center gap-1.5'>
-                    <TrendingUp className='w-4 h-4 text-gray-400' />
-                    <span className='text-sm font-bold text-gray-900'>
+                  <div className='flex items-center gap-1'>
+                    <TrendingUp className='w-3.5 h-3.5 text-gray-400' />
+                    <span className='text-xs sm:text-sm font-bold text-gray-900'>
                       {diveSite.max_depth}
-                      <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                      <span className='text-[10px] font-normal text-gray-400 ml-0.5'>m</span>
                     </span>
                   </div>
                 </div>
@@ -741,10 +873,10 @@ const DiveSiteDetail = () => {
 
               {/* Added Date */}
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                   Added
                 </span>
-                <span className='text-sm font-medium text-gray-900'>
+                <span className='text-xs sm:text-sm font-medium text-gray-900'>
                   {new Date(diveSite.created_at).toLocaleDateString()}
                 </span>
               </div>
@@ -752,14 +884,14 @@ const DiveSiteDetail = () => {
               {/* Tags */}
               {diveSite.tags && diveSite.tags.length > 0 && (
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                     Tags
                   </span>
-                  <div className='flex flex-wrap gap-2 mt-0.5'>
+                  <div className='flex flex-wrap gap-1.5 mt-0.5'>
                     {diveSite.tags.map(tag => (
                       <span
                         key={tag.id}
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${getTagColor(tag.name)}`}
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getTagColor(tag.name)}`}
                       >
                         {tag.name}
                       </span>
@@ -771,14 +903,14 @@ const DiveSiteDetail = () => {
               {/* Aliases */}
               {diveSite.aliases && diveSite.aliases.length > 0 && (
                 <div className='flex flex-col col-span-2 sm:col-span-1'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                     Also Known As
                   </span>
-                  <div className='flex flex-wrap gap-2 mt-0.5'>
+                  <div className='flex flex-wrap gap-1.5 mt-0.5'>
                     {diveSite.aliases.map(alias => (
                       <span
                         key={alias.id}
-                        className='px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-600'
+                        className='px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-100'
                       >
                         {alias.alias}
                       </span>
@@ -790,7 +922,7 @@ const DiveSiteDetail = () => {
           </div>
 
           {/* Right Column: Community Verdict (Desktop Only) */}
-          <div className='hidden lg:block border-l border-gray-100 pl-8 ml-4'>
+          <div className='hidden lg:block lg:w-auto lg:border-l lg:border-gray-100 lg:pl-6 lg:ml-2'>
             <CommunityVerdict
               diveSite={diveSite}
               onRate={handleQuickRate}
@@ -801,29 +933,88 @@ const DiveSiteDetail = () => {
         </div>
       </div>
 
-      {/* Navigation Bar */}
-      {/* Removed empty navigation bar - no longer needed */}
+      {/* Mobile Horizontal Tabs Navigation */}
+      <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 overflow-x-auto hide-scrollbar sticky top-0 bg-gray-50/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50'>
+        <nav
+          className='flex justify-between items-center w-full gap-1 px-1'
+          aria-label='Mobile Sections'
+        >
+          <a
+            href='#overview'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Overview'
+          >
+            <Info className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Info
+            </span>
+          </a>
+          <a
+            href='#location'
+            onClick={() => setIsNearbyExpanded(true)}
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Location'
+          >
+            <MapPin className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Map
+            </span>
+          </a>
+          <a
+            href='#weather'
+            onClick={() => setIsMarineExpanded(true)}
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Weather Conditions'
+          >
+            <CloudSun className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Weather
+            </span>
+          </a>
+          <a
+            href='#routes'
+            onClick={() => setIsRoutesExpanded(true)}
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Available Routes'
+          >
+            <Route className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Routes
+            </span>
+          </a>
+          <a
+            href='#dives'
+            onClick={() => setIsTopDivesExpanded(true)}
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Top Dives'
+          >
+            <TrendingUp className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Dives
+            </span>
+          </a>
+          <a
+            href='#comments'
+            className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
+            title='Comments'
+          >
+            <MessageCircle className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+              Comments
+            </span>
+          </a>
+        </nav>
+      </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8'>
         {/* Main Content */}
-        <div className='lg:col-span-2 space-y-6'>
-          {/* Community Verdict - Mobile Only */}
-          {diveSite && (
-            <div className='lg:hidden'>
-              <CommunityVerdict
-                diveSite={diveSite}
-                onRate={handleQuickRate}
-                isSubmitting={rateMutation.isLoading}
-              />
-            </div>
-          )}
-
+        <div className='lg:col-span-2 space-y-4 sm:space-y-6'>
           {/* Description & Media Gallery with Tabs */}
           {(diveSite.description || (media && media.length > 0)) && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
               {/* Main Tab Navigation */}
-              <div className='border-b border-gray-200 mb-4'>
-                <nav className='flex space-x-8'>
+              <div className='border-b border-gray-200 mb-3 sm:mb-4'>
+                <nav className='flex space-x-4 sm:space-x-8'>
                   {diveSite.description && (
                     <button
                       onClick={() =>
@@ -832,10 +1023,10 @@ const DiveSiteDetail = () => {
                           return prev;
                         })
                       }
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
                         activeContentTab === 'description'
                           ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                       }`}
                     >
                       Description
@@ -849,10 +1040,10 @@ const DiveSiteDetail = () => {
                           return prev;
                         })
                       }
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
                         activeContentTab === 'media'
                           ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
                       }`}
                     >
                       Photos & Videos
@@ -864,7 +1055,7 @@ const DiveSiteDetail = () => {
               {/* Tab Content */}
               {activeContentTab === 'description' && diveSite.description && (
                 <div>
-                  <p className='text-gray-700 text-sm sm:text-base'>
+                  <p className='text-gray-700 text-[13px] sm:text-base leading-relaxed'>
                     {renderTextWithLinks(decodeHtmlEntities(diveSite.description))}
                   </p>
                 </div>
@@ -873,15 +1064,15 @@ const DiveSiteDetail = () => {
               {activeContentTab === 'media' && media && media.length > 0 && (
                 <div>
                   {/* Media Tab Navigation */}
-                  <div className='border-b border-gray-200 mb-4'>
-                    <nav className='flex space-x-8'>
+                  <div className='border-b border-gray-200 mb-3 sm:mb-4'>
+                    <nav className='flex space-x-4 sm:space-x-8'>
                       {photos.length > 0 && (
                         <button
                           onClick={() => setActiveMediaTab('photos')}
-                          className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                          className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
                             activeMediaTab === 'photos'
                               ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              : 'border-transparent text-gray-400 hover:text-gray-600'
                           }`}
                         >
                           Photos ({photos.length})
@@ -890,13 +1081,13 @@ const DiveSiteDetail = () => {
                       {videos.length > 0 && (
                         <button
                           onClick={() => setActiveMediaTab('videos')}
-                          className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                          className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider flex items-center space-x-1.5 ${
                             activeMediaTab === 'videos'
                               ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              : 'border-transparent text-gray-400 hover:text-gray-600'
                           }`}
                         >
-                          <Video className='w-4 h-4' />
+                          <Video className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
                           <span>Videos ({videos.length})</span>
                         </button>
                       )}
@@ -954,42 +1145,42 @@ const DiveSiteDetail = () => {
 
           {/* Location */}
           {(diveSite.latitude && diveSite.longitude) || diveSite.address ? (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+            <div
+              id='location'
+              className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'
+            >
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4'>
                 Location
               </h2>
               {diveSite.address && (
-                <div className='mb-4'>
-                  <span className='font-medium text-gray-700'>Address:</span>
-                  <span className='ml-2 text-gray-700'>{diveSite.address}</span>
+                <div className='mb-3 flex items-start gap-2'>
+                  <MapPin className='w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0' />
+                  <span className='text-xs sm:text-sm text-gray-600'>{diveSite.address}</span>
                 </div>
               )}
               {diveSite.latitude && diveSite.longitude && (
                 <>
                   {/* Location Actions: Directions and Full Map */}
-                  <div className='flex flex-row gap-2 mb-4 w-full'>
+                  <div className='flex flex-row gap-2 mb-3 w-full'>
                     <Button
                       to={`https://www.google.com/maps/dir/?api=1&destination=${diveSite.latitude},${diveSite.longitude}`}
                       target='_blank'
                       rel='noopener noreferrer'
                       variant='primary'
-                      className='flex-[1.6]'
+                      className='flex-[1.8] px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
                       title='Get driving directions from Google Maps'
                       icon={<Navigation className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
                     >
-                      <span className='whitespace-nowrap text-[11px] sm:text-sm'>
-                        Get Driving Directions
-                      </span>
-                      <ExternalLink className='h-3 w-3 opacity-80 hidden sm:inline-block ml-1.5' />
+                      <span className='whitespace-nowrap'>Get Directions</span>
                     </Button>
 
                     <Button
                       onClick={() => navigate(`/dive-sites/${id}/map`)}
                       variant='white'
-                      className='flex-1'
-                      icon={<Link className='w-3.5 h-3.5 sm:w-4 sm:h-4' />}
+                      className='flex-1 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
+                      icon={<Link className='w-3.5 h-3.5 sm:h-4 sm:w-4' />}
                     >
-                      <span className='whitespace-nowrap text-[11px] sm:text-sm'>Full Map</span>
+                      <span className='whitespace-nowrap'>Full Map</span>
                     </Button>
                   </div>
 
@@ -1015,35 +1206,89 @@ const DiveSiteDetail = () => {
             </div>
           ) : null}
 
+          {/* Weather Conditions - Mobile Only (Desktop is in Sidebar) */}
+          <div
+            id='weather'
+            className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
+          >
+            <Collapse
+              ghost
+              activeKey={isMarineExpanded ? ['weather-mobile'] : []}
+              onChange={keys => setIsMarineExpanded(keys.includes('weather-mobile'))}
+              items={[
+                {
+                  key: 'weather-mobile',
+                  label: (
+                    <span className='text-base sm:text-xl font-bold text-gray-900'>
+                      Weather Conditions
+                    </span>
+                  ),
+                  children: (
+                    <div className='-m-3 sm:-m-6 mt-0'>
+                      <WeatherConditionsCard windData={windData} loading={isWindLoading} />
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
+
           {/* Available Routes */}
-          <DiveSiteRoutes diveSiteId={id} />
+          <div id='routes' className='scroll-mt-16'>
+            {/* Desktop View */}
+            <div className='hidden lg:block'>
+              <DiveSiteRoutes diveSiteId={id} />
+            </div>
+
+            {/* Mobile View */}
+            <div className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
+              <Collapse
+                ghost
+                activeKey={isRoutesExpanded ? ['routes-mobile'] : []}
+                onChange={keys => setIsRoutesExpanded(keys.includes('routes-mobile'))}
+                items={[
+                  {
+                    key: 'routes-mobile',
+                    label: (
+                      <span className='text-base sm:text-xl font-bold text-gray-900'>
+                        Available Routes
+                      </span>
+                    ),
+                    children: (
+                      <div className='-mt-4 -mb-2 -mx-2'>
+                        <DiveSiteRoutes diveSiteId={id} isMobileCollapsed={true} />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </div>
+          </div>
 
           {/* Nearby Dive Sites - Mobile View Only */}
           {diveSite.latitude && diveSite.longitude && (
-            <div className='lg:hidden bg-white rounded-lg shadow-md overflow-hidden'>
+            <div
+              id='nearby'
+              className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
+            >
               <Collapse
                 ghost
+                activeKey={isNearbyExpanded ? ['nearby'] : []}
                 onChange={keys => {
-                  // If we open it (keys.length > 0), set expanded to true.
-                  // If we close it, we can keep it expanded (to cache data) or set false.
-                  // Let's set it to true if opened, and keep it true?
-                  // Actually, if I toggle, keys array changes.
-                  // If I set `setIsNearbyExpanded(keys.length > 0)`, it will disable query when closed.
-                  // That's fine, React Query keeps cache.
-                  // But if I want to "Close by default and queries ... only be sent once the user opens them", disabling when closed is also fine (or keeping enabled).
-                  // Simplest is to sync state.
                   setIsNearbyExpanded(keys.includes('nearby'));
                 }}
                 items={[
                   {
                     key: 'nearby',
                     label: (
-                      <span className='text-lg font-semibold text-gray-900'>Nearby Dive Sites</span>
+                      <span className='text-base sm:text-lg font-bold text-gray-900'>
+                        Nearby Dive Sites
+                      </span>
                     ),
                     children: (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
                         {isNearbyLoading ? (
-                          <div className='text-center py-4 text-gray-500'>
+                          <div className='text-center py-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider'>
                             Loading nearby sites...
                           </div>
                         ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
@@ -1053,21 +1298,21 @@ const DiveSiteDetail = () => {
                               onClick={() =>
                                 navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)
                               }
-                              className='flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
+                              className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
                             >
-                              <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                              <MapPin className='w-3.5 h-3.5 mr-2 flex-shrink-0 text-blue-500' />
                               <div className='min-w-0 flex-1'>
-                                <div className='font-medium text-gray-900 truncate'>
+                                <div className='font-bold text-gray-900 text-xs truncate leading-tight'>
                                   {site.name}
                                 </div>
-                                <div className='text-xs text-gray-500'>
+                                <div className='text-[10px] text-gray-400 font-medium'>
                                   {site.distance_km} km away
                                 </div>
                               </div>
                             </button>
                           ))
                         ) : (
-                          <div className='text-center py-4 text-gray-500'>
+                          <div className='text-center py-4 text-xs text-gray-500 italic'>
                             No nearby dive sites found.
                           </div>
                         )}
@@ -1081,125 +1326,47 @@ const DiveSiteDetail = () => {
 
           {/* Top Dives */}
           {topDives && topDives.length > 0 && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                Top Dives
-              </h2>
-              <div className='space-y-3'>
-                {topDives.map(dive => (
-                  <div
-                    key={dive.id}
-                    className='border rounded-lg p-3 hover:bg-gray-50 transition-colors'
-                  >
-                    <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2'>
-                      <RouterLink
-                        to={`/dives/${dive.id}/${slugify(`${dive.name || dive.dive_site?.name || diveSite?.name || 'dive'}-${dive.dive_date}-dive-${dive.id}`)}`}
-                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm sm:text-base'
-                      >
-                        {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
-                      </RouterLink>
-                      {dive.user_rating && (
-                        <div className='flex items-center'>
-                          <Star className='h-4 w-4 text-yellow-500 mr-1' />
-                          <span className='text-sm font-medium'>{dive.user_rating}/10</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='text-xs sm:text-sm text-gray-600 space-y-1'>
-                      <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
-                        <span className='font-medium'>Date:</span>
-                        <span>{new Date(dive.dive_date).toLocaleDateString()}</span>
-                        {dive.dive_time && (
-                          <span className='text-gray-500'>
-                            at{' '}
-                            {new Date(`2000-01-01T${dive.dive_time}`).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: false, // Use 24-hour format
-                            })}
-                          </span>
-                        )}
-                      </div>
-
-                      {dive.user_username && (
-                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
-                          <span className='font-medium'>By:</span>
-                          <RouterLink
-                            to={`/users/${dive.user_username}`}
-                            className='text-blue-600 hover:text-blue-800 hover:underline'
-                          >
-                            {dive.user_username}
-                          </RouterLink>
-                        </div>
-                      )}
-
-                      {dive.max_depth && (
-                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
-                          <span className='font-medium'>Max Depth:</span>
-                          <span>{dive.max_depth}m</span>
-                        </div>
-                      )}
-
-                      {dive.duration && (
-                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
-                          <span className='font-medium'>Duration:</span>
-                          <span>{dive.duration}min</span>
-                        </div>
-                      )}
-
-                      {dive.difficulty_code && (
-                        <div className='flex flex-col sm:flex-row sm:items-center gap-1'>
-                          <span className='font-medium'>Level:</span>
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                          >
-                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {dive.dive_information && (
-                      <p className='text-sm text-gray-700 mt-2 line-clamp-2'>
-                        {decodeHtmlEntities(dive.dive_information)}
-                      </p>
-                    )}
-
-                    {dive.tags && dive.tags.length > 0 && (
-                      <div className='flex flex-wrap gap-1 mt-2'>
-                        {dive.tags.map(tag => (
-                          <span
-                            key={tag.id}
-                            className={`px-2 py-1 text-xs rounded-full ${getTagColor(tag.name)}`}
-                          >
-                            {tag.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+            <>
+              {/* Desktop View */}
+              <div className='hidden lg:block bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'>
+                <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4'>
+                  Top Dives
+                </h2>
+                {renderTopDivesList()}
               </div>
 
-              <div className='mt-4 text-center'>
-                <RouterLink
-                  to={`/dives?dive_site_id=${id}`}
-                  className='text-blue-600 hover:text-blue-800 text-sm font-medium'
-                >
-                  View All Dives at This Site →
-                </RouterLink>
+              {/* Mobile View */}
+              <div
+                id='dives'
+                className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
+              >
+                <Collapse
+                  ghost
+                  activeKey={isTopDivesExpanded ? ['top-dives-mobile'] : []}
+                  onChange={keys => setIsTopDivesExpanded(keys.includes('top-dives-mobile'))}
+                  items={[
+                    {
+                      key: 'top-dives-mobile',
+                      label: (
+                        <span className='text-base sm:text-xl font-bold text-gray-900'>
+                          Top Dives
+                        </span>
+                      ),
+                      children: <div className='-mt-2'>{renderTopDivesList()}</div>,
+                    },
+                  ]}
+                />
               </div>
-            </div>
+            </>
           )}
 
           {/* Access Instructions - Mobile View Only */}
           {diveSite.access_instructions && (
-            <div className='lg:hidden bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+            <div className='lg:hidden bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Access Instructions
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>
+              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
                 {decodeHtmlEntities(diveSite.access_instructions)}
               </p>
             </div>
@@ -1207,11 +1374,11 @@ const DiveSiteDetail = () => {
 
           {/* Safety Information */}
           {diveSite.safety_information && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Safety Information
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>
+              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
                 {decodeHtmlEntities(diveSite.safety_information)}
               </p>
             </div>
@@ -1219,26 +1386,29 @@ const DiveSiteDetail = () => {
 
           {/* Marine Life */}
           {diveSite.marine_life && (
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
+            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Marine Life
               </h2>
-              <p className='text-gray-700 text-sm sm:text-base'>
+              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
                 {decodeHtmlEntities(diveSite.marine_life)}
               </p>
             </div>
           )}
 
           {/* Comments */}
-          <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3'>
-              <h2 className='text-lg sm:text-xl font-semibold text-gray-900'>Comments</h2>
+          <div
+            id='comments'
+            className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'
+          >
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2'>
+              <h2 className='text-base sm:text-xl font-bold text-gray-900'>Comments</h2>
               {user && (
                 <button
                   onClick={() => setShowCommentForm(!showCommentForm)}
-                  className='flex items-center justify-center px-3 py-1 text-blue-600 hover:text-blue-700 w-full sm:w-auto'
+                  className='flex items-center justify-center px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors w-full sm:w-auto text-xs sm:text-sm font-medium'
                 >
-                  <MessageCircle className='h-4 w-4 mr-1' />
+                  <MessageCircle className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                   Add Comment
                 </button>
               )}
@@ -1248,7 +1418,7 @@ const DiveSiteDetail = () => {
               <form onSubmit={handleCommentSubmit} className='mb-6'>
                 <label
                   htmlFor='comment-textarea'
-                  className='block text-sm font-medium text-gray-700 mb-2'
+                  className='block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2'
                 >
                   Your Comment
                 </label>
@@ -1257,14 +1427,14 @@ const DiveSiteDetail = () => {
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   placeholder='Share your experience...'
-                  className='w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                  className='w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm transition-all'
                   rows='3'
                 />
                 <div className='flex justify-end mt-2'>
                   <button
                     type='submit'
                     disabled={commentMutation.isLoading}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm'
+                    className='px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm font-medium shadow-sm transition-colors'
                   >
                     {commentMutation.isLoading ? 'Posting...' : 'Post Comment'}
                   </button>
@@ -1274,42 +1444,45 @@ const DiveSiteDetail = () => {
 
             <div className='space-y-4'>
               {comments?.map(comment => (
-                <div key={comment.id} className='border-b border-gray-200 pb-4'>
+                <div
+                  key={comment.id}
+                  className='border-b border-gray-100 pb-4 last:border-0 last:pb-0'
+                >
                   <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-2 gap-2'>
-                    <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
+                    <div className='flex flex-col sm:flex-row sm:items-center gap-1.5'>
                       <RouterLink
                         to={`/users/${comment.username}`}
-                        className='font-medium text-blue-600 hover:text-blue-800 hover:underline text-sm'
+                        className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs sm:text-sm'
                       >
                         {comment.username}
                       </RouterLink>
                       {(comment.user_diving_certification || comment.user_number_of_dives) && (
-                        <div className='flex flex-wrap items-center gap-2 text-xs text-gray-500'>
+                        <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500'>
                           {comment.user_diving_certification && (
-                            <span className='bg-blue-100 text-blue-800 px-2 py-1 rounded'>
+                            <span className='bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 font-medium'>
                               {comment.user_diving_certification}
                             </span>
                           )}
                           {comment.user_number_of_dives > 0 && (
-                            <span className='bg-green-100 text-green-800 px-2 py-1 rounded'>
+                            <span className='bg-green-50 text-green-700 px-1.5 py-0.5 rounded border border-green-100 font-medium'>
                               {comment.user_number_of_dives} dives
                             </span>
                           )}
                         </div>
                       )}
                     </div>
-                    <span className='text-xs sm:text-sm text-gray-500'>
+                    <span className='text-[10px] sm:text-xs text-gray-400'>
                       {new Date(comment.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className='text-gray-700 text-sm sm:text-base'>
+                  <p className='text-gray-700 text-[13px] sm:text-base leading-relaxed'>
                     {renderTextWithLinks(comment.comment_text, { isUGC: true, shorten: false })}
                   </p>
                 </div>
               ))}
 
               {comments?.length === 0 && (
-                <p className='text-gray-500 text-center py-4 text-sm sm:text-base'>
+                <p className='text-gray-500 text-center py-4 text-xs sm:text-sm italic bg-gray-50/50 rounded-lg'>
                   No comments yet. Be the first to share your experience!
                 </p>
               )}

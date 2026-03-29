@@ -23,8 +23,9 @@ import ErrorPage from '../components/ErrorPage';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import PageHeader from '../components/PageHeader';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import Pagination from '../components/ui/Pagination';
 import { useCompactLayout } from '../hooks/useCompactLayout';
-import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDiveRoutes } from '../services/diveSites';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -48,7 +49,6 @@ const DiveRoutes = () => {
   const { sortBy, sortOrder, handleSortChange, resetSorting } = useSorting('dive-routes');
 
   const { isMobile } = useResponsive();
-  const { searchBarVisible } = useResponsiveScroll();
   const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
 
   // View mode state
@@ -175,48 +175,46 @@ const DiveRoutes = () => {
             />
           )}
 
-          {(!isMobile || searchBarVisible || getActiveFiltersCount() > 0) && (
-            <ResponsiveFilterBar
-              showFilters={showFilters}
-              onToggleFilters={() => setShowFilters(!showFilters)}
-              onClearFilters={clearFilters}
-              activeFiltersCount={getActiveFiltersCount()}
-              filters={{}} // No complex filters yet besides quick ones
-              onFilterChange={() => {}}
-              onQuickFilter={handleQuickFilter}
-              quickFilters={routeType ? [routeType] : []}
-              variant='sticky'
-              showQuickFilters={false} // We handle custom quick filters below or repurpose
-              showAdvancedToggle={false}
-              searchQuery={search}
-              onSearchChange={handleSearchChange}
-              onSearchSubmit={() => {}}
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              sortOptions={[
-                { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
-                { value: 'name', label: 'Name', defaultOrder: 'asc' },
-              ]}
-              onSortChange={handleSortChange}
-              onReset={resetSorting}
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              compactLayout={compactLayout}
-              onDisplayOptionChange={handleDisplayOptionChange}
-              pageType='dive-routes'
-            />
-          )}
+          <ResponsiveFilterBar
+            showFilters={showFilters}
+            onToggleFilters={() => setShowFilters(!showFilters)}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={{}} // No complex filters yet besides quick ones
+            onFilterChange={() => {}}
+            onQuickFilter={handleQuickFilter}
+            quickFilters={routeType ? [routeType] : []}
+            variant='inline'
+            showQuickFilters={false} // We handle custom quick filters below or repurpose
+            showAdvancedToggle={false}
+            searchQuery={search}
+            onSearchChange={handleSearchChange}
+            onSearchSubmit={() => {}}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={[
+              { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
+              { value: 'name', label: 'Name', defaultOrder: 'asc' },
+            ]}
+            onSortChange={handleSortChange}
+            onReset={resetSorting}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+            pageType='dive-routes'
+          />
 
           {/* Custom Route Type Filter Pills (acting as Quick Filters) */}
-          <div className='flex flex-wrap items-center gap-2 mt-4 px-1'>
-            <span className='text-sm font-medium text-gray-500 mr-2 flex items-center gap-1'>
-              <Filter className='w-4 h-4' /> Filter:
+          <div className='flex flex-wrap items-center gap-1.5 sm:gap-2 mt-4 px-1'>
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 mr-1 sm:mr-2 flex items-center gap-1 uppercase tracking-wider'>
+              <Filter className='w-3 h-3 sm:w-4 sm:h-4' /> Filter:
             </span>
             <button
               onClick={() => handleTypeChange('scuba')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors border ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors border ${
                 routeType === 'scuba'
-                  ? 'bg-blue-100 text-blue-700 border-blue-200'
+                  ? 'bg-blue-100 text-blue-700 border-blue-200 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
               }`}
             >
@@ -224,9 +222,9 @@ const DiveRoutes = () => {
             </button>
             <button
               onClick={() => handleTypeChange('swim')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors border ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors border ${
                 routeType === 'swim'
-                  ? 'bg-cyan-100 text-cyan-700 border-cyan-200'
+                  ? 'bg-cyan-100 text-cyan-700 border-cyan-200 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-300'
               }`}
             >
@@ -234,9 +232,9 @@ const DiveRoutes = () => {
             </button>
             <button
               onClick={() => handleTypeChange('walk')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors border ${
+              className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors border ${
                 routeType === 'walk'
-                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                  ? 'bg-emerald-100 text-emerald-700 border-emerald-200 shadow-sm'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
               }`}
             >
@@ -245,9 +243,9 @@ const DiveRoutes = () => {
           </div>
 
           {/* POI Feature Filter Pills */}
-          <div className='flex flex-wrap items-center gap-2 mt-3 px-1'>
-            <span className='text-sm font-medium text-gray-500 mr-2 flex items-center gap-1'>
-              <MapPin className='w-4 h-4' /> Features:
+          <div className='flex flex-wrap items-center gap-1.5 sm:gap-2 mt-3 px-1'>
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 mr-1 sm:mr-2 flex items-center gap-1 uppercase tracking-wider'>
+              <MapPin className='w-3 h-3 sm:w-4 sm:h-4' /> Features:
             </span>
             {Object.values(MARKER_TYPES)
               .filter(t => t.id !== 'generic')
@@ -258,13 +256,16 @@ const DiveRoutes = () => {
                   <button
                     key={poi.id}
                     onClick={() => handlePoiTypeToggle(poi.id)}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                    className={`flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors border ${
                       isSelected
-                        ? 'bg-gray-800 text-white border-gray-800'
+                        ? 'bg-gray-800 text-white border-gray-800 shadow-sm'
                         : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
                     }`}
                   >
-                    <Icon className='w-3 h-3' style={{ color: isSelected ? 'white' : poi.color }} />
+                    <Icon
+                      className='w-2.5 h-2.5 sm:w-3 h-3'
+                      style={{ color: isSelected ? 'white' : poi.color }}
+                    />
                     {poi.name}
                   </button>
                 );
@@ -273,60 +274,15 @@ const DiveRoutes = () => {
         </div>
 
         {/* Top Pagination Controls */}
-        <div className='mb-6 sm:mb-8'>
-          <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-            <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-              <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full justify-between'>
-                {/* Page Size Selection */}
-                <div className='flex items-center gap-2'>
-                  <label htmlFor='page-size-top' className='text-sm font-medium text-gray-700'>
-                    Show:
-                  </label>
-                  <select
-                    id='page-size-top'
-                    value={pageSize}
-                    onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span className='text-sm text-gray-600'>per page</span>
-                </div>
-
-                {/* Pagination Info */}
-                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                  Showing {Math.max(1, (page - 1) * pageSize + 1)} to{' '}
-                  {Math.min(page * pageSize, totalCount)} of {totalCount} routes
-                </div>
-
-                {/* Pagination Navigation */}
-                <div className='flex items-center gap-2'>
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronLeft className='h-4 w-4' />
-                  </button>
-
-                  <span className='text-xs sm:text-sm text-gray-700'>
-                    Page {page} of {totalPages}
-                  </span>
-
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronRight className='h-4 w-4' />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Pagination
+          currentPage={page}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          itemName='routes'
+          onPageChange={newPage => setPage(newPage)}
+          onPageSizeChange={handlePageSizeChange}
+          className='mb-4 sm:mb-6 lg:mb-8'
+        />
 
         {/* Loading State */}
         {isLoading ? (
@@ -353,13 +309,13 @@ const DiveRoutes = () => {
               return (
                 <div
                   key={route.id}
-                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-4' : 'p-6'}`}
+                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
                 >
                   {/* Header: Title & Type */}
                   <div className='mb-2'>
-                    <div className='flex items-start justify-between gap-3'>
+                    <div className='flex items-start justify-between gap-2 sm:gap-3'>
                       <h3
-                        className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-base' : 'text-lg'}`}
+                        className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
                       >
                         <Link
                           to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
@@ -370,7 +326,7 @@ const DiveRoutes = () => {
                       </h3>
                       {/* Route Type Badge */}
                       <span
-                        className={`flex-shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                        className={`flex-shrink-0 px-1.5 py-0 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border ${
                           detectedType === 'scuba'
                             ? 'bg-blue-50 text-blue-700 border-blue-100'
                             : detectedType === 'swim' || detectedType === 'free_swim'
@@ -386,22 +342,24 @@ const DiveRoutes = () => {
                   </div>
 
                   {/* Meta Info: Site & Creator */}
-                  <div className='mb-4 flex flex-col gap-1.5'>
+                  <div className='mb-2 sm:mb-4 flex flex-col gap-1 sm:gap-1.5'>
                     {route.dive_site && (
-                      <div className='flex items-center gap-1.5 text-xs font-medium text-gray-600'>
-                        <MapPin className='w-3.5 h-3.5 text-blue-600 flex-shrink-0' />
-                        <span className='text-gray-500 leading-tight mt-1'>at</span>
+                      <div className='flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-medium text-gray-600'>
+                        <MapPin className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 flex-shrink-0' />
+                        <span className='text-gray-500 leading-tight mt-0.5 sm:mt-1'>at</span>
                         <Link
                           to={`/dive-sites/${route.dive_site_id}`}
                           className='text-blue-600 hover:text-blue-800 hover:underline flex items-center'
                         >
-                          <span className='leading-tight mt-1'>{route.dive_site.name}</span>
+                          <span className='leading-tight mt-0.5 sm:mt-1'>
+                            {route.dive_site.name}
+                          </span>
                         </Link>
                       </div>
                     )}
 
-                    <div className='text-xs text-gray-500 flex items-center gap-1.5'>
-                      <User className='w-3.5 h-3.5' />
+                    <div className='text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 sm:gap-1.5'>
+                      <User className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
                       <span>{route.creator?.username || route.owner?.username || 'Unknown'}</span>
                     </div>
                   </div>
@@ -409,7 +367,7 @@ const DiveRoutes = () => {
                   {/* Body: Description (Hidden in List Compact Mode if desired, but good to keep) */}
                   {route.description && (
                     <div
-                      className={`text-gray-500 leading-relaxed line-clamp-2 mb-4 ${compactLayout ? 'text-xs' : 'text-sm'}`}
+                      className={`text-gray-500 leading-relaxed line-clamp-2 mb-2 sm:mb-4 ${compactLayout ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm'}`}
                     >
                       {renderTextWithLinks(decodeHtmlEntities(route.description))}
                     </div>
@@ -417,16 +375,16 @@ const DiveRoutes = () => {
 
                   {/* Stats Strip */}
                   <div
-                    className={`flex items-center gap-6 py-3 border-y border-gray-50 mb-4 mt-auto ${compactLayout ? 'py-2' : 'py-3'}`}
+                    className={`flex items-center gap-4 sm:gap-6 py-2 sm:py-3 border-y border-gray-50 mb-3 sm:mb-4 mt-auto ${compactLayout ? 'py-1.5 sm:py-2' : 'py-2 sm:py-3'}`}
                   >
                     <div className='flex flex-col'>
-                      <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                      <span className='text-[9px] sm:text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0 sm:mb-0.5'>
                         Created
                       </span>
-                      <div className='flex items-center gap-1.5'>
-                        <Calendar className='w-3.5 h-3.5 text-gray-400' />
+                      <div className='flex items-center gap-1 sm:gap-1.5'>
+                        <Calendar className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400' />
                         <span
-                          className={`font-semibold text-gray-700 ${compactLayout ? 'text-[11px]' : 'text-sm'}`}
+                          className={`font-semibold text-gray-700 ${compactLayout ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'}`}
                         >
                           {new Date(route.created_at).toLocaleDateString()}
                         </span>
@@ -438,10 +396,10 @@ const DiveRoutes = () => {
                   <div className='flex items-center justify-end'>
                     <Link
                       to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
-                      className='inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
+                      className='inline-flex items-center gap-1 text-[11px] sm:text-sm font-bold sm:font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
                     >
                       View Route
-                      <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
+                      <ChevronRight className='w-3 h-3 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5' />
                     </Link>
                   </div>
                 </div>
@@ -452,56 +410,15 @@ const DiveRoutes = () => {
 
         {/* Bottom Pagination */}
         {totalCount > 0 && (
-          <div className='mt-8 bg-white rounded-lg shadow-md p-4 sm:p-6'>
-            <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-              <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full justify-between'>
-                {/* Page Size Selection */}
-                <div className='flex items-center gap-2'>
-                  <label htmlFor='page-size-bottom' className='text-sm font-medium text-gray-700'>
-                    Show:
-                  </label>
-                  <select
-                    id='page-size-bottom'
-                    value={pageSize}
-                    onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                  <span className='text-sm text-gray-600'>per page</span>
-                </div>
-
-                {/* Pagination Info */}
-                <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                  Showing {Math.max(1, (page - 1) * pageSize + 1)} to{' '}
-                  {Math.min(page * pageSize, totalCount)} of {totalCount} routes
-                </div>
-
-                {/* Pagination Navigation */}
-                <div className='flex items-center gap-2'>
-                  <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronLeft className='h-4 w-4' />
-                  </button>
-                  <span className='px-4 py-2 text-sm font-medium text-gray-600 flex items-center'>
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                  >
-                    <ChevronRight className='h-4 w-4' />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Pagination
+            currentPage={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            itemName='routes'
+            onPageChange={newPage => setPage(newPage)}
+            onPageSizeChange={handlePageSizeChange}
+            className='mt-6 sm:mt-8'
+          />
         )}
       </div>
     </div>

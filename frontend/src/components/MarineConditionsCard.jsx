@@ -39,32 +39,63 @@ const WeatherConditionsCard = ({ windData, loading }) => {
       {/* Main Stats */}
       <Col span={12}>
         <Statistic
-          title='Wave Height'
+          title={
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 uppercase tracking-tight'>
+              Wave Height
+            </span>
+          }
           value={data.wave_height}
           precision={1}
-          suffix='m'
+          suffix={<span className='text-xs sm:text-sm text-gray-400'>m</span>}
           styles={{
             content: {
               color:
                 data.wave_height > 1.5 ? '#cf1322' : data.wave_height > 0.8 ? '#d48806' : '#3f8600',
+              fontSize: 'clamp(1rem, 4vw, 1.5rem)',
+              fontWeight: 700,
             },
           }}
         />
       </Col>
       <Col span={12}>
         <Statistic
-          title='Sea Temp'
+          title={
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 uppercase tracking-tight'>
+              Sea Temp
+            </span>
+          }
           value={data.sea_surface_temperature}
           precision={1}
-          suffix='°C'
-          prefix={<Thermometer className='w-4 h-4 mr-1' />}
+          suffix={<span className='text-xs sm:text-sm text-gray-400'>°C</span>}
+          prefix={<Thermometer className='w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-400' />}
+          styles={{
+            content: {
+              fontSize: 'clamp(1rem, 4vw, 1.5rem)',
+              fontWeight: 700,
+            },
+          }}
         />
       </Col>
 
       {/* Detailed Breakdown */}
       <Col span={24}>
-        <Descriptions size='small' column={1} bordered>
-          <Descriptions.Item label='Wave Direction'>
+        <Descriptions
+          size='small'
+          column={1}
+          bordered
+          styles={{
+            label: {
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              padding: '6px 8px',
+              width: '45%',
+            },
+            content: { fontSize: '13px', color: '#374151', padding: '6px 8px', fontWeight: 500 },
+          }}
+        >
+          <Descriptions.Item label='Wave Dir'>
             {data.wave_direction !== null ? formatWindDirection(data.wave_direction).full : 'N/A'}
           </Descriptions.Item>
           <Descriptions.Item label='Wave Period'>
@@ -73,17 +104,17 @@ const WeatherConditionsCard = ({ windData, loading }) => {
           <Descriptions.Item label='Swell'>
             {data.swell_wave_height !== null ? (
               <span>
-                {formatValue(data.swell_wave_height, 'm')} from{' '}
-                {formatWindDirection(data.swell_wave_direction).cardinal} (
-                {formatValue(data.swell_wave_period, 's')})
+                {formatValue(data.swell_wave_height, 'm')} (
+                {formatWindDirection(data.swell_wave_direction).cardinal}) @{' '}
+                {formatValue(data.swell_wave_period, 's')}
               </span>
             ) : (
               'N/A'
             )}
           </Descriptions.Item>
-          <Descriptions.Item label='Tide / Sea Level'>
+          <Descriptions.Item label='Tide (MSL)'>
             <Tooltip title='Height above Mean Sea Level (includes tides)'>
-              <span className='cursor-help border-b border-dotted border-gray-400'>
+              <span className='cursor-help border-b border-dotted border-gray-400 pb-0.5'>
                 {formatValue(data.sea_level_height_msl, 'm')}
               </span>
             </Tooltip>
@@ -94,33 +125,67 @@ const WeatherConditionsCard = ({ windData, loading }) => {
   );
 
   const windContent = (
-    <Row gutter={[16, 16]} className='pt-2'>
+    <Row gutter={[8, 16]} className='pt-2'>
       <Col span={12}>
         <Statistic
-          title='Wind Speed'
+          title={
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 uppercase tracking-tight'>
+              Wind Speed
+            </span>
+          }
           value={data.wind_speed_10m}
           precision={1}
-          suffix='m/s'
-          styles={{ content: { color: getWindColor(data.wind_speed_10m) } }}
+          suffix={<span className='text-xs sm:text-sm text-gray-400'>m/s</span>}
+          styles={{
+            content: {
+              color: getWindColor(data.wind_speed_10m),
+              fontSize: 'clamp(1rem, 4vw, 1.5rem)',
+              fontWeight: 700,
+            },
+          }}
         />
-        <div className='text-xs text-gray-500 mt-1'>
+        <div className='text-[10px] sm:text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wider'>
           {data.wind_speed_10m ? `${formatWindSpeed(data.wind_speed_10m).knots} knots` : ''}
         </div>
       </Col>
       <Col span={12}>
         <Statistic
-          title='Gusts'
+          title={
+            <span className='text-[11px] sm:text-sm font-bold text-gray-500 uppercase tracking-tight'>
+              Gusts
+            </span>
+          }
           value={data.wind_gusts_10m}
           precision={1}
-          suffix='m/s'
-          styles={{ content: { fontSize: '1.2em' } }}
+          suffix={<span className='text-xs sm:text-sm text-gray-400'>m/s</span>}
+          styles={{
+            content: {
+              fontSize: 'clamp(1rem, 4vw, 1.5rem)',
+              fontWeight: 700,
+              color: '#4b5563', // gray-600
+            },
+          }}
         />
-        <div className='text-xs text-gray-500 mt-1'>
+        <div className='text-[10px] sm:text-xs font-semibold text-gray-400 mt-0.5 uppercase tracking-wider'>
           {data.wind_gusts_10m ? `${formatWindSpeed(data.wind_gusts_10m).knots} knots` : ''}
         </div>
       </Col>
       <Col span={24}>
-        <Descriptions size='small' column={1} bordered>
+        <Descriptions
+          size='small'
+          column={1}
+          bordered
+          styles={{
+            label: {
+              fontSize: '11px',
+              fontWeight: 'bold',
+              color: '#6b7280',
+              textTransform: 'uppercase',
+              padding: '6px 8px',
+            },
+            content: { fontSize: '13px', color: '#374151', padding: '6px 8px', fontWeight: 500 },
+          }}
+        >
           <Descriptions.Item label='Direction'>
             {data.wind_direction_10m !== null
               ? formatWindDirection(data.wind_direction_10m).full

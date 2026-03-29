@@ -23,8 +23,8 @@ const DiveSiteSidebar = ({
 
   return (
     <div className='space-y-6'>
-      {/* Weather Conditions - Collapsible */}
-      <div className='bg-white rounded-lg shadow-md overflow-hidden'>
+      {/* Weather Conditions - Collapsible (Desktop Only, Mobile is in main content) */}
+      <div className='hidden lg:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
         <Collapse
           ghost
           onChange={keys => setIsMarineExpanded(keys.includes('weather'))}
@@ -32,8 +32,8 @@ const DiveSiteSidebar = ({
             {
               key: 'weather',
               label: (
-                <span className='text-lg font-semibold text-gray-900'>
-                  Current Weather Conditions
+                <span className='text-base sm:text-lg font-bold text-gray-900'>
+                  Weather Conditions
                 </span>
               ),
               children: (
@@ -59,42 +59,44 @@ const DiveSiteSidebar = ({
 
       {/* Associated Diving Centers - Moved to Sidebar */}
       {divingCenters && divingCenters.length > 0 && (
-        <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-4'>Diving Centers</h3>
-          <div className='space-y-4'>
+        <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+          <h3 className='text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4'>
+            Diving Centers
+          </h3>
+          <div className='space-y-3'>
             {divingCenters.map(center => (
-              <div key={center.id} className='border rounded-lg p-3'>
-                <div className='flex flex-col gap-1 mb-2'>
-                  <h4 className='font-medium text-gray-900 text-sm'>{center.name}</h4>
+              <div key={center.id} className='border border-gray-100 rounded-xl p-3 bg-gray-50/30'>
+                <div className='flex flex-col gap-0.5 mb-2'>
+                  <h4 className='font-bold text-gray-900 text-sm leading-tight'>{center.name}</h4>
                   {center.dive_cost && (
-                    <span className='text-green-600 font-medium text-xs'>
+                    <span className='text-green-600 font-bold text-[10px] uppercase tracking-wider'>
                       {formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)}
                     </span>
                   )}
                 </div>
                 {center.description && (
-                  <p className='text-gray-600 text-xs mb-2 line-clamp-2'>
+                  <p className='text-gray-500 text-[11px] mb-2 line-clamp-2 leading-relaxed'>
                     {decodeHtmlEntities(center.description)}
                   </p>
                 )}
-                <div className='flex flex-wrap gap-2 text-xs'>
+                <div className='flex flex-wrap gap-3 text-[11px] font-bold uppercase tracking-tight'>
                   {center.email && (
                     <a
                       href={`mailto:${center.email}`}
-                      className='flex items-center text-blue-600 hover:text-blue-700'
+                      className='flex items-center text-blue-600 hover:text-blue-800'
                       title='Email'
                     >
-                      <Link className='h-3 w-3 mr-1' />
+                      <Link className='h-3 w-3 mr-1 opacity-70' />
                       Email
                     </a>
                   )}
                   {center.phone && (
                     <a
                       href={`tel:${center.phone}`}
-                      className='flex items-center text-blue-600 hover:text-blue-700'
+                      className='flex items-center text-blue-600 hover:text-blue-800'
                       title='Phone'
                     >
-                      <Link className='h-3 w-3 mr-1' />
+                      <Link className='h-3 w-3 mr-1 opacity-70' />
                       Phone
                     </a>
                   )}
@@ -103,10 +105,10 @@ const DiveSiteSidebar = ({
                       href={center.website}
                       target='_blank'
                       rel='noopener noreferrer'
-                      className='flex items-center text-blue-600 hover:text-blue-700'
+                      className='flex items-center text-blue-600 hover:text-blue-800'
                       title='Website'
                     >
-                      <Link className='h-3 w-3 mr-1' />
+                      <Link className='h-3 w-3 mr-1 opacity-70' />
                       Web
                     </a>
                   )}
@@ -119,7 +121,7 @@ const DiveSiteSidebar = ({
 
       {/* Nearby Dive Sites - Desktop View Only */}
       {diveSite.latitude && diveSite.longitude && (
-        <div className='hidden lg:block bg-white rounded-lg shadow-md overflow-hidden'>
+        <div className='hidden lg:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
           <Collapse
             ghost
             onChange={keys => setIsNearbyExpanded(keys.includes('nearby-desktop'))}
@@ -127,30 +129,36 @@ const DiveSiteSidebar = ({
               {
                 key: 'nearby-desktop',
                 label: (
-                  <span className='text-lg font-semibold text-gray-900'>Nearby Dive Sites</span>
+                  <span className='text-base sm:text-lg font-bold text-gray-900'>
+                    Nearby Dive Sites
+                  </span>
                 ),
                 children: (
-                  <div className='space-y-2'>
+                  <div className='space-y-1.5'>
                     {isNearbyLoading ? (
-                      <div className='text-center py-4 text-gray-500'>Loading nearby sites...</div>
+                      <div className='text-center py-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider'>
+                        Loading nearby sites...
+                      </div>
                     ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
                       nearbyDiveSites.slice(0, 6).map(site => (
                         <button
                           key={site.id}
                           onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
-                          className='flex items-center p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left w-full'
+                          className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
                         >
-                          <MapPin className='w-4 h-4 mr-2 flex-shrink-0 text-blue-600' />
+                          <MapPin className='w-3.5 h-3.5 mr-2 flex-shrink-0 text-blue-500' />
                           <div className='min-w-0 flex-1'>
-                            <div className='font-medium text-gray-900 text-sm truncate'>
+                            <div className='font-bold text-gray-900 text-xs truncate leading-tight'>
                               {site.name}
                             </div>
-                            <div className='text-xs text-gray-500'>{site.distance_km} km away</div>
+                            <div className='text-[10px] text-gray-400 font-medium'>
+                              {site.distance_km} km away
+                            </div>
                           </div>
                         </button>
                       ))
                     ) : (
-                      <div className='text-center py-4 text-gray-500'>
+                      <div className='text-center py-4 text-xs text-gray-500 italic'>
                         No nearby dive sites found.
                       </div>
                     )}
