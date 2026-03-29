@@ -196,16 +196,16 @@ const RoutePreview = ({
           </div>
 
           {showActions && (
-            <div className='flex items-center gap-1 ml-4'>
+            <div className='flex items-center gap-0.5 sm:gap-1 ml-2 sm:ml-4'>
               <button
                 onClick={e => {
                   e.stopPropagation();
                   handleViewRoute();
                 }}
-                className='p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                className='p-1.5 sm:p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
                 title='View Route'
               >
-                <Eye className='w-4 h-4' />
+                <Eye className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
               </button>
 
               {canEdit && (
@@ -215,10 +215,10 @@ const RoutePreview = ({
                       e.stopPropagation();
                       handleEditRoute();
                     }}
-                    className='p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
+                    className='p-1.5 sm:p-2 text-gray-500 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors'
                     title='Edit Route'
                   >
-                    <Edit className='w-4 h-4' />
+                    <Edit className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
                   </button>
 
                   <button
@@ -226,10 +226,10 @@ const RoutePreview = ({
                       e.stopPropagation();
                       setShowDeleteConfirm(true);
                     }}
-                    className='p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                    className='p-1.5 sm:p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors'
                     title='Delete Route'
                   >
-                    <Trash2 className='w-4 h-4' />
+                    <Trash2 className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
                   </button>
                 </>
               )}

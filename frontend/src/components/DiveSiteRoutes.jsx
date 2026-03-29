@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import RoutePreview from './RoutePreview';
 
-const DiveSiteRoutes = ({ diveSiteId }) => {
+const DiveSiteRoutes = ({ diveSiteId, isMobileCollapsed = false }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -65,18 +65,18 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
   const hasMoreRoutes = routes && routes.length > 3;
 
   return (
-    <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+    <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
       <div
-        className={`flex items-center justify-between ${routes && routes.length > 0 ? 'mb-4' : ''}`}
+        className={`flex items-center justify-between gap-2 ${routes && routes.length > 0 ? 'mb-3 sm:mb-4' : ''}`}
       >
-        <h2 className='text-lg font-semibold text-gray-900'>
-          Available Routes ({routes?.length || 0})
+        <h2 className='text-base sm:text-xl font-bold text-gray-900 leading-tight'>
+          Routes <span className='text-gray-400 text-sm font-medium'>({routes?.length || 0})</span>
         </h2>
         <button
           onClick={handleDrawNewRoute}
-          className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+          className='flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium shadow-sm shrink-0'
         >
-          <Plus className='w-4 h-4' />
+          <Plus className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
           Draw Route
         </button>
       </div>
@@ -90,7 +90,7 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
           {hasMoreRoutes && !showAllRoutes && (
             <button
               onClick={() => setShowAllRoutes(true)}
-              className='w-full py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors'
+              className='w-full py-1.5 sm:py-2 text-blue-600 hover:text-blue-800 rounded-md text-xs sm:text-sm font-medium transition-colors'
             >
               Show All Routes ({routes.length})
             </button>
@@ -99,7 +99,7 @@ const DiveSiteRoutes = ({ diveSiteId }) => {
           {hasMoreRoutes && showAllRoutes && (
             <button
               onClick={() => setShowAllRoutes(false)}
-              className='w-full py-2 text-gray-600 hover:text-gray-700 font-medium transition-colors'
+              className='w-full py-1.5 sm:py-2 text-gray-500 hover:text-gray-700 rounded-md text-xs sm:text-sm font-medium transition-colors'
             >
               Show Less
             </button>
