@@ -103,15 +103,17 @@ const ChatWindow = ({
 
   return (
     <div
-      className={`flex flex-col h-full bg-white dark:bg-gray-900 shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 ${isEmbedded ? 'rounded-none border-0' : 'rounded-t-2xl md:rounded-2xl'}`}
+      className={`flex flex-col max-h-[85dvh] md:max-h-none md:h-full bg-white dark:bg-gray-900 overflow-hidden ${isEmbedded ? 'rounded-none border-0' : 'rounded-t-2xl md:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl md:shadow-none'}`}
     >
       {/* Header */}
       <div
-        className={`flex items-center px-4 py-3 bg-blue-600 text-white shrink-0 ${isEmbedded ? 'justify-center relative' : 'justify-between'}`}
+        className={`flex items-center px-3 py-2 sm:px-4 sm:py-3 bg-blue-600 text-white shrink-0 ${isEmbedded ? 'justify-center relative' : 'justify-between'}`}
       >
-        <div className='flex items-center gap-2'>
-          <ChatbotIcon size={20} className='text-blue-100' />
-          <h3 className='font-semibold text-sm'>Divemap Assistant</h3>
+        <div className='flex items-center gap-1.5 min-w-0'>
+          <ChatbotIcon size={18} className='text-blue-100 shrink-0' />
+          <h3 className='font-semibold text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis'>
+            Divemap Assistant
+          </h3>
         </div>
 
         <div className={`flex items-center gap-1 ${isEmbedded ? 'absolute right-4' : ''}`}>
@@ -164,10 +166,10 @@ const ChatWindow = ({
       {/* Messages Area */}
       <div
         data-testid='chat-message-list'
-        className='flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50'
+        className='shrink overflow-y-auto px-3 py-1.5 sm:p-4 bg-gray-50 dark:bg-gray-900/50 min-h-0 md:flex-1'
       >
         {!isAuthenticated ? (
-          <div className='h-full flex flex-col items-center justify-center text-gray-500 text-center p-6 space-y-4'>
+          <div className='py-8 sm:py-12 flex flex-col items-center justify-center text-gray-500 text-center px-6 space-y-4'>
             <div className='w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2'>
               <Lock size={32} className='text-blue-600' />
             </div>
@@ -187,11 +189,11 @@ const ChatWindow = ({
         ) : (
           <>
             {messages.length === 0 && (
-              <div className='h-full flex flex-col items-center justify-center text-gray-400 text-center p-6 space-y-4'>
-                <div className='w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2'>
-                  <span className='text-2xl'>🤖</span>
+              <div className='py-2 sm:py-12 flex flex-col sm:flex-col flex-row items-center justify-center text-gray-400 text-center sm:text-center text-left px-2 sm:px-6 space-y-0 space-x-2 sm:space-y-3 sm:space-x-0'>
+                <div className='w-6 h-6 sm:w-16 sm:h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center shrink-0'>
+                  <span className='text-sm sm:text-2xl'>🤖</span>
                 </div>
-                <p className='text-sm'>
+                <p className='text-[10px] sm:text-sm max-w-full sm:max-w-[250px] leading-tight sm:leading-relaxed m-0'>
                   Hi! I'm your AI dive buddy. Ask me about dive sites, weather conditions, or marine
                   life!
                 </p>
@@ -229,10 +231,10 @@ const ChatWindow = ({
 
       {/* Input Area */}
       {isAuthenticated && (
-        <div className='p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0'>
+        <div className='p-2.5 sm:p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shrink-0 pb-[max(0.6rem,env(safe-area-inset-bottom))]'>
           <SuggestionChips suggestions={suggestions} onSelect={text => onSend(text)} />
 
-          <div className='flex gap-2 items-end mt-2'>
+          <div className='flex gap-1.5 sm:gap-2 items-end mt-1 sm:mt-2'>
             <textarea
               ref={inputRef}
               data-testid='chat-input'
@@ -240,7 +242,7 @@ const ChatWindow = ({
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder='Ask anything...'
-              className='flex-1 max-h-32 min-h-[44px] py-2.5 px-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 resize-none text-sm dark:text-white scrollbar-hide'
+              className='flex-1 max-h-32 min-h-[44px] py-2 px-3 sm:py-2.5 sm:px-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 resize-none text-xs sm:text-sm dark:text-white scrollbar-hide'
               rows={1}
               style={{ height: 'auto' }} // Adjust height logic if needed
             />
@@ -248,12 +250,12 @@ const ChatWindow = ({
               data-testid='chat-send-button'
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className='p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5'
+              className='p-2 sm:p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5 shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px]'
             >
-              <Send size={18} />
+              <Send className='w-4 h-4 sm:w-[18px] sm:h-[18px]' />
             </button>
           </div>
-          <div className='text-xs text-center text-gray-400 mt-2'>
+          <div className='text-[9px] sm:text-xs text-center text-gray-400 mt-1.5 sm:mt-2'>
             AI can make mistakes. Verify important information.
           </div>
         </div>

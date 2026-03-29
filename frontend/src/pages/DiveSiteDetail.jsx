@@ -883,7 +883,7 @@ const DiveSiteDetail = () => {
 
               {/* Tags */}
               {diveSite.tags && diveSite.tags.length > 0 && (
-                <div className='flex flex-col'>
+                <div className='flex flex-col col-span-2'>
                   <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
                     Tags
                   </span>

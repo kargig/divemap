@@ -8,8 +8,15 @@ import os
 import sys
 import subprocess
 import time
+import re
 import sqlalchemy as sa
 from pathlib import Path
+
+def mask_database_url(url):
+    """Mask the password in a database connection URL for safe logging."""
+    if not url:
+        return url
+    return re.sub(r"(://[^:]+):([^@]+)@", r"\1:MASKED_PASSWORD@", url)
 
 def wait_for_database(max_retries=50, fixed_delay=0.2):
     """Wait for database to be available with fixed intervals (optimized for cold starts)"""
@@ -23,7 +30,7 @@ def wait_for_database(max_retries=50, fixed_delay=0.2):
     database_url = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
     if ".flycast" in database_url:
         internal_database_url = database_url.replace(".flycast", ".internal")
-        print(f"🔧 Using internal database URL for faster connection: {internal_database_url}")
+        print(f"🔧 Using internal database URL for faster connection: {mask_database_url(internal_database_url)}")
         # Temporarily override DATABASE_URL for internal connection
         os.environ["DATABASE_URL"] = internal_database_url
     
@@ -55,7 +62,7 @@ def run_migrations():
     database_url = os.getenv("DATABASE_URL", "mysql+pymysql://divemap_user:divemap_password@localhost:3306/divemap")
     if ".flycast" in database_url:
         internal_database_url = database_url.replace(".flycast", ".internal")
-        print(f"🔧 Using internal database URL for migrations: {internal_database_url}")
+        print(f"🔧 Using internal database URL for migrations: {mask_database_url(internal_database_url)}")
         os.environ["DATABASE_URL"] = internal_database_url
 
     try:

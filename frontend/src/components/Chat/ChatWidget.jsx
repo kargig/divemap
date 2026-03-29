@@ -122,20 +122,22 @@ const ChatWidget = () => {
   const { messages, sendMessage, isLoading, giveFeedback, clearChat } = useChat(context);
 
   return (
-    <div className='fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none'>
+    <>
       {/* Chat Window Container */}
       <div
         data-testid='chat-window-container'
         className={`
-          transition-all duration-300 ease-in-out transform origin-bottom-right
+          fixed z-[9999] transition-all duration-300 ease-in-out transform flex flex-col
           ${
             isOpen
-              ? `opacity-100 scale-100 translate-y-0 pointer-events-auto mb-4 w-[95vw] h-[80vh] ${
-                  isExpanded ? 'md:w-[800px] md:h-[85vh]' : 'md:w-[400px] md:h-[600px]'
-                }`
-              : 'opacity-0 scale-95 translate-y-10 pointer-events-none h-0 w-0 overflow-hidden'
+              ? 'opacity-100 translate-y-0 pointer-events-auto'
+              : 'opacity-0 translate-y-10 pointer-events-none invisible'
           }
-          shadow-2xl rounded-2xl
+          /* Mobile: Bottom Sheet (Size to content up to 85dvh) */
+          inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl shadow-[0_-8px_30px_rgb(0,0,0,0.12)]
+          /* Desktop: Floating Window */
+          md:inset-auto md:right-5 md:bottom-24 md:max-h-none md:rounded-2xl md:shadow-2xl md:origin-bottom-right
+          ${isExpanded ? 'md:w-[800px] md:h-[80dvh]' : 'md:w-[400px] md:h-[600px]'}
         `}
       >
         {isOpen && (
@@ -155,28 +157,34 @@ const ChatWidget = () => {
       </div>
 
       {/* FAB (Floating Action Button) */}
-      <button
-        data-testid='chat-fab'
-        onClick={() => {
-          if (isInactive && !isOpen) {
-            // First tap when inactive just wakes it up
-            setIsInactive(false);
-          } else {
-            setIsOpen(!isOpen);
-            setIsInactive(false);
-          }
-        }}
-        className={`
-          pointer-events-auto
-          flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
-          ${isOpen ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-blue-600 text-white'}
-          ${isInactive && !isOpen ? 'translate-x-10 opacity-75 hover:opacity-100 hover:translate-x-0' : 'translate-x-0 opacity-100'}
-        `}
-        aria-label={isOpen ? 'Close Chat' : 'Open Chat'}
+      <div
+        className={`fixed right-5 z-[9999] pointer-events-none transition-all duration-300 ${
+          context?.context_entity_type === 'dive_site' ? 'bottom-24 md:bottom-5' : 'bottom-5'
+        }`}
       >
-        <ChatbotIcon size={28} />
-      </button>
-    </div>
+        <button
+          data-testid='chat-fab'
+          onClick={() => {
+            if (isInactive && !isOpen) {
+              // First tap when inactive just wakes it up
+              setIsInactive(false);
+            } else {
+              setIsOpen(!isOpen);
+              setIsInactive(false);
+            }
+          }}
+          className={`
+            pointer-events-auto
+            items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
+            ${isOpen ? 'hidden md:flex bg-gray-200 text-gray-600 rotate-90' : 'flex bg-blue-600 text-white'}
+            ${isInactive && !isOpen ? 'translate-x-12 opacity-75 hover:opacity-100 hover:translate-x-0' : 'translate-x-0 opacity-100'}
+          `}
+          aria-label={isOpen ? 'Close Chat' : 'Open Chat'}
+        >
+          <ChatbotIcon size={28} />
+        </button>
+      </div>
+    </>
   );
 };
 

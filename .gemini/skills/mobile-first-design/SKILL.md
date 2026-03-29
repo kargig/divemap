@@ -17,7 +17,7 @@ This skill codifies the standards for responsive development in the Divemap proj
 - **Responsive Ordering**: Use `flex flex-col lg:grid` combined with `order-N` classes to move critical sidebar content (e.g., "Community Impact") to the top on mobile while keeping it in the sidebar on desktop.
 - **Header Density**: In headers, use `flex-col lg:flex-row` to stack titles and actions on mobile, but utilize horizontal space on desktop by pushing high-density stats (e.g., "Certification Overview") to the far right.
 - **Sticky Actions**: Use `sticky top-0` or `sticky bottom-0` for critical mobile UI like navigation or "Save" buttons.
-- **Safe Area Insets**: For modern mobile displays, use safe area utilities like `pb-[env(safe-area-inset-bottom)]`.
+- **Safe Area Insets (The `max` trick)**: For modern mobile displays, use safe area utilities but guarantee a minimum padding for non-iOS devices using `max()`: `pb-[max(1rem,env(safe-area-inset-bottom))]`.
 - **Responsive Spacing**: Use tighter padding (`p-3`, `p-4`) on mobile, increasing to (`p-6`, `p-8`) on larger screens.
 - **Container Control**: Use `.container mx-auto` to maintain consistent max-widths and center content.
 - **Overflow Management**: Prevent horizontal scrolling with `overflow-x-hidden` or controlled `overflow-x-auto`.
@@ -57,6 +57,12 @@ To maximize data density on mobile devices without sacrificing usability, apply 
 - **Screen Reader Context**: Use `sr-only` for labels that are visually redundant but necessary for a11y.
 
 ## 7. Component Patterns
+- **Bottom Sheets over Floating Bubbles**: For interactive overlays (like chat, complex filters, or menus) on mobile, prefer full-width Bottom Sheets (`inset-x-0 bottom-0 rounded-t-2xl`) rather than floating bubbles with tiny margins (`w-[95vw]`).
+- **Dynamic Bottom Sheet Sizing**: Use `h-auto max-h-[85dvh]` for bottom sheets so they only consume as much vertical space as necessary (e.g., during an empty state), rather than forcing a fixed `80vh` that covers the background context unnecessarily.
+- **Extreme Empty State Compression**: In mobile overlays, compress empty state messages by placing icons and text in a horizontal `flex-row` (instead of stacked `flex-col`), shrinking the icon, and tightening the `leading` to keep the overlay's initial vertical footprint as small as possible.
+- **Grid Item Horizontal Expansion**: When placing wrapping elements (like a list of Tags) inside a CSS grid, ensure their container spans the full width (e.g., `col-span-2` or `col-span-full`). This encourages horizontal wrapping rather than forcing the grid row to stretch vertically and waste screen height.
+- **Floating Element Collision (FABs)**: Manage the position of Floating Action Buttons dynamically so they don't overlap other sticky mobile elements (like a sticky bottom rate bar). Hide FABs entirely (`hidden md:flex`) when their corresponding bottom sheet is open.
+- **Suggestion Chips**: Prevent horizontal scrollbars on mobile for suggestion chips. Use `overflow-hidden` on the container and strictly limit the number of visible chips (e.g., hide elements with index >= 1 via `hidden sm:block`) with text `truncate`.
 - **Account Stats**: Use `flex justify-between items-center` for key-value pairs. Ensure values are right-aligned.
 - **Certifications**: Use high-density cards. Abbreviate organizations and use status dots instead of badges.
 - **Modals**: Merge related actions (like Edit + Toggle) into a single modal.
