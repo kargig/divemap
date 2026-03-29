@@ -63,10 +63,8 @@ const MaskedEmail = ({ email, className = '', showMailto = true, label = null, c
   if (!email) return null;
 
   // Use icon/label even after reveal if they were provided
-  const displayEmail = isRevealed 
-    ? (children || label || email) 
-    : maskEmail(email);
-    
+  const displayEmail = isRevealed ? children || label || email : maskEmail(email);
+
   const tooltipText = isRevealed ? 'Email will auto-hide soon' : 'Click to reveal email';
 
   if (showMailto && isRevealed) {

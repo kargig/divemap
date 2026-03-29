@@ -43,7 +43,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -126,7 +126,6 @@ const DiveSites = () => {
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
-  const { searchBarVisible } = useResponsiveScroll();
   // Calculate effective page size for pagination display
   const effectivePageSize = pagination.page_size || 25;
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
@@ -694,41 +693,36 @@ const DiveSites = () => {
         )}
 
         {/* Responsive Filter Bar */}
-        {/* Always visible on desktop. On mobile, show if search bar is visible OR if any filters are active. */}
-        <>
-          {isLoading ? (
-            <LoadingSkeleton type='filter' />
-          ) : (
-            (!isMobile || searchBarVisible || getActiveFiltersCount() > 0) && (
-              <ResponsiveFilterBar
-                showFilters={showAdvancedFilters}
-                onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                onClearFilters={clearFilters}
-                activeFiltersCount={getActiveFiltersCount()}
-                filters={{ ...filters, availableTags, user }}
-                onFilterChange={handleFilterChange}
-                onQuickFilter={handleQuickFilter}
-                quickFilters={quickFilters}
-                variant='sticky'
-                showQuickFilters={true}
-                showAdvancedToggle={true}
-                searchQuery={filters.search_query}
-                onSearchChange={value => handleFilterChange('search_query', value)}
-                onSearchSubmit={() => {}}
-                // Add sorting props
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                sortOptions={getSortOptions('dive-sites')}
-                onSortChange={handleSortChange}
-                onReset={resetSorting}
-                viewMode={viewMode}
-                onViewModeChange={handleViewModeChange}
-                compactLayout={compactLayout}
-                onDisplayOptionChange={handleDisplayOptionChange}
-              />
-            )
-          )}
-        </>
+        {isLoading ? (
+          <LoadingSkeleton type='filter' />
+        ) : (
+          <ResponsiveFilterBar
+            showFilters={showAdvancedFilters}
+            onToggleFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            onClearFilters={clearFilters}
+            activeFiltersCount={getActiveFiltersCount()}
+            filters={{ ...filters, availableTags, user }}
+            onFilterChange={handleFilterChange}
+            onQuickFilter={handleQuickFilter}
+            quickFilters={quickFilters}
+            variant='inline'
+            showQuickFilters={true}
+            showAdvancedToggle={true}
+            searchQuery={filters.search_query}
+            onSearchChange={value => handleFilterChange('search_query', value)}
+            onSearchSubmit={() => {}}
+            // Add sorting props
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            sortOptions={getSortOptions('dive-sites')}
+            onSortChange={handleSortChange}
+            onReset={resetSorting}
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            compactLayout={compactLayout}
+            onDisplayOptionChange={handleDisplayOptionChange}
+          />
+        )}
 
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (

@@ -323,7 +323,7 @@ const DivingCenters = () => {
   };
 
   const handleQuickFilter = type => {
-    let newFilters = { ...filters };
+    const newFilters = { ...filters };
     if (type === 'min_rating') {
       newFilters.min_rating = filters.min_rating === '4' ? '' : '4';
     } else if (type === 'country') {
@@ -409,7 +409,11 @@ const DivingCenters = () => {
             onQuickFilter={handleQuickFilter}
             reviewsEnabled={reviewsEnabled}
             quickFilter={
-              filters.min_rating === '4' ? 'min_rating' : filters.country === 'Greece' ? 'country' : ''
+              filters.min_rating === '4'
+                ? 'min_rating'
+                : filters.country === 'Greece'
+                  ? 'country'
+                  : ''
             }
             className='mb-6'
           />
@@ -470,7 +474,9 @@ const DivingCenters = () => {
               <>
                 {/* Diving Centers List */}
                 {viewMode === 'list' && (
-                  <div className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
+                  <div
+                    className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
+                  >
                     {divingCenters?.map(center => (
                       <div
                         key={center.id}
@@ -509,11 +515,13 @@ const DivingCenters = () => {
                                 <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 font-semibold'>
                                   <MapPin className='w-2.5 h-2.5 text-blue-400 flex-shrink-0' />
                                   <span className='truncate max-w-[200px] sm:max-w-[300px]'>
-                                    {Array.from(new Set(
-                                      [center.country, center.region, center.city]
-                                        .filter(Boolean)
-                                        .flatMap(s => s.split(',').map(p => p.trim()))
-                                    )).join(', ')}
+                                    {Array.from(
+                                      new Set(
+                                        [center.country, center.region, center.city]
+                                          .filter(Boolean)
+                                          .flatMap(s => s.split(',').map(p => p.trim()))
+                                      )
+                                    ).join(', ')}
                                   </span>
                                 </div>
                               )}
@@ -551,8 +559,8 @@ const DivingCenters = () => {
                                 <Globe className='w-4 h-4 text-blue-700 flex-shrink-0' />
                               </a>
                             )}
-                            {center.email && (
-                              isMobile ? (
+                            {center.email &&
+                              (isMobile ? (
                                 <a
                                   href={`mailto:${center.email}`}
                                   className='w-8 h-8 inline-flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:scale-95 transition-all'
@@ -568,8 +576,7 @@ const DivingCenters = () => {
                                 >
                                   <Mail className='w-4 h-4 text-green-700 flex-shrink-0' />
                                 </MaskedEmail>
-                              )
-                            )}
+                              ))}
                             {center.phone && (
                               <a
                                 href={`tel:${center.phone}`}

@@ -29,10 +29,7 @@ const PageHeader = ({
         <div className='flex-1 min-w-0'>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 sm:gap-3'>
             {TitleIcon && (
-              <TitleIcon
-                className='w-6 h-6 sm:w-7 h-7 text-gray-700'
-                aria-hidden='true'
-              />
+              <TitleIcon className='w-6 h-6 sm:w-7 h-7 text-gray-700' aria-hidden='true' />
             )}
             <span>{title}</span>
           </h1>

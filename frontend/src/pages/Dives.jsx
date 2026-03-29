@@ -47,7 +47,7 @@ import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
-import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
+import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
@@ -160,7 +160,6 @@ const Dives = () => {
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
-  const { searchBarVisible } = useResponsiveScroll();
 
   // Mobile optimization styles
   const mobileStyles = {
@@ -974,40 +973,37 @@ const Dives = () => {
       )}
 
       {/* Responsive Filter Bar */}
-      {/* Hide on mobile when scrolling up unless filters are active */}
-      {(!isMobile || searchBarVisible || activeFiltersCount > 0) && (
-        <ResponsiveFilterBar
-          showFilters={showFilters}
-          onToggleFilters={toggleFilters}
-          onClearFilters={clearFilters}
-          activeFiltersCount={activeFiltersCount}
-          filters={{
-            ...filters,
-            availableTags: availableTags || [],
-            availableDiveSites: diveSites || [],
-          }}
-          onFilterChange={handleFilterChange}
-          onQuickFilter={handleQuickFilter}
-          quickFilter={quickFilter}
-          variant='sticky'
-          showQuickFilters={true}
-          showAdvancedToggle={true}
-          searchQuery={filters.search}
-          onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
-          onSearchSubmit={() => {}}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
-          sortOptions={getSortOptions('dives', isAdmin)}
-          onSortChange={handleSortChange}
-          onReset={resetSorting}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          compactLayout={compactLayout}
-          onDisplayOptionChange={handleDisplayOptionChange}
-          pageType='dives'
-          user={user}
-        />
-      )}
+      <ResponsiveFilterBar
+        showFilters={showFilters}
+        onToggleFilters={toggleFilters}
+        onClearFilters={clearFilters}
+        activeFiltersCount={activeFiltersCount}
+        filters={{
+          ...filters,
+          availableTags: availableTags || [],
+          availableDiveSites: diveSites || [],
+        }}
+        onFilterChange={handleFilterChange}
+        onQuickFilter={handleQuickFilter}
+        quickFilter={quickFilter}
+        variant='inline'
+        showQuickFilters={true}
+        showAdvancedToggle={true}
+        searchQuery={filters.search}
+        onSearchChange={value => handleSearchChange({ target: { name: 'search', value } })}
+        onSearchSubmit={() => {}}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        sortOptions={getSortOptions('dives', isAdmin)}
+        onSortChange={handleSortChange}
+        onReset={resetSorting}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        compactLayout={compactLayout}
+        onDisplayOptionChange={handleDisplayOptionChange}
+        pageType='dives'
+        user={user}
+      />
 
       {/* Pagination Controls */}
       <Pagination
@@ -1153,18 +1149,29 @@ const Dives = () => {
                               </span>
                             ))}
                             {dive.tags.length > (isMobile ? 3 : 5) && (
-                              <span className='text-[9px] text-gray-400'>+{dive.tags.length - (isMobile ? 3 : 5)}</span>
+                              <span className='text-[9px] text-gray-400'>
+                                +{dive.tags.length - (isMobile ? 3 : 5)}
+                              </span>
                             )}
                           </div>
                         )}
                         {dive.buddies?.length > 0 && (
                           <div className='flex -space-x-1.5'>
                             {dive.buddies.slice(0, isMobile ? 2 : 5).map(buddy => (
-                              <div key={buddy.id} className='w-4 h-4 sm:w-6 sm:h-6 rounded-full ring-1 ring-white bg-blue-100 flex items-center justify-center overflow-hidden'>
+                              <div
+                                key={buddy.id}
+                                className='w-4 h-4 sm:w-6 sm:h-6 rounded-full ring-1 ring-white bg-blue-100 flex items-center justify-center overflow-hidden'
+                              >
                                 {buddy.avatar_url ? (
-                                  <img src={buddy.avatar_url} className='w-full h-full object-cover' alt='' />
+                                  <img
+                                    src={buddy.avatar_url}
+                                    className='w-full h-full object-cover'
+                                    alt=''
+                                  />
                                 ) : (
-                                  <span className='text-[7px] font-bold text-blue-600'>{buddy.username[0]}</span>
+                                  <span className='text-[7px] font-bold text-blue-600'>
+                                    {buddy.username[0]}
+                                  </span>
                                 )}
                               </div>
                             ))}

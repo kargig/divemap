@@ -53,7 +53,8 @@ export const DiveSiteListCard = ({
                 </Link>
                 {site.country && (
                   <span className='text-[10px] sm:text-xs font-medium text-blue-500 ml-1.5 opacity-80'>
-                    @ {site.country}{site.region ? `, ${site.region}` : ''}
+                    @ {site.country}
+                    {site.region ? `, ${site.region}` : ''}
                   </span>
                 )}
               </h3>
@@ -144,7 +145,9 @@ export const DiveSiteListCard = ({
                 </span>
               ))}
               {site.tags?.length > (isMobile ? 3 : 5) && (
-                <span className='text-[9px] text-gray-400'>+{site.tags.length - (isMobile ? 3 : 5)}</span>
+                <span className='text-[9px] text-gray-400'>
+                  +{site.tags.length - (isMobile ? 3 : 5)}
+                </span>
               )}
             </div>
 
@@ -192,7 +195,11 @@ export const DiveSiteGridCard = ({
         {/* Floating Rating */}
         {site.average_rating !== undefined && site.average_rating !== null && (
           <div className='absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-gray-100'>
-            <img src='/arts/divemap_shell.png' alt='Rating' className='w-3.5 h-3.5 object-contain' />
+            <img
+              src='/arts/divemap_shell.png'
+              alt='Rating'
+              className='w-3.5 h-3.5 object-contain'
+            />
             <span className='text-xs font-bold text-gray-900'>
               {Number(site.average_rating).toFixed(1)}
             </span>
@@ -249,7 +256,9 @@ export const DiveSiteGridCard = ({
                 className='h-5 w-5 rounded-full border-2 border-white bg-gray-50 flex items-center justify-center'
                 title={tag.name || tag}
               >
-                <div className={`h-full w-full rounded-full opacity-60 ${getTagColor(tag.name || tag)}`} />
+                <div
+                  className={`h-full w-full rounded-full opacity-60 ${getTagColor(tag.name || tag)}`}
+                />
               </div>
             ))}
           </div>

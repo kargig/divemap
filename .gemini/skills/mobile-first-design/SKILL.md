@@ -22,33 +22,43 @@ This skill codifies the standards for responsive development in the Divemap proj
 - **Container Control**: Use `.container mx-auto` to maintain consistent max-widths and center content.
 - **Overflow Management**: Prevent horizontal scrolling with `overflow-x-hidden` or controlled `overflow-x-auto`.
 
-## 3. Typography & Iconography
+## 3. Condensed Mobile View Standards (List & Detail Pages)
+To maximize data density on mobile devices without sacrificing usability, apply the following "condensed" styling patterns to listing pages (Dive Sites, Dives, Centers, Routes):
+
+- **Static Filter Bars:** Avoid `sticky` floating filter/search bars on mobile as they cause jumpy scroll behavior and consume screen real estate. Use a static inline layout (`bg-white border border-gray-200 rounded-xl shadow-sm mb-4`).
+- **Condensed Icons:** Reduce utility icons (Search, Filter, Settings, MapPin, User, Calendar) from standard desktop sizes (`w-5 h-5` or `w-4 h-4`) to `w-3.5 h-3.5` or `w-3 h-3` on mobile (e.g., `w-3 h-3 sm:w-4 sm:h-4`).
+- **Condensed Quick Filters:** Reduce padding and font size for filter pills and tags. Use `px-2 py-1 text-[10px] sm:text-xs` instead of standard button sizing.
+- **Card Padding:** Reduce container padding inside list cards from `p-4` or `p-6` down to `p-2 sm:p-4` or `p-3 sm:p-6`.
+- **Metadata Gaps:** Tighten the spacing between metadata items (e.g., `gap-1 sm:gap-1.5` instead of `gap-2`).
+- **Pagination:** ALWAYS use the global `<Pagination />` component (`frontend/src/components/ui/Pagination.jsx`) instead of building custom inline pagination. The global component automatically handles condensed mobile styling (e.g., smaller buttons, hidden verbose labels on small screens).
+
+## 4. Typography & Iconography
 - **Fluid Typography**: Consider using `clamp()` for headers that scale smoothly (e.g., `text-[clamp(1.5rem,5vw,2.5rem)]`).
 - **Line Height (Leading)**: Use `leading-relaxed` or `leading-loose` on mobile to improve legibility.
 - **Icon Standardization**: Refer to the `ui-icons` memory. Use icons to replace or accompany text (e.g., `TrendingUp` for Depth, `Waves` for Total Dives).
 - **Selective Abbreviation**: Prioritize acronyms on mobile (e.g., "PADI" vs. "Professional Association...").
 - **Visual Hierarchy**: Use bold headers and high-contrast accents to guide the eye on small screens.
 
-## 4. Forms & Interactive Elements
+## 5. Forms & Interactive Elements
 - **Touch Targets (44x44px)**: Ensure all buttons/links are easy to tap. Use `p-2` or `min-h-[44px]`.
 - **Active Feedback**: Always define `active:scale-95` to provide immediate visual confirmation.
 - **Form Fields**: Use full-width inputs on mobile to maximize typing comfort.
 - **Unique Form IDs**: Prefix all field IDs (e.g., `id="add_is_active"`) to avoid label linkage conflicts.
 - **Screen Reader Context**: Use `sr-only` for labels that are visually redundant but necessary for a11y.
 
-## 5. Component Patterns
+## 6. Component Patterns
 - **Account Stats**: Use `flex justify-between items-center` for key-value pairs. Ensure values are right-aligned.
 - **Certifications**: Use high-density cards. Abbreviate organizations and use status dots instead of badges.
 - **Modals**: Merge related actions (like Edit + Toggle) into a single modal.
 - **Data Parsing**: Use helper functions to parse complex JSON strings into compact, human-readable labels.
 
-## 6. Library Specifics (Ant Design)
+## 7. Library Specifics (Ant Design)
 - **Card Component**: Use `variant='borderless'` instead of `bordered={false}`.
 - **Statistic Component**: Use `styles={{ content: { ... } }}` instead of `valueStyle`.
 - **List Component**: Prefer standard `Array.map()` with custom `div` structures over the `List` component.
 - **Modal Component**: Use `destroyOnHidden` instead of `destroyOnClose`.
 
-## 7. Implementation Checklist
+## 8. Implementation Checklist
 - [ ] Does it work on a 320px wide viewport (iPhone SE)?
 - [ ] Is there any horizontal scrolling?
 - [ ] Are all touch targets at least 44px?
