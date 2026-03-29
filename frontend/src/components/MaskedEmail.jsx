@@ -1,11 +1,13 @@
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
 
-const MaskedEmail = ({ email, className = '', showMailto = true }) => {
+const MaskedEmail = ({ email, className = '', showMailto = true, label = null, children }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [autoHideTimeout, setAutoHideTimeout] = useState(null);
 
   const maskEmail = email => {
+    if (children) return children; // Prioritize children (icon)
+    if (label) return label; // Use provided label if available
     if (!email || !email.includes('@')) return email;
 
     const [localPart, domain] = email.split('@');
@@ -60,14 +62,18 @@ const MaskedEmail = ({ email, className = '', showMailto = true }) => {
 
   if (!email) return null;
 
-  const displayEmail = isRevealed ? email : maskEmail(email);
+  // Use icon/label even after reveal if they were provided
+  const displayEmail = isRevealed 
+    ? (children || label || email) 
+    : maskEmail(email);
+    
   const tooltipText = isRevealed ? 'Email will auto-hide soon' : 'Click to reveal email';
 
   if (showMailto && isRevealed) {
     return (
       <a
         href={`mailto:${email}`}
-        className={`hover:text-blue-600 ${className}`}
+        className={`transition-colors ${className || 'hover:text-blue-600'}`}
         title={tooltipText}
       >
         {displayEmail}
@@ -79,7 +85,7 @@ const MaskedEmail = ({ email, className = '', showMailto = true }) => {
     <span
       onClick={handleClick}
       onMouseLeave={handleMouseLeave}
-      className={`cursor-pointer hover:text-blue-600 transition-colors ${className}`}
+      className={`cursor-pointer transition-colors ${className || 'hover:text-blue-600'}`}
       title={tooltipText}
       role='button'
       tabIndex={0}
@@ -99,6 +105,8 @@ MaskedEmail.propTypes = {
   email: PropTypes.string.isRequired,
   className: PropTypes.string,
   showMailto: PropTypes.bool,
+  label: PropTypes.string,
+  children: PropTypes.node,
 };
 
 export default MaskedEmail;

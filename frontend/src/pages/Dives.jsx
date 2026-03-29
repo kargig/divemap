@@ -1059,243 +1059,119 @@ const Dives = () => {
         <>
           {/* Dives List */}
           {viewMode === 'list' && (
-            <div className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
+            <div className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-2.5 sm:p-6 hover:shadow-md transition-all duration-200 ${
                     dive.is_private ? 'bg-purple-50/30' : 'bg-white'
-                  } ${compactLayout ? 'p-4' : 'p-6'}`}
+                  }`}
                 >
-                  <div className='flex flex-col space-y-4'>
+                  <div className='flex flex-col space-y-1.5 sm:space-y-4'>
                     {/* HEADER ROW */}
-                    <div className='flex items-start justify-between'>
+                    <div className='flex items-start justify-between gap-2'>
                       <div className='flex-1 min-w-0'>
-                        {/* Kicker: Dive Site */}
-                        {dive.dive_site_info && dive.dive_site_info.name && (
-                          <div className='flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-blue-600 mb-1'>
-                            <MapPin className='w-3 h-3' />
-                            <Link
-                              to={`/dive-sites/${dive.dive_site_info.id}`}
-                              className='hover:underline'
-                            >
-                              {dive.dive_site_info.name}
-                              {dive.dive_site_info.deleted_at && ' (Archived)'}
-                            </Link>
-                          </div>
-                        )}
-
-                        {/* Title: Dive Name */}
-                        <h3
-                          className={`font-semibold text-gray-900 leading-snug ${compactLayout ? 'text-lg' : 'text-xl'}`}
-                        >
+                        {/* Compact Title & Site combo */}
+                        <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-xl'>
                           <Link
                             to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
-                            state={{ from: window.location.pathname + window.location.search }}
                             className='hover:text-blue-600 transition-colors'
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
+                          {dive.dive_site_info?.name && (
+                            <span className='text-[10px] sm:text-xs font-medium text-blue-500 ml-1.5 opacity-80'>
+                              @ {dive.dive_site_info.name}
+                            </span>
+                          )}
                         </h3>
 
-                        {/* Meta Byline */}
-                        <div className='mt-1 text-sm text-gray-500 flex items-center gap-2 flex-wrap'>
-                          <span className='flex items-center gap-1'>
-                            <Calendar className='w-3.5 h-3.5' />
-                            {new Date(dive.dive_date).toLocaleDateString('en-GB')}
-                          </span>
-                          <span>&bull;</span>
+                        {/* Meta Byline - Single line on mobile */}
+                        <div className='mt-0.5 text-[10px] sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
+                          <Calendar className='w-3 h-3 text-gray-400' />
+                          {new Date(dive.dive_date).toLocaleDateString('en-GB')}
                           {dive.dive_time && (
-                            <>
-                              <span className='flex items-center gap-1'>
-                                <Clock className='w-3.5 h-3.5' />
-                                {formatTime(dive.dive_time)}
-                              </span>
-                              <span>&bull;</span>
-                            </>
-                          )}
-                          {dive.user_username && (
-                            <Link
-                              to={`/users/${dive.user_username}`}
-                              className='hover:text-blue-600 hover:underline inline-flex items-center gap-1'
-                            >
-                              <User className='w-3.5 h-3.5' />
-                              {dive.user_username}
-                            </Link>
+                            <span className='flex items-center gap-1'>
+                              <span className='text-gray-300'>•</span>
+                              {formatTime(dive.dive_time)}
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Right Side: Rating & Privacy */}
-                      <div className='flex flex-col items-end gap-2'>
-                        {dive.user_rating !== undefined && dive.user_rating !== null && (
-                          <div className='flex items-center gap-1.5 text-yellow-600'>
-                            <img
-                              src='/arts/divemap_shell.png'
-                              alt='Rating'
-                              className='w-5 h-5 object-contain'
-                            />
-                            <span className='text-lg font-bold text-gray-900'>
-                              {dive.user_rating}
-                              <span className='text-xs font-normal text-gray-400 ml-0.5'>/10</span>
-                            </span>
-                          </div>
-                        )}
-                        <div className='flex gap-2'>
-                          {dive.is_private && (
-                            <span className='flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-[10px] font-bold uppercase tracking-wider'>
-                              <Lock className='w-3 h-3' />
-                              Private
-                            </span>
-                          )}
-                          {dive.selected_route_id && (
-                            <span className='flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-bold uppercase tracking-wider'>
-                              <Route className='w-3 h-3' />
-                              Route
-                            </span>
-                          )}
+                      {/* Right Side: Rating */}
+                      {dive.user_rating !== undefined && dive.user_rating !== null && (
+                        <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0'>
+                          <img
+                            src='/arts/divemap_shell.png'
+                            alt='Rating'
+                            className='w-3.5 h-3.5 object-contain'
+                          />
+                          <span className='text-sm sm:text-lg font-bold text-gray-900'>
+                            {dive.user_rating}
+                          </span>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* STATS STRIP */}
-                    <div className='flex flex-wrap gap-x-8 gap-y-3 py-3 border-y border-gray-50'>
-                      {dive.max_depth !== undefined && dive.max_depth !== null && (
-                        <div className='flex flex-col'>
-                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
-                            Max Depth
+                    {/* STATS STRIP - Compact 1-liner */}
+                    <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50'>
+                      {dive.max_depth && (
+                        <div className='flex items-center gap-1'>
+                          <TrendingUp className='w-3 h-3 text-gray-400' />
+                          <span className='text-[11px] sm:text-sm font-semibold text-gray-700'>
+                            {dive.max_depth}m
                           </span>
-                          <div className='flex items-center gap-1.5 mt-0.5'>
-                            <TrendingUp className='w-4 h-4 text-gray-400' />
-                            <span className='text-sm font-semibold text-gray-700'>
-                              {dive.max_depth}
-                              <span className='text-xs font-normal ml-0.5'>m</span>
-                            </span>
-                          </div>
                         </div>
                       )}
-                      {dive.duration !== undefined && dive.duration !== null && (
-                        <div className='flex flex-col'>
-                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
-                            Duration
+                      {dive.duration && (
+                        <div className='flex items-center gap-1'>
+                          <Clock className='w-3 h-3 text-gray-400' />
+                          <span className='text-[11px] sm:text-sm font-semibold text-gray-700'>
+                            {dive.duration}m
                           </span>
-                          <div className='flex items-center gap-1.5 mt-0.5'>
-                            <Clock className='w-4 h-4 text-gray-400' />
-                            <span className='text-sm font-semibold text-gray-700'>
-                              {dive.duration}
-                              <span className='text-xs font-normal ml-0.5'>min</span>
-                            </span>
-                          </div>
                         </div>
                       )}
-                      {dive.water_temperature !== undefined && dive.water_temperature !== null && (
-                        <div className='flex flex-col'>
-                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
-                            Temp
-                          </span>
-                          <div className='flex items-center gap-1.5 mt-0.5'>
-                            <Thermometer className='w-4 h-4 text-gray-400' />
-                            <span className='text-sm font-semibold text-gray-700'>
-                              {dive.water_temperature}
-                              <span className='text-xs font-normal ml-0.5'>°C</span>
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {dive.visibility_rating !== undefined && dive.visibility_rating !== null && (
-                        <div className='flex flex-col'>
-                          <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
-                            Visibility
-                          </span>
-                          <div className='flex items-center gap-1.5 mt-0.5'>
-                            <Eye className='w-4 h-4 text-gray-400' />
-                            <span className='text-sm font-semibold text-gray-700'>
-                              {dive.visibility_rating}
-                              <span className='text-xs font-normal ml-0.5'>/10</span>
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                      {/* Difficulty Badge - promoted to stats strip for context */}
-                      <div className='flex flex-col'>
-                        <span className='text-xs font-normal text-gray-400 uppercase tracking-tight'>
-                          Level
-                        </span>
-                        <div className='flex items-center mt-0.5'>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                          >
-                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                          </span>
-                        </div>
-                      </div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0 text-[9px] sm:text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                      >
+                        {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
+                      </span>
                     </div>
 
-                    {/* FOOTER: Tags & Buddies */}
-                    <div className='flex items-center justify-between gap-4 mt-auto'>
-                      <div className='flex flex-wrap items-center gap-3'>
-                        {/* Tags */}
-                        {dive.tags && dive.tags.length > 0 && (
-                          <div className='flex flex-wrap gap-1.5'>
-                            {dive.tags.slice(0, 3).map(tag => (
+                    {/* FOOTER: Tags & Buddies - Only show icons/counts on mobile */}
+                    <div className='flex items-center justify-between gap-4'>
+                      <div className='flex items-center gap-2 overflow-hidden'>
+                        {dive.tags?.length > 0 && (
+                          <div className='flex gap-1'>
+                            {dive.tags.slice(0, isMobile ? 3 : 5).map(tag => (
                               <span
                                 key={tag.id}
-                                className={`px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors ${getTagColor(tag.name)}`}
+                                className={`px-1.5 py-0.5 rounded-full text-[9px] sm:text-xs font-medium ${getTagColor(tag.name)}`}
                               >
                                 {tag.name}
                               </span>
                             ))}
-                            {dive.tags.length > 3 && (
-                              <span className='text-xs font-medium text-gray-400'>
-                                +{dive.tags.length - 3}
-                              </span>
+                            {dive.tags.length > (isMobile ? 3 : 5) && (
+                              <span className='text-[9px] text-gray-400'>+{dive.tags.length - (isMobile ? 3 : 5)}</span>
                             )}
                           </div>
                         )}
-
-                        {/* Separator if both tags and buddies exist */}
-                        {dive.tags?.length > 0 && dive.buddies?.length > 0 && (
-                          <span className='text-gray-300'>|</span>
-                        )}
-
-                        {/* Buddies (Avatars only to reduce noise) */}
-                        {dive.buddies && dive.buddies.length > 0 && (
-                          <div className='flex -space-x-2 overflow-hidden'>
-                            {dive.buddies.slice(0, 5).map(buddy => (
-                              <Link
-                                key={buddy.id}
-                                to={`/users/${buddy.username}`}
-                                title={`Buddy: ${buddy.username}`}
-                                className='inline-block h-6 w-6 rounded-full ring-2 ring-white'
-                              >
+                        {dive.buddies?.length > 0 && (
+                          <div className='flex -space-x-1.5'>
+                            {dive.buddies.slice(0, isMobile ? 2 : 5).map(buddy => (
+                              <div key={buddy.id} className='w-4 h-4 sm:w-6 sm:h-6 rounded-full ring-1 ring-white bg-blue-100 flex items-center justify-center overflow-hidden'>
                                 {buddy.avatar_url ? (
-                                  <img
-                                    className='h-full w-full rounded-full object-cover'
-                                    src={buddy.avatar_url}
-                                    alt=''
-                                  />
+                                  <img src={buddy.avatar_url} className='w-full h-full object-cover' alt='' />
                                 ) : (
-                                  <div className='h-full w-full rounded-full bg-blue-100 flex items-center justify-center'>
-                                    <span className='text-[10px] font-bold text-blue-600'>
-                                      {buddy.username.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
+                                  <span className='text-[7px] font-bold text-blue-600'>{buddy.username[0]}</span>
                                 )}
-                              </Link>
+                              </div>
                             ))}
                           </div>
                         )}
                       </div>
-
-                      <div className='flex items-center gap-3'>
-                        <Link
-                          to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
-                          className='text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
-                        >
-                          View Details
-                          <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5' />
-                        </Link>
-                      </div>
+                      <ChevronRight className='w-4 h-4 text-gray-300 sm:hidden' />
                     </div>
                   </div>
                 </div>

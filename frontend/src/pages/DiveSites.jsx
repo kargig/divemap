@@ -732,12 +732,12 @@ const DiveSites = () => {
 
         {/* Map Section - Show immediately when in map view */}
         {viewMode === 'map' && (
-          <div className='mb-8'>
+          <div className='mb-4 sm:mb-8'>
             {isLoading ? (
               <LoadingSkeleton type='map' />
             ) : (
-              <div className='bg-white rounded-lg shadow-md p-4 mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+              <div className='bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 border border-gray-100'>
+                <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
                   Map view of filtered Dive Sites
                 </h2>
                 <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
@@ -760,10 +760,10 @@ const DiveSites = () => {
           </div>
         )}
         {/* Content Section */}
-        <div className={`content-section ${mobileStyles.mobileMargin}`}>
+        <div className={`content-section mb-4 sm:mb-6 lg:mb-8`}>
           {/* Pagination Controls */}
           {isLoading ? (
-            <LoadingSkeleton type='pagination' className='mb-2 sm:mb-6 lg:mb-8' />
+            <LoadingSkeleton type='pagination' className='mb-2 sm:mb-4 lg:mb-6' />
           ) : (
             <Pagination
               currentPage={pagination.page}
@@ -772,7 +772,7 @@ const DiveSites = () => {
               itemName='dive sites'
               onPageChange={handlePageChange}
               onPageSizeChange={handlePageSizeChange}
-              className='mb-2 sm:mb-6 lg:mb-8'
+              className='mb-2 sm:mb-4 lg:mb-6'
             />
           )}
 
