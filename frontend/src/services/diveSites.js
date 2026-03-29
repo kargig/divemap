@@ -77,3 +77,19 @@ export const getDiveRoutes = async (params = {}) => {
   const response = await api.get(`/api/v1/dive-routes/?${apiParams.toString()}`);
   return response.data;
 };
+
+// Admin Dive Site functions
+export const getPendingDiveSites = async () => {
+  const response = await api.get('/api/v1/admin/dive-sites/pending');
+  return response.data;
+};
+
+export const approveDiveSite = async diveSiteId => {
+  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/approve`);
+  return response.data;
+};
+
+export const rejectDiveSite = async diveSiteId => {
+  const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/reject`);
+  return response.data;
+};

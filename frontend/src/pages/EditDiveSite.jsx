@@ -217,6 +217,29 @@ const EditDiveSite = () => {
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
+  // Automatic Location and Shore Detection
+  useEffect(() => {
+    if (!formData.latitude || !formData.longitude) return;
+    
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const timer = setTimeout(() => {
+      // Only suggest if fields are empty
+      if (!formData.country || !formData.region) {
+        suggestLocation();
+      }
+      // Only detect if shore direction is not manually set
+      if (!formData.shore_direction) {
+        detectShoreDirection();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.latitude, formData.longitude]);
+
   // Tag management state
   const [selectedTags, setSelectedTags] = useState([]);
   const [newTagName, setNewTagName] = useState('');
@@ -1366,9 +1389,21 @@ const EditDiveSite = () => {
                     {({ register, name }) => (
                       <input
                         id='latitude'
-                        type='number'
-                        step='any'
-                        {...register(name)}
+                        type='text'
+                        inputMode='decimal'
+                        {...register(name, {
+                          onChange: (e) => {
+                            const value = e.target.value;
+                            if (value.includes(',')) {
+                              const [lat, lng] = value.split(',').map(s => s.trim());
+                              if (lat && !isNaN(parseFloat(lat)) && lng && !isNaN(parseFloat(lng))) {
+                                setValue('latitude', lat);
+                                setValue('longitude', lng);
+                                trigger(['latitude', 'longitude']);
+                              }
+                            }
+                          }
+                        })}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.latitude ? 'border-red-500' : 'border-gray-300'
                         }`}
@@ -1382,8 +1417,8 @@ const EditDiveSite = () => {
                     {({ register, name }) => (
                       <input
                         id='longitude'
-                        type='number'
-                        step='any'
+                        type='text'
+                        inputMode='decimal'
                         {...register(name)}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.longitude ? 'border-red-500' : 'border-gray-300'

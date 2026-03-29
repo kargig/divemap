@@ -31,6 +31,7 @@ import AdminDiveSitesTable from '../components/tables/AdminDiveSitesTable';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { approveDiveSite, rejectDiveSite } from '../services/diveSites';
 import {
   getDifficultyLabel,
   getDifficultyColorClasses,
@@ -67,6 +68,7 @@ const AdminDiveSites = () => {
     country: false, // Hidden by default
     region: false, // Hidden by default
     created_at: false, // Hidden by default
+    status: true,
     actions: true,
   });
 
@@ -79,6 +81,7 @@ const AdminDiveSites = () => {
     min_rating: '',
     max_rating: '',
     include_archived: true,
+    status: searchParams.get('status') || '',
   });
 
   // Local search input state for immediate visual feedback
@@ -176,6 +179,7 @@ const AdminDiveSites = () => {
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.include_archived) params.append('include_archived', 'true');
+      if (filters.status) params.append('status', filters.status);
 
       return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
@@ -278,6 +282,26 @@ const AdminDiveSites = () => {
       },
     }
   );
+
+  const approveMutation = useMutation(id => approveDiveSite(id), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-dive-sites']);
+      toast.success('Dive site approved!');
+    },
+    onError: error => {
+      toast.error(error.response?.data?.detail || 'Failed to approve dive site');
+    },
+  });
+
+  const rejectMutation = useMutation(id => rejectDiveSite(id), {
+    onSuccess: () => {
+      queryClient.invalidateQueries(['admin-dive-sites']);
+      toast.success('Dive site rejected');
+    },
+    onError: error => {
+      toast.error(error.response?.data?.detail || 'Failed to reject dive site');
+    },
+  });
 
   const hardDeleteDiveSiteMutation = useMutation(
     id => api.delete(`/api/v1/dive-sites/${id}?force=true`),
@@ -451,6 +475,26 @@ const AdminDiveSites = () => {
         },
       },
       {
+        accessorKey: 'status',
+        header: 'Status',
+        size: 100,
+        cell: ({ row }) => {
+          const status = row.original.status;
+          const colors = {
+            approved: 'bg-green-100 text-green-800',
+            pending: 'bg-yellow-100 text-yellow-800',
+            rejected: 'bg-red-100 text-red-800',
+          };
+          return (
+            <span
+              className={`px-2 py-1 text-xs font-bold rounded-full uppercase tracking-wider ${colors[status] || 'bg-gray-100 text-gray-800'}`}
+            >
+              {status}
+            </span>
+          );
+        },
+      },
+      {
         accessorKey: 'difficulty_code',
         header: 'Difficulty',
         enableSorting: true,
@@ -580,7 +624,7 @@ const AdminDiveSites = () => {
       {
         id: 'actions',
         header: 'Actions',
-        size: 100,
+        size: 150,
         cell: ({ row }) => {
           const site = row.original;
           return (
@@ -599,6 +643,42 @@ const AdminDiveSites = () => {
               >
                 <Edit className='h-4 w-4' />
               </button>
+              {site.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => approveMutation.mutate(site.id)}
+                    className='text-emerald-600 hover:text-emerald-900'
+                    title='Approve dive site'
+                  >
+                    <svg className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M5 13l4 4L19 7'
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to reject "${site.name}"?`)) {
+                        rejectMutation.mutate(site.id);
+                      }
+                    }}
+                    className='text-orange-600 hover:text-orange-900'
+                    title='Reject dive site'
+                  >
+                    <svg className='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M6 18L18 6M6 6l12 12'
+                      />
+                    </svg>
+                  </button>
+                </>
+              )}
               {site.deleted_at ? (
                 <button
                   onClick={() => handleRestoreDiveSite(site)}
@@ -804,6 +884,18 @@ const AdminDiveSites = () => {
               <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
             )}
           </div>
+          <Select
+            id='status-filter'
+            label='Status'
+            value={filters.status || 'all'}
+            onValueChange={value => handleFilterChange('status', value === 'all' ? '' : value)}
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'approved', label: 'Approved' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'rejected', label: 'Rejected' },
+            ]}
+          />
         </div>
         <div className='mt-4 flex items-center'>
           <label className='flex items-center text-sm font-medium text-gray-700 cursor-pointer'>

@@ -199,6 +199,7 @@ class DiveSite(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
+    status = Column(Enum('approved', 'pending', 'rejected', name='dive_site_status'), default='approved', nullable=False, index=True)
     # Geometry column exists in DB via migration; declare minimally for ORM usage
     location = Column(sa.Text, nullable=False)
 

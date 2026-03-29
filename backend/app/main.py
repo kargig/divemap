@@ -351,6 +351,19 @@ os.makedirs("llm_content", exist_ok=True)
 app.mount("/llm_content", StaticFiles(directory="llm_content"), name="llm_content")
 
 # Lazy router loading for faster startup
+def load_admin_dive_sites_router():
+    """Load admin dive sites router lazily when first accessed"""
+    if not hasattr(app, '_admin_dive_sites_router_loaded'):
+        print("🔧 Loading admin-dive-sites router lazily...")
+        router_start = time.time()
+
+        from app.routers.admin import dive_sites as admin_dive_sites
+        app.include_router(admin_dive_sites.router, prefix="/api/v1/admin", tags=["Admin Dive Sites"])
+
+        app._admin_dive_sites_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Admin-dive-sites router loaded lazily in {router_time:.2f}s")
+
 def load_routers():
     """Load routers lazily to improve startup time"""
     print("🔧 Loading API routers...")
@@ -593,6 +606,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load admin chat router
     if (path.startswith("/api/v1/admin/chat") or is_docs) and not hasattr(app, '_admin_chat_router_loaded'):
         load_admin_chat_router()
+
+    # Load admin dive sites router
+    if (path.startswith("/api/v1/admin/dive-sites") or is_docs) and not hasattr(app, '_admin_dive_sites_router_loaded'):
+        load_admin_dive_sites_router()
 
     # Load privacy router
     if (path.startswith("/api/v1/privacy") or is_docs) and not hasattr(app, '_privacy_router_loaded'):

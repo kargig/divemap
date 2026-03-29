@@ -80,7 +80,7 @@ def point_to_segment_distance(point: Tuple[float, float], seg_start: Tuple[float
     return haversine_distance(point[0], point[1], mid_lat, mid_lon)
 
 
-def query_overpass_api(latitude: float, longitude: float, radius: int = DEFAULT_RADIUS, timeout: int = 15) -> Optional[Dict]:
+def query_overpass_api(latitude: float, longitude: float, radius: int = DEFAULT_RADIUS, timeout: int = 5) -> Optional[Dict]:
     """
     Query Overpass API for coastline segments near the given coordinates.
     
@@ -101,7 +101,7 @@ out geom;'''
                 endpoint,
                 data=query,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=timeout + 5  # Add buffer for network latency
+                timeout=timeout + 2  # Add buffer for network latency
             )
             
             if response.status_code != 200:

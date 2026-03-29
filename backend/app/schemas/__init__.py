@@ -217,7 +217,7 @@ class DiveSiteBase(BaseModel):
     shore_direction: Optional[float] = Field(None, ge=0, le=360, description="Compass bearing (0-360 degrees) indicating which direction the shore/beach faces")
 
 class DiveSiteCreate(DiveSiteBase):
-    pass
+    moderation_needed: bool = Field(False, description="Bypass proximity check and submit for moderation")
 
 class DiveSiteUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -263,6 +263,7 @@ class DiveSiteResponse(DiveSiteBase):
     created_at: datetime
     deleted_at: Optional[datetime] = None
     created_by: Optional[int] = None
+    status: str = 'approved'
     updated_at: datetime
     average_rating: Optional[float] = None
     total_ratings: int = 0

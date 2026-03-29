@@ -55,7 +55,7 @@ def search_dive_sites(query: str, limit: int, db: Session) -> List[GlobalSearchR
         )
     )
     
-    sites = db.query(DiveSite).filter(search_filter, DiveSite.deleted_at.is_(None)).limit(limit).all()
+    sites = db.query(DiveSite).filter(search_filter, DiveSite.deleted_at.is_(None), DiveSite.status == 'approved').limit(limit).all()
     
     results = []
     for site in sites:
