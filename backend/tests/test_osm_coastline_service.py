@@ -408,7 +408,7 @@ class TestDetectShoreDirection:
         # Verify custom radius was used
         mock_query.assert_called_once()
         call_args = mock_query.call_args
-        # Function signature: query_overpass_api(latitude, longitude, radius=DEFAULT_RADIUS, timeout=15)
+        # Function signature: query_overpass_api(latitude, longitude, radius=DEFAULT_RADIUS, timeout=5)
         # Check positional arguments
         assert call_args[0][0] == 37.7  # latitude
         assert call_args[0][1] == 24.0  # longitude

@@ -3,12 +3,14 @@ import { ArrowLeft, Save, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
+import Button from '../components/ui/Button';
+import Modal from '../components/ui/Modal';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
@@ -79,6 +81,53 @@ const CreateDiveSite = () => {
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
+  // Proximity check and moderation state
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [nearbySites, setNearbySites] = useState([]);
+  const [pendingSubmitData, setPendingSubmitData] = useState(null);
+
+  // Background proximity check
+  const { data: backgroundNearbySites } = useQuery(
+    ['check-proximity', formData.latitude, formData.longitude],
+    async () => {
+      if (!formData.latitude || !formData.longitude) return [];
+      const lat = parseFloat(formData.latitude);
+      const lng = parseFloat(formData.longitude);
+      if (isNaN(lat) || isNaN(lng)) return [];
+      const res = await api.get('/api/v1/dive-sites/check-proximity', {
+        params: { lat, lng, radius_m: 50 },
+      });
+      return res.data;
+    },
+    {
+      enabled: !!formData.latitude && !!formData.longitude,
+      staleTime: 30000,
+    }
+  );
+
+  // Automatic Location and Shore Detection
+  useEffect(() => {
+    if (!formData.latitude || !formData.longitude) return;
+
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const timer = setTimeout(() => {
+      // Only suggest if fields are empty
+      if (!formData.country || !formData.region) {
+        suggestLocation();
+      }
+      // Only detect if shore direction is not manually set
+      if (!formData.shore_direction) {
+        detectShoreDirection();
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.latitude, formData.longitude]);
+
   const createDiveSiteMutation = useMutation(
     async data => {
       const response = await api.post('/api/v1/dive-sites/', data);
@@ -98,12 +147,34 @@ const CreateDiveSite = () => {
         }
       },
       onError: error => {
-        toast.error(extractErrorMessage(error) || 'Failed to create dive site');
+        if (error.response?.status === 409 && error.response?.data?.detail?.nearby_sites) {
+          setNearbySites(error.response.data.detail.nearby_sites);
+          setShowDuplicateModal(true);
+        } else {
+          toast.error(extractErrorMessage(error) || 'Failed to create dive site');
+        }
       },
     }
   );
 
-  const onSubmit = async data => {
+  const handleForceSubmit = () => {
+    if (pendingSubmitData) {
+      setShowDuplicateModal(false);
+      onSubmit(pendingSubmitData, { moderation_needed: true });
+    }
+  };
+
+  const handleCreateRoute = siteId => {
+    window.sessionStorage.setItem('pendingDiveRouteDescription', formData.description || '');
+    navigate(`/dive-sites/${siteId}/routes/create`);
+  };
+
+  const onSubmit = async (data, options = {}) => {
+    // Save raw data to state in case we need to force submit
+    if (!options.moderation_needed) {
+      setPendingSubmitData(data);
+    }
+
     // Convert latitude/longitude to numbers
     const {
       shore_direction,
@@ -112,6 +183,7 @@ const CreateDiveSite = () => {
       shore_direction_distance_m,
       ...baseData
     } = data;
+
     const submitData = {
       ...baseData,
       latitude: typeof data.latitude === 'string' ? parseFloat(data.latitude) : data.latitude,
@@ -175,6 +247,11 @@ const CreateDiveSite = () => {
     }
     // If shore_direction is empty, omit all shore_direction fields from create
     // This allows the backend to auto-detect if coordinates are provided
+
+    // Add moderation flag if requested
+    if (options.moderation_needed) {
+      submitData.moderation_needed = true;
+    }
 
     try {
       // First create the dive site to get the ID
@@ -499,9 +576,22 @@ const CreateDiveSite = () => {
                   {({ register, name }) => (
                     <input
                       id='latitude'
-                      type='number'
-                      step='any'
-                      {...register(name)}
+                      type='text'
+                      inputMode='decimal'
+                      {...register(name, {
+                        onChange: e => {
+                          const value = e.target.value;
+                          if (value.includes(',')) {
+                            const [lat, lng] = value.split(',').map(s => s.trim());
+                            if (lat && !isNaN(parseFloat(lat)) && lng && !isNaN(parseFloat(lng))) {
+                              setValue('latitude', lat);
+                              setValue('longitude', lng);
+                              // Trigger re-validation for both fields
+                              trigger(['latitude', 'longitude']);
+                            }
+                          }
+                        },
+                      })}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.latitude ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -516,8 +606,8 @@ const CreateDiveSite = () => {
                   {({ register, name }) => (
                     <input
                       id='longitude'
-                      type='number'
-                      step='any'
+                      type='text'
+                      inputMode='decimal'
                       {...register(name)}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.longitude ? 'border-red-500' : 'border-gray-300'
@@ -529,8 +619,45 @@ const CreateDiveSite = () => {
               </div>
             </div>
 
+            {/* Background Proximity Hint */}
+            {backgroundNearbySites && backgroundNearbySites.length > 0 && !showDuplicateModal && (
+              <div className='bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md'>
+                <div className='flex'>
+                  <div className='flex-shrink-0'>
+                    <svg
+                      className='h-5 w-5 text-yellow-400'
+                      viewBox='0 0 20 20'
+                      fill='currentColor'
+                    >
+                      <path
+                        fillRule='evenodd'
+                        d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
+                  </div>
+                  <div className='ml-3'>
+                    <p className='text-sm text-yellow-700'>
+                      <strong className='font-medium text-yellow-800'>Did you know?</strong> There
+                      are already dive sites right here:
+                      <ul className='list-disc pl-5 mt-1'>
+                        {backgroundNearbySites.map(site => (
+                          <li key={site.id}>
+                            {site.name} ({site.distance_m}m away)
+                          </li>
+                        ))}
+                      </ul>
+                      <span className='block mt-2 font-medium'>
+                        Consider adding a new Dive Route to an existing site instead.
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Location Suggestion Button */}
-            <div className='flex justify-center'>
+            <div className='flex justify-end'>
               <button
                 type='button'
                 onClick={suggestLocation}
@@ -905,6 +1032,63 @@ const CreateDiveSite = () => {
           </form>
         </FormProvider>
       </div>
+
+      <Modal
+        isOpen={showDuplicateModal}
+        onClose={() => setShowDuplicateModal(false)}
+        title='Duplicate Dive Site Detected'
+        size='lg'
+      >
+        <div className='space-y-4 text-gray-700'>
+          <p className='text-base text-gray-900 font-medium'>
+            This location is extremely close to existing dive sites.
+          </p>
+          <p className='text-sm'>
+            Did you intend to submit one of these existing dive sites? If so, you might want to
+            create a new Dive Route for it instead.
+          </p>
+
+          <div className='mt-4 bg-gray-50 p-4 rounded-md border border-gray-200 max-h-60 overflow-y-auto'>
+            {nearbySites.map(site => (
+              <div
+                key={site.id}
+                className='mb-4 pb-4 border-b border-gray-200 last:mb-0 last:pb-0 last:border-0 flex justify-between items-center'
+              >
+                <div>
+                  <h3 className='font-semibold text-gray-900'>{site.name}</h3>
+                  <p className='text-sm text-gray-500'>{site.distance_m}m away</p>
+                </div>
+                <Button
+                  type='button'
+                  variant='primary'
+                  size='sm'
+                  onClick={() => handleCreateRoute(site.id)}
+                >
+                  Create Route Here
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className='flex flex-col space-y-3 mt-6 pt-4 border-t border-gray-200'>
+            <div className='flex justify-end space-x-3'>
+              <Button type='button' variant='outline' onClick={() => setShowDuplicateModal(false)}>
+                Cancel & Discard
+              </Button>
+            </div>
+
+            <div className='mt-4 pt-4 border-t border-gray-100 flex justify-center'>
+              <button
+                type='button'
+                onClick={handleForceSubmit}
+                className='text-xs text-red-600 hover:text-red-800 underline transition-colors'
+              >
+                I'm sure this is a distinct site. Submit for review.
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

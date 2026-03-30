@@ -27,6 +27,60 @@ class TestDiveSites:
         assert data[0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
         assert data[0]["difficulty_label"] == "Advanced Open Water"
 
+    def test_get_dive_sites_with_dive_site_id_filter_admin(self, client, db_session, test_admin_user, admin_headers, test_dive_site):
+        """Test getting dive sites with dive_site_id filter as admin."""
+        # Create another dive site to make sure filtering works
+        from app.models import DiveSite
+        new_site = DiveSite(
+            name="Another Site",
+            latitude=10.0,
+            longitude=20.0,
+            status="approved",
+            created_by=test_admin_user.id
+        )
+        db_session.add(new_site)
+        db_session.commit()
+        db_session.refresh(new_site)
+        
+        # Filter by the first dive site's ID
+        response = client.get(f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}", headers=admin_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == test_dive_site.id
+        
+        # Clean up
+        db_session.delete(new_site)
+        db_session.commit()
+
+    def test_get_dive_sites_with_dive_site_id_filter_regular_user_ignored(self, client, db_session, test_user, auth_headers, test_dive_site):
+        """Test that dive_site_id filter is ignored for regular users."""
+        # Create another dive site
+        from app.models import DiveSite
+        new_site = DiveSite(
+            name="Another Site",
+            latitude=10.0,
+            longitude=20.0,
+            status="approved",
+            created_by=test_user.id
+        )
+        db_session.add(new_site)
+        db_session.commit()
+        db_session.refresh(new_site)
+        
+        # Filter by the first dive site's ID as regular user - should be ignored
+        response = client.get(f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}", headers=auth_headers)
+
+        assert response.status_code == 200
+        data = response.json()
+        # Should return both sites because the filter is ignored
+        assert len(data) >= 2
+        
+        # Clean up
+        db_session.delete(new_site)
+        db_session.commit()
+
     def test_rate_dive_site_success(self, client, auth_headers, test_dive_site):
         """Test rating a dive site."""
         rating_data = {"score": 8}

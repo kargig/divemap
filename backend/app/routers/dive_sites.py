@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc, select
@@ -442,7 +442,17 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     if not show_archived:
         filtered_query = filtered_query.filter(DiveSite.deleted_at.is_(None))
     
+    # Apply status filter if provided
+    if 'status' in filters and filters['status'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
+        filtered_query = filtered_query.filter(DiveSite.status == filters['status'])
+    elif not show_archived:
+        # Default to approved for non-admins if no explicit status is provided
+        filtered_query = filtered_query.filter(DiveSite.status == 'approved')
+    
     # Apply the same filters that were used in the main query
+    if 'dive_site_id' in filters and filters['dive_site_id'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
+        filtered_query = filtered_query.filter(DiveSite.id == filters['dive_site_id'])
+
     if 'difficulty_code' in filters and filters['difficulty_code']:
         from app.models import get_difficulty_id_by_code
         difficulty_id = get_difficulty_id_by_code(db, filters['difficulty_code'])
@@ -563,6 +573,109 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         final_results.append(match)
     
     return final_results
+
+def _perform_reverse_geocode(latitude: float, longitude: float) -> Optional[Dict]:
+    """Internal helper to perform reverse geocoding without requiring a Request object."""
+    try:
+        import requests
+        # Use OpenStreetMap Nominatim API for reverse geocoding
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {
+            "lat": latitude,
+            "lon": longitude,
+            "format": "json",
+            "addressdetails": 1,
+            "zoom": 8,
+            "accept-language": "en"
+        }
+
+        headers = {
+            "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"
+        }
+
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return None
+        
+        data = response.json()
+        address = data.get("address", {})
+
+        # Extract country and region information
+        country = address.get("country")
+        
+        def clean_regional_unit(text):
+            if text:
+                if text.endswith(" Regional Unit"):
+                    return text[:-len(" Regional Unit")].strip()
+                elif text.endswith("Regional Unit"):
+                    return text[:-len("Regional Unit")].strip()
+                return text
+            return text
+        
+        county = clean_regional_unit(address.get("county"))
+        state_district = clean_regional_unit(address.get("state_district"))
+        
+        if county and state_district:
+            region = f"{county}, {state_district}"
+        else:
+            region = (
+                clean_regional_unit(address.get("state")) or
+                clean_regional_unit(address.get("province")) or
+                clean_regional_unit(address.get("region")) or
+                county
+            )
+
+        return {
+            "country": country,
+            "region": region,
+            "full_address": data.get("display_name", "")
+        }
+    except Exception as e:
+        logger.error(f"Internal geocoding error: {e}")
+        return None
+
+async def _update_location_data_background(dive_site_id: int):
+    """Background task to automatically detect country, region and shore direction."""
+    from app.database import SessionLocal
+    from app.services.osm_coastline_service import detect_shore_direction
+    
+    db = SessionLocal()
+    try:
+        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+        if not dive_site or not dive_site.latitude or not dive_site.longitude:
+            return
+
+        has_updates = False
+        
+        # 1. Automatic Geocoding (Country/Region)
+        if not dive_site.country or not dive_site.region:
+            location_data = _perform_reverse_geocode(float(dive_site.latitude), float(dive_site.longitude))
+            if location_data:
+                if not dive_site.country and location_data.get("country"):
+                    dive_site.country = location_data["country"]
+                    has_updates = True
+                if not dive_site.region and location_data.get("region"):
+                    dive_site.region = location_data["region"]
+                    has_updates = True
+
+        # 2. Shore Direction Detection
+        if dive_site.shore_direction is None:
+            shore_data = detect_shore_direction(float(dive_site.latitude), float(dive_site.longitude))
+            if shore_data:
+                dive_site.shore_direction = shore_data.get("shore_direction")
+                dive_site.shore_direction_confidence = shore_data.get("confidence")
+                dive_site.shore_direction_method = shore_data.get("method")
+                dive_site.shore_direction_distance_m = shore_data.get("distance_to_coastline_m")
+                has_updates = True
+
+        if has_updates:
+            db.commit()
+            logger.info(f"Automatically updated location/shore data for dive site {dive_site_id}")
+            
+    except Exception as e:
+        logger.error(f"Error in automatic location background task for site {dive_site_id}: {e}")
+    finally:
+        db.close()
 
 @router.get("/reverse-geocode")
 @skip_rate_limit_for_admin("75/minute")
@@ -782,6 +895,8 @@ async def get_dive_sites(
     west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
     detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)"),
     include_archived: bool = Query(False, description="Include soft-deleted (archived) dive sites (Admin only)"),
+    site_status: Optional[str] = Query(None, alias="status", description="Filter by status (approved, pending, rejected). Admin only for pending/rejected."),
+    dive_site_id: Optional[int] = Query(None, description="Filter by a specific dive site ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -859,6 +974,15 @@ async def get_dive_sites(
     query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
     if not show_archived:
         query = query.filter(DiveSite.deleted_at.is_(None))
+        
+        # Apply status filter
+        if site_status and (current_user and (current_user.is_admin or current_user.is_moderator)):
+            query = query.filter(DiveSite.status == site_status)
+        else:
+            query = query.filter(DiveSite.status == 'approved')
+    elif site_status:
+        # For admin with show_archived=True, still allow explicit status filter
+        query = query.filter(DiveSite.status == site_status)
 
     # Store the search query for potential fuzzy search enhancement
     search_query_for_fuzzy = None
@@ -876,6 +1000,10 @@ async def get_dive_sites(
 
     # Apply rating filtering using utility function
     query = apply_rating_filtering(query, min_rating, db)
+
+    # Apply specific ID filter if provided (Admin/Moderator only)
+    if dive_site_id and (current_user and (current_user.is_admin or current_user.is_moderator)):
+        query = query.filter(DiveSite.id == dive_site_id)
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
@@ -1066,7 +1194,19 @@ async def get_dive_sites(
         all_dive_sites_query = db.query(DiveSite)
         if not show_archived:
             all_dive_sites_query = all_dive_sites_query.filter(DiveSite.deleted_at.is_(None))
-        
+            
+            # Apply status filter
+            if site_status and (current_user and (current_user.is_admin or current_user.is_moderator)):
+                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
+            else:
+                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == 'approved')
+        elif site_status:
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
+
+        # Apply specific ID filter if provided (Admin/Moderator only)
+        if dive_site_id and (current_user and (current_user.is_admin or current_user.is_moderator)):
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id == dive_site_id)
+
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
         all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
@@ -1129,7 +1269,9 @@ async def get_dive_sites(
                 min_rating=min_rating,
                 my_dive_sites=my_dive_sites,
                 current_user=current_user,
-                show_archived=show_archived
+                show_archived=show_archived,
+                status=site_status,
+                dive_site_id=dive_site_id
             )
             
             # Transform enhanced results back to the expected format
@@ -1312,6 +1454,7 @@ async def get_dive_sites(
                 "thumbnail_type": thumbnail_type,
                 "thumbnail_source": thumbnail_source,
                 "thumbnail_id": thumbnail_id,
+                "status": site.status,
             }
         else:
             # Full: all fields
@@ -1338,6 +1481,7 @@ async def get_dive_sites(
                 "created_at": site.created_at.isoformat() if site.created_at else None,
                 "updated_at": site.updated_at.isoformat() if site.updated_at else None,
                 "deleted_at": site.deleted_at.isoformat() if site.deleted_at else None,
+                "status": site.status,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
                 "comment_count": comment_count,
@@ -1631,6 +1775,36 @@ async def get_dive_sites_count(
 
     return {"total": total_count}
 
+async def _send_pending_moderation_notification(dive_site_id: int):
+    """Background task to notify admins of a pending dive site."""
+    from app.database import SessionLocal
+    from app.services.notification_service import NotificationService
+    db = SessionLocal()
+    try:
+        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+        if not dive_site:
+            return
+
+        # Find all admins
+        admins = db.query(User).filter(User.is_admin == True).all()
+        notification_service = NotificationService()
+        for admin in admins:
+            notification_service.create_notification(
+                db=db,
+                user_id=admin.id,
+                category="admin_alerts",
+                title="New Dive Site Requires Moderation",
+                message=f"A new dive site '{dive_site.name}' has been created near existing sites and requires your approval.",
+                link_url=f"/admin/dive-sites?status=pending&dive_site_id={dive_site.id}",
+                entity_type="dive_site",
+                entity_id=dive_site.id
+            )
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error sending pending moderation notifications: {e}")
+    finally:
+        db.close()
+
 async def _send_dive_site_notifications(dive_site_id: int):
     """Background task to send notifications for a new dive site."""
     try:
@@ -1648,32 +1822,81 @@ async def _send_dive_site_notifications(dive_site_id: int):
         logger.error(f"Failed to send notifications for new dive site {dive_site_id}: {e}")
 
 async def _update_shore_direction_background(dive_site_id: int):
-    """Background task to detect and update shore direction."""
-    from app.database import SessionLocal
-    db = SessionLocal()
-    try:
-        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
-        if not dive_site or dive_site.latitude is None or dive_site.longitude is None:
-            return
+    """Legacy background task wrapper for shore direction detection, now uses unified location update."""
+    await _update_location_data_background(dive_site_id)
 
-        result = detect_shore_direction(float(dive_site.latitude), float(dive_site.longitude))
-        if result:
-            dive_site.shore_direction = result.get('shore_direction')
-            dive_site.shore_direction_confidence = result.get('confidence')
-            dive_site.shore_direction_method = result.get('method')
-            dive_site.shore_direction_distance_m = result.get('distance_to_coastline_m')
-            logger.info(f"Background auto-detected shore direction {result.get('shore_direction')}° for site {dive_site_id}")
-        else:
-            # Mark as failed so we don't keep retrying these exact coordinates
-            dive_site.shore_direction_method = 'osm_failed'
-            logger.info(f"Background shore detection failed for site {dive_site_id}")
-        
-        db.commit()
-    except Exception as e:
-        logger.error(f"Error in background shore direction detection for site {dive_site_id}: {e}")
-    finally:
-        db.close()
 
+@router.get("/check-proximity", response_model=List[dict])
+@skip_rate_limit_for_admin("300/minute")
+async def check_proximity(
+    request: Request,
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_m: int = Query(50, ge=10, le=5000),
+    db: Session = Depends(get_db)
+):
+    """
+    Check for existing dive sites within a specific radius (in meters) of given coordinates.
+    """
+    from sqlalchemy import text
+    bind = db.get_bind()
+    dialect = bind.dialect.name if bind is not None else None
+
+    if dialect == 'mysql':
+        nearby_query = text("""
+            SELECT
+                ds.id, ds.name, ds.description,
+                ds.latitude, ds.longitude,
+                ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) AS distance_m
+            FROM dive_sites ds
+            WHERE ds.location IS NOT NULL
+            AND ds.deleted_at IS NULL
+            AND ds.status = 'approved'
+            AND ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) <= :radius_m
+            ORDER BY distance_m ASC
+            LIMIT 5
+        """)
+    else:
+        nearby_query = text("""
+            SELECT
+                ds.id, ds.name, ds.description,
+                ds.latitude, ds.longitude,
+                (6371 * acos(
+                    cos(radians(:lat)) * cos(radians(ds.latitude)) *
+                    cos(radians(ds.longitude) - radians(:lng)) +
+                    sin(radians(:lat)) * sin(radians(ds.latitude))
+                )) * 1000 AS distance_m
+            FROM dive_sites ds
+            WHERE ds.latitude IS NOT NULL
+            AND ds.longitude IS NOT NULL
+            AND ds.deleted_at IS NULL
+            AND ds.status = 'approved'
+            HAVING distance_m <= :radius_m
+            ORDER BY distance_m ASC
+            LIMIT 5
+        """)
+
+    result = db.execute(
+        nearby_query,
+        {
+            "lat": lat,
+            "lng": lng,
+            "radius_m": radius_m
+        }
+    ).fetchall()
+
+    nearby_sites = []
+    for row in result:
+        nearby_sites.append({
+            "id": row.id,
+            "name": row.name,
+            "description": row.description,
+            "latitude": float(row.latitude) if row.latitude else None,
+            "longitude": float(row.longitude) if row.longitude else None,
+            "distance_m": round(row.distance_m, 2)
+        })
+
+    return nearby_sites
 
 @router.post("/", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("15/minute")
@@ -1684,9 +1907,29 @@ async def create_dive_site(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-
     dive_site_data = dive_site.model_dump()
+    moderation_needed = dive_site_data.pop('moderation_needed', False)
     dive_site_data['created_by'] = current_user.id
+    
+    # Check for proximity
+    if not moderation_needed and dive_site.latitude and dive_site.longitude:
+        # Check proximity internally
+        nearby_sites = await check_proximity(request, lat=dive_site.latitude, lng=dive_site.longitude, radius_m=50, db=db)
+        if nearby_sites:
+            # 409 Conflict with payload
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "Dive site is too close to existing ones.",
+                    "nearby_sites": nearby_sites
+                }
+            )
+
+    # Set status
+    if moderation_needed:
+        dive_site_data['status'] = 'pending'
+    else:
+        dive_site_data['status'] = 'approved'
     
     # Convert difficulty_code to difficulty_id
     if 'difficulty_code' in dive_site_data:
@@ -1698,9 +1941,14 @@ async def create_dive_site(
     db.commit()
     db.refresh(db_dive_site)
 
-    # Trigger background shore detection if coordinates are provided but shore_direction is not
-    if db_dive_site.latitude and db_dive_site.longitude and db_dive_site.shore_direction is None:
-        background_tasks.add_task(_update_shore_direction_background, db_dive_site.id)
+    # Trigger background location and shore detection if coordinates are provided
+    if db_dive_site.latitude and db_dive_site.longitude:
+        # Check if we need geocoding or shore detection
+        needs_geocoding = not db_dive_site.country or not db_dive_site.region
+        needs_shore = db_dive_site.shore_direction is None
+        
+        if needs_geocoding or needs_shore:
+            background_tasks.add_task(_update_location_data_background, db_dive_site.id)
     
     # Re-query with eager loading for response
     db_dive_site = db.query(DiveSite).options(
@@ -1708,16 +1956,22 @@ async def create_dive_site(
     ).filter(DiveSite.id == db_dive_site.id).first()
 
     # Schedule notification sending as a background task
-    # This allows the API to return immediately while notifications are sent asynchronously
-    background_tasks.add_task(_send_dive_site_notifications, db_dive_site.id)
+    if db_dive_site.status == 'approved':
+        background_tasks.add_task(_send_dive_site_notifications, db_dive_site.id)
+    else:
+        background_tasks.add_task(_send_pending_moderation_notification, db_dive_site.id)
 
     # Serialize response with difficulty_code and difficulty_label
+    input_data = dive_site.model_dump()
+    input_data.pop('moderation_needed', None)
+    
     response_data = {
-        **dive_site.model_dump(),
+        **input_data,
         "id": db_dive_site.id,
         "created_at": db_dive_site.created_at,
         "created_by": db_dive_site.created_by,
         "updated_at": db_dive_site.updated_at,
+        "status": db_dive_site.status.value if hasattr(db_dive_site.status, 'value') else str(db_dive_site.status),
         "average_rating": None,
         "total_ratings": 0,
         "tags": []
@@ -2574,6 +2828,63 @@ async def remove_diving_center_from_dive_site(
 
     return {"message": "Diving center removed from dive site successfully"}
 
+@router.post("/{dive_site_id}/approve", response_model=DiveSiteResponse)
+async def approve_dive_site(
+    request: Request,
+    dive_site_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to approve a pending dive site."""
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    dive_site = db.query(DiveSite).options(joinedload(DiveSite.difficulty)).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(status_code=404, detail="Dive site not found")
+
+    if dive_site.status != 'pending':
+        raise HTTPException(status_code=400, detail="Dive site is not in pending status")
+
+    dive_site.status = 'approved'
+    db.commit()
+    db.refresh(dive_site)
+    
+    # Trigger notifications as if it was just created
+    background_tasks.add_task(_send_dive_site_notifications, dive_site.id)
+
+    response_data = {
+        **dive_site.__dict__,
+        "difficulty_code": dive_site.difficulty.code if dive_site.difficulty else None,
+        "difficulty_label": dive_site.difficulty.label if dive_site.difficulty else None,
+        "tags": []
+    }
+    return response_data
+
+@router.post("/{dive_site_id}/reject", response_model=dict)
+async def reject_dive_site(
+    request: Request,
+    dive_site_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to reject a pending dive site."""
+    if not current_user.is_admin and not current_user.is_moderator:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(status_code=404, detail="Dive site not found")
+
+    if dive_site.status != 'pending':
+        raise HTTPException(status_code=400, detail="Dive site is not in pending status")
+
+    dive_site.status = 'rejected'
+    db.commit()
+    
+    return {"status": "success", "message": "Dive site rejected"}
+
 @router.put("/{dive_site_id}", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("30/minute")
 async def update_dive_site(
@@ -2661,10 +2972,13 @@ async def update_dive_site(
     # Only if coordinates changed OR (missing AND hasn't failed before)
     shore_direction_is_missing = dive_site.shore_direction is None and dive_site.shore_direction_method != 'osm_failed'
     
-    if (actual_coords_changed or shore_direction_is_missing) and shore_direction_not_provided:
-        # Schedule background detection
-        background_tasks.add_task(_update_shore_direction_background, dive_site_id)
-        logger.info(f"Scheduled background shore direction detection for dive site {dive_site_id}")
+    # Auto-detect location data if coordinates changed or data is missing
+    country_region_missing = not dive_site.country or not dive_site.region
+    
+    if (actual_coords_changed or shore_direction_is_missing or country_region_missing) and (shore_direction_not_provided or country_region_missing):
+        # Schedule background detection (includes geocoding and shore direction)
+        background_tasks.add_task(_update_location_data_background, dive_site_id)
+        logger.info(f"Scheduled background location and shore direction detection for dive site {dive_site_id}")
 
     for field, value in update_data.items():
         setattr(dive_site, field, value)
@@ -3007,6 +3321,8 @@ async def get_nearby_dive_sites(
             LEFT JOIN difficulty_levels dl ON ds.difficulty_id = dl.id
             WHERE ds.id != :site_id
             AND ds.location IS NOT NULL
+            AND ds.deleted_at IS NULL
+            AND ds.status = 'approved'
             AND ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) <= 100000
             ORDER BY distance_km ASC
             LIMIT :limit
@@ -3030,6 +3346,8 @@ async def get_nearby_dive_sites(
             WHERE ds.id != :site_id
             AND ds.latitude IS NOT NULL
             AND ds.longitude IS NOT NULL
+            AND ds.deleted_at IS NULL
+            AND ds.status = 'approved'
             HAVING distance_km <= 100
             ORDER BY distance_km ASC
             LIMIT :limit
