@@ -360,6 +360,43 @@ class TestAuth:
             assert db_user.is_admin is False
             assert db_user.is_moderator is False
 
+    def test_generate_valid_username_with_dots(self, db_session):
+        """Test that _generate_valid_username replaces dots with underscores and handles plus signs."""
+        from app.google_auth import _generate_valid_username, GoogleAuthError
+        from app.models import User
+        import pytest
+        
+        # Test basic dot replacement
+        username = _generate_valid_username(db_session, "first.last@example.com")
+        assert username == "first_last"
+        
+        # Test multiple dots replacement
+        username_multiple = _generate_valid_username(db_session, "first.middle.last@example.com")
+        assert username_multiple == "first_middle_last"
+        
+        # Test that everything after '+' is stripped
+        username_plus = _generate_valid_username(db_session, "first.last+spam@example.com")
+        assert username_plus == "first_last"
+        
+        # Test when the generated username already exists
+        existing_user = User(
+            username="taken_name",
+            email="taken@example.com",
+            password_hash="dummy",
+            enabled=True
+        )
+        db_session.add(existing_user)
+        db_session.commit()
+        
+        # Should raise GoogleAuthError instead of appending numbers
+        with pytest.raises(GoogleAuthError) as excinfo:
+            _generate_valid_username(db_session, "taken.name@example.com")
+        
+        assert "already in use" in str(excinfo.value)
+        
+        db_session.delete(existing_user)
+        db_session.commit()
+
     def test_regular_registration_creates_enabled_user(self, client, db_session):
         """Test that regular registration creates a user with enabled=True and email_verified=False."""
         # Mock Turnstile service to be disabled for this test

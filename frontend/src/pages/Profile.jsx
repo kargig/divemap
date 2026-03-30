@@ -33,7 +33,7 @@ import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import api, { getUserPublicProfile } from '../api';
 import { FormField } from '../components/forms/FormField';
@@ -58,6 +58,7 @@ const Profile = () => {
   // Set page title
   usePageTitle('Divemap - Profile');
   const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isAddingCertification, setIsAddingCertification] = useState(false);
@@ -161,10 +162,18 @@ const Profile = () => {
 
   // Mutations
   const updateProfileMutation = useMutation(data => api.put('/api/v1/users/me', data), {
-    onSuccess: response => {
-      updateUser(response.data);
-      toast.success('Profile updated successfully!');
-      setIsEditing(false);
+    onSuccess: (response, variables) => {
+      // If the username was explicitly updated and changed, we must force a logout
+      // because the JWT token's 'sub' claim contains the old username.
+      if (variables.username && variables.username !== user.username) {
+        logout();
+        toast.success('Username successfully updated! Please log in again.');
+        navigate('/login');
+      } else {
+        updateUser(response.data);
+        toast.success('Profile updated successfully!');
+        setIsEditing(false);
+      }
     },
     onError: error => {
       toast.error(error.response?.data?.detail || 'Failed to update profile');
@@ -329,9 +338,24 @@ const Profile = () => {
   );
 
   const onProfileSubmit = data => {
-    // Exclude username and email from update data as they cannot be changed
+    // Exclude email as it cannot be changed
     // eslint-disable-next-line no-unused-vars
-    const { username, email, ...rest } = data;
+    const { email, ...rest } = data;
+
+    // Check if username has changed
+    if (data.username && data.username !== user.username) {
+      if (
+        !window.confirm(
+          'Changing your username will log you out and require you to log back in. Any links to your current public profile will break. Are you sure you want to proceed?'
+        )
+      ) {
+        return;
+      }
+    } else {
+      // Don't send username if it hasn't changed to save processing
+      delete rest.username;
+    }
+
     updateProfileMutation.mutate(rest);
   };
 
@@ -628,20 +652,14 @@ const Profile = () => {
                   <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                     <FormField name='username' label='Username'>
                       {({ register, name }) => (
-                        <>
-                          <input
-                            id='username'
-                            type='text'
-                            {...register(name)}
-                            disabled
-                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
-                              profileErrors.username ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                          />
-                          <p className='mt-1 text-[10px] text-gray-500'>
-                            Username cannot be changed
-                          </p>
-                        </>
+                        <input
+                          id='username'
+                          type='text'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                            profileErrors.username ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
                       )}
                     </FormField>
 

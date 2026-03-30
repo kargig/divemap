@@ -13,7 +13,7 @@ import { commonSchemas, createResolver } from '../utils/formHelpers';
 
 const resetPasswordSchema = z
   .object({
-    password: commonSchemas.password,
+    password: commonSchemas.password(),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {
