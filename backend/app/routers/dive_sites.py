@@ -907,6 +907,13 @@ async def get_dive_sites(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="page_size must be one of: 25, 50, 100, 1000"
         )
+
+    # Validate search query length
+    if search and len(search.strip()) < 3:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Search query must be at least 3 characters long"
+        )
     
     # Validate wind_suitability parameter if provided
     if wind_suitability is not None:

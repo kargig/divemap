@@ -182,7 +182,9 @@ const FuzzySearchInput = ({
       required={required}
       disabled={disabled}
       emptyMessage={
-        searchValue.length >= minQueryLength ? `No results found for "${searchValue}"` : null
+        searchValue.length >= minQueryLength
+          ? `No results found for "${searchValue}"`
+          : `Type at least ${minQueryLength} characters...`
       }
     />
   );

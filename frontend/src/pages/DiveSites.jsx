@@ -20,6 +20,7 @@ import {
   Award,
   MessageCircle,
   Route,
+  Search,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -368,6 +369,11 @@ const DiveSites = () => {
     }
   );
 
+  // Check if search query is too short (min 3 characters)
+  const isSearchTooShort =
+    debouncedSearchTerms.search_query.trim().length > 0 &&
+    debouncedSearchTerms.search_query.trim().length < 3;
+
   // Fetch dive sites
   const {
     data: diveSitesResponse,
@@ -458,6 +464,7 @@ const DiveSites = () => {
     },
     {
       staleTime: 5 * 60 * 1000, // 5 minutes
+      enabled: !isSearchTooShort,
     }
   );
 
@@ -759,15 +766,17 @@ const DiveSites = () => {
           {isLoading ? (
             <LoadingSkeleton type='pagination' className='mb-2 sm:mb-4 lg:mb-6' />
           ) : (
-            <Pagination
-              currentPage={pagination.page}
-              pageSize={pagination.page_size}
-              totalCount={totalCount}
-              itemName='dive sites'
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              className='mb-2 sm:mb-4 lg:mb-6'
-            />
+            !isSearchTooShort && (
+              <Pagination
+                currentPage={pagination.page}
+                pageSize={pagination.page_size}
+                totalCount={totalCount}
+                itemName='dive sites'
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                className='mb-2 sm:mb-4 lg:mb-6'
+              />
+            )
           )}
 
           {/* Results Section - Mobile-first responsive design */}
@@ -781,8 +790,24 @@ const DiveSites = () => {
             />
           ) : (
             <>
+              {/* Search query too short warning */}
+              {isSearchTooShort && (
+                <div className='bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-md shadow-sm'>
+                  <div className='flex items-center'>
+                    <div className='flex-shrink-0'>
+                      <Search className='h-5 w-5 text-blue-400' />
+                    </div>
+                    <div className='ml-3'>
+                      <p className='text-sm text-blue-700 font-medium'>
+                        Type at least 3 characters to search dive sites...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Dive Sites List - Show when data is available and viewMode is list */}
-              {viewMode === 'list' && diveSites?.results && (
+              {viewMode === 'list' && !isSearchTooShort && diveSites?.results && (
                 <div
                   data-testid='dive-sites-list'
                   className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
@@ -801,7 +826,7 @@ const DiveSites = () => {
               )}
 
               {/* Dive Sites Grid */}
-              {viewMode === 'grid' && !isMobile && diveSites?.results && (
+              {viewMode === 'grid' && !isMobile && !isSearchTooShort && diveSites?.results && (
                 <div
                   className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
                 >
@@ -823,6 +848,7 @@ const DiveSites = () => {
 
           {/* No Results Messages - Show when no dive sites found */}
           {!isLoading &&
+            !isSearchTooShort &&
             diveSites?.results &&
             diveSites.results.length === 0 &&
             viewMode !== 'map' && (
@@ -839,17 +865,20 @@ const DiveSites = () => {
             )}
 
           {/* Bottom Pagination Controls */}
-          {!isLoading && diveSites?.results && diveSites.results.length > 0 && (
-            <Pagination
-              currentPage={pagination.page}
-              pageSize={pagination.page_size}
-              totalCount={totalCount}
-              itemName='dive sites'
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              className='mt-6 sm:mt-8'
-            />
-          )}
+          {!isLoading &&
+            !isSearchTooShort &&
+            diveSites?.results &&
+            diveSites.results.length > 0 && (
+              <Pagination
+                currentPage={pagination.page}
+                pageSize={pagination.page_size}
+                totalCount={totalCount}
+                itemName='dive sites'
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                className='mt-6 sm:mt-8'
+              />
+            )}
         </div>
         {/* Close content-section */}
       </div>

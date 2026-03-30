@@ -834,7 +834,7 @@ const ResponsiveFilterBar = ({
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
               <input
                 type='text'
-                placeholder='Search dive sites...'
+                placeholder='Search (min 3 chars)...'
                 value={searchQuery}
                 onChange={e => onSearchChange(e.target.value)}
                 onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}

@@ -17,6 +17,12 @@ class TestDiveSites:
         assert len(data) == 1
         assert data[0]["name"] == test_dive_site.name
 
+    def test_get_dive_sites_short_search_query(self, client):
+        """Test that short search queries (less than 3 chars) return 400."""
+        response = client.get("/api/v1/dive-sites/?search=ki")
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Search query must be at least 3 characters long"
+
     def test_get_dive_sites_with_filter(self, client, test_dive_site):
         """Test getting dive sites with difficulty filter."""
         response = client.get("/api/v1/dive-sites/?difficulty_code=ADVANCED_OPEN_WATER")
