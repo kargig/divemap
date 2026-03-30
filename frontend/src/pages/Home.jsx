@@ -292,7 +292,10 @@ const Home = () => {
                 Dive Sites
               </div>
             </Link>
-            <div className='text-center group'>
+            <Link
+              to='/dive-sites?sort_by=average_rating&sort_order=desc'
+              className='text-center group block'
+            >
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.reviews || 0}
@@ -302,10 +305,10 @@ const Home = () => {
                   suffix={!isBackendAvailable ? '+' : ''}
                 />
               </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
+              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs group-hover:text-gray-300 transition-colors'>
                 Reviews
               </div>
-            </div>
+            </Link>
             <Link to='/diving-centers' className='text-center group'>
               <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
