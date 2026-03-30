@@ -108,7 +108,7 @@ const CreateDiveSite = () => {
   // Automatic Location and Shore Detection
   useEffect(() => {
     if (!formData.latitude || !formData.longitude) return;
-    
+
     const lat = parseFloat(formData.latitude);
     const lng = parseFloat(formData.longitude);
     if (isNaN(lat) || isNaN(lng)) return;
@@ -164,7 +164,7 @@ const CreateDiveSite = () => {
     }
   };
 
-  const handleCreateRoute = (siteId) => {
+  const handleCreateRoute = siteId => {
     window.sessionStorage.setItem('pendingDiveRouteDescription', formData.description || '');
     navigate(`/dive-sites/${siteId}/routes/create`);
   };
@@ -579,7 +579,7 @@ const CreateDiveSite = () => {
                       type='text'
                       inputMode='decimal'
                       {...register(name, {
-                        onChange: (e) => {
+                        onChange: e => {
                           const value = e.target.value;
                           if (value.includes(',')) {
                             const [lat, lng] = value.split(',').map(s => s.trim());
@@ -590,7 +590,7 @@ const CreateDiveSite = () => {
                               trigger(['latitude', 'longitude']);
                             }
                           }
-                        }
+                        },
                       })}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.latitude ? 'border-red-500' : 'border-gray-300'

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_, desc, asc, select
@@ -442,7 +442,17 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     if not show_archived:
         filtered_query = filtered_query.filter(DiveSite.deleted_at.is_(None))
     
+    # Apply status filter if provided
+    if 'status' in filters and filters['status'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
+        filtered_query = filtered_query.filter(DiveSite.status == filters['status'])
+    elif not show_archived:
+        # Default to approved for non-admins if no explicit status is provided
+        filtered_query = filtered_query.filter(DiveSite.status == 'approved')
+    
     # Apply the same filters that were used in the main query
+    if 'dive_site_id' in filters and filters['dive_site_id'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
+        filtered_query = filtered_query.filter(DiveSite.id == filters['dive_site_id'])
+
     if 'difficulty_code' in filters and filters['difficulty_code']:
         from app.models import get_difficulty_id_by_code
         difficulty_id = get_difficulty_id_by_code(db, filters['difficulty_code'])
@@ -886,6 +896,7 @@ async def get_dive_sites(
     detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)"),
     include_archived: bool = Query(False, description="Include soft-deleted (archived) dive sites (Admin only)"),
     site_status: Optional[str] = Query(None, alias="status", description="Filter by status (approved, pending, rejected). Admin only for pending/rejected."),
+    dive_site_id: Optional[int] = Query(None, description="Filter by a specific dive site ID"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -989,6 +1000,10 @@ async def get_dive_sites(
 
     # Apply rating filtering using utility function
     query = apply_rating_filtering(query, min_rating, db)
+
+    # Apply specific ID filter if provided (Admin/Moderator only)
+    if dive_site_id and (current_user and (current_user.is_admin or current_user.is_moderator)):
+        query = query.filter(DiveSite.id == dive_site_id)
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
@@ -1179,7 +1194,19 @@ async def get_dive_sites(
         all_dive_sites_query = db.query(DiveSite)
         if not show_archived:
             all_dive_sites_query = all_dive_sites_query.filter(DiveSite.deleted_at.is_(None))
-        
+            
+            # Apply status filter
+            if site_status and (current_user and (current_user.is_admin or current_user.is_moderator)):
+                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
+            else:
+                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == 'approved')
+        elif site_status:
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
+
+        # Apply specific ID filter if provided (Admin/Moderator only)
+        if dive_site_id and (current_user and (current_user.is_admin or current_user.is_moderator)):
+            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id == dive_site_id)
+
         # Apply the same filters to the full query using utility functions
         all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
         all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
@@ -1242,7 +1269,9 @@ async def get_dive_sites(
                 min_rating=min_rating,
                 my_dive_sites=my_dive_sites,
                 current_user=current_user,
-                show_archived=show_archived
+                show_archived=show_archived,
+                status=site_status,
+                dive_site_id=dive_site_id
             )
             
             # Transform enhanced results back to the expected format
@@ -1766,7 +1795,7 @@ async def _send_pending_moderation_notification(dive_site_id: int):
                 category="admin_alerts",
                 title="New Dive Site Requires Moderation",
                 message=f"A new dive site '{dive_site.name}' has been created near existing sites and requires your approval.",
-                link_url=f"/admin/dive-sites?status=pending&search={dive_site.name}",
+                link_url=f"/admin/dive-sites?status=pending&dive_site_id={dive_site.id}",
                 entity_type="dive_site",
                 entity_id=dive_site.id
             )

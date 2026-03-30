@@ -195,6 +195,7 @@ const EditDiveSite = () => {
     watch,
     reset,
     setError,
+    trigger,
   } = methods;
 
   const formData = watch();
@@ -220,7 +221,7 @@ const EditDiveSite = () => {
   // Automatic Location and Shore Detection
   useEffect(() => {
     if (!formData.latitude || !formData.longitude) return;
-    
+
     const lat = parseFloat(formData.latitude);
     const lng = parseFloat(formData.longitude);
     if (isNaN(lat) || isNaN(lng)) return;
@@ -1392,17 +1393,22 @@ const EditDiveSite = () => {
                         type='text'
                         inputMode='decimal'
                         {...register(name, {
-                          onChange: (e) => {
+                          onChange: e => {
                             const value = e.target.value;
                             if (value.includes(',')) {
                               const [lat, lng] = value.split(',').map(s => s.trim());
-                              if (lat && !isNaN(parseFloat(lat)) && lng && !isNaN(parseFloat(lng))) {
+                              if (
+                                lat &&
+                                !isNaN(parseFloat(lat)) &&
+                                lng &&
+                                !isNaN(parseFloat(lng))
+                              ) {
                                 setValue('latitude', lat);
                                 setValue('longitude', lng);
                                 trigger(['latitude', 'longitude']);
                               }
                             }
-                          }
+                          },
                         })}
                         className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           errors.latitude ? 'border-red-500' : 'border-gray-300'

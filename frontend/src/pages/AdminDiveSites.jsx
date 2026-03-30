@@ -74,7 +74,7 @@ const AdminDiveSites = () => {
 
   // Filters (keep existing filter logic)
   const [filters, setFilters] = useState({
-    name: '',
+    name: searchParams.get('search') || '',
     difficulty_code: '',
     country: '',
     region: '',
@@ -82,6 +82,7 @@ const AdminDiveSites = () => {
     max_rating: '',
     include_archived: true,
     status: searchParams.get('status') || '',
+    dive_site_id: searchParams.get('dive_site_id') || '',
   });
 
   // Local search input state for immediate visual feedback
@@ -180,6 +181,7 @@ const AdminDiveSites = () => {
       if (filters.max_rating) params.append('max_rating', filters.max_rating);
       if (filters.include_archived) params.append('include_archived', 'true');
       if (filters.status) params.append('status', filters.status);
+      if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
 
       return api.get(`/api/v1/dive-sites/?${params.toString()}`);
     },
@@ -244,6 +246,8 @@ const AdminDiveSites = () => {
       min_rating: '',
       max_rating: '',
       include_archived: true,
+      status: '',
+      dive_site_id: '',
     });
     setPagination(prev => ({ ...prev, pageIndex: 0 }));
   };
@@ -883,6 +887,22 @@ const AdminDiveSites = () => {
             {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
               <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
             )}
+          </div>
+          <div>
+            <label
+              htmlFor='dive-site-id-filter'
+              className='block text-sm font-medium text-gray-700 mb-1'
+            >
+              Dive Site ID
+            </label>
+            <input
+              id='dive-site-id-filter'
+              type='text'
+              placeholder='ID...'
+              value={filters.dive_site_id}
+              onChange={e => handleFilterChange('dive_site_id', e.target.value)}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
           </div>
           <Select
             id='status-filter'
