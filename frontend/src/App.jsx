@@ -9,6 +9,7 @@ import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
 import PWAUpdater from './components/PWAUpdater';
 import ReportIssueButton from './components/ReportIssueButton';
+import ScrollToTop from './components/ScrollToTop';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -175,6 +176,7 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <Router>
+            <ScrollToTop />
             <div className='min-h-screen bg-gray-50'>
               <PWAUpdater />
               <Navbar />
