@@ -38,6 +38,7 @@ class UserCreate(UserBase):
     turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token")
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     number_of_dives: Optional[int] = Field(None, ge=0)

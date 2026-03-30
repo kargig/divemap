@@ -10,7 +10,16 @@ export const commonSchemas = {
     .min(1, 'Email is required')
     .email('Please enter a valid email address')
     .max(255, 'Email must be at most 255 characters'),
-  username: z.string().min(3, 'Username must be at least 3 characters long'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters long')
+    .max(50, 'Username cannot exceed 50 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores')
+    .refine(
+      val =>
+        !['admin', 'divemap', 'moderator', 'system', 'support', 'root'].includes(val.toLowerCase()),
+      { message: 'This username is reserved and cannot be used.' }
+    ),
   password: (required = true) => {
     const base = z.string();
     const schema = base.refine(

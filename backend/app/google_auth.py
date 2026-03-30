@@ -180,7 +180,8 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
 def _generate_valid_username(db: Session, email: str) -> str:
     """
     Generate a valid username from the first part of the email address.
-    If the username already exists, append a random numeric suffix.
+    Strips any content after a '+' sign to prevent multiple registrations from the same base email.
+    If the generated username already exists, registration fails.
     
     Args:
         db: Database session
@@ -188,12 +189,18 @@ def _generate_valid_username(db: Session, email: str) -> str:
         
     Returns:
         Valid username string
+    
+    Raises:
+        GoogleAuthError: If the generated username is already taken.
     """
     # Extract first part of email (before @)
     email_prefix = email.split('@')[0].lower()
     
-    # Extract only the first part before the first dot (if any)
-    username = email_prefix.split('.')[0]
+    # Strip everything after a '+' if it exists
+    email_prefix = email_prefix.split('+')[0]
+    
+    # Replace dots with underscores instead of truncating (fixes Issue #185)
+    username = email_prefix.replace('.', '_')
     
     # Remove any special characters that don't match the pattern ^[a-zA-Z0-9_]+$
     username = re.sub(r'[^a-zA-Z0-9_]', '', username)
@@ -202,19 +209,11 @@ def _generate_valid_username(db: Session, email: str) -> str:
     if not username:
         username = "user"
     
-    # Check if username already exists, if so, append a random numeric suffix
-    base_username = username
-    import random
-    
-    while db.query(User).filter(User.username == username).first():
-        # Generate a random 3-digit number
-        suffix = random.randint(100, 999)
-        username = f"{base_username}{suffix}"
-        
-        # Prevent infinite loop (very unlikely but safe)
-        if len(username) > 50:  # Max username length is 50
-            username = f"{base_username}_{int(time.time())}"
-            break
+    # Check if username already exists
+    # If it does, we fail the registration instead of appending numbers to prevent
+    # a user creating multiple accounts (e.g., first.last+spam1, first.last+spam2)
+    if db.query(User).filter(User.username == username).first():
+        raise GoogleAuthError(f"Cannot create account: Username '{username}' derived from email is already in use.")
     
     return username
 

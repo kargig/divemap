@@ -20,7 +20,7 @@ const registerSchema = z
   .object({
     username: commonSchemas.username,
     email: commonSchemas.email,
-    password: commonSchemas.password,
+    password: commonSchemas.password(),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
   })
   .refine(data => data.password === data.confirmPassword, {

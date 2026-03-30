@@ -95,6 +95,46 @@ class TestUsers:
                             json=update_data, headers=auth_headers)
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_update_username_success(self, client, auth_headers):
+        """Test successfully updating a username."""
+        update_data = {
+            "username": "new_awesome_name"
+        }
+        response = client.put(
+            "/api/v1/users/me",
+            json=update_data,
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["username"] == "new_awesome_name"
+
+    def test_update_username_restricted(self, client, auth_headers):
+        """Test that restricted usernames are rejected."""
+        update_data = {
+            "username": "Admin"
+        }
+        response = client.put(
+            "/api/v1/users/me",
+            json=update_data,
+            headers=auth_headers
+        )
+        assert response.status_code == 400
+        assert "reserved" in response.json()["detail"].lower()
+
+    def test_update_username_taken(self, client, auth_headers, test_user_other):
+        """Test that taking an existing username is rejected."""
+        update_data = {
+            "username": test_user_other.username
+        }
+        response = client.put(
+            "/api/v1/users/me",
+            json=update_data,
+            headers=auth_headers
+        )
+        assert response.status_code == 400
+        assert "already registered" in response.json()["detail"].lower()
         # Empty string should be rejected due to min_length=1 validation
 
 

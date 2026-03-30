@@ -443,6 +443,26 @@ async def update_current_user_profile(
     # Update only provided fields
     update_data = user_update.model_dump(exclude_unset=True)
 
+    # Handle username update separately to enforce uniqueness and restrictions
+    if 'username' in update_data:
+        new_username = update_data['username']
+        # Skip validation if it's the same username
+        if new_username != current_user.username:
+            # 1. Blacklist Check
+            restricted_usernames = {"admin", "divemap", "moderator", "system", "support", "root"}
+            if new_username.lower() in restricted_usernames:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This username is reserved and cannot be used."
+                )
+            # 2. Uniqueness Check
+            existing_user = db.query(User).filter(User.username == new_username).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already registered"
+                )
+
     # Handle password update separately
     if 'password' in update_data:
         password = update_data.pop('password')
