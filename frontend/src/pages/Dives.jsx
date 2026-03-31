@@ -58,7 +58,7 @@ import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
 
 const getDiveSlug = dive => {
-  const slugText = dive.name || (dive.dive_site_info ? dive.dive_site_info.name : 'dive');
+  const slugText = dive.name || (dive.dive_site ? dive.dive_site.name : 'dive');
   const datePart = dive.dive_date;
   return slugify(`${slugText}-${datePart}-dive-${dive.id}`);
 };
@@ -1075,9 +1075,9 @@ const Dives = () => {
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
-                          {dive.dive_site_info?.name && (
+                          {dive.dive_site?.name && (
                             <span className='text-[10px] sm:text-xs font-medium text-blue-500 ml-1.5 opacity-80'>
-                              @ {dive.dive_site_info.name}
+                              @ {dive.dive_site.name}
                             </span>
                           )}
                         </h3>
@@ -1201,11 +1201,11 @@ const Dives = () => {
                   <div className='p-5 flex flex-col h-full'>
                     {/* Header: Title & Site */}
                     <div className='mb-3'>
-                      {dive.dive_site_info && (
+                      {dive.dive_site && (
                         <div className='text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
                           <MapPin className='w-2.5 h-2.5' />
-                          {dive.dive_site_info.name}
-                          {dive.dive_site_info.deleted_at && ' (Archived)'}
+                          {dive.dive_site.name}
+                          {dive.dive_site.deleted_at && ' (Archived)'}
                         </div>
                       )}
                       <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>
