@@ -1,6 +1,6 @@
 import pytest
 from fastapi import status
-from app.models import DiveSite, DiveRoute
+from app.models import DiveSite, DiveRoute, RouteAnalytics, Dive
 
 def test_soft_delete_by_creator(client, auth_headers, test_dive_site, test_user, db_session):
     """Creator can soft delete their own site."""
@@ -36,9 +36,19 @@ def test_soft_delete_by_admin(client, admin_headers, test_dive_site, db_session)
     db_session.refresh(test_dive_site)
     assert test_dive_site.deleted_at is not None
 
-def test_hard_delete_by_admin(client, admin_headers, test_dive_site, db_session):
-    """Admins can hard delete a site using force=true."""
+def test_hard_delete_by_admin(client, admin_headers, test_dive_site, test_user, test_dive, test_route, db_session):
+    """Admins can hard delete a site using force=true. Verifies constraints."""
     site_id = test_dive_site.id
+    route_id = test_route.id
+    dive_id = test_dive.id
+    
+    # Create RouteAnalytics linked to the route
+    analytics = RouteAnalytics(route_id=route_id, user_id=test_user.id, interaction_type='view')
+    db_session.add(analytics)
+    db_session.commit()
+    
+    analytics_id = analytics.id
+
     response = client.delete(f"/api/v1/dive-sites/{site_id}?force=true", headers=admin_headers)
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["message"] == "Dive site permanently deleted"
@@ -46,6 +56,20 @@ def test_hard_delete_by_admin(client, admin_headers, test_dive_site, db_session)
     # Verify site is physically removed
     deleted_site = db_session.query(DiveSite).filter(DiveSite.id == site_id).first()
     assert deleted_site is None
+    
+    # Verify route is physically removed (CASCADE)
+    deleted_route = db_session.query(DiveRoute).filter(DiveRoute.id == route_id).first()
+    assert deleted_route is None
+    
+    # Verify analytics is physically removed (CASCADE)
+    deleted_analytics = db_session.query(RouteAnalytics).filter(RouteAnalytics.id == analytics_id).first()
+    assert deleted_analytics is None
+    
+    # Verify dive is NOT removed, but unlinked (SET NULL)
+    preserved_dive = db_session.query(Dive).filter(Dive.id == dive_id).first()
+    assert preserved_dive is not None
+    assert preserved_dive.dive_site_id is None
+
 
 def test_access_soft_deleted_site_as_user(client, auth_headers, test_dive_site, test_user, db_session):
     """Regular users receive 404 when accessing an archived site."""

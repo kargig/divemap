@@ -209,9 +209,9 @@ class DiveSite(Base):
     ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")
     comments = relationship("SiteComment", back_populates="dive_site", cascade="all, delete-orphan")
     center_relationships = relationship("CenterDiveSite", back_populates="dive_site", cascade="all, delete-orphan")
-    parsed_dives = relationship("ParsedDive", back_populates="dive_site", cascade="all, delete-orphan")
+    parsed_dives = relationship("ParsedDive", back_populates="dive_site", passive_deletes=True)
     tags = relationship("DiveSiteTag", back_populates="dive_site", cascade="all, delete-orphan")
-    dives = relationship("Dive", back_populates="dive_site", cascade="all, delete-orphan")
+    dives = relationship("Dive", back_populates="dive_site", passive_deletes=True)
     routes = relationship("DiveRoute", back_populates="dive_site", cascade="all, delete-orphan")
     aliases = relationship("DiveSiteAlias", back_populates="dive_site", cascade="all, delete-orphan")
 
@@ -681,7 +681,7 @@ class RouteAnalytics(Base):
     __tablename__ = "route_analytics"
 
     id = Column(Integer, primary_key=True, index=True)
-    route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=False, index=True)
+    route_id = Column(Integer, ForeignKey("dive_routes.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for anonymous users
     interaction_type = Column(String(50), nullable=False, index=True)  # view, copy, share, download, export
     ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
