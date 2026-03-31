@@ -41,3 +41,4 @@ orjson==3.9.10
 Pillow==10.1.0
 python-magic==0.4.27
 tenacity==8.2.3
+cachetools==5.5.2

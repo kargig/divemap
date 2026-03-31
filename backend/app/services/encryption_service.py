@@ -1,6 +1,6 @@
 import os
 import logging
-from functools import lru_cache
+from cachetools import cached, TTLCache
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ def encrypt_room_dek(plaintext_dek: str) -> str:
         logger.error(f"Failed to encrypt room DEK: {e}")
         raise EncryptionError("Failed to encrypt room key")
 
-@lru_cache(maxsize=1000)
+@cached(cache=TTLCache(maxsize=1000, ttl=1800))
 def decrypt_room_dek(encrypted_dek: str) -> str:
     """
     Decrypt a room's DEK using the Master Encryption Key.
