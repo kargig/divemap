@@ -1212,7 +1212,7 @@ def fail_push_subscription(
 
 @router.post("/internal/notify-chat-message")
 async def trigger_notify_chat_message(
-    room_id: int = Query(...),
+    room_id: str = Query(...),
     sender_id: int = Query(...),
     message_id: int = Query(...),
     db: Session = Depends(get_db),
