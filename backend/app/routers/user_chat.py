@@ -11,7 +11,8 @@ from app.models import User, UserChatRoom, UserChatRoomMember, UserChatMessage, 
 from app.auth import get_current_active_user
 from app.schemas.user_chat import (
     ChatRoomCreate, ChatRoomResponse, ChatRoomUpdate,
-    ChatMessageCreate, ChatMessageResponse, ChatMessageUpdate
+    ChatMessageCreate, ChatMessageResponse, ChatMessageUpdate,
+    ChatRoomArchiveUpdate
 )
 from app.services.encryption_service import (
     generate_room_dek, encrypt_room_dek, decrypt_message, encrypt_message
@@ -234,10 +235,11 @@ async def list_chat_rooms(
     db: Session = Depends(get_db)
 ):
     """List all active chat rooms for the current user with unread counts and latest message preview."""
-    # 1. Get personal memberships
+    # 1. Get personal memberships where NOT archived
     active_memberships = db.query(UserChatRoomMember).filter(
         UserChatRoomMember.user_id == current_user.id,
-        UserChatRoomMember.left_at.is_(None)
+        UserChatRoomMember.left_at.is_(None),
+        UserChatRoomMember.is_archived == False
     ).all()
     personal_room_ids = [m.room_id for m in active_memberships]
 
@@ -258,13 +260,18 @@ async def list_chat_rooms(
         return []
 
     # 3. Query rooms (UNION equivalent)
+    # For personal: rooms in personal_room_ids
+    # For business: rooms linked to managed centers AND not archived globally for the center
     rooms = db.query(UserChatRoom).options(
         joinedload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
         joinedload(UserChatRoom.diving_center)
     ).filter(
         or_(
             UserChatRoom.id.in_(personal_room_ids),
-            UserChatRoom.diving_center_id.in_(managed_center_ids)
+            and_(
+                UserChatRoom.diving_center_id.in_(managed_center_ids),
+                UserChatRoom.is_archived == False
+            )
         )
     ).order_by(desc(UserChatRoom.last_activity_at)).all()
     
@@ -285,6 +292,7 @@ async def list_chat_rooms(
                 room.unread_count = 1
             else:
                 room.unread_count = 0
+            # is_archived already set correctly from room table for business
         else:
             # Personal room logic
             member_record = next((m for m in active_memberships if m.room_id == room.id), None)
@@ -296,6 +304,8 @@ async def list_chat_rooms(
                     UserChatMessage.sender_id != current_user.id # Don't count own messages
                 ).scalar()
                 room.unread_count = unread_count
+                # Override room.is_archived with the user-specific member value
+                room.is_archived = member_record.is_archived
             
     return rooms
 
@@ -326,6 +336,32 @@ async def get_total_unread_count(
         
     return {"unread_count": total_unread}
 
+@router.patch("/rooms/{room_id}/archive", response_model=ChatRoomResponse)
+async def toggle_room_archive(
+    room_id: str,
+    archive_in: ChatRoomArchiveUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Archive or unarchive a chat room."""
+    room, member = get_room_or_404(db, room_id, current_user.id)
+    
+    if room.diving_center_id:
+        # B2C Room: Archive globally for the business
+        room.is_archived = archive_in.is_archived
+    else:
+        # Personal Room: Archive for this user only
+        if member:
+            member.is_archived = archive_in.is_archived
+        else:
+            # This handles the case where a manager is viewing a personal room 
+            # they are not a member of, which should not happen per current logic
+            raise HTTPException(status_code=403, detail="You can only archive your own personal chats")
+        
+    db.commit()
+    db.refresh(room)
+    return room
+
 @router.post("/rooms/{room_id}/messages", response_model=ChatMessageResponse, status_code=status.HTTP_201_CREATED)
 async def send_message(
     room_id: str,
@@ -351,16 +387,34 @@ async def send_message(
     
     # Update room activity
     room.last_activity_at = func.now()
-    if member:
-        member.last_read_at = func.now()
-        
-    # B2C Status Updates
+    
+    # B2C / Business Inbox logic
     if room.diving_center_id:
+        # Unarchive the room for the business globally
+        room.is_archived = False
+        
         if member: # Customer sending
             room.business_status = BusinessChatStatus.UNREAD
+            member.last_read_at = func.now()
+            # Customer unarchives their own view too
+            member.is_archived = False
         else: # Manager sending
             room.business_status = BusinessChatStatus.READ
             room.last_responded_by_id = current_user.id
+            # Auto-unarchive for the customer (recipient)
+            db.query(UserChatRoomMember).filter(
+                UserChatRoomMember.room_id == room_id,
+                UserChatRoomMember.user_id != current_user.id
+            ).update({"is_archived": False}, synchronize_session=False)
+    else:
+        # Personal Room: Auto-unarchive for all members
+        db.query(UserChatRoomMember).filter(
+            UserChatRoomMember.room_id == room_id,
+            UserChatRoomMember.left_at.is_(None)
+        ).update({"is_archived": False}, synchronize_session=False)
+        
+        if member:
+            member.last_read_at = func.now()
     
     db.commit()
     db.refresh(new_message)
@@ -380,7 +434,7 @@ async def send_message(
     if sqs_service.sqs_available:
         sqs_service.sqs_client.send_message(
             QueueUrl=sqs_service.queue_url,
-            MessageBody=f'{{"type": "new_chat_message", "room_id": {room_id}, "sender_id": {current_user.id}, "message_id": {new_message.id}}}',
+            MessageBody=f'{{"type": "new_chat_message", "room_id": "{room_id}", "sender_id": {current_user.id}, "message_id": {new_message.id}}}',
             DelaySeconds=0
         )
     

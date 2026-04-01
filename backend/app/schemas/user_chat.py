@@ -43,6 +43,9 @@ class ChatRoomCreate(BaseModel):
 class ChatRoomUpdate(BaseModel):
     name: Optional[constr(max_length=100)] = None
 
+class ChatRoomArchiveUpdate(BaseModel):
+    is_archived: bool
+
 class ChatRoomResponse(BaseModel):
     id: str
     is_group: bool
@@ -51,6 +54,7 @@ class ChatRoomResponse(BaseModel):
     diving_center_id: Optional[int] = None
     diving_center: Optional[DivingCenterBasic] = None
     is_broadcast: bool = False
+    is_archived: bool = False
     business_status: Optional[str] = None
     quick_replies: Optional[List[str]] = None
     last_activity_at: datetime
