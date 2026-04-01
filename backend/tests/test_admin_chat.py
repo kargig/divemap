@@ -32,7 +32,7 @@ class TestAdminChat:
             rating=True,
             category="accuracy",
             comments="Good",
-            debug_data={"intent": "discovery"}
+            debug_data={"intermediate_steps": [{"action_type": "tool_call", "tool_name": "search_dive_sites"}]}
         )
         db_session.add(feedback)
         db_session.commit()
@@ -43,4 +43,4 @@ class TestAdminChat:
         assert len(data) == 1
         assert data[0]["message_id"] == "msg-1"
         assert data[0]["rating"] is True
-        assert data[0]["debug_data"] == {"intent": "discovery"}
+        assert "intermediate_steps" in data[0]["debug_data"]

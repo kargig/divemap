@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from fastapi.concurrency import run_in_threadpool
 from app.schemas.chat import (
-    ChatMessage, ChatRequest, ChatResponse, IntentType, SearchIntent, ChatIntermediateAction
+    ChatMessage, ChatRequest, ChatResponse, IntentType, ChatIntermediateAction
 )
 from app.models import ChatSession, ChatMessage as ChatMessageModel, User
 from app.services.openai_service import openai_service
@@ -68,8 +68,17 @@ Page Context: {page_context_summary}
         
         def _get_or_create_session():
             session = self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
-            if not session:
-                session = ChatSession(id=session_id, user_id=current_user.id if current_user else None)
+            expected_user_id = current_user.id if current_user else None
+            
+            if session:
+                if session.user_id != expected_user_id:
+                    from fastapi import HTTPException, status
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Not authorized to access this chat session."
+                    )
+            else:
+                session = ChatSession(id=session_id, user_id=expected_user_id)
                 self.db.add(session)
                 self.db.commit()
             return session

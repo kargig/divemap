@@ -25,6 +25,16 @@ else:
     print(f"🔧 Local development - Using database URL: {SQLALCHEMY_DATABASE_URL}")
 
 # Create test engine with appropriate configuration for SQLite or MySQL
+if "divemap_password@db" in SQLALCHEMY_DATABASE_URL or SQLALCHEMY_DATABASE_URL.endswith("/divemap"):
+    import sys
+    print("\n\n" + "="*80)
+    print("🚨 CRITICAL SECURITY FATAL ERROR 🚨")
+    print("You are attempting to run destructive tests against the LIVE development database!")
+    print("This will wipe all data. Execution has been aborted.")
+    print("AGENTS: You MUST use `./docker-test-github-actions.sh` for testing. NEVER run pytest directly.")
+    print("="*80 + "\n\n")
+    sys.exit(1)
+
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         SQLALCHEMY_DATABASE_URL,

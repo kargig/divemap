@@ -3,7 +3,7 @@ from fastapi import status
 from unittest.mock import patch, AsyncMock
 import uuid
 from types import SimpleNamespace
-from app.schemas.chat import SearchIntent, IntentType
+from app.schemas.chat import IntentType
 
 class TestChatAPI:
     """Test Chatbot endpoints."""

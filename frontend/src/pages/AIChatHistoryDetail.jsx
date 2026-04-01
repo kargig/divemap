@@ -69,7 +69,6 @@ const AIChatHistoryDetail = () => {
                   role: msg.role,
                   content: msg.content,
                   sources: msg.debug_data?.sources || [],
-                  intent: msg.debug_data?.intent || '',
                 }}
               />
             ))}

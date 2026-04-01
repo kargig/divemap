@@ -12,12 +12,6 @@ import os
 from fastapi import status
 from app.models import CenterDiveSite
 
-# Skip all tests in this file if not using MySQL
-pytestmark = pytest.mark.skipif(
-    os.getenv("DATABASE_URL", "sqlite:///./test.db").startswith("sqlite"),
-    reason="These tests require MySQL (run via docker-test-github-actions.sh)"
-)
-
 
 class TestDiveSitesDivingCenters:
     """Test diving center associations for dive sites."""
