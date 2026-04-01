@@ -48,7 +48,7 @@ const Home = () => {
         'Share your experiences by rating dive sites and leaving detailed reviews to help other divers.',
       shortDescription: 'Rate sites and leave reviews to help others.',
       icon: Star,
-      link: null, // No link for this one in original code
+      link: '/dive-sites?sort_by=average_rating&sort_order=desc',
       color: 'yellow',
       bgColor: 'bg-yellow-50',
       iconColor: 'text-yellow-600',
