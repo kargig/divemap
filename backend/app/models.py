@@ -1032,13 +1032,18 @@ class UserFriendship(Base):
     friend = relationship("User", foreign_keys=[friend_id])
     initiator = relationship("User", foreign_keys=[initiator_id])
 
+import uuid
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
 class UserChatRoom(Base):
     """
     Represents a 1-on-1 or Group chat room between users.
     """
     __tablename__ = "user_chat_rooms"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     is_group = Column(Boolean, default=False, nullable=False)
     name = Column(String(100), nullable=True) # Optional name for group chats
     encrypted_dek = Column(Text, nullable=False) # Envelope-encrypted Room Key
@@ -1065,7 +1070,7 @@ class UserChatRoomMember(Base):
     """
     __tablename__ = "user_chat_room_members"
 
-    room_id = Column(Integer, ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), primary_key=True)
+    room_id = Column(String(36), ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role = Column(String(20), default="MEMBER", nullable=False) # 'ADMIN' or 'MEMBER'
     joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -1083,9 +1088,10 @@ class UserChatMessage(Base):
     __tablename__ = "user_chat_messages"
 
     id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer, ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), nullable=False)
+    room_id = Column(String(36), ForeignKey("user_chat_rooms.id", ondelete="CASCADE"), nullable=False)
     sender_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     content = Column(LargeBinary, nullable=False) # The Fernet-encrypted ciphertext
+    message_type = Column(String(50), default="TEXT", nullable=False) # TEXT, TRIP_AD, etc.
     is_edited = Column(Boolean, default=False, nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
