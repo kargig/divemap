@@ -1,9 +1,9 @@
-import { X, Users, LogOut, Edit, Check, Settings } from 'lucide-react';
+import { X, Users, LogOut, Edit, Check, Settings, Archive, ArchiveRestore } from 'lucide-react';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { leaveChatRoom, updateChatRoom } from '../../api';
+import { leaveChatRoom, updateChatRoom, toggleChatArchive } from '../../api';
 import Avatar from '../Avatar';
 
 const RoomSettings = ({ room, currentUserId, onClose }) => {
@@ -11,7 +11,18 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(room?.name || '');
 
-  const isAdmin = room?.members?.find(m => m.user_id === currentUserId)?.role === 'ADMIN';
+  const activeMember = room?.members?.find(m => m.user_id === currentUserId);
+  const isAdmin = activeMember?.role === 'ADMIN';
+  const currentlyArchived = room.diving_center_id ? room.is_archived : activeMember?.is_archived;
+
+  const archiveMutation = useMutation(() => toggleChatArchive(room.id, !currentlyArchived), {
+    onSuccess: () => {
+      queryClient.invalidateQueries('chat-rooms');
+      onClose(true); // Close settings and deselect room to return to inbox
+      toast.success(currentlyArchived ? 'Chat unarchived' : 'Chat archived');
+    },
+    onError: () => toast.error('Failed to update archive status'),
+  });
 
   const leaveMutation = useMutation(() => leaveChatRoom(room.id), {
     onSuccess: () => {
@@ -161,7 +172,16 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
         </div>
 
         {/* Actions */}
-        <div className='pt-6 border-t border-gray-100 dark:border-gray-700'>
+        <div className='pt-6 border-t border-gray-100 dark:border-gray-700 space-y-3'>
+          <button
+            onClick={() => archiveMutation.mutate()}
+            disabled={archiveMutation.isLoading}
+            className='w-full flex items-center justify-center gap-2 p-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors disabled:opacity-50'
+          >
+            {currentlyArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
+            {currentlyArchived ? 'Unarchive Chat' : 'Archive Chat'}
+          </button>
+
           {room.is_group && (
             <button
               onClick={handleLeave}

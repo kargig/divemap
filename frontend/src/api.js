@@ -476,3 +476,10 @@ export const removeFriendship = async friendshipId => {
   const response = await api.delete(`/api/v1/user-friendships/${friendshipId}`);
   return response.data;
 };
+
+export const toggleChatArchive = async (roomId, isArchived) => {
+  const response = await api.patch(`/api/v1/user-chat/rooms/${roomId}/archive`, {
+    is_archived: isArchived,
+  });
+  return response.data;
+};
