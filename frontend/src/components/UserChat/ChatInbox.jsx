@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { Edit3 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useAuth } from '../../contexts/AuthContext';
 import Avatar from '../Avatar';
@@ -9,6 +9,31 @@ import Avatar from '../Avatar';
 const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, buddyCount }) => {
   const { user } = useAuth();
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
+  const [showBusiness, setShowBusiness] = useState(false);
+
+  const personalRooms = rooms.filter(r => !r.diving_center_id);
+  const businessRooms = rooms.filter(r => r.diving_center_id);
+  const hasBusinessRooms = businessRooms.length > 0;
+
+  const [autoSwitchedFor, setAutoSwitchedFor] = React.useState(null);
+
+  // Synchronize the tab with the active room URL parameter
+  React.useEffect(() => {
+    // Only auto-switch if we have an active room, data is loaded, and we haven't already
+    // handled the auto-switch for this specific room ID.
+    if (activeRoomId && businessRooms.length > 0 && activeRoomId !== autoSwitchedFor) {
+      const activeIsBusiness = businessRooms.some(r => r.id === activeRoomId);
+
+      if (activeIsBusiness) {
+        setShowBusiness(true);
+      } else if (activeRoomId !== 'ai-assistant') {
+        setShowBusiness(false);
+      }
+
+      // Mark that we have completed the auto-switch logic for this room
+      setAutoSwitchedFor(activeRoomId);
+    }
+  }, [activeRoomId, businessRooms.length, autoSwitchedFor]);
 
   if (isLoading) {
     return (
@@ -26,6 +51,7 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
     );
   }
 
+  const displayRooms = showBusiness ? businessRooms : personalRooms;
   return (
     <div className='flex flex-col overflow-y-auto h-full border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'>
       <div className='p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center'>
@@ -38,18 +64,45 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
           <Edit3 className='h-5 w-5' />
         </button>
       </div>
+
+      {hasBusinessRooms && (
+        <div className='flex p-2 bg-gray-100 dark:bg-gray-800'>
+          <button
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md ${!showBusiness ? 'bg-white shadow dark:bg-gray-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            onClick={() => setShowBusiness(false)}
+          >
+            Personal
+          </button>
+          <button
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md ${showBusiness ? 'bg-white shadow dark:bg-gray-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            onClick={() => setShowBusiness(true)}
+          >
+            Business
+          </button>
+        </div>
+      )}
+
       <div className='flex-1 overflow-y-auto'>
-        {rooms.map(room => {
+        {displayRooms.map(room => {
           const isActive = room.id === activeRoomId;
           // Determine display name and avatar (for DMs)
           const otherMembers = room.members.filter(m => m.user_id !== currentUserId);
-          const displayName = room.is_group
-            ? room.name
-            : otherMembers[0]?.user?.username || otherMembers[0]?.username || 'Unknown User';
-          // Fallback to the member's avatar_url if the user object isn't fully populated
-          const displayAvatar = room.is_group
-            ? null
-            : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+
+          let displayName = room.name;
+          let displayAvatar = null;
+
+          if (!room.is_group) {
+            if (room.diving_center) {
+              displayName = room.diving_center.name;
+              displayAvatar = room.diving_center.logo_url;
+            } else {
+              displayName =
+                otherMembers[0]?.user?.username ||
+                otherMembers[0]?.username ||
+                (room.diving_center_id ? 'Business Chat' : 'Unknown User');
+              displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+            }
+          }
 
           return (
             <button
@@ -108,19 +161,34 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
                       : '--:--'}
                   </span>
                 </div>
-                <p
-                  className={`text-xs truncate ${
-                    room.unread_count > 0
-                      ? 'text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider'
-                      : 'text-gray-500 dark:text-gray-400 italic'
-                  }`}
-                >
-                  {room.unread_count > 0
-                    ? `${room.unread_count} new message${room.unread_count > 1 ? 's' : ''}`
-                    : room.last_activity_at
-                      ? `Last activity: ${format(new Date(room.last_activity_at), 'MMM d, HH:mm')}`
-                      : 'No recent activity'}
-                </p>
+                <div className='flex justify-between items-center'>
+                  <p
+                    className={`text-xs truncate ${
+                      room.unread_count > 0
+                        ? 'text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider'
+                        : 'text-gray-500 dark:text-gray-400 italic'
+                    }`}
+                  >
+                    {room.unread_count > 0
+                      ? `${room.unread_count} new message${room.unread_count > 1 ? 's' : ''}`
+                      : room.last_activity_at
+                        ? `Last activity: ${format(new Date(room.last_activity_at), 'MMM d, HH:mm')}`
+                        : 'No recent activity'}
+                  </p>
+                  {showBusiness && room.business_status && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        room.business_status === 'RESOLVED'
+                          ? 'bg-green-100 text-green-800'
+                          : room.business_status === 'UNREAD'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {room.business_status}
+                    </span>
+                  )}
+                </div>
               </div>
             </button>
           );
@@ -140,6 +208,8 @@ ChatInbox.propTypes = {
       unread_count: PropTypes.number,
       latest_message: PropTypes.string,
       members: PropTypes.array.isRequired,
+      diving_center_id: PropTypes.number,
+      business_status: PropTypes.string,
     })
   ).isRequired,
   activeRoomId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),

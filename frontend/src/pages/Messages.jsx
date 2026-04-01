@@ -3,7 +3,7 @@ import { Smartphone, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import api, { getChatRooms, getUserFriendships, getAIChatLastActivity } from '../api';
 import ChatWindow from '../components/Chat/ChatWindow';
@@ -33,6 +33,7 @@ const Messages = () => {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [showPushBanner, setShowPushBanner] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Only show banner if supported and not already decided
@@ -80,9 +81,23 @@ const Messages = () => {
       setShowPushBanner(false);
     }
   };
-  const [activeRoomId, setActiveRoomId] = useState(
-    location.state?.roomId || location.state?.activeRoomId || null
-  );
+
+  const getInitialRoomId = () => {
+    // 1. Try location state (from internal navigation)
+    if (location.state?.roomId || location.state?.activeRoomId) {
+      return location.state.roomId || location.state.activeRoomId;
+    }
+    // 2. Try query parameter (from direct URL/refresh)
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get('room');
+    if (roomParam) {
+      // Check if it is the AI assistant string or a uuid
+      return roomParam;
+    }
+    return null;
+  };
+
+  const [activeRoomId, setActiveRoomId] = useState(getInitialRoomId());
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
 
   const {
@@ -93,14 +108,24 @@ const Messages = () => {
     giveFeedback: giveAIFeedback,
   } = useChat();
 
-  // Handle room selection from state (e.g. from Profile "Message" button or ChatDropdown)
+  // Handle room selection from state or query params
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roomParam = params.get('room');
+
     if (location.state?.roomId || location.state?.activeRoomId) {
       setActiveRoomId(location.state.roomId || location.state.activeRoomId);
       // Clear state after reading to prevent re-activation on refresh
       window.history.replaceState({}, document.title);
+    } else if (roomParam) {
+      const targetId = roomParam;
+      if (targetId !== activeRoomId) {
+        setActiveRoomId(targetId);
+      }
+      // Remove room from URL to prevent strict parameter binding and tab trapping
+      navigate('/messages', { replace: true });
     }
-  }, [location.state]);
+  }, [location.state, location.search, navigate]);
 
   const { data: rooms = [], isLoading: isRoomsLoading } = useQuery('chat-rooms', getChatRooms, {
     refetchInterval: 10000, // Refresh inbox every 10 seconds
@@ -140,13 +165,22 @@ const Messages = () => {
   const combinedRooms = [aiRoom, ...rooms];
   const activeRoom = combinedRooms.find(r => r.id === activeRoomId);
 
-  const handleRoomCreated = roomId => {
+  const handleSelectRoom = roomId => {
     setActiveRoomId(roomId);
+    if (roomId) {
+      navigate(`/messages?room=${roomId}`, { replace: true });
+    } else {
+      navigate('/messages', { replace: true });
+    }
+  };
+
+  const handleRoomCreated = roomId => {
+    handleSelectRoom(roomId);
     setIsNewChatOpen(false);
   };
 
   const handleLeaveRoom = () => {
-    setActiveRoomId(null);
+    handleSelectRoom(null);
     setIsSettingsOpen(false);
   };
 
@@ -162,7 +196,7 @@ const Messages = () => {
           <ChatInbox
             rooms={combinedRooms}
             activeRoomId={activeRoomId}
-            onSelectRoom={setActiveRoomId}
+            onSelectRoom={handleSelectRoom}
             onNewChat={() => setIsNewChatOpen(true)}
             isLoading={isRoomsLoading || isFriendshipsLoading}
             buddyCount={friendships.length}
@@ -208,7 +242,7 @@ const Messages = () => {
               {/* Mobile Back Button Header */}
               <div className='md:hidden flex items-center p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'>
                 <button
-                  onClick={() => setActiveRoomId(null)}
+                  onClick={() => handleSelectRoom(null)}
                   className='mr-3 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500'
                 >
                   <svg
