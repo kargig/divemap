@@ -22,6 +22,13 @@ def get_difficulty_code_by_id(db, difficulty_id: int):
     difficulty = db.query(DifficultyLevel).filter(DifficultyLevel.id == difficulty_id).first()
     return difficulty.code if difficulty else None
 
+import enum
+
+class BusinessChatStatus(str, enum.Enum):
+    UNREAD = "UNREAD"
+    READ = "READ"
+    RESOLVED = "RESOLVED"
+
 class MediaType(enum.Enum):
     photo = "photo"
     video = "video"
@@ -309,6 +316,7 @@ class DivingCenter(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # New field for owner
     ownership_status = Column(Enum(OwnershipStatus), default=OwnershipStatus.unclaimed, nullable=False) # New field for ownership status
+    logo_url = Column(String(500), nullable=True) # New field for diving center logo
     # Geometry column exists in DB via migration 0038; declare minimally for ORM usage
     location = Column(sa.Text, nullable=False)
 
@@ -320,7 +328,26 @@ class DivingCenter(Base):
     dive_trips = relationship("ParsedDiveTrip", back_populates="diving_center")
     organization_relationships = relationship("DivingCenterOrganization", back_populates="diving_center", cascade="all, delete-orphan")
     owner = relationship("User", back_populates="diving_centers") # New relationship for owner
-    dives = relationship("Dive", back_populates="diving_center", cascade="all, delete-orphan")  # New relationship for dives
+    dives = relationship("Dive", back_populates="diving_center", cascade="all, delete-orphan")
+
+class DivingCenterManager(Base):
+    """
+    Managers allowed to access the business inbox for a diving center.
+    """
+    __tablename__ = "diving_center_managers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Composite unique constraint to prevent duplicate managers
+    __table_args__ = (
+        sa.UniqueConstraint('diving_center_id', 'user_id', name='uix_center_manager'),
+    )
+
+    diving_center = relationship("DivingCenter", backref=sa.orm.backref("managers", cascade="all, delete-orphan"))
+    user = relationship("User")  # New relationship for dives
 
 
 # ORM-level hooks to keep POINT(location) in sync with lat/lng (avoids DB triggers)
@@ -1019,10 +1046,18 @@ class UserChatRoom(Base):
     last_activity_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+    # B2C Additions
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=True)
+    is_broadcast = Column(Boolean, default=False, nullable=False)
+    business_status = Column(Enum(BusinessChatStatus), default=BusinessChatStatus.UNREAD, nullable=False)
+    last_responded_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
     # Relationships
     members = relationship("UserChatRoomMember", back_populates="room", cascade="all, delete-orphan")
     messages = relationship("UserChatMessage", back_populates="room", cascade="all, delete-orphan")
     created_by = relationship("User", foreign_keys=[created_by_id])
+    diving_center = relationship("DivingCenter", backref="chat_rooms")
+    last_responded_by = relationship("User", foreign_keys=[last_responded_by_id])
 
 class UserChatRoomMember(Base):
     """
@@ -1078,3 +1113,19 @@ class PushSubscription(Base):
 
     # Relationships
     user = relationship("User", back_populates="push_subscriptions")
+
+class DivingCenterChatSettings(Base):
+    __tablename__ = "diving_center_chat_settings"
+
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), primary_key=True)
+    auto_greeting = Column(Text, nullable=True)
+    quick_replies = Column(sa.JSON, nullable=True) # Array of strings
+    
+    diving_center = relationship("DivingCenter", backref=sa.orm.backref("chat_settings", uselist=False, cascade="all, delete-orphan"))
+
+class DivingCenterFollower(Base):
+    __tablename__ = "diving_center_followers"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), primary_key=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

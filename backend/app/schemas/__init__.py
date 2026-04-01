@@ -390,6 +390,7 @@ class DivingCenterBase(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None
+    logo_url: Optional[str] = None
     # Allow None in responses for legacy rows; enforce on create
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
