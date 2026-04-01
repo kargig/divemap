@@ -167,11 +167,6 @@ const Messages = () => {
 
   const handleSelectRoom = roomId => {
     setActiveRoomId(roomId);
-    if (roomId) {
-      navigate(`/messages?room=${roomId}`, { replace: true });
-    } else {
-      navigate('/messages', { replace: true });
-    }
   };
 
   const handleRoomCreated = roomId => {

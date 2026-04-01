@@ -380,13 +380,21 @@ export const getTotalUnreadChatMessages = async () => {
   return response.data;
 };
 
-export const createChatRoom = async (participantIds, isGroup = false, name = null) => {
+export const createChatRoom = async (
+  participantIds,
+  isGroup = false,
+  name = null,
+  divingCenterId = null
+) => {
   const payload = {
     participant_ids: participantIds,
     is_group: isGroup,
   };
   if (name) {
     payload.name = name;
+  }
+  if (divingCenterId) {
+    payload.diving_center_id = divingCenterId;
   }
   const response = await api.post('/api/v1/user-chat/rooms', payload);
   return response.data;

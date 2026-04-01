@@ -128,22 +128,57 @@ const MessageBubble = ({
                   : `bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
             }`}
           >
-            <div className='markdown-content break-words'>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: MarkdownLink,
-                  p: ({ children }) => <p className='mb-2 last:mb-0'>{children}</p>,
-                  text: MarkdownText,
-                  ul: ({ children }) => <ul className='list-disc ml-4 mb-2'>{children}</ul>,
-                  ol: ({ children }) => <ol className='list-decimal ml-4 mb-2'>{children}</ol>,
-                  li: ({ children }) => <li className='mb-1'>{children}</li>,
-                  strong: ({ children }) => <strong className='font-bold'>{children}</strong>,
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+            {message.message_type === 'TRIP_AD' ? (
+              (() => {
+                let tripData;
+                try {
+                  tripData = JSON.parse(message.content);
+                } catch (e) {
+                  tripData = {};
+                }
+                return (
+                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 max-w-sm'>
+                    <div className='p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30'>
+                      <span className='text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
+                        New Trip Announcement
+                      </span>
+                    </div>
+                    <div className='p-4'>
+                      <h4 className='font-bold text-gray-900 dark:text-white mb-2'>
+                        {tripData.name || 'Dive Trip'}
+                      </h4>
+                      <div className='flex flex-col space-y-1 mb-4 text-sm text-gray-600 dark:text-gray-300'>
+                        {tripData.date && <p>📅 {tripData.date}</p>}
+                        {tripData.price && <p>💰 {tripData.price}</p>}
+                      </div>
+                      <Link
+                        to={`/trips/${tripData.trip_id}`}
+                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded transition-colors'
+                      >
+                        View Trip
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className='markdown-content break-words'>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: MarkdownLink,
+                    p: ({ children }) => <p className='mb-2 last:mb-0'>{children}</p>,
+                    text: MarkdownText,
+                    ul: ({ children }) => <ul className='list-disc ml-4 mb-2'>{children}</ul>,
+                    ol: ({ children }) => <ol className='list-decimal ml-4 mb-2'>{children}</ol>,
+                    li: ({ children }) => <li className='mb-1'>{children}</li>,
+                    strong: ({ children }) => <strong className='font-bold'>{children}</strong>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
 
             {uniqueDiveSiteUrls.map((url, idx) => (
               <LinkPreview key={idx} url={url} />

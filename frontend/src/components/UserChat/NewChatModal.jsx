@@ -26,14 +26,19 @@ const NewChatModal = ({ isOpen, onClose, onRoomCreated }) => {
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
 
   const buddies = useMemo(() => {
-    return friendships.map(f => {
-      // If user.id matches currentUserId, the buddy is 'friend'
-      // If friend.id matches currentUserId, the buddy is 'user'
-      if (f.user && f.user.id === currentUserId) return f.friend;
-      if (f.friend && f.friend.id === currentUserId) return f.user;
-      // Fallback in case currentUserId is missing or mismatched
-      return f.user.id === currentUserId ? f.friend : f.user;
-    });
+    return friendships
+      .map(f => {
+        // If user.id matches currentUserId, the buddy is 'friend'
+        // If friend.id matches currentUserId, the buddy is 'user'
+        if (f.user && f.user.id === currentUserId) return f.friend;
+        if (f.friend && f.friend.id === currentUserId) return f.user;
+        // Fallback in case currentUserId is missing or mismatched
+        if (f.user && f.friend) {
+          return f.user.id === currentUserId ? f.friend : f.user;
+        }
+        return null;
+      })
+      .filter(Boolean); // Remove any null buddies
   }, [friendships, currentUserId]);
 
   const filteredBuddies = useMemo(() => {
@@ -41,7 +46,8 @@ const NewChatModal = ({ isOpen, onClose, onRoomCreated }) => {
     const query = searchQuery.toLowerCase();
     return buddies.filter(
       b =>
-        b.username.toLowerCase().includes(query) || (b.name && b.name.toLowerCase().includes(query))
+        b?.username?.toLowerCase().includes(query) ||
+        (b?.name && b.name.toLowerCase().includes(query))
     );
   }, [buddies, searchQuery]);
 

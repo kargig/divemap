@@ -16,13 +16,15 @@ import {
   ChevronLeft,
   ChevronRight,
   LogIn,
+  MessageSquare,
+  Bell,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
-import api from '../api';
+import api, { createChatRoom } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
@@ -34,7 +36,12 @@ import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
-import { claimDivingCenterOwnership } from '../services/divingCenters';
+import {
+  claimDivingCenterOwnership,
+  followDivingCenter,
+  unfollowDivingCenter,
+  getFollowStatus,
+} from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
@@ -67,6 +74,45 @@ const DivingCenterDetail = () => {
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 3);
     return { startDate, endDate };
+  });
+
+  const { data: followData, refetch: refetchFollowStatus } = useQuery(
+    ['diving-center-follow', id],
+    () => getFollowStatus(id),
+    { enabled: !!id && !!user }
+  );
+
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+    if (followData) {
+      setIsFollowing(followData.is_following);
+    }
+  }, [followData]);
+
+  const followMutation = useMutation(
+    () => (isFollowing ? unfollowDivingCenter(id) : followDivingCenter(id)),
+    {
+      onSuccess: () => {
+        setIsFollowing(!isFollowing);
+        refetchFollowStatus();
+        toast.success(
+          isFollowing ? 'Unfollowed diving center' : 'Following diving center for updates'
+        );
+      },
+      onError: error => {
+        toast.error(getErrorMessage(error) || 'Failed to update follow status');
+      },
+    }
+  );
+
+  const startChatMutation = useMutation(() => createChatRoom([], false, null, id), {
+    onSuccess: data => {
+      navigate(`/messages?room=${data.id}`);
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to start conversation');
+    },
   });
 
   // Fetch diving center details
@@ -233,7 +279,7 @@ const DivingCenterDetail = () => {
         setRating(0);
       },
       onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to submit rating');
+        toast.error(extractErrorMessage(error, 'Failed to submit rating'));
       },
     }
   );
@@ -248,7 +294,7 @@ const DivingCenterDetail = () => {
         toast.success('Comment added successfully!');
       },
       onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to add comment');
+        toast.error(extractErrorMessage(error, 'Failed to add comment'));
       },
     }
   );
@@ -264,7 +310,7 @@ const DivingCenterDetail = () => {
         toast.success('Comment updated successfully!');
       },
       onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to update comment');
+        toast.error(extractErrorMessage(error, 'Failed to update comment'));
       },
     }
   );
@@ -277,7 +323,7 @@ const DivingCenterDetail = () => {
         toast.success('Comment deleted successfully!');
       },
       onError: error => {
-        toast.error(error.response?.data?.detail || 'Failed to delete comment');
+        toast.error(extractErrorMessage(error, 'Failed to delete comment'));
       },
     }
   );
@@ -291,7 +337,7 @@ const DivingCenterDetail = () => {
       toast.success('Ownership claim submitted successfully! Waiting for admin approval.');
     },
     onError: error => {
-      toast.error(error.response?.data?.detail || 'Failed to submit ownership claim');
+      toast.error(extractErrorMessage(error, 'Failed to submit ownership claim'));
     },
   });
 
@@ -610,6 +656,26 @@ const DivingCenterDetail = () => {
               <h1 className='text-3xl font-bold text-gray-900 mb-2'>
                 {center?.name || 'Loading...'}
               </h1>
+              {user && (
+                <div className='flex flex-wrap gap-2 mt-3'>
+                  <Button
+                    onClick={() => startChatMutation.mutate()}
+                    disabled={startChatMutation.isLoading}
+                    variant='primary'
+                    icon={<MessageSquare className='h-4 w-4' />}
+                  >
+                    {startChatMutation.isLoading ? 'Loading...' : 'Message Us'}
+                  </Button>
+                  <Button
+                    onClick={() => followMutation.mutate()}
+                    disabled={followMutation.isLoading}
+                    variant={isFollowing ? 'secondary' : 'outline'}
+                    icon={<Bell className={`h-4 w-4 ${isFollowing ? 'fill-current' : ''}`} />}
+                  >
+                    {isFollowing ? 'Following' : 'Follow for Updates'}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           <div className='flex items-center space-x-4'>

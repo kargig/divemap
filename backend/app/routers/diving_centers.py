@@ -8,6 +8,7 @@ import requests
 
 from app.database import get_db
 from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
+from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember
 from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse,
     CenterRatingCreate, CenterRatingResponse,
@@ -2084,3 +2085,94 @@ async def revoke_diving_center_ownership(
         "status": "unclaimed",
         "reason": reason
     }
+
+# --- B2C Broadcast Following Endpoints ---
+
+@router.post("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
+async def follow_diving_center(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Subscribe a user to a diving center's broadcasts."""
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+        
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    if not existing:
+        follow = DivingCenterFollower(user_id=current_user.id, diving_center_id=diving_center_id)
+        db.add(follow)
+        
+        # Also add to the active broadcast room if one exists
+        broadcast_room = db.query(UserChatRoom).filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True
+        ).first()
+        
+        if broadcast_room:
+            # Check if they are already in the room
+            existing_member = db.query(UserChatRoomMember).filter(
+                UserChatRoomMember.room_id == broadcast_room.id,
+                UserChatRoomMember.user_id == current_user.id
+            ).first()
+            if not existing_member:
+                member = UserChatRoomMember(room_id=broadcast_room.id, user_id=current_user.id, role="MEMBER")
+                db.add(member)
+            elif existing_member.left_at:
+                existing_member.left_at = None
+                
+        db.commit()
+    
+    return {"status": "success", "message": "Successfully followed diving center"}
+
+@router.delete("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
+async def unfollow_diving_center(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Unsubscribe a user from a diving center's broadcasts."""
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    if existing:
+        db.delete(existing)
+        
+        # Remove from broadcast room
+        broadcast_room = db.query(UserChatRoom).filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True
+        ).first()
+        
+        if broadcast_room:
+            member = db.query(UserChatRoomMember).filter(
+                UserChatRoomMember.room_id == broadcast_room.id,
+                UserChatRoomMember.user_id == current_user.id
+            ).first()
+            if member:
+                member.left_at = func.now()
+                
+        db.commit()
+        
+    return {"status": "success", "message": "Successfully unfollowed diving center"}
+
+@router.get("/{diving_center_id}/follow-status", status_code=status.HTTP_200_OK)
+async def check_follow_status(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Check if the current user follows the diving center."""
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    return {"is_following": existing is not None}
