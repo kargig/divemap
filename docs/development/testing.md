@@ -5,91 +5,58 @@ This document provides essential testing information for the Divemap application
 ## Table of Contents
 
 1. Quick Start
-2. Approved Testing Methods
-3. DO NOT: Running tests inside divemap_backend
-4. Running Tests (Host vs Containers)
+2. The ONLY Approved Backend Testing Method
+3. Why SQLite is Not Supported
+4. DO NOT: Running pytest directly
 5. Frontend Testing (Host and Docker)
-6. Docker-Based Testing (Backend CI-like)
-7. Troubleshooting
+6. Troubleshooting
 
 ## Quick Start
 
-- Quick host-based backend tests (fast, local venv, acceptable for quick checks):
-```bash
-cd backend
-source divemap_venv/bin/activate
-export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-# Required for OAuth tests to avoid 500 errors
-export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-python -m pytest tests/ -v
-```
-
-- Thorough containerized backend tests (CI-like, isolated, REQUIRED before committing significant changes):
+- **Backend tests (MANDATORY, safe, isolated):**
 ```bash
 cd backend
 ./docker-test-github-actions.sh
 ```
 
-- Frontend quick tests (host):
+- **Frontend quick tests (host):**
 ```bash
 cd frontend
 npm test
 ```
 
-## Approved Testing Methods
+## The ONLY Approved Backend Testing Method
 
-- Host-based (Quick):
-  - Run pytest from the host in a Python virtual environment.
-  - Uses SQLite by default unless `DATABASE_URL` is explicitly set.
-  - Frontend tests run via Node.js on host.
-  - Purpose: fast feedback during development.
+**You MUST use `backend/docker-test-github-actions.sh` for all backend testing.**
 
-- Containerized (Thorough):
-  - Use `backend/docker-test-github-actions.sh` for backend.
-  - For frontend, use the development Dockerfile to build and run tests if needed.
-  - Mirrors CI environment; REQUIRED before merges or major refactors.
+This script:
+  - Starts an isolated MySQL 8.0 test container.
+  - Builds a dedicated test image.
+  - Runs all Alembic migrations and executes pytest in complete isolation.
+  - Safely cleans up the environment without touching your development database.
 
-## DO NOT: Run tests inside `divemap_backend`
+## Why SQLite is Not Supported
 
-- Tests MUST NEVER be run inside the `divemap_backend` service/container.
-- Reason: `divemap_backend` uses `DATABASE_URL=mysql+pymysql://...@db:3306/divemap`. Tests would connect to the live MySQL container and the test session will drop all tables at teardown, wiping dev data.
-- Forbidden examples (do NOT run):
+Unlike many Python projects, Divemap is **not compatible with SQLite**. The application relies heavily on native MySQL features that SQLite cannot replicate, including:
+- **Spatial Data Types:** Uses `POINT` columns and `ST_Distance_Sphere` for geographic searches.
+- **MySQL-Specific Types:** Uses `LONGTEXT` for large content fields (e.g., newsletters).
+- **Strict Constraints:** Uses specific MySQL Enum behaviors.
+
+Because the test suite initializes the entire schema at the start of every session (`Base.metadata.create_all`), attempting to run `pytest` against an SQLite database will result in a fatal `CompileError`. **Do not attempt to use SQLite for backend testing.**
+
+## DO NOT: Running pytest directly
+
+- ❌ **DO NOT run tests inside the `divemap_backend` container.**
+- ❌ **DO NOT run tests using the local `divemap_venv` on your host machine.**
+
+Forbidden examples that will cause errors or fatal data loss:
 ```bash
-# ❌ Do not run inside the container
-docker exec -it divemap_backend bash
-pytest
-python -m pytest
+# ❌ FATAL: Wipes live database
+docker-compose exec backend pytest
+
+# ❌ FORBIDDEN: SQLite incompatibility (will crash)
+cd backend && source divemap_venv/bin/activate && pytest
 ```
-
-## Running Tests (Backend)
-
-### Backend Testing (Host)
-```bash
-# Run all backend tests
-cd backend
-source divemap_venv/bin/activate
-export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-# Required for OAuth tests
-export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-python -m pytest tests/ -v
-
-# Run specific file
-python -m pytest tests/test_diving_centers.py -v
-
-# With coverage
-python -m pytest tests/ --cov=app --cov-report=html
-```
-
-### Backend Testing (Containers - CI-like)
-```bash
-cd backend
-./docker-test-github-actions.sh
-```
-- What this does:
-  - Starts an isolated MySQL test container (port 3307, no volumes)
-  - Builds a test image
-  - Runs migrations and executes pytest in isolation
-  - Cleans up test containers/networks/images
 
 ## Frontend Testing (Host and Docker)
 
@@ -138,11 +105,6 @@ docker build -t divemap_frontend_prod .
 # Run production server
 docker run --rm -p 8080:8080 divemap_frontend_prod
 ```
-
-## Docker-Based Testing (Backend CI-like)
-
-- Development (frontend) containers are for building/running the app, not for backend tests.
-- Use the host venv or the CI-like script for backend tests.
 
 ## Troubleshooting
 

@@ -36,7 +36,6 @@ export const useChat = (context = {}) => {
           content: response.response,
           message_id: response.message_id,
           sources: response.sources,
-          intent: response.intent,
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, botMessage]);
@@ -67,7 +66,6 @@ export const useChat = (context = {}) => {
       const userMsg = assistantMsgIdx > 0 ? messages[assistantMsgIdx - 1] : null;
 
       const debugData = {
-        intent: assistantMsg?.intent,
         sources: assistantMsg?.sources,
       };
 

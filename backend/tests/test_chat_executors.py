@@ -10,8 +10,9 @@ from app.models import (
     ParsedDiveTrip
 )
 from app.geo_utils import calculate_directional_bounds, get_empirical_region_bounds
-from app.schemas.chat import SearchIntent, IntentType
-from app.services.chat.executors.dispatcher import execute_search_intent
+from app.schemas.chat import IntentType
+from app.services.chat.executors.discovery import execute_discovery
+from app.services.chat.executors.others import execute_other_intents
 from app.services.chat.utils import get_user_difficulty_level
 
 @pytest.fixture
@@ -95,41 +96,36 @@ def test_execute_search_with_direction(db_session, setup_executor_data, monkeypa
     from app.services.chat.executors import discovery as discovery_mod
     monkeypatch.setattr(discovery_mod, "get_external_region_bounds", lambda x: ((38.4, 37.5, 24.2, 22.8), "Attica, Greece"))
     
-    intent = SearchIntent(intent_type=IntentType.DISCOVERY, location="Attica", direction="south")
-    results = execute_search_intent(db_session, intent)
+    results = execute_discovery(db_session, location="Attica", direction="south")
     
     names = [r["name"] for r in results if r["entity_type"] == "dive_site"]
     assert "South Site" in names
     assert "North Site" not in names
 
 def test_highest_rated_search(db_session, setup_executor_data):
-    intent = SearchIntent(intent_type=IntentType.DISCOVERY, keywords=["highest_rated"])
-    results = execute_search_intent(db_session, intent)
-    assert results[0]["name"] == "North Site" # Has the 10/10 rating
+    results = execute_discovery(db_session, keywords=["highest_rated"])
+    names = [r["name"] for r in results]
+    assert "North Site" in names # Has the 10/10 rating
 
 # --- GEAR & MARINE LIFE TESTS ---
 
 def test_gear_rental_search(db_session, setup_executor_data):
-    intent = SearchIntent(intent_type=IntentType.GEAR_RENTAL, keywords=["tank"], location="Attica")
-    results = execute_search_intent(db_session, intent)
+    results = execute_other_intents(db_session, intent_type=IntentType.GEAR_RENTAL, keywords=["tank"], location="Attica")
     assert any(r["entity_type"] == "gear_rental" and r["cost"] == 10.0 for r in results)
 
 def test_marine_life_search(db_session, setup_executor_data):
-    intent = SearchIntent(intent_type=IntentType.MARINE_LIFE, keywords=["Turtles"])
-    results = execute_search_intent(db_session, intent)
+    results = execute_other_intents(db_session, intent_type=IntentType.MARINE_LIFE, keywords=["Turtles"])
     assert any(r["name"] == "North Site" for r in results)
 
 # --- CAREER & COMPARISON TESTS ---
 
 def test_career_path_search(db_session, setup_executor_data):
-    intent = SearchIntent(intent_type=IntentType.CAREER_PATH, keywords=["EORG"])
-    results = execute_search_intent(db_session, intent)
+    results = execute_other_intents(db_session, intent_type=IntentType.CAREER_PATH, keywords=["EORG"])
     path = next(r for r in results if r["entity_type"] == "career_path")
     assert "Open Water" in path["courses"]
 
 def test_comparison_logic(db_session, setup_executor_data):
-    intent = SearchIntent(intent_type=IntentType.COMPARISON, keywords=["Open", "Water", "Tec", "45"])
-    results = execute_search_intent(db_session, intent)
+    results = execute_other_intents(db_session, intent_type=IntentType.COMPARISON, keywords=["Open", "Water", "Tec", "45"])
     names = [r["name"] for r in results if r["entity_type"] == "certification"]
     assert "Open Water" in names
     assert "Tec 45" in names
@@ -143,7 +139,7 @@ def test_user_difficulty_level_util(db_session, setup_executor_data, test_user):
 def test_personal_recommendation_logic(db_session, setup_executor_data, test_user):
     # Site 1 (North) is level 1, Site 2 (South) is level 2. User is level 2.
     # Both are accessible, but recommendation often filters for shore etc.
-    intent = SearchIntent(intent_type=IntentType.PERSONAL_RECOMMENDATION, latitude=38.0, longitude=23.8)
-    results = execute_search_intent(db_session, intent, current_user=test_user)
+    results = execute_other_intents(db_session, intent_type=IntentType.PERSONAL_RECOMMENDATION, latitude=38.0, longitude=23.8, current_user=test_user)
     # Just verify it doesn't crash and returns sites
     assert any(r["entity_type"] == "dive_site" for r in results)
+

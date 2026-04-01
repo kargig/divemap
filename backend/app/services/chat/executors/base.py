@@ -6,7 +6,7 @@ from app.models import (
     AvailableTag, DiveSiteTag, Dive, GearRentalCost, SiteRating,
     DivingOrganization, CertificationLevel, User, DiveRoute
 )
-from app.schemas.chat import SearchIntent, IntentType
+from app.schemas.chat import IntentType
 from app.routers.search import ENTITY_ICONS
 from app.geo_utils import (
     get_external_region_bounds, get_empirical_region_bounds, 

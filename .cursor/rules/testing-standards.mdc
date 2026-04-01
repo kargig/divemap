@@ -10,33 +10,18 @@ See `docs/development/testing.md` for details.
 
 ## Critical Rules
 
-⚠️ **NEVER run tests inside `divemap_backend` container** - Connects to live MySQL, teardown drops tables (data loss).
+⚠️ **NEVER run tests inside `divemap_backend` container** - It connects to the live development MySQL database, and the test suite's teardown process will permanently drop all tables and wipe your data.
 
-⚠️ **NEVER use system Python** - Use project venv.
+⚠️ **NEVER run pytest on the host (via divemap_venv)** - This project uses native MySQL features (Spatial data, `LONGTEXT`, etc.) that are incompatible with SQLite. The test suite will fail during schema initialization.
 
-## Backend: Quick (Host Venv)
-
-```bash
-cd backend
-source divemap_venv/bin/activate
-export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-# Required to avoid OAuth-related failures
-export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-python -m pytest tests/ -v
-```
-
-If you run tests this way you can safely ignore tests containing
-failures like: `sqlite3.OperationalError: no such function: POINT`
-
-If you get such errors, use backend/docker-test-github-actions.sh
-to run tests.
-
-## Backend: CI-like (Isolated Docker)
+## Backend: The ONLY Permitted Method (Isolated Docker)
 
 ```bash
 cd backend
-./docker-test-github-actions.sh
+./docker-test-github-actions.sh [tests/test_file.py]
 ```
+
+This is the only safe and functional way to run backend tests. It spins up a completely isolated MySQL 8.0 environment, runs all Alembic migrations, and safely tears everything down without touching the live development database.
 
 ## Frontend Testing
 
@@ -59,5 +44,5 @@ docker run --rm divemap_frontend_dev npm run test:e2e
 
 ## DO NOT
 
-- Do not execute `pytest` inside `divemap_backend` (use host venv or CI script).
-- Do not run backend tests without activating the venv and setting `PYTHONPATH`.
+- Do not execute `pytest` inside `divemap_backend` (FATAL: Wipes database).
+- Do not attempt to run backend tests using SQLite; it is structurally unsupported.

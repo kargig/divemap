@@ -1,46 +1,41 @@
 ---
 name: backend-testing
-description: Standard operating procedure for running tests in the Divemap backend. Crucial for understanding when to use the lightweight SQLite test runner versus the heavy, isolated MySQL Docker test suite.
+description: Mandatory standard operating procedure for running tests in the Divemap backend. Explicitly forbids direct pytest commands that cause data loss and explains SQLite incompatibility.
 ---
 
-# Backend Testing Helper
+# 🚨 DANGER: Backend Testing Protocol 🚨
 
-Divemap uses two distinct testing environments. Knowing which one to use is critical for preventing false negatives, masking MySQL-specific syntax errors, and maintaining a fast development loop.
+Divemap uses an isolated Docker MySQL test environment. **DO NOT run pytest directly inside the backend container or virtual environment.**
 
-## The Two Testing Environments
+The test suite contains a teardown step (`Base.metadata.drop_all(bind=engine)`) that WILL **wipe out the entire development database** if it runs against the live connection string.
 
-### 1. Local SQLite Testing (Fast, Lightweight)
-*   **How:** Executing `pytest` directly via the virtual environment (`backend/divemap_venv/bin/pytest`).
-*   **What it does:** Spools up a local SQLite database in memory or file (`test.db`).
-*   **Pros:** Blazing fast. Excellent for TDD on pure business logic, schemas, and simple CRUD operations.
-*   **Cons:** **SQLite is NOT MySQL.** It does not support advanced MySQL features like:
-    *   Spatial Data Types (`POINT`, `ST_Distance_Sphere`)
-    *   Specific `sqlalchemy.dialects.mysql` types (e.g., `LONGTEXT`, `LargeBinary` sometimes behaves differently).
-    *   Strict Enum constraints.
-*   **When to use:** When you are making minor logic tweaks or testing code that does not touch database models or raw SQL queries.
-
-### 2. Isolated Docker MySQL Testing (Robust, Production-Parity)
+## The ONLY Permitted Testing Method: Isolated Docker MySQL
 *   **How:** Executing `backend/docker-test-github-actions.sh [path/to/test.py]`
-*   **What it does:** Completely tears down and rebuilds an isolated Docker network with a real MySQL 8.0 container and a fresh Python container. It runs Alembic migrations from scratch to build the schema exactly as it would in production.
-*   **Pros:** Guarantees production parity. Catches MySQL-specific syntax errors (like the `CompileError` on `LONGTEXT`). Isolates tests completely from your host machine's state.
-*   **Cons:** Slow. Takes ~10-20 seconds just to spin up the containers before tests even begin.
-*   **When to use:** **ALWAYS use this when modifying `models.py`, adding new Alembic migrations, or writing tests that touch the database.**
+*   **What it does:** Completely tears down and rebuilds an isolated Docker network with a real MySQL 8.0 container and a fresh Python container. It runs Alembic migrations from scratch to build the schema safely.
+*   **Pros:** Guarantees production parity. Protects the live development database from being dropped. Catches MySQL-specific syntax errors.
+*   **Cons:** Slower than raw pytest (~10-20s startup), but strictly necessary for safety.
 
 ## Standard Operating Procedure
 
-1.  **Model/Migration Changes:** If your work involves altering `backend/app/models.py` or generating new Alembic migrations, you **MUST NOT** use the SQLite runner. You must use `docker-test-github-actions.sh`.
-2.  **Debugging `docker-test-github-actions.sh`:**
+1.  **NEVER RUN `pytest` DIRECTLY:** 
+    *   ❌ `docker-compose exec backend pytest` -> **FORBIDDEN. WILL WIPE DATABASE.**
+    *   ❌ `cd backend && ./divemap_venv/bin/pytest` -> **FORBIDDEN. SQLite is incompatible and will crash.**
+    *   ✅ `cd backend && ./docker-test-github-actions.sh` -> **SAFE AND REQUIRED.**
+2.  **Why SQLite is Unsupported:** 
+    Divemap uses native MySQL features like **Spatial Data Types (`POINT`)** and **`LONGTEXT`**. Because the test suite builds the schema from scratch using `Base.metadata.create_all`, any attempt to run `pytest` against SQLite will fail immediately with a `CompileError`.
+3.  **Debugging `docker-test-github-actions.sh`:**
     *   By default, the script runs in "Silent Mode" and saves output to `backend/test-failures.txt`.
-    *   If tests fail, use the `-v` flag to see the live output and debug:
+    *   If tests fail, **read the `test-failures.txt` file** rather than executing the script in verbose mode immediately.
+    *   If you need live output to debug hanging tests, use the `-v` flag:
         ```bash
         cd backend && ./docker-test-github-actions.sh -v tests/test_your_file.py
         ```
-3.  **Preventing SQLite False Positives:** If you see errors like `CompileError: ... can't render element of type LONGTEXT`, this means the code contains MySQL-specific syntax that SQLite cannot compile. This is a hard signal that you must switch to the Docker runner.
+4.  **Preventing Database Wipes:** A hard fail-safe has been added to `conftest.py` that will abort the test suite if it detects the live database URL. However, you must still adhere to this protocol.
 
 ## Quick Reference Commands
 
 | Goal | Command |
 | :--- | :--- |
-| Fast Logic Test (SQLite) | `cd backend && ./divemap_venv/bin/pytest tests/test_file.py -v` |
-| Full DB Test (MySQL) | `cd backend && ./docker-test-github-actions.sh tests/test_file.py` |
+| Run Specific Test (Safe) | `cd backend && ./docker-test-github-actions.sh tests/test_file.py` |
 | Debug Full DB Test (Verbose) | `cd backend && ./docker-test-github-actions.sh -v tests/test_file.py` |
+| View Test Output | `cat backend/test-failures.txt` |

@@ -32,6 +32,8 @@ async def send_message(
     try:
         response = await chat_service.process_message(chat_request, current_user)
         return response
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)

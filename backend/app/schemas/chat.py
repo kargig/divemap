@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Union, Literal, Dict, Tuple
+from typing import Optional, List, Union, Literal, Dict, Tuple, Any
 from datetime import datetime, date
 from enum import Enum
 
@@ -35,30 +35,11 @@ class IntentType(str, Enum):
     CHIT_CHAT = "chit_chat"      # "Hello"
     LOGBOOK_DRAFT = "logbook_draft" # "Log a dive..."
     CALCULATOR = "calculator"    # "MOD/SAC calculations"
-
-class SearchIntent(BaseModel):
-    intent_type: IntentType
-    keywords: List[str] = []
-    location: Optional[str] = None
-    parent_region: Optional[str] = None # The larger administrative region containing the location
-    direction: Optional[str] = None # 'north', 'south', 'east', 'west', 'north_east', etc.
-    entity_type_filter: Optional[str] = None # 'dive_site', 'diving_center', 'dive_trip'
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    radius: Optional[float] = None # Search radius in km
-    date: Optional[str] = None # YYYY-MM-DD
-    time: Optional[str] = None # HH:MM
-    date_range: Optional[List[str]] = None # [YYYY-MM-DD, YYYY-MM-DD]
-    difficulty_level: Optional[int] = None # 1-4
-    context_entity_id: Optional[int] = None
-    context_entity_type: Optional[str] = None
-    calculator_params: Optional[Dict[str, Union[float, str, None]]] = None # Parameters for diving calculations
-
 class ChatIntermediateAction(BaseModel):
     action_type: Literal["search", "resolve_location", "refine_intent", "final_answer", "tool_call"]
     tool_name: Optional[str] = None
-    tool_args: Dict = {} 
-    tool_result: Optional[Union[List, Dict]] = None
+    tool_args: Optional[Dict] = None
+    tool_result: Optional[Any] = None
     reasoning: Optional[str] = None
     execution_time_ms: Optional[float] = None
 

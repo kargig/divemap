@@ -58,26 +58,18 @@ docker-compose up -d
 ### Testing
 ⚠️ **CRITICAL SAFETY WARNING:** NEVER run tests inside the `divemap_backend` container (e.g., `docker-compose exec backend pytest`). It connects to the live development database, and the test suite's teardown process WILL WIPE THE DATABASE.
 
-**Correct Testing Methods:**
-1.  **Isolated Docker (Recommended - Token Efficient):**
-    This script sets up a separate, ephemeral test environment. By default, it runs in **silent mode**, suppressing build and setup logs to save context tokens.
+**The ONLY Approved Testing Method:**
+1.  **Isolated Docker:**
+    This script sets up a separate, ephemeral MySQL test environment protecting the live database. By default, it runs in **silent mode**, suppressing build and setup logs to save context tokens.
     ```bash
     cd backend
     ./docker-test-github-actions.sh [tests/test_file.py]
     ```
     - **Success:** Returns `All tests passed!`.
     - **Failure:** Returns `Tests failed!` and saves the error log to `test-failures.txt`.
-    - **Debugging:** Agents should inspect `backend/test-failures.txt` to identify issues without reading thousands of lines of build output.
-    - **Verbose Mode:** Use `-v` (e.g., `./docker-test-github-actions.sh -v`) for full output (not recommended for agents).
+    - **Debugging:** Agents MUST inspect `backend/test-failures.txt` to identify issues. NEVER use verbose mode for tests without first reading this file.
 
-2.  **Host Venv (Alternative):**
-    ```bash
-    cd backend
-    source divemap_venv/bin/activate
-    export PYTHONPATH="/home/kargig/src/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-    export GOOGLE_CLIENT_ID="dummy-client-id-for-testing"
-    python -m pytest tests/ -v
-    ```
+**Note on SQLite:** SQLite is **not supported** for backend testing due to incompatibility with native MySQL features (Spatial data, `LONGTEXT`). Host-based `pytest` will fail during schema creation.
 
 **Disaster Recovery:**
 If the database is accidentally wiped, check `database_backups/` for recent SQL dumps and restore using:
