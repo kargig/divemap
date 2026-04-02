@@ -2271,12 +2271,12 @@ async def broadcast_trip_to_followers(
         if difficulty:
             difficulty_code = difficulty.code
 
-    # Extract dive site names
-    site_names = []
+    # Extract dive sites
+    dive_sites_list = []
     if trip.dives:
         for dive in sorted(trip.dives, key=lambda d: d.dive_number):
-            if dive.dive_site and dive.dive_site.name not in site_names:
-                site_names.append(dive.dive_site.name)
+            if dive.dive_site and not any(s['id'] == dive.dive_site.id for s in dive_sites_list):
+                dive_sites_list.append({"id": dive.dive_site.id, "name": dive.dive_site.name})
 
     trip_payload = json.dumps({
         "trip_id": trip.id,
@@ -2289,7 +2289,7 @@ async def broadcast_trip_to_followers(
         "spots_total": trip.group_size_limit,
         "spots_booked": trip.current_bookings,
         "status": trip.trip_status.name if hasattr(trip.trip_status, 'name') else trip.trip_status,
-        "dive_sites": site_names
+        "dive_sites": dive_sites_list
     })
     
     ciphertext = encrypt_message(trip_payload, broadcast_room.encrypted_dek)

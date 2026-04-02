@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { parseUTCDate } from '../../utils/dateHelpers';
+import { slugify } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
 
@@ -162,9 +163,32 @@ const MessageBubble = ({
                       {tripData.dive_sites && tripData.dive_sites.length > 0 && (
                         <div className='flex items-start gap-1.5 mb-3 text-sm text-gray-700 dark:text-gray-300'>
                           <MapPin className='w-4 h-4 text-blue-500 mt-0.5 shrink-0' />
-                          <span className='font-medium line-clamp-2'>
-                            {tripData.dive_sites.join(', ')}
-                          </span>
+                          <div className='font-medium line-clamp-2'>
+                            {tripData.dive_sites.map((site, index) => {
+                              // Handle both old string format and new object format gracefully
+                              const isString = typeof site === 'string';
+                              const siteName = isString ? site : site.name;
+                              const siteLink = isString
+                                ? null
+                                : `/dive-sites/${site.id}/${slugify(site.name)}`;
+
+                              return (
+                                <React.Fragment key={index}>
+                                  {siteLink ? (
+                                    <Link
+                                      to={siteLink}
+                                      className='text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors'
+                                    >
+                                      {siteName}
+                                    </Link>
+                                  ) : (
+                                    <span>{siteName}</span>
+                                  )}
+                                  {index < tripData.dive_sites.length - 1 && ', '}
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
 
@@ -194,13 +218,13 @@ const MessageBubble = ({
                           <div className='flex items-center space-x-1.5'>
                             <span className='text-blue-500'>⭐</span>
                             <span
-                              className='truncate'
-                              title={tripData.difficulty.replace(/_/g, ' ')}
+                              className='truncate capitalize'
+                              title={tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
                             >
-                              {tripData.difficulty.replace(/_/g, ' ')}
+                              {tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
                             </span>
                           </div>
-                        )}
+                        )}{' '}
                       </div>
 
                       {spotsAvailable !== null && (
