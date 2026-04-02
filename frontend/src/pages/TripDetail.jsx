@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import Breadcrumbs from '../components/Breadcrumbs';
+import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
@@ -369,61 +370,7 @@ const TripDetail = () => {
             <div className='space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Diving Center</h3>
               {divingCenter ? (
-                <div className='bg-gray-50 rounded-lg p-6'>
-                  <div className='flex items-start space-x-4'>
-                    <div className='flex-1'>
-                      <h4 className='text-xl font-semibold text-gray-900 mb-2'>
-                        {divingCenter.name}
-                      </h4>
-                      <p className='text-gray-600 mb-4'>
-                        {decodeHtmlEntities(divingCenter.description) ||
-                          'Professional diving center'}
-                      </p>
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                        {divingCenter.phone && (
-                          <div className='flex items-center space-x-2'>
-                            <Phone className='w-4 h-4 text-gray-500' />
-                            <span className='text-gray-700'>{divingCenter.phone}</span>
-                          </div>
-                        )}
-                        {divingCenter.email && (
-                          <div className='flex items-center space-x-2'>
-                            <Mail className='w-4 h-4 text-gray-500' />
-                            <MaskedEmail email={divingCenter.email} className='text-gray-700' />
-                          </div>
-                        )}
-                        {divingCenter.website && (
-                          <div className='flex items-center space-x-2'>
-                            <Globe className='w-4 h-4 text-gray-500' />
-                            <a
-                              href={divingCenter.website}
-                              target='_blank'
-                              rel='noopener noreferrer'
-                              className='text-blue-600 hover:text-blue-800'
-                            >
-                              Visit Website
-                            </a>
-                          </div>
-                        )}
-                        {divingCenter.address && (
-                          <div className='flex items-start space-x-2'>
-                            <MapPin className='w-4 h-4 text-gray-500 mt-0.5' />
-                            <span className='text-gray-700'>{divingCenter.address}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {divingCenter.logo_url && (
-                      <div className='w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0'>
-                        <img
-                          src={divingCenter.logo_url}
-                          alt={divingCenter.name}
-                          className='w-full h-full object-cover rounded-lg'
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <DivingCenterSummaryCard center={divingCenter} user={user} />
               ) : (
                 <p className='text-gray-500'>Diving center information not available.</p>
               )}
