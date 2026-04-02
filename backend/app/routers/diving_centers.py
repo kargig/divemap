@@ -16,7 +16,7 @@ from app.schemas import (
     CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
-    DivingCenterOwnershipRevocation, BroadcastTripRequest
+    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
@@ -2337,3 +2337,120 @@ async def broadcast_trip_to_followers(
         )
     
     return {"status": "success", "message": "Trip broadcasted successfully"}
+
+@router.post("/{diving_center_id}/broadcast/text", status_code=status.HTTP_201_CREATED)
+async def broadcast_text_to_followers(
+    diving_center_id: int,
+    request: BroadcastTextRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Broadcast a text message to all followers of the diving center."""
+    from app.models import DivingCenterManager
+    import json
+    
+    # 1. Verify permissions (Owner or Manager)
+    center = db.query(DivingCenter).filter_by(id=diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+        
+    is_owner = center.owner_id == current_user.id
+    is_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == current_user.id
+    ).first() is not None
+    
+    if not is_owner and not is_manager:
+        raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
+        
+    # 2. Find or Create Broadcast Room
+    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
+    from app.models import UserChatMessage
+    import uuid
+    from sqlalchemy import func
+    
+    broadcast_room = db.query(UserChatRoom).filter(
+        UserChatRoom.diving_center_id == diving_center_id,
+        UserChatRoom.is_broadcast == True
+    ).first()
+    
+    if not broadcast_room:
+        raw_dek = generate_room_dek()
+        encrypted_dek = encrypt_room_dek(raw_dek)
+        
+        broadcast_room = UserChatRoom(
+            id=str(uuid.uuid4()),
+            diving_center_id=diving_center_id,
+            is_broadcast=True,
+            name=f"{center.name} Announcements",
+            encrypted_dek=encrypted_dek,
+            created_by_id=current_user.id,
+            business_status="READ"
+        )
+        db.add(broadcast_room)
+        db.flush()
+        
+        admin_member = UserChatRoomMember(
+            room_id=broadcast_room.id,
+            user_id=current_user.id,
+            role="ADMIN"
+        )
+        db.add(admin_member)
+        
+        followers = db.query(DivingCenterFollower).filter(DivingCenterFollower.diving_center_id == diving_center_id).all()
+        for f in followers:
+            if f.user_id != current_user.id:
+                member = UserChatRoomMember(
+                    room_id=broadcast_room.id,
+                    user_id=f.user_id,
+                    role="MEMBER"
+                )
+                db.add(member)
+        db.flush()
+
+    # 3. Encrypt and Save TEXT Message
+    ciphertext = encrypt_message(request.message, broadcast_room.encrypted_dek)
+    
+    msg = UserChatMessage(
+        room_id=broadcast_room.id,
+        sender_id=current_user.id,
+        content=ciphertext,
+        message_type="TEXT"
+    )
+    db.add(msg)
+    
+    # 4. Update room activity and unarchive for all members
+    broadcast_room.last_activity_at = func.now()
+    broadcast_room.is_archived = False
+    
+    # Mark as read ONLY for the sender
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.user_id == current_user.id
+    ).update({"last_read_at": func.now()}, synchronize_session=False)
+
+    # Unarchive for everyone else
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.left_at.is_(None)
+    ).update({"is_archived": False}, synchronize_session=False)
+
+    db.commit()
+    db.refresh(msg)
+    
+    # 5. Queue notification generation in SQS for all followers
+    from app.services.sqs_service import SQSService
+    sqs_service = SQSService()
+    if sqs_service.sqs_available:
+        sqs_service.sqs_client.send_message(
+            QueueUrl=sqs_service.queue_url,
+            MessageBody=json.dumps({
+                "type": "new_chat_message", 
+                "room_id": str(broadcast_room.id), 
+                "sender_id": current_user.id, 
+                "message_id": msg.id
+            }),
+            DelaySeconds=0
+        )
+    
+    return {"status": "success", "message": "Text message broadcasted successfully"}

@@ -42,6 +42,7 @@ import {
   followDivingCenter,
   unfollowDivingCenter,
   getFollowStatus,
+  broadcastTextMessage,
 } from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
@@ -69,6 +70,7 @@ const DivingCenterDetail = () => {
   const [editCommentText, setEditCommentText] = useState('');
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
   const [ownershipReason, setOwnershipReason] = useState('');
   const [tripsDateRange, setTripsDateRange] = useState(() => {
     // Start with current date, going forward 3 months
@@ -152,6 +154,22 @@ const DivingCenterDetail = () => {
       }
     }
   }, [center]);
+
+  const broadcastTextMutation = useMutation(message => broadcastTextMessage(id, message), {
+    onSuccess: () => {
+      toast.success('Broadcast message sent successfully!');
+      setBroadcastMessage('');
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to send broadcast');
+    },
+  });
+
+  const handleBroadcastSubmit = e => {
+    e.preventDefault();
+    if (!broadcastMessage.trim()) return;
+    broadcastTextMutation.mutate(broadcastMessage);
+  };
 
   // Fetch comments
   const { data: comments, isLoading: commentsLoading } = useQuery(
@@ -610,7 +628,6 @@ const DivingCenterDetail = () => {
           }
         }}
       />
-
       {/* Tab Navigation */}
       <div className='border-b border-gray-200 mt-6 mb-6'>
         <nav className='-mb-px flex space-x-8 overflow-x-auto'>
@@ -644,7 +661,6 @@ const DivingCenterDetail = () => {
           })()}
         </nav>
       </div>
-
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className='space-y-6'>
@@ -746,7 +762,6 @@ const DivingCenterDetail = () => {
           )}
         </div>
       )}
-
       {/* Dive Trips Tab */}
       {activeTab === 'trips' &&
         (tripsLoading ? (
@@ -904,7 +919,6 @@ const DivingCenterDetail = () => {
             </p>
           </div>
         ))}
-
       {/* Comments Section */}
       {activeTab === 'overview' && reviewsEnabled && (
         <div className='bg-white rounded-lg shadow-md p-6'>
@@ -1036,8 +1050,63 @@ const DivingCenterDetail = () => {
           )}
         </div>
       )}
+      {/* Management Tab */}
+      {activeTab === 'manage' && (
+        <div className='space-y-6'>
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <h2 className='text-2xl font-bold text-gray-900 mb-2 flex items-center'>
+              <Bell className='h-6 w-6 mr-2 text-blue-600' />
+              Broadcast Announcement
+            </h2>
+            <p className='text-gray-600 mb-6'>
+              Send a custom text message to all your followers. It will appear in their Business
+              Inbox and they will receive a push notification.
+            </p>
 
-      {/* Ownership Claim Modal */}
+            <form onSubmit={handleBroadcastSubmit} className='space-y-4'>
+              <div>
+                <label
+                  htmlFor='broadcast-message'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Message
+                </label>
+                <textarea
+                  id='broadcast-message'
+                  value={broadcastMessage}
+                  onChange={e => setBroadcastMessage(e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]'
+                  placeholder='Type your announcement here...'
+                  required
+                  maxLength={2000}
+                />
+                <div className='flex justify-between mt-1 text-xs text-gray-500'>
+                  <span>Keep it relevant to your followers.</span>
+                  <span>{broadcastMessage.length}/2000</span>
+                </div>
+              </div>
+              <div className='flex justify-end'>
+                <Button
+                  type='submit'
+                  disabled={broadcastTextMutation.isLoading || !broadcastMessage.trim()}
+                  variant='primary'
+                  icon={<MessageSquare className='h-4 w-4' />}
+                >
+                  {broadcastTextMutation.isLoading ? 'Sending...' : 'Send Broadcast'}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <h2 className='text-xl font-bold text-gray-900 mb-4'>Followers & Managers</h2>
+            <p className='text-gray-500 italic'>
+              Follower statistics and manager administration tools are coming in a future update.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* Ownership Claim Modal */}{' '}
       <Modal
         isOpen={showOwnershipClaim}
         onClose={() => setShowOwnershipClaim(false)}

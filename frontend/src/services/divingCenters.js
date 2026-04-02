@@ -87,3 +87,8 @@ export const broadcastTrip = async (id, tripId) => {
   const response = await api.post(`/api/v1/diving-centers/${id}/broadcast`, { trip_id: tripId });
   return response.data;
 };
+
+export const broadcastTextMessage = async (id, message) => {
+  const response = await api.post(`/api/v1/diving-centers/${id}/broadcast/text`, { message });
+  return response.data;
+};

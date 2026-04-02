@@ -1098,6 +1098,9 @@ class PlatformStatsResponse(BaseModel):
     trips: dict
     timestamp: str
 
+class BroadcastTextRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=2000)
+
 # Notification Analytics Schemas
 class InAppNotificationStats(BaseModel):
     total: int
