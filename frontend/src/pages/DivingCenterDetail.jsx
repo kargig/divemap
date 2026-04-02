@@ -26,6 +26,7 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import api, { createChatRoom } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
+import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
@@ -67,52 +68,14 @@ const DivingCenterDetail = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
   const [ownershipReason, setOwnershipReason] = useState('');
   const [tripsDateRange, setTripsDateRange] = useState(() => {
-    // Start with current date, going back 3 months
-    const endDate = new Date();
+    // Start with current date, going forward 3 months
     const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 3);
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 3);
     return { startDate, endDate };
-  });
-
-  const { data: followData, refetch: refetchFollowStatus } = useQuery(
-    ['diving-center-follow', id],
-    () => getFollowStatus(id),
-    { enabled: !!id && !!user }
-  );
-
-  const [isFollowing, setIsFollowing] = useState(false);
-
-  useEffect(() => {
-    if (followData) {
-      setIsFollowing(followData.is_following);
-    }
-  }, [followData]);
-
-  const followMutation = useMutation(
-    () => (isFollowing ? unfollowDivingCenter(id) : followDivingCenter(id)),
-    {
-      onSuccess: () => {
-        setIsFollowing(!isFollowing);
-        refetchFollowStatus();
-        toast.success(
-          isFollowing ? 'Unfollowed diving center' : 'Following diving center for updates'
-        );
-      },
-      onError: error => {
-        toast.error(getErrorMessage(error) || 'Failed to update follow status');
-      },
-    }
-  );
-
-  const startChatMutation = useMutation(() => createChatRoom([], false, null, id), {
-    onSuccess: data => {
-      navigate(`/messages?room=${data.id}`);
-    },
-    onError: error => {
-      toast.error(getErrorMessage(error) || 'Failed to start conversation');
-    },
   });
 
   // Fetch diving center details
@@ -635,304 +598,288 @@ const DivingCenterDetail = () => {
           ]}
         />
       )}
-      {/* Header */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-        <div className='flex justify-between items-start mb-4'>
-          <div className='flex items-center gap-3 sm:gap-4'>
-            <button
-              onClick={() => {
-                const from = location.state?.from;
-                if (from) {
-                  navigate(from);
-                } else {
-                  navigate('/diving-centers');
-                }
-              }}
-              className='text-gray-600 hover:text-gray-800 p-1'
-            >
-              <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
-            </button>
-            <div className='min-w-0 flex-1'>
-              <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                {center?.name || 'Loading...'}
-              </h1>
-              {user && (
-                <div className='flex flex-wrap gap-2 mt-3'>
-                  <Button
-                    onClick={() => startChatMutation.mutate()}
-                    disabled={startChatMutation.isLoading}
-                    variant='primary'
-                    icon={<MessageSquare className='h-4 w-4' />}
-                  >
-                    {startChatMutation.isLoading ? 'Loading...' : 'Message Us'}
-                  </Button>
-                  <Button
-                    onClick={() => followMutation.mutate()}
-                    disabled={followMutation.isLoading}
-                    variant={isFollowing ? 'secondary' : 'outline'}
-                    icon={<Bell className={`h-4 w-4 ${isFollowing ? 'fill-current' : ''}`} />}
-                  >
-                    {isFollowing ? 'Following' : 'Follow for Updates'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-          <div className='flex items-center space-x-4'>
-            {(() => {
-              const isOwner = user?.id === center?.created_by;
-              const isAdmin = user?.is_admin;
-              const isModerator = user?.is_moderator;
-              const shouldShowEdit = isOwner || isAdmin || isModerator;
+      <DivingCenterSummaryCard
+        center={center}
+        user={user}
+        onBack={() => {
+          const from = location.state?.from;
+          if (from) {
+            navigate(from);
+          } else {
+            navigate('/diving-centers');
+          }
+        }}
+      />
 
-              return (
-                shouldShowEdit && (
-                  <Button
-                    to={`/diving-centers/${id}/edit`}
-                    variant='primary'
-                    icon={<Edit className='h-4 w-4' />}
+      {/* Tab Navigation */}
+      <div className='border-b border-gray-200 mt-6 mb-6'>
+        <nav className='-mb-px flex space-x-8 overflow-x-auto'>
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('trips')}
+            className={`${activeTab === 'trips' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Upcoming Trips
+          </button>
+          {(() => {
+            const isOwner = user?.id === center?.created_by || user?.id === center?.owner_id;
+            const isAdmin = user?.is_admin;
+            const isModerator = user?.is_moderator;
+            const shouldShowEdit = isOwner || isAdmin || isModerator;
+            return (
+              shouldShowEdit && (
+                <button
+                  onClick={() => setActiveTab('manage')}
+                  className={`${activeTab === 'manage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                >
+                  Management
+                </button>
+              )
+            );
+          })()}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className='space-y-6'>
+          {/* Ownership Status */}
+          {center?.ownership_status && (
+            <div className='bg-white rounded-lg shadow-sm p-4 border border-gray-100'>
+              <div className='flex flex-wrap items-center justify-between gap-4'>
+                <div className='flex items-center space-x-2'>
+                  <Crown className='h-5 w-5 text-yellow-600' />
+                  <span className='text-sm font-medium text-gray-700'>Ownership Status:</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      center.ownership_status === 'approved'
+                        ? 'bg-green-100 text-green-800'
+                        : center.ownership_status === 'claimed'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                    }`}
                   >
-                    Edit
-                  </Button>
-                )
-              );
-            })()}
-            {center?.average_rating && (
-              <div className='text-right'>
-                <div className='flex items-center space-x-2 mb-2'>
-                  <span className='text-2xl font-bold text-gray-900'>
-                    {center.average_rating.toFixed(1)}/10
+                    {center.ownership_status === 'approved'
+                      ? 'Approved Owner'
+                      : center.ownership_status === 'claimed'
+                        ? 'Claim Pending'
+                        : 'Unclaimed'}
                   </span>
                 </div>
-                <p className='text-sm text-gray-600'>
-                  {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
-                </p>
+                {user && center.ownership_status === 'unclaimed' && (
+                  <button
+                    onClick={() => setShowOwnershipClaim(true)}
+                    className='px-3 py-1.5 text-xs bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center space-x-1 shadow-sm transition-colors'
+                  >
+                    {' '}
+                    <Crown className='h-3 w-3' />
+                    <span>Claim Ownership</span>
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-        {center?.description && (
-          <div className='mb-4'>
-            <p className='text-gray-600'>{decodeHtmlEntities(center.description)}</p>
-          </div>
-        )}
-
-        {/* Contact Information */}
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-          {center?.email && (
-            <div className='flex items-center text-gray-600'>
-              <Mail className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
-              <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0'>
-                <MaskedEmail
-                  email={center.email}
-                  className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium cursor-pointer break-all'
-                />
-                <span className='text-xs text-gray-400 whitespace-nowrap'>Click to reveal</span>
-              </div>
-            </div>
-          )}
-          {center?.phone && (
-            <div className='flex items-center text-gray-600'>
-              <Phone className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
-              <a
-                href={`tel:${center.phone}`}
-                className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-1'
-              >
-                {center.phone}
-                <Phone className='h-3 w-3' />
-              </a>
-            </div>
-          )}
-          {center?.website && (
-            <div className='flex items-center text-gray-600'>
-              <Globe className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
-              <a
-                href={
-                  center.website.startsWith('http') ? center.website : `https://${center.website}`
-                }
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-1'
-              >
-                {center.website}
-                <ExternalLink className='h-3 w-3' />
-              </a>
-            </div>
-          )}
-          {center?.latitude && center?.longitude && (
-            <div className='flex items-center text-gray-600'>
-              <MapPin className='h-5 w-5 mr-3 flex-shrink-0 text-gray-500' />
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${center.latitude},${center.longitude}`}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-blue-600 hover:text-blue-700 hover:underline transition-colors font-medium inline-flex items-center gap-2'
-                title='Get directions from your current location'
-              >
-                <span>
-                  {center.latitude !== undefined && !isNaN(Number(center.latitude))
-                    ? Number(center.latitude).toFixed(5)
-                    : 'N/A'}
-                  ,{' '}
-                  {center.longitude !== undefined && !isNaN(Number(center.longitude))
-                    ? Number(center.longitude).toFixed(5)
-                    : 'N/A'}
-                </span>
-                <Navigation className='h-4 w-4' />
-              </a>
-            </div>
-          )}
-        </div>
-
-        {/* Geographic Information */}
-        {(center?.country || center?.region || center?.city) && (
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
-            {center?.country && (
-              <div className='flex items-center text-gray-600'>
-                <Globe className='h-5 w-5 mr-3' />
-                <div>
-                  <span className='text-sm font-medium text-gray-700'>Country</span>
-                  <p className='text-gray-900'>{center.country}</p>
-                </div>
-              </div>
-            )}
-            {center?.region && (
-              <div className='flex items-center text-gray-600'>
-                <MapPin className='h-5 w-5 mr-3' />
-                <div>
-                  <span className='text-sm font-medium text-gray-700'>Region</span>
-                  <p className='text-gray-900'>{center.region}</p>
-                </div>
-              </div>
-            )}
-            {center?.city && (
-              <div className='flex items-center text-gray-600'>
-                <MapPin className='h-5 w-5 mr-3' />
-                <div>
-                  <span className='text-sm font-medium text-gray-700'>City</span>
-                  <p className='text-gray-900'>{center.city}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Ownership Status */}
-        {center?.ownership_status && (
-          <div className='border-t pt-4 mb-4'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-2'>
-                <Crown className='h-5 w-5 text-yellow-600' />
-                <span className='text-sm font-medium text-gray-700'>Ownership Status:</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    center.ownership_status === 'approved'
-                      ? 'bg-green-100 text-green-800'
-                      : center.ownership_status === 'claimed'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {center.ownership_status === 'approved'
-                    ? 'Approved Owner'
-                    : center.ownership_status === 'claimed'
-                      ? 'Claim Pending'
-                      : 'Unclaimed'}
-                </span>
-              </div>
-              {user && center.ownership_status === 'unclaimed' && (
-                <button
-                  onClick={() => setShowOwnershipClaim(true)}
-                  className='px-2 py-1 text-xs bg-yellow-600 text-white rounded-md hover:bg-yellow-700 flex items-center space-x-1'
-                >
-                  <Crown className='h-3 w-3' />
-                  <span>Claim Ownership</span>
-                </button>
+              {center.owner_username && (
+                <p className='text-sm text-gray-600 mt-2'>Owner: {center.owner_username}</p>
               )}
             </div>
-            {center.owner_username && (
-              <p className='text-sm text-gray-600 mt-2'>Owner: {center.owner_username}</p>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Diving Organizations */}
-        {orgLoading ? (
-          <div className='border-t pt-4'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
-              <Award className='h-5 w-5 mr-2' />
-              Associated Diving Organizations
-            </h3>
-            <div className='animate-pulse'>
-              <div className='h-8 bg-gray-200 rounded w-1/4'></div>
-            </div>
-          </div>
-        ) : (
-          organizations &&
-          organizations.length > 0 && (
+          {/* Diving Organizations */}
+          {orgLoading ? (
             <div className='border-t pt-4'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
                 <Award className='h-5 w-5 mr-2' />
                 Associated Diving Organizations
               </h3>
-              <div className='flex flex-wrap gap-2'>
-                {organizations
-                  .filter(org => org && org.diving_organization)
-                  .map(org => (
-                    <div
-                      key={org.id}
-                      className={`flex items-center px-3 py-2 rounded-lg border ${
-                        org.is_primary
-                          ? 'bg-blue-50 border-blue-200 text-blue-800'
-                          : 'bg-gray-50 border-gray-200 text-gray-700'
-                      }`}
-                    >
-                      <span className='font-medium'>
-                        {org.diving_organization?.acronym || 'Unknown Organization'}
-                      </span>
-                      {org.is_primary && (
-                        <span className='ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                  ))}
+              <div className='animate-pulse'>
+                <div className='h-8 bg-gray-200 rounded w-1/4'></div>
               </div>
             </div>
-          )
-        )}
+          ) : (
+            organizations &&
+            organizations.length > 0 && (
+              <div className='border-t pt-4'>
+                <h3 className='text-lg font-semibold text-gray-900 mb-3 flex items-center'>
+                  <Award className='h-5 w-5 mr-2' />
+                  Associated Diving Organizations
+                </h3>
+                <div className='flex flex-wrap gap-2'>
+                  {organizations
+                    .filter(org => org && org.diving_organization)
+                    .map(org => (
+                      <div
+                        key={org.id}
+                        className={`flex items-center px-3 py-2 rounded-lg border ${
+                          org.is_primary
+                            ? 'bg-blue-50 border-blue-200 text-blue-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-700'
+                        }`}
+                      >
+                        <span className='font-medium'>
+                          {org.diving_organization?.acronym || 'Unknown Organization'}
+                        </span>
+                        {org.is_primary && (
+                          <span className='ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )
+          )}
 
-        {/* Rating Section */}
-        {user && reviewsEnabled && (
-          <div className='border-t pt-4'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-2'>Rate this diving center</h3>
-            <div className='flex items-center space-x-2'>
-              <span className='text-sm text-gray-600'>Your rating:</span>
-              {renderStars(rating, true)}
+          {/* Rating Section */}
+          {user && reviewsEnabled && (
+            <div className='border-t pt-4'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>Rate this diving center</h3>
+              <div className='flex items-center space-x-2'>
+                <span className='text-sm text-gray-600'>Your rating:</span>
+                {renderStars(rating, true)}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Dive Trips Section */}
-      {tripsLoading ? (
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <div className='animate-pulse'>
-            <div className='h-6 bg-gray-200 rounded w-1/4 mb-4'></div>
-            <div className='space-y-3'>
-              <div className='h-20 bg-gray-200 rounded'></div>
-              <div className='h-20 bg-gray-200 rounded'></div>
-            </div>
-          </div>
+          )}
         </div>
-      ) : trips && trips.length > 0 ? (
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
-              <Calendar className='h-6 w-6 mr-2' />
-              Dive Trips
-            </h2>
-            {user && (
+      )}
+
+      {/* Dive Trips Tab */}
+      {activeTab === 'trips' &&
+        (tripsLoading ? (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='animate-pulse'>
+              <div className='h-6 bg-gray-200 rounded w-1/4 mb-4'></div>
+              <div className='space-y-3'>
+                <div className='h-20 bg-gray-200 rounded'></div>
+                <div className='h-20 bg-gray-200 rounded'></div>
+              </div>
+            </div>
+          </div>
+        ) : trips && trips.length > 0 ? (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
+                <Calendar className='h-6 w-6 mr-2' />
+                Dive Trips
+              </h2>
+              {user && (
+                <div className='flex items-center space-x-2'>
+                  <button
+                    onClick={() => navigateTripsRange('prev')}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
+                    title='Previous 3 months'
+                  >
+                    <ChevronLeft className='h-5 w-5' />
+                  </button>
+                  <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
+                  <button
+                    onClick={() => navigateTripsRange('next')}
+                    className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    title='Next 3 months'
+                  >
+                    <ChevronRight className='h-5 w-5' />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className='space-y-4'>
+              {(!user ? trips.slice(0, 2) : trips).map(trip => (
+                <div
+                  key={trip.id}
+                  className={`border rounded-lg p-4 transition-colors ${
+                    !user ? 'pointer-events-none relative overflow-hidden' : 'hover:bg-gray-50'
+                  }`}
+                  style={!user ? { filter: 'blur(1.5px)' } : {}}
+                >
+                  {!user && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
+                  <div className='flex items-start justify-between'>
+                    <div className='flex-1'>
+                      <div className='flex items-center space-x-3 mb-2'>
+                        <h3 className='text-lg font-semibold text-gray-900'>
+                          {formatDate(trip.trip_date)}
+                        </h3>
+                        {trip.trip_time && (
+                          <span className='text-sm text-gray-600'>
+                            {new Date(`2000-01-01T${trip.trip_time}`).toLocaleTimeString('en-GB', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                        {trip.trip_price && (
+                          <span className='text-sm font-medium text-blue-600'>
+                            {trip.trip_price} {trip.trip_currency}
+                          </span>
+                        )}
+                      </div>
+                      {trip.dives && trip.dives.length > 0 && (
+                        <div className='text-sm text-gray-600 mb-2'>
+                          {trip.dives.length} dive{trip.dives.length !== 1 ? 's' : ''}:{' '}
+                          {trip.dives
+                            .map(dive => dive.dive_site_name || `Dive ${dive.dive_number}`)
+                            .filter(Boolean)
+                            .join(', ')}
+                        </div>
+                      )}
+                      {trip.trip_description && (
+                        <p className='text-sm text-gray-700 line-clamp-2'>
+                          {decodeHtmlEntities(trip.trip_description)}
+                        </p>
+                      )}
+                    </div>
+                    {user && (
+                      <Link
+                        to={`/dive-trips/${trip.id}`}
+                        className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
+                      >
+                        View
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {!user && (
+              <div className='mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6'>
+                <div className='flex items-center'>
+                  <LogIn className='h-8 w-8 text-blue-600 mr-4' />
+                  <div className='flex-1'>
+                    <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
+                    <p className='text-blue-700 mb-4'>
+                      To view dive trips and discover upcoming diving adventures, please log in to
+                      your account.
+                    </p>
+                    <div className='flex space-x-3'>
+                      <Link
+                        to='/login'
+                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                      >
+                        <LogIn className='h-4 w-4 mr-2' />
+                        Login
+                      </Link>
+                      <Link
+                        to='/register'
+                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
+                <Calendar className='h-6 w-6 mr-2' />
+                Dive Trips
+              </h2>
               <div className='flex items-center space-x-2'>
                 <button
                   onClick={() => navigateTripsRange('prev')}
@@ -951,130 +898,17 @@ const DivingCenterDetail = () => {
                   <ChevronRight className='h-5 w-5' />
                 </button>
               </div>
-            )}
-          </div>
-          <div className='space-y-4'>
-            {(!user ? trips.slice(0, 2) : trips).map(trip => (
-              <div
-                key={trip.id}
-                className={`border rounded-lg p-4 transition-colors ${
-                  !user ? 'pointer-events-none relative overflow-hidden' : 'hover:bg-gray-50'
-                }`}
-                style={!user ? { filter: 'blur(1.5px)' } : {}}
-              >
-                {!user && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
-                <div className='flex items-start justify-between'>
-                  <div className='flex-1'>
-                    <div className='flex items-center space-x-3 mb-2'>
-                      <h3 className='text-lg font-semibold text-gray-900'>
-                        {formatDate(trip.trip_date)}
-                      </h3>
-                      {trip.trip_time && (
-                        <span className='text-sm text-gray-600'>
-                          {new Date(`2000-01-01T${trip.trip_time}`).toLocaleTimeString('en-GB', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      )}
-                      {trip.trip_price && (
-                        <span className='text-sm font-medium text-blue-600'>
-                          {trip.trip_price} {trip.trip_currency}
-                        </span>
-                      )}
-                    </div>
-                    {trip.dives && trip.dives.length > 0 && (
-                      <div className='text-sm text-gray-600 mb-2'>
-                        {trip.dives.length} dive{trip.dives.length !== 1 ? 's' : ''}:{' '}
-                        {trip.dives
-                          .map(dive => dive.dive_site_name || `Dive ${dive.dive_number}`)
-                          .filter(Boolean)
-                          .join(', ')}
-                      </div>
-                    )}
-                    {trip.trip_description && (
-                      <p className='text-sm text-gray-700 line-clamp-2'>
-                        {decodeHtmlEntities(trip.trip_description)}
-                      </p>
-                    )}
-                  </div>
-                  {user && (
-                    <Link
-                      to={`/dive-trips/${trip.id}`}
-                      className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
-                    >
-                      View
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          {!user && (
-            <div className='mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6'>
-              <div className='flex items-center'>
-                <LogIn className='h-8 w-8 text-blue-600 mr-4' />
-                <div className='flex-1'>
-                  <h3 className='text-lg font-semibold text-blue-900 mb-2'>Login Required</h3>
-                  <p className='text-blue-700 mb-4'>
-                    To view dive trips and discover upcoming diving adventures, please log in to
-                    your account.
-                  </p>
-                  <div className='flex space-x-3'>
-                    <Link
-                      to='/login'
-                      className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                    >
-                      <LogIn className='h-4 w-4 mr-2' />
-                      Login
-                    </Link>
-                    <Link
-                      to='/register'
-                      className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
-                    >
-                      Register
-                    </Link>
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
-        </div>
-      ) : (
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
-              <Calendar className='h-6 w-6 mr-2' />
-              Dive Trips
-            </h2>
-            <div className='flex items-center space-x-2'>
-              <button
-                onClick={() => navigateTripsRange('prev')}
-                className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors'
-                title='Previous 3 months'
-              >
-                <ChevronLeft className='h-5 w-5' />
-              </button>
-              <span className='text-sm text-gray-600 px-2'>{formatDateRange()}</span>
-              <button
-                onClick={() => navigateTripsRange('next')}
-                disabled={tripsDateRange.endDate >= new Date()}
-                className='p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                title='Next 3 months'
-              >
-                <ChevronRight className='h-5 w-5' />
-              </button>
-            </div>
+            <p className='text-gray-500 text-center py-4'>
+              No dive trips found for this date range
+            </p>
           </div>
-          <p className='text-gray-500 text-center py-4'>No dive trips found for this date range</p>
-        </div>
-      )}
+        ))}
 
       {/* Comments Section */}
-      {reviewsEnabled && (
+      {activeTab === 'overview' && reviewsEnabled && (
         <div className='bg-white rounded-lg shadow-md p-6'>
           <h2 className='text-2xl font-bold text-gray-900 mb-4'>Comments</h2>
-
           {/* Add Comment Form */}
           {user && (
             <form onSubmit={handleSubmitComment} className='mb-6'>
