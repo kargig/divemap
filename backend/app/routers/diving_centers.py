@@ -2202,7 +2202,11 @@ async def broadcast_trip_to_followers(
         raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Verify Trip exists and belongs to this center
-    trip = db.query(ParsedDiveTrip).filter(
+    from sqlalchemy.orm import joinedload
+    from app.models import ParsedDive
+    trip = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+    ).filter(
         ParsedDiveTrip.id == request.trip_id,
         ParsedDiveTrip.diving_center_id == diving_center_id
     ).first()
@@ -2258,11 +2262,34 @@ async def broadcast_trip_to_followers(
         db.flush()
 
     # 4. Construct and Encrypt TRIP_AD Message
+    
+    # Optionally get difficulty code
+    difficulty_code = None
+    if trip.trip_difficulty_id:
+        from app.models import DifficultyLevel
+        difficulty = db.query(DifficultyLevel).filter_by(id=trip.trip_difficulty_id).first()
+        if difficulty:
+            difficulty_code = difficulty.code
+
+    # Extract dive site names
+    site_names = []
+    if trip.dives:
+        for dive in sorted(trip.dives, key=lambda d: d.dive_number):
+            if dive.dive_site and dive.dive_site.name not in site_names:
+                site_names.append(dive.dive_site.name)
+
     trip_payload = json.dumps({
         "trip_id": trip.id,
-        "name": trip.trip_description[:50] + "..." if trip.trip_description else f"Dive Trip on {trip.trip_date}",
+        "name": trip.trip_description[:100] + "..." if trip.trip_description and len(trip.trip_description) > 100 else (trip.trip_description or f"Dive Trip on {trip.trip_date}"),
         "date": str(trip.trip_date),
-        "price": f"{trip.trip_price} {trip.trip_currency}" if trip.trip_price else None
+        "time": str(trip.trip_time) if trip.trip_time else None,
+        "price": f"{trip.trip_price} {trip.trip_currency}" if trip.trip_price else None,
+        "duration": trip.trip_duration,
+        "difficulty": difficulty_code,
+        "spots_total": trip.group_size_limit,
+        "spots_booked": trip.current_bookings,
+        "status": trip.trip_status.name if hasattr(trip.trip_status, 'name') else trip.trip_status,
+        "dive_sites": site_names
     })
     
     ciphertext = encrypt_message(trip_payload, broadcast_room.encrypted_dek)

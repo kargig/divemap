@@ -461,6 +461,7 @@ export const tripSchemas = {
         errorMap: () => ({ message: 'Invalid trip status' }),
       })
       .default('scheduled'),
+    broadcast_to_followers: z.boolean().optional().default(false),
     dives: z.array(tripDiveSchema).default([]),
   }),
 };

@@ -260,18 +260,37 @@ async def list_chat_rooms(
         return []
 
     # 3. Query rooms (UNION equivalent)
-    # For personal: rooms in personal_room_ids
-    # For business: rooms linked to managed centers AND not archived globally for the center
+    if managed_center_ids:
+        b2c_customer_condition = and_(
+            UserChatRoom.diving_center_id.is_not(None),
+            ~UserChatRoom.diving_center_id.in_(managed_center_ids),
+            UserChatRoom.id.in_(personal_room_ids)
+        )
+        b2c_manager_condition = and_(
+            UserChatRoom.diving_center_id.in_(managed_center_ids),
+            UserChatRoom.is_archived == False
+        )
+    else:
+        b2c_customer_condition = and_(
+            UserChatRoom.diving_center_id.is_not(None),
+            UserChatRoom.id.in_(personal_room_ids)
+        )
+        b2c_manager_condition = False
+
     rooms = db.query(UserChatRoom).options(
         joinedload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
         joinedload(UserChatRoom.diving_center)
     ).filter(
         or_(
-            UserChatRoom.id.in_(personal_room_ids),
+            # Condition 1: Personal rooms (not B2C)
             and_(
-                UserChatRoom.diving_center_id.in_(managed_center_ids),
-                UserChatRoom.is_archived == False
-            )
+                UserChatRoom.diving_center_id.is_(None),
+                UserChatRoom.id.in_(personal_room_ids)
+            ),
+            # Condition 2: Business rooms where user is a manager (shared inbox)
+            b2c_manager_condition,
+            # Condition 3: Business rooms where user is a customer
+            b2c_customer_condition
         )
     ).order_by(desc(UserChatRoom.last_activity_at)).all()
     
@@ -347,8 +366,25 @@ async def toggle_room_archive(
     room, member = get_room_or_404(db, room_id, current_user.id)
     
     if room.diving_center_id:
-        # B2C Room: Archive globally for the business
-        room.is_archived = archive_in.is_archived
+        # Check if the user is a manager/owner for this center
+        is_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == room.diving_center_id,
+            DivingCenterManager.user_id == current_user.id
+        ).first()
+        is_owner = db.query(DivingCenter).filter(
+            DivingCenter.id == room.diving_center_id,
+            DivingCenter.owner_id == current_user.id
+        ).first()
+
+        if is_manager or is_owner:
+            # B2C Room: Manager archiving globally for the business
+            room.is_archived = archive_in.is_archived
+        else:
+            # Customer archiving their own view of the business chat
+            if member:
+                member.is_archived = archive_in.is_archived
+            else:
+                raise HTTPException(status_code=403, detail="You can only archive your own personal chats")
     else:
         # Personal Room: Archive for this user only
         if member:

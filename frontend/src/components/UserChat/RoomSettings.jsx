@@ -62,6 +62,23 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
 
   if (!room) return null;
 
+  // Determine display name, avatar, and room type
+  const otherMembers = room.members?.filter(m => m.user_id !== currentUserId) || [];
+  let displayName = room.name;
+  let displayAvatar = null;
+  let roomTypeLabel = room.is_group ? 'Group Chat' : 'Private Message';
+
+  if (!room.is_group) {
+    if (room.diving_center) {
+      displayName = room.diving_center.name;
+      displayAvatar = room.diving_center.logo_url;
+      roomTypeLabel = room.is_broadcast ? 'Broadcast Channel' : 'Business Chat';
+    } else {
+      displayName = otherMembers[0]?.user?.username || 'Chat';
+      displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+    }
+  }
+
   return (
     <div className='flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden'>
       {/* Header */}
@@ -82,9 +99,13 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
         {/* Room Info */}
         <div className='text-center space-y-3'>
           <div className='flex justify-center'>
-            <div className='w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400'>
-              <Users className='h-10 w-10' />
-            </div>
+            {displayAvatar || !room.is_group ? (
+              <Avatar src={displayAvatar} alt={displayName} size='lg' username={displayName} />
+            ) : (
+              <div className='w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400'>
+                <Users className='h-10 w-10' />
+              </div>
+            )}
           </div>
 
           <div className='space-y-1'>
@@ -112,10 +133,8 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
               </div>
             ) : (
               <div className='flex items-center justify-center gap-2'>
-                <h3 className='text-xl font-bold text-gray-900 dark:text-white'>
-                  {room.is_group ? room.name : 'Direct Message'}
-                </h3>
-                {room.is_group && isAdmin && (
+                <h3 className='text-xl font-bold text-gray-900 dark:text-white'>{displayName}</h3>
+                {room.is_group && isAdmin && !room.diving_center_id && (
                   <button
                     onClick={() => setIsEditingName(true)}
                     className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
@@ -126,8 +145,7 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
               </div>
             )}
             <p className='text-sm text-gray-500'>
-              {room.is_group ? 'Group Chat' : 'Private Message'} • {room.members.length}{' '}
-              participants
+              {roomTypeLabel} • {room.members.length} participants
             </p>
           </div>
         </div>

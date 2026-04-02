@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Edit2, Check, CheckCheck, Clock } from 'lucide-react';
+import { Edit2, Check, CheckCheck, Clock, MapPin } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -136,26 +136,90 @@ const MessageBubble = ({
                 } catch (e) {
                   tripData = {};
                 }
+
+                const spotsAvailable =
+                  tripData.spots_total !== null && tripData.spots_total !== undefined
+                    ? Math.max(0, tripData.spots_total - (tripData.spots_booked || 0))
+                    : null;
+
                 return (
-                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 max-w-sm'>
-                    <div className='p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30'>
+                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 min-w-[280px] max-w-sm'>
+                    <div className='p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 flex justify-between items-center'>
                       <span className='text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
                         New Trip Announcement
                       </span>
+                      {tripData.status === 'confirmed' && (
+                        <span className='text-[10px] font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full uppercase'>
+                          Confirmed
+                        </span>
+                      )}
                     </div>
                     <div className='p-4'>
-                      <h4 className='font-bold text-gray-900 dark:text-white mb-2'>
+                      <h4 className='font-bold text-gray-900 dark:text-white mb-2 text-base leading-snug'>
                         {tripData.name || 'Dive Trip'}
                       </h4>
-                      <div className='flex flex-col space-y-1 mb-4 text-sm text-gray-600 dark:text-gray-300'>
-                        {tripData.date && <p>📅 {tripData.date}</p>}
-                        {tripData.price && <p>💰 {tripData.price}</p>}
+
+                      {tripData.dive_sites && tripData.dive_sites.length > 0 && (
+                        <div className='flex items-start gap-1.5 mb-3 text-sm text-gray-700 dark:text-gray-300'>
+                          <MapPin className='w-4 h-4 text-blue-500 mt-0.5 shrink-0' />
+                          <span className='font-medium line-clamp-2'>
+                            {tripData.dive_sites.join(', ')}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className='grid grid-cols-2 gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300'>
+                        {' '}
+                        {tripData.date && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>📅</span>
+                            <span>{tripData.date}</span>
+                          </div>
+                        )}
+                        {tripData.time && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>🕒</span>
+                            <span>{tripData.time.substring(0, 5)}</span>
+                          </div>
+                        )}
+                        {tripData.price && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>💰</span>
+                            <span className='font-semibold text-gray-900 dark:text-gray-100'>
+                              {tripData.price}
+                            </span>
+                          </div>
+                        )}
+                        {tripData.difficulty && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>⭐</span>
+                            <span
+                              className='truncate'
+                              title={tripData.difficulty.replace(/_/g, ' ')}
+                            >
+                              {tripData.difficulty.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
+                      {spotsAvailable !== null && (
+                        <div className='mb-4 text-xs font-medium px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-center'>
+                          {spotsAvailable > 0 ? (
+                            <span className='text-green-600 dark:text-green-400'>
+                              {spotsAvailable} spot{spotsAvailable !== 1 && 's'} remaining
+                            </span>
+                          ) : (
+                            <span className='text-red-500 dark:text-red-400'>Fully Booked</span>
+                          )}
+                        </div>
+                      )}
+
                       <Link
-                        to={`/trips/${tripData.trip_id}`}
-                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded transition-colors'
+                        to={`/dive-trips/${tripData.trip_id}`}
+                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-sm'
                       >
-                        View Trip
+                        View Trip Details
                       </Link>
                     </div>
                   </div>

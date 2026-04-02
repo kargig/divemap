@@ -1,7 +1,7 @@
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { isSameDay, format, isToday, isYesterday, differenceInMinutes } from 'date-fns';
-import { Send, Loader2, X, Info, ChevronLeft, HelpCircle, Smile } from 'lucide-react';
+import { Send, Loader2, X, MoreVertical, ChevronLeft, HelpCircle, Smile } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -244,9 +244,9 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
           <button
             onClick={onToggleSettings}
             className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-            title='Room Settings'
+            title='More options'
           >
-            <Info className='h-5 w-5' />
+            <MoreVertical className='h-5 w-5' />
           </button>
         </div>
       </div>
