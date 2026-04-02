@@ -13,7 +13,7 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
 
   const activeMember = room?.members?.find(m => m.user_id === currentUserId);
   const isAdmin = activeMember?.role === 'ADMIN';
-  const currentlyArchived = room.diving_center_id ? room.is_archived : activeMember?.is_archived;
+  const currentlyArchived = room.is_manager_view ? room.is_archived : activeMember?.is_archived;
 
   const archiveMutation = useMutation(() => toggleChatArchive(room.id, !currentlyArchived), {
     onSuccess: () => {
@@ -69,7 +69,7 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
   let roomTypeLabel = room.is_group ? 'Group Chat' : 'Private Message';
 
   if (!room.is_group) {
-    if (room.diving_center) {
+    if (room.diving_center && !room.is_manager_view) {
       displayName = room.diving_center.name;
       displayAvatar = room.diving_center.logo_url;
       roomTypeLabel = room.is_broadcast ? 'Broadcast Channel' : 'Business Chat';
