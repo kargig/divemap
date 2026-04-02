@@ -10,6 +10,7 @@ import { parseUTCDate } from '../../utils/dateHelpers';
 import { slugify } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
+import CurrencyIcon from '../ui/CurrencyIcon';
 
 import LinkPreview from './LinkPreview';
 
@@ -208,7 +209,10 @@ const MessageBubble = ({
                         )}
                         {tripData.price && (
                           <div className='flex items-center space-x-1.5'>
-                            <span className='text-blue-500'>💰</span>
+                            <CurrencyIcon
+                              currencyCode={tripData.currency}
+                              className='w-4 h-4 text-blue-500'
+                            />
                             <span className='font-semibold text-gray-900 dark:text-gray-100'>
                               {tripData.price}
                             </span>

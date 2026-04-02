@@ -1,9 +1,11 @@
-import { Calendar, DollarSign, Users, ArrowLeft } from 'lucide-react';
+import { Calendar, Users, ArrowLeft } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { formatPrice, formatDate } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
+
+import CurrencyIcon from './ui/CurrencyIcon';
 
 const TripHeader = ({ trip }) => {
   const navigate = useNavigate();
@@ -49,7 +51,7 @@ const TripHeader = ({ trip }) => {
               </div>
 
               <div className='flex items-center space-x-3'>
-                <DollarSign className='w-5 h-5 text-gray-500' />
+                <CurrencyIcon currencyCode={trip.trip_currency} className='w-5 h-5 text-gray-500' />
                 <div>
                   <div className='text-sm text-gray-500'>Price</div>
                   <div className='font-medium'>{formatPrice(trip.trip_price)}</div>

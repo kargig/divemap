@@ -112,10 +112,11 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
                 <Button
                   onClick={() => followMutation.mutate()}
                   disabled={followMutation.isLoading}
-                  variant={isFollowing ? 'secondary' : 'outline'}
+                  variant={isFollowing ? 'secondary' : 'white'}
                   icon={<Bell className={`h-4 w-4 ${isFollowing ? 'fill-current' : ''}`} />}
                   className='shadow-sm'
                 >
+                  {' '}
                   {isFollowing ? 'Following' : 'Follow for Updates'}
                 </Button>
               </div>

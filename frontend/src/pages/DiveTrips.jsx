@@ -33,6 +33,7 @@ import FuzzySearchInput from '../components/FuzzySearchInput';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import CurrencyIcon from '../components/ui/CurrencyIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
@@ -1056,7 +1057,10 @@ const DiveTrips = () => {
                       )}
                       {trip.trip_price && (
                         <div className='flex items-center gap-2'>
-                          <DollarSign className='w-4 h-4 text-gray-400' />
+                          <CurrencyIcon
+                            currencyCode={trip.trip_currency}
+                            className='w-4 h-4 text-gray-400'
+                          />
                           <span className='text-[11px] text-gray-600'>
                             {formatCurrency(trip.trip_price, trip.trip_currency)}
                           </span>
@@ -1411,7 +1415,10 @@ const DiveTrips = () => {
                         )}
                         {trip.trip_price && (
                           <div className='flex items-center gap-2'>
-                            <DollarSign className='w-4 h-4 text-gray-400' />
+                            <CurrencyIcon
+                              currencyCode={trip.trip_currency}
+                              className='w-4 h-4 text-gray-400'
+                            />
                             <span className='text-[11px] text-gray-600'>
                               {formatCurrency(trip.trip_price, trip.trip_currency)}
                             </span>
