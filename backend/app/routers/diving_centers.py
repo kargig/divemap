@@ -2306,11 +2306,34 @@ async def broadcast_trip_to_followers(
     broadcast_room.last_activity_at = func.now()
     broadcast_room.is_archived = False
     
+    # Mark as read ONLY for the sender, so followers actually see the unread tag
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.user_id == current_user.id
+    ).update({"last_read_at": func.now()}, synchronize_session=False)
+
+    # Unarchive for everyone else
     db.query(UserChatRoomMember).filter(
         UserChatRoomMember.room_id == broadcast_room.id,
         UserChatRoomMember.left_at.is_(None)
-    ).update({"is_archived": False, "last_read_at": func.now()}, synchronize_session=False)
+    ).update({"is_archived": False}, synchronize_session=False)
 
     db.commit()
+    db.refresh(msg)
+    
+    # 6. Queue notification generation in SQS for all followers
+    from app.services.sqs_service import SQSService
+    sqs_service = SQSService()
+    if sqs_service.sqs_available:
+        sqs_service.sqs_client.send_message(
+            QueueUrl=sqs_service.queue_url,
+            MessageBody=json.dumps({
+                "type": "new_chat_message", 
+                "room_id": str(broadcast_room.id), 
+                "sender_id": current_user.id, 
+                "message_id": msg.id
+            }),
+            DelaySeconds=0
+        )
     
     return {"status": "success", "message": "Trip broadcasted successfully"}

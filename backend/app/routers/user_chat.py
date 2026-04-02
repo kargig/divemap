@@ -591,7 +591,22 @@ async def mark_room_read(
     """Mark all messages in a room as read by updating the last_read_at timestamp."""
     room, member = get_room_or_404(db, room_id, current_user.id)
     
-    member.last_read_at = func.now()
+    if room.diving_center_id:
+        is_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == room.diving_center_id,
+            DivingCenterManager.user_id == current_user.id
+        ).first()
+        is_owner = db.query(DivingCenter).filter(
+            DivingCenter.id == room.diving_center_id,
+            DivingCenter.owner_id == current_user.id
+        ).first()
+        
+        if is_manager or is_owner:
+            room.business_status = BusinessChatStatus.READ
+        
+    if member:
+        member.last_read_at = func.now()
+        
     db.commit()
     
     return {"status": "success"}
