@@ -15,7 +15,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import MaskedEmail from './MaskedEmail';
 import Button from './ui/Button';
 
-const DivingCenterSummaryCard = ({ center, user, onBack }) => {
+const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
   const navigate = useNavigate();
   const id = center?.id;
 
@@ -122,7 +122,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack }) => {
         </div>
 
         <div className='flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto space-x-4 sm:space-x-0 sm:space-y-4 shrink-0'>
-          {center.average_rating ? (
+          {center.average_rating && reviewsEnabled !== false ? (
             <div className='text-right'>
               <div className='flex items-center space-x-2 mb-1 justify-end'>
                 <span className='text-3xl font-bold text-gray-900 leading-none'>
@@ -134,10 +134,9 @@ const DivingCenterSummaryCard = ({ center, user, onBack }) => {
                 {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
               </p>
             </div>
-          ) : (
+          ) : reviewsEnabled !== false ? (
             <div className='text-sm text-gray-500 italic'>No ratings yet</div>
-          )}
-
+          ) : null}
           {shouldShowEdit && (
             <Button
               to={`/diving-centers/${id}/edit`}

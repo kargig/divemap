@@ -619,6 +619,7 @@ const DivingCenterDetail = () => {
       <DivingCenterSummaryCard
         center={center}
         user={user}
+        reviewsEnabled={reviewsEnabled}
         onBack={() => {
           const from = location.state?.from;
           if (from) {
@@ -646,10 +647,10 @@ const DivingCenterDetail = () => {
           {(() => {
             const isOwner = user?.id === center?.created_by || user?.id === center?.owner_id;
             const isAdmin = user?.is_admin;
-            const isModerator = user?.is_moderator;
-            const shouldShowEdit = isOwner || isAdmin || isModerator;
+            const isManager = center?.is_manager === true;
+            const shouldShowManage = isOwner || isAdmin || isManager;
             return (
-              shouldShowEdit && (
+              shouldShowManage && (
                 <button
                   onClick={() => setActiveTab('manage')}
                   className={`${activeTab === 'manage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
@@ -658,7 +659,7 @@ const DivingCenterDetail = () => {
                 </button>
               )
             );
-          })()}
+          })()}{' '}
         </nav>
       </div>
       {/* Tab Content */}
