@@ -9,6 +9,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
+import { useSetting } from '../hooks/useSettings';
 import { getDiveSite } from '../services/diveSites';
 import { getDivingCenter } from '../services/divingCenters';
 import { getParsedTrip } from '../services/newsletters';
@@ -20,12 +21,78 @@ import { generateTripName } from '../utils/tripNameGenerator';
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
 
+const DiveSiteInfo = ({ dive, index }) => {
+  const { data: diveSite } = useQuery(
+    ['diveSite', dive.dive_site_id],
+    () => getDiveSite(dive.dive_site_id),
+    {
+      enabled: !!dive.dive_site_id,
+      retry: (failureCount, error) => {
+        if (error.response?.status === 404 || error.response?.status === 422) return false;
+        return failureCount < 1;
+      },
+    }
+  );
+
+  return (
+    <div className='bg-gray-50 rounded-lg p-4'>
+      <div className='flex items-center justify-between mb-3'>
+        <h4 className='font-medium text-gray-900'>
+          Dive {index + 1}:{' '}
+          {dive.dive_site_id ? (
+            <Link
+              to={`/dive-sites/${dive.dive_site_id}`}
+              state={{ from: window.location.pathname + window.location.search }}
+              className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
+            >
+              {dive.dive_site_name || diveSite?.name || 'Unnamed Site'}
+            </Link>
+          ) : (
+            dive.dive_site_name || 'Unnamed Site'
+          )}
+        </h4>
+        <span className='text-sm text-gray-500'>
+          {diveSite?.max_depth ? `Max Depth: ${diveSite.max_depth}m` : 'Depth TBD'}
+        </span>
+      </div>
+      {dive.dive_site_id && diveSite && (
+        <div className='text-sm text-gray-600'>
+          <p className='mb-2'>
+            {diveSite.description
+              ? renderTextWithLinks(decodeHtmlEntities(diveSite.description))
+              : 'No description available'}
+          </p>
+          {dive.dive_description && (
+            <p className='mb-2 text-gray-700'>
+              <strong>Dive Description:</strong> {decodeHtmlEntities(dive.dive_description)}
+            </p>
+          )}
+          {dive.dive_duration && (
+            <p className='mb-2 text-gray-700'>
+              <strong>Duration:</strong> {dive.dive_duration} minutes
+            </p>
+          )}
+          <div className='flex items-center space-x-4 text-xs text-gray-500 mt-3'>
+            {diveSite.country && <span>📍 {diveSite.country}</span>}
+            {diveSite.region && <span>🏛️ {diveSite.region}</span>}
+            {diveSite.max_depth && <span>🌊 {diveSite.max_depth}m</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const TripDetail = () => {
   const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dive-sites');
+
+  const { data: reviewsDisabledSetting } = useSetting('disable_diving_center_reviews');
+  const reviewsEnabled = reviewsDisabledSetting?.value === false;
+
   // Fetch trip data
   const {
     data: trip,
@@ -50,18 +117,6 @@ const TripDetail = () => {
     }
   }, [trip, id, slug, navigate, location.search]);
 
-  // Fetch dive site data if trip has dive sites
-  const { data: diveSite } = useQuery(
-    ['diveSite', trip?.dive_site_id],
-    () => getDiveSite(trip?.dive_site_id),
-    {
-      enabled: !!trip?.dive_site_id,
-      retry: (failureCount, error) => {
-        if (error.response?.status === 404 || error.response?.status === 422) return false;
-        return failureCount < 1;
-      },
-    }
-  );
   // Fetch diving center data
   const { data: divingCenter } = useQuery(
     ['divingCenter', trip?.diving_center_id],
@@ -310,55 +365,11 @@ const TripDetail = () => {
               {trip.dives && trip.dives.length > 0 ? (
                 <div className='space-y-4'>
                   {trip.dives.map((dive, index) => (
-                    <div
+                    <DiveSiteInfo
                       key={`dive-${trip.id}-${dive.dive_site_id || index}`}
-                      className='bg-gray-50 rounded-lg p-4'
-                    >
-                      <div className='flex items-center justify-between mb-3'>
-                        <h4 className='font-medium text-gray-900'>
-                          Dive {index + 1}:{' '}
-                          {dive.dive_site_id ? (
-                            <Link
-                              to={`/dive-sites/${dive.dive_site_id}`}
-                              state={{ from: window.location.pathname + window.location.search }}
-                              className='text-blue-600 hover:text-blue-800 hover:underline transition-colors'
-                            >
-                              {dive.dive_site_name || 'Unnamed Site'}
-                            </Link>
-                          ) : (
-                            dive.dive_site_name || 'Unnamed Site'
-                          )}
-                        </h4>
-                        <span className='text-sm text-gray-500'>
-                          {dive.depth ? `${dive.depth}m` : 'Depth TBD'}
-                        </span>
-                      </div>
-                      {dive.dive_site_id && diveSite && (
-                        <div className='text-sm text-gray-600'>
-                          <p className='mb-2'>
-                            {diveSite.description
-                              ? renderTextWithLinks(decodeHtmlEntities(diveSite.description))
-                              : 'No description available'}
-                          </p>
-                          {dive.dive_description && (
-                            <p className='mb-2 text-gray-700'>
-                              <strong>Dive Description:</strong>{' '}
-                              {decodeHtmlEntities(dive.dive_description)}
-                            </p>
-                          )}
-                          {dive.dive_duration && (
-                            <p className='mb-2 text-gray-700'>
-                              <strong>Duration:</strong> {dive.dive_duration} minutes
-                            </p>
-                          )}
-                          <div className='flex items-center space-x-4 text-xs text-gray-500'>
-                            {diveSite.country && <span>📍 {diveSite.country}</span>}
-                            {diveSite.region && <span>🏛️ {diveSite.region}</span>}
-                            {diveSite.max_depth && <span>🌊 {diveSite.max_depth}m</span>}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                      dive={dive}
+                      index={index}
+                    />
                   ))}
                 </div>
               ) : (
@@ -370,12 +381,16 @@ const TripDetail = () => {
             <div className='space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Diving Center</h3>
               {divingCenter ? (
-                <DivingCenterSummaryCard center={divingCenter} user={user} />
+                <DivingCenterSummaryCard
+                  center={divingCenter}
+                  user={user}
+                  reviewsEnabled={reviewsEnabled}
+                />
               ) : (
                 <p className='text-gray-500'>Diving center information not available.</p>
               )}
             </div>
-          )}
+          )}{' '}
           {activeTab === 'booking' && (
             <div className='space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Book This Trip</h3>
