@@ -1197,6 +1197,18 @@ async def get_diving_center(
                 user_rating = user_rating_obj.score
 
     # Prepare response data
+    from app.models import DivingCenterManager, DivingCenterFollower
+    is_user_manager = False
+    if current_user:
+        is_user_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == diving_center.id,
+            DivingCenterManager.user_id == current_user.id
+        ).first() is not None
+        
+    follower_count = db.query(func.count(DivingCenterFollower.user_id)).filter(
+        DivingCenterFollower.diving_center_id == diving_center.id
+    ).scalar()
+
     response_data = {
         "id": diving_center.id,
         "name": diving_center.name,
@@ -1216,7 +1228,9 @@ async def get_diving_center(
         "total_ratings": total_ratings,
         "user_rating": user_rating,
         "ownership_status": diving_center.ownership_status.value if diving_center.ownership_status else None,
-        "owner_username": diving_center.owner.username if diving_center.owner else None
+        "owner_username": diving_center.owner.username if diving_center.owner else None,
+        "is_manager": is_user_manager,
+        "follower_count": follower_count or 0
     }
 
     # Only include view_count for admin users

@@ -428,6 +428,8 @@ class DivingCenterResponse(DivingCenterBase):
     user_rating: Optional[float] = None
     ownership_status: Optional[str] = None
     owner_username: Optional[str] = None
+    is_manager: bool = False
+    follower_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
