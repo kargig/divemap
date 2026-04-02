@@ -1,4 +1,14 @@
-import { MapPin, Phone, Mail, Globe, Navigation, Eye, Heart, LogIn } from 'lucide-react';
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Globe,
+  Navigation,
+  Eye,
+  Heart,
+  LogIn,
+  TrendingUp,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
@@ -51,9 +61,10 @@ const DiveSiteInfo = ({ dive, index }) => {
             dive.dive_site_name || 'Unnamed Site'
           )}
         </h4>
-        <span className='text-sm text-gray-500'>
-          {diveSite?.max_depth ? `Max Depth: ${diveSite.max_depth}m` : 'Depth TBD'}
-        </span>
+        <div className='text-sm text-gray-500 font-medium flex items-center gap-1.5'>
+          <TrendingUp className='w-4 h-4 text-gray-400' />
+          {diveSite?.max_depth ? `${diveSite.max_depth}m max` : 'Depth TBD'}
+        </div>
       </div>
       {dive.dive_site_id && diveSite && (
         <div className='text-sm text-gray-600'>
@@ -75,8 +86,7 @@ const DiveSiteInfo = ({ dive, index }) => {
           <div className='flex items-center space-x-4 text-xs text-gray-500 mt-3'>
             {diveSite.country && <span>📍 {diveSite.country}</span>}
             {diveSite.region && <span>🏛️ {diveSite.region}</span>}
-            {diveSite.max_depth && <span>🌊 {diveSite.max_depth}m</span>}
-          </div>
+          </div>{' '}
         </div>
       )}
     </div>

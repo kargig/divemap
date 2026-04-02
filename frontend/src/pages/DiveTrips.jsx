@@ -1225,7 +1225,7 @@ const DiveTrips = () => {
                                     )}
                                     {dive.max_depth && (
                                       <span className='flex items-center'>
-                                        <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
+                                        <TrendingUp className='h-3 w-3 mr-1 flex-shrink-0' />
                                         Max {dive.max_depth}m
                                       </span>
                                     )}

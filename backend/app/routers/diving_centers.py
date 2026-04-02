@@ -2299,6 +2299,7 @@ async def broadcast_trip_to_followers(
         "time": str(trip.trip_time) if trip.trip_time else None,
         "price": f"{trip.trip_price} {trip.trip_currency}" if trip.trip_price else None,
         "duration": trip.trip_duration,
+        "max_depth": float(trip.max_depth) if trip.max_depth else None,
         "difficulty": difficulty_code,
         "spots_total": trip.group_size_limit,
         "spots_booked": trip.current_bookings,

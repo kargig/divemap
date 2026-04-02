@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import escape from 'lodash/escape';
-import { Calendar, Clock, Thermometer, Star } from 'lucide-react';
+import { Calendar, Clock, TrendingUp, Star } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
@@ -137,7 +137,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                 marker.max_depth
                   ? `
                 <div class="flex items-center gap-1">
-                  <span>🌡️</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
                   <span>${marker.max_depth}m max</span>
                 </div>
               `
@@ -451,7 +451,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
                     <div className='flex items-center gap-4 text-sm text-gray-600'>
                       {dive.max_depth && (
                         <div className='flex items-center gap-1'>
-                          <Thermometer size={14} />
+                          <TrendingUp size={14} />
                           <span>{dive.max_depth}m max</span>
                         </div>
                       )}

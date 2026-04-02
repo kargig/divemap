@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Edit2, Check, CheckCheck, Clock, MapPin } from 'lucide-react';
+import { Edit2, Check, CheckCheck, Clock, MapPin, TrendingUp } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -224,9 +224,16 @@ const MessageBubble = ({
                               {tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
                             </span>
                           </div>
-                        )}{' '}
+                        )}
+                        {tripData.max_depth && (
+                          <div className='flex items-center space-x-1.5'>
+                            <TrendingUp className='w-3.5 h-3.5 text-blue-500 shrink-0' />
+                            <span className='font-medium text-gray-900 dark:text-gray-100'>
+                              {tripData.max_depth}m
+                            </span>
+                          </div>
+                        )}
                       </div>
-
                       {spotsAvailable !== null && (
                         <div className='mb-4 text-xs font-medium px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-center'>
                           {spotsAvailable > 0 ? (

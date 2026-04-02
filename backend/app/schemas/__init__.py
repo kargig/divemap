@@ -978,6 +978,7 @@ class ParsedDiveResponse(BaseModel):
     dive_duration: Optional[int] = None
     dive_description: Optional[str] = None
     dive_site_name: Optional[str] = None
+    max_depth: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
@@ -1015,6 +1016,7 @@ class ParsedDiveTripResponse(BaseModel):
     trip_status: str = "scheduled"
     view_count: int = 0
     diving_center_name: Optional[str] = None
+    max_depth: Optional[float] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter

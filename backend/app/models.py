@@ -445,6 +445,13 @@ class ParsedDiveTrip(Base):
     difficulty = relationship("DifficultyLevel", back_populates="parsed_dive_trips")
     diving_center = relationship("DivingCenter", back_populates="dive_trips")
     dives = relationship("ParsedDive", back_populates="trip", cascade="all, delete-orphan")
+    
+    @property
+    def max_depth(self):
+        depths = [dive.dive_site.max_depth for dive in self.dives if dive.dive_site and dive.dive_site.max_depth]
+        if depths:
+            return max(depths)
+        return None
 
 
 class ParsedDive(Base):
@@ -463,6 +470,12 @@ class ParsedDive(Base):
     # Relationships
     trip = relationship("ParsedDiveTrip", back_populates="dives")
     dive_site = relationship("DiveSite", back_populates="parsed_dives")
+    
+    @property
+    def max_depth(self):
+        if self.dive_site:
+            return self.dive_site.max_depth
+        return None
 
 class Newsletter(Base):
     __tablename__ = "newsletters"
