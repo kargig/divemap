@@ -307,12 +307,14 @@ async def list_chat_rooms(
 
         # Check if it's a business room managed by the user
         if room.diving_center_id and room.diving_center_id in managed_center_ids:
+            room.is_manager_view = True
             if room.business_status == BusinessChatStatus.UNREAD:
                 room.unread_count = 1
             else:
                 room.unread_count = 0
             # is_archived already set correctly from room table for business
         else:
+            room.is_manager_view = False
             # Personal room logic
             member_record = next((m for m in active_memberships if m.room_id == room.id), None)
             if member_record:

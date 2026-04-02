@@ -186,7 +186,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
   let displayAvatar = null;
 
   if (!room?.is_group) {
-    if (room?.diving_center) {
+    if (room?.diving_center && !room.is_manager_view) {
       displayName = room.diving_center.name;
       displayAvatar = room.diving_center.logo_url;
     } else {
@@ -194,7 +194,6 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
       displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
     }
   }
-
   const maxReadAt = otherMembers.length
     ? new Date(Math.max(...otherMembers.map(m => parseUTCDate(m.last_read_at))))
     : null;

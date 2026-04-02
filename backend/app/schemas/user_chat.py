@@ -56,6 +56,7 @@ class ChatRoomResponse(BaseModel):
     is_broadcast: bool = False
     is_archived: bool = False
     business_status: Optional[str] = None
+    is_manager_view: bool = False
     quick_replies: Optional[List[str]] = None
     last_activity_at: datetime
     created_at: datetime

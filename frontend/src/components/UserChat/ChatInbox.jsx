@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import React, { useState } from 'react';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { parseUTCDate } from '../../utils/dateHelpers';
 import Avatar from '../Avatar';
 
 const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, buddyCount }) => {
@@ -11,8 +12,8 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
   const [showBusiness, setShowBusiness] = useState(false);
 
-  const personalRooms = rooms.filter(r => !r.diving_center_id);
-  const businessRooms = rooms.filter(r => r.diving_center_id);
+  const personalRooms = rooms.filter(r => !r.is_manager_view);
+  const businessRooms = rooms.filter(r => r.is_manager_view);
   const hasBusinessRooms = businessRooms.length > 0;
 
   const [autoSwitchedFor, setAutoSwitchedFor] = React.useState(null);
@@ -92,7 +93,7 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
           let displayAvatar = null;
 
           if (!room.is_group) {
-            if (room.diving_center) {
+            if (room.diving_center && !room.is_manager_view) {
               displayName = room.diving_center.name;
               displayAvatar = room.diving_center.logo_url;
             } else {
@@ -103,7 +104,6 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
               displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
             }
           }
-
           return (
             <button
               key={room.id}
@@ -172,7 +172,7 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
                     {room.unread_count > 0
                       ? `${room.unread_count} new message${room.unread_count > 1 ? 's' : ''}`
                       : room.last_activity_at
-                        ? `Last activity: ${format(new Date(room.last_activity_at), 'MMM d, HH:mm')}`
+                        ? `Last activity: ${format(parseUTCDate(room.last_activity_at), 'MMM d, HH:mm')}`
                         : 'No recent activity'}
                   </p>
                   {showBusiness && room.business_status && (
