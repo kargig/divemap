@@ -42,6 +42,7 @@ import useSorting from '../hooks/useSorting';
 import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
+import { formatCost } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -628,14 +629,6 @@ const DiveTrips = () => {
     return timeString.substring(0, 5); // Extract HH:MM from HH:MM:SS
   };
 
-  const formatCurrency = (price, currency = 'EUR') => {
-    if (!price) return 'N/A';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currency,
-    }).format(price);
-  };
-
   const getStatusColor = status => {
     switch (status) {
       case 'scheduled':
@@ -1062,7 +1055,10 @@ const DiveTrips = () => {
                             className='w-4 h-4 text-gray-400'
                           />
                           <span className='text-[11px] text-gray-600'>
-                            {formatCurrency(trip.trip_price, trip.trip_currency)}
+                            {formatCost(trip.trip_price, trip.trip_currency, {
+                              showSymbol: false,
+                              showCode: true,
+                            })}
                           </span>
                         </div>
                       )}
@@ -1142,7 +1138,10 @@ const DiveTrips = () => {
                               Price
                             </div>
                             <span className='font-medium text-base sm:text-lg leading-tight'>
-                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                              {formatCost(trip.trip_price, trip.trip_currency, {
+                                showSymbol: false,
+                                showCode: true,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -1420,7 +1419,10 @@ const DiveTrips = () => {
                               className='w-4 h-4 text-gray-400'
                             />
                             <span className='text-[11px] text-gray-600'>
-                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                              {formatCost(trip.trip_price, trip.trip_currency, {
+                                showSymbol: false,
+                                showCode: true,
+                              })}
                             </span>
                           </div>
                         )}
