@@ -39,6 +39,7 @@ const TripFormModal = ({
         trip_description: trip.trip_description || '',
         special_requirements: trip.special_requirements || '',
         trip_status: trip.trip_status || 'scheduled',
+        broadcast_to_followers: false,
         dives:
           trip.dives?.map((dive, index) => ({
             id: dive.id || Date.now() + index,
@@ -504,6 +505,21 @@ const TripFormModal = ({
           </div>
         ))}
       </div>
+
+      {/* Broadcast Option (Only for new trips) */}
+      {!trip && (
+        <div className='flex items-center space-x-2 mt-4 pt-4 border-t border-gray-200'>
+          <input
+            type='checkbox'
+            id='broadcast'
+            {...register('broadcast_to_followers')}
+            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+          />
+          <label htmlFor='broadcast' className='text-sm font-medium text-gray-700'>
+            Broadcast this trip to followers
+          </label>
+        </div>
+      )}
 
       <div className='flex justify-end space-x-3 pt-4 border-t'>
         {onCancel && (

@@ -922,6 +922,9 @@ class DiveSearchParams(BaseModel):
     offset: int = Field(0, ge=0)
 
 # Diving Center Ownership Schemas
+class BroadcastTripRequest(BaseModel):
+    trip_id: int
+
 class DivingCenterOwnershipClaim(BaseModel):
     reason: str = Field(..., min_length=10, max_length=1000)
 
