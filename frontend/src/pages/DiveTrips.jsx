@@ -14,7 +14,6 @@ import {
   Tag,
   List,
   Grid,
-  Eye,
   TrendingUp,
   DollarSign,
   Star,
@@ -1025,8 +1024,8 @@ const DiveTrips = () => {
                           state={{ from: window.location.pathname + window.location.search }}
                           className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         >
-                          <Eye className='w-4 h-4' />
                           View Trip
+                          <ChevronRight className='w-4 h-4' />
                         </Link>
                       )}
                     </div>

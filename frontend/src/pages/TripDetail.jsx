@@ -4,8 +4,9 @@ import {
   Mail,
   Globe,
   Navigation,
-  Eye,
-  Heart,
+  Info,
+  Building,
+  Ticket,
   LogIn,
   TrendingUp,
 } from 'lucide-react';
@@ -324,9 +325,9 @@ const TripDetail = () => {
           <nav className='flex space-x-8 px-6'>
             {[
               { id: 'dive-sites', label: 'Dive Sites', icon: MapPin },
-              { id: 'overview', label: 'Additional Info', icon: Eye },
-              { id: 'diving-center', label: 'Diving Center', icon: Navigation },
-              { id: 'booking', label: 'Booking', icon: Heart },
+              { id: 'overview', label: 'Additional Info', icon: Info },
+              { id: 'diving-center', label: 'Diving Center', icon: Building },
+              { id: 'booking', label: 'Booking', icon: Ticket },
             ].map(tab => {
               const Icon = tab.icon;
               return (
