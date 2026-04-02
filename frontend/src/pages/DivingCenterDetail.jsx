@@ -228,6 +228,13 @@ const DivingCenterDetail = () => {
     });
   };
 
+  const isOwner = Boolean(
+    user && user.id && (user.id === center?.created_by || user.id === center?.owner_id)
+  );
+  const isAdmin = Boolean(user?.is_admin);
+  const isManager = Boolean(center?.is_manager);
+  const shouldShowManage = isOwner || isAdmin || isManager;
+
   // Fetch dive trips for this diving center within the date range
   const { data: trips, isLoading: tripsLoading } = useQuery(
     ['diving-center-trips', id, tripsDateRange.startDate, tripsDateRange.endDate],
@@ -644,22 +651,14 @@ const DivingCenterDetail = () => {
           >
             Upcoming Trips
           </button>
-          {(() => {
-            const isOwner = user?.id === center?.created_by || user?.id === center?.owner_id;
-            const isAdmin = user?.is_admin;
-            const isManager = center?.is_manager === true;
-            const shouldShowManage = isOwner || isAdmin || isManager;
-            return (
-              shouldShowManage && (
-                <button
-                  onClick={() => setActiveTab('manage')}
-                  className={`${activeTab === 'manage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-                >
-                  Management
-                </button>
-              )
-            );
-          })()}{' '}
+          {shouldShowManage && (
+            <button
+              onClick={() => setActiveTab('manage')}
+              className={`${activeTab === 'manage' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+            >
+              Management
+            </button>
+          )}
         </nav>
       </div>
       {/* Tab Content */}
@@ -1052,7 +1051,7 @@ const DivingCenterDetail = () => {
         </div>
       )}
       {/* Management Tab */}
-      {activeTab === 'manage' && (
+      {activeTab === 'manage' && shouldShowManage && (
         <div className='space-y-6'>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
             <h2 className='text-2xl font-bold text-gray-900 mb-2 flex items-center'>
@@ -1098,13 +1097,17 @@ const DivingCenterDetail = () => {
               </div>
             </form>
           </div>
-
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-            <h2 className='text-xl font-bold text-gray-900 mb-4'>Followers & Managers</h2>
+            <div className='flex justify-between items-center mb-4'>
+              <h2 className='text-xl font-bold text-gray-900'>Followers & Managers</h2>
+              <div className='bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold'>
+                {center?.follower_count || 0} Follower{center?.follower_count !== 1 ? 's' : ''}
+              </div>
+            </div>
             <p className='text-gray-500 italic'>
-              Follower statistics and manager administration tools are coming in a future update.
+              Manager administration tools are coming in a future update.
             </p>
-          </div>
+          </div>{' '}
         </div>
       )}
       {/* Ownership Claim Modal */}{' '}

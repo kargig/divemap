@@ -58,9 +58,11 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
     },
   });
 
-  const isOwner = user?.id === center?.created_by || user?.id === center?.owner_id;
-  const isAdmin = user?.is_admin;
-  const isModerator = user?.is_moderator;
+  const isOwner = Boolean(
+    user && user.id && (user.id === center?.created_by || user.id === center?.owner_id)
+  );
+  const isAdmin = Boolean(user?.is_admin);
+  const isModerator = Boolean(user?.is_moderator);
   const shouldShowEdit = isOwner || isAdmin || isModerator;
 
   if (!center) return null;
