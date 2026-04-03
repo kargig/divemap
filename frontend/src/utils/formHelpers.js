@@ -342,9 +342,12 @@ const tripDiveSchema = z.object({
     .string()
     .optional()
     .nullable()
-    .refine(val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
-      message: 'Please enter a valid time in HH:MM format',
-    })
+    .refine(
+      val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(val),
+      {
+        message: 'Please enter a valid time in HH:MM format',
+      }
+    )
     .or(z.literal('')),
   dive_duration: z
     .union([z.string(), z.number()])
@@ -381,9 +384,12 @@ export const tripSchemas = {
       .string()
       .optional()
       .nullable()
-      .refine(val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
-        message: 'Please enter a valid time in HH:MM format',
-      })
+      .refine(
+        val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(val),
+        {
+          message: 'Please enter a valid time in HH:MM format',
+        }
+      )
       .or(z.literal('')),
     trip_duration: z
       .union([z.string(), z.number()])
@@ -517,9 +523,12 @@ export const createDiveSchema = z.object({
     .string()
     .optional()
     .nullable()
-    .refine(val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
-      message: 'Please enter a valid time in HH:MM format',
-    })
+    .refine(
+      val => !val || val === '' || /^([0-1][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/.test(val),
+      {
+        message: 'Please enter a valid time in HH:MM format',
+      }
+    )
     .or(z.literal('')),
 
   // Optional number fields with ranges

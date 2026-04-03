@@ -304,6 +304,9 @@ const CreateTrip = () => {
           divingCenters={divingCenters}
           additionalDiveSites={additionalDiveSites}
           isModal={false}
+          divingCenterId={
+            searchParams.get('center_id') ? parseInt(searchParams.get('center_id')) : null
+          }
         />
       )}
     </div>

@@ -385,7 +385,7 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        assert "Only admins and moderators can update trips without a diving center" in response.json()["detail"]
 
     def test_delete_parsed_trip_admin_success(self, client, admin_headers, db_session):
         """Test deleting parsed trip as admin."""
@@ -439,7 +439,7 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        assert "Only admins and moderators can delete trips without a diving center" in response.json()["detail"]
 
     def test_reparse_newsletter_admin_success(self, client, admin_headers, db_session):
         """Test re-parsing newsletter as admin."""

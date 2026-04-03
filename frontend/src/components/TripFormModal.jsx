@@ -14,11 +14,14 @@ const TripFormModal = ({
   trip,
   onSubmit,
   onCancel,
+  onClose,
   title,
   diveSites,
   divingCenters,
   additionalDiveSites = [],
   isModal = true,
+  divingCenterId = null,
+  isOpen = false,
 }) => {
   // Combine regular dive sites with additional ones
   const allDiveSites = [...diveSites, ...additionalDiveSites];
@@ -52,7 +55,7 @@ const TripFormModal = ({
       };
     }
     return {
-      diving_center_id: null,
+      diving_center_id: divingCenterId || null,
       trip_date: '',
       trip_time: '',
       trip_duration: '',
@@ -506,20 +509,18 @@ const TripFormModal = ({
         ))}
       </div>
 
-      {/* Broadcast Option (Only for new trips) */}
-      {!trip && (
-        <div className='flex items-center space-x-2 mt-4 pt-4 border-t border-gray-200'>
-          <input
-            type='checkbox'
-            id='broadcast'
-            {...register('broadcast_to_followers')}
-            className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
-          />
-          <label htmlFor='broadcast' className='text-sm font-medium text-gray-700'>
-            Broadcast this trip to followers
-          </label>
-        </div>
-      )}
+      {/* Broadcast Option */}
+      <div className='flex items-center space-x-2 mt-4 pt-4 border-t border-gray-200'>
+        <input
+          type='checkbox'
+          id='broadcast'
+          {...register('broadcast_to_followers')}
+          className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+        />
+        <label htmlFor='broadcast' className='text-sm font-medium text-gray-700'>
+          {trip ? 'Broadcast update to followers' : 'Broadcast this trip to followers'}
+        </label>
+      </div>
 
       <div className='flex justify-end space-x-3 pt-4 border-t'>
         {onCancel && (
@@ -545,8 +546,8 @@ const TripFormModal = ({
   if (isModal) {
     return (
       <Modal
-        isOpen={true}
-        onClose={onCancel}
+        isOpen={isOpen}
+        onClose={onClose || onCancel}
         title={title || 'Dive Trip'}
         className='max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto'
       >
@@ -572,11 +573,14 @@ TripFormModal.propTypes = {
   trip: PropTypes.object,
   onSubmit: PropTypes.func.isRequired,
   onCancel: PropTypes.func,
+  onClose: PropTypes.func,
   title: PropTypes.string,
   diveSites: PropTypes.array.isRequired,
   divingCenters: PropTypes.array.isRequired,
   additionalDiveSites: PropTypes.array,
   isModal: PropTypes.bool,
+  isOpen: PropTypes.bool,
+  divingCenterId: PropTypes.number,
 };
 
 export default TripFormModal;

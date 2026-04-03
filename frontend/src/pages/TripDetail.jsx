@@ -9,21 +9,26 @@ import {
   Ticket,
   LogIn,
   TrendingUp,
+  Edit,
+  X,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
+import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import Breadcrumbs from '../components/Breadcrumbs';
 import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
+import TripFormModal from '../components/TripFormModal';
 import TripHeader from '../components/TripHeader';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
-import { getDiveSite } from '../services/diveSites';
-import { getDivingCenter } from '../services/divingCenters';
-import { getParsedTrip } from '../services/newsletters';
+import { getDiveSites, getDiveSite } from '../services/diveSites';
+import { getDivingCenter, getDivingCenters, broadcastTrip } from '../services/divingCenters';
+import { getParsedTrip, updateParsedTrip, deleteParsedTrip } from '../services/newsletters';
+import { extractErrorMessage } from '../utils/apiErrors';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -99,7 +104,9 @@ const TripDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('dive-sites');
+  const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
 
   const { data: reviewsDisabledSetting } = useSetting('disable_diving_center_reviews');
   const reviewsEnabled = reviewsDisabledSetting?.value === false;
@@ -116,6 +123,112 @@ const TripDetail = () => {
       return failureCount < 1;
     },
   });
+
+  // Query for dive sites (for dropdown)
+  const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Query for diving centers (for dropdown)
+  const { data: divingCenters = [] } = useQuery(
+    'diving-centers',
+    () => getDivingCenters({ page_size: 100 }),
+    {
+      enabled: !!id,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // State to store additional dive sites that are not in the main list
+  const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
+
+  // Function to get dive site by ID if not in the list
+  const getDiveSiteById = async siteId => {
+    try {
+      const site = await getDiveSite(siteId);
+      return site;
+    } catch (error) {
+      console.error('Error fetching dive site by ID:', error);
+    }
+    return null;
+  };
+
+  // Function to ensure dive site is available in dropdown
+  const ensureDiveSiteAvailable = async siteId => {
+    if (!siteId) return;
+
+    const existingSite =
+      diveSites.find(s => s.id === siteId) || additionalDiveSites.find(s => s.id === siteId);
+
+    if (!existingSite) {
+      const site = await getDiveSiteById(siteId);
+      if (site) {
+        setAdditionalDiveSites(prev => {
+          // Avoid duplicates
+          if (prev.find(s => s.id === siteId)) return prev;
+          return [...prev, site];
+        });
+      }
+    }
+  };
+
+  const updateTripMutation = useMutation(({ tripId, data }) => updateParsedTrip(tripId, data), {
+    onSuccess: () => {
+      toast.success('Trip updated successfully');
+      setIsEditTripModalOpen(false);
+      queryClient.invalidateQueries(['parsedTrip', id]);
+    },
+    onError: error => {
+      toast.error(`Update failed: ${extractErrorMessage(error)}`);
+    },
+  });
+
+  const deleteTripMutation = useMutation(deleteParsedTrip, {
+    onSuccess: () => {
+      toast.success('Trip deleted successfully');
+      navigate('/dive-trips');
+    },
+    onError: error => {
+      toast.error(`Delete failed: ${extractErrorMessage(error)}`);
+    },
+  });
+
+  const handleEditTrip = () => {
+    // Ensure the dive sites are available in the dropdown
+    if (trip.dives && trip.dives.length > 0) {
+      trip.dives.forEach(dive => {
+        if (dive.dive_site_id) {
+          ensureDiveSiteAvailable(dive.dive_site_id);
+        }
+      });
+    }
+    setIsEditTripModalOpen(true);
+  };
+
+  const handleUpdateTrip = async (tripId, tripData) => {
+    try {
+      await updateTripMutation.mutateAsync({ tripId, data: tripData });
+
+      // Handle broadcast if checked
+      if (tripData.broadcast_to_followers && trip.diving_center_id) {
+        try {
+          await broadcastTrip(trip.diving_center_id, tripId);
+          toast.success('Trip broadcasted to followers!');
+        } catch (err) {
+          toast.error('Failed to broadcast trip update');
+        }
+      }
+    } catch (error) {
+      // Error handled in mutation
+    }
+  };
+
+  const handleDeleteTrip = () => {
+    if (window.confirm('Are you sure you want to delete this trip?')) {
+      deleteTripMutation.mutate(id);
+    }
+  };
 
   // Redirect to canonical URL with slug
   useEffect(() => {
@@ -140,6 +253,13 @@ const TripDetail = () => {
       },
     }
   );
+
+  const isOwner = Boolean(
+    user && user.id && (user.id === divingCenter?.created_by || user.id === divingCenter?.owner_id)
+  );
+  const isAdmin = Boolean(user?.is_admin);
+  const isManager = Boolean(divingCenter?.is_manager);
+  const shouldShowManage = isOwner || isAdmin || isManager;
 
   const getMetaDescription = () => {
     if (!trip) return '';
@@ -318,6 +438,49 @@ const TripDetail = () => {
           items={[{ label: 'Dive Trips', to: '/dive-trips' }, { label: generateTripName(trip) }]}
         />
       )}
+
+      <div className='flex justify-end items-center space-x-2 mb-4'>
+        {/* Share Button (everyone can see) */}
+        <button
+          onClick={() => {
+            if (navigator.share) {
+              navigator.share({
+                title: `Dive Trip - ${generateTripName(trip)}`,
+                text: `Check out this dive trip on Divemap: ${generateTripName(trip)}`,
+                url: window.location.href,
+              });
+            } else {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success('Link copied to clipboard!');
+            }
+          }}
+          className='inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors'
+          title='Share trip'
+        >
+          <Navigation className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
+          Share
+        </button>
+
+        {shouldShowManage && (
+          <>
+            <button
+              onClick={handleEditTrip}
+              className='inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors'
+            >
+              <Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
+              Edit Trip
+            </button>
+            <button
+              onClick={handleDeleteTrip}
+              className='inline-flex items-center px-3 py-1.5 border border-red-300 text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm transition-colors'
+            >
+              <X className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
+              Delete Trip
+            </button>
+          </>
+        )}
+      </div>
+
       <TripHeader trip={trip} />
       {/* Tab Navigation */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
@@ -467,6 +630,21 @@ const TripDetail = () => {
           Browse All Trips
         </button>
       </div>
+
+      {/* Edit Trip Modal */}
+      {trip && (
+        <TripFormModal
+          isOpen={isEditTripModalOpen}
+          onClose={() => setIsEditTripModalOpen(false)}
+          onSubmit={data => handleUpdateTrip(trip.id, data)}
+          trip={trip}
+          divingCenterId={trip.diving_center_id}
+          isSubmitting={updateTripMutation.isLoading}
+          diveSites={diveSites}
+          divingCenters={divingCenters}
+          additionalDiveSites={additionalDiveSites}
+        />
+      )}
     </div>
   );
 };
