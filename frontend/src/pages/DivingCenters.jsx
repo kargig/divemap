@@ -371,7 +371,7 @@ const DivingCenters = () => {
             label: 'Add Center',
             icon: Plus,
             variant: 'secondary',
-            onClick: () => navigate('/diving-centers/new'),
+            onClick: () => navigate('/diving-centers/create'),
           },
         ]}
         className='mb-4 sm:mb-6 lg:mb-8'
