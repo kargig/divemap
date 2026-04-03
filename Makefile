@@ -17,7 +17,7 @@ export
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts
 
 # Default target
 help:
@@ -32,6 +32,7 @@ help:
 	@echo "  test-backend    - Run backend tests"
 	@echo "  test-frontend   - Run frontend tests"
 	@echo "  purge-cache     - Purge Cloudflare cache for divemap.gr"
+	@echo "  check-api-contracts - Verify frontend API calls match backend routes"
 	@echo "  help            - Show this help message"
 	@echo ""
 
@@ -104,3 +105,8 @@ purge-cache:
 		exit 1; \
 	fi
 
+
+# Verify frontend API calls match backend routes
+check-api-contracts:
+	@echo "🔍 Verifying frontend API calls against backend OpenAPI schema..."
+	@python3 scripts/check_api_contracts.py

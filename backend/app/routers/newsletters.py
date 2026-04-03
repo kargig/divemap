@@ -1657,7 +1657,7 @@ async def get_parsed_trips(
             }
         
         # Convert to JSON and check size
-        match_types_json = orjson.dumps(optimized_match_types).decode('utf-8')
+        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
         
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
