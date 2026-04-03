@@ -1,8 +1,8 @@
 """migrate_chat_to_uuid
 
-Revision ID: 0082
-Revises: 0081
-Create Date: 2026-04-01 21:27:28.197603
+Revision ID: 0080
+Revises: 0079
+Create Date: 2026-04-02 11:00:00.000000
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '0082'
-down_revision = '0081'
+revision = '0080'
+down_revision = '0079'
 branch_labels = None
 depends_on = None
 
@@ -41,8 +41,20 @@ def upgrade() -> None:
 
     # 4. Drop old FK constraints
     # These names come from MySQL information schema
-    op.drop_constraint('user_chat_messages_ibfk_1', 'user_chat_messages', type_='foreignkey')
-    op.drop_constraint('user_chat_room_members_ibfk_1', 'user_chat_room_members', type_='foreignkey')
+    # Note: we need to drop the new FKs added in 0079 as well!
+    try:
+        op.drop_constraint('user_chat_messages_ibfk_1', 'user_chat_messages', type_='foreignkey')
+    except:
+        pass
+    try:
+        op.drop_constraint('user_chat_room_members_ibfk_1', 'user_chat_room_members', type_='foreignkey')
+    except:
+        pass
+    try:
+        op.drop_constraint('fk_user_chat_rooms_diving_center', 'user_chat_rooms', type_='foreignkey')
+        op.drop_constraint('fk_user_chat_rooms_last_responder', 'user_chat_rooms', type_='foreignkey')
+    except:
+        pass
 
     # Drop composite index depending on room_id
     op.drop_index('idx_chat_messages_room_updated', table_name='user_chat_messages')
@@ -72,8 +84,12 @@ def upgrade() -> None:
 
     op.create_foreign_key('fk_user_chat_messages_room_id', 'user_chat_messages', 'user_chat_rooms', ['room_id'], ['id'], ondelete='CASCADE')
     op.create_foreign_key('fk_user_chat_room_members_room_id', 'user_chat_room_members', 'user_chat_rooms', ['room_id'], ['id'], ondelete='CASCADE')
+    
+    # Restore the B2C FKs
+    op.create_foreign_key('fk_user_chat_rooms_diving_center', 'user_chat_rooms', 'diving_centers', ['diving_center_id'], ['id'], ondelete='CASCADE')
+    op.create_foreign_key('fk_user_chat_rooms_last_responder', 'user_chat_rooms', 'users', ['last_responded_by_id'], ['id'], ondelete='SET NULL')
 
     op.create_index('idx_chat_messages_room_updated', 'user_chat_messages', ['room_id', 'updated_at'])
 
 def downgrade() -> None:
-    raise NotImplementedError("Downgrading from UUIDs to integers is destructive and not supported.") 
+    raise NotImplementedError("Downgrading from UUIDs to integers is destructive and not supported.")

@@ -10,19 +10,12 @@
 
 ## Phase 1: Security & Database Foundation
 
-### Task 1.1: Chat Room UUID Migration
-**Goal:** Migrate `UserChatRoom.id` from sequential integers to random UUID strings (Version 4).
-- [ ] **Step 1:** Modify `backend/app/models.py`. Change `UserChatRoom.id` to `String(36)`. Update all FKs in `UserChatRoomMember` and `UserChatMessage` to match.
-- [ ] **Step 2:** Generate empty Alembic migration `XXXX_migrate_chat_to_uuid.py`. Implement multi-stage migration logic using Python `uuid.uuid4()` strings for true randomness (do not use MySQL `UUID()` inside Alembic).
-- [ ] **Step 3:** Modify `frontend/src/pages/Messages.jsx` to parse string UUIDs instead of integers.
-
-### Task 1.2: Multi-Agent & B2C Schema Updates
-**Goal:** Support business inboxes and multi-agent permissions.
-- [ ] **Step 1:** Add `logo_url` to `DivingCenter` in `models.py` and schemas.
-- [ ] **Step 2:** Create `DivingCenterManager` model.
-- [ ] **Step 3:** Create `BusinessChatStatus` Enum (`UNREAD`, `READ`, `RESOLVED`). Add `diving_center_id`, `is_broadcast`, and `business_status` to `UserChatRoom`.
-- [ ] **Step 4:** Create `DivingCenterChatSettings` and `DivingCenterFollower` models.
-- [ ] **Step 5:** Generate and verify Alembic migrations for these schema updates.
+### Task 1.1: Database Schema & UUID Migration
+**Goal:** Prepare B2C models and migrate `UserChatRoom.id` from sequential integers to random UUID strings.
+- [ ] **Step 1:** Modify `backend/app/models.py`. Update `DivingCenter`, create `DivingCenterManager`, `DivingCenterChatSettings`, `DivingCenterFollower`. Change `UserChatRoom.id` to `String(36)` and update all related FKs.
+- [ ] **Step 2:** Migration Step 1 (`0079_b2c_chat_features.py`): Create new B2C tables and add new columns to existing chat tables.
+- [ ] **Step 3:** Migration Step 2 (`0080_migrate_chat_to_uuid.py`): Secure data migration logic using Python `uuid.uuid4()` to transition IDs from Integers to UUIDs while maintaining referential integrity.
+- [ ] **Step 4:** Modify `frontend/src/pages/Messages.jsx` to parse string UUIDs instead of integers.
 
 ## Phase 2: Core B2C Inbox & Identity Masking
 
