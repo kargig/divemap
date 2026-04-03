@@ -2201,19 +2201,20 @@ async def broadcast_trip_to_followers(
     """Broadcast a dive trip to all followers of the diving center."""
     from app.models import ParsedDiveTrip, DivingCenterManager
     import json
-    # 1. Verify permissions (Owner or Manager)
+    # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
         raise HTTPException(status_code=404, detail="Diving center not found")
+
+    if not (current_user.is_admin or current_user.is_moderator):
+        is_owner = center.owner_id == current_user.id
+        is_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == current_user.id
+        ).first() is not None
         
-    is_owner = center.owner_id == current_user.id
-    is_manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == current_user.id
-    ).first() is not None
-    
-    if not is_owner and not is_manager:
-        raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
+        if not is_owner and not is_manager:
+            raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Verify Trip exists and belongs to this center
     from sqlalchemy.orm import joinedload
@@ -2365,19 +2366,20 @@ async def broadcast_text_to_followers(
     from app.models import DivingCenterManager
     import json
     
-    # 1. Verify permissions (Owner or Manager)
+    # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter_by(id=diving_center_id).first()
     if not center:
         raise HTTPException(status_code=404, detail="Diving center not found")
+
+    if not (current_user.is_admin or current_user.is_moderator):
+        is_owner = center.owner_id == current_user.id
+        is_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == current_user.id
+        ).first() is not None
         
-    is_owner = center.owner_id == current_user.id
-    is_manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == current_user.id
-    ).first() is not None
-    
-    if not is_owner and not is_manager:
-        raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
+        if not is_owner and not is_manager:
+            raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Find or Create Broadcast Room
     from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message

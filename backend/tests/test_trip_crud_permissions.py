@@ -75,3 +75,31 @@ class TestTripCRUDPermissions:
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Not authorized" in response.json()["detail"]
+
+    def test_admin_can_broadcast_trip(self, client, admin_headers, db_session, test_diving_center, monkeypatch):
+        """Test that an admin can broadcast a trip for any center."""
+        # Mock chat master key for encryption to work in tests
+        import base64
+        # Generate a valid 32-byte base64-encoded key for Fernet
+        valid_key = base64.urlsafe_b64encode(b"a" * 32).decode()
+        monkeypatch.setenv("CHAT_MASTER_KEY", valid_key)
+
+        # Create a trip
+        trip = ParsedDiveTrip(
+            trip_date=date(2024, 5, 20),
+            diving_center_id=test_diving_center.id
+        )
+        db_session.add(trip)
+        db_session.commit()
+
+        # Attempt broadcast as admin
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/broadcast",
+            json={"trip_id": trip.id},
+            headers=admin_headers
+        )
+        
+        # We expect 201 Created or a success message
+        # If SQS is not available it still returns success
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["status"] == "success"
