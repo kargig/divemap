@@ -693,7 +693,7 @@ class NotificationService:
         
         return notification_count
 
-    async def notify_chat_message(self, room_id: int, sender_id: int, message_id: int, db: Session) -> int:
+    async def notify_chat_message(self, room_id: str, sender_id: int, message_id: int, db: Session) -> int:
         """
         Notify chat room members about a new message.
         Only notifies users who are currently 'offline' for this room.

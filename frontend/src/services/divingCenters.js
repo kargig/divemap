@@ -66,3 +66,29 @@ export const getOwnershipRequestHistory = async () => {
   const response = await api.get('/api/v1/diving-centers/ownership-requests/history');
   return response.data;
 };
+
+// Follow Endpoints
+export const followDivingCenter = async id => {
+  const response = await api.post(`/api/v1/diving-centers/${id}/follow`);
+  return response.data;
+};
+
+export const unfollowDivingCenter = async id => {
+  const response = await api.delete(`/api/v1/diving-centers/${id}/follow`);
+  return response.data;
+};
+
+export const getFollowStatus = async id => {
+  const response = await api.get(`/api/v1/diving-centers/${id}/follow-status`);
+  return response.data;
+};
+
+export const broadcastTrip = async (id, tripId) => {
+  const response = await api.post(`/api/v1/diving-centers/${id}/broadcast`, { trip_id: tripId });
+  return response.data;
+};
+
+export const broadcastTextMessage = async (id, message) => {
+  const response = await api.post(`/api/v1/diving-centers/${id}/broadcast/text`, { message });
+  return response.data;
+};

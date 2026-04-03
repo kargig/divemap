@@ -390,6 +390,7 @@ class DivingCenterBase(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     website: Optional[str] = None
+    logo_url: Optional[str] = None
     # Allow None in responses for legacy rows; enforce on create
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
@@ -427,6 +428,8 @@ class DivingCenterResponse(DivingCenterBase):
     user_rating: Optional[float] = None
     ownership_status: Optional[str] = None
     owner_username: Optional[str] = None
+    is_manager: bool = False
+    follower_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -921,6 +924,9 @@ class DiveSearchParams(BaseModel):
     offset: int = Field(0, ge=0)
 
 # Diving Center Ownership Schemas
+class BroadcastTripRequest(BaseModel):
+    trip_id: int
+
 class DivingCenterOwnershipClaim(BaseModel):
     reason: str = Field(..., min_length=10, max_length=1000)
 
@@ -972,6 +978,7 @@ class ParsedDiveResponse(BaseModel):
     dive_duration: Optional[int] = None
     dive_description: Optional[str] = None
     dive_site_name: Optional[str] = None
+    max_depth: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
@@ -1009,6 +1016,7 @@ class ParsedDiveTripResponse(BaseModel):
     trip_status: str = "scheduled"
     view_count: int = 0
     diving_center_name: Optional[str] = None
+    max_depth: Optional[float] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter
@@ -1093,6 +1101,9 @@ class PlatformStatsResponse(BaseModel):
     media: dict
     trips: dict
     timestamp: str
+
+class BroadcastTextRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=2000)
 
 # Notification Analytics Schemas
 class InAppNotificationStats(BaseModel):

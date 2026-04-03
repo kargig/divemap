@@ -9,7 +9,7 @@ import TripFormModal from '../components/TripFormModal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
-import { getDivingCenters } from '../services/divingCenters';
+import { getDivingCenters, broadcastTrip } from '../services/divingCenters';
 import { createParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 
@@ -103,9 +103,20 @@ const CreateTrip = () => {
 
   // Create trip mutation
   const createTripMutation = useMutation(createParsedTrip, {
-    onSuccess: data => {
+    onSuccess: async (data, variables) => {
       queryClient.invalidateQueries('parsedTrips');
       toast.success('Dive trip created successfully!');
+
+      // Handle broadcast if checked
+      if (variables.broadcast_to_followers && data.diving_center_id) {
+        try {
+          await broadcastTrip(data.diving_center_id, data.id);
+          toast.success('Trip broadcasted to followers!');
+        } catch (err) {
+          toast.error('Failed to broadcast trip');
+        }
+      }
+
       // Navigate back or to the trip detail page
       const from = location.state?.from;
       if (from) {

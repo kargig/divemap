@@ -11,6 +11,14 @@ class UserBasicInfo(BaseModel):
     class Config:
         from_attributes = True
 
+class DivingCenterBasic(BaseModel):
+    id: int
+    name: str
+    logo_url: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
 # --- Members ---
 class ChatRoomMemberBase(BaseModel):
     user_id: int
@@ -30,15 +38,26 @@ class ChatRoomCreate(BaseModel):
     is_group: bool = False
     name: Optional[constr(max_length=100)] = None
     participant_ids: List[int] = Field(default_factory=list, description="IDs of users to add. Current user is added automatically.")
+    diving_center_id: Optional[int] = None
 
 class ChatRoomUpdate(BaseModel):
     name: Optional[constr(max_length=100)] = None
 
+class ChatRoomArchiveUpdate(BaseModel):
+    is_archived: bool
+
 class ChatRoomResponse(BaseModel):
-    id: int
+    id: str
     is_group: bool
     name: Optional[str] = None
     created_by_id: Optional[int] = None
+    diving_center_id: Optional[int] = None
+    diving_center: Optional[DivingCenterBasic] = None
+    is_broadcast: bool = False
+    is_archived: bool = False
+    business_status: Optional[str] = None
+    is_manager_view: bool = False
+    quick_replies: Optional[List[str]] = None
     last_activity_at: datetime
     created_at: datetime
     
@@ -53,18 +72,24 @@ class ChatRoomResponse(BaseModel):
 # --- Messages ---
 class ChatMessageCreate(BaseModel):
     content: constr(min_length=1, max_length=5000)
+    message_type: str = "TEXT"
 
 class ChatMessageUpdate(BaseModel):
     content: constr(min_length=1, max_length=5000)
 
 class ChatMessageResponse(BaseModel):
     id: int
-    room_id: int
+    room_id: str
     sender_id: Optional[int] = None
     content: str  # Decrypted plaintext
+    message_type: str = "TEXT"
     is_edited: bool
     updated_at: datetime
     created_at: datetime
+    sender: Optional[UserBasicInfo] = None
+    
+    class Config:
+        from_attributes = True
     sender: Optional[UserBasicInfo] = None
     
     class Config:

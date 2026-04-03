@@ -1,9 +1,9 @@
-import { X, Users, LogOut, Edit, Check, Settings } from 'lucide-react';
+import { X, Users, LogOut, Edit, Check, Settings, Archive, ArchiveRestore } from 'lucide-react';
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { leaveChatRoom, updateChatRoom } from '../../api';
+import { leaveChatRoom, updateChatRoom, toggleChatArchive } from '../../api';
 import Avatar from '../Avatar';
 
 const RoomSettings = ({ room, currentUserId, onClose }) => {
@@ -11,7 +11,18 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(room?.name || '');
 
-  const isAdmin = room?.members?.find(m => m.user_id === currentUserId)?.role === 'ADMIN';
+  const activeMember = room?.members?.find(m => m.user_id === currentUserId);
+  const isAdmin = activeMember?.role === 'ADMIN';
+  const currentlyArchived = room.is_manager_view ? room.is_archived : activeMember?.is_archived;
+
+  const archiveMutation = useMutation(() => toggleChatArchive(room.id, !currentlyArchived), {
+    onSuccess: () => {
+      queryClient.invalidateQueries('chat-rooms');
+      onClose(true); // Close settings and deselect room to return to inbox
+      toast.success(currentlyArchived ? 'Chat unarchived' : 'Chat archived');
+    },
+    onError: () => toast.error('Failed to update archive status'),
+  });
 
   const leaveMutation = useMutation(() => leaveChatRoom(room.id), {
     onSuccess: () => {
@@ -51,6 +62,23 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
 
   if (!room) return null;
 
+  // Determine display name, avatar, and room type
+  const otherMembers = room.members?.filter(m => m.user_id !== currentUserId) || [];
+  let displayName = room.name;
+  let displayAvatar = null;
+  let roomTypeLabel = room.is_group ? 'Group Chat' : 'Private Message';
+
+  if (!room.is_group) {
+    if (room.diving_center && !room.is_manager_view) {
+      displayName = room.diving_center.name;
+      displayAvatar = room.diving_center.logo_url;
+      roomTypeLabel = room.is_broadcast ? 'Broadcast Channel' : 'Business Chat';
+    } else {
+      displayName = otherMembers[0]?.user?.username || 'Chat';
+      displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+    }
+  }
+
   return (
     <div className='flex flex-col h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden'>
       {/* Header */}
@@ -71,9 +99,13 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
         {/* Room Info */}
         <div className='text-center space-y-3'>
           <div className='flex justify-center'>
-            <div className='w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400'>
-              <Users className='h-10 w-10' />
-            </div>
+            {displayAvatar || !room.is_group ? (
+              <Avatar src={displayAvatar} alt={displayName} size='lg' username={displayName} />
+            ) : (
+              <div className='w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400'>
+                <Users className='h-10 w-10' />
+              </div>
+            )}
           </div>
 
           <div className='space-y-1'>
@@ -101,10 +133,8 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
               </div>
             ) : (
               <div className='flex items-center justify-center gap-2'>
-                <h3 className='text-xl font-bold text-gray-900 dark:text-white'>
-                  {room.is_group ? room.name : 'Direct Message'}
-                </h3>
-                {room.is_group && isAdmin && (
+                <h3 className='text-xl font-bold text-gray-900 dark:text-white'>{displayName}</h3>
+                {room.is_group && isAdmin && !room.diving_center_id && (
                   <button
                     onClick={() => setIsEditingName(true)}
                     className='p-1 text-gray-400 hover:text-blue-600 transition-colors'
@@ -115,8 +145,7 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
               </div>
             )}
             <p className='text-sm text-gray-500'>
-              {room.is_group ? 'Group Chat' : 'Private Message'} • {room.members.length}{' '}
-              participants
+              {roomTypeLabel} • {room.members.length} participants
             </p>
           </div>
         </div>
@@ -161,7 +190,16 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
         </div>
 
         {/* Actions */}
-        <div className='pt-6 border-t border-gray-100 dark:border-gray-700'>
+        <div className='pt-6 border-t border-gray-100 dark:border-gray-700 space-y-3'>
+          <button
+            onClick={() => archiveMutation.mutate()}
+            disabled={archiveMutation.isLoading}
+            className='w-full flex items-center justify-center gap-2 p-3 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 rounded-xl transition-colors disabled:opacity-50'
+          >
+            {currentlyArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
+            {currentlyArchived ? 'Unarchive Chat' : 'Archive Chat'}
+          </button>
+
           {room.is_group && (
             <button
               onClick={handleLeave}

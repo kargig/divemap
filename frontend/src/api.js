@@ -380,13 +380,21 @@ export const getTotalUnreadChatMessages = async () => {
   return response.data;
 };
 
-export const createChatRoom = async (participantIds, isGroup = false, name = null) => {
+export const createChatRoom = async (
+  participantIds,
+  isGroup = false,
+  name = null,
+  divingCenterId = null
+) => {
   const payload = {
     participant_ids: participantIds,
     is_group: isGroup,
   };
   if (name) {
     payload.name = name;
+  }
+  if (divingCenterId) {
+    payload.diving_center_id = divingCenterId;
   }
   const response = await api.post('/api/v1/user-chat/rooms', payload);
   return response.data;
@@ -466,5 +474,12 @@ export const rejectFriendRequest = async friendshipId => {
 
 export const removeFriendship = async friendshipId => {
   const response = await api.delete(`/api/v1/user-friendships/${friendshipId}`);
+  return response.data;
+};
+
+export const toggleChatArchive = async (roomId, isArchived) => {
+  const response = await api.patch(`/api/v1/user-chat/rooms/${roomId}/archive`, {
+    is_archived: isArchived,
+  });
   return response.data;
 };

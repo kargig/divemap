@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Edit2, Check, CheckCheck, Clock } from 'lucide-react';
+import { Edit2, Check, CheckCheck, Clock, MapPin, TrendingUp } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -7,8 +7,10 @@ import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { parseUTCDate } from '../../utils/dateHelpers';
+import { slugify } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
+import CurrencyIcon from '../ui/CurrencyIcon';
 
 import LinkPreview from './LinkPreview';
 
@@ -128,22 +130,154 @@ const MessageBubble = ({
                   : `bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
             }`}
           >
-            <div className='markdown-content break-words'>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  a: MarkdownLink,
-                  p: ({ children }) => <p className='mb-2 last:mb-0'>{children}</p>,
-                  text: MarkdownText,
-                  ul: ({ children }) => <ul className='list-disc ml-4 mb-2'>{children}</ul>,
-                  ol: ({ children }) => <ol className='list-decimal ml-4 mb-2'>{children}</ol>,
-                  li: ({ children }) => <li className='mb-1'>{children}</li>,
-                  strong: ({ children }) => <strong className='font-bold'>{children}</strong>,
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
+            {message.message_type === 'TRIP_AD' ? (
+              (() => {
+                let tripData;
+                try {
+                  tripData = JSON.parse(message.content);
+                } catch (e) {
+                  tripData = {};
+                }
+
+                const spotsAvailable =
+                  tripData.spots_total !== null && tripData.spots_total !== undefined
+                    ? Math.max(0, tripData.spots_total - (tripData.spots_booked || 0))
+                    : null;
+
+                return (
+                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 min-w-[280px] max-w-sm'>
+                    <div className='p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 flex justify-between items-center'>
+                      <span className='text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
+                        New Trip Announcement
+                      </span>
+                      {tripData.status === 'confirmed' && (
+                        <span className='text-[10px] font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full uppercase'>
+                          Confirmed
+                        </span>
+                      )}
+                    </div>
+                    <div className='p-4'>
+                      <h4 className='font-bold text-gray-900 dark:text-white mb-2 text-base leading-snug'>
+                        {tripData.name || 'Dive Trip'}
+                      </h4>
+
+                      {tripData.dive_sites && tripData.dive_sites.length > 0 && (
+                        <div className='flex items-start gap-1.5 mb-3 text-sm text-gray-700 dark:text-gray-300'>
+                          <MapPin className='w-4 h-4 text-blue-500 mt-0.5 shrink-0' />
+                          <div className='font-medium line-clamp-2'>
+                            {tripData.dive_sites.map((site, index) => {
+                              // Handle both old string format and new object format gracefully
+                              const isString = typeof site === 'string';
+                              const siteName = isString ? site : site.name;
+                              const siteLink = isString
+                                ? null
+                                : `/dive-sites/${site.id}/${slugify(site.name)}`;
+
+                              return (
+                                <React.Fragment key={index}>
+                                  {siteLink ? (
+                                    <Link
+                                      to={siteLink}
+                                      className='text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors'
+                                    >
+                                      {siteName}
+                                    </Link>
+                                  ) : (
+                                    <span>{siteName}</span>
+                                  )}
+                                  {index < tripData.dive_sites.length - 1 && ', '}
+                                </React.Fragment>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className='grid grid-cols-2 gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300'>
+                        {' '}
+                        {tripData.date && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>📅</span>
+                            <span>{tripData.date}</span>
+                          </div>
+                        )}
+                        {tripData.time && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>🕒</span>
+                            <span>{tripData.time.substring(0, 5)}</span>
+                          </div>
+                        )}
+                        {tripData.price && (
+                          <div className='flex items-center space-x-1.5'>
+                            <CurrencyIcon
+                              currencyCode={tripData.currency}
+                              className='w-4 h-4 text-blue-500'
+                            />
+                            <span className='font-semibold text-gray-900 dark:text-gray-100'>
+                              {tripData.price}
+                            </span>
+                          </div>
+                        )}
+                        {tripData.difficulty && (
+                          <div className='flex items-center space-x-1.5'>
+                            <span className='text-blue-500'>⭐</span>
+                            <span
+                              className='truncate capitalize'
+                              title={tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
+                            >
+                              {tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
+                            </span>
+                          </div>
+                        )}
+                        {tripData.max_depth && (
+                          <div className='flex items-center space-x-1.5'>
+                            <TrendingUp className='w-3.5 h-3.5 text-blue-500 shrink-0' />
+                            <span className='font-medium text-gray-900 dark:text-gray-100'>
+                              {tripData.max_depth}m
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {spotsAvailable !== null && (
+                        <div className='mb-4 text-xs font-medium px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-center'>
+                          {spotsAvailable > 0 ? (
+                            <span className='text-green-600 dark:text-green-400'>
+                              {spotsAvailable} spot{spotsAvailable !== 1 && 's'} remaining
+                            </span>
+                          ) : (
+                            <span className='text-red-500 dark:text-red-400'>Fully Booked</span>
+                          )}
+                        </div>
+                      )}
+
+                      <Link
+                        to={`/dive-trips/${tripData.trip_id}`}
+                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-sm'
+                      >
+                        View Trip Details
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <div className='markdown-content break-words'>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    a: MarkdownLink,
+                    p: ({ children }) => <p className='mb-2 last:mb-0'>{children}</p>,
+                    text: MarkdownText,
+                    ul: ({ children }) => <ul className='list-disc ml-4 mb-2'>{children}</ul>,
+                    ol: ({ children }) => <ol className='list-decimal ml-4 mb-2'>{children}</ol>,
+                    li: ({ children }) => <li className='mb-1'>{children}</li>,
+                    strong: ({ children }) => <strong className='font-bold'>{children}</strong>,
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
 
             {uniqueDiveSiteUrls.map((url, idx) => (
               <LinkPreview key={idx} url={url} />

@@ -1,7 +1,7 @@
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { isSameDay, format, isToday, isYesterday, differenceInMinutes } from 'date-fns';
-import { Send, Loader2, X, Info, ChevronLeft, HelpCircle, Smile } from 'lucide-react';
+import { Send, Loader2, X, MoreVertical, ChevronLeft, HelpCircle, Smile } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -67,6 +67,21 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
     setShowHints(false);
     localStorage.setItem('chat_hints_dismissed', 'true');
   };
+
+  const handleQuickReply = async text => {
+    if (isSending) return;
+    setIsSending(true);
+    try {
+      await sendUserChatMessage(roomId, text);
+    } catch (error) {
+      toast.error('Failed to send quick reply');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const isCustomer = room?.members?.some(m => m.user_id === currentUserId);
+  const canPost = !room?.is_broadcast || !isCustomer;
 
   // 1. Initial Load & Optimized Polling
   const { isFetching } = useQuery(
@@ -166,11 +181,19 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
 
   // Determine display name and avatar (for DMs)
   const otherMembers = room?.members?.filter(m => m.user_id !== currentUserId) || [];
-  const displayName = room?.is_group ? room.name : otherMembers[0]?.user?.username || 'Chat';
-  const displayAvatar = room?.is_group
-    ? null
-    : otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
 
+  let displayName = room?.name;
+  let displayAvatar = null;
+
+  if (!room?.is_group) {
+    if (room?.diving_center && !room.is_manager_view) {
+      displayName = room.diving_center.name;
+      displayAvatar = room.diving_center.logo_url;
+    } else {
+      displayName = otherMembers[0]?.user?.username || 'Chat';
+      displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+    }
+  }
   const maxReadAt = otherMembers.length
     ? new Date(Math.max(...otherMembers.map(m => parseUTCDate(m.last_read_at))))
     : null;
@@ -220,9 +243,9 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
           <button
             onClick={onToggleSettings}
             className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors'
-            title='Room Settings'
+            title='More options'
           >
-            <Info className='h-5 w-5' />
+            <MoreVertical className='h-5 w-5' />
           </button>
         </div>
       </div>
@@ -306,68 +329,90 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
 
       {/* Input Area */}
       <div className='p-2 md:p-4 bg-[#f0f2f5] dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 relative'>
-        {editingMessage && (
-          <div className='flex items-center justify-between mb-2 px-3 py-1 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-l-yellow-400 rounded'>
-            <span className='text-xs text-yellow-700 dark:text-yellow-400 italic'>
-              Editing message...
-            </span>
-            <button onClick={cancelEdit} className='text-gray-400 hover:text-gray-600'>
-              <X size={14} />
-            </button>
+        {!canPost ? (
+          <div className='text-center text-sm text-gray-500 py-3 italic'>
+            Only admins can post in this broadcast channel.
           </div>
-        )}
-
-        {showEmojiPicker && (
-          <div className='absolute bottom-[100%] left-2 mb-2 z-50 shadow-xl rounded-xl border border-gray-200'>
-            <Picker data={data} onEmojiSelect={onEmojiSelect} theme='light' />
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className='flex items-end space-x-2'>
-          <button
-            type='button'
-            className='p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-1'
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          >
-            <Smile size={24} />
-          </button>
-
-          <div className='flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-shadow'>
-            <TextareaAutosize
-              minRows={1}
-              maxRows={5}
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-              placeholder='Type a message...'
-              className='w-full px-4 py-3 bg-transparent border-none focus:ring-0 dark:text-white text-sm outline-none resize-none m-0 focus:outline-none focus:ring-transparent'
-              style={{ boxShadow: 'none' }}
-            />
-          </div>
-          <button
-            type='submit'
-            disabled={!inputText.trim() || isSending}
-            className='p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-12 h-12 mb-0.5 shadow-sm'
-          >
-            {isSending ? (
-              <Loader2 size={20} className='animate-spin' />
-            ) : (
-              <Send size={20} className='ml-1' />
+        ) : (
+          <>
+            {room?.quick_replies && room.quick_replies.length > 0 && isCustomer && (
+              <div className='flex flex-wrap gap-2 mb-3 px-1'>
+                {room.quick_replies.map(reply => (
+                  <button
+                    key={reply}
+                    onClick={() => handleQuickReply(reply)}
+                    disabled={isSending}
+                    className='px-3 py-1.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-medium hover:bg-blue-100 transition-colors shadow-sm disabled:opacity-50'
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
             )}
-          </button>
-        </form>
+            {editingMessage && (
+              <div className='flex items-center justify-between mb-2 px-3 py-1 bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-l-yellow-400 rounded'>
+                <span className='text-xs text-yellow-700 dark:text-yellow-400 italic'>
+                  Editing message...
+                </span>
+                <button onClick={cancelEdit} className='text-gray-400 hover:text-gray-600'>
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {showEmojiPicker && (
+              <div className='absolute bottom-[100%] left-2 mb-2 z-50 shadow-xl rounded-xl border border-gray-200'>
+                <Picker data={data} onEmojiSelect={onEmojiSelect} theme='light' />
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className='flex items-end space-x-2'>
+              <button
+                type='button'
+                className='p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-1'
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              >
+                <Smile size={24} />
+              </button>
+
+              <div className='flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-shadow'>
+                <TextareaAutosize
+                  minRows={1}
+                  maxRows={5}
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                  placeholder='Type a message...'
+                  className='w-full px-4 py-3 bg-transparent border-none focus:ring-0 dark:text-white text-sm outline-none resize-none m-0 focus:outline-none focus:ring-transparent'
+                  style={{ boxShadow: 'none' }}
+                />
+              </div>
+              <button
+                type='submit'
+                disabled={!inputText.trim() || isSending}
+                className='p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-12 h-12 mb-0.5 shadow-sm'
+              >
+                {isSending ? (
+                  <Loader2 size={20} className='animate-spin' />
+                ) : (
+                  <Send size={20} className='ml-1' />
+                )}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
 ChatRoom.propTypes = {
-  roomId: PropTypes.number,
+  roomId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   room: PropTypes.object,
   currentUserId: PropTypes.number.isRequired,
   onToggleSettings: PropTypes.func.isRequired,

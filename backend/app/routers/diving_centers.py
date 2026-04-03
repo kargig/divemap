@@ -8,6 +8,7 @@ import requests
 
 from app.database import get_db
 from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
+from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember
 from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse,
     CenterRatingCreate, CenterRatingResponse,
@@ -15,7 +16,7 @@ from app.schemas import (
     CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
-    DivingCenterOwnershipRevocation
+    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
@@ -1196,6 +1197,18 @@ async def get_diving_center(
                 user_rating = user_rating_obj.score
 
     # Prepare response data
+    from app.models import DivingCenterManager, DivingCenterFollower
+    is_user_manager = False
+    if current_user:
+        is_user_manager = db.query(DivingCenterManager).filter(
+            DivingCenterManager.diving_center_id == diving_center.id,
+            DivingCenterManager.user_id == current_user.id
+        ).first() is not None
+        
+    follower_count = db.query(func.count(DivingCenterFollower.user_id)).filter(
+        DivingCenterFollower.diving_center_id == diving_center.id
+    ).scalar()
+
     response_data = {
         "id": diving_center.id,
         "name": diving_center.name,
@@ -1215,7 +1228,9 @@ async def get_diving_center(
         "total_ratings": total_ratings,
         "user_rating": user_rating,
         "ownership_status": diving_center.ownership_status.value if diving_center.ownership_status else None,
-        "owner_username": diving_center.owner.username if diving_center.owner else None
+        "owner_username": diving_center.owner.username if diving_center.owner else None,
+        "is_manager": is_user_manager,
+        "follower_count": follower_count or 0
     }
 
     # Only include view_count for admin users
@@ -2084,3 +2099,374 @@ async def revoke_diving_center_ownership(
         "status": "unclaimed",
         "reason": reason
     }
+
+# --- B2C Broadcast Following Endpoints ---
+
+@router.post("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
+async def follow_diving_center(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Subscribe a user to a diving center's broadcasts."""
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+        
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    if not existing:
+        follow = DivingCenterFollower(user_id=current_user.id, diving_center_id=diving_center_id)
+        db.add(follow)
+        
+        # Also add to the active broadcast room if one exists
+        broadcast_room = db.query(UserChatRoom).filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True
+        ).first()
+        
+        if broadcast_room:
+            # Check if they are already in the room
+            existing_member = db.query(UserChatRoomMember).filter(
+                UserChatRoomMember.room_id == broadcast_room.id,
+                UserChatRoomMember.user_id == current_user.id
+            ).first()
+            if not existing_member:
+                member = UserChatRoomMember(room_id=broadcast_room.id, user_id=current_user.id, role="MEMBER")
+                db.add(member)
+            elif existing_member.left_at:
+                existing_member.left_at = None
+                
+        db.commit()
+    
+    return {"status": "success", "message": "Successfully followed diving center"}
+
+@router.delete("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
+async def unfollow_diving_center(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Unsubscribe a user from a diving center's broadcasts."""
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    if existing:
+        db.delete(existing)
+        
+        # Remove from broadcast room
+        broadcast_room = db.query(UserChatRoom).filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True
+        ).first()
+        
+        if broadcast_room:
+            member = db.query(UserChatRoomMember).filter(
+                UserChatRoomMember.room_id == broadcast_room.id,
+                UserChatRoomMember.user_id == current_user.id
+            ).first()
+            if member:
+                member.left_at = func.now()
+                
+        db.commit()
+        
+    return {"status": "success", "message": "Successfully unfollowed diving center"}
+
+@router.get("/{diving_center_id}/follow-status", status_code=status.HTTP_200_OK)
+async def check_follow_status(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Check if the current user follows the diving center."""
+    existing = db.query(DivingCenterFollower).filter(
+        DivingCenterFollower.user_id == current_user.id,
+        DivingCenterFollower.diving_center_id == diving_center_id
+    ).first()
+    
+    return {"is_following": existing is not None}
+
+@router.post("/{diving_center_id}/broadcast", status_code=status.HTTP_201_CREATED)
+async def broadcast_trip_to_followers(
+    diving_center_id: int,
+    request: BroadcastTripRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Broadcast a dive trip to all followers of the diving center."""
+    from app.models import ParsedDiveTrip, DivingCenterManager
+    import json
+    # 1. Verify permissions (Owner or Manager)
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+        
+    is_owner = center.owner_id == current_user.id
+    is_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == current_user.id
+    ).first() is not None
+    
+    if not is_owner and not is_manager:
+        raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
+        
+    # 2. Verify Trip exists and belongs to this center
+    from sqlalchemy.orm import joinedload
+    from app.models import ParsedDive
+    trip = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+    ).filter(
+        ParsedDiveTrip.id == request.trip_id,
+        ParsedDiveTrip.diving_center_id == diving_center_id
+    ).first()
+    
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found or does not belong to this center")
+        
+    # 3. Find or Create Broadcast Room
+    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
+    from app.models import UserChatMessage
+    import uuid
+    from sqlalchemy import func
+    
+    broadcast_room = db.query(UserChatRoom).filter(
+        UserChatRoom.diving_center_id == diving_center_id,
+        UserChatRoom.is_broadcast == True
+    ).first()
+    
+    if not broadcast_room:
+        # Create it
+        plaintext_dek = generate_room_dek()
+        encrypted_dek = encrypt_room_dek(plaintext_dek)
+        broadcast_room = UserChatRoom(
+            id=str(uuid.uuid4()),
+            is_group=True, # Broadcasts act as groups
+            name=f"{center.name} Announcements",
+            encrypted_dek=encrypted_dek,
+            created_by_id=current_user.id,
+            diving_center_id=diving_center_id,
+            is_broadcast=True
+        )
+        db.add(broadcast_room)
+        db.flush()
+        
+        # Add Owner/Manager as Admin
+        admin_member = UserChatRoomMember(
+            room_id=broadcast_room.id,
+            user_id=current_user.id,
+            role="ADMIN"
+        )
+        db.add(admin_member)
+        
+        # Add all followers as Members
+        followers = db.query(DivingCenterFollower).filter(DivingCenterFollower.diving_center_id == diving_center_id).all()
+        for f in followers:
+            if f.user_id != current_user.id:
+                member = UserChatRoomMember(
+                    room_id=broadcast_room.id,
+                    user_id=f.user_id,
+                    role="MEMBER"
+                )
+                db.add(member)
+        db.flush()
+
+    # 4. Construct and Encrypt TRIP_AD Message
+    
+    # Optionally get difficulty code
+    difficulty_code = None
+    if trip.trip_difficulty_id:
+        from app.models import DifficultyLevel
+        difficulty = db.query(DifficultyLevel).filter_by(id=trip.trip_difficulty_id).first()
+        if difficulty:
+            difficulty_code = difficulty.code
+
+    # Extract dive sites
+    dive_sites_list = []
+    if trip.dives:
+        for dive in sorted(trip.dives, key=lambda d: d.dive_number):
+            if dive.dive_site and not any(s['id'] == dive.dive_site.id for s in dive_sites_list):
+                dive_sites_list.append({"id": dive.dive_site.id, "name": dive.dive_site.name})
+
+    trip_payload = json.dumps({
+        "trip_id": trip.id,
+        "name": trip.trip_description[:100] + "..." if trip.trip_description and len(trip.trip_description) > 100 else (trip.trip_description or f"Dive Trip on {trip.trip_date}"),
+        "date": str(trip.trip_date),
+        "time": str(trip.trip_time) if trip.trip_time else None,
+        "price": f"{trip.trip_price} {trip.trip_currency}" if trip.trip_price else None,
+        "currency": trip.trip_currency,
+        "duration": trip.trip_duration,
+        "max_depth": float(trip.max_depth) if trip.max_depth else None,
+        "difficulty": difficulty_code,
+        "spots_total": trip.group_size_limit,
+        "spots_booked": trip.current_bookings,
+        "status": trip.trip_status.name if hasattr(trip.trip_status, 'name') else trip.trip_status,
+        "dive_sites": dive_sites_list
+    })
+    
+    ciphertext = encrypt_message(trip_payload, broadcast_room.encrypted_dek)
+    
+    msg = UserChatMessage(
+        room_id=broadcast_room.id,
+        sender_id=current_user.id,
+        content=ciphertext,
+        message_type="TRIP_AD"
+    )
+    db.add(msg)
+    
+    # 5. Update room activity and unarchive for all members
+    broadcast_room.last_activity_at = func.now()
+    broadcast_room.is_archived = False
+    
+    # Mark as read ONLY for the sender, so followers actually see the unread tag
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.user_id == current_user.id
+    ).update({"last_read_at": func.now()}, synchronize_session=False)
+
+    # Unarchive for everyone else
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.left_at.is_(None)
+    ).update({"is_archived": False}, synchronize_session=False)
+
+    db.commit()
+    db.refresh(msg)
+    
+    # 6. Queue notification generation in SQS for all followers
+    from app.services.sqs_service import SQSService
+    sqs_service = SQSService()
+    if sqs_service.sqs_available:
+        sqs_service.sqs_client.send_message(
+            QueueUrl=sqs_service.queue_url,
+            MessageBody=json.dumps({
+                "type": "new_chat_message", 
+                "room_id": str(broadcast_room.id), 
+                "sender_id": current_user.id, 
+                "message_id": msg.id
+            }),
+            DelaySeconds=0
+        )
+    
+    return {"status": "success", "message": "Trip broadcasted successfully"}
+
+@router.post("/{diving_center_id}/broadcast/text", status_code=status.HTTP_201_CREATED)
+async def broadcast_text_to_followers(
+    diving_center_id: int,
+    request: BroadcastTextRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Broadcast a text message to all followers of the diving center."""
+    from app.models import DivingCenterManager
+    import json
+    
+    # 1. Verify permissions (Owner or Manager)
+    center = db.query(DivingCenter).filter_by(id=diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+        
+    is_owner = center.owner_id == current_user.id
+    is_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == current_user.id
+    ).first() is not None
+    
+    if not is_owner and not is_manager:
+        raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
+        
+    # 2. Find or Create Broadcast Room
+    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
+    from app.models import UserChatMessage
+    import uuid
+    from sqlalchemy import func
+    
+    broadcast_room = db.query(UserChatRoom).filter(
+        UserChatRoom.diving_center_id == diving_center_id,
+        UserChatRoom.is_broadcast == True
+    ).first()
+    
+    if not broadcast_room:
+        raw_dek = generate_room_dek()
+        encrypted_dek = encrypt_room_dek(raw_dek)
+        
+        broadcast_room = UserChatRoom(
+            id=str(uuid.uuid4()),
+            diving_center_id=diving_center_id,
+            is_broadcast=True,
+            name=f"{center.name} Announcements",
+            encrypted_dek=encrypted_dek,
+            created_by_id=current_user.id,
+            business_status="READ"
+        )
+        db.add(broadcast_room)
+        db.flush()
+        
+        admin_member = UserChatRoomMember(
+            room_id=broadcast_room.id,
+            user_id=current_user.id,
+            role="ADMIN"
+        )
+        db.add(admin_member)
+        
+        followers = db.query(DivingCenterFollower).filter(DivingCenterFollower.diving_center_id == diving_center_id).all()
+        for f in followers:
+            if f.user_id != current_user.id:
+                member = UserChatRoomMember(
+                    room_id=broadcast_room.id,
+                    user_id=f.user_id,
+                    role="MEMBER"
+                )
+                db.add(member)
+        db.flush()
+
+    # 3. Encrypt and Save TEXT Message
+    ciphertext = encrypt_message(request.message, broadcast_room.encrypted_dek)
+    
+    msg = UserChatMessage(
+        room_id=broadcast_room.id,
+        sender_id=current_user.id,
+        content=ciphertext,
+        message_type="TEXT"
+    )
+    db.add(msg)
+    
+    # 4. Update room activity and unarchive for all members
+    broadcast_room.last_activity_at = func.now()
+    broadcast_room.is_archived = False
+    
+    # Mark as read ONLY for the sender
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.user_id == current_user.id
+    ).update({"last_read_at": func.now()}, synchronize_session=False)
+
+    # Unarchive for everyone else
+    db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == broadcast_room.id,
+        UserChatRoomMember.left_at.is_(None)
+    ).update({"is_archived": False}, synchronize_session=False)
+
+    db.commit()
+    db.refresh(msg)
+    
+    # 5. Queue notification generation in SQS for all followers
+    from app.services.sqs_service import SQSService
+    sqs_service = SQSService()
+    if sqs_service.sqs_available:
+        sqs_service.sqs_client.send_message(
+            QueueUrl=sqs_service.queue_url,
+            MessageBody=json.dumps({
+                "type": "new_chat_message", 
+                "room_id": str(broadcast_room.id), 
+                "sender_id": current_user.id, 
+                "message_id": msg.id
+            }),
+            DelaySeconds=0
+        )
+    
+    return {"status": "success", "message": "Text message broadcasted successfully"}

@@ -14,7 +14,6 @@ import {
   Tag,
   List,
   Grid,
-  Eye,
   TrendingUp,
   DollarSign,
   Star,
@@ -33,6 +32,7 @@ import FuzzySearchInput from '../components/FuzzySearchInput';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import CurrencyIcon from '../components/ui/CurrencyIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
@@ -41,6 +41,7 @@ import useSorting from '../hooks/useSorting';
 import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
+import { formatCost } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -627,14 +628,6 @@ const DiveTrips = () => {
     return timeString.substring(0, 5); // Extract HH:MM from HH:MM:SS
   };
 
-  const formatCurrency = (price, currency = 'EUR') => {
-    if (!price) return 'N/A';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: currency,
-    }).format(price);
-  };
-
   const getStatusColor = status => {
     switch (status) {
       case 'scheduled':
@@ -1031,8 +1024,8 @@ const DiveTrips = () => {
                           state={{ from: window.location.pathname + window.location.search }}
                           className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors'
                         >
-                          <Eye className='w-4 h-4' />
                           View Trip
+                          <ChevronRight className='w-4 h-4' />
                         </Link>
                       )}
                     </div>
@@ -1056,9 +1049,15 @@ const DiveTrips = () => {
                       )}
                       {trip.trip_price && (
                         <div className='flex items-center gap-2'>
-                          <DollarSign className='w-4 h-4 text-gray-400' />
+                          <CurrencyIcon
+                            currencyCode={trip.trip_currency}
+                            className='w-4 h-4 text-gray-400'
+                          />
                           <span className='text-[11px] text-gray-600'>
-                            {formatCurrency(trip.trip_price, trip.trip_currency)}
+                            {formatCost(trip.trip_price, trip.trip_currency, {
+                              showSymbol: false,
+                              showCode: true,
+                            })}
                           </span>
                         </div>
                       )}
@@ -1138,7 +1137,10 @@ const DiveTrips = () => {
                               Price
                             </div>
                             <span className='font-medium text-base sm:text-lg leading-tight'>
-                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                              {formatCost(trip.trip_price, trip.trip_currency, {
+                                showSymbol: false,
+                                showCode: true,
+                              })}
                             </span>
                           </div>
                         </div>
@@ -1225,7 +1227,7 @@ const DiveTrips = () => {
                                     )}
                                     {dive.max_depth && (
                                       <span className='flex items-center'>
-                                        <MapPin className='h-3 w-3 mr-1 flex-shrink-0' />
+                                        <TrendingUp className='h-3 w-3 mr-1 flex-shrink-0' />
                                         Max {dive.max_depth}m
                                       </span>
                                     )}
@@ -1411,9 +1413,15 @@ const DiveTrips = () => {
                         )}
                         {trip.trip_price && (
                           <div className='flex items-center gap-2'>
-                            <DollarSign className='w-4 h-4 text-gray-400' />
+                            <CurrencyIcon
+                              currencyCode={trip.trip_currency}
+                              className='w-4 h-4 text-gray-400'
+                            />
                             <span className='text-[11px] text-gray-600'>
-                              {formatCurrency(trip.trip_price, trip.trip_currency)}
+                              {formatCost(trip.trip_price, trip.trip_currency, {
+                                showSymbol: false,
+                                showCode: true,
+                              })}
                             </span>
                           </div>
                         )}

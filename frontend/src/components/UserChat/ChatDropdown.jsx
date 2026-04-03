@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getChatRooms, getTotalUnreadChatMessages } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import useClickOutside from '../../hooks/useClickOutside';
+import { parseUTCDate } from '../../utils/dateHelpers';
 import Avatar from '../Avatar';
 
 const ChatDropdown = () => {
@@ -133,7 +134,7 @@ const ChatDropdown = () => {
                           {displayName}
                         </p>
                         <span className='text-[10px] text-gray-400 whitespace-nowrap ml-2'>
-                          {format(new Date(room.last_activity_at), 'HH:mm')}
+                          {format(parseUTCDate(room.last_activity_at), 'HH:mm')}
                         </span>
                       </div>
                       <p
