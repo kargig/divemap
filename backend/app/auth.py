@@ -230,13 +230,13 @@ async def can_manage_diving_center(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> User:
-    """Check if user can manage a diving center (admin, moderator, or owner)"""
+    """Check if user can manage a diving center (admin, moderator, owner, or manager)"""
     # Admins and moderators can manage any diving center
     if current_user.is_admin or current_user.is_moderator:
         return current_user
     
-    # Check if user is the owner of this diving center
-    from app.models import DivingCenter, OwnershipStatus
+    # Check if user is the owner or manager of this diving center
+    from app.models import DivingCenter, OwnershipStatus, DivingCenterManager
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     
     if not diving_center:
@@ -245,7 +245,17 @@ async def can_manage_diving_center(
             detail="Diving center not found"
         )
     
+    # Owner check
     if diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved:
+        return current_user
+        
+    # Manager check
+    is_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == current_user.id
+    ).first() is not None
+    
+    if is_manager:
         return current_user
     
     raise HTTPException(

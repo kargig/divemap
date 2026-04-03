@@ -18,6 +18,7 @@ import {
   LogIn,
   MessageSquare,
   Bell,
+  Plus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -31,20 +32,24 @@ import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
+import TripFormModal from '../components/TripFormModal';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
+import { getDiveSites, getDiveSite } from '../services/diveSites';
 import {
   claimDivingCenterOwnership,
   followDivingCenter,
   unfollowDivingCenter,
   getFollowStatus,
   broadcastTextMessage,
+  getDivingCenters,
+  broadcastTrip,
 } from '../services/divingCenters';
-import { getParsedTrips } from '../services/newsletters';
+import { getParsedTrips, deleteParsedTrip, updateParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -72,6 +77,8 @@ const DivingCenterDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [ownershipReason, setOwnershipReason] = useState('');
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
   const [tripsDateRange, setTripsDateRange] = useState(() => {
     // Start with current date, going forward 3 months
     const startDate = new Date();
@@ -100,6 +107,55 @@ const DivingCenterDetail = () => {
       keepPreviousData: true, // Keep previous data while refetching
     }
   );
+
+  // Query for dive sites (for dropdown)
+  const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Query for diving centers (for dropdown)
+  const { data: divingCenters = [] } = useQuery(
+    'diving-centers',
+    () => getDivingCenters({ page_size: 100 }),
+    {
+      enabled: !!id,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // Function to get dive site by ID if not in the list
+  const getDiveSiteById = async siteId => {
+    try {
+      const site = await getDiveSite(siteId);
+      return site;
+    } catch (error) {
+      console.error('Error fetching dive site by ID:', error);
+    }
+    return null;
+  };
+
+  // State to store additional dive sites that are not in the main list
+  const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
+
+  // Function to ensure dive site is available in dropdown
+  const ensureDiveSiteAvailable = async siteId => {
+    if (!siteId) return;
+
+    const existingSite =
+      diveSites.find(s => s.id === siteId) || additionalDiveSites.find(s => s.id === siteId);
+
+    if (!existingSite) {
+      const site = await getDiveSiteById(siteId);
+      if (site) {
+        setAdditionalDiveSites(prev => {
+          // Avoid duplicates
+          if (prev.find(s => s.id === siteId)) return prev;
+          return [...prev, site];
+        });
+      }
+    }
+  };
 
   // Redirect to canonical URL with slug
   useEffect(() => {
@@ -329,6 +385,74 @@ const DivingCenterDetail = () => {
     },
   });
 
+  const updateTripMutation = useMutation(({ tripId, data }) => updateParsedTrip(tripId, data), {
+    onSuccess: () => {
+      toast.success('Trip updated successfully');
+      setIsEditTripModalOpen(false);
+      setEditingTrip(null);
+      queryClient.invalidateQueries(['diving-center-trips', id]);
+    },
+    onError: error => {
+      toast.error(`Update failed: ${extractErrorMessage(error)}`);
+    },
+  });
+
+  const deleteTripMutation = useMutation(deleteParsedTrip, {
+    onSuccess: () => {
+      toast.success('Trip deleted successfully');
+      queryClient.invalidateQueries(['diving-center-trips', id]);
+    },
+    onError: error => {
+      toast.error(`Delete failed: ${extractErrorMessage(error)}`);
+    },
+  });
+
+  const handleEditTrip = trip => {
+    // Ensure the dive sites are available in the dropdown
+    if (trip.dives && trip.dives.length > 0) {
+      trip.dives.forEach(dive => {
+        if (dive.dive_site_id) {
+          ensureDiveSiteAvailable(dive.dive_site_id);
+        }
+      });
+    }
+    setEditingTrip(trip);
+    setIsEditTripModalOpen(true);
+  };
+
+  const handleUpdateTrip = async (tripId, tripData) => {
+    try {
+      const updatedTrip = await updateTripMutation.mutateAsync({ tripId, data: tripData });
+
+      // Handle broadcast if checked
+      if (tripData.broadcast_to_followers) {
+        try {
+          await broadcastTrip(id, tripId);
+          toast.success('Trip broadcasted to followers!');
+        } catch (err) {
+          toast.error('Failed to broadcast trip update');
+        }
+      }
+    } catch (error) {
+      // Error handled in mutation
+    }
+  };
+
+  const handleDeleteTrip = tripId => {
+    if (window.confirm('Are you sure you want to delete this trip?')) {
+      deleteTripMutation.mutate(tripId);
+    }
+  };
+
+  const handleOwnershipClaim = e => {
+    e.preventDefault();
+    if (!ownershipReason.trim()) {
+      toast.error('Please provide a reason for your ownership claim');
+      return;
+    }
+    ownershipClaimMutation.mutate(ownershipReason);
+  };
+
   const handleRating = score => {
     setRating(score);
     rateMutation.mutate({ score });
@@ -355,15 +479,6 @@ const DivingCenterDetail = () => {
     if (window.confirm('Are you sure you want to delete this comment?')) {
       deleteCommentMutation.mutate(commentId);
     }
-  };
-
-  const handleOwnershipClaim = e => {
-    e.preventDefault();
-    if (!ownershipReason.trim()) {
-      toast.error('Please provide a reason for your ownership claim');
-      return;
-    }
-    ownershipClaimMutation.mutate(ownershipReason);
   };
 
   const renderStars = (rating, interactive = false) => {
@@ -798,6 +913,15 @@ const DivingCenterDetail = () => {
                   >
                     <ChevronRight className='h-5 w-5' />
                   </button>
+                  {shouldShowManage && (
+                    <Link
+                      to={`/dive-trips/create?center_id=${id}`}
+                      className='ml-4 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium transition-colors'
+                    >
+                      <Plus className='h-4 w-4 mr-2' />
+                      Create Trip
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -847,12 +971,32 @@ const DivingCenterDetail = () => {
                       )}
                     </div>
                     {user && (
-                      <Link
-                        to={`/dive-trips/${trip.id}`}
-                        className='ml-4 px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
-                      >
-                        View
-                      </Link>
+                      <div className='flex items-center space-x-2 ml-4'>
+                        {shouldShowManage && (
+                          <>
+                            <button
+                              onClick={() => handleEditTrip(trip)}
+                              className='p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                              title='Edit Trip'
+                            >
+                              <Edit className='h-4 w-4' />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTrip(trip.id)}
+                              className='p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                              title='Delete Trip'
+                            >
+                              <X className='h-4 w-4' />
+                            </button>
+                          </>
+                        )}
+                        <Link
+                          to={`/dive-trips/${trip.id}`}
+                          className='px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
+                        >
+                          View
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1165,6 +1309,23 @@ const DivingCenterDetail = () => {
           </div>
         </form>
       </Modal>
+      {/* Edit Trip Modal */}
+      {editingTrip && (
+        <TripFormModal
+          isOpen={isEditTripModalOpen}
+          onClose={() => {
+            setIsEditTripModalOpen(false);
+            setEditingTrip(null);
+          }}
+          onSubmit={data => handleUpdateTrip(editingTrip.id, data)}
+          trip={editingTrip}
+          divingCenterId={parseInt(id)}
+          isSubmitting={updateTripMutation.isLoading}
+          diveSites={diveSites}
+          divingCenters={divingCenters}
+          additionalDiveSites={additionalDiveSites}
+        />
+      )}
     </div>
   );
 };
