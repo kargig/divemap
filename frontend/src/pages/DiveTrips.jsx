@@ -591,8 +591,8 @@ const DiveTrips = () => {
       month: 'long',
       day: 'numeric',
     };
-    const formattedDate = date.toLocaleDateString('en-US', options);
-    const shortDate = date.toLocaleDateString('en-GB');
+    const formattedDate = date.toLocaleDateString(undefined, options);
+    const shortDate = date.toLocaleDateString(undefined);
     return `${formattedDate} (${shortDate})`;
   };
 
@@ -611,7 +611,7 @@ const DiveTrips = () => {
       month: 'long',
       day: 'numeric',
     };
-    const formattedDate = date.toLocaleDateString('en-US', options);
+    const formattedDate = date.toLocaleDateString(undefined, options);
 
     let headerText = formattedDate;
     if (isToday) {
@@ -1012,7 +1012,7 @@ const DiveTrips = () => {
                             </h3>
                             <p className='text-gray-600 text-xs'>
                               {trip.trip_date
-                                ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                                ? new Date(trip.trip_date).toLocaleDateString(undefined)
                                 : 'N/A'}
                             </p>
                           </div>
@@ -1097,7 +1097,7 @@ const DiveTrips = () => {
                             title='Click to filter by this date'
                           >
                             {trip.trip_date
-                              ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                              ? new Date(trip.trip_date).toLocaleDateString(undefined)
                               : 'N/A'}
                           </button>
                         </div>
@@ -1283,12 +1283,16 @@ const DiveTrips = () => {
                       <div className='flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-500'>
                         {trip.created_at && (
                           <span className='flex items-center'>
-                            <span>Added {new Date(trip.created_at).toLocaleDateString()}</span>
+                            <span>
+                              Added {new Date(trip.created_at).toLocaleDateString(undefined)}
+                            </span>
                           </span>
                         )}
                         {trip.updated_at && trip.updated_at !== trip.created_at && (
                           <span className='flex items-center'>
-                            <span>Updated {new Date(trip.updated_at).toLocaleDateString()}</span>
+                            <span>
+                              Updated {new Date(trip.updated_at).toLocaleDateString(undefined)}
+                            </span>
                           </span>
                         )}
                       </div>
@@ -1387,7 +1391,7 @@ const DiveTrips = () => {
 
                       <p className='text-gray-600 mb-3 text-xs'>
                         {trip.trip_date
-                          ? new Date(trip.trip_date).toLocaleDateString('en-GB')
+                          ? new Date(trip.trip_date).toLocaleDateString(undefined)
                           : 'N/A'}
                       </p>
 

@@ -31,7 +31,7 @@ export const formatRateLimitDate = (dateInput, options = {}) => {
       return '';
     }
 
-    return date.toLocaleString('en-US', {
+    return date.toLocaleString(undefined, {
       month,
       day: 'numeric',
       hour: '2-digit',

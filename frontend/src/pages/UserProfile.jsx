@@ -368,7 +368,7 @@ const UserProfile = () => {
     (profile.stats?.buddy_dives_count || 0);
 
   const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

@@ -28,7 +28,8 @@ export const parseUTCDate = dateString => {
 export const formatDate = (dateString, options = {}) => {
   if (!dateString) return 'Date TBD';
 
-  const { year = 'numeric', month = 'long', day = 'numeric', locale = 'en-US' } = options;
+  // Use undefined for locale to respect browser settings
+  const { year = 'numeric', month = 'long', day = 'numeric', locale = undefined } = options;
   const date = parseUTCDate(dateString);
 
   return date.toLocaleDateString(locale, {
@@ -39,7 +40,7 @@ export const formatDate = (dateString, options = {}) => {
 };
 
 /**
- * Format a date string to a short format (MM/DD/YYYY)
+ * Format a date string to a short format (DD/MM/YYYY)
  * @param {string|Date} dateString - The date to format
  * @returns {string} Short formatted date string
  */
@@ -47,7 +48,7 @@ export const formatDateShort = dateString => {
   if (!dateString) return 'Date TBD';
 
   const date = parseUTCDate(dateString);
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(undefined, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

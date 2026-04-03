@@ -20,7 +20,7 @@ export const formatPrice = price => {
 
 export const formatDate = dateString => {
   if (!dateString) return 'Date TBD';
-  return new Date(dateString).toLocaleDateString('en-US', {
+  return new Date(dateString).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

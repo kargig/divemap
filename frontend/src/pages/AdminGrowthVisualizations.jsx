@@ -50,7 +50,7 @@ const AdminGrowthVisualizations = () => {
 
   const formatDate = (dateString, includeYear = false) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
       ...(includeYear && { year: 'numeric' }),

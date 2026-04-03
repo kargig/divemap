@@ -336,7 +336,7 @@ const AdminNewsletters = () => {
   };
 
   const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString('en-GB');
+    return new Date(dateString).toLocaleDateString(undefined);
   };
 
   const formatTime = timeString => {

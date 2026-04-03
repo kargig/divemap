@@ -482,7 +482,7 @@ const DiveDetail = () => {
   };
 
   const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString(undefined);
   };
 
   const formatTime = timeString => {

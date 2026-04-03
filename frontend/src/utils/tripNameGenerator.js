@@ -14,7 +14,7 @@ export const generateTripName = trip => {
   if (tripDate) {
     const date = new Date(tripDate);
     const formattedDate = date
-      .toLocaleDateString('en-GB', {
+      .toLocaleDateString(undefined, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
