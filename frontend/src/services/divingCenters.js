@@ -83,8 +83,11 @@ export const getFollowStatus = async id => {
   return response.data;
 };
 
-export const broadcastTrip = async (id, tripId) => {
-  const response = await api.post(`/api/v1/diving-centers/${id}/broadcast`, { trip_id: tripId });
+export const broadcastTrip = async (id, tripId, extraData = {}) => {
+  const response = await api.post(`/api/v1/diving-centers/${id}/broadcast`, {
+    trip_id: tripId,
+    ...extraData,
+  });
   return response.data;
 };
 

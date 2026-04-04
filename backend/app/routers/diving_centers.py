@@ -2348,7 +2348,8 @@ async def broadcast_trip_to_followers(
             sender_id=current_user.id,
             message_id=msg.id,
             offset=0,
-            limit=100
+            limit=100,
+            is_update=request.is_update or False
         )
     
     return {"status": "success", "message": "Trip broadcasted successfully"}

@@ -427,7 +427,7 @@ const DivingCenterDetail = () => {
       // Handle broadcast if checked
       if (tripData.broadcast_to_followers) {
         try {
-          await broadcastTrip(id, tripId);
+          await broadcastTrip(id, tripId, { is_update: true });
           toast.success('Trip broadcasted to followers!');
         } catch (err) {
           toast.error('Failed to broadcast trip update');

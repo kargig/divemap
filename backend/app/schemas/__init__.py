@@ -926,6 +926,7 @@ class DiveSearchParams(BaseModel):
 # Diving Center Ownership Schemas
 class BroadcastTripRequest(BaseModel):
     trip_id: int
+    is_update: Optional[bool] = False
 
 class DivingCenterOwnershipClaim(BaseModel):
     reason: str = Field(..., min_length=10, max_length=1000)
