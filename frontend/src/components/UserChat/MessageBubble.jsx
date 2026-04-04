@@ -178,12 +178,14 @@ const MessageBubble = ({
                                   {siteLink ? (
                                     <Link
                                       to={siteLink}
-                                      className='text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors'
+                                      className='text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline transition-colors leading-none translate-y-[1px] inline-block'
                                     >
                                       {siteName}
                                     </Link>
                                   ) : (
-                                    <span>{siteName}</span>
+                                    <span className='leading-none translate-y-[1px] inline-block'>
+                                      {siteName}
+                                    </span>
                                   )}
                                   {index < tripData.dive_sites.length - 1 && ', '}
                                 </React.Fragment>

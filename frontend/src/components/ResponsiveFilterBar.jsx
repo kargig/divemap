@@ -41,6 +41,7 @@ const ResponsiveFilterBar = ({
   variant = 'sticky',
   showQuickFilters = true,
   showAdvancedToggle = true,
+  showSearch = true,
   searchQuery = '',
   onSearchChange = () => {},
   onSearchSubmit = () => {},
@@ -824,25 +825,27 @@ const ResponsiveFilterBar = ({
         className={`${variant === 'sticky' ? 'sticky top-0 left-0 right-0 z-[100] w-full' : 'bg-white border border-gray-200 rounded-xl shadow-sm mb-4'}`}
       >
         {/* Mobile Search Bar */}
-        <div
-          ref={searchBarRef}
-          data-testid='mobile-search-bar'
-          className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : ''}`}
-        >
-          <div className='p-2 sm:p-3'>
-            <div className='relative'>
-              <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
-              <input
-                type='text'
-                placeholder='Search (min 3 chars)...'
-                value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
-                className='w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
-              />
+        {showSearch && (
+          <div
+            ref={searchBarRef}
+            data-testid='mobile-search-bar'
+            className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : ''}`}
+          >
+            <div className='p-2 sm:p-3'>
+              <div className='relative'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
+                <input
+                  type='text'
+                  placeholder='Search (min 3 chars)...'
+                  value={searchQuery}
+                  onChange={e => onSearchChange(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
+                  className='w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Mobile Quick Filters Bar */}
         <div

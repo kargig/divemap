@@ -42,48 +42,59 @@ const TripHeader = ({ trip }) => {
             </p>
 
             {/* Trip Meta Information */}
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-              <div className='flex items-center space-x-3'>
-                <Calendar className='w-5 h-5 text-gray-500' />
+            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+              <div className='flex items-center space-x-2 sm:space-x-3'>
+                <Calendar className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
                 <div>
-                  <div className='text-sm text-gray-500'>Date</div>
-                  <div className='font-medium'>{formatDate(trip.trip_date)}</div>
+                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                    Date
+                  </div>
+                  <div className='font-medium text-xs sm:text-base'>
+                    {formatDate(trip.trip_date)}
+                  </div>
                 </div>
               </div>
 
-              <div className='flex items-center space-x-3'>
-                <CurrencyIcon currencyCode={trip.trip_currency} className='w-5 h-5 text-gray-500' />
+              <div className='flex items-center space-x-2 sm:space-x-3'>
+                <CurrencyIcon
+                  currencyCode={trip.trip_currency}
+                  className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0'
+                />
                 <div>
-                  <div className='text-sm text-gray-500'>Price</div>
-                  <div className='font-medium'>
+                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                    Price
+                  </div>
+                  <div className='font-medium text-xs sm:text-base'>
                     {trip.trip_price
                       ? formatCost(trip.trip_price, trip.trip_currency, {
                           showSymbol: false,
                           showCode: true,
                         })
-                      : 'Contact for pricing'}
+                      : 'Contact'}
                   </div>
                 </div>
               </div>
 
-              <div className='flex items-center space-x-3'>
-                <Users className='w-5 h-5 text-gray-500' />
+              <div className='flex items-center space-x-2 sm:space-x-3'>
+                <Users className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
                 <div>
-                  <div className='text-sm text-gray-500'>Max Group Size</div>
-                  <div className='font-medium'>
-                    {trip.group_size_limit
-                      ? `Max ${trip.group_size_limit} people`
-                      : 'Contact center'}
+                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                    Group
+                  </div>
+                  <div className='font-medium text-xs sm:text-base'>
+                    {trip.group_size_limit ? `Max ${trip.group_size_limit}` : 'N/A'}
                   </div>
                 </div>
               </div>
 
-              <div className='flex items-center space-x-3'>
-                <div className='w-5 h-5'></div>
+              <div className='flex items-center space-x-2 sm:space-x-3'>
+                <div className='w-4 h-4 sm:w-5 sm:h-5 hidden sm:block'></div>
                 <div>
-                  <div className='text-sm text-gray-500'>Status</div>
+                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                    Status
+                  </div>
                   <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
                       trip.trip_status === 'confirmed'
                         ? 'bg-green-100 text-green-800'
                         : trip.trip_status === 'scheduled'

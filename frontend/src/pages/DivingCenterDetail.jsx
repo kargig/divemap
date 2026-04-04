@@ -32,6 +32,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
+import TripCard from '../components/TripCard';
 import TripFormModal from '../components/TripFormModal';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
@@ -485,6 +486,8 @@ const DivingCenterDetail = () => {
     }
   };
 
+
+
   const renderStars = (rating, interactive = false) => {
     return (
       <div className='flex space-x-1'>
@@ -757,7 +760,7 @@ const DivingCenterDetail = () => {
       />
       {/* Tab Navigation */}
       <div className='border-b border-gray-200 mt-6 mb-6'>
-        <nav className='-mb-px flex space-x-8 overflow-x-auto'>
+        <nav className='-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto scrollbar-hide'>
           <button
             onClick={() => setActiveTab('overview')}
             className={`${activeTab === 'overview' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
@@ -917,93 +920,22 @@ const DivingCenterDetail = () => {
                   >
                     <ChevronRight className='h-5 w-5' />
                   </button>
-                  {shouldShowManage && (
-                    <Link
-                      to={`/dive-trips/create?center_id=${id}`}
-                      className='ml-4 inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium transition-colors'
-                    >
-                      <Plus className='h-4 w-4 mr-2' />
-                      Create Trip
-                    </Link>
-                  )}
                 </div>
               )}
             </div>
             <div className='space-y-4'>
               {(!user ? trips.slice(0, 2) : trips).map(trip => (
-                <div
+                <TripCard
                   key={trip.id}
-                  className={`border rounded-lg p-4 transition-colors ${
-                    !user ? 'pointer-events-none relative overflow-hidden' : 'hover:bg-gray-50'
-                  }`}
-                  style={!user ? { filter: 'blur(1.5px)' } : {}}
-                >
-                  {!user && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
-                  <div className='flex items-start justify-between'>
-                    <div className='flex-1'>
-                      <div className='flex items-center space-x-3 mb-2'>
-                        <h3 className='text-lg font-semibold text-gray-900'>
-                          {formatDate(trip.trip_date)}
-                        </h3>
-                        {trip.trip_time && (
-                          <span className='text-sm text-gray-600'>
-                            {new Date(`2000-01-01T${trip.trip_time}`).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        )}
-                        {trip.trip_price && (
-                          <span className='text-sm font-medium text-blue-600'>
-                            {trip.trip_price} {trip.trip_currency}
-                          </span>
-                        )}
-                      </div>
-                      {trip.dives && trip.dives.length > 0 && (
-                        <div className='text-sm text-gray-600 mb-2'>
-                          {trip.dives.length} dive{trip.dives.length !== 1 ? 's' : ''}:{' '}
-                          {trip.dives
-                            .map(dive => dive.dive_site_name || `Dive ${dive.dive_number}`)
-                            .filter(Boolean)
-                            .join(', ')}
-                        </div>
-                      )}
-                      {trip.trip_description && (
-                        <p className='text-sm text-gray-700 line-clamp-2'>
-                          {decodeHtmlEntities(trip.trip_description)}
-                        </p>
-                      )}
-                    </div>
-                    {user && (
-                      <div className='flex items-center space-x-2 ml-4'>
-                        {shouldShowManage && (
-                          <>
-                            <button
-                              onClick={() => handleEditTrip(trip)}
-                              className='p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
-                              title='Edit Trip'
-                            >
-                              <Edit className='h-4 w-4' />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTrip(trip.id)}
-                              className='p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors'
-                              title='Delete Trip'
-                            >
-                              <X className='h-4 w-4' />
-                            </button>
-                          </>
-                        )}
-                        <Link
-                          to={`/dive-trips/${trip.id}`}
-                          className='px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm transition-colors'
-                        >
-                          View
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  trip={trip}
+                  user={user}
+                  shouldShowManage={shouldShowManage}
+                  onEdit={handleEditTrip}
+                  onDelete={handleDeleteTrip}
+                  diveSites={diveSites}
+                  additionalDiveSites={additionalDiveSites}
+                  viewMode='list'
+                />
               ))}
             </div>
             {!user && (
@@ -1206,10 +1138,19 @@ const DivingCenterDetail = () => {
       {activeTab === 'manage' && shouldShowManage && (
         <div className='space-y-6'>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-2 flex items-center'>
-              <Bell className='h-6 w-6 mr-2 text-blue-600' />
-              Broadcast Announcement
-            </h2>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
+              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
+                <Bell className='h-6 w-6 mr-2 text-blue-600' />
+                Broadcast Announcement
+              </h2>
+              <Link
+                to={`/dive-trips/create?center_id=${id}`}
+                className='inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium transition-colors w-full sm:w-auto justify-center shadow-sm'
+              >
+                <Plus className='h-4 w-4 mr-2' />
+                Create New Trip
+              </Link>
+            </div>
             <p className='text-gray-600 mb-6'>
               Send a custom text message to all your followers. It will appear in their Business
               Inbox and they will receive a push notification.
