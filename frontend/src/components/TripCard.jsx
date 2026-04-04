@@ -122,8 +122,8 @@ const TripCard = ({
 
   // Card classes based on view mode
   const cardClasses = isGrid
-    ? 'bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 flex flex-col h-full hover:shadow-lg transition-shadow duration-300'
-    : `bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 mb-6 hover:shadow-lg transition-shadow duration-300 relative ${
+    ? 'bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300'
+    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] mb-6 hover:shadow-md transition-shadow duration-300 relative ${
         !user ? 'pointer-events-none' : ''
       }`;
 
@@ -204,13 +204,6 @@ const TripCard = ({
                     </button>
                   </div>
                 )}
-                <Link
-                  to={tripUrl}
-                  className='inline-flex items-center gap-2 px-4 py-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors font-medium border border-blue-100 sm:border-transparent'
-                >
-                  View Details
-                  <ChevronRight className='w-4 h-4' />
-                </Link>
               </div>
             )}
           </div>
@@ -389,29 +382,41 @@ const TripCard = ({
         {/* Footer info: Added/Updated */}
         {!isGrid && (
           <div className='flex flex-row flex-wrap items-center gap-y-1 text-[10px] sm:text-xs text-gray-400 mt-auto pt-3 border-t border-gray-50'>
-            {trip.created_at && (
-              <div className='flex items-center'>
-                <span className='font-medium text-gray-500 mr-1'>Added:</span>
-                <span className='whitespace-nowrap'>
-                  {new Date(trip.created_at).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-            )}
-            {trip.updated_at && trip.updated_at !== trip.created_at && (
-              <div className='flex items-center ml-2 sm:ml-3 pl-2 sm:pl-3 border-l border-gray-200'>
-                <span className='font-medium text-gray-500 mr-1'>Updated:</span>
-                <span className='whitespace-nowrap'>
-                  {new Date(trip.updated_at).toLocaleDateString(undefined, {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
+            <div className='flex flex-wrap gap-y-1 flex-1'>
+              {trip.created_at && (
+                <div className='flex items-center'>
+                  <span className='font-medium text-gray-500 mr-1'>Added:</span>
+                  <span className='whitespace-nowrap'>
+                    {new Date(trip.created_at).toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
+              {trip.updated_at && trip.updated_at !== trip.created_at && (
+                <div className='flex items-center ml-2 sm:ml-3 pl-2 sm:pl-3 border-l border-gray-200'>
+                  <span className='font-medium text-gray-500 mr-1'>Updated:</span>
+                  <span className='whitespace-nowrap'>
+                    {new Date(trip.updated_at).toLocaleDateString(undefined, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {user && (
+              <Link
+                to={tripUrl}
+                className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
+                title='View Trip Details'
+              >
+                <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
+              </Link>
             )}
           </div>
         )}

@@ -396,10 +396,10 @@ const DiveRoutes = () => {
                   <div className='flex items-center justify-end'>
                     <Link
                       to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
-                      className='inline-flex items-center gap-1 text-[11px] sm:text-sm font-bold sm:font-semibold text-blue-600 hover:text-blue-800 transition-colors group'
+                      className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+                      title='View Route Details'
                     >
-                      View Route
-                      <ChevronRight className='w-3 h-3 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-0.5' />
+                      <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
                     </Link>
                   </div>
                 </div>

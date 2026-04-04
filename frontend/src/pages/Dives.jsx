@@ -1186,7 +1186,13 @@ const Dives = () => {
                           </div>
                         )}
                       </div>
-                      <ChevronRight className='w-4 h-4 text-gray-300 sm:hidden' />
+                      <Link
+                        to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                        className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+                        title='View Details'
+                      >
+                        <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
+                      </Link>
                     </div>
                   </div>
                 </div>
