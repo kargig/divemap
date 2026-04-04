@@ -9,6 +9,7 @@ import {
   Edit,
   X,
   ChevronRight,
+  Star,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -17,7 +18,6 @@ import { Link } from 'react-router-dom';
 import { formatCost } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
-import { Star } from 'lucide-react';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 /**
@@ -428,7 +428,6 @@ const TripCard = ({
     </div>
   );
 };
-
 
 TripCard.propTypes = {
   trip: PropTypes.object.isRequired,

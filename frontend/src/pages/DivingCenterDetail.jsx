@@ -488,8 +488,6 @@ const DivingCenterDetail = () => {
     }
   };
 
-
-
   const renderStars = (rating, interactive = false) => {
     return (
       <div className='flex space-x-1'>
@@ -750,7 +748,7 @@ const DivingCenterDetail = () => {
             />
           </div>
         )}
-        
+
         {/* Action Buttons (Share, Edit) */}
         <div className='flex gap-2 flex-wrap sm:justify-end'>
           {center && (
@@ -763,10 +761,10 @@ const DivingCenterDetail = () => {
           {shouldShowEdit && (
             <Link
               to={`/diving-centers/${id}/edit`}
-              className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 transition-colors'
+              className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 border border-transparent transition-colors'
             >
-              <Edit className='h-4 w-4 mr-1.5' />
-              Edit Center
+              <Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
+              Edit
             </Link>
           )}
         </div>

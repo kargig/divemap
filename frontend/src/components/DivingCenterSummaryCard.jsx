@@ -90,26 +90,30 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
 
             {user && (
               <div className='flex flex-wrap gap-2 mt-3 w-full'>
-                <button
+                <Button
                   onClick={() => startChatMutation.mutate()}
                   disabled={startChatMutation.isLoading}
-                  className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 transition-colors flex-1 sm:flex-none'
+                  variant='white'
+                  size='sm'
+                  className='flex-1 sm:flex-none shadow-sm'
+                  icon={<MessageSquare className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />}
                 >
-                  <MessageSquare className='h-4 w-4 mr-1.5' />
                   {startChatMutation.isLoading ? 'Loading...' : 'Message'}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => followMutation.mutate()}
                   disabled={followMutation.isLoading}
-                  className={`inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm border transition-colors flex-1 sm:flex-none ${
-                    isFollowing
-                      ? 'text-gray-700 bg-white hover:bg-gray-50 border-gray-300'
-                      : 'text-gray-700 bg-white hover:bg-gray-50 border-gray-300'
-                  }`}
+                  variant='secondary'
+                  size='sm'
+                  className='flex-1 sm:flex-none shadow-sm'
+                  icon={
+                    <Bell
+                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`}
+                    />
+                  }
                 >
-                  <Bell className={`h-4 w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`} />
                   {isFollowing ? 'Following' : 'Follow'}
-                </button>
+                </Button>
               </div>
             )}
           </div>
