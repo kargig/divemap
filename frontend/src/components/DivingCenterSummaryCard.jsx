@@ -2,7 +2,7 @@ import { MessageSquare, Bell, ArrowLeft, Edit, MapPin, Phone, Mail, Globe } from
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useMutation, useQuery } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import { createChatRoom } from '../api';
 import {
