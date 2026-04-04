@@ -63,7 +63,6 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
   );
   const isAdmin = Boolean(user?.is_admin);
   const isModerator = Boolean(user?.is_moderator);
-  const shouldShowEdit = isOwner || isAdmin || isModerator;
 
   if (!center) return null;
 
@@ -111,15 +110,6 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
                   <Bell className={`h-4 w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`} />
                   {isFollowing ? 'Following' : 'Follow'}
                 </button>
-                {shouldShowEdit && (
-                  <Link
-                    to={`/diving-centers/${id}/edit`}
-                    className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 border border-transparent transition-colors flex-1 sm:flex-none'
-                  >
-                    <Edit className='h-4 w-4 mr-1.5' />
-                    Edit Center
-                  </Link>
-                )}
               </div>
             )}
           </div>

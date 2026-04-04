@@ -294,7 +294,9 @@ const DivingCenterDetail = () => {
   );
   const isAdmin = Boolean(user?.is_admin);
   const isManager = Boolean(center?.is_manager);
-  const shouldShowManage = isOwner || isAdmin || isManager;
+  const isModerator = Boolean(user?.is_moderator);
+  const shouldShowManage = isOwner || isAdmin || isManager || isModerator;
+  const shouldShowEdit = isOwner || isAdmin || isModerator;
 
   // Fetch dive trips for this diving center within the date range
   const { data: trips, isLoading: tripsLoading } = useQuery(
@@ -720,31 +722,55 @@ const DivingCenterDetail = () => {
           schema={getSchema()}
         />
       )}
-      {/* Breadcrumbs */}
-      {center && (
-        <Breadcrumbs
-          items={[
-            { label: 'Diving Centers', to: '/diving-centers' },
-            ...(center.country
-              ? [
-                  {
-                    label: center.country,
-                    to: `/diving-centers?country=${encodeURIComponent(center.country)}`,
-                  },
-                ]
-              : []),
-            ...(center.city
-              ? [
-                  {
-                    label: center.city,
-                    to: `/diving-centers?country=${encodeURIComponent(center.country || '')}&city=${encodeURIComponent(center.city)}`,
-                  },
-                ]
-              : []),
-            { label: center.name },
-          ]}
-        />
-      )}
+      {/* Top Bar: Breadcrumbs and Actions */}
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4'>
+        {center && (
+          <div className='flex-1 min-w-0'>
+            <Breadcrumbs
+              items={[
+                { label: 'Diving Centers', to: '/diving-centers' },
+                ...(center.country
+                  ? [
+                      {
+                        label: center.country,
+                        to: `/diving-centers?country=${encodeURIComponent(center.country)}`,
+                      },
+                    ]
+                  : []),
+                ...(center.city
+                  ? [
+                      {
+                        label: center.city,
+                        to: `/diving-centers?country=${encodeURIComponent(center.country || '')}&city=${encodeURIComponent(center.city)}`,
+                      },
+                    ]
+                  : []),
+                { label: center.name },
+              ]}
+            />
+          </div>
+        )}
+        
+        {/* Action Buttons (Share, Edit) */}
+        <div className='flex gap-2 flex-wrap sm:justify-end'>
+          {center && (
+            <ShareButton
+              entityType='diving-center'
+              entityData={center}
+              className='inline-flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
+            />
+          )}
+          {shouldShowEdit && (
+            <Link
+              to={`/diving-centers/${id}/edit`}
+              className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 transition-colors'
+            >
+              <Edit className='h-4 w-4 mr-1.5' />
+              Edit Center
+            </Link>
+          )}
+        </div>
+      </div>
       <DivingCenterSummaryCard
         center={center}
         user={user}
