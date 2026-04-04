@@ -213,7 +213,7 @@ const TripDetail = () => {
       // Handle broadcast if checked
       if (tripData.broadcast_to_followers && trip.diving_center_id) {
         try {
-          await broadcastTrip(trip.diving_center_id, tripId);
+          await broadcastTrip(trip.diving_center_id, tripId, { is_update: true });
           toast.success('Trip broadcasted to followers!');
         } catch (err) {
           toast.error('Failed to broadcast trip update');

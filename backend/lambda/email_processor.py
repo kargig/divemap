@@ -317,12 +317,13 @@ def process_broadcast_relay(
     sender_id: int,
     message_id: int,
     offset: int,
-    limit: int
+    limit: int,
+    is_update: bool = False
 ) -> bool:
     """
     Process a chunk of broadcast recipients and queue the next baton in SQS.
     """
-    logger.info(f"Processing broadcast relay for room {room_id}, offset {offset}, limit {limit}")
+    logger.info(f"Processing broadcast relay for room {room_id}, offset {offset}, limit {limit}, is_update {is_update}")
     
     # 1. Fetch context (Sender/Center names)
     context = call_backend_api(f"/api/v1/notifications/internal/broadcast-context/{message_id}")
@@ -333,6 +334,10 @@ def process_broadcast_relay(
     sender_name = context.get('sender_name', 'A buddy')
     center_name = context.get('center_name', 'Divemap')
     
+    # Prefix title and message if this is an update
+    title_prefix = "Updated " if is_update else "New "
+    msg_prefix = "Updated " if is_update else "New "
+
     # 2. Fetch recipients chunk
     targets_data = call_backend_api(
         f"/api/v1/notifications/internal/broadcast-targets/{room_id}?sender_id={sender_id}&offset={offset}&limit={limit}"
@@ -353,8 +358,8 @@ def process_broadcast_relay(
                 bulk_requests.append({
                     "user_id": target['user_id'],
                     "category": 'user_chat_message',
-                    "title": f"New message from {sender_name}",
-                    "message": f"New broadcast from {center_name}",
+                    "title": f"{title_prefix}message from {sender_name}",
+                    "message": f"{msg_prefix}broadcast from {center_name}",
                     "link_url": "/messages",
                     "entity_type": 'chat_message',
                     "entity_id": message_id
@@ -374,7 +379,7 @@ def process_broadcast_relay(
             if target.get('should_push'):
                 payload = {
                     'title': center_name,
-                    'body': f'New message from {sender_name}',
+                    'body': f'{title_prefix}message from {sender_name}',
                     'url': '/messages',
                     'tag': f'chat_room_{room_id}'
                 }
@@ -393,8 +398,8 @@ def process_broadcast_relay(
                     notification_id=notif_mapping[user_id],
                     user_email=target['email'],
                     notification_data={
-                        'title': f"New message from {sender_name}",
-                        'message': f"You have a new message in {center_name} announcements.",
+                        'title': f"{title_prefix}message from {sender_name}",
+                        'message': f"You have a {msg_prefix.lower()}message in {center_name} announcements.",
                         'link_url': '/messages',
                         'category': 'user_chat_message'
                     },
@@ -426,7 +431,8 @@ def process_broadcast_relay(
                     'sender_id': sender_id,
                     'message_id': message_id,
                     'offset': next_offset,
-                    'limit': limit
+                    'limit': limit,
+                    'is_update': is_update
                 })
             )
         except Exception as e:
@@ -489,7 +495,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         # Handle recursive chunked processing
                         offset = body.get('offset', 0)
                         limit = body.get('limit', 100)
-                        if process_broadcast_relay(room_id, sender_id, message_id, offset, limit):
+                        is_update = body.get('is_update', False)
+                        if process_broadcast_relay(room_id, sender_id, message_id, offset, limit, is_update):
                             success_count += 1
                         else:
                             failure_count += 1

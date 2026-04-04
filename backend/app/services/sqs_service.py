@@ -265,7 +265,7 @@ class SQSService:
                 
         return success_count
 
-    def send_broadcast_relay_task(self, room_id: str, sender_id: int, message_id: int, offset: int = 0, limit: int = 100) -> bool:
+    def send_broadcast_relay_task(self, room_id: str, sender_id: int, message_id: int, offset: int = 0, limit: int = 100, is_update: bool = False) -> bool:
         """
         Send a broadcast relay task to SQS.
         This task triggers a recursive Lambda relay for efficient notification fan-out.
@@ -279,7 +279,8 @@ class SQSService:
             'sender_id': sender_id,
             'message_id': message_id,
             'offset': offset,
-            'limit': limit
+            'limit': limit,
+            'is_update': is_update
         }
         
         try:
