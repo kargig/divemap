@@ -2338,19 +2338,17 @@ async def broadcast_trip_to_followers(
     db.commit()
     db.refresh(msg)
     
-    # 6. Queue notification generation in SQS for all followers
+    # 6. Queue notification generation in SQS for all followers using recursive relay
     from app.services.sqs_service import SQSService
     sqs_service = SQSService()
     if sqs_service.sqs_available:
-        sqs_service.sqs_client.send_message(
-            QueueUrl=sqs_service.queue_url,
-            MessageBody=json.dumps({
-                "type": "new_chat_message", 
-                "room_id": str(broadcast_room.id), 
-                "sender_id": current_user.id, 
-                "message_id": msg.id
-            }),
-            DelaySeconds=0
+        # Trigger the recursive relay (Step 2 of the plan)
+        sqs_service.send_broadcast_relay_task(
+            room_id=str(broadcast_room.id),
+            sender_id=current_user.id,
+            message_id=msg.id,
+            offset=0,
+            limit=100
         )
     
     return {"status": "success", "message": "Trip broadcasted successfully"}
@@ -2456,19 +2454,17 @@ async def broadcast_text_to_followers(
     db.commit()
     db.refresh(msg)
     
-    # 5. Queue notification generation in SQS for all followers
+    # 5. Queue notification generation in SQS for all followers using recursive relay
     from app.services.sqs_service import SQSService
     sqs_service = SQSService()
     if sqs_service.sqs_available:
-        sqs_service.sqs_client.send_message(
-            QueueUrl=sqs_service.queue_url,
-            MessageBody=json.dumps({
-                "type": "new_chat_message", 
-                "room_id": str(broadcast_room.id), 
-                "sender_id": current_user.id, 
-                "message_id": msg.id
-            }),
-            DelaySeconds=0
+        # Trigger the recursive relay (Step 2 of the plan)
+        sqs_service.send_broadcast_relay_task(
+            room_id=str(broadcast_room.id),
+            sender_id=current_user.id,
+            message_id=msg.id,
+            offset=0,
+            limit=100
         )
     
     return {"status": "success", "message": "Text message broadcasted successfully"}

@@ -4,7 +4,7 @@ Notifications Router
 API endpoints for notification management, preferences, and email configuration.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
@@ -1229,3 +1229,135 @@ async def trigger_notify_chat_message(
         db=db
     )
     return {"status": "success", "notifications_created": count}
+
+@router.get("/internal/broadcast-targets/{room_id}")
+async def get_broadcast_targets(
+    room_id: str,
+    sender_id: int = Query(...),
+    offset: int = Query(0),
+    limit: int = Query(100),
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to fetch a chunk of notification targets for a broadcast.
+    """
+    from app.models import UserChatRoomMember, User, NotificationPreference, PushSubscription
+    
+    # 1. Get room members (excluding sender)
+    query = db.query(UserChatRoomMember).filter(
+        UserChatRoomMember.room_id == room_id,
+        UserChatRoomMember.user_id != sender_id,
+        UserChatRoomMember.left_at.is_(None)
+    )
+    
+    total_count = query.count()
+    members = query.offset(offset).limit(limit).all()
+    
+    targets = []
+    for member in members:
+        user = db.query(User).filter(User.id == member.user_id, User.enabled == True).first()
+        if not user:
+            continue
+            
+        # Get preferences for chat messages
+        pref = db.query(NotificationPreference).filter(
+            NotificationPreference.user_id == user.id,
+            NotificationPreference.category == 'user_chat_message'
+        ).first()
+        
+        # Default logic (mirroring notification_service.py)
+        should_push = not pref or pref.enable_push
+        should_email = pref and pref.enable_email and pref.frequency == 'immediate'
+        
+        if not should_push and not should_email:
+            continue
+            
+        target = {
+            "user_id": user.id,
+            "email": user.email if should_email else None,
+            "should_email": should_email,
+            "should_push": should_push,
+            "push_subscriptions": []
+        }
+        
+        if should_push:
+            subs = db.query(PushSubscription).filter(
+                PushSubscription.user_id == user.id,
+                PushSubscription.fail_count < 10
+            ).all()
+            for sub in subs:
+                target["push_subscriptions"].append({
+                    "id": sub.id,
+                    "endpoint": sub.endpoint,
+                    "p256dh": sub.p256dh,
+                    "auth": sub.auth
+                })
+                
+        targets.append(target)
+        
+    return {
+        "targets": targets,
+        "has_more": offset + limit < total_count,
+        "total_count": total_count,
+        "offset": offset,
+        "limit": limit
+    }
+
+@router.post("/internal/create-bulk")
+async def create_bulk_notifications(
+    requests: List[Dict[str, Any]],
+    db: Session = Depends(get_db),
+    notification_service: NotificationService = Depends(NotificationService),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to create multiple notifications in one transaction.
+    """
+    results = []
+    for req in requests:
+        notif = notification_service.create_notification(
+            user_id=req['user_id'],
+            category=req['category'],
+            title=req['title'],
+            message=req['message'],
+            link_url=req.get('link_url'),
+            entity_type=req.get('entity_type'),
+            entity_id=req.get('entity_id'),
+            db=db
+        )
+        if notif:
+            results.append({"user_id": req['user_id'], "notification_id": notif.id})
+            
+    return {"status": "success", "created_count": len(results), "notifications": results}
+
+@router.get("/internal/broadcast-context/{message_id}")
+async def get_broadcast_context(
+    message_id: int,
+    db: Session = Depends(get_db),
+    _: bool = Depends(verify_lambda_api_key)
+):
+    """
+    Internal endpoint for Lambda to fetch sender and center names for a broadcast message.
+    """
+    from app.models import UserChatMessage, User, UserChatRoom, DivingCenter
+    
+    msg = db.query(UserChatMessage).filter(UserChatMessage.id == message_id).first()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Message not found")
+        
+    sender = db.query(User).filter(User.id == msg.sender_id).first()
+    sender_name = sender.name or sender.username if sender else "A buddy"
+    
+    room = db.query(UserChatRoom).filter(UserChatRoom.id == msg.room_id).first()
+    center_name = "Divemap"
+    if room and room.diving_center_id:
+        center = db.query(DivingCenter).filter(DivingCenter.id == room.diving_center_id).first()
+        if center:
+            center_name = center.name
+            
+    return {
+        "sender_name": sender_name,
+        "center_name": center_name,
+        "room_id": msg.room_id
+    }

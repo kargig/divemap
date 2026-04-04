@@ -312,6 +312,129 @@ def process_push_notification(
         return False
 
 
+def process_broadcast_relay(
+    room_id: str,
+    sender_id: int,
+    message_id: int,
+    offset: int,
+    limit: int
+) -> bool:
+    """
+    Process a chunk of broadcast recipients and queue the next baton in SQS.
+    """
+    logger.info(f"Processing broadcast relay for room {room_id}, offset {offset}, limit {limit}")
+    
+    # 1. Fetch context (Sender/Center names)
+    context = call_backend_api(f"/api/v1/notifications/internal/broadcast-context/{message_id}")
+    if not context:
+        logger.error(f"Failed to fetch context for message {message_id}")
+        return False
+        
+    sender_name = context.get('sender_name', 'A buddy')
+    center_name = context.get('center_name', 'Divemap')
+    
+    # 2. Fetch recipients chunk
+    targets_data = call_backend_api(
+        f"/api/v1/notifications/internal/broadcast-targets/{room_id}?sender_id={sender_id}&offset={offset}&limit={limit}"
+    )
+    
+    if not targets_data:
+        logger.error("Failed to fetch broadcast targets")
+        return False
+        
+    targets = targets_data.get('targets', [])
+    if not targets:
+        logger.info("No recipients found in this chunk.")
+    else:
+        # 3. Bulk Create In-App Notifications
+        bulk_requests = []
+        for target in targets:
+            if target.get('should_push') or target.get('should_email'):
+                bulk_requests.append({
+                    "user_id": target['user_id'],
+                    "category": 'user_chat_message',
+                    "title": f"New message from {sender_name}",
+                    "message": f"New broadcast from {center_name}",
+                    "link_url": "/messages",
+                    "entity_type": 'chat_message',
+                    "entity_id": message_id
+                })
+        
+        notif_mapping = {}
+        if bulk_requests:
+            bulk_result = call_backend_api("/api/v1/notifications/internal/create-bulk", method="POST", data=bulk_requests)
+            if bulk_result and bulk_result.get('status') == 'success':
+                for item in bulk_result.get('notifications', []):
+                    notif_mapping[item['user_id']] = item['notification_id']
+        
+        # 4. Deliver Push and Email
+        for target in targets:
+            user_id = target['user_id']
+            # Send Push
+            if target.get('should_push'):
+                payload = {
+                    'title': center_name,
+                    'body': f'New message from {sender_name}',
+                    'url': '/messages',
+                    'tag': f'chat_room_{room_id}'
+                }
+                for sub in target.get('push_subscriptions', []):
+                    process_push_notification(
+                        subscription_id=sub['id'],
+                        endpoint=sub['endpoint'],
+                        p256dh=sub['p256dh'],
+                        auth=sub['auth'],
+                        payload=payload
+                    )
+            
+            # Send Email
+            if target.get('should_email') and user_id in notif_mapping:
+                process_email_notification(
+                    notification_id=notif_mapping[user_id],
+                    user_email=target['email'],
+                    notification_data={
+                        'title': f"New message from {sender_name}",
+                        'message': f"You have a new message in {center_name} announcements.",
+                        'link_url': '/messages',
+                        'category': 'user_chat_message'
+                    },
+                    user_id=user_id
+                )
+
+    # 5. Pass the baton to next SQS message if there are more
+    if targets_data.get('has_more'):
+        next_offset = offset + limit
+        logger.info(f"Passing baton: queueing next SQS message with offset {next_offset}")
+        
+        if not BOTO3_AVAILABLE:
+            logger.error("boto3 not available, cannot pass baton")
+            return True # Current chunk succeeded at least
+            
+        try:
+            sqs = boto3.client('sqs')
+            queue_url = os.environ.get('SQS_QUEUE_URL')
+            if not queue_url:
+                # Try to derive it or use a fallback if possible
+                logger.error("SQS_QUEUE_URL not set in environment")
+                return True
+                
+            sqs.send_message(
+                QueueUrl=queue_url,
+                MessageBody=json.dumps({
+                    'type': 'broadcast_relay',
+                    'room_id': room_id,
+                    'sender_id': sender_id,
+                    'message_id': message_id,
+                    'offset': next_offset,
+                    'limit': limit
+                })
+            )
+        except Exception as e:
+            logger.error(f"Failed to pass baton to SQS: {e}")
+            
+    return True
+
+
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda handler for SQS notification processing.
@@ -351,27 +474,37 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         success_count += 1
                     else:
                         failure_count += 1
-                elif task_type == 'new_chat_message':
-                    # Call backend to generate notifications for chat message
+                elif task_type == 'new_chat_message' or task_type == 'broadcast_relay':
+                    # Support both standard chat messages and recursive broadcast relay
                     room_id = body.get('room_id')
                     sender_id = body.get('sender_id')
                     message_id = body.get('message_id')
                     
                     if not all([room_id, sender_id, message_id]):
-                        logger.error(f"Invalid new_chat_message format: {body}")
+                        logger.error(f"Invalid message format for {task_type}: {body}")
                         failure_count += 1
                         continue
-                        
-                    result = call_backend_api(
-                        f"/api/v1/notifications/internal/notify-chat-message?room_id={room_id}&sender_id={sender_id}&message_id={message_id}",
-                        method="POST"
-                    )
-                    
-                    if result and result.get('status') == 'success':
-                        success_count += 1
-                        logger.info(f"Chat notifications triggered successfully for room {room_id}")
+
+                    if task_type == 'broadcast_relay':
+                        # Handle recursive chunked processing
+                        offset = body.get('offset', 0)
+                        limit = body.get('limit', 100)
+                        if process_broadcast_relay(room_id, sender_id, message_id, offset, limit):
+                            success_count += 1
+                        else:
+                            failure_count += 1
                     else:
-                        failure_count += 1
+                        # Standard individual processing for normal chat messages
+                        result = call_backend_api(
+                            f"/api/v1/notifications/internal/notify-chat-message?room_id={room_id}&sender_id={sender_id}&message_id={message_id}",
+                            method="POST"
+                        )
+                        
+                        if result and result.get('status') == 'success':
+                            success_count += 1
+                            logger.info(f"Chat notifications triggered successfully for room {room_id}")
+                        else:
+                            failure_count += 1
                 else:
                     # Process Email Notification
                     notification_id = body.get('notification_id')
