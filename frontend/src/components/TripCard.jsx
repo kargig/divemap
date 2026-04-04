@@ -34,12 +34,19 @@ const TripCard = ({
   compactLayout = false,
   viewMode = 'list',
 }) => {
+  // Helper function to get dive site details
+  const getDiveSite = diveSiteId => {
+    if (!diveSiteId) return null;
+    return (
+      diveSites.find(site => site.id === diveSiteId) ||
+      additionalDiveSites.find(site => site.id === diveSiteId) ||
+      null
+    );
+  };
+
   // Helper function to get dive site rating
   const getDiveSiteRating = diveSiteId => {
-    if (!diveSiteId) return null;
-    const diveSite =
-      diveSites.find(site => site.id === diveSiteId) ||
-      additionalDiveSites.find(site => site.id === diveSiteId);
+    const diveSite = getDiveSite(diveSiteId);
     return diveSite?.average_rating || null;
   };
 
@@ -157,13 +164,13 @@ const TripCard = ({
         </div>
       )}
 
-      <div className={isGrid ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-6'}>
+      <div className={isGrid ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-5 lg:p-4'}>
         {!isGrid && (
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-2'>
             <div className='flex items-center gap-3'>
               <div>
                 <h3
-                  className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-lg'}`}
+                  className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-base sm:text-lg'}`}
                 >
                   {user ? (
                     <Link
@@ -213,7 +220,7 @@ const TripCard = ({
         )}
 
         {/* Location & Tags Row */}
-        <div className='flex flex-wrap items-center gap-3 mb-4'>
+        <div className='flex flex-wrap items-center gap-3 mb-3 lg:mb-2'>
           <div className='gap-1.5 text-gray-600 min-w-0 flex-1 sm:flex-initial flex'>
             <Building className='w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5' />
             {trip.diving_center_id && trip.diving_center_name ? (
@@ -252,23 +259,23 @@ const TripCard = ({
         {/* Description - Hidden on grid if too long */}
         {trip.trip_description && (
           <p
-            className={`text-gray-700 text-sm leading-relaxed mb-4 ${isGrid ? 'line-clamp-2' : 'line-clamp-3'}`}
+            className={`text-gray-700 text-sm leading-relaxed mb-3 lg:mb-2 ${isGrid ? 'line-clamp-2' : 'line-clamp-3'}`}
           >
             {decodeHtmlEntities(trip.trip_description)}
           </p>
         )}
 
-        {/* Details Grid - Always 2 cols on mobile */}
+        {/* Details Grid - Always 2 cols on mobile, up to 6 on desktop */}
         <div
-          className={`grid grid-cols-2 ${isGrid ? 'gap-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4'} mb-5`}
+          className={`grid grid-cols-2 ${isGrid ? 'gap-2' : 'sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-2'} mb-4 lg:mb-3`}
         >
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Calendar className='h-3.5 w-3.5 mr-2 text-blue-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                 Date
               </div>
-              <div className='font-medium text-xs sm:text-sm truncate'>
+              <div className='font-medium text-[11px] sm:text-xs truncate'>
                 {trip.trip_date
                   ? new Date(trip.trip_date).toLocaleDateString(undefined, {
                       day: 'numeric',
@@ -279,37 +286,37 @@ const TripCard = ({
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Clock className='h-3.5 w-3.5 mr-2 text-green-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                 Time
               </div>
-              <div className='font-medium text-xs sm:text-sm'>
+              <div className='font-medium text-[11px] sm:text-xs'>
                 {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
               </div>
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Euro className='h-3.5 w-3.5 mr-2 text-amber-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                 Price
               </div>
-              <div className='font-medium text-xs sm:text-sm truncate'>
+              <div className='font-medium text-[11px] sm:text-xs truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Users className='h-3.5 w-3.5 mr-2 text-orange-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                 Group
               </div>
-              <div className='font-medium text-xs sm:text-sm'>
+              <div className='font-medium text-[11px] sm:text-xs'>
                 Max {trip.group_size_limit || 'N/A'}
               </div>
             </div>
@@ -317,27 +324,31 @@ const TripCard = ({
 
           {!isGrid && (
             <>
-              {trip.trip_duration && (
-                <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+              {trip.trip_duration ? (
+                <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <Clock className='h-3.5 w-3.5 mr-2 text-purple-600 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                       Duration
                     </div>
-                    <div className='font-medium text-xs sm:text-sm'>{trip.trip_duration}m</div>
+                    <div className='font-medium text-[11px] sm:text-xs'>{trip.trip_duration}m</div>
                   </div>
                 </div>
+              ) : (
+                <div className='hidden lg:block'></div>
               )}
-              {trip.max_depth && (
-                <div className='flex items-center text-gray-600 p-1.5 sm:p-3 bg-gray-50/50 rounded-lg border border-gray-100'>
+              {trip.max_depth ? (
+                <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <TrendingUp className='h-3.5 w-3.5 mr-2 text-blue-400 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[10px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
                       Max Depth
                     </div>
-                    <div className='font-medium text-xs sm:text-sm'>{trip.max_depth}m</div>
+                    <div className='font-medium text-[11px] sm:text-xs'>{trip.max_depth}m</div>
                   </div>
                 </div>
+              ) : (
+                <div className='hidden lg:block'></div>
               )}
             </>
           )}
@@ -358,26 +369,46 @@ const TripCard = ({
 
         {/* Compact Dive Plan */}
         {trip.dives && trip.dives.length > 0 && (
-          <div className='mb-4'>
-            <h4 className='text-[10px] sm:text-xs font-semibold text-gray-500 mb-2 flex items-center leading-tight uppercase tracking-wider'>
+          <div className='mb-3 lg:mb-2'>
+            <h4 className='text-[10px] sm:text-xs font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
               Dive Plan ({trip.dives.length})
             </h4>
-            <div className='space-y-1.5'>
-              {trip.dives.map((dive, index) => (
-                <div
-                  key={dive.id}
-                  className='flex gap-2 p-1.5 sm:p-2 bg-blue-50/30 rounded-md border border-blue-100/50 overflow-hidden'
-                >
-                  <div className='flex justify-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-[9px] sm:text-[10px] font-bold text-blue-700 shrink-0'>
-                    {index + 1}
+            <div className='space-y-1 lg:space-y-0.5'>
+              {trip.dives.map((dive, index) => {
+                const site = getDiveSite(dive.dive_site_id);
+                return (
+                  <div
+                    key={dive.id}
+                    className='flex gap-2 p-1.5 sm:p-2 lg:p-1.5 bg-blue-50/30 rounded-md border border-blue-100/50 overflow-hidden items-center'
+                  >
+                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-[9px] sm:text-[10px] font-bold text-blue-700 shrink-0'>
+                      {index + 1}
+                    </div>
+                    <div className='flex gap-1.5 items-center min-w-0'>
+                      <MapPin className='w-3.5 h-3.5 text-blue-400 shrink-0' />
+                      {renderSiteName(dive.dive_site_id, dive.dive_site_name)}
+                    </div>
+                    {/* Tags inline on desktop */}
+                    {!isGrid && site?.tags?.length > 0 && (
+                      <div className='hidden sm:flex flex-wrap gap-1 mx-2 overflow-hidden flex-1'>
+                        {site.tags.map(tag => (
+                          <span
+                            key={tag.id}
+                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {/* Spacer for mobile so rating stays right aligned */}
+                    {(!site?.tags || site.tags.length === 0 || isGrid) && (
+                      <div className='flex-1'></div>
+                    )}
+                    {renderRatingBadge(dive.dive_site_id, dive.dive_site_name)}
                   </div>
-                  <div className='flex gap-1.5 flex-1 min-w-0'>
-                    <MapPin className='w-3.5 h-3.5 text-blue-400 shrink-0' />
-                    {renderSiteName(dive.dive_site_id, dive.dive_site_name)}
-                  </div>
-                  {renderRatingBadge(dive.dive_site_id, dive.dive_site_name)}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

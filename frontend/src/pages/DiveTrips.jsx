@@ -75,7 +75,7 @@ const DiveTrips = () => {
   const [viewMode, setViewMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const viewMode = params.get('view');
-    return viewMode === 'map' ? 'map' : viewMode === 'grid' ? 'grid' : 'list';
+    return viewMode === 'grid' ? 'grid' : 'list';
   });
 
   // Compact layout state management (default: false/non-compact)
@@ -561,21 +561,24 @@ const DiveTrips = () => {
   const toggleFilters = () => {
     setShowFilters(!showFilters);
   };
-
   const handleViewModeChange = newViewMode => {
+    if (newViewMode === 'map') {
+      navigate('/map?type=dive-trips');
+      return;
+    }
+
     setViewMode(newViewMode);
     // Update URL with new view mode
     const urlParams = new URLSearchParams(window.location.search);
-    if (newViewMode === 'map') {
-      urlParams.set('view', 'map');
-    } else if (newViewMode === 'grid') {
+    if (newViewMode === 'grid') {
       urlParams.set('view', 'grid');
     } else {
       urlParams.delete('view');
     }
+
+    // Replace URL without triggering reload
     navigate(`?${urlParams.toString()}`, { replace: true });
   };
-
   // Helper function to get dive site rating
   const getDiveSiteRating = diveSiteId => {
     if (!diveSiteId || !diveSites) return null;
@@ -798,35 +801,6 @@ const DiveTrips = () => {
           </div>
         )}
 
-        {/* Map Section - Redirect to Unified Map */}
-        {viewMode === 'map' && (
-          <div className='mb-6 bg-white rounded-lg shadow-md p-8 text-center'>
-            <Map className='h-16 w-16 text-blue-600 mx-auto mb-4' />
-            <h3 className='text-xl font-semibold text-gray-900 mb-2'>Interactive Map View</h3>
-            <p className='text-gray-600 mb-6'>
-              The map view has been moved to our unified interactive map for a better experience.
-            </p>
-            <div className='flex flex-col sm:flex-row gap-3 justify-center'>
-              <button
-                onClick={() => {
-                  navigate('/map?type=dive-trips');
-                }}
-                className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2'
-              >
-                <Map className='w-5 h-5' />
-                Open Interactive Map
-              </button>
-              <button
-                onClick={() => changeViewMode('list')}
-                className='bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2'
-              >
-                <List className='w-5 h-5' />
-                Back to List View
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Date Filter Confirmation Message */}
         {showDateFilterMessage && (
           <div className='mb-4 bg-green-50 border border-green-200 rounded-lg p-4'>
@@ -979,35 +953,6 @@ const DiveTrips = () => {
                 There are currently no dive trips available. Check back later for new trips!
               </p>
             )}
-          </div>
-        )}
-
-        {/* Map View No Results */}
-        {viewMode === 'map' && sortedTrips && sortedTrips.length === 0 && (
-          <div className='bg-white rounded-lg shadow-md p-8 text-center'>
-            <Map className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-            <h3 className='text-lg font-medium text-gray-900 mb-2'>No trips to display on map</h3>
-            <p className='text-gray-600 mb-4'>
-              {Object.values(filters).some(value => value && value.trim() !== '')
-                ? 'No trips match your current filters. Try adjusting your search criteria or switch to list view to see all available trips.'
-                : 'There are currently no dive trips available with location data. Switch to list view to see all trips.'}
-            </p>
-            <div className='flex justify-center space-x-3'>
-              <button
-                onClick={() => changeViewMode('list')}
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-              >
-                Switch to List View
-              </button>
-              {Object.values(filters).some(value => value && value.trim() !== '') && (
-                <button
-                  onClick={clearFilters}
-                  className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
-                >
-                  Clear Filters
-                </button>
-              )}
-            </div>
           </div>
         )}
 
