@@ -87,8 +87,8 @@ generate-llm-content:
 lint-frontend:
 	@echo "🧹 Running frontend format and lint:fix..."
 	@docker exec divemap_frontend npm run format > /dev/null 2>&1 || true
-	@docker exec divemap_frontend npm run lint:fix -- --quiet > frontend-lint-errors.log 2>&1 || true
-	@echo "✅ Linting complete. Check 'frontend-lint-errors.log' for any remaining errors."
+	@docker exec divemap_frontend npm run lint:fix -- --quiet > frontend-lint-errors.log 2>&1 || if [ $$(wc -l < frontend-lint-errors.log) -gt 2 ]; then echo "❌ Linting failed:"; cat frontend-lint-errors.log; exit 1; fi
+	@echo "✅ Linting complete. No errors found."
 
 # Purge Cloudflare cache
 purge-cache:
