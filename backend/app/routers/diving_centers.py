@@ -2306,7 +2306,8 @@ async def broadcast_trip_to_followers(
         "spots_total": trip.group_size_limit,
         "spots_booked": trip.current_bookings,
         "status": trip.trip_status.name if hasattr(trip.trip_status, 'name') else trip.trip_status,
-        "dive_sites": dive_sites_list
+        "dive_sites": dive_sites_list,
+        "is_update": request.is_update or False
     })
     
     ciphertext = encrypt_message(trip_payload, broadcast_room.encrypted_dek)
@@ -2465,7 +2466,8 @@ async def broadcast_text_to_followers(
             sender_id=current_user.id,
             message_id=msg.id,
             offset=0,
-            limit=100
+            limit=100,
+            is_update=request.is_update or False
         )
     
     return {"status": "success", "message": "Text message broadcasted successfully"}

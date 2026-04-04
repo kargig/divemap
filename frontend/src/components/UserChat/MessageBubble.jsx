@@ -112,7 +112,7 @@ const MessageBubble = ({
       )}
 
       <div
-        className={`max-w-[75%] md:max-w-[65%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
+        className={`max-w-[85%] sm:max-w-[75%] md:max-w-[65%] flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}
       >
         {!isOwn && showName && (
           <span className='text-[10px] text-gray-400 mb-1 ml-1 uppercase tracking-wider font-semibold'>
@@ -122,7 +122,7 @@ const MessageBubble = ({
 
         <div className='group relative flex items-end'>
           <div
-            className={`px-4 py-2 text-sm shadow-sm transition-colors ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm shadow-sm transition-colors ${
               isOwn
                 ? `bg-blue-600 text-white rounded-2xl ${!showName ? 'rounded-tr-[4px]' : ''} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-[4px]'}`
                 : isBot
@@ -145,25 +145,25 @@ const MessageBubble = ({
                     : null;
 
                 return (
-                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 min-w-[280px] max-w-sm'>
-                    <div className='p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 flex justify-between items-center'>
-                      <span className='text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
-                        New Trip Announcement
+                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 min-w-[180px] sm:min-w-[280px] max-w-sm'>
+                    <div className='p-1.5 sm:p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 flex justify-between items-center'>
+                      <span className='text-[9px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
+                        {tripData.is_update ? 'Updated Trip Announcement' : 'New Trip Announcement'}
                       </span>
                       {tripData.status === 'confirmed' && (
-                        <span className='text-[10px] font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full uppercase'>
+                        <span className='text-[8px] sm:text-[10px] font-bold text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1 sm:px-2 py-0.5 rounded-full uppercase'>
                           Confirmed
                         </span>
                       )}
                     </div>
-                    <div className='p-4'>
-                      <h4 className='font-bold text-gray-900 dark:text-white mb-2 text-base leading-snug'>
+                    <div className='p-2 sm:p-4'>
+                      <h4 className='font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2 text-xs sm:text-base leading-snug'>
                         {tripData.name || 'Dive Trip'}
                       </h4>
 
                       {tripData.dive_sites && tripData.dive_sites.length > 0 && (
-                        <div className='flex items-start gap-1.5 mb-3 text-sm text-gray-700 dark:text-gray-300'>
-                          <MapPin className='w-4 h-4 text-blue-500 mt-0.5 shrink-0' />
+                        <div className='flex items-start gap-1 mb-2 sm:mb-3 text-[10px] sm:text-sm text-gray-700 dark:text-gray-300'>
+                          <MapPin className='w-3 h-3 sm:w-4 sm:h-4 text-blue-500 mt-0.5 shrink-0' />
                           <div className='font-medium line-clamp-2'>
                             {tripData.dive_sites.map((site, index) => {
                               // Handle both old string format and new object format gracefully
@@ -193,34 +193,34 @@ const MessageBubble = ({
                         </div>
                       )}
 
-                      <div className='grid grid-cols-2 gap-2 mb-4 text-sm text-gray-700 dark:text-gray-300'>
+                      <div className='grid grid-cols-2 gap-x-1.5 gap-y-1 sm:gap-2 mb-3 sm:mb-4 text-[10px] sm:text-sm text-gray-700 dark:text-gray-300'>
                         {' '}
                         {tripData.date && (
-                          <div className='flex items-center space-x-1.5'>
-                            <span className='text-blue-500'>📅</span>
-                            <span>{tripData.date}</span>
+                          <div className='flex items-center space-x-1'>
+                            <span className='text-blue-500 w-3 text-center'>📅</span>
+                            <span className='truncate'>{tripData.date}</span>
                           </div>
                         )}
                         {tripData.time && (
-                          <div className='flex items-center space-x-1.5'>
-                            <span className='text-blue-500'>🕒</span>
-                            <span>{tripData.time.substring(0, 5)}</span>
+                          <div className='flex items-center space-x-1'>
+                            <span className='text-blue-500 w-3 text-center'>🕒</span>
+                            <span className='truncate'>{tripData.time.substring(0, 5)}</span>
                           </div>
                         )}
                         {tripData.price && (
-                          <div className='flex items-center space-x-1.5'>
+                          <div className='flex items-center space-x-1'>
                             <CurrencyIcon
                               currencyCode={tripData.currency}
-                              className='w-4 h-4 text-blue-500'
+                              className='w-3 h-3 sm:w-4 sm:h-4 text-blue-500 shrink-0'
                             />
-                            <span className='font-semibold text-gray-900 dark:text-gray-100'>
+                            <span className='font-semibold text-gray-900 dark:text-gray-100 truncate'>
                               {tripData.price}
                             </span>
                           </div>
                         )}
                         {tripData.difficulty && (
-                          <div className='flex items-center space-x-1.5'>
-                            <span className='text-blue-500'>⭐</span>
+                          <div className='flex items-center space-x-1'>
+                            <span className='text-blue-500 w-3 text-center'>⭐</span>
                             <span
                               className='truncate capitalize'
                               title={tripData.difficulty.replace(/_/g, ' ').toLowerCase()}
@@ -230,16 +230,16 @@ const MessageBubble = ({
                           </div>
                         )}
                         {tripData.max_depth && (
-                          <div className='flex items-center space-x-1.5'>
-                            <TrendingUp className='w-3.5 h-3.5 text-blue-500 shrink-0' />
-                            <span className='font-medium text-gray-900 dark:text-gray-100'>
+                          <div className='flex items-center space-x-1'>
+                            <TrendingUp className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-blue-500 shrink-0' />
+                            <span className='font-medium text-gray-900 dark:text-gray-100 truncate'>
                               {tripData.max_depth}m
                             </span>
                           </div>
                         )}
                       </div>
                       {spotsAvailable !== null && (
-                        <div className='mb-4 text-xs font-medium px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-center'>
+                        <div className='mb-3 sm:mb-4 text-[9px] sm:text-xs font-medium px-1.5 sm:px-3 py-1 sm:py-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-center'>
                           {spotsAvailable > 0 ? (
                             <span className='text-green-600 dark:text-green-400'>
                               {spotsAvailable} spot{spotsAvailable !== 1 && 's'} remaining
@@ -252,7 +252,7 @@ const MessageBubble = ({
 
                       <Link
                         to={`/dive-trips/${tripData.trip_id}`}
-                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors shadow-sm'
+                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 sm:py-2.5 text-[10px] sm:text-sm rounded-lg transition-colors shadow-sm'
                       >
                         View Trip Details
                       </Link>

@@ -1105,6 +1105,7 @@ class PlatformStatsResponse(BaseModel):
 
 class BroadcastTextRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
+    is_update: Optional[bool] = False
 
 # Notification Analytics Schemas
 class InAppNotificationStats(BaseModel):
