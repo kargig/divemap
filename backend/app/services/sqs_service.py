@@ -264,3 +264,31 @@ class SQSService:
                 logger.error(f"Error sending push batch to SQS: {e}")
                 
         return success_count
+
+    def send_broadcast_relay_task(self, room_id: str, sender_id: int, message_id: int, offset: int = 0, limit: int = 100) -> bool:
+        """
+        Send a broadcast relay task to SQS.
+        This task triggers a recursive Lambda relay for efficient notification fan-out.
+        """
+        if not self.sqs_available or not self.sqs_client:
+            return False
+            
+        message_body = {
+            'type': 'broadcast_relay',
+            'room_id': room_id,
+            'sender_id': sender_id,
+            'message_id': message_id,
+            'offset': offset,
+            'limit': limit
+        }
+        
+        try:
+            self.sqs_client.send_message(
+                QueueUrl=self.queue_url,
+                MessageBody=orjson.dumps(message_body).decode('utf-8'),
+                DelaySeconds=0
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Error sending broadcast relay task to SQS: {e}")
+            return False
