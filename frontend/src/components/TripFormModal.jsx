@@ -1,12 +1,13 @@
 import { Plus, X } from 'lucide-react';
 import PropTypes from 'prop-types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
+import { DiveSiteSearchDropdown } from './ui/DiveSiteSearchDropdown';
 import Modal from './ui/Modal';
 import Select from './ui/Select';
 
@@ -25,6 +26,8 @@ const TripFormModal = ({
 }) => {
   // Combine regular dive sites with additional ones
   const allDiveSites = [...diveSites, ...additionalDiveSites];
+
+  const [customDiveSites, setCustomDiveSites] = useState({});
 
   // Prepare default values
   const getDefaultValues = () => {
@@ -414,26 +417,34 @@ const TripFormModal = ({
               <Controller
                 name={`dives.${index}.dive_site_id`}
                 control={control}
-                render={({ field }) => (
-                  <Select
-                    id={`dive-site-${index}`}
-                    label='Dive Site'
-                    value={field.value ? field.value.toString() : 'all'}
-                    onValueChange={value => field.onChange(value === 'all' ? null : Number(value))}
-                    error={
-                      errors.dives?.[index]?.dive_site_id
-                        ? getErrorMessage(errors.dives?.[index]?.dive_site_id)
-                        : null
-                    }
-                    options={[
-                      { value: 'all', label: 'Select dive site' },
-                      ...allDiveSites.map(site => ({
-                        value: site.id.toString(),
-                        label: site.name,
-                      })),
-                    ]}
-                  />
-                )}
+                render={({ field }) => {
+                  let site = allDiveSites.find(s => s.id === field.value);
+                  if (!site && field.value && customDiveSites[field.value]) {
+                    site = { id: field.value, name: customDiveSites[field.value] };
+                  }
+                  const siteValue = site ? { id: site.id, name: site.name } : null;
+
+                  return (
+                    <DiveSiteSearchDropdown
+                      label='Dive Site'
+                      value={siteValue}
+                      onChange={selectedSite => {
+                        if (selectedSite && !allDiveSites.some(s => s.id === selectedSite.id)) {
+                          setCustomDiveSites(prev => ({
+                            ...prev,
+                            [selectedSite.id]: selectedSite.name,
+                          }));
+                        }
+                        field.onChange(selectedSite ? selectedSite.id : null);
+                      }}
+                      error={
+                        errors.dives?.[index]?.dive_site_id
+                          ? getErrorMessage(errors.dives?.[index]?.dive_site_id)
+                          : null
+                      }
+                    />
+                  );
+                }}
               />
 
               <div>

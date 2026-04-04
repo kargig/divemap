@@ -9,7 +9,6 @@ import {
   Edit,
   X,
   ChevronRight,
-  Star,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -72,7 +71,11 @@ const TripCard = ({
 
     return (
       <div className='flex items-center gap-1 bg-yellow-50 dark:bg-yellow-100/50 rounded-full px-1.5 py-0.5 shrink-0 ml-auto'>
-        <Star className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-current' />
+        <img
+          src='/arts/divemap_shell.png'
+          alt='Rating'
+          className='w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain'
+        />
         <span className='text-[10px] sm:text-[11px] font-bold text-yellow-800 leading-none'>
           {rating.toFixed(1)}
         </span>

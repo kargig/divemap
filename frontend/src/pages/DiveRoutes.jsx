@@ -373,9 +373,9 @@ const DiveRoutes = () => {
                     </div>
                   )}
 
-                  {/* Stats Strip */}
+                  {/* Stats Strip & Actions */}
                   <div
-                    className={`flex items-center gap-4 sm:gap-6 py-2 sm:py-3 border-y border-gray-50 mb-3 sm:mb-4 mt-auto ${compactLayout ? 'py-1.5 sm:py-2' : 'py-2 sm:py-3'}`}
+                    className={`flex items-center justify-between py-2 sm:py-3 border-y border-gray-50 mt-auto ${compactLayout ? 'py-1.5 sm:py-2' : 'py-2 sm:py-3'}`}
                   >
                     <div className='flex flex-col'>
                       <span className='text-[9px] sm:text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0 sm:mb-0.5'>
@@ -386,14 +386,15 @@ const DiveRoutes = () => {
                         <span
                           className={`font-semibold text-gray-700 ${compactLayout ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'}`}
                         >
-                          {new Date(route.created_at).toLocaleDateString()}
+                          {new Date(route.created_at).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                         </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Footer: Creator & Actions */}
-                  <div className='flex items-center justify-end'>
                     <Link
                       to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
                       className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'

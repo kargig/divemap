@@ -3,7 +3,6 @@ import {
   Plus,
   Eye,
   Search,
-  Star,
   MapPin,
   Building,
   Phone,
@@ -503,7 +502,11 @@ const DivingCenters = () => {
                               </div>
                               {center.average_rating && (
                                 <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
-                                  <Star className='w-2.5 h-2.5 fill-current' />
+                                  <img
+                                    src='/arts/divemap_shell.png'
+                                    alt='Rating'
+                                    className='w-2.5 h-2.5 object-contain'
+                                  />
                                   <span>{center.average_rating.toFixed(1)}</span>
                                 </div>
                               )}
@@ -640,7 +643,11 @@ const DivingCenters = () => {
 
                             {center.average_rating && (
                               <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100'>
-                                <Star className='w-3.5 h-3.5 text-yellow-500 fill-current' />
+                                <img
+                                  src='/arts/divemap_shell.png'
+                                  alt='Rating'
+                                  className='w-3.5 h-3.5 object-contain'
+                                />
                                 <span className='text-sm font-bold text-yellow-700'>
                                   {center.average_rating.toFixed(1)}
                                 </span>

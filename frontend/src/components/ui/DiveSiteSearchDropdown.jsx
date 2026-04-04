@@ -10,6 +10,7 @@ export const DiveSiteSearchDropdown = ({
   label = 'Dive Site',
   placeholder = 'Search dive sites...',
   className,
+  error,
 }) => {
   const fetchDiveSites = async query => {
     try {
@@ -50,7 +51,7 @@ export const DiveSiteSearchDropdown = ({
     <AutocompleteDropdown
       label={label}
       placeholder={placeholder}
-      value={value}
+      value={value ? value.name : ''}
       onChange={selectedSite =>
         onChange(selectedSite ? { id: selectedSite.id, name: selectedSite.name } : null)
       }
@@ -60,6 +61,7 @@ export const DiveSiteSearchDropdown = ({
       displayValueExtractor={site => site.name}
       emptyMessage='No dive sites found'
       className={className}
+      error={error}
     />
   );
 };
