@@ -592,7 +592,11 @@ const DiveTrips = () => {
       day: 'numeric',
     };
     const formattedDate = date.toLocaleDateString(undefined, options);
-    const shortDate = date.toLocaleDateString(undefined);
+    const shortDate = date.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
     return `${formattedDate} (${shortDate})`;
   };
 
@@ -606,10 +610,9 @@ const DiveTrips = () => {
     const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
     const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
       day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     };
     const formattedDate = date.toLocaleDateString(undefined, options);
 
@@ -1012,7 +1015,11 @@ const DiveTrips = () => {
                             </h3>
                             <p className='text-gray-600 text-xs'>
                               {trip.trip_date
-                                ? new Date(trip.trip_date).toLocaleDateString(undefined)
+                                ? new Date(trip.trip_date).toLocaleDateString(undefined, {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })
                                 : 'N/A'}
                             </p>
                           </div>
@@ -1097,7 +1104,11 @@ const DiveTrips = () => {
                             title='Click to filter by this date'
                           >
                             {trip.trip_date
-                              ? new Date(trip.trip_date).toLocaleDateString(undefined)
+                              ? new Date(trip.trip_date).toLocaleDateString(undefined, {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                })
                               : 'N/A'}
                           </button>
                         </div>
@@ -1284,14 +1295,24 @@ const DiveTrips = () => {
                         {trip.created_at && (
                           <span className='flex items-center'>
                             <span>
-                              Added {new Date(trip.created_at).toLocaleDateString(undefined)}
+                              Added{' '}
+                              {new Date(trip.created_at).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
                             </span>
                           </span>
                         )}
                         {trip.updated_at && trip.updated_at !== trip.created_at && (
                           <span className='flex items-center'>
                             <span>
-                              Updated {new Date(trip.updated_at).toLocaleDateString(undefined)}
+                              Updated{' '}
+                              {new Date(trip.updated_at).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
                             </span>
                           </span>
                         )}
@@ -1391,7 +1412,11 @@ const DiveTrips = () => {
 
                       <p className='text-gray-600 mb-3 text-xs'>
                         {trip.trip_date
-                          ? new Date(trip.trip_date).toLocaleDateString(undefined)
+                          ? new Date(trip.trip_date).toLocaleDateString(undefined, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })
                           : 'N/A'}
                       </p>
 

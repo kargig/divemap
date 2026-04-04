@@ -265,7 +265,11 @@ const TripDetail = () => {
     if (!trip) return '';
 
     const tripName = generateTripName(trip);
-    const date = new Date(trip.trip_date).toLocaleDateString(undefined);
+    const date = new Date(trip.trip_date).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
 
     let desc = `Join the ${tripName} dive trip on ${date}.`;
 

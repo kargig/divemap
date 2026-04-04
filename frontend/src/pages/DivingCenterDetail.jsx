@@ -247,7 +247,11 @@ const DivingCenterDetail = () => {
   const formatDate = date => {
     if (!date) return '';
     const d = new Date(date);
-    return d.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return d.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   // Helper to format date for API (YYYY-MM-DD)
@@ -1131,7 +1135,11 @@ const DivingCenterDetail = () => {
                         )}
                       </div>
                       <span className='text-sm text-gray-500 ml-2'>
-                        {new Date(comment.created_at).toLocaleDateString(undefined)}
+                        {new Date(comment.created_at).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </span>
                     </div>
                     {user && (user.id === comment.user_id || user.is_admin) && (

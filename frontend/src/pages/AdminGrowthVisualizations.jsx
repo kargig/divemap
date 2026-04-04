@@ -50,11 +50,13 @@ const AdminGrowthVisualizations = () => {
 
   const formatDate = (dateString, includeYear = false) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      ...(includeYear && { year: 'numeric' }),
-    });
+    if (!includeYear) {
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    return date.toLocaleDateString();
   };
 
   // Custom tooltip component (moved outside renderChart to prevent recreation)

@@ -49,9 +49,9 @@ export const formatDateShort = dateString => {
 
   const date = parseUTCDate(dateString);
   return date.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
     year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
   });
 };
 

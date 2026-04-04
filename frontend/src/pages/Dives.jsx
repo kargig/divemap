@@ -881,7 +881,11 @@ const Dives = () => {
   };
 
   const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString(undefined);
+    return new Date(dateString).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   const formatTime = timeString => {
@@ -1085,7 +1089,11 @@ const Dives = () => {
                         {/* Meta Byline - Single line on mobile */}
                         <div className='mt-0.5 text-[10px] sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
                           <Calendar className='w-3 h-3 text-gray-400' />
-                          {new Date(dive.dive_date).toLocaleDateString(undefined)}
+                          {new Date(dive.dive_date).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                           {dive.dive_time && (
                             <span className='flex items-center gap-1'>
                               <span className='text-gray-300'>•</span>
@@ -1218,7 +1226,11 @@ const Dives = () => {
                       </h3>
                       <div className='text-xs text-gray-500 mt-1 flex items-center gap-1.5'>
                         <Calendar className='w-3 h-3' />
-                        {new Date(dive.dive_date).toLocaleDateString(undefined)}
+                        {new Date(dive.dive_date).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                         {dive.user_username && (
                           <>
                             <span>&bull;</span>

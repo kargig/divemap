@@ -370,7 +370,7 @@ const UserProfile = () => {
   const formatDate = dateString => {
     return new Date(dateString).toLocaleDateString(undefined, {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
     });
   };

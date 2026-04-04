@@ -13,13 +13,11 @@ export const generateTripName = trip => {
 
   if (tripDate) {
     const date = new Date(tripDate);
-    const formattedDate = date
-      .toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      })
-      .replace(/\//g, '/');
+    const formattedDate = date.toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
 
     return `${divingCenterName} - ${formattedDate}`;
   }

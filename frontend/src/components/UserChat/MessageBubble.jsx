@@ -198,7 +198,13 @@ const MessageBubble = ({
                         {tripData.date && (
                           <div className='flex items-center space-x-1'>
                             <span className='text-blue-500 w-3 text-center'>📅</span>
-                            <span className='truncate'>{tripData.date}</span>
+                            <span className='truncate'>
+                              {new Date(tripData.date).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
                           </div>
                         )}
                         {tripData.time && (
