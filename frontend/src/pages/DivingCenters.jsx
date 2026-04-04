@@ -588,10 +588,10 @@ const DivingCenters = () => {
                             )}
                             <Link
                               to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                              className='w-8 h-8 inline-flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 active:scale-95 transition-all'
+                              className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
                               title='View Details'
                             >
-                              <ChevronRight className='w-4 h-4 text-gray-600 flex-shrink-0' />
+                              <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
                             </Link>
                           </div>
                         </div>
