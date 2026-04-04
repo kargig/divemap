@@ -89,36 +89,37 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
             )}
             <h1 className='text-3xl font-bold text-gray-900 mb-2 break-words'>{center.name}</h1>
 
-            <div className='flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mb-4'>
-              {(center.city || center.country) && (
-                <div className='flex items-center gap-1.5'>
-                  <MapPin className='w-4 h-4 text-gray-400' />
-                  <span>{[center.city, center.country].filter(Boolean).join(', ')}</span>
-                </div>
-              )}
-            </div>
-
             {user && (
-              <div className='flex flex-wrap gap-2 mt-2'>
-                <Button
+              <div className='flex flex-wrap gap-2 mt-3 w-full'>
+                <button
                   onClick={() => startChatMutation.mutate()}
                   disabled={startChatMutation.isLoading}
-                  variant='primary'
-                  icon={<MessageSquare className='h-4 w-4' />}
-                  className='shadow-sm'
+                  className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white border border-blue-600 hover:bg-blue-50 transition-colors flex-1 sm:flex-none'
                 >
-                  {startChatMutation.isLoading ? 'Loading...' : 'Message Us'}
-                </Button>
-                <Button
+                  <MessageSquare className='h-4 w-4 mr-1.5' />
+                  {startChatMutation.isLoading ? 'Loading...' : 'Message'}
+                </button>
+                <button
                   onClick={() => followMutation.mutate()}
                   disabled={followMutation.isLoading}
-                  variant={isFollowing ? 'secondary' : 'white'}
-                  icon={<Bell className={`h-4 w-4 ${isFollowing ? 'fill-current' : ''}`} />}
-                  className='shadow-sm'
+                  className={`inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm border transition-colors flex-1 sm:flex-none ${
+                    isFollowing
+                      ? 'text-gray-700 bg-white hover:bg-gray-50 border-gray-300'
+                      : 'text-gray-700 bg-white hover:bg-gray-50 border-gray-300'
+                  }`}
                 >
-                  {' '}
-                  {isFollowing ? 'Following' : 'Follow for Updates'}
-                </Button>
+                  <Bell className={`h-4 w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`} />
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+                {shouldShowEdit && (
+                  <Link
+                    to={`/diving-centers/${id}/edit`}
+                    className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 border border-transparent transition-colors flex-1 sm:flex-none'
+                  >
+                    <Edit className='h-4 w-4 mr-1.5' />
+                    Edit Center
+                  </Link>
+                )}
               </div>
             )}
           </div>
@@ -140,16 +141,6 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
           ) : reviewsEnabled !== false ? (
             <div className='text-sm text-gray-500 italic'>No ratings yet</div>
           ) : null}
-          {shouldShowEdit && (
-            <Button
-              to={`/diving-centers/${id}/edit`}
-              variant='primary'
-              icon={<Edit className='h-4 w-4' />}
-              className='mt-2'
-            >
-              Edit Center
-            </Button>
-          )}
         </div>
       </div>
 
