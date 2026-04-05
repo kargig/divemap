@@ -42,6 +42,22 @@ def validate_password_strength(password: str) -> bool:
         return False
     return True
 
+from app.models import DiveSite, Dive, DivingCenter, DiveRoute
+
+def is_trusted_contributor(db: Session, user: User, dive_site: DiveSite) -> bool:
+    if user.is_admin or user.is_moderator:
+        return True
+    if dive_site.created_by == user.id:
+        return True
+    
+    # Explicit DB counts for lightweight activity check
+    dive_count = db.query(Dive).filter(Dive.user_id == user.id).count()
+    site_count = db.query(DiveSite).filter(DiveSite.created_by == user.id).count()
+    center_count = db.query(DivingCenter).filter(DivingCenter.owner_id == user.id).count()
+    route_count = db.query(DiveRoute).filter(DiveRoute.created_by == user.id).count()
+    
+    return (dive_count + site_count + center_count + route_count) >= 1
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 

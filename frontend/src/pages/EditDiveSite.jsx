@@ -954,7 +954,9 @@ const EditDiveSite = () => {
       setSubmitStatus('Saving details...');
 
       // Update the dive site first
-      await updateMutation.mutateAsync(updateData);
+      const updateResponse = await updateMutation.mutateAsync(updateData);
+      const isPendingModeration =
+        updateResponse?.status === 202 || updateResponse?.data?.message?.includes('moderation');
 
       // Handle tag changes
       const currentTagIds = diveSite?.tags?.map(tag => tag.id) || [];
@@ -1048,7 +1050,11 @@ const EditDiveSite = () => {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // Show success message
-      toast.success('Dive site updated successfully');
+      if (isPendingModeration) {
+        toast.info('Thank you! Your suggested edits are pending moderator approval.');
+      } else {
+        toast.success('Dive site updated successfully');
+      }
 
       // Navigate to the dive site detail page
       navigate(`/dive-sites/${id}`);

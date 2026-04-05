@@ -442,6 +442,9 @@ class NotificationService:
         logger.info(f"Queued {success_count} push notifications for user {user.id}")
         return success_count
     
+    async def notify_admins_pending_edit(self, edit_request_id: int, db: Session):
+        pass # To be implemented completely in the future
+
     async def notify_users_for_new_dive_site(self, dive_site_id: int, db: Session) -> int:
         """
         Notify users about a new dive site.

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func, LargeBinary
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func, LargeBinary, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
@@ -116,6 +116,37 @@ class ShortLink(Base):
     original_url = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)
+
+class EditRequestStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+class EditRequestType(str, enum.Enum):
+    site_data = "site_data"
+    media_addition = "media_addition"
+    media_update = "media_update"
+    media_deletion = "media_deletion"
+
+class DiveSiteEditRequest(Base):
+    __tablename__ = "dive_site_edit_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(Enum(EditRequestStatus), default=EditRequestStatus.pending, nullable=False, index=True)
+    edit_type = Column(Enum(EditRequestType), default=EditRequestType.site_data, nullable=False)
+    # Use JSON type, SQLAlchemy will map to JSON/JSONB depending on dialect
+    proposed_data = Column(JSON, nullable=False)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Relationships
+    dive_site = relationship("DiveSite", backref="edit_requests")
+    requested_by = relationship("User", foreign_keys=[requested_by_id])
+    reviewed_by = relationship("User", foreign_keys=[reviewed_by_id])
 
 class User(Base):
     __tablename__ = "users"
