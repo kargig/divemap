@@ -597,6 +597,7 @@ const AdminNotificationPreferences = () => {
                                           category: category.value,
                                           enable_website: [
                                             'system',
+                                            'moderation',
                                             'new_dive_sites',
                                             'new_dive_trips',
                                             'admin_alerts',
