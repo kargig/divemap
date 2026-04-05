@@ -23,7 +23,7 @@ def upgrade() -> None:
     sa.Column('dive_site_id', sa.Integer(), nullable=False),
     sa.Column('requested_by_id', sa.Integer(), nullable=False),
     sa.Column('status', sa.Enum('pending', 'approved', 'rejected', name='editrequeststatus'), nullable=False),
-    sa.Column('edit_type', sa.Enum('site_data', 'media_addition', 'media_update', 'media_deletion', name='editrequesttype'), nullable=False),
+    sa.Column('edit_type', sa.Enum('site_data', 'media_addition', 'media_update', 'media_deletion', 'tag_addition', 'tag_removal', name='editrequesttype'), nullable=False),
     sa.Column('proposed_data', sa.JSON(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('reviewed_at', sa.DateTime(timezone=True), nullable=True),
