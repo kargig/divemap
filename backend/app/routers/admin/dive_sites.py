@@ -50,13 +50,41 @@ async def get_pending_edit_requests(db: Session = Depends(get_db), current_user:
     if not (current_user.is_admin or current_user.is_moderator):
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    return db.query(DiveSiteEditRequest)\
+    requests = db.query(DiveSiteEditRequest)\
         .options(
             joinedload(DiveSiteEditRequest.requested_by),
             joinedload(DiveSiteEditRequest.dive_site)
         )\
         .filter(DiveSiteEditRequest.status == EditRequestStatus.pending)\
         .all()
+        
+    result = []
+    for req in requests:
+        # Build safe dictionary without geometry fields
+        # Safely convert dive_site to dict, excluding 'location'
+        site_dict = None
+        if req.dive_site:
+            site_dict = {
+                c.name: getattr(req.dive_site, c.name) 
+                for c in req.dive_site.__table__.columns 
+                if c.name != 'location'
+            }
+            
+        result.append({
+            "id": req.id,
+            "dive_site_id": req.dive_site_id,
+            "dive_site": site_dict,
+            "requested_by_id": req.requested_by_id,
+            "requested_by": {
+                "id": req.requested_by.id,
+                "username": req.requested_by.username
+            } if req.requested_by else None,
+            "status": req.status,
+            "edit_type": req.edit_type,
+            "proposed_data": req.proposed_data,
+            "created_at": req.created_at
+        })
+    return result
 
 @router.post("/edit-requests/{request_id}/approve")
 async def approve_edit_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
@@ -71,7 +99,19 @@ async def approve_edit_request(request_id: int, db: Session = Depends(get_db), c
         dive_site = db.query(DiveSite).filter(DiveSite.id == edit_req.dive_site_id).first()
         if not dive_site:
             raise HTTPException(status_code=404, detail="Dive site not found")
-        for key, value in edit_req.proposed_data.items():
+            
+        proposed = edit_req.proposed_data.copy()
+        
+        # Translate difficulty_code back to difficulty_id if present
+        if 'difficulty_code' in proposed:
+            from app.models import get_difficulty_id_by_code
+            difficulty_code = proposed.pop('difficulty_code')
+            if difficulty_code is not None:
+                proposed['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
+            else:
+                proposed['difficulty_id'] = None
+
+        for key, value in proposed.items():
             setattr(dive_site, key, value)
             
     elif edit_req.edit_type == EditRequestType.media_addition:

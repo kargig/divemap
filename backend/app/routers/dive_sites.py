@@ -2916,12 +2916,43 @@ async def update_dive_site(
 
     if not is_trusted_contributor(db, current_user, dive_site):
         update_data = dive_site_update.dict(exclude_unset=True)
+        # Compute a strict diff against the current dive site
+        diff_data = {}
+        
+        # In the frontend payload, the difficulty is called `difficulty_code`, but the ORM 
+        # stores it as `difficulty_id`. We need to handle this explicitly so it doesn't 
+        # erroneously trigger a "modified" diff simply because `dive_site.difficulty_code` is missing.
+        if 'difficulty_code' in update_data:
+            difficulty_code = update_data.pop('difficulty_code')
+            new_difficulty_id = get_difficulty_id_by_code(db, difficulty_code) if difficulty_code else None
+            
+            if dive_site.difficulty_id != new_difficulty_id:
+                diff_data['difficulty_code'] = difficulty_code
+                
+        for key, value in update_data.items():
+            current_val = getattr(dive_site, key, None)
+            
+            # Simple conversion to prevent strict string/float mismatches
+            # e.g., '10.0' vs 10.0
+            if current_val is not None and value is not None:
+                if str(current_val) != str(value):
+                    try:
+                        if float(current_val) != float(value):
+                            diff_data[key] = value
+                    except ValueError:
+                        diff_data[key] = value
+            elif current_val != value:
+                diff_data[key] = value
+
+        if not diff_data:
+             return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "No changes detected."})
+
         edit_request = DiveSiteEditRequest(
             dive_site_id=dive_site_id,
             requested_by_id=current_user.id,
             status=EditRequestStatus.pending,
             edit_type=EditRequestType.site_data,
-            proposed_data=update_data
+            proposed_data=diff_data
         )
         db.add(edit_request)
         db.commit()

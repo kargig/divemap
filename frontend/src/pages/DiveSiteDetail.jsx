@@ -708,7 +708,7 @@ const DiveSiteDetail = () => {
             const isOwner = user?.id === diveSite?.created_by;
             const isAdmin = user?.is_admin;
             const isModerator = user?.is_moderator;
-            const shouldShowEdit = isOwner || isAdmin || isModerator;
+            const shouldShowEdit = !!user; // Let any logged in user suggest edits
             const shouldShowDelete = (isOwner || isAdmin) && !diveSite?.deleted_at;
             const shouldShowRestore = isAdmin && diveSite?.deleted_at;
 

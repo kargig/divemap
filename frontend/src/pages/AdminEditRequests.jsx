@@ -40,6 +40,7 @@ const AdminEditRequests = () => {
   usePageTitle('Divemap - Pending Edit Requests');
   const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Fetch pending requests
   const {
@@ -81,6 +82,76 @@ const AdminEditRequests = () => {
       onSettled: () => setProcessingId(null),
     }
   );
+
+  // Bulk Approve Mutation
+  const bulkApproveMutation = useMutation(
+    async ids => {
+      await Promise.all(
+        ids.map(id => api.post(`/api/v1/admin/dive-sites/edit-requests/${id}/approve`))
+      );
+    },
+    {
+      onSuccess: () => {
+        toast.success('Selected requests approved and applied!');
+        setSelectedIds([]);
+        queryClient.invalidateQueries(['admin-edit-requests']);
+      },
+      onError: error => {
+        toast.error(`Failed to approve some requests: ${getErrorMessage(error)}`);
+      },
+    }
+  );
+
+  // Bulk Reject Mutation
+  const bulkRejectMutation = useMutation(
+    async ids => {
+      await Promise.all(
+        ids.map(id => api.post(`/api/v1/admin/dive-sites/edit-requests/${id}/reject`))
+      );
+    },
+    {
+      onSuccess: () => {
+        toast.success('Selected requests rejected.');
+        setSelectedIds([]);
+        queryClient.invalidateQueries(['admin-edit-requests']);
+      },
+      onError: error => {
+        toast.error(`Failed to reject some requests: ${getErrorMessage(error)}`);
+      },
+    }
+  );
+
+  const handleSelectAll = e => {
+    if (e.target.checked) {
+      setSelectedIds(requests.map(req => req.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id, checked) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+    }
+  };
+
+  const handleBulkApprove = () => {
+    if (
+      window.confirm(`Are you sure you want to approve and apply ${selectedIds.length} requests?`)
+    ) {
+      bulkApproveMutation.mutate(selectedIds);
+    }
+  };
+
+  const handleBulkReject = () => {
+    if (window.confirm(`Are you sure you want to reject ${selectedIds.length} requests?`)) {
+      bulkRejectMutation.mutate(selectedIds);
+    }
+  };
+
+  const isProcessingBulk = bulkApproveMutation.isLoading || bulkRejectMutation.isLoading;
 
   const handleApprove = id => {
     if (window.confirm('Are you sure you want to approve and apply these changes?')) {
@@ -124,116 +195,271 @@ const AdminEditRequests = () => {
           <p className='text-gray-500'>There are no pending edit requests to moderate.</p>
         </div>
       ) : (
-        <div className='grid grid-cols-1 gap-6'>
-          {requests.map(req => (
-            <div
-              key={req.id}
-              className='bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden flex flex-col md:flex-row'
-            >
-              {/* Left Column: Metadata */}
-              <div className='bg-gray-50 p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200'>
-                <div className='flex items-center space-x-2 text-primary-600 font-medium mb-4'>
-                  {getEditTypeIcon(req.edit_type)}
-                  <span>{getEditTypeLabel(req.edit_type)}</span>
-                </div>
-
-                <div className='space-y-4'>
-                  <div>
-                    <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
-                      Target Site
-                    </div>
-                    <div className='flex items-center text-gray-900'>
-                      <MapPin className='w-4 h-4 mr-2 text-gray-400' />
-                      <a
-                        href={`/dive-sites/${req.dive_site_id}`}
-                        target='_blank'
-                        rel='noreferrer'
-                        className='hover:underline text-blue-600 font-medium'
-                      >
-                        {req.dive_site?.name || `Site #${req.dive_site_id}`}
-                      </a>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
-                      Proposed By
-                    </div>
-                    <div className='flex items-center text-gray-900'>
-                      <User className='w-4 h-4 mr-2 text-gray-400' />
-                      <a
-                        href={`/users/${req.requested_by?.username}`}
-                        target='_blank'
-                        rel='noreferrer'
-                        className='hover:underline text-blue-600'
-                      >
-                        {req.requested_by?.username || `User #${req.requested_by_id}`}
-                      </a>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
-                      Submitted At
-                    </div>
-                    <div className='flex items-center text-gray-900 text-sm'>
-                      <Clock className='w-4 h-4 mr-2 text-gray-400' />
-                      {format(new Date(req.created_at), 'MMM d, yyyy HH:mm')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Proposed Data & Actions */}
-              <div className='p-6 md:w-2/3 flex flex-col'>
-                <h4 className='text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3'>
-                  Proposed Changes
-                </h4>
-
-                <div className='flex-grow bg-gray-900 rounded-md p-4 overflow-x-auto'>
-                  <pre className='text-sm text-green-400 font-mono whitespace-pre-wrap'>
-                    {JSON.stringify(req.proposed_data, null, 2)}
-                  </pre>
-                </div>
-
-                <div className='mt-6 flex justify-end space-x-3'>
-                  <button
-                    onClick={() => handleReject(req.id)}
-                    disabled={
-                      processingId === req.id ||
-                      rejectMutation.isLoading ||
-                      approveMutation.isLoading
-                    }
-                    className='flex items-center px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50'
-                  >
-                    {processingId === req.id && rejectMutation.isLoading ? (
-                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2'></div>
-                    ) : (
-                      <X className='w-4 h-4 mr-2' />
-                    )}
-                    Reject
-                  </button>
-                  <button
-                    onClick={() => handleApprove(req.id)}
-                    disabled={
-                      processingId === req.id ||
-                      rejectMutation.isLoading ||
-                      approveMutation.isLoading
-                    }
-                    className='flex items-center px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md transition-colors disabled:opacity-50'
-                  >
-                    {processingId === req.id && approveMutation.isLoading ? (
-                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
-                    ) : (
-                      <Check className='w-4 h-4 mr-2' />
-                    )}
-                    Approve & Apply
-                  </button>
-                </div>
-              </div>
+        <>
+          {/* Bulk Actions Bar */}
+          <div className='mb-4 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-lg border shadow-sm'>
+            <div className='flex items-center mb-4 sm:mb-0'>
+              <input
+                type='checkbox'
+                checked={selectedIds.length === requests.length && requests.length > 0}
+                onChange={handleSelectAll}
+                className='w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer'
+                id='selectAll'
+              />
+              <label
+                htmlFor='selectAll'
+                className='ml-2 text-sm font-medium text-gray-700 cursor-pointer'
+              >
+                Select All ({selectedIds.length} selected)
+              </label>
             </div>
-          ))}
-        </div>
+
+            {selectedIds.length > 0 && (
+              <div className='flex space-x-3'>
+                <button
+                  onClick={handleBulkReject}
+                  disabled={isProcessingBulk}
+                  className='flex items-center px-4 py-2 text-sm bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50'
+                >
+                  {bulkRejectMutation.isLoading ? (
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2'></div>
+                  ) : (
+                    <X className='w-4 h-4 mr-2' />
+                  )}
+                  Reject Selected
+                </button>
+                <button
+                  onClick={handleBulkApprove}
+                  disabled={isProcessingBulk}
+                  className='flex items-center px-4 py-2 text-sm bg-green-600 text-white hover:bg-green-700 rounded-md transition-colors disabled:opacity-50'
+                >
+                  {bulkApproveMutation.isLoading ? (
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
+                  ) : (
+                    <Check className='w-4 h-4 mr-2' />
+                  )}
+                  Approve Selected
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className='grid grid-cols-1 gap-6'>
+            {requests.map(req => (
+              <div
+                key={req.id}
+                className={`bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row transition-colors ${selectedIds.includes(req.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-gray-200'}`}
+              >
+                {/* Left Column: Metadata */}
+                <div className='bg-gray-50 p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 relative'>
+                  {/* Checkbox & ID */}
+                  <div className='absolute top-4 right-4 flex flex-col items-end'>
+                    <input
+                      type='checkbox'
+                      checked={selectedIds.includes(req.id)}
+                      onChange={e => handleSelectOne(req.id, e.target.checked)}
+                      className='w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer'
+                    />
+                    <span className='text-xs text-gray-400 mt-2 font-mono'>ID: {req.id}</span>
+                  </div>
+
+                  <div className='flex items-center space-x-2 text-primary-600 font-medium mb-4 pr-8'>
+                    {getEditTypeIcon(req.edit_type)}
+                    <span>{getEditTypeLabel(req.edit_type)}</span>
+                  </div>
+
+                  <div className='space-y-4'>
+                    <div>
+                      <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        Target Site
+                      </div>
+                      <div className='flex items-center text-gray-900'>
+                        <MapPin className='w-4 h-4 mr-2 text-gray-400' />
+                        <a
+                          href={`/dive-sites/${req.dive_site_id}`}
+                          target='_blank'
+                          rel='noreferrer'
+                          className='hover:underline text-blue-600 font-medium'
+                        >
+                          {req.dive_site?.name || `Site #${req.dive_site_id}`}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        Proposed By
+                      </div>
+                      <div className='flex items-center text-gray-900'>
+                        <User className='w-4 h-4 mr-2 text-gray-400' />
+                        <a
+                          href={`/users/${req.requested_by?.username}`}
+                          target='_blank'
+                          rel='noreferrer'
+                          className='hover:underline text-blue-600'
+                        >
+                          {req.requested_by?.username || `User #${req.requested_by_id}`}
+                        </a>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className='text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1'>
+                        Submitted At
+                      </div>
+                      <div className='flex items-center text-gray-900 text-sm'>
+                        <Clock className='w-4 h-4 mr-2 text-gray-400' />
+                        {format(new Date(req.created_at), 'MMM d, yyyy HH:mm')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Proposed Data & Actions */}
+                <div className='p-6 md:w-2/3 flex flex-col'>
+                  <h4 className='text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3'>
+                    Proposed Changes
+                  </h4>
+
+                  <div className='flex-grow border rounded-md overflow-hidden'>
+                    <table className='min-w-full divide-y divide-gray-200'>
+                      <thead className='bg-gray-50'>
+                        <tr>
+                          <th
+                            scope='col'
+                            className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                          >
+                            Field
+                          </th>
+                          <th
+                            scope='col'
+                            className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                          >
+                            Current Value
+                          </th>
+                          <th
+                            scope='col'
+                            className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                          >
+                            Proposed Change
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className='bg-white divide-y divide-gray-200'>
+                        {req.edit_type === 'site_data' && req.proposed_data ? (
+                          Object.entries(req.proposed_data).map(([key, newValue]) => {
+                            const currentValue =
+                              req.dive_site && req.dive_site[key] !== undefined
+                                ? req.dive_site[key]
+                                : 'Not loaded';
+
+                            // Format booleans and objects
+                            const displayCurrent =
+                              typeof currentValue === 'object' && currentValue !== null
+                                ? JSON.stringify(currentValue)
+                                : String(currentValue);
+                            const displayNew =
+                              typeof newValue === 'object' && newValue !== null
+                                ? JSON.stringify(newValue)
+                                : String(newValue);
+
+                            // Ignore strictly string vs number comparison differences if the parsed values match
+                            const isChanged =
+                              displayCurrent !== displayNew &&
+                              displayCurrent !== 'undefined' &&
+                              parseFloat(displayCurrent) !== parseFloat(displayNew) &&
+                              String(currentValue) !== String(newValue);
+
+                            if (!isChanged) {
+                              // Unchanged fields: muted style
+                              return (
+                                <tr key={key} className='bg-white opacity-60'>
+                                  <td className='px-4 py-2 text-sm text-gray-500'>
+                                    {key.replace(/_/g, ' ')}
+                                  </td>
+                                  <td className='px-4 py-2 text-sm text-gray-400'>
+                                    {displayCurrent === 'undefined' ? 'Not Set' : displayCurrent}
+                                  </td>
+                                  <td className='px-4 py-2 text-sm text-gray-400'>-</td>
+                                </tr>
+                              );
+                            }
+
+                            // Changed fields: highlighted style
+                            return (
+                              <tr key={key} className='bg-yellow-50/30'>
+                                <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                  <div className='flex items-center'>
+                                    {key.replace(/_/g, ' ')}
+                                    <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
+                                      Modified
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className='px-4 py-2 text-sm text-red-600 bg-red-50/30 line-through'>
+                                  {displayCurrent === 'undefined' ? 'Not Set' : displayCurrent}
+                                </td>
+                                <td className='px-4 py-2 text-sm text-green-700 bg-green-50/30 font-medium'>
+                                  {displayNew}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className='px-4 py-4 text-sm text-gray-500'>
+                              <pre className='text-xs whitespace-pre-wrap font-mono bg-gray-50 p-2 rounded'>
+                                {JSON.stringify(req.proposed_data, null, 2)}
+                              </pre>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className='mt-6 flex justify-end space-x-3'>
+                    <button
+                      onClick={() => handleReject(req.id)}
+                      disabled={
+                        processingId === req.id ||
+                        rejectMutation.isLoading ||
+                        approveMutation.isLoading ||
+                        isProcessingBulk
+                      }
+                      className='flex items-center px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50'
+                    >
+                      {processingId === req.id && rejectMutation.isLoading ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2'></div>
+                      ) : (
+                        <X className='w-4 h-4 mr-2' />
+                      )}
+                      Reject
+                    </button>
+                    <button
+                      onClick={() => handleApprove(req.id)}
+                      disabled={
+                        processingId === req.id ||
+                        rejectMutation.isLoading ||
+                        approveMutation.isLoading ||
+                        isProcessingBulk
+                      }
+                      className='flex items-center px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md transition-colors disabled:opacity-50'
+                    >
+                      {(processingId === req.id && approveMutation.isLoading) ||
+                      isProcessingBulk ? (
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
+                      ) : (
+                        <Check className='w-4 h-4 mr-2' />
+                      )}
+                      Approve & Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

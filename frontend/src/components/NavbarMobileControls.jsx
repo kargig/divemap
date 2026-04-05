@@ -371,6 +371,14 @@ const NavbarMobileControls = () => {
                             Dive Sites
                           </List.Item>
                           <List.Item
+                            prefix={<FileText className='h-4 w-4 text-blue-200' />}
+                            onClick={() => handleNavigate('/admin/dive-sites/edit-requests')}
+                            className='text-white pl-4 bg-[#265e79]'
+                            arrow={false}
+                          >
+                            Pending Edits
+                          </List.Item>
+                          <List.Item
                             prefix={<Route className='h-4 w-4 text-blue-200' />}
                             onClick={() => handleNavigate('/admin/dive-routes')}
                             className='text-white pl-4 bg-[#265e79]'

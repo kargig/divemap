@@ -299,7 +299,7 @@ const EditDiveSite = () => {
   });
 
   // Check if user has edit privileges (admin, moderator, or owner)
-  const canEdit = user && (user.is_admin || user.is_moderator || user.id === diveSite?.created_by);
+  const canEdit = !!user; // Anyone logged in can suggest edits now
 
   // Fetch all available tags
   const { data: availableTags = [] } = useQuery(
@@ -1051,7 +1051,7 @@ const EditDiveSite = () => {
 
       // Show success message
       if (isPendingModeration) {
-        toast.info('Thank you! Your suggested edits are pending moderator approval.');
+        toast('Thank you! Your suggested edits are pending moderator approval.', { icon: 'ℹ️' });
       } else {
         toast.success('Dive site updated successfully');
       }
