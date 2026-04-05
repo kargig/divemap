@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Check, X, Clock, MapPin, User, FileText, Image as ImageIcon } from 'lucide-react';
+import { Check, X, Clock, MapPin, User, FileText, Image as ImageIcon, Tag } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -18,6 +18,10 @@ const getEditTypeLabel = type => {
       return 'Update Media';
     case 'media_deletion':
       return 'Delete Media';
+    case 'tag_addition':
+      return 'Add Tag';
+    case 'tag_removal':
+      return 'Remove Tag';
     default:
       return type;
   }
@@ -31,6 +35,9 @@ const getEditTypeIcon = type => {
     case 'media_update':
     case 'media_deletion':
       return <ImageIcon className='w-4 h-4 mr-1' />;
+    case 'tag_addition':
+    case 'tag_removal':
+      return <Tag className='w-4 h-4 mr-1' />;
     default:
       return <FileText className='w-4 h-4 mr-1' />;
   }
@@ -42,6 +49,15 @@ const AdminEditRequests = () => {
   const [processingId, setProcessingId] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
 
+  // Fetch available tags for resolving tag names
+  const { data: availableTags = [] } = useQuery(['available-tags'], () =>
+    api.get('/api/v1/tags/').then(res => res.data)
+  );
+  const tagMap = availableTags.reduce((acc, tag) => {
+    acc[tag.id] = tag.name;
+    return acc;
+  }, {});
+
   // Fetch pending requests
   const {
     data: requests = [],
@@ -51,7 +67,6 @@ const AdminEditRequests = () => {
     api.get('/api/v1/admin/dive-sites/edit-requests').then(res => res.data)
   );
 
-  // Approve Mutation
   const approveMutation = useMutation(
     id => api.post(`/api/v1/admin/dive-sites/edit-requests/${id}/approve`),
     {
@@ -60,14 +75,11 @@ const AdminEditRequests = () => {
         toast.success('Edit request approved and applied!');
         queryClient.invalidateQueries(['admin-edit-requests']);
       },
-      onError: error => {
-        toast.error(`Failed to approve: ${getErrorMessage(error)}`);
-      },
+      onError: error => toast.error(`Failed to approve: ${getErrorMessage(error)}`),
       onSettled: () => setProcessingId(null),
     }
   );
 
-  // Reject Mutation
   const rejectMutation = useMutation(
     id => api.post(`/api/v1/admin/dive-sites/edit-requests/${id}/reject`),
     {
@@ -76,14 +88,11 @@ const AdminEditRequests = () => {
         toast.success('Edit request rejected.');
         queryClient.invalidateQueries(['admin-edit-requests']);
       },
-      onError: error => {
-        toast.error(`Failed to reject: ${getErrorMessage(error)}`);
-      },
+      onError: error => toast.error(`Failed to reject: ${getErrorMessage(error)}`),
       onSettled: () => setProcessingId(null),
     }
   );
 
-  // Bulk Approve Mutation
   const bulkApproveMutation = useMutation(
     async ids => {
       await Promise.all(
@@ -96,13 +105,10 @@ const AdminEditRequests = () => {
         setSelectedIds([]);
         queryClient.invalidateQueries(['admin-edit-requests']);
       },
-      onError: error => {
-        toast.error(`Failed to approve some requests: ${getErrorMessage(error)}`);
-      },
+      onError: error => toast.error(`Failed to approve some requests: ${getErrorMessage(error)}`),
     }
   );
 
-  // Bulk Reject Mutation
   const bulkRejectMutation = useMutation(
     async ids => {
       await Promise.all(
@@ -115,55 +121,39 @@ const AdminEditRequests = () => {
         setSelectedIds([]);
         queryClient.invalidateQueries(['admin-edit-requests']);
       },
-      onError: error => {
-        toast.error(`Failed to reject some requests: ${getErrorMessage(error)}`);
-      },
+      onError: error => toast.error(`Failed to reject some requests: ${getErrorMessage(error)}`),
     }
   );
 
   const handleSelectAll = e => {
-    if (e.target.checked) {
-      setSelectedIds(requests.map(req => req.id));
-    } else {
-      setSelectedIds([]);
-    }
+    if (e.target.checked) setSelectedIds(requests.map(req => req.id));
+    else setSelectedIds([]);
   };
 
   const handleSelectOne = (id, checked) => {
-    if (checked) {
-      setSelectedIds(prev => [...prev, id]);
-    } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
-    }
+    if (checked) setSelectedIds(prev => [...prev, id]);
+    else setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
   };
 
+  const handleApprove = id => {
+    if (window.confirm('Are you sure you want to approve and apply these changes?'))
+      approveMutation.mutate(id);
+  };
+  const handleReject = id => {
+    if (window.confirm('Are you sure you want to reject this request?')) rejectMutation.mutate(id);
+  };
   const handleBulkApprove = () => {
     if (
       window.confirm(`Are you sure you want to approve and apply ${selectedIds.length} requests?`)
-    ) {
+    )
       bulkApproveMutation.mutate(selectedIds);
-    }
   };
-
   const handleBulkReject = () => {
-    if (window.confirm(`Are you sure you want to reject ${selectedIds.length} requests?`)) {
+    if (window.confirm(`Are you sure you want to reject ${selectedIds.length} requests?`))
       bulkRejectMutation.mutate(selectedIds);
-    }
   };
 
   const isProcessingBulk = bulkApproveMutation.isLoading || bulkRejectMutation.isLoading;
-
-  const handleApprove = id => {
-    if (window.confirm('Are you sure you want to approve and apply these changes?')) {
-      approveMutation.mutate(id);
-    }
-  };
-
-  const handleReject = id => {
-    if (window.confirm('Are you sure you want to reject this request?')) {
-      rejectMutation.mutate(id);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -172,7 +162,6 @@ const AdminEditRequests = () => {
       </div>
     );
   }
-
   if (error) {
     return (
       <div className='bg-red-50 p-4 rounded-md text-red-700 my-4 max-w-4xl mx-auto'>
@@ -196,7 +185,6 @@ const AdminEditRequests = () => {
         </div>
       ) : (
         <>
-          {/* Bulk Actions Bar */}
           <div className='mb-4 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-lg border shadow-sm'>
             <div className='flex items-center mb-4 sm:mb-0'>
               <input
@@ -225,7 +213,7 @@ const AdminEditRequests = () => {
                     <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2'></div>
                   ) : (
                     <X className='w-4 h-4 mr-2' />
-                  )}
+                  )}{' '}
                   Reject Selected
                 </button>
                 <button
@@ -237,7 +225,7 @@ const AdminEditRequests = () => {
                     <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
                   ) : (
                     <Check className='w-4 h-4 mr-2' />
-                  )}
+                  )}{' '}
                   Approve Selected
                 </button>
               </div>
@@ -250,9 +238,7 @@ const AdminEditRequests = () => {
                 key={req.id}
                 className={`bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col md:flex-row transition-colors ${selectedIds.includes(req.id) ? 'border-blue-400 ring-1 ring-blue-400' : 'border-gray-200'}`}
               >
-                {/* Left Column: Metadata */}
                 <div className='bg-gray-50 p-6 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 relative'>
-                  {/* Checkbox & ID */}
                   <div className='absolute top-4 right-4 flex flex-col items-end'>
                     <input
                       type='checkbox'
@@ -315,12 +301,10 @@ const AdminEditRequests = () => {
                   </div>
                 </div>
 
-                {/* Right Column: Proposed Data & Actions */}
                 <div className='p-6 md:w-2/3 flex flex-col'>
                   <h4 className='text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3'>
                     Proposed Changes
                   </h4>
-
                   <div className='flex-grow border rounded-md overflow-hidden'>
                     <table className='min-w-full divide-y divide-gray-200'>
                       <thead className='bg-gray-50'>
@@ -346,74 +330,190 @@ const AdminEditRequests = () => {
                         </tr>
                       </thead>
                       <tbody className='bg-white divide-y divide-gray-200'>
-                        {req.edit_type === 'site_data' && req.proposed_data ? (
-                          Object.entries(req.proposed_data).map(([key, newValue]) => {
-                            const currentValue =
-                              req.dive_site && req.dive_site[key] !== undefined
-                                ? req.dive_site[key]
-                                : 'Not loaded';
+                        {(() => {
+                          if (req.edit_type === 'site_data' && req.proposed_data) {
+                            return Object.entries(req.proposed_data).map(([key, newValue]) => {
+                              const currentValue =
+                                req.dive_site && req.dive_site[key] !== undefined
+                                  ? req.dive_site[key]
+                                  : 'Not loaded';
+                              const displayCurrent =
+                                typeof currentValue === 'object' && currentValue !== null
+                                  ? JSON.stringify(currentValue)
+                                  : String(currentValue);
+                              const displayNew =
+                                typeof newValue === 'object' && newValue !== null
+                                  ? JSON.stringify(newValue)
+                                  : String(newValue);
+                              const isChanged =
+                                displayCurrent !== displayNew &&
+                                displayCurrent !== 'undefined' &&
+                                parseFloat(displayCurrent) !== parseFloat(displayNew) &&
+                                String(currentValue) !== String(newValue);
 
-                            // Format booleans and objects
-                            const displayCurrent =
-                              typeof currentValue === 'object' && currentValue !== null
-                                ? JSON.stringify(currentValue)
-                                : String(currentValue);
-                            const displayNew =
-                              typeof newValue === 'object' && newValue !== null
-                                ? JSON.stringify(newValue)
-                                : String(newValue);
-
-                            // Ignore strictly string vs number comparison differences if the parsed values match
-                            const isChanged =
-                              displayCurrent !== displayNew &&
-                              displayCurrent !== 'undefined' &&
-                              parseFloat(displayCurrent) !== parseFloat(displayNew) &&
-                              String(currentValue) !== String(newValue);
-
-                            if (!isChanged) {
-                              // Unchanged fields: muted style
+                              if (!isChanged) {
+                                return (
+                                  <tr key={key} className='bg-white opacity-60'>
+                                    <td className='px-4 py-2 text-sm text-gray-500'>
+                                      {key.replace(/_/g, ' ')}
+                                    </td>
+                                    <td className='px-4 py-2 text-sm text-gray-400'>
+                                      {displayCurrent === 'undefined' ? 'Not Set' : displayCurrent}
+                                    </td>
+                                    <td className='px-4 py-2 text-sm text-gray-400'>-</td>
+                                  </tr>
+                                );
+                              }
                               return (
-                                <tr key={key} className='bg-white opacity-60'>
-                                  <td className='px-4 py-2 text-sm text-gray-500'>
-                                    {key.replace(/_/g, ' ')}
+                                <tr key={key} className='bg-yellow-50/30'>
+                                  <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    <div className='flex items-center'>
+                                      {key.replace(/_/g, ' ')}
+                                      <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
+                                        Modified
+                                      </span>
+                                    </div>
                                   </td>
-                                  <td className='px-4 py-2 text-sm text-gray-400'>
+                                  <td className='px-4 py-2 text-sm text-red-600 bg-red-50/30 line-through'>
                                     {displayCurrent === 'undefined' ? 'Not Set' : displayCurrent}
                                   </td>
-                                  <td className='px-4 py-2 text-sm text-gray-400'>-</td>
+                                  <td className='px-4 py-2 text-sm text-green-700 bg-green-50/30 font-medium'>
+                                    {displayNew}
+                                  </td>
                                 </tr>
                               );
-                            }
+                            });
+                          }
 
-                            // Changed fields: highlighted style
+                          if (req.edit_type === 'media_addition') {
+                            return Object.entries(req.proposed_data)
+                              .filter(([key, val]) => val !== null && val !== '')
+                              .map(([key, val]) => (
+                                <tr key={key} className='bg-green-50/10'>
+                                  <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    {key.replace(/_/g, ' ')}
+                                  </td>
+                                  <td className='px-4 py-2 text-sm text-gray-400'>-</td>
+                                  <td className='px-4 py-2 text-sm text-green-700 font-medium'>
+                                    {key.includes('url') ? (
+                                      <a
+                                        href={val}
+                                        target='_blank'
+                                        rel='noreferrer'
+                                        className='underline truncate max-w-xs block'
+                                      >
+                                        {val}
+                                      </a>
+                                    ) : (
+                                      String(val)
+                                    )}
+                                  </td>
+                                </tr>
+                              ));
+                          }
+
+                          if (req.edit_type === 'media_update') {
+                            const mediaId = req.proposed_data.id;
+                            const currentMedia = req.dive_site?.media?.find(m => m.id === mediaId);
+                            return Object.entries(req.proposed_data)
+                              .filter(([key, val]) => key !== 'id' && val !== null && val !== '')
+                              .map(([key, newValue]) => {
+                                const currentValue = currentMedia ? currentMedia[key] : 'Not found';
+                                if (String(currentValue) === String(newValue)) return null;
+                                return (
+                                  <tr key={key} className='bg-yellow-50/30'>
+                                    <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                      <div className='flex items-center'>
+                                        {key.replace(/_/g, ' ')}
+                                        <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
+                                          Modified
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className='px-4 py-2 text-sm text-red-600 bg-red-50/30 line-through'>
+                                      {String(currentValue)}
+                                    </td>
+                                    <td className='px-4 py-2 text-sm text-green-700 bg-green-50/30 font-medium'>
+                                      {key.includes('url') ? (
+                                        <a
+                                          href={newValue}
+                                          target='_blank'
+                                          rel='noreferrer'
+                                          className='underline truncate max-w-xs block'
+                                        >
+                                          {newValue}
+                                        </a>
+                                      ) : (
+                                        String(newValue)
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              });
+                          }
+
+                          if (req.edit_type === 'media_deletion') {
+                            const mediaId = req.proposed_data.id;
+                            const currentMedia = req.dive_site?.media?.find(m => m.id === mediaId);
                             return (
-                              <tr key={key} className='bg-yellow-50/30'>
+                              <tr className='bg-red-50/30'>
+                                <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                  Media Record
+                                </td>
+                                <td className='px-4 py-2 text-sm text-red-600 line-through'>
+                                  {currentMedia
+                                    ? `${currentMedia.media_type}: ${currentMedia.url}`
+                                    : `ID: ${mediaId}`}
+                                </td>
+                                <td className='px-4 py-2 text-sm text-gray-400'>[DELETE]</td>
+                              </tr>
+                            );
+                          }
+
+                          if (req.edit_type === 'tag_addition' || req.edit_type === 'tag_removal') {
+                            const tagId = req.proposed_data.tag_id;
+                            const tagName = tagMap[tagId] || `Tag #${tagId}`;
+                            return (
+                              <tr
+                                className={
+                                  req.edit_type === 'tag_addition'
+                                    ? 'bg-green-50/10'
+                                    : 'bg-red-50/10'
+                                }
+                              >
                                 <td className='px-4 py-2 text-sm font-medium text-gray-900'>
                                   <div className='flex items-center'>
-                                    {key.replace(/_/g, ' ')}
-                                    <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
-                                      Modified
+                                    Tag
+                                    <span
+                                      className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${req.edit_type === 'tag_addition' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                    >
+                                      {req.edit_type === 'tag_addition' ? 'Added' : 'Removed'}
                                     </span>
                                   </div>
                                 </td>
                                 <td className='px-4 py-2 text-sm text-red-600 bg-red-50/30 line-through'>
-                                  {displayCurrent === 'undefined' ? 'Not Set' : displayCurrent}
+                                  {req.edit_type === 'tag_removal' ? tagName : '-'}
                                 </td>
                                 <td className='px-4 py-2 text-sm text-green-700 bg-green-50/30 font-medium'>
-                                  {displayNew}
+                                  {req.edit_type === 'tag_addition' ? tagName : '-'}
                                 </td>
                               </tr>
                             );
-                          })
-                        ) : (
-                          <tr>
-                            <td colSpan={3} className='px-4 py-4 text-sm text-gray-500'>
-                              <pre className='text-xs whitespace-pre-wrap font-mono bg-gray-50 p-2 rounded'>
-                                {JSON.stringify(req.proposed_data, null, 2)}
-                              </pre>
-                            </td>
-                          </tr>
-                        )}
+                          }
+
+                          return (
+                            <tr>
+                              <td colSpan={3} className='px-4 py-4 text-sm text-gray-900'>
+                                <div className='mb-2 font-semibold text-xs text-gray-500 uppercase'>
+                                  Raw Request Data:
+                                </div>
+                                <pre className='text-xs whitespace-pre-wrap font-mono bg-gray-50 p-3 rounded border border-gray-200'>
+                                  {JSON.stringify(req.proposed_data, null, 2)}
+                                </pre>
+                              </td>
+                            </tr>
+                          );
+                        })()}
                       </tbody>
                     </table>
                   </div>
@@ -433,7 +533,7 @@ const AdminEditRequests = () => {
                         <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mr-2'></div>
                       ) : (
                         <X className='w-4 h-4 mr-2' />
-                      )}
+                      )}{' '}
                       Reject
                     </button>
                     <button
@@ -446,12 +546,11 @@ const AdminEditRequests = () => {
                       }
                       className='flex items-center px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md transition-colors disabled:opacity-50'
                     >
-                      {(processingId === req.id && approveMutation.isLoading) ||
-                      isProcessingBulk ? (
+                      {processingId === req.id && approveMutation.isLoading ? (
                         <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
                       ) : (
                         <Check className='w-4 h-4 mr-2' />
-                      )}
+                      )}{' '}
                       Approve & Apply
                     </button>
                   </div>

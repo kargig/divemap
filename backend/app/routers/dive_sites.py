@@ -2482,18 +2482,19 @@ async def update_dive_site_media(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = media_update.dict(exclude_unset=True)
+        update_data['id'] = media_id
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_update,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media update submitted for moderation."})
 
     # Check if media exists
     media = db.query(SiteMedia).filter(
@@ -2531,18 +2532,17 @@ async def delete_dive_site_media(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_deletion,
+            proposed_data={"id": media_id}
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media deletion submitted for moderation."})
 
     # Check if media exists
     media = db.query(SiteMedia).filter(
@@ -2587,18 +2587,19 @@ async def upload_dive_site_photo_r2_only(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = media_update.dict(exclude_unset=True)
+        update_data['id'] = media_id
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_update,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media update submitted for moderation."})
 
     # Validate file size (max 15MB) - Read in chunks to prevent memory exhaustion
     MAX_FILE_SIZE = 15 * 1024 * 1024

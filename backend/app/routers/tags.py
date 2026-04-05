@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
 from app.database import get_db
-from app.models import AvailableTag, DiveSiteTag, DiveTag, User
+from app.models import AvailableTag, DiveSiteTag, DiveTag, User, DiveSite, DiveSiteEditRequest, EditRequestStatus, EditRequestType
 from app.schemas import TagCreate, TagResponse, TagUpdate, DiveSiteTagCreate, DiveSiteTagResponse, TagWithCountResponse
-from app.auth import get_current_user, is_admin_or_moderator
+from app.auth import get_current_user, is_admin_or_moderator, get_current_active_user, is_trusted_contributor
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
@@ -118,23 +119,33 @@ def delete_tag(
     db.delete(db_tag)
     db.commit()
     return {"message": "Tag deleted successfully"}
-
 @router.post("/dive-sites/{dive_site_id}/tags", response_model=DiveSiteTagResponse)
 def add_tag_to_dive_site(
     dive_site_id: int,
     tag_assignment: DiveSiteTagCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(is_admin_or_moderator)
+    current_user: User = Depends(get_current_active_user)
 ):
-    """Add a tag to a dive site (admin/moderator only)"""
+    """Add a tag to a dive site"""
     # Verify dive site exists
-    from app.models import DiveSite
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
     if not dive_site:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
+
+    if not is_trusted_contributor(db, current_user, dive_site):
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.tag_addition,
+            proposed_data=tag_assignment.dict()
+        )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Tag addition submitted for moderation."})
 
     # Verify tag exists
     tag = db.query(AvailableTag).filter(AvailableTag.id == tag_assignment.tag_id).first()
@@ -170,8 +181,24 @@ def remove_tag_from_dive_site(
     dive_site_id: int,
     tag_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(is_admin_or_moderator)
+    current_user: User = Depends(get_current_active_user)
 ):
+    # Check if dive site exists
+    dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
+    if not dive_site:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive site not found")
+
+    if not is_trusted_contributor(db, current_user, dive_site):
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.tag_removal,
+            proposed_data={"tag_id": tag_id}
+        )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Tag removal submitted for moderation."})
     """Remove a tag from a dive site (admin/moderator only)"""
     tag_assignment = db.query(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id,

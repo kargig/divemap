@@ -127,6 +127,8 @@ class EditRequestType(str, enum.Enum):
     media_addition = "media_addition"
     media_update = "media_update"
     media_deletion = "media_deletion"
+    tag_addition = "tag_addition"
+    tag_removal = "tag_removal"
 
 class DiveSiteEditRequest(Base):
     __tablename__ = "dive_site_edit_requests"

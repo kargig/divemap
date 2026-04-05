@@ -892,15 +892,31 @@ const EditDiveSite = () => {
             };
 
             return addDiveSiteMedia(id, mediaData)
-              .then(createdMedia => {
-                // Update photoMediaUrls with the new DB ID
-                setPhotoMediaUrls(prev =>
-                  prev.map(item =>
-                    item.temp_uid === unsavedPhoto.uid
-                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                      : item
-                  )
-                );
+              .then(response => {
+                const createdMedia = response.data;
+                const isPending =
+                  response.status === 202 || createdMedia.message?.includes('moderation');
+
+                if (isPending) {
+                  toast(
+                    'Photo uploaded successfully! Your contribution is pending moderator approval.',
+                    { icon: 'ℹ️' }
+                  );
+                  // Remove from local list as it's not live yet
+                  setPhotoMediaUrls(prev =>
+                    prev.filter(item => item.temp_uid !== unsavedPhoto.uid)
+                  );
+                } else {
+                  // Update photoMediaUrls with the new DB ID
+                  setPhotoMediaUrls(prev =>
+                    prev.map(item =>
+                      item.temp_uid === unsavedPhoto.uid
+                        ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                        : item
+                    )
+                  );
+                }
+
                 // Track this UID as saved so component can clear it from unsaved list
                 setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
                 return createdMedia;
@@ -923,14 +939,28 @@ const EditDiveSite = () => {
           };
 
           return addDiveSiteMedia(id, mediaData)
-            .then(createdMedia => {
-              setPhotoMediaUrls(prev =>
-                prev.map(item =>
-                  item.temp_uid === unsavedPhoto.uid
-                    ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
-                    : item
-                )
-              );
+            .then(response => {
+              const createdMedia = response.data;
+              const isPending =
+                response.status === 202 || createdMedia.message?.includes('moderation');
+
+              if (isPending) {
+                toast(
+                  'Photo uploaded successfully! Your contribution is pending moderator approval.',
+                  { icon: 'ℹ️' }
+                );
+                // Remove from local list as it's not live yet
+                setPhotoMediaUrls(prev => prev.filter(item => item.temp_uid !== unsavedPhoto.uid));
+              } else {
+                setPhotoMediaUrls(prev =>
+                  prev.map(item =>
+                    item.temp_uid === unsavedPhoto.uid
+                      ? { ...item, id: createdMedia.id, uploaded: true, temp_uid: undefined }
+                      : item
+                  )
+                );
+              }
+
               setSavedPhotoUids(prev => [...prev, unsavedPhoto.uid]);
               return createdMedia;
             })
@@ -955,7 +985,7 @@ const EditDiveSite = () => {
 
       // Update the dive site first
       const updateResponse = await updateMutation.mutateAsync(updateData);
-      const isPendingModeration =
+      let isPendingModeration =
         updateResponse?.status === 202 || updateResponse?.data?.message?.includes('moderation');
 
       // Handle tag changes
@@ -998,10 +1028,16 @@ const EditDiveSite = () => {
           description: mediaDescriptions[pendingItem.id] || pendingItem.description || '',
         };
         pendingMediaPromises.push(
-          addDiveSiteMedia(id, mediaData).catch(error => {
-            console.error(`Failed to save media ${pendingItem.url}:`, error);
-            toast.error(`Failed to save media: ${pendingItem.url}`);
-          })
+          addDiveSiteMedia(id, mediaData)
+            .then(response => {
+              if (response.status === 202 || response.data?.message?.includes('moderation')) {
+                isPendingModeration = true;
+              }
+            })
+            .catch(error => {
+              console.error(`Failed to save media ${pendingItem.url}:`, error);
+              toast.error(`Failed to save media: ${pendingItem.url}`);
+            })
         );
       }
       if (pendingMediaPromises.length > 0) {
@@ -1021,10 +1057,19 @@ const EditDiveSite = () => {
         const newDescription = mediaDescriptions[mediaItem.id] || '';
         if (currentDescription !== newDescription) {
           mediaUpdatePromises.push(
-            updateDiveSiteMedia(id, mediaItem.id, newDescription || null).catch(error => {
-              console.error(`Failed to update media description for media ${mediaItem.id}:`, error);
-              toast.error(`Failed to update media description`);
-            })
+            updateDiveSiteMedia(id, mediaItem.id, newDescription || null)
+              .then(response => {
+                if (response.status === 202 || response.data?.message?.includes('moderation')) {
+                  isPendingModeration = true;
+                }
+              })
+              .catch(error => {
+                console.error(
+                  `Failed to update media description for media ${mediaItem.id}:`,
+                  error
+                );
+                toast.error(`Failed to update media description`);
+              })
           );
         }
       }
@@ -1053,7 +1098,7 @@ const EditDiveSite = () => {
       if (isPendingModeration) {
         toast('Thank you! Your suggested edits are pending moderator approval.', { icon: 'ℹ️' });
       } else {
-        toast.success('Dive site updated successfully');
+        toast.success('Dive site updated successfully!');
       }
 
       // Navigate to the dive site detail page
