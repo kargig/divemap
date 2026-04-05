@@ -6,6 +6,7 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import api from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
 import usePageTitle from '../hooks/usePageTitle';
 import { getNotificationPreferences } from '../services/notifications';
@@ -22,6 +23,7 @@ const urlBase64ToUint8Array = base64String => {
 };
 
 const NotificationPreferencesPage = () => {
+  const { user } = useAuth();
   usePageTitle('Divemap - Notification Preferences');
   const { createPreference, updatePreference, deletePreference } = useNotifications();
   const { data: preferences = [], isLoading } = useQuery(
@@ -124,6 +126,12 @@ const NotificationPreferencesPage = () => {
       label: 'System & Social',
       description: 'Buddy requests, chat messages, and system announcements',
     },
+    {
+      value: 'moderation',
+      label: 'Moderation',
+      description: 'Pending dive site edits, tags, and media awaiting review',
+      requiresAdmin: true,
+    },
   ];
 
   const frequencies = [
@@ -148,6 +156,7 @@ const NotificationPreferencesPage = () => {
       // Create new preference
       const isDefaultEnabled = [
         'system',
+        'moderation',
         'new_dive_sites',
         'new_dive_trips',
         'admin_alerts',
@@ -174,6 +183,7 @@ const NotificationPreferencesPage = () => {
     } else {
       const isDefaultEnabled = [
         'system',
+        'moderation',
         'new_dive_sites',
         'new_dive_trips',
         'admin_alerts',
@@ -197,6 +207,7 @@ const NotificationPreferencesPage = () => {
 
   const isDefEnabled = catValue =>
     ['system', 'new_dive_sites', 'new_dive_trips', 'admin_alerts'].includes(catValue);
+  // 'moderation' handles its own admin check later
 
   const handleBulkUpdate = (field, value) => {
     categories.forEach(category => {
@@ -446,10 +457,14 @@ const NotificationPreferencesPage = () => {
       <div className='bg-white rounded-lg shadow-md p-6'>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {categories.map(category => {
+            if (category.requiresAdmin && !(user?.is_admin || user?.is_moderator)) {
+              return null;
+            }
             const preference = getPreference(category.value);
             // Default website notification should be true for 'system', 'new_dive_sites', 'new_dive_trips', 'admin_alerts'
             const isDefaultEnabled = [
               'system',
+              'moderation',
               'new_dive_sites',
               'new_dive_trips',
               'admin_alerts',

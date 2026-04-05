@@ -20,6 +20,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const AdminDives = lazy(() => import('./pages/AdminDives'));
 const AdminDiveSiteAliases = lazy(() => import('./pages/AdminDiveSiteAliases'));
 const AdminDiveSites = lazy(() => import('./pages/AdminDiveSites'));
+const AdminEditRequests = lazy(() => import('./pages/AdminEditRequests'));
 const AdminDiveRoutes = lazy(() => import('./pages/AdminDiveRoutes'));
 const AdminDivingCenters = lazy(() => import('./pages/AdminDivingCenters'));
 const AdminDivingOrganizationCertifications = lazy(
@@ -355,6 +356,14 @@ function App() {
                       element={
                         <ProtectedRoute requireAdmin={true}>
                           <AdminDiveSites />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path='/admin/dive-sites/edit-requests'
+                      element={
+                        <ProtectedRoute requireAdmin={true}>
+                          <AdminEditRequests />
                         </ProtectedRoute>
                       }
                     />

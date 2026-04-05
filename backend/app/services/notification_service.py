@@ -211,23 +211,20 @@ class NotificationService:
         entity_country: Optional[str] = None,
         entity_region: Optional[str] = None,
         db: Session = None
-    ) -> List[User]:
+    ) -> List[tuple[User, NotificationPreference]]:
         """
-        Get list of users who should receive notifications for this category.
-        
-        Args:
-            category: Notification category
-            entity_location: Optional entity location dict
-            entity_country: Optional country name
-            entity_region: Optional region name
-            db: Database session
-        
-        Returns:
-            List of User instances
+        Get list of users and their preferences who should receive notifications.
+        Returns a list of tuples (User, NotificationPreference).
         """
-        # Get all preferences for this category with website, email, or push enabled
-        preferences = db.query(NotificationPreference).filter(
+        from sqlalchemy import or_
+        
+        # optimized join to prevent N+1 queries
+        results = db.query(User, NotificationPreference).join(
+            NotificationPreference, User.id == NotificationPreference.user_id
+        ).filter(
             NotificationPreference.category == category,
+            User.enabled == True,
+            User.deleted_at.is_(None),
             or_(
                 NotificationPreference.enable_website == True,
                 NotificationPreference.enable_email == True,
@@ -235,33 +232,19 @@ class NotificationService:
             )
         ).all()
         
-        logger.debug(f"Found {len(preferences)} notification preferences for category '{category}'")
-        
         users_to_notify = []
-        for preference in preferences:
-            # Check area filter
+        for user, preference in results:
             if not self._matches_area_filter(preference, entity_location, entity_country, entity_region):
-                logger.debug(f"Preference {preference.id} (user_id={preference.user_id}) filtered out by area filter")
                 continue
+                
+            if preference.enable_email and user.email_notifications_opted_out:
+                if preference.enable_website or getattr(preference, 'enable_push', False):
+                    preference.enable_email = False
+                    users_to_notify.append((user, preference))
+                continue
+                
+            users_to_notify.append((user, preference))
             
-            # Get user
-            user = db.query(User).filter(User.id == preference.user_id).first()
-            if not user:
-                logger.warning(f"Preference {preference.id} references non-existent user_id={preference.user_id}")
-                continue
-            if not user.enabled:
-                logger.debug(f"User {preference.user_id} is disabled, skipping notification")
-                continue
-            # Check global email opt-out (skip email notifications, but still create website notifications)
-            if preference.enable_email and self.check_email_opted_out(user.id, db):
-                logger.debug(f"User {preference.user_id} has global email opt-out, skipping email notification")
-                # Still add user for website notifications if enabled
-                if preference.enable_website:
-                    users_to_notify.append(user)
-                continue
-            users_to_notify.append(user)
-        
-        logger.debug(f"Returning {len(users_to_notify)} users to notify for category '{category}'")
         return users_to_notify
     
     def check_email_opted_out(self, user_id: int, db: Session) -> bool:
@@ -442,6 +425,91 @@ class NotificationService:
         logger.info(f"Queued {success_count} push notifications for user {user.id}")
         return success_count
     
+    async def notify_admins_pending_edit(self, edit_request_id: int, db: Session):
+        """
+        Notify admins and moderators about a new pending dive site edit request.
+        """
+        from app.models import DiveSiteEditRequest, User, NotificationPreference
+        from sqlalchemy import or_
+        
+        # 1. Fetch the request details
+        edit_req = db.query(DiveSiteEditRequest).filter(DiveSiteEditRequest.id == edit_request_id).first()
+        if not edit_req or not edit_req.dive_site or not edit_req.requested_by:
+            return
+            
+        dive_site_name = edit_req.dive_site.name
+        requester_name = edit_req.requested_by.username
+        
+        # 2. Identify ALL active admins and moderators, bypassing _get_users_to_notify
+        # to ensure new admins who haven't explicitly saved a preference yet still get website alerts
+        notifiable_staff = db.query(User).filter(
+            User.enabled == True,
+            User.deleted_at.is_(None),
+            or_(User.is_admin == True, User.is_moderator == True)
+        ).all()
+        
+        # 3. Build notification details
+        title = "Pending Dive Site Edit"
+        message = f"User '{requester_name}' suggested an edit for '{dive_site_name}'. Please review."
+        link_url = f"/admin/dive-sites/edit-requests"
+        
+        # 4. Fetch all 'moderation' preferences in a single query
+        staff_ids = [u.id for u in notifiable_staff]
+        preferences = []
+        if staff_ids:
+            preferences = db.query(NotificationPreference).filter(
+                NotificationPreference.user_id.in_(staff_ids),
+                NotificationPreference.category == 'moderation'
+            ).all()
+            
+        pref_map = {p.user_id: p for p in preferences}
+
+        # 5. Dispatch
+        for staff_member in notifiable_staff:
+            preference = pref_map.get(staff_member.id)
+            
+            enable_website = preference.enable_website if preference else True
+            enable_push = getattr(preference, 'enable_push', True) if preference else True
+            enable_email = preference.enable_email if preference else True
+            frequency = preference.frequency if preference else 'immediate'
+
+            # If the user has explicitly disabled ALL forms of this notification, skip entirely
+            if not enable_website and not enable_email and not enable_push:
+                continue
+
+            # We must ALWAYS create the core DB notification if email or push is enabled,
+            # because the SQS tasks require a valid notification.id to track delivery state.
+            notification = self.create_notification(
+                user_id=staff_member.id,
+                category="moderation",
+                title=title,
+                message=message,
+                link_url=link_url,
+                entity_type="edit_request",
+                entity_id=edit_request_id,
+                db=db
+            )
+            
+            if notification:
+                # If they explicitly disabled website notifications, we can mark it as 'read' 
+                # instantly so it doesn't clutter their unread badge, but still exists for the SQS task.
+                if not enable_website:
+                    notification.is_read = True
+
+                if enable_email and frequency == 'immediate':
+                    self._queue_email_notification(notification, staff_member, 'system_notification', db)
+                
+                if enable_push:
+                    self._queue_push_notifications(notification, staff_member, db)
+        
+        # Commit all created notifications
+        try:
+            db.commit()
+        except Exception as e:
+            from app.monitoring import logger
+            logger.error(f"Error committing notifications for edit request {edit_request_id}: {e}")
+            db.rollback()
+
     async def notify_users_for_new_dive_site(self, dive_site_id: int, db: Session) -> int:
         """
         Notify users about a new dive site.
@@ -464,7 +532,7 @@ class NotificationService:
             entity_location = {'lat': float(dive_site.latitude), 'lng': float(dive_site.longitude)}
         
         # Get users to notify
-        users = self._get_users_to_notify(
+        user_prefs = self._get_users_to_notify(
             category='new_dive_sites',
             entity_location=entity_location,
             entity_country=dive_site.country,
@@ -472,45 +540,34 @@ class NotificationService:
             db=db
         )
         
-        # Exclude the creator from notifications (they don't need to be notified about their own creation)
         creator_id = dive_site.created_by
         if creator_id:
-            users = [user for user in users if user.id != creator_id]
+            user_prefs = [(u, p) for u, p in user_prefs if u.id != creator_id]
         
-        # Create notifications
         notification_count = 0
-        for user in users:
-            # Get user's preference
-            preference = db.query(NotificationPreference).filter(
-                NotificationPreference.user_id == user.id,
-                NotificationPreference.category == 'new_dive_sites'
-            ).first()
-            
-            if not preference:
-                continue
-            
-            # Create notification
+        for user, preference in user_prefs:
             link_url = f"/dive-sites/{dive_site_id}"
-            notification = self.create_notification(
-                user_id=user.id,
-                category='new_dive_sites',
-                title=f"New Dive Site: {dive_site.name}",
-                message=f"A new dive site '{dive_site.name}' has been added.",
-                link_url=link_url,
-                entity_type='dive_site',
-                entity_id=dive_site_id,
-                db=db
-            )
+            
+            if preference.enable_website:
+                notification = self.create_notification(
+                    user_id=user.id, category='new_dive_sites',
+                    title=f"New Dive Site: {dive_site.name}",
+                    message=f"A new dive site '{dive_site.name}' has been added.",
+                    link_url=link_url, entity_type='dive_site', entity_id=dive_site_id, db=db
+                )
+            else:
+                notification = Notification(
+                    user_id=user.id, category='new_dive_sites',
+                    title=f"New Dive Site: {dive_site.name}",
+                    message=f"A new dive site '{dive_site.name}' has been added.",
+                    link_url=link_url, entity_type='dive_site', entity_id=dive_site_id
+                )
             
             if notification:
                 notification_count += 1
-                
-                # Queue email if enabled and frequency is immediate
                 if preference.enable_email and preference.frequency == 'immediate':
                     self._queue_email_notification(notification, user, 'new_dive_site', db)
-                
-                # Queue push notification if enabled
-                if preference.enable_push:
+                if getattr(preference, 'enable_push', False):
                     self._queue_push_notifications(notification, user, db)
         
         logger.info(f"Created {notification_count} notifications for dive site {dive_site_id}")

@@ -236,8 +236,8 @@ class TestTags:
         response = client.post(f"/api/v1/tags/dive-sites/{dive_site.id}/tags",
                              json=tag_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "Tag addition submitted for moderation" in response.json()["message"]
 
     def test_add_tag_to_dive_site_invalid_data(self, client, admin_headers, db_session):
         """Test adding a tag to a dive site with invalid data."""
@@ -291,8 +291,8 @@ class TestTags:
         response = client.delete(f"/api/v1/tags/dive-sites/{dive_site.id}/tags/{tag.id}",
                                headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "Tag removal submitted for moderation" in response.json()["message"]
 
     def test_remove_tag_from_dive_site_not_found(self, client, admin_headers, db_session):
         """Test removing a non-existent tag association."""

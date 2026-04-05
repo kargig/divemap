@@ -54,6 +54,14 @@ const Admin = () => {
       color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
     },
     {
+      id: 'edit-requests',
+      title: 'Pending Edits',
+      description: 'Review and moderate community dive site contributions.',
+      icon: <FileText className='h-8 w-8 text-blue-600' />,
+      href: '/admin/dive-sites/edit-requests',
+      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
+    },
+    {
       id: 'dive-routes',
       title: 'Dive Routes Management',
       description: 'Manage all dive routes, view details, edit information, and delete routes.',

@@ -29,7 +29,7 @@ export const updateDiveSiteMedia = async (diveSiteId, mediaId, description = nul
   const data = {};
   if (description !== null) data.description = description;
   const response = await api.patch(`/api/v1/dive-sites/${diveSiteId}/media/${mediaId}`, data);
-  return response.data;
+  return response; // Return full response to allow checking status === 202
 };
 
 // Upload photo to R2 only for dive sites (without creating database record)
@@ -51,7 +51,7 @@ export const uploadDiveSitePhotoToR2Only = async (diveSiteId, file) => {
 // Add dive site media
 export const addDiveSiteMedia = async (diveSiteId, mediaData) => {
   const response = await api.post(`/api/v1/dive-sites/${diveSiteId}/media`, mediaData);
-  return response.data;
+  return response; // Return full response to allow checking status === 202
 };
 
 // Update media order

@@ -187,6 +187,12 @@ const NavbarDesktopControls = () => {
                           onClick: () => navigate('/admin/dive-sites'),
                         },
                         {
+                          key: 'pending-edits',
+                          label: 'Pending Edits',
+                          icon: <FileText className='h-4 w-4' />,
+                          onClick: () => navigate('/admin/dive-sites/edit-requests'),
+                        },
+                        {
                           key: 'dive-routes',
                           label: 'Dive Routes',
                           icon: <Route className='h-4 w-4' />,

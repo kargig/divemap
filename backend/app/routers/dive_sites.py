@@ -16,7 +16,10 @@ from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, Divin
 from app.services.osm_coastline_service import detect_shore_direction
 from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.services.open_meteo_service import fetch_wind_data_single_point
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia, DiveSiteEditRequest, EditRequestStatus, EditRequestType
+from app.auth import is_trusted_contributor
+from fastapi.responses import JSONResponse
+
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
     SiteRatingCreate, SiteRatingResponse,
@@ -2426,18 +2429,19 @@ async def add_dive_site_media(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = media.dict()
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_addition,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=202, content={"message": "Media addition submitted for moderation."})
 
     # Validate media URL
     # Allow HTTP/HTTPS URLs for external media, or R2 paths (starting with 'user_') for uploaded photos
@@ -2478,18 +2482,19 @@ async def update_dive_site_media(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = media_update.dict(exclude_unset=True)
+        update_data['id'] = media_id
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_update,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media update submitted for moderation."})
 
     # Check if media exists
     media = db.query(SiteMedia).filter(
@@ -2527,18 +2532,17 @@ async def delete_dive_site_media(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_deletion,
+            proposed_data={"id": media_id}
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media deletion submitted for moderation."})
 
     # Check if media exists
     media = db.query(SiteMedia).filter(
@@ -2583,18 +2587,19 @@ async def upload_dive_site_photo_r2_only(
             detail="Dive site not found"
         )
 
-    # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
-
-    if not can_edit:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this dive site"
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = media_update.dict(exclude_unset=True)
+        update_data['id'] = media_id
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.media_update,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Media update submitted for moderation."})
 
     # Validate file size (max 15MB) - Read in chunks to prevent memory exhaustion
     MAX_FILE_SIZE = 15 * 1024 * 1024
@@ -2910,12 +2915,55 @@ async def update_dive_site(
             detail="Dive site not found"
         )
 
+    if not is_trusted_contributor(db, current_user, dive_site):
+        update_data = dive_site_update.dict(exclude_unset=True)
+        # Compute a strict diff against the current dive site
+        diff_data = {}
+        
+        # In the frontend payload, the difficulty is called `difficulty_code`, but the ORM 
+        # stores it as `difficulty_id`. We need to handle this explicitly so it doesn't 
+        # erroneously trigger a "modified" diff simply because `dive_site.difficulty_code` is missing.
+        if 'difficulty_code' in update_data:
+            difficulty_code = update_data.pop('difficulty_code')
+            new_difficulty_id = get_difficulty_id_by_code(db, difficulty_code) if difficulty_code else None
+            
+            if dive_site.difficulty_id != new_difficulty_id:
+                diff_data['difficulty_code'] = difficulty_code
+                
+        for key, value in update_data.items():
+            current_val = getattr(dive_site, key, None)
+            
+            # Simple conversion to prevent strict string/float mismatches
+            # e.g., '10.0' vs 10.0
+            if current_val is not None and value is not None:
+                if str(current_val) != str(value):
+                    try:
+                        if float(current_val) != float(value):
+                            diff_data[key] = value
+                    except ValueError:
+                        diff_data[key] = value
+            elif current_val != value:
+                diff_data[key] = value
+
+        if not diff_data:
+             return JSONResponse(status_code=status.HTTP_200_OK, content={"message": "No changes detected."})
+
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.site_data,
+            proposed_data=diff_data
+        )
+        db.add(edit_request)
+        db.commit()
+        from app.services.notification_service import NotificationService
+        ns = NotificationService()
+        background_tasks.add_task(ns.notify_admins_pending_edit, edit_request.id, db)
+        return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content={"message": "Your changes have been submitted for moderation."})
+
     # Check if user has permission to edit (admin, moderator, or owner)
-    can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        dive_site.created_by == current_user.id
-    )
+    can_edit = True
 
     if not can_edit:
         raise HTTPException(
