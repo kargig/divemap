@@ -979,6 +979,8 @@ class ParsedDiveResponse(BaseModel):
     dive_duration: Optional[int] = None
     dive_description: Optional[str] = None
     dive_site_name: Optional[str] = None
+    dive_site_average_rating: Optional[float] = None
+    dive_site_tags: Optional[List[dict]] = None
     max_depth: Optional[float] = None
     created_at: datetime
     updated_at: datetime

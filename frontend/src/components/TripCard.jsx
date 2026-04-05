@@ -45,7 +45,10 @@ const TripCard = ({
   };
 
   // Helper function to get dive site rating
-  const getDiveSiteRating = diveSiteId => {
+  const getDiveSiteRating = (diveSiteId, averageRating) => {
+    if (averageRating !== undefined && averageRating !== null) {
+      return averageRating;
+    }
     const diveSite = getDiveSite(diveSiteId);
     return diveSite?.average_rating || null;
   };
@@ -71,9 +74,9 @@ const TripCard = ({
   };
 
   // Helper to render the rating badge
-  const renderRatingBadge = (diveSiteId, diveSiteName) => {
+  const renderRatingBadge = (diveSiteId, diveSiteName, averageRating) => {
     if (!diveSiteName) return null;
-    const rating = getDiveSiteRating(diveSiteId);
+    const rating = getDiveSiteRating(diveSiteId, averageRating);
     if (rating === null || rating <= 0) return null;
 
     return (
@@ -362,7 +365,11 @@ const TripCard = ({
                 <MapPin className='w-3.5 h-3.5 text-green-600 shrink-0' />
                 {renderSiteName(trip.dive_site_id, trip.dive_site_name)}
               </div>
-              {renderRatingBadge(trip.dive_site_id, trip.dive_site_name)}
+              {renderRatingBadge(
+                trip.dive_site_id,
+                trip.dive_site_name,
+                trip.dives?.[0]?.dive_site_average_rating
+              )}
             </div>
           </div>
         )}
@@ -375,7 +382,9 @@ const TripCard = ({
             </h4>
             <div className='space-y-1 lg:space-y-0.5'>
               {trip.dives.map((dive, index) => {
-                const site = getDiveSite(dive.dive_site_id);
+                const site = dive.dive_site_tags
+                  ? { tags: dive.dive_site_tags }
+                  : getDiveSite(dive.dive_site_id);
                 return (
                   <div
                     key={dive.id}
@@ -405,7 +414,11 @@ const TripCard = ({
                     {(!site?.tags || site.tags.length === 0 || isGrid) && (
                       <div className='flex-1'></div>
                     )}
-                    {renderRatingBadge(dive.dive_site_id, dive.dive_site_name)}
+                    {renderRatingBadge(
+                      dive.dive_site_id,
+                      dive.dive_site_name,
+                      dive.dive_site_average_rating
+                    )}
                   </div>
                 );
               })}
