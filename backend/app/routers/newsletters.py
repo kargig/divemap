@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, func, desc, asc
 from typing import List, Optional
 from datetime import datetime, date, time, timedelta
@@ -109,123 +109,12 @@ def clean_diving_terminology(dive_site_name: str) -> str:
     
     return cleaned_name
 
-def search_dive_trips_with_fuzzy(query: str, exact_results: List[ParsedDiveTrip], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10):
+def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10) -> list:
     """
-    Enhance search results with fuzzy matching when exact results are insufficient.
-    
-    Args:
-        query: The search query string
-        exact_results: List of dive trips from exact search
-        db: Database session
-        similarity_threshold: Minimum similarity score (0.0 to 1.0)
-        max_fuzzy_results: Maximum number of fuzzy results to return
-    
-    Returns:
-        List of dive trips with exact results first, followed by fuzzy matches
+    Perform fuzzy matching on dive trips to enhance search results.
     """
-    # If we have enough exact results, return them with match type info
-    if len(exact_results) >= 10:
-        # Convert exact results to the expected format
-        final_results = []
-        for trip in exact_results:
-            final_results.append({
-                'trip': trip,
-                'match_type': 'exact',
-                'score': 1.0,
-                'trip_description_contains': query.lower() in (trip.trip_description or '').lower(),
-                'special_requirements_contains': trip.special_requirements and query.lower() in trip.special_requirements.lower(),
-                'diving_center_name_contains': trip.diving_center and query.lower() in trip.diving_center.name.lower(),
-                'dive_site_name_contains': any(query.lower() in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
-            })
-        return final_results
-    
-    # Get all dive trips for fuzzy matching (with related data)
-    all_trips = db.query(ParsedDiveTrip).options(
-        joinedload(ParsedDiveTrip.diving_center),
-        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
-    ).all()
-    
-    # Create a set of exact result IDs to avoid duplicates
-    exact_ids = {trip.id for trip in exact_results}
-    
-    # Perform fuzzy matching on all dive trips (case-insensitive)
-    fuzzy_matches = []
-    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
-    
-    for trip in all_trips:
-        # Skip if already in exact results
-        if trip.id in exact_ids:
-            continue
-            
-        # Calculate similarity scores for different fields
-        trip_description_similarity = SequenceMatcher(None, query_lower, (trip.trip_description or '').lower()).ratio()
-        special_requirements_similarity = SequenceMatcher(None, query_lower, (trip.special_requirements or '').lower()).ratio()
-        diving_center_name_similarity = SequenceMatcher(None, query_lower, trip.diving_center.name.lower()).ratio() if trip.diving_center else 0
-        
-        # Calculate dive site name similarities
-        dive_site_similarities = []
-        if trip.dives:
-            for dive in trip.dives:
-                if dive.dive_site:
-                    dive_site_similarities.append(SequenceMatcher(None, query_lower, dive.dive_site.name.lower()).ratio())
-        
-        # Use the best dive site similarity score
-        best_dive_site_similarity = max(dive_site_similarities) if dive_site_similarities else 0
-        
-        # Check for partial matches (substring matches)
-        trip_description_contains = query_lower in (trip.trip_description or '').lower()
-        special_requirements_contains = trip.special_requirements and query_lower in trip.special_requirements.lower()
-        diving_center_name_contains = trip.diving_center and query_lower in trip.diving_center.name.lower()
-        dive_site_name_contains = any(query_lower in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
-        
-        # Calculate weighted similarity score
-        # Give higher weight to trip description, then dive site names, then diving center name
-        weighted_score = (
-            trip_description_similarity * 0.4 +
-            best_dive_site_similarity * 0.4 +
-            diving_center_name_similarity * 0.2
-        )
-        
-        # Boost score for partial matches
-        if trip_description_contains:
-            weighted_score += 0.3
-        if dive_site_name_contains:
-            weighted_score += 0.3
-        if diving_center_name_contains:
-            weighted_score += 0.2
-        if special_requirements_contains:
-            weighted_score += 0.1
-        
-        # Include if similarity above threshold
-        if weighted_score > similarity_threshold:
-            # Determine match type
-            if weighted_score >= 0.8:
-                match_type = 'close'
-            elif weighted_score >= 0.6:
-                match_type = 'partial'
-            else:
-                match_type = 'fuzzy'
-            
-            fuzzy_matches.append({
-                'trip': trip,
-                'match_type': match_type,
-                'score': weighted_score,
-                'trip_description_contains': trip_description_contains,
-                'special_requirements_contains': special_requirements_contains,
-                'diving_center_name_contains': diving_center_name_contains,
-                'dive_site_name_contains': dive_site_name_contains
-            })
-    
-    # Sort by score (highest first)
-    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
-    
-    # Limit results
-    fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
-    
-    # Combine exact and fuzzy results
+    # 1. Initialize final_results properly
     final_results = []
-    
-    # Add exact results first
     for trip in exact_results:
         final_results.append({
             'trip': trip,
@@ -233,13 +122,125 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: List[ParsedDiveTrip]
             'score': 1.0,
             'trip_description_contains': query.lower() in (trip.trip_description or '').lower(),
             'special_requirements_contains': trip.special_requirements and query.lower() in trip.special_requirements.lower(),
-            'diving_center_name_contains': trip.diving_center and query.lower() in trip.diving_center.name.lower(),
+            'diving_center_name_contains': query.lower() in trip.diving_center.name.lower() if trip.diving_center else False,
             'dive_site_name_contains': any(query.lower() in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
         })
+
+    # If we have enough exact results, return them
+    if len(exact_results) >= max_fuzzy_results:
+        return final_results
     
-    # Add fuzzy results
-    final_results.extend(fuzzy_matches)
+    # 2. Setup for Hybrid Fuzzy Matching (Coarse-to-Fine)
+    exact_ids = {trip.id for trip in exact_results}
+    from sqlalchemy import or_
+    from sqlalchemy.orm import joinedload, selectinload
     
+    words = [w for w in query.lower().replace(',', ' ').split() if len(w) > 2]
+    if not words:
+        return final_results
+        
+    candidate_trips = []
+    from app.models import DivingCenter, DiveSite, ParsedDive, ParsedDiveTrip
+    
+    # 3. Coarse Filter (SQL)
+    for word in words:
+        search_term = f"%{word}%"
+        
+        coarse_query = db.query(ParsedDiveTrip).options(
+            joinedload(ParsedDiveTrip.diving_center),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+        ).filter(
+            ParsedDiveTrip.id.notin_(exact_ids) if exact_ids else True,
+            or_(
+                ParsedDiveTrip.trip_description.ilike(search_term),
+                ParsedDiveTrip.special_requirements.ilike(search_term),
+                ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(search_term)),
+                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))),
+                ParsedDiveTrip.dives.any(ParsedDive.dive_description.ilike(search_term))
+            )
+        ).limit(50)
+        
+        for trip in coarse_query.all():
+            if trip.id not in exact_ids and trip not in candidate_trips:
+                candidate_trips.append(trip)
+                exact_ids.add(trip.id)
+                
+    if not candidate_trips:
+        return final_results
+
+    # 4. Fine Filter (Python)
+    try:
+        from rapidfuzz import fuzz
+    except ImportError:
+        from difflib import SequenceMatcher
+        class fuzz:
+            @staticmethod
+            def partial_ratio(s1, s2):
+                if not s1 or not s2: return 0
+                return SequenceMatcher(None, s1.lower(), s2.lower()).ratio() * 100
+
+    fuzzy_matches = []
+    query_lower = query.lower()
+    
+    for trip in candidate_trips:
+        score = 0.0
+        match_type = 'none'
+        
+        # Calculate RapidFuzz ratios (0-100 scale, so we divide by 100)
+        desc_score = fuzz.partial_ratio(query_lower, (trip.trip_description or '').lower()) / 100.0
+        if desc_score > score:
+            score = desc_score
+            match_type = 'description_fuzzy'
+            
+        req_score = fuzz.partial_ratio(query_lower, (trip.special_requirements or '').lower()) / 100.0
+        if req_score > score:
+            score = req_score
+            match_type = 'requirements_fuzzy'
+            
+        center_score = fuzz.partial_ratio(query_lower, trip.diving_center.name.lower()) / 100.0 if trip.diving_center else 0
+        if center_score > score:
+            score = center_score
+            match_type = 'diving_center_fuzzy'
+            
+        if trip.dives:
+            for dive in trip.dives:
+                if dive.dive_site and dive.dive_site.name:
+                    site_score = fuzz.partial_ratio(query_lower, dive.dive_site.name.lower()) / 100.0
+                    if site_score > score:
+                        score = site_score
+                        match_type = 'dive_site_fuzzy'
+                if dive.dive_description:
+                    dive_desc_score = fuzz.partial_ratio(query_lower, dive.dive_description.lower()) / 100.0
+                    if dive_desc_score > score:
+                        score = dive_desc_score
+                        match_type = 'dive_description_fuzzy'
+                        
+        if score >= similarity_threshold:
+            if score >= 0.8:
+                class_type = 'close'
+            elif score >= 0.6:
+                class_type = 'partial'
+            else:
+                class_type = 'fuzzy'
+                
+            fuzzy_matches.append({
+                'trip': trip,
+                'match_type': class_type,
+                'score': score,
+                'trip_description_contains': query_lower in (trip.trip_description or '').lower(),
+                'special_requirements_contains': trip.special_requirements and query_lower in trip.special_requirements.lower(),
+                'diving_center_name_contains': query.lower() in trip.diving_center.name.lower() if trip.diving_center else False,
+                'dive_site_name_contains': any(query_lower in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
+            })
+            
+    # Sort fuzzy matches by score (descending)
+    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Take top N fuzzy matches to fill the remaining slots
+    slots_needed = max_fuzzy_results - len(exact_results)
+    if slots_needed > 0:
+        final_results.extend(fuzzy_matches[:slots_needed])
+        
     return final_results
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -1369,11 +1370,15 @@ async def get_parsed_trips(
     
     Distance sorting requires user_lat and user_lon coordinates.
     """
+    from sqlalchemy.orm import selectinload
     # Eager load all relationships to avoid N+1 queries
+    # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET
+    from app.models import SiteRating, DiveSiteTag, AvailableTag
     query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
         joinedload(ParsedDiveTrip.diving_center),
-        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
+        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
     )
 
     # Date filtering
@@ -1447,7 +1452,6 @@ async def get_parsed_trips(
                 # Search in dive site location fields through the dives relationship
                 ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.country.ilike(location_term))),
                 ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(location_term))),
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.address.ilike(location_term))),
                 ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(location_term))
             )
         )
@@ -1647,6 +1651,8 @@ async def get_parsed_trips(
                     dive_duration=dive.dive_duration,
                     dive_description=dive.dive_description,
                     dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                    dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
+                    dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
                     created_at=dive.created_at,
                     updated_at=dive.updated_at
                 )
@@ -2088,8 +2094,22 @@ async def create_parsed_trip(
         db.refresh(trip)
 
         # Build the response with dives
+        # We need to fetch dive sites with ratings/tags for accurate response
+        db.commit()
+        db.refresh(trip)
+        
+        # Load the newly created trip with relations
+        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        trip = db.query(ParsedDiveTrip).options(
+            joinedload(ParsedDiveTrip.difficulty),
+            joinedload(ParsedDiveTrip.diving_center),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        ).filter(ParsedDiveTrip.id == trip.id).first()
+
         dive_responses = []
-        for dive in dives:
+        for dive in trip.dives:
             dive_responses.append(ParsedDiveResponse(
                 id=dive.id,
                 trip_id=dive.trip_id,
@@ -2099,6 +2119,8 @@ async def create_parsed_trip(
                 dive_duration=dive.dive_duration,
                 dive_description=dive.dive_description,
                 dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
+                dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))
@@ -2284,6 +2306,17 @@ async def update_parsed_trip(
         db.commit()
         db.refresh(trip)
 
+        # Load the updated trip with relations
+        db.commit()
+        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        trip = db.query(ParsedDiveTrip).options(
+            joinedload(ParsedDiveTrip.difficulty),
+            joinedload(ParsedDiveTrip.diving_center),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        ).filter(ParsedDiveTrip.id == trip.id).first()
+
         # Build the response with dives
         dive_responses = []
         for dive in trip.dives:
@@ -2296,6 +2329,8 @@ async def update_parsed_trip(
                 dive_duration=dive.dive_duration,
                 dive_description=dive.dive_description,
                 dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
+                dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))

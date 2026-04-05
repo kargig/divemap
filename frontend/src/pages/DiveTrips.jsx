@@ -39,8 +39,6 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
-import { getDiveSites } from '../services/diveSites';
-import { getDivingCenters } from '../services/divingCenters';
 import { getParsedTrips } from '../services/newsletters';
 import { formatCost } from '../utils/currency';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -339,140 +337,42 @@ const DiveTrips = () => {
   const pageTitle = 'Divemap - Dive Trips';
   usePageTitle(pageTitle);
 
-  // Fetch diving centers and dive sites for filters - use detail_level='basic' to minimize data transfer
-  // Only fetch when filters are shown to avoid unnecessary requests
-  const {
-    data: divingCentersData,
-    error: divingCentersError,
-    isLoading: isLoadingCenters,
-  } = useQuery(
-    ['diving-centers-filter'],
-    () => getDivingCenters({ page_size: 50, detail_level: 'basic' }),
-    {
-      staleTime: 300000, // 5 minutes
-      enabled: showFilters || Boolean(filters.diving_center_id),
-    }
-  );
-
-  const {
-    data: diveSitesData,
-    error: diveSitesError,
-    isLoading: isLoadingSites,
-  } = useQuery(
-    ['dive-sites-filter'],
-    () => getDiveSites({ page_size: 100, detail_level: 'basic' }),
-    {
-      staleTime: 300000, // 5 minutes
-      enabled: true, // Always enable to show ratings in cards
-    }
-  );
-
-  // Extract unique diving center and dive site IDs from current trips for filter dropdowns
-  const uniqueCenterIds = useMemo(() => {
-    if (!trips || !Array.isArray(trips)) return new Set();
-    const ids = new Set();
+  // Extract unique diving centers and dive sites directly from the loaded trips
+  // This completely eliminates the need for separate API queries to /dive-sites and /diving-centers
+  const divingCenters = useMemo(() => {
+    if (!trips || !Array.isArray(trips)) return [];
+    const itemMap = {};
     trips.forEach(trip => {
-      if (trip.diving_center_id) {
-        ids.add(trip.diving_center_id);
+      if (trip.diving_center_id && trip.diving_center_name) {
+        itemMap[trip.diving_center_id] = {
+          id: trip.diving_center_id,
+          name: trip.diving_center_name,
+        };
       }
     });
-    return ids;
+    return Object.values(itemMap).sort((a, b) => a.name.localeCompare(b.name));
   }, [trips]);
 
-  const uniqueSiteIds = useMemo(() => {
-    if (!trips || !Array.isArray(trips)) return new Set();
-    const ids = new Set();
+  const diveSites = useMemo(() => {
+    if (!trips || !Array.isArray(trips)) return [];
+    const itemMap = {};
     trips.forEach(trip => {
       if (trip.dives && Array.isArray(trip.dives)) {
         trip.dives.forEach(dive => {
-          if (dive.dive_site_id) {
-            ids.add(dive.dive_site_id);
+          if (dive.dive_site_id && dive.dive_site_name) {
+            itemMap[dive.dive_site_id] = {
+              id: dive.dive_site_id,
+              name: dive.dive_site_name,
+            };
           }
         });
       }
     });
-    return ids;
+    return Object.values(itemMap).sort((a, b) => a.name.localeCompare(b.name));
   }, [trips]);
-
-  // Ensure we always have arrays for the filter data
-  // Handle different possible response structures from the API
-  const allDivingCenters = (() => {
-    if (Array.isArray(divingCentersData)) return divingCentersData;
-    if (divingCentersData && Array.isArray(divingCentersData.items)) return divingCentersData.items;
-    if (divingCentersData && Array.isArray(divingCentersData.data)) return divingCentersData.data;
-    if (divingCentersData && Array.isArray(divingCentersData.results))
-      return divingCentersData.results;
-    return [];
-  })();
-
-  const allDiveSites = (() => {
-    if (Array.isArray(diveSitesData)) return diveSitesData;
-    if (diveSitesData && Array.isArray(diveSitesData.items)) return diveSitesData.items;
-    if (diveSitesData && Array.isArray(diveSitesData.data)) return diveSitesData.data;
-    if (diveSitesData && Array.isArray(diveSitesData.results)) return diveSitesData.results;
-    return [];
-  })();
-
-  // Filter to only show diving centers that have trips
-  const divingCenters = useMemo(() => {
-    if (!allDivingCenters || allDivingCenters.length === 0) return [];
-    return allDivingCenters.filter(center => uniqueCenterIds.has(center.id));
-  }, [allDivingCenters, uniqueCenterIds]);
-
-  // Filter to only show dive sites that have trips
-  const diveSites = useMemo(() => {
-    if (!allDiveSites || allDiveSites.length === 0) return [];
-    return allDiveSites.filter(site => uniqueSiteIds.has(site.id));
-  }, [allDiveSites, uniqueSiteIds]);
 
   // State to store additional dive sites that are not in the main list
   const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
-
-  // Function to get dive site by ID if not in the list
-  const getDiveSiteById = async siteId => {
-    try {
-      const { getDiveSite } = await import('../services/diveSites');
-      const site = await getDiveSite(siteId);
-      return site;
-    } catch (error) {
-      console.error('Error fetching dive site by ID:', error);
-    }
-    return null;
-  };
-
-  // Function to ensure dive site is available in dropdown/ratings
-  const ensureDiveSiteAvailable = async siteId => {
-    if (!siteId) return;
-
-    const existingSite =
-      diveSites.find(s => s.id === siteId) || additionalDiveSites.find(s => s.id === siteId);
-
-    if (!existingSite) {
-      const site = await getDiveSiteById(siteId);
-      if (site) {
-        setAdditionalDiveSites(prev => {
-          // Avoid duplicates
-          if (prev.find(s => s.id === siteId)) return prev;
-          return [...prev, site];
-        });
-      }
-    }
-  };
-
-  // Ensure dive sites are available for ratings when trips load
-  useEffect(() => {
-    if (trips && Array.isArray(trips)) {
-      trips.forEach(trip => {
-        if (trip.dives && Array.isArray(trip.dives)) {
-          trip.dives.forEach(dive => {
-            if (dive.dive_site_id) {
-              ensureDiveSiteAvailable(dive.dive_site_id);
-            }
-          });
-        }
-      });
-    }
-  }, [trips, diveSites]);
 
   // Reset to page 1 when filters or sort options change - REMOVED (handled in handlers)
 
@@ -482,18 +382,6 @@ const DiveTrips = () => {
       handleRateLimitError(error, 'dive trips', () => window.location.reload());
     }
   }, [error]);
-
-  useEffect(() => {
-    if (divingCentersError) {
-      handleRateLimitError(divingCentersError, 'diving centers', () => window.location.reload());
-    }
-  }, [divingCentersError]);
-
-  useEffect(() => {
-    if (diveSitesError) {
-      handleRateLimitError(diveSitesError, 'dive sites', () => window.location.reload());
-    }
-  }, [diveSitesError]);
 
   // Sort trips by date (newest/future first)
   const sortedTrips = trips
@@ -813,38 +701,6 @@ const DiveTrips = () => {
           </div>
         )}
 
-        {/* API Errors for Filter Data */}
-        {(divingCentersError || diveSitesError) && (
-          <div className='mb-6'>
-            {divingCentersError?.isRateLimited && (
-              <RateLimitError
-                retryAfter={divingCentersError.retryAfter}
-                onRetry={() => window.location.reload()}
-                className='mb-4'
-              />
-            )}
-            {diveSitesError?.isRateLimited && (
-              <RateLimitError
-                retryAfter={diveSitesError.retryAfter}
-                onRetry={() => window.location.reload()}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Filter Data Loading State */}
-        {showFilters && (isLoadingCenters || isLoadingSites) && (
-          <div className='mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
-            <div className='flex items-center'>
-              <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2'></div>
-              <span className='text-yellow-800 text-sm'>
-                Loading filter data... Please wait while we prepare the diving centers and dive
-                sites for filtering.
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Responsive Filter Bar */}
         <ResponsiveFilterBar
           showFilters={showFilters}
@@ -853,8 +709,8 @@ const DiveTrips = () => {
           activeFiltersCount={getActiveFiltersCount()}
           filters={{
             ...filters,
-            availableDivingCenters: allDivingCenters || [],
-            availableDiveSites: allDiveSites || [],
+            availableDivingCenters: divingCenters || [],
+            availableDiveSites: diveSites || [],
           }}
           onFilterChange={handleFilterChange}
           variant='inline'
@@ -968,7 +824,6 @@ const DiveTrips = () => {
                   trip={trip}
                   user={user}
                   diveSites={diveSites}
-                  additionalDiveSites={additionalDiveSites}
                   compactLayout={compactLayout}
                   viewMode='list'
                 />
@@ -1026,7 +881,6 @@ const DiveTrips = () => {
                   trip={trip}
                   user={user}
                   diveSites={diveSites}
-                  additionalDiveSites={additionalDiveSites}
                   compactLayout={compactLayout}
                   viewMode='grid'
                 />

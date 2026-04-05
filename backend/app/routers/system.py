@@ -845,6 +845,43 @@ async def get_recent_activity(
     # Sort all activities by timestamp (most recent first)
     activities.sort(key=lambda x: x["timestamp"], reverse=True)
     
+    # Moderation - Edit Requests
+    from app.models import DiveSiteEditRequest
+    from sqlalchemy.orm import joinedload
+    
+    new_edit_requests = db.query(DiveSiteEditRequest).options(
+        joinedload(DiveSiteEditRequest.requested_by),
+        joinedload(DiveSiteEditRequest.dive_site)
+    ).filter(
+        DiveSiteEditRequest.created_at >= start_time
+    ).order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
+    
+    for req in new_edit_requests:
+        user_name = req.requested_by.username if req.requested_by else f"User {req.requested_by_id}"
+        site_name = req.dive_site.name if req.dive_site else f"Site {req.dive_site_id}"
+        
+        status_color = "warning"
+        action_verb = "submitted"
+        if req.status == "approved":
+            status_color = "success"
+            action_verb = "approved"
+        elif req.status == "rejected":
+            status_color = "error"
+            action_verb = "rejected"
+            
+        activities.append({
+            "timestamp": req.created_at.isoformat(),
+            "type": "edit_request",
+            "user_id": req.requested_by_id,
+            "username": user_name,
+            "action": f"Edit request {action_verb}",
+            "details": f"User {user_name} {action_verb} a {req.edit_type.replace('_', ' ')} edit for {site_name}",
+            "status": status_color
+        })
+
+    # Sort all activities by timestamp (most recent first) again after adding edit requests
+    activities.sort(key=lambda x: x["timestamp"], reverse=True)
+
     # Limit the total number of activities
     activities = activities[:limit]
     
