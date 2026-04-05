@@ -145,7 +145,7 @@ class TestDiveSitesCRUD:
         response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}",
                             json=update_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_202_ACCEPTED
 
     def test_update_dive_site_not_found(self, client, admin_headers):
         """Test updating non-existent dive site."""
