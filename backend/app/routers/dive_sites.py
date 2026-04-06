@@ -372,6 +372,12 @@ def apply_sorting(query, sort_by, sort_order, current_user):
                 )
             sort_field = DiveSite.view_count
         elif sort_by == 'comment_count':
+            # Only admin users can sort by comment_count
+            if not current_user or not current_user.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sorting by comment_count is only available for admin users"
+                )
             # Use the joined subquery column if available, otherwise join directly
             if 'comment_count' in [c.name for c in query.column_descriptions if hasattr(c, 'name')]:
                 sort_field = text('comment_count')

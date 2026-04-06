@@ -459,21 +459,24 @@ class TestNewslettersFuzzySearch:
         response = client.get("/api/v1/newsletters/?search=test", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data["items"]) > 0
+        assert isinstance(data, list)
+        assert len(data) > 0
 
     def test_newsletter_search_with_title(self, client, test_newsletter, admin_headers):
         """Test newsletter search by content (since Newsletter only has content field)."""
         response = client.get("/api/v1/newsletters/?search=newsletter", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data["items"]) > 0
+        assert isinstance(data, list)
+        assert len(data) > 0
 
     def test_newsletter_search_with_content(self, client, test_newsletter, admin_headers):
         """Test newsletter search by content."""
         response = client.get("/api/v1/newsletters/?search=content", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data["items"]) > 0
+        assert isinstance(data, list)
+        assert len(data) > 0
 
 
 class TestUtilsFunctions:

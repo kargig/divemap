@@ -33,10 +33,11 @@ class TestDiveSitesSorting:
         response = client.get("/api/v1/dive-sites/?sort_by=name&sort_order=asc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dive_sites = response.json()
+        data = response.json()
+        items = data.get("items", [])
         
         # Verify sorting order
-        names = [site["name"] for site in dive_sites]
+        names = [item["name"] for item in items]
         assert names == sorted(names)
     
     def test_sort_by_name_desc(self, client, sample_dive_sites):
@@ -44,7 +45,8 @@ class TestDiveSitesSorting:
         response = client.get("/api/v1/dive-sites/?sort_by=name&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dive_sites = response.json()
+        data = response.json()
+        dive_sites = data.get("items", [])
         
         # Verify sorting order
         names = [site["name"] for site in dive_sites]
@@ -62,7 +64,8 @@ class TestDiveSitesSorting:
         response = client.get("/api/v1/dive-sites/?sort_by=created_at&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dive_sites = response.json()
+        data = response.json()
+        dive_sites = data.get("items", [])
         
         # Verify sorting order
         created_dates = [datetime.fromisoformat(site["created_at"]) for site in dive_sites]
@@ -100,7 +103,8 @@ class TestDivingCentersSorting:
         response = client.get("/api/v1/diving-centers/?sort_by=name&sort_order=asc&page=1&page_size=25")
         
         assert response.status_code == 200
-        diving_centers = response.json()
+        data = response.json()
+        diving_centers = data.get("items", [])
         
         # Verify sorting order
         names = [center["name"] for center in diving_centers]
@@ -126,7 +130,8 @@ class TestDivingCentersSorting:
         response = client.get("/api/v1/diving-centers/?sort_by=name&sort_order=asc&min_rating=4&max_rating=5&page=1&page_size=25")
         
         assert response.status_code == 200
-        diving_centers = response.json()
+        data = response.json()
+        diving_centers = data.get("items", [])
         
         # Verify that rating filters are applied
         for center in diving_centers:
@@ -146,7 +151,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=dive_date&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify sorting order
         dive_dates = [datetime.strptime(dive["dive_date"], "%Y-%m-%d").date() for dive in dives]
@@ -157,7 +163,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=max_depth&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify sorting order
         depths = [dive["max_depth"] for dive in dives if dive["max_depth"] is not None]
@@ -168,7 +175,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=duration&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify sorting order
         durations = [dive["duration"] for dive in dives if dive["duration"] is not None]
@@ -179,7 +187,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=difficulty_level&sort_order=asc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify sorting order (OPEN_WATER < ADVANCED_OPEN_WATER < DEEP_NITROX < TECHNICAL_DIVING)
         difficulty_order = {"OPEN_WATER": 1, "ADVANCED_OPEN_WATER": 2, "DEEP_NITROX": 3, "TECHNICAL_DIVING": 4}
@@ -191,7 +200,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=user_rating&sort_order=desc&page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify sorting order
         ratings = [dive["user_rating"] for dive in dives if dive["user_rating"] is not None]
@@ -209,7 +219,8 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?page=1&page_size=25")
         
         assert response.status_code == 200
-        dives = response.json()
+        data = response.json()
+        dives = data.get("items", [])
         
         # Verify default sorting by dive date (newest first)
         dive_dates = [datetime.strptime(dive["dive_date"], "%Y-%m-%d").date() for dive in dives]
@@ -301,7 +312,8 @@ class TestSortingPerformance:
         
         # Verify results are sorted correctly
         assert response.status_code == 200
-        dive_sites = response.json()
+        data = response.json()
+        dive_sites = data.get("items", [])
         created_dates = [datetime.fromisoformat(site["created_at"]) for site in dive_sites]
         assert created_dates == sorted(created_dates, reverse=True)
     
@@ -318,7 +330,8 @@ class TestSortingPerformance:
         
         # Verify results are sorted correctly
         assert response.status_code == 200
-        dive_sites = response.json()
+        data = response.json()
+        dive_sites = data.get("items", [])
         created_dates = [datetime.fromisoformat(site["created_at"]) for site in dive_sites]
         assert created_dates == sorted(created_dates, reverse=True)
 

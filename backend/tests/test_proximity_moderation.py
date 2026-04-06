@@ -100,7 +100,7 @@ class TestProximityModeration:
         # Verify it's not in the public list
         list_response = client.get("/api/v1/dive-sites/")
         assert list_response.status_code == status.HTTP_200_OK
-        list_data = list_response.json()
+        list_data = list_response.json().get("items", [])
         assert not any(s["id"] == data["id"] for s in list_data)
 
     def test_admin_approve_dive_site(self, client, admin_headers, db_session, test_user):
@@ -113,7 +113,7 @@ class TestProximityModeration:
         
         # Verify it's now in the public list
         list_response = client.get("/api/v1/dive-sites/")
-        list_data = list_response.json()
+        list_data = list_response.json().get("items", [])
         assert any(s["id"] == site.id for s in list_data)
 
     def test_admin_reject_dive_site(self, client, admin_headers, db_session, test_user):
