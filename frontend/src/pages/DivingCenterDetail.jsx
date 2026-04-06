@@ -111,7 +111,7 @@ const DivingCenterDetail = () => {
 
   // Query for dive sites (for dropdown)
   const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
-    enabled: !!id,
+    enabled: !!id && isEditTripModalOpen,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -120,7 +120,7 @@ const DivingCenterDetail = () => {
     'diving-centers',
     () => getDivingCenters({ page_size: 100 }),
     {
-      enabled: !!id,
+      enabled: !!id && isEditTripModalOpen,
       staleTime: 5 * 60 * 1000,
     }
   );

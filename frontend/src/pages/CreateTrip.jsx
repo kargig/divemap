@@ -40,14 +40,14 @@ const CreateTrip = () => {
 
   // Fetch dive sites and diving centers
   const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
-    refetchInterval: 30000,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: allDivingCenters = [] } = useQuery(
     'diving-centers',
     () => getDivingCenters({ page_size: 100 }),
     {
-      refetchInterval: 30000,
+      staleTime: 5 * 60 * 1000,
     }
   );
 

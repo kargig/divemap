@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_, desc, asc, select
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct
 from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
@@ -21,7 +21,7 @@ from app.auth import is_trusted_contributor
 from fastapi.responses import JSONResponse
 
 from app.schemas import (
-    DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse,
+    DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, DiveSiteListResponse,
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
@@ -372,23 +372,30 @@ def apply_sorting(query, sort_by, sort_order, current_user):
                 )
             sort_field = DiveSite.view_count
         elif sort_by == 'comment_count':
-            # Only admin users can sort by comment_count
-            if not current_user or not current_user.is_admin:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sorting by comment_count is only available for admin users"
-                )
-            # For comment count, we need to join with comments and group
-            query = query.outerjoin(SiteComment).group_by(DiveSite.id)
-            sort_field = func.count(SiteComment.id)
+            # Use the joined subquery column if available, otherwise join directly
+            if 'comment_count' in [c.name for c in query.column_descriptions if hasattr(c, 'name')]:
+                sort_field = text('comment_count')
+            else:
+                query = query.outerjoin(SiteComment).group_by(DiveSite.id)
+                sort_field = func.count(SiteComment.id)
+        elif sort_by == 'route_count':
+            if 'route_count' in [c.name for c in query.column_descriptions if hasattr(c, 'name')]:
+                sort_field = text('route_count')
+            else:
+                from app.models import DiveRoute
+                query = query.outerjoin(DiveRoute, and_(DiveSite.id == DiveRoute.dive_site_id, DiveRoute.deleted_at.is_(None))).group_by(DiveSite.id)
+                sort_field = func.count(DiveRoute.id)
+        elif sort_by == 'average_rating':
+            if 'avg_rating' in [c.name for c in query.column_descriptions if hasattr(c, 'name')]:
+                sort_field = text('avg_rating')
+            else:
+                from app.models import SiteRating
+                query = query.outerjoin(SiteRating).group_by(DiveSite.id)
+                sort_field = func.avg(SiteRating.score)
         elif sort_by == 'created_at':
             sort_field = DiveSite.created_at
         elif sort_by == 'updated_at':
             sort_field = DiveSite.updated_at
-        elif sort_by == 'average_rating':
-            # For average_rating, we'll handle this separately in the main function
-            # as it requires special processing
-            return query
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -871,7 +878,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=List[DiveSiteResponse])
+@router.get("/", response_model=DiveSiteListResponse)
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites(
     request: Request,
@@ -1188,90 +1195,83 @@ async def get_dive_sites(
             # If any error occurs, return empty result when filtering by suitability
             query = query.filter(False)
 
-    # Get total count for pagination
-    total_count = query.count()
+    # Define subqueries for metadata to avoid N+1 queries
+    from app.models import SiteRating, SiteComment, DiveRoute
+    ratings_subquery = db.query(
+        SiteRating.dive_site_id,
+        func.avg(SiteRating.score).label('avg_rating'),
+        func.count(SiteRating.id).label('total_ratings')
+    ).group_by(SiteRating.dive_site_id).subquery()
+
+    comments_subquery = db.query(
+        SiteComment.dive_site_id,
+        func.count(SiteComment.id).label('comment_count')
+    ).group_by(SiteComment.dive_site_id).subquery()
+
+    routes_subquery = db.query(
+        DiveRoute.dive_site_id,
+        func.count(DiveRoute.id).label('route_count')
+    ).filter(DiveRoute.deleted_at.is_(None)).group_by(DiveRoute.dive_site_id).subquery()
+
+    # Join subqueries and eager load relationships
+    from app.models import DiveSiteTag
+    query = query.outerjoin(ratings_subquery, DiveSite.id == ratings_subquery.c.dive_site_id) \
+                 .outerjoin(comments_subquery, DiveSite.id == comments_subquery.c.dive_site_id) \
+                 .outerjoin(routes_subquery, DiveSite.id == routes_subquery.c.dive_site_id) \
+                 .options(
+                     joinedload(DiveSite.difficulty),
+                     selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag),
+                     selectinload(DiveSite.aliases)
+                 )
+
+    # Apply sorting using updated apply_sorting
+    if sort_by:
+        query = apply_sorting(query, sort_by, sort_order, current_user)
+
+    # Get total count for pagination before adding extra columns
+    total_count = query.distinct().count()
+
+    # Add metadata columns to the query results for fetching
+    query = query.add_columns(
+        ratings_subquery.c.avg_rating,
+        ratings_subquery.c.total_ratings,
+        comments_subquery.c.comment_count,
+        routes_subquery.c.route_count
+    )
 
     # Calculate pagination
     offset = (page - 1) * page_size
     total_pages = (total_count + page_size - 1) // page_size
 
-    # Initialize match_types at function level (used later for response headers)
+    # Initialize match_types at function level
     match_types = {}
 
-    # Handle average_rating sorting before pagination
-    if sort_by == 'average_rating':
-        # Get all dive sites with their average ratings for proper sorting
-        all_dive_sites_query = db.query(DiveSite)
-        if not show_archived:
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.deleted_at.is_(None))
-            
-            # Apply status filter
-            if site_status and (current_user and (current_user.is_admin or current_user.is_moderator)):
-                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
-            else:
-                all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == 'approved')
-        elif site_status:
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.status == site_status)
+    # Apply pagination and fetch results
+    rows = query.offset(offset).limit(page_size).all()
+    
+    # Process results (rows are tuples because of add_columns)
+    dive_sites = []
+    metadata_map = {}
+    for row in rows:
+        site = row[0]
+        dive_sites.append(site)
+        metadata_map[site.id] = {
+            "avg_rating": row[1],
+            "total_ratings": row[2] or 0,
+            "comment_count": row[3] or 0,
+            "route_count": row[4] or 0
+        }
 
-        # Apply specific ID filter if provided (Admin/Moderator only)
-        if dive_site_id and (current_user and (current_user.is_admin or current_user.is_moderator)):
-            all_dive_sites_query = all_dive_sites_query.filter(DiveSite.id == dive_site_id)
-
-        # Apply the same filters to the full query using utility functions
-        all_dive_sites_query = apply_search_filters(all_dive_sites_query, search, name, db)
-        all_dive_sites_query = apply_basic_filters(all_dive_sites_query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
-        all_dive_sites_query = apply_tag_filtering(all_dive_sites_query, tag_ids, db)
-        all_dive_sites_query = apply_rating_filtering(all_dive_sites_query, min_rating, db)
-        
-        # Get all dive sites that match the filters
-        all_dive_sites = all_dive_sites_query.all()
-        
-        # Calculate average ratings for all matching dive sites
-        dive_sites_with_ratings = []
-        for site in all_dive_sites:
-            avg_rating = db.query(func.avg(SiteRating.score)).filter(
-                SiteRating.dive_site_id == site.id
-            ).scalar()
-            dive_sites_with_ratings.append((site, avg_rating or 0))
-        
-        # Sort by average rating
-        dive_sites_with_ratings.sort(
-            key=lambda x: x[1], 
-            reverse=(sort_order == 'desc')
-        )
-        
-        # Apply pagination to the sorted results
-        start_idx = offset
-        end_idx = start_idx + page_size
-        paginated_dive_sites = dive_sites_with_ratings[start_idx:end_idx]
-        
-        # Extract just the dive sites for further processing
-        dive_sites = [site for site, rating in paginated_dive_sites]
-        
-        # Update total count for pagination
-        total_count = len(all_dive_sites)
-    else:
-        # Get dive sites with pagination for other sort fields
-        dive_sites = query.offset(offset).limit(page_size).all()
-        
-        # Apply fuzzy search enhancement using unified trigger conditions
-        if 'search_query_for_fuzzy' in locals() and get_unified_fuzzy_trigger_conditions(
-            search_query_for_fuzzy,
-            len(dive_sites),
-            max_exact_results=5,
-            max_query_length=10
-        ):
-            # Get exact results first
-            exact_results = dive_sites
-            
-            # Enhance with fuzzy search
+    # Apply fuzzy search enhancement if needed
+    if search:
+        search_query_for_fuzzy = search.strip()[:200]
+        if get_unified_fuzzy_trigger_conditions(search_query_for_fuzzy, len(dive_sites), max_exact_results=5, max_query_length=10):
             enhanced_results = search_dive_sites_with_fuzzy(
                 search_query_for_fuzzy, 
-                exact_results, 
+                dive_sites, 
                 db, 
                 similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
                 max_fuzzy_results=10,
-                # Pass the current filters to ensure fuzzy search respects them
                 tag_ids=tag_ids,
                 difficulty_code=difficulty_code,
                 country=country,
@@ -1284,13 +1284,11 @@ async def get_dive_sites(
                 dive_site_id=dive_site_id
             )
             
-            # Transform enhanced results back to the expected format
-            # Extract dive sites and create a mapping for match types
             dive_sites = []
-            
             for result in enhanced_results:
-                dive_sites.append(result['site'])
-                match_types[result['site'].id] = {
+                site = result['site']
+                dive_sites.append(site)
+                match_types[site.id] = {
                     'type': result['match_type'],
                     'score': result['score'],
                     'name_contains': result['name_contains'],
@@ -1298,72 +1296,84 @@ async def get_dive_sites(
                     'region_contains': result['region_contains'],
                     'description_contains': result['description_contains']
                 }
-        else:
-            # Initialize empty match_types if no fuzzy search was performed
-            match_types = {}
+                
+                # If site was not in original results, we might need to fetch its metadata
+                if site.id not in metadata_map:
+                    # Individual fetch for fuzzy matches (rare and limited to 10)
+                    avg_r, total_r = db.query(func.avg(SiteRating.score), func.count(SiteRating.id)).filter(SiteRating.dive_site_id == site.id).first()
+                    comm_c = db.query(func.count(SiteComment.id)).filter(SiteComment.dive_site_id == site.id).scalar()
+                    rout_c = db.query(func.count(DiveRoute.id)).filter(DiveRoute.dive_site_id == site.id, DiveRoute.deleted_at.is_(None)).scalar()
+                    metadata_map[site.id] = {
+                        "avg_rating": avg_r,
+                        "total_ratings": total_r or 0,
+                        "comment_count": comm_c or 0,
+                        "route_count": rout_c or 0
+                    }
 
-    # Calculate average ratings, route counts, comment counts, and get tags/aliases (only when needed)
+
+    # Bulk fetch media to avoid N+1 queries
+    site_media_map = {}
+    dive_media_map = {}
+    if detail_level in ['basic', 'full'] and dive_sites:
+        site_ids = [s.id for s in dive_sites]
+        
+        # Fetch all media from SiteMedia for these sites
+        from app.models import SiteMedia, DiveMedia, Dive
+        all_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id.in_(site_ids)).all()
+        for sm in all_site_media:
+            if sm.dive_site_id not in site_media_map:
+                site_media_map[sm.dive_site_id] = []
+            site_media_map[sm.dive_site_id].append(sm)
+            
+        # Fetch all media from DiveMedia for these sites
+        all_dive_media = db.query(DiveMedia).join(Dive).filter(Dive.dive_site_id.in_(site_ids)).all()
+        for dm in all_dive_media:
+            # We need to find the dive site id for this dive media
+            # Since we joined with Dive, dm.dive.dive_site_id should work
+            ds_id = dm.dive.dive_site_id
+            if ds_id not in dive_media_map:
+                dive_media_map[ds_id] = []
+            dive_media_map[ds_id].append(dm)
+
+    # Bulk fetch creator usernames if needed
+    creator_map = {}
+    if detail_level == 'full' and dive_sites:
+        creator_ids = list(set([s.created_by for s in dive_sites if s.created_by]))
+        if creator_ids:
+            creators = db.query(User.id, User.username).filter(User.id.in_(creator_ids)).all()
+            creator_map = {u.id: u.username for u in creators}
+
+    # Build final results using the bulk-fetched data
     result = []
     for site in dive_sites:
-        # Only calculate average_rating for basic and full detail levels
-        avg_rating = None
-        total_ratings = 0
-        route_count = 0
-        comment_count = 0
-        if detail_level in ['basic', 'full']:
-            avg_rating = db.query(func.avg(SiteRating.score)).filter(
-                SiteRating.dive_site_id == site.id
-            ).scalar()
-            total_ratings = db.query(func.count(SiteRating.id)).filter(
-                SiteRating.dive_site_id == site.id
-            ).scalar()
-            # Calculate route count (only non-deleted routes)
-            route_count = db.query(func.count(DiveRoute.id)).filter(
-                DiveRoute.dive_site_id == site.id,
-                DiveRoute.deleted_at.is_(None)
-            ).scalar()
-            # Calculate comment count
-            comment_count = db.query(func.count(SiteComment.id)).filter(
-                SiteComment.dive_site_id == site.id
-            ).scalar()
+        metadata = metadata_map.get(site.id, {})
+        avg_rating = metadata.get("avg_rating")
+        total_ratings = metadata.get("total_ratings", 0)
+        comment_count = metadata.get("comment_count", 0)
+        route_count = metadata.get("route_count", 0)
 
-        # Get thumbnail
+        # Get thumbnail from pre-fetched media
         thumbnail = None
         thumbnail_type = None
         thumbnail_source = None
         thumbnail_id = None
 
         if detail_level in ['basic', 'full']:
-            # Get all media from SiteMedia (id, media_type, url, thumbnail_url)
-            site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url, SiteMedia.thumbnail_url).filter(
-                SiteMedia.dive_site_id == site.id
-            ).all()
-            
-            # Get all media from DiveMedia (id, media_type, url, thumbnail_url)
-            dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url, DiveMedia.thumbnail_url).join(Dive).filter(
-                Dive.dive_site_id == site.id
-            ).all()
+            site_media = site_media_map.get(site.id, [])
+            dive_media = dive_media_map.get(site.id, [])
             
             # Combine all media items with source info
-            # Format: (media_object, source_string)
             all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
             
-            # Pick one randomly if available
-            # Note: Ideally we should pick the 'first' one based on media_order or creation date
-            # But the current logic is random, so we stick to it or improve it?
-            # Sticking to existing random logic to minimize scope creep, but making it "smart" about thumbnails
             if all_media:
-                # If there's a defined media order, try to respect it
+                # Use ordering logic if available
                 if site.media_order and len(site.media_order) > 0:
                     ordered_media = []
                     media_map = {f"{src}_{m.id}": (m, src) for m, src in all_media}
-                    
-                    # Add ordered items first
                     for key in site.media_order:
                         if key in media_map:
                             ordered_media.append(media_map[key])
                     
-                    # If we found ordered items, pick the first one
                     if ordered_media:
                         selected_media, source = ordered_media[0]
                     else:
@@ -1371,87 +1381,60 @@ async def get_dive_sites(
                 else:
                     selected_media, source = random.choice(all_media)
                 
-                # Use thumbnail_url if available, otherwise fallback to url (original)
-                if selected_media.thumbnail_url:
-                    thumbnail = selected_media.thumbnail_url
-                else:
-                    thumbnail = selected_media.url
-                    
+                thumbnail = selected_media.thumbnail_url or selected_media.url
                 thumbnail_id = selected_media.id
                 thumbnail_source = source
                 
-                # Determine media type
-                # Handle Enum or string value for media_type
                 media_type_val = selected_media.media_type
-                if hasattr(media_type_val, 'value'):
-                    thumbnail_type = media_type_val.value
-                else:
-                    thumbnail_type = str(media_type_val)
+                thumbnail_type = media_type_val.value if hasattr(media_type_val, 'value') else str(media_type_val)
 
             if thumbnail:
                 if thumbnail.startswith('user_'):
                      r2_storage = get_r2_storage()
                      thumbnail = r2_storage.get_photo_url(thumbnail)
                 elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
-                    # Extract YouTube video ID and convert to thumbnail
                     import re
                     youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&\s]+)'
                     match = re.search(youtube_regex, thumbnail)
                     if match:
                         video_id = match.group(1)
                         thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
-                    
-                    # Ensure type is video for YouTube links
                     if thumbnail_type != 'video':
                         thumbnail_type = 'video'
 
-        # Get tags and aliases only for full detail level
+        # Get tags and aliases from eagerly loaded relationships
         tags_dict = []
         aliases_dict = []
         if detail_level == 'full':
-            from app.models import DiveSiteTag, AvailableTag
-            tags = db.query(AvailableTag).join(DiveSiteTag).filter(
-                DiveSiteTag.dive_site_id == site.id
-            ).order_by(AvailableTag.name.asc()).all()
-
-            # Convert tags to dictionaries
             tags_dict = [
                 {
-                    "id": tag.id,
-                    "name": tag.name,
-                    "description": tag.description,
-                    "created_by": tag.created_by,
-                    "created_at": tag.created_at.isoformat() if tag.created_at else None
+                    "id": t.tag.id,
+                    "name": t.tag.name,
+                    "description": t.tag.description,
+                    "created_by": t.tag.created_by,
+                    "created_at": t.tag.created_at
                 }
-                for tag in tags
+                for t in site.tags if t.tag
             ]
 
-            # Get aliases for this dive site
-            aliases = db.query(DiveSiteAlias).filter(
-                DiveSiteAlias.dive_site_id == site.id
-            ).order_by(DiveSiteAlias.alias.asc()).all()
-
-            # Convert aliases to dictionaries
             aliases_dict = [
                 {
                     "id": alias.id,
                     "dive_site_id": alias.dive_site_id,
                     "alias": alias.alias,
-                    "created_at": alias.created_at.isoformat() if alias.created_at else None
+                    "created_at": alias.created_at
                 }
-                for alias in aliases
+                for alias in site.aliases
             ]
 
         # Build site_dict based on detail_level
         if detail_level == 'minimal':
-            # Minimal: only id, latitude, longitude
             site_dict = {
                 "id": site.id,
                 "latitude": float(site.latitude) if site.latitude else None,
                 "longitude": float(site.longitude) if site.longitude else None,
             }
         elif detail_level == 'basic':
-            # Basic: id, name, latitude, longitude, difficulty_code, difficulty_label, average_rating
             site_dict = {
                 "id": site.id,
                 "name": site.name,
@@ -1468,12 +1451,6 @@ async def get_dive_sites(
             }
         else:
             # Full: all fields
-            # Get creator username if available
-            creator_username = None
-            if site.created_by:
-                creator_user = db.query(User).filter(User.id == site.created_by).first()
-                creator_username = creator_user.username if creator_user else None
-
             site_dict = {
                 "id": site.id,
                 "name": site.name,
@@ -1488,65 +1465,47 @@ async def get_dive_sites(
                 "max_depth": float(site.max_depth) if site.max_depth else None,
                 "country": site.country,
                 "region": site.region,
-                "created_at": site.created_at.isoformat() if site.created_at else None,
-                "updated_at": site.updated_at.isoformat() if site.updated_at else None,
-                "deleted_at": site.deleted_at.isoformat() if site.deleted_at else None,
+                "created_at": site.created_at,
+                "updated_at": site.updated_at,
+                "deleted_at": site.deleted_at,
                 "status": site.status,
                 "average_rating": float(avg_rating) if avg_rating else None,
                 "total_ratings": total_ratings,
                 "comment_count": comment_count,
                 "route_count": route_count,
                 "created_by": site.created_by,
-                "created_by_username": creator_username,
-                "tags": tags_dict,
-                "aliases": aliases_dict,
+                "created_by_username": creator_map.get(site.created_by),
+                "shore_direction": float(site.shore_direction) if site.shore_direction else None,
+                "shore_direction_confidence": site.shore_direction_confidence,
+                "shore_direction_method": site.shore_direction_method,
+                "shore_direction_distance_m": float(site.shore_direction_distance_m) if site.shore_direction_distance_m else None,
                 "thumbnail": thumbnail,
                 "thumbnail_type": thumbnail_type,
                 "thumbnail_source": thumbnail_source,
                 "thumbnail_id": thumbnail_id,
+                "tags": tags_dict,
+                "aliases": aliases_dict,
+                "view_count": site.view_count if current_user and current_user.is_admin else None
             }
-
-            # Only include view_count for admin users
-            if current_user and current_user.is_admin:
-                site_dict["view_count"] = site.view_count
-
         result.append(site_dict)
 
-
-
-    # Add pagination metadata to response headers
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content=result)
-    response.headers["X-Total-Count"] = str(total_count)
-    response.headers["X-Total-Pages"] = str(total_pages)
-    response.headers["X-Current-Page"] = str(page)
-    response.headers["X-Page-Size"] = str(page_size)
-    response.headers["X-Has-Next-Page"] = str(page < total_pages).lower()
-    response.headers["X-Has-Prev-Page"] = str(page > 1).lower()
-    
-    # Add match type information to response headers if available
+    # Create and return the response object directly
+    # Ensure match_types keys are strings for Pydantic validation
+    str_match_types = None
     if match_types:
-        # Optimize match_types to prevent extremely large headers
-        # Only include essential match information and limit size
-        optimized_match_types = {}
-        for site_id, match_info in match_types.items():
-            # Include only essential fields to reduce header size
-            optimized_match_types[site_id] = {
-                'type': match_info.get('type', 'unknown'),
-                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
-            }
-        
-        # Convert to JSON and check size
-        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
-        
-        # If header is still too large, truncate or omit it
-        if len(match_types_json) > 8000:  # 8KB limit for headers
-            # Log warning about large header
-            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
-        else:
-            response.headers["X-Match-Types"] = match_types_json
+        str_match_types = {str(k): v for k, v in match_types.items()}
 
-    return response
+    return DiveSiteListResponse(
+        items=result,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next_page=page < total_pages,
+        has_prev_page=page > 1,
+        match_types=str_match_types
+    )
+
 
 @router.get("/wind-recommendations")
 @skip_rate_limit_for_admin("60/minute")
@@ -1755,6 +1714,7 @@ async def get_wind_recommendations(
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites_count(
     request: Request,
+    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, country, region, and description"),
     name: Optional[str] = Query(None, max_length=100),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
     exclude_unspecified_difficulty: bool = Query(False, description="Exclude dive sites with unspecified difficulty"),
@@ -1775,13 +1735,13 @@ async def get_dive_sites_count(
         query = query.filter(DiveSite.deleted_at.is_(None))
 
     # Apply all filters using utility functions
-    query = apply_search_filters(query, None, name, db)  # No search parameter in count function
+    query = apply_search_filters(query, search, name, db)
     query = apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username)
     query = apply_tag_filtering(query, tag_ids, db)
     query = apply_rating_filtering(query, min_rating, db)
 
-    # Get total count
-    total_count = query.count()
+    # Get total count with distinct to avoid inflated counts from joins
+    total_count = query.distinct().count()
 
     return {"total": total_count}
 

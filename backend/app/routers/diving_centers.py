@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
 from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember
 from app.schemas import (
-    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse,
+    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse,
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     CenterDiveSiteCreate, GearRentalCostCreate,
@@ -611,7 +611,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=List[DivingCenterResponse])
+@router.get("/", response_model=DivingCenterListResponse)
 async def get_diving_centers(
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
     name: Optional[str] = Query(None, max_length=100),
@@ -913,22 +913,16 @@ async def get_diving_centers(
                     # Fallback: create entry with no rating data
                     diving_centers_with_ratings.append((center, None, None))
 
-    # Build result
+    # Build final result
     result = []
     for center_data in diving_centers_with_ratings:
-        center = center_data[0]  # The diving center object
-        avg_rating = center_data[1]  # avg_rating from subquery
-        total_ratings = center_data[2]  # total_ratings from subquery
+        center = center_data[0]
+        avg_rating = center_data[1]
+        total_ratings = center_data[2]
 
-        # Build center_dict based on detail_level
         if detail_level == 'minimal':
-            # Minimal: only id and name
-            center_dict = {
-                "id": center.id,
-                "name": center.name,
-            }
+            center_dict = {"id": center.id, "name": center.name}
         elif detail_level == 'basic':
-            # Basic: id, name, country, region, city
             center_dict = {
                 "id": center.id,
                 "name": center.name,
@@ -937,8 +931,6 @@ async def get_diving_centers(
                 "city": center.city,
             }
         else:
-            # Full: all fields
-            # Get owner username if exists
             owner_username = None
             if center.owner_id:
                 owner = db.query(User).filter(User.id == center.owner_id).first()
@@ -957,56 +949,36 @@ async def get_diving_centers(
                 "country": center.country,
                 "region": center.region,
                 "city": center.city,
-                "created_at": center.created_at.isoformat() if center.created_at else None,
-                "updated_at": center.updated_at.isoformat() if center.updated_at else None,
+                "created_at": center.created_at,
+                "updated_at": center.updated_at,
                 "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
                 "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
+                "comment_count": 0, # Placeholder for now, can be optimized later if needed
                 "owner_id": center.owner_id,
                 "ownership_status": center.ownership_status.value if center.ownership_status else None,
                 "owner_username": owner_username
             }
 
-            # Only include view_count for admin users
             if current_user and current_user.is_admin:
                 center_dict["view_count"] = center.view_count
 
         result.append(center_dict)
 
-    # Return response with pagination headers
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content=result)
-    response.headers["X-Total-Count"] = str(total_count)
-    response.headers["X-Total-Pages"] = str(total_pages)
-    response.headers["X-Current-Page"] = str(page)
-    response.headers["X-Page-Size"] = str(page_size)
-    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
-    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
-    
-    # Add match types header if available
+    # Ensure match_types keys are strings for Pydantic validation
+    str_match_types = None
     if match_types:
-        # Optimize match_types to prevent extremely large headers
-        # Only include essential match information and limit size
-        optimized_match_types = {}
-        for center_id, match_info in match_types.items():
-            # Include only essential fields to reduce header size
-            optimized_match_types[center_id] = {
-                'type': match_info.get('type', 'unknown'),
-                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
-            }
-        
-        # Convert to JSON and check size
-        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
-        
-        # If header is still too large, truncate or omit it
-        if len(match_types_json) > 8000:  # 8KB limit for headers
-            # Log warning about large header
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
-        else:
-            response.headers["X-Match-Types"] = match_types_json
+        str_match_types = {str(k): v for k, v in match_types.items()}
 
-    return response
+    return DivingCenterListResponse(
+        items=result,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next_page=has_next_page,
+        has_prev_page=has_prev_page,
+        match_types=str_match_types
+    )
 
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(

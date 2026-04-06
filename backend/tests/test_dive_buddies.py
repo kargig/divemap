@@ -657,8 +657,9 @@ class TestBuddyFiltering:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == dive1.id
+        items = data.get("items", [])
+        assert len(items) == 1
+        assert items[0]["id"] == dive1.id
 
     def test_filter_dives_by_buddy_username(self, client, auth_headers, test_user, test_dive_site, db_session):
         """Test filtering dives by buddy_username."""
@@ -695,8 +696,9 @@ class TestBuddyFiltering:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == dive.id
+        items = data.get("items", [])
+        assert len(items) == 1
+        assert items[0]["id"] == dive.id
 
     def test_filter_dives_by_invalid_buddy_username_returns_empty(self, client, auth_headers):
         """Test filtering by non-existent buddy username returns empty results (prevents username enumeration)."""
@@ -706,7 +708,7 @@ class TestBuddyFiltering:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data == []  # Should return empty list, not error
+        assert data.get("items", []) == []  # Should return empty list, not error
 
     def test_filter_dives_count_by_buddy(self, client, auth_headers, test_user, test_dive_site, db_session):
         """Test filtering dive count by buddy."""

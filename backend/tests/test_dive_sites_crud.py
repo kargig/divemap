@@ -18,9 +18,10 @@ class TestDiveSitesCRUD:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["name"] == test_dive_site.name
-        assert data[0]["description"] == test_dive_site.description
+        items = data.get("items", [])
+        assert len(items) == 1
+        assert items[0]["name"] == test_dive_site.name
+        assert items[0]["description"] == test_dive_site.description
 
     def test_get_dive_sites_empty(self, client):
         """Test getting dive sites when none exist."""
@@ -28,7 +29,7 @@ class TestDiveSitesCRUD:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 0
+        assert len(data.get("items", [])) == 0
 
     def test_get_dive_site_detail_success(self, client, test_dive_site):
         """Test getting specific dive site details."""

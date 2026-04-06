@@ -113,9 +113,10 @@ class TestDiveRoutesIntegration:
         
         assert response.status_code == 200
         data = response.json()
+        items = data.get("items", [])
         
         # Find the dive with route
-        dive_with_route = next((d for d in data if d["id"] == test_dive_with_route.id), None)
+        dive_with_route = next((d for d in items if d["id"] == test_dive_with_route.id), None)
         assert dive_with_route is not None
         assert dive_with_route["selected_route_id"] == test_dive_with_route.selected_route_id
 
@@ -370,9 +371,10 @@ class TestDiveRoutesIntegration:
         
         assert response.status_code == 200
         data = response.json()
+        items = data.get("items", [])
         
         # Should find the dive with the route
-        dive_found = any(d["id"] == test_dive_with_route.id for d in data)
+        dive_found = any(d["id"] == test_dive_with_route.id for d in items)
         assert dive_found
 
     def test_dive_route_filtering_integration(self, client, test_user, test_route, test_dive_with_route, auth_headers):
@@ -385,11 +387,12 @@ class TestDiveRoutesIntegration:
         
         assert response.status_code == 200
         data = response.json()
+        items = data.get("items", [])
         
         # Should find the dive with the route
-        dive_found = any(d["id"] == test_dive_with_route.id for d in data)
+        dive_found = any(d["id"] == test_dive_with_route.id for d in items)
         assert dive_found
         
         # All returned dives should have the specified route
-        for dive in data:
+        for dive in items:
             assert dive["selected_route_id"] == test_route.id

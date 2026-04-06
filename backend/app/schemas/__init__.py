@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict, ValidationInfo
-from typing import Optional, List, Union, Literal, Dict
+from typing import Optional, List, Union, Literal, Dict, Any
 from datetime import datetime, date, time, timezone
 import re
 import enum
@@ -204,10 +204,10 @@ class UserListResponse(BaseModel):
 
 # Dive Site Schemas
 class DiveSiteBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = None
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     access_instructions: Optional[str] = None
     difficulty_code: DifficultyCode = Field(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified")
     marine_life: Optional[str] = None
@@ -261,13 +261,15 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
     created_by: Optional[int] = None
     status: str = 'approved'
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    comment_count: int = 0
+    route_count: int = 0
     view_count: Optional[int] = None  # Only included for admin users
     tags: List[dict] = []
     user_rating: Optional[float] = None
@@ -289,6 +291,15 @@ class DiveSiteResponse(DiveSiteBase):
         return normalize_datetime_to_utc(cls, v)
 
     model_config = ConfigDict(from_attributes=True)
+
+class DiveSiteListResponse(BaseModel):
+    items: List[DiveSiteResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next_page: bool
+    has_prev_page: bool
 
 # Site Rating Schemas
 class SiteRatingCreate(BaseModel):
@@ -383,7 +394,7 @@ class DiveSiteSearchParams(BaseModel):
 
 # Diving Center Schemas
 class DivingCenterBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     # Make description optional at the base level so responses don't fail when empty
     description: Optional[str] = None
     address: Optional[str] = None
@@ -420,10 +431,11 @@ class DivingCenterUpdate(BaseModel):
 
 class DivingCenterResponse(DivingCenterBase):
     id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     average_rating: Optional[float] = None
     total_ratings: int = 0
+    comment_count: int = 0
     view_count: Optional[int] = None  # Only included for admin users
     user_rating: Optional[float] = None
     ownership_status: Optional[str] = None
@@ -432,6 +444,16 @@ class DivingCenterResponse(DivingCenterBase):
     follower_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+class DivingCenterListResponse(BaseModel):
+    items: List[DivingCenterResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next_page: bool
+    has_prev_page: bool
+    match_types: Optional[Dict[str, Any]] = None
 
 # Center Rating Schemas
 class CenterRatingCreate(BaseModel):
@@ -834,14 +856,16 @@ class DiveResponse(DiveBase):
     gas_bottles_used: Optional[str] = None
     suit_type: Optional[str] = None
     difficulty_level: Optional[str] = None
+    difficulty_code: Optional[str] = None
+    difficulty_label: Optional[str] = None
     visibility_rating: Optional[int] = None
     user_rating: Optional[int] = None
-    dive_date: str
+    dive_date: Optional[str] = None
     dive_time: Optional[str] = None
     duration: Optional[int] = None
     view_count: Optional[int] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     dive_site: Optional[dict] = None
     diving_center: Optional[dict] = None  # Diving center information
     selected_route: Optional[dict] = None  # Selected route information
@@ -850,12 +874,31 @@ class DiveResponse(DiveBase):
     buddies: List[UserPublicInfo] = []  # List of buddy users
     user_username: Optional[str] = None  # For public dives
 
+    # Parsed from dive_information
+    buddy: Optional[str] = None
+    sac: Optional[str] = None
+    otu: Optional[str] = None
+    cns: Optional[str] = None
+    water_temperature: Optional[str] = None
+    deco_model: Optional[str] = None
+    weights: Optional[str] = None
+
     @field_validator('created_at', 'updated_at', mode='before')
     @classmethod
     def normalize_datetime_to_utc(cls, v, info: ValidationInfo):
         return normalize_datetime_to_utc(cls, v)
 
     model_config = ConfigDict(from_attributes=True)
+
+class DiveListResponse(BaseModel):
+    items: List[DiveResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next_page: bool
+    has_prev_page: bool
+    match_types: Optional[Dict[str, Any]] = None
 
 class DiveMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video|dive_plan|external_link)$")

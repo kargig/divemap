@@ -19,7 +19,7 @@ import logging
 import os
 
 from app.database import get_db
-from app.models import Dive, DiveMedia, DiveTag, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias
+from app.models import Dive, DiveMedia, DiveTag, DiveBuddy, DiveSite, AvailableTag, User, DivingCenter, DiveSiteAlias
 from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams

@@ -859,7 +859,7 @@ const AdminDivesDesktop = () => {
 
       {/* Dives Table */}
       <AdminDivesTable
-        data={dives || []}
+        data={dives?.items || (Array.isArray(dives) ? dives : [])}
         columns={columns}
         pagination={paginationWithCount}
         onPaginationChange={handlePaginationChange}

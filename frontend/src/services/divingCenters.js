@@ -3,6 +3,12 @@ import api from '../api';
 // Diving Centers API functions
 export const getDivingCenters = async (params = {}) => {
   const response = await api.get('/api/v1/diving-centers/', { params });
+  // If it's the new standardized response structure { items, total, ... }, return just the items array
+  // for backward compatibility with existing service consumers.
+  // The DivingCenters.jsx page calls api.get directly to get pagination info.
+  if (response.data && response.data.items && Array.isArray(response.data.items)) {
+    return response.data.items;
+  }
   return response.data;
 };
 

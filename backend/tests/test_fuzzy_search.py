@@ -221,7 +221,7 @@ class TestDivingCentersEnhancedSearch:
         response = client.get("/api/v1/diving-centers/?search=anavys")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_anavys_search_specific_case(self, client, test_diving_center_with_city):
         """Test the specific 'anavys' search case mentioned in user query."""
@@ -229,10 +229,11 @@ class TestDivingCentersEnhancedSearch:
         response = client.get("/api/v1/diving-centers/?search=anavys")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         
         # Should find the diving center with city "Anavissos Municipal Unit"
         found = False
-        for center in data:
+        for center in items:
             if center.get("city") and "anavissos" in center["city"].lower():
                 found = True
                 break
@@ -244,26 +245,26 @@ class TestDivingCentersEnhancedSearch:
         response = client.get("/api/v1/diving-centers/?search=anav")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
         
         # Test 5-character partial match
         response = client.get("/api/v1/diving-centers/?search=anavi")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
         
         # Test 6-character partial match (should match "anavissos")
         response = client.get("/api/v1/diving-centers/?search=anavis")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_geographic_field_search(self, client, test_diving_center_with_city):
         """Test search across all geographic fields."""
         response = client.get("/api/v1/diving-centers/?search=attica")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_multi_word_search_trigger(self, client, test_diving_center):
         """Test that multi-word searches trigger fuzzy search."""
@@ -277,14 +278,14 @@ class TestDivingCentersEnhancedSearch:
         assert response.status_code == status.HTTP_200_OK
         # Should trigger fuzzy search due to short length
 
-    def test_search_with_match_types_header(self, client, test_diving_center):
-        """Test that search returns match types in headers."""
+    def test_search_with_match_types_in_body(self, client, test_diving_center):
+        """Test that search returns match types in response body."""
         response = client.get("/api/v1/diving-centers/?search=test")
         assert response.status_code == status.HTTP_200_OK
-        # Check if match types header is present (when fuzzy search is triggered)
-        if "x-match-types" in response.headers:
-            match_types = response.headers["x-match-types"]
-            assert match_types is not None
+        data = response.json()
+        # Check if match types are present in the response body (new standard)
+        if "match_types" in data:
+            assert data["match_types"] is not None
 
     def test_enhanced_search_with_description(self, client, test_diving_center_with_city):
         """Test that search also finds results in description fields."""
@@ -292,7 +293,7 @@ class TestDivingCentersEnhancedSearch:
         response = client.get("/api/v1/diving-centers/?search=anavissos")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_search_priority_ordering(self, client, test_diving_center_with_city):
         """Test that search results are properly ordered by relevance."""
@@ -310,7 +311,7 @@ class TestDivingCentersEnhancedSearch:
         response = client.get("/api/v1/diving-centers/?search=anavys&sort_by=name&sort_order=asc")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_search_pagination_with_fuzzy(self, client, test_diving_center_with_city):
         """Test that pagination works correctly with fuzzy search results."""
@@ -318,11 +319,11 @@ class TestDivingCentersEnhancedSearch:
         
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
         
-        # Check pagination headers
-        assert "x-total-count" in response.headers
-        assert "x-total-pages" in response.headers
+        # Check pagination info in body
+        assert "total_pages" in data
+        assert "page" in data
 
 
 class TestDiveSitesFuzzySearch:
@@ -333,21 +334,21 @@ class TestDiveSitesFuzzySearch:
         response = client.get("/api/v1/dive-sites/?search=blue")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_geographic_search_dive_sites(self, client, test_dive_site):
         """Test geographic field search in dive sites."""
         response = client.get("/api/v1/dive-sites/?search=test")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_multi_word_search_dive_sites(self, client, test_dive_site):
         """Test multi-word search in dive sites."""
         response = client.get("/api/v1/dive-sites/?search=test")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_fuzzy_search_threshold(self, client, test_dive_site):
         """Test that fuzzy search respects similarity threshold."""
@@ -360,7 +361,7 @@ class TestDiveSitesFuzzySearch:
         response = client.get("/api/v1/dive-sites/?search=blue")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_fuzzy_search_trigger_conditions(self, client, test_dive_site):
         """Test that fuzzy search triggers under correct conditions."""
@@ -388,7 +389,7 @@ class TestDiveSitesFuzzySearch:
         response = client.get("/api/v1/dive-sites/?search=test&difficulty=intermediate")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_search_performance_with_large_dataset(self, client, multiple_test_dive_sites):
         """Test search performance with multiple dive sites."""
@@ -458,21 +459,21 @@ class TestNewslettersFuzzySearch:
         response = client.get("/api/v1/newsletters/?search=test", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_newsletter_search_with_title(self, client, test_newsletter, admin_headers):
         """Test newsletter search by content (since Newsletter only has content field)."""
         response = client.get("/api/v1/newsletters/?search=newsletter", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_newsletter_search_with_content(self, client, test_newsletter, admin_headers):
         """Test newsletter search by content."""
         response = client.get("/api/v1/newsletters/?search=content", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
 
 class TestUtilsFunctions:

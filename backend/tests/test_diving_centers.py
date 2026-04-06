@@ -13,9 +13,10 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["name"] == test_diving_center.name
-        assert data[0]["description"] == test_diving_center.description
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == test_diving_center.name
+        assert data["items"][0]["description"] == test_diving_center.description
 
     def test_get_diving_centers_empty(self, client):
         """Test getting diving centers when none exist."""
@@ -23,7 +24,8 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 0
+        assert data["total"] == 0
+        assert len(data["items"]) == 0
 
     def test_get_diving_centers_with_search(self, client, test_diving_center):
         """Test getting diving centers with search parameter."""
@@ -31,8 +33,9 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["name"] == test_diving_center.name
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == test_diving_center.name
 
     def test_get_diving_centers_with_rating_filter(self, client, test_diving_center):
         """Test getting diving centers with rating filter."""
@@ -40,7 +43,9 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert isinstance(data, list)
+        assert "items" in data
+        assert "total" in data
+        assert isinstance(data["items"], list)
 
     def test_get_diving_center_detail_success(self, client, test_diving_center):
         """Test getting specific diving center details."""
@@ -213,8 +218,9 @@ class TestDivingCenters:
         response = client.get("/api/v1/diving-centers/?page=1&page_size=25")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Ensure at least one item has empty description and does not break serialization
-        assert any(item["name"] == "Empty Desc Center List" and item["description"] == "" for item in data)
+        assert any(item["name"] == "Empty Desc Center List" and item["description"] == "" for item in items)
 
     def test_get_diving_center_with_null_coordinates_no_500(self, client, db_session):
         """Legacy data may contain NULL latitude/longitude. Ensure GET does not 500 and returns nulls."""
@@ -253,7 +259,8 @@ class TestDivingCenters:
         response = client.get("/api/v1/diving-centers/?page=1&page_size=25")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert any(item["name"] == "Null Coords Center List" and item["latitude"] is None and item["longitude"] is None for item in data)
+        items = data.get("items", [])
+        assert any(item["name"] == "Null Coords Center List" and item["latitude"] is None and item["longitude"] is None for item in items)
 
     def test_delete_diving_center_admin_success(self, client, admin_headers, test_diving_center):
         """Test deleting diving center as admin."""
@@ -611,22 +618,15 @@ class TestDivingCenters:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 5  # All 5 centers fit in one page
+        assert data["total"] == 5  # All 5 centers fit in one page
+        assert len(data["items"]) == 5
 
-        # Check pagination headers
-        assert response.headers["x-total-count"] == "5"
-        assert response.headers["x-total-pages"] == "1"
-        assert response.headers["x-current-page"] == "1"
-        assert response.headers["x-page-size"] == "25"
-        assert response.headers["x-has-next-page"] == "false"
-        assert response.headers["x-has-prev-page"] == "false"
-
-        # Check alphabetical sorting
-        assert data[0]["name"] == "Alpha Diving Center"
-        assert data[1]["name"] == "Beta Diving Center"
-        assert data[2]["name"] == "Charlie Diving Center"
-        assert data[3]["name"] == "Delta Diving Center"
-        assert data[4]["name"] == "Echo Diving Center"
+        # Check default alphabetical sorting
+        assert data["items"][0]["name"] == "Alpha Diving Center"
+        assert data["items"][1]["name"] == "Beta Diving Center"
+        assert data["items"][2]["name"] == "Charlie Diving Center"
+        assert data["items"][3]["name"] == "Delta Diving Center"
+        assert data["items"][4]["name"] == "Echo Diving Center"
 
     def test_get_diving_centers_invalid_page_size(self, client):
         """Test that invalid page_size values are rejected."""
@@ -686,16 +686,10 @@ class TestDivingCenters:
 
         data = response.json()
         # Check that all returned centers have rating >= 5.0
-        for center in data:
+        assert data["total"] >= 2
+        for center in data["items"]:
             if center["average_rating"] is not None:  # Only check centers with ratings
                 assert center["average_rating"] >= 5.0
-
-        # Check pagination headers reflect filtered results
-        # The exact count depends on existing data, but should be consistent
-        total_count = int(response.headers["x-total-count"])
-        assert total_count >= 2  # At least our 2 centers with ratings >= 5.0
-        assert response.headers["x-total-pages"] == "1"
-        assert response.headers["x-has-next-page"] == "false"
 
     def test_delete_diving_center_media_not_found(self, client, admin_headers, test_diving_center):
         """Test deleting non-existent media from diving center."""

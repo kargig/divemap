@@ -203,52 +203,34 @@ const DivingCenters = () => {
         if (value) params.append(key, value.toString());
       });
 
-      return api.get(`/api/v1/diving-centers/?${params.toString()}`);
+      return api.get(`/api/v1/diving-centers/?${params.toString()}`).then(res => res.data);
     },
     {
       keepPreviousData: true,
       staleTime: 5000,
-      select: response => {
-        // Get pagination info from headers
-        const getHeader = name => {
-          return (
-            response.headers[name] ||
-            response.headers[name.toLowerCase()] ||
-            response.headers[name.toUpperCase()] ||
-            '0'
-          );
-        };
-
-        const totalCount = parseInt(getHeader('x-total-count'));
-        const totalPages = parseInt(getHeader('x-total-pages'));
-
-        // Store pagination info
-        queryClient.setQueryData(['diving-centers-pagination'], {
-          totalCount,
-          totalPages,
-          currentPage: pagination.page,
-          pageSize: pagination.page_size,
-          hasNextPage: pagination.page < totalPages,
-          hasPrevPage: pagination.page > 1,
-        });
-
-        return response.data;
-      },
     }
   );
 
-  const divingCenters = divingCentersResponse;
-  const paginationInfo = queryClient.getQueryData(['diving-centers-pagination']) || {
-    totalCount: 0,
-    totalPages: 0,
+  const divingCenters = divingCentersResponse?.items || [];
+  const totalCount = divingCentersResponse?.total || 0;
+  const paginationInfo = {
+    totalCount,
+    totalPages: divingCentersResponse?.total_pages || 0,
+    currentPage: divingCentersResponse?.page || pagination.page,
+    pageSize: divingCentersResponse?.page_size || pagination.page_size,
+    hasNextPage: divingCentersResponse?.has_next_page || false,
+    hasPrevPage: divingCentersResponse?.has_prev_page || false,
   };
-  const totalCount = paginationInfo.totalCount;
 
   // Track match types for diving centers (if search results contain scoring info)
   const [matchTypes, setMatchTypes] = useState({});
 
   useEffect(() => {
-    if (divingCenters && Array.isArray(divingCenters)) {
+    // If match_types is returned in the response body, use it
+    if (divingCentersResponse?.match_types) {
+      setMatchTypes(divingCentersResponse.match_types);
+    } else if (divingCenters && Array.isArray(divingCenters)) {
+      // Fallback for individual items having match info (rare in current backend)
       const newMatchTypes = {};
       divingCenters.forEach(center => {
         if (center.match_type) {
@@ -258,9 +240,13 @@ const DivingCenters = () => {
           };
         }
       });
-      setMatchTypes(newMatchTypes);
+      if (Object.keys(newMatchTypes).length > 0) {
+        setMatchTypes(newMatchTypes);
+      } else {
+        setMatchTypes({});
+      }
     }
-  }, [divingCenters]);
+  }, [divingCentersResponse, divingCenters]);
 
   // Handle filter changes
   const handleFilterChange = (name, value) => {

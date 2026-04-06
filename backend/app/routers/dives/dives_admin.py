@@ -30,9 +30,10 @@ class ORJSONResponse(Response):
         return orjson.dumps(content, default=str)
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, get_difficulty_id_by_code
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
+from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, DiveBuddy, get_difficulty_id_by_code
 from app.services.dive_profile_parser import DiveProfileParser
+from .dives_import import parse_dive_information_text
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 
@@ -184,7 +185,7 @@ def get_all_dives_count_admin(
     return {"total": total_count}
 
 
-@router.get("/admin/dives", response_model=List[DiveResponse])
+@router.get("/admin/dives", response_model=DiveListResponse)
 def get_all_dives_admin(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
@@ -207,8 +208,8 @@ def get_all_dives_admin(
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
     sort_by: Optional[str] = Query(None, description="Sort field (id, dive_date, max_depth, duration, user_rating, visibility_rating, view_count, created_at, updated_at)"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0)
+    limit: int = Query(50, ge=1, le=1000),
+    page: int = Query(1, ge=1)
 ):
     """Get all dives with admin privileges. Can view all dives regardless of privacy settings."""
     if not current_user.enabled:
@@ -223,9 +224,20 @@ def get_all_dives_admin(
             detail="Admin privileges required"
         )
 
+    # Calculate offset from page and limit (page_size)
+    offset = (page - 1) * limit
+
     # Build query - admin can see all dives
-    # Eager load difficulty relationship for efficient access
-    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
+    # Eager load relationships for efficient access and to avoid N+1 queries
+    from sqlalchemy.orm import selectinload
+    query = db.query(Dive).options(
+        joinedload(Dive.difficulty),
+        joinedload(Dive.user),
+        joinedload(Dive.dive_site),
+        joinedload(Dive.diving_center),
+        selectinload(Dive.buddies),
+        selectinload(Dive.tags).joinedload(DiveTag.tag)
+    ).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified
     if user_id:
@@ -403,55 +415,65 @@ def get_all_dives_admin(
         query = query.order_by(Dive.dive_date.desc(), Dive.dive_time.desc())
 
     # Get total count before pagination
-    total_count = query.count()
+    total_count = query.distinct().count()
 
     # Apply pagination
     dives = query.offset(offset).limit(limit).all()
 
-    # Convert SQLAlchemy objects to dictionaries to avoid serialization issues
+    # Convert SQLAlchemy objects to dictionaries
     dive_list = []
     for dive in dives:
-        # Get dive site information if available
+        # Get dive site information (already eagerly loaded)
         dive_site_info = None
-        if dive.dive_site_id:
-            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
-            if dive_site:
-                dive_site_info = {
-                    "id": dive_site.id,
-                    "name": dive_site.name,
-                    "description": dive_site.description,
-                    "latitude": float(dive_site.latitude) if dive_site.latitude else None,
-                    "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                    "country": dive_site.country,
-                    "region": dive_site.region,
-                    "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
-                }
+        if dive.dive_site:
+            dive_site_info = {
+                "id": dive.dive_site.id,
+                "name": dive.dive_site.name,
+                "description": dive.dive_site.description,
+                "latitude": float(dive.dive_site.latitude) if dive.dive_site.latitude else None,
+                "longitude": float(dive.dive_site.longitude) if dive.dive_site.longitude else None,
+                "country": dive.dive_site.country,
+                "region": dive.dive_site.region,
+                "deleted_at": dive.dive_site.deleted_at.isoformat() if dive.dive_site.deleted_at else None
+            }
 
-        # Get diving center information if available
+        # Get diving center information (already eagerly loaded)
         diving_center_info = None
-        if dive.diving_center_id:
-            diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
-            if diving_center:
-                diving_center_info = {
-                    "id": diving_center.id,
-                    "name": diving_center.name,
-                    "description": diving_center.description,
-                    "email": diving_center.email,
-                    "phone": diving_center.phone,
-                    "website": diving_center.website,
-                    "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                    "longitude": float(diving_center.longitude) if diving_center.longitude else None
-                }
+        if dive.diving_center:
+            diving_center_info = {
+                "id": dive.diving_center.id,
+                "name": dive.diving_center.name,
+                "description": dive.diving_center.description,
+                "email": dive.diving_center.email,
+                "phone": dive.diving_center.phone,
+                "website": dive.diving_center.website,
+                "latitude": float(dive.diving_center.latitude) if dive.diving_center.latitude else None,
+                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None
+            }
 
-        # Get tags for this dive
-        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
-        tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
+        # Get tags (already eagerly loaded)
+        tags_list = [{"id": t.tag.id, "name": t.tag.name} for t in dive.tags if t.tag]
+
+        # Get buddies (already eagerly loaded)
+        buddies_list = [
+            {
+                "id": buddy.id,
+                "username": buddy.username,
+                "name": buddy.name,
+                "avatar_url": buddy.avatar_url
+            }
+            for buddy in dive.buddies
+        ]
+
+        # Parse dive information
+        parsed_info = parse_dive_information_text(dive.dive_information)
 
         dive_dict = {
             "id": dive.id,
             "user_id": dive.user_id,
             "dive_site_id": dive.dive_site_id,
             "diving_center_id": dive.diving_center_id,
+            "selected_route_id": dive.selected_route_id,
             "name": dive.name,
             "is_private": dive.is_private,
             "dive_information": dive.dive_information,
@@ -463,35 +485,43 @@ def get_all_dives_admin(
             "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
-            "dive_date": dive.dive_date.strftime("%Y-%m-%d"),
+            "dive_date": dive.dive_date.strftime("%Y-%m-%d") if dive.dive_date else None,
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
             "view_count": dive.view_count,
-            "created_at": dive.created_at.isoformat() if dive.created_at else None,
-            "updated_at": dive.updated_at.isoformat() if dive.updated_at else None,
+            "created_at": dive.created_at,
+            "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
             "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
-            "user_username": dive.user.username
+            "buddies": buddies_list,
+            "user_username": dive.user.username,
+            "buddy": parsed_info.get('buddy'),
+            "sac": parsed_info.get('sac'),
+            "otu": parsed_info.get('otu'),
+            "cns": parsed_info.get('cns'),
+            "water_temperature": parsed_info.get('water_temperature'),
+            "deco_model": parsed_info.get('deco_model'),
+            "weights": parsed_info.get('weights')
         }
         dive_list.append(dive_dict)
 
-    # Calculate pagination info
+    # Calculate total pages
     total_pages = (total_count + limit - 1) // limit
-    has_next_page = offset + limit < total_count
-    has_prev_page = offset > 0
+    has_next_page = page < total_pages
+    has_prev_page = page > 1
 
-    # Return response with pagination headers
-    response = ORJSONResponse(content=dive_list)
-    response.headers["X-Total-Count"] = str(total_count)
-    response.headers["X-Total-Pages"] = str(total_pages)
-    response.headers["X-Current-Page"] = str((offset // limit) + 1)
-    response.headers["X-Page-Size"] = str(limit)
-    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
-    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
-
-    return response
+    # Create and return the response object directly
+    return DiveListResponse(
+        items=dive_list,
+        total=total_count,
+        page=page,
+        page_size=limit,
+        total_pages=total_pages,
+        has_next_page=has_next_page,
+        has_prev_page=has_prev_page
+    )
 
 
 @router.put("/admin/dives/{dive_id}", response_model=DiveResponse)
