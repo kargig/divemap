@@ -33,7 +33,12 @@ async function authenticate(browser) {
     return null;
   }
 
-  console.log(`Authenticating user (${username})...`);
+  // Mask username for security in logs
+  const maskedUsername = username.length > 2 
+    ? `${username.charAt(0)}***${username.charAt(username.length - 1)}` 
+    : '***';
+
+  console.log(`Authenticating user (${maskedUsername})...`);
   const context = await browser.newContext();
   const page = await context.newPage();
 
