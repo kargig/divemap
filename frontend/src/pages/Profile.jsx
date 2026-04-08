@@ -308,7 +308,8 @@ const Profile = () => {
     async () => {
       if (!user) return [];
       // Fetch all diving centers and filter by approved owner
-      const centers = await getDivingCenters({ page_size: 1000 });
+      const centersRes = await getDivingCenters({ page_size: 1000 });
+      const centers = centersRes.items || [];
       // Filter centers where the user is an approved owner
       // Check both owner_id and owner_username for matching
       return centers.filter(

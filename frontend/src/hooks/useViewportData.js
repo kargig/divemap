@@ -269,7 +269,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           const diveSitesResponse = await api.get(
             `/api/v1/dive-sites/?${diveSitesParams.toString()}`
           );
-          results.dive_sites = diveSitesResponse.data || [];
+          results.dive_sites = diveSitesResponse.data;
         }
 
         // Fetch diving centers if needed
@@ -298,7 +298,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           const divingCentersResponse = await api.get(
             `/api/v1/diving-centers/?${divingCentersParams.toString()}`
           );
-          results.diving_centers = divingCentersResponse.data || [];
+          results.diving_centers = divingCentersResponse.data;
         }
 
         // Fetch dives if needed
@@ -341,7 +341,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           });
 
           const divesResponse = await api.get(`/api/v1/dives/?${divesParams.toString()}`);
-          results.dives = divesResponse.data || [];
+          results.dives = divesResponse.data;
         }
 
         // Fetch dive trips if needed
@@ -383,7 +383,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           const tripsResponse = await api.get(
             `/api/v1/newsletters/trips?${tripsParams.toString()}`
           );
-          results.dive_trips = tripsResponse.data || [];
+          results.dive_trips = tripsResponse.data;
         }
 
         return results;
@@ -512,28 +512,30 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       // Calculate points based on selected entity type and filter for valid coordinates
       let totalPoints = 0;
       if (selectedEntityType === 'dive-sites') {
-        totalPoints = (data?.dive_sites || []).filter(
+        totalPoints = (data?.dive_sites?.items || []).filter(
           site => site.latitude && site.longitude
         ).length;
       } else if (selectedEntityType === 'diving-centers') {
-        totalPoints = (data?.diving_centers || []).filter(
+        totalPoints = (data?.diving_centers?.items || []).filter(
           center => center.latitude && center.longitude
         ).length;
       } else if (selectedEntityType === 'dives') {
-        totalPoints = (data?.dives || []).filter(
+        totalPoints = (data?.dives?.items || []).filter(
           dive => dive.dive_site?.latitude && dive.dive_site?.longitude
         ).length;
       } else if (selectedEntityType === 'dive-trips') {
         // For dive trips, we need to count only those that have valid coordinates
-        totalPoints = (data?.dive_trips || []).filter(trip => {
+        totalPoints = (data?.dive_trips?.items || []).filter(trip => {
           // Check if trip has coordinates from dive sites or diving centers
           let hasCoordinates = false;
 
           // Check dive sites coordinates
-          if (trip.dives && trip.dives.length > 0 && data?.dive_sites) {
+          if (trip.dives && trip.dives.length > 0 && data?.dive_sites?.items) {
             const firstDive = trip.dives[0];
             if (firstDive.dive_site_id) {
-              const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+              const diveSite = data.dive_sites.items.find(
+                site => site.id === firstDive.dive_site_id
+              );
               if (diveSite && diveSite.latitude && diveSite.longitude) {
                 hasCoordinates = true;
               }
@@ -541,8 +543,8 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           }
 
           // Check diving centers coordinates
-          if (!hasCoordinates && trip.diving_center_id && data?.diving_centers) {
-            const divingCenter = data.diving_centers.find(
+          if (!hasCoordinates && trip.diving_center_id && data?.diving_centers?.items) {
+            const divingCenter = data.diving_centers.items.find(
               center => center.id === trip.diving_center_id
             );
             if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
@@ -555,25 +557,28 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       } else {
         // Fallback: count all entities if entity type is unknown
         totalPoints =
-          (data?.dive_sites || []).filter(site => site.latitude && site.longitude).length +
-          (data?.diving_centers || []).filter(center => center.latitude && center.longitude)
+          (data?.dive_sites?.items || []).filter(site => site.latitude && site.longitude).length +
+          (data?.diving_centers?.items || []).filter(center => center.latitude && center.longitude)
             .length +
-          (data?.dives || []).filter(dive => dive.dive_site?.latitude && dive.dive_site?.longitude)
-            .length +
-          (data?.dive_trips || []).filter(trip => {
+          (data?.dives?.items || []).filter(
+            dive => dive.dive_site?.latitude && dive.dive_site?.longitude
+          ).length +
+          (data?.dive_trips?.items || []).filter(trip => {
             // Same logic as above for dive trips
             let hasCoordinates = false;
-            if (trip.dives && trip.dives.length > 0 && data?.dive_sites) {
+            if (trip.dives && trip.dives.length > 0 && data?.dive_sites?.items) {
               const firstDive = trip.dives[0];
               if (firstDive.dive_site_id) {
-                const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+                const diveSite = data.dive_sites.items.find(
+                  site => site.id === firstDive.dive_site_id
+                );
                 if (diveSite && diveSite.latitude && diveSite.longitude) {
                   hasCoordinates = true;
                 }
               }
             }
-            if (!hasCoordinates && trip.diving_center_id && data?.diving_centers) {
-              const divingCenter = data.diving_centers.find(
+            if (!hasCoordinates && trip.diving_center_id && data?.diving_centers?.items) {
+              const divingCenter = data.diving_centers.items.find(
                 center => center.id === trip.diving_center_id
               );
               if (divingCenter && divingCenter.latitude && divingCenter.longitude) {

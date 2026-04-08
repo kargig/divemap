@@ -303,8 +303,12 @@ async def create_user(
         password_hash=hashed_password,
         is_admin=user_data.is_admin,
         is_moderator=user_data.is_moderator,
-        enabled=user_data.enabled
+        enabled=user_data.enabled,
+        email_verified=user_data.email_verified
     )
+
+    if user_data.email_verified:
+        db_user.email_verified_at = utcnow()
 
     db.add(db_user)
     db.commit()
@@ -346,6 +350,14 @@ async def update_user(
         password = update_data.pop('password')
         db_user.password_hash = get_password_hash(password)
 
+    # Handle email_verified specifically to update email_verified_at
+    if 'email_verified' in update_data:
+        new_verified_status = update_data['email_verified']
+        if new_verified_status and not db_user.email_verified:
+            db_user.email_verified_at = utcnow()
+        elif not new_verified_status:
+            db_user.email_verified_at = None
+
     for field, value in update_data.items():
         setattr(db_user, field, value)
 
@@ -386,7 +398,7 @@ async def delete_user(
         message = "User permanently deleted"
     else:
         from datetime import datetime, timezone
-        db_user.deleted_at = datetime.now(timezone.utc)
+        db_user.deleted_at = utcnow()
         db_user.enabled = False
         message = "User archived successfully"
 
@@ -429,7 +441,7 @@ async def delete_current_user(
 ):
     """Archive current user account (soft delete)"""
     from datetime import datetime, timezone
-    current_user.deleted_at = datetime.now(timezone.utc)
+    current_user.deleted_at = utcnow()
     current_user.enabled = False
     db.commit()
     return {"message": "Account archived successfully"}

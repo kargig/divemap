@@ -88,7 +88,8 @@ const AdminNewsletters = () => {
 
   // Query for dive sites (for dropdown)
   const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
-    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!editingTrip || creatingTrip,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Function to get dive site by ID if not in the list
@@ -128,9 +129,10 @@ const AdminNewsletters = () => {
   // Query for diving centers (for dropdown)
   const { data: divingCenters = [] } = useQuery(
     'diving-centers',
-    () => getDivingCenters({ page_size: 100 }),
+    () => getDivingCenters({ page_size: 100 }).then(res => res.items || []),
     {
-      refetchInterval: 30000, // Refetch every 30 seconds
+      enabled: !!editingTrip || creatingTrip,
+      staleTime: 5 * 60 * 1000,
     }
   );
 

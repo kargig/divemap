@@ -90,8 +90,9 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["user_username"] == test_user.username
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["user_username"] == test_user.username
 
     def test_get_public_dives_from_other_user(self, client, auth_headers, db_session, test_dive_site):
         """Test getting public dives from another user."""
@@ -125,8 +126,9 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["user_username"] == other_user.username
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["user_username"] == other_user.username
 
     def test_cannot_access_private_dive_from_other_user(self, client, auth_headers, db_session, test_dive_site):
         """Test that users cannot access private dives from other users."""
@@ -158,7 +160,8 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 0  # Should not see the private dive
+        assert data["total"] == 0
+        assert len(data["items"]) == 0  # Should not see the private dive
 
     def test_get_dive_details(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting detailed dive information."""
@@ -269,8 +272,9 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == dive.id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["id"] == dive.id
 
     def test_filter_dives_by_date_range(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by date range."""
@@ -294,8 +298,9 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == dive.id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["id"] == dive.id
 
     def test_filter_dives_by_depth(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test filtering dives by depth range."""
@@ -320,8 +325,9 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == dive.id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["id"] == dive.id
 
     def test_delete_dive(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test deleting a dive."""
@@ -425,22 +431,25 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 2  # Both dives should match since both dive sites contain "Test"
+        assert data["total"] == 2  # Both dives should match since both dive sites contain "Test"
+        assert len(data["items"]) == 2
 
         # Test filtering by specific dive site name
         response = client.get(f"/api/v1/dives/?dive_site_name={test_dive_site.name}", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["dive_site_id"] == test_dive_site.id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["dive_site_id"] == test_dive_site.id
 
         # Test filtering by non-matching dive site name
         response = client.get("/api/v1/dives/?dive_site_name=NonExistent", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 0  # No dives should match
+        assert data["total"] == 0
+        assert len(data["items"]) == 0  # No dives should match
 
     def test_unauthenticated_user_can_access_public_dives(self, client, db_session, test_dive_site):
         """Test that unauthenticated users can access public dives."""
@@ -503,9 +512,10 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1  # Only the public dive should be visible
-        assert data[0]["name"] == "Public Dive"
-        assert data[0]["is_private"] == False
+        assert data["total"] == 1  # Only the public dive should be visible
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Public Dive"
+        assert data["items"][0]["is_private"] == False
 
         # Test that unauthenticated user can access specific public dive
         response = client.get(f"/api/v1/dives/{public_dive.id}")
@@ -882,17 +892,18 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 2
+        assert data["total"] == 2
+        assert len(data["items"]) == 2
 
         # Check dive with center
-        dive_with_center_data = next(d for d in data if d["name"] == "Dive with Center")
+        dive_with_center_data = next(d for d in data["items"] if d["name"] == "Dive with Center")
         assert dive_with_center_data["diving_center_id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"] is not None
         assert dive_with_center_data["diving_center"]["id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"]["name"] == test_diving_center.name
 
         # Check dive without center
-        dive_without_center_data = next(d for d in data if d["name"] == "Dive without Center")
+        dive_without_center_data = next(d for d in data["items"] if d["name"] == "Dive without Center")
         assert dive_without_center_data["diving_center_id"] is None
         assert dive_without_center_data["diving_center"] is None
 
@@ -926,11 +937,12 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["diving_center_id"] == test_diving_center.id
-        assert data[0]["diving_center"] is not None
-        assert data[0]["diving_center"]["id"] == test_diving_center.id
-        assert data[0]["diving_center"]["name"] == test_diving_center.name
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["diving_center_id"] == test_diving_center.id
+        assert data["items"][0]["diving_center"] is not None
+        assert data["items"][0]["diving_center"]["id"] == test_diving_center.id
+        assert data["items"][0]["diving_center"]["name"] == test_diving_center.name
 
     def test_admin_update_dive_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin updating dive diving center."""
@@ -1014,12 +1026,13 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["name"] == "Public Dive with Center - 2025/01/15"
-        assert data[0]["is_private"] == False
-        assert data[0]["user_username"] == "otheruser"
-        assert data[0]["diving_center"]["id"] == test_diving_center.id
-        assert data[0]["diving_center"]["name"] == test_diving_center.name
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Public Dive with Center - 2025/01/15"
+        assert data["items"][0]["is_private"] == False
+        assert data["items"][0]["user_username"] == "otheruser"
+        assert data["items"][0]["diving_center"]["id"] == test_diving_center.id
+        assert data["items"][0]["diving_center"]["name"] == test_diving_center.name
 
     def test_get_dives_pagination(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test pagination for dives endpoint."""
@@ -1064,22 +1077,23 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 5  # All 5 dives fit in one page
+        assert data["total"] == 5  # All 5 dives fit in one page
+        assert len(data["items"]) == 5
 
-        # Check pagination headers
-        assert response.headers["x-total-count"] == "5"
-        assert response.headers["x-total-pages"] == "1"
-        assert response.headers["x-current-page"] == "1"
-        assert response.headers["x-page-size"] == "25"
-        assert response.headers["x-has-next-page"] == "false"
-        assert response.headers["x-has-prev-page"] == "false"
+        # Check pagination fields in body
+        assert data["total"] == 5
+        assert data["total_pages"] == 1
+        assert data["page"] == 1
+        assert data["page_size"] == 25
+        assert data["has_next_page"] == False
+        assert data["has_prev_page"] == False
 
         # Check default sorting (by dive_date descending, newest first)
-        assert data[0]["name"] == "Echo Dive - 2025/01/05"  # Newest date
-        assert data[1]["name"] == "Delta Dive - 2025/01/04"
-        assert data[2]["name"] == "Charlie Dive - 2025/01/03"
-        assert data[3]["name"] == "Beta Dive - 2025/01/02"
-        assert data[4]["name"] == "Alpha Dive - 2025/01/01"  # Oldest date
+        assert data["items"][0]["name"] == "Echo Dive - 2025/01/05"  # Newest date
+        assert data["items"][1]["name"] == "Delta Dive - 2025/01/04"
+        assert data["items"][2]["name"] == "Charlie Dive - 2025/01/03"
+        assert data["items"][3]["name"] == "Beta Dive - 2025/01/02"
+        assert data["items"][4]["name"] == "Alpha Dive - 2025/01/01"  # Oldest date
 
     def test_get_dives_invalid_page_size(self, client, auth_headers):
         """Test that invalid page_size values are rejected."""
@@ -1133,22 +1147,23 @@ class TestDives:
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert len(data) == 2  # Two intermediate dives
-        
+        assert data["total"] == 2  # Two intermediate dives
+        assert len(data["items"]) == 2
+
         # Check that both dives have difficulty_code ADVANCED_OPEN_WATER
-        assert data[0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
-        assert data[0]["difficulty_label"] == "Advanced Open Water"
-        assert data[1]["difficulty_code"] == "ADVANCED_OPEN_WATER"
-        assert data[1]["difficulty_label"] == "Advanced Open Water"
+        assert data["items"][0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data["items"][0]["difficulty_label"] == "Advanced Open Water"
+        assert data["items"][1]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data["items"][1]["difficulty_label"] == "Advanced Open Water"
         
         # Check that we have the expected dive names (order may vary due to default sorting)
-        dive_names = [dive["name"] for dive in data]
+        dive_names = [dive["name"] for dive in data["items"]]
         assert "Beginner Dive - 2025/01/02" in dive_names
         assert "Intermediate Dive - 2025/01/04" in dive_names
 
-        # Check pagination headers reflect filtered results
-        assert response.headers["x-total-count"] == "2"
-        assert response.headers["x-total-pages"] == "1"
+        # Check pagination fields in body reflect filtered results
+        assert data["total"] == 2
+        assert data["total_pages"] == 1
 
     def test_get_dives_with_decimal_rating(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting dives with decimal rating filters."""
@@ -1168,8 +1183,8 @@ class TestDives:
         response = client.get("/api/v1/dives/?min_rating=7.5", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any(d["user_rating"] == 8 for d in data)
+        assert data["total"] >= 1
+        assert any(d["user_rating"] == 8 for d in data["items"])
 
     def test_get_dives_count_with_username(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test getting dives count with username filter."""
@@ -1197,37 +1212,44 @@ class TestDivesFuzzySearch:
     def test_dives_search_basic_functionality(self, client, auth_headers, test_dive_with_site):
         """Test basic search functionality in dives endpoint."""
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
+        if response.status_code != status.HTTP_200_OK:
+            print(f"❌ Response failed with {response.status_code}: {response.text}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_with_dive_site_name(self, client, auth_headers, test_dive_with_site):
         """Test search by dive site name."""
         response = client.get("/api/v1/dives/?search=Test Dive Site", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_with_dive_information(self, client, auth_headers, test_dive_with_site):
         """Test search by dive information field."""
         response = client.get("/api/v1/dives/?search=information", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_multi_word_query(self, client, auth_headers, test_dive_with_site):
         """Test multi-word search query triggers fuzzy search."""
         response = client.get("/api/v1/dives/?search=test dive", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_short_query_triggers_fuzzy(self, client, auth_headers, test_dive_with_site):
         """Test that short queries trigger fuzzy search."""
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_with_typos(self, client, auth_headers, test_dive_with_site):
         """Test search with typos (fuzzy matching)."""
@@ -1241,14 +1263,14 @@ class TestDivesFuzzySearch:
         response = client.get("/api/v1/dives/?search=Test Country", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_with_tags(self, client, auth_headers, test_dive_with_tags):
         """Test search that includes tag matching."""
         response = client.get("/api/v1/dives/?search=wreck", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_result_ordering(self, client, auth_headers, multiple_test_dives):
         """Test that search results are properly ordered by relevance."""
@@ -1266,18 +1288,20 @@ class TestDivesFuzzySearch:
         response = client.get("/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_pagination_with_fuzzy(self, client, auth_headers, multiple_test_dives):
         """Test that pagination works correctly with fuzzy search results."""
         response = client.get("/api/v1/dives/?search=test&page=1&page_size=5", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
         
-        # Check pagination headers
-        assert "x-total-count" in response.headers
-        assert "x-total-pages" in response.headers
+        # Check pagination fields in body
+        assert "total_pages" in data
+        assert "page" in data
 
     def test_dives_search_performance(self, client, auth_headers, multiple_test_dives):
         """Test search performance with multiple dives."""
@@ -1295,7 +1319,8 @@ class TestDivesFuzzySearch:
         response = client.get("/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) > 0
+        assert data["total"] > 0
+        assert len(data["items"]) > 0
 
     def test_dives_search_empty_query(self, client, auth_headers, test_dive_with_site):
         """Test search with empty query."""
@@ -1362,8 +1387,9 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any(d["name"] == "Amazing Coral Reef Dive" for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any(d["name"] == "Amazing Coral Reef Dive" for d in data["items"])
 
     def test_admin_dives_search_by_username(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test searching dives by user username."""
@@ -1382,8 +1408,9 @@ class TestAdminDivesSearch:
         response = client.get(f"/api/v1/dives/admin/dives?search={test_user.username}", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any(d["user_username"] == test_user.username for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any(d["user_username"] == test_user.username for d in data["items"])
 
     def test_admin_dives_search_by_dive_site_name(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test searching dives by dive site name."""
@@ -1402,8 +1429,9 @@ class TestAdminDivesSearch:
         response = client.get(f"/api/v1/dives/admin/dives?search={test_dive_site.name}", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any(d["dive_site"]["name"] == test_dive_site.name for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any(d["dive_site"]["name"] == test_dive_site.name for d in data["items"])
 
     def test_admin_dives_search_by_dive_information(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test searching dives by dive information field."""
@@ -1423,8 +1451,9 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=sea turtle", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any("sea turtle" in d["dive_information"].lower() for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any("sea turtle" in d["dive_information"].lower() for d in data["items"])
 
     def test_admin_dives_search_case_insensitive(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test that search is case-insensitive."""
@@ -1451,8 +1480,13 @@ class TestAdminDivesSearch:
         assert response_mixed.status_code == status.HTTP_200_OK
 
         # All should return the same results
-        assert len(response_upper.json()) == len(response_lower.json())
-        assert len(response_lower.json()) == len(response_mixed.json())
+        data_upper = response_upper.json()
+        data_lower = response_lower.json()
+        data_mixed = response_mixed.json()
+        
+        assert data_upper["total"] == data_lower["total"]
+        assert data_lower["total"] == data_mixed["total"]
+        assert len(data_upper["items"]) == len(data_lower["items"])
 
     def test_admin_dives_search_partial_match(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test that search matches partial strings."""
@@ -1470,8 +1504,9 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=Coral", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert any("Coral" in d["name"] for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert any("Coral" in d["name"] for d in data["items"])
 
     def test_admin_dives_search_multiple_fields(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test that search can match across multiple fields."""
@@ -1498,7 +1533,8 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 2
+        assert data["total"] >= 2
+        assert len(data["items"]) >= 2
 
     def test_admin_dives_search_with_user_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search combined with user_id filter."""
@@ -1539,8 +1575,9 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert all(d["user_id"] == test_user.id for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert all(d["user_id"] == test_user.id for d in data["items"])
 
     def test_admin_dives_search_with_dive_site_name_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search when dive_site_name filter is also used (tests JOIN logic)."""
@@ -1561,7 +1598,8 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
 
     def test_admin_dives_search_with_date_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search combined with date range filter."""
@@ -1582,7 +1620,8 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
 
     def test_admin_dives_search_with_pagination(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search with pagination parameters."""
@@ -1605,12 +1644,8 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) <= 2
-
-        # Check pagination headers
-        assert "X-Total-Count" in response.headers
-        total_count = int(response.headers["X-Total-Count"])
-        assert total_count >= 5
+        assert len(data["items"]) <= 2
+        assert data["total"] >= 5
 
     def test_admin_dives_count_search(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search functionality with count endpoint."""
@@ -1659,7 +1694,8 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
 
     def test_admin_dives_search_long_string_truncation(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test that search string is truncated to 200 characters."""
@@ -1694,7 +1730,8 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=  Amazing  ", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
 
     def test_admin_dives_search_special_characters(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search with special characters (SQL injection prevention)."""
@@ -1721,7 +1758,8 @@ class TestAdminDivesSearch:
         response = client.get("/api/v1/dives/admin/dives?search=NonexistentDiveName12345", headers=admin_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 0
+        assert data["total"] == 0
+        assert len(data["items"]) == 0
 
     def test_admin_dives_search_with_sorting(self, client, admin_headers, db_session, test_user, test_dive_site):
         """Test search combined with sorting."""
@@ -1744,9 +1782,10 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 3
+        assert data["total"] >= 3
+        assert len(data["items"]) >= 3
         # Verify sorting
-        dates = [d["dive_date"] for d in data]
+        dates = [d["dive_date"] for d in data["items"]]
         assert dates == sorted(dates)
 
     def test_admin_dives_search_end_to_end(self, client, admin_headers, db_session, test_user, test_dive_site):
@@ -1779,8 +1818,9 @@ class TestAdminDivesSearch:
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) >= 1
-        assert all("Amazing" in d["name"] for d in data)
+        assert data["total"] >= 1
+        assert len(data["items"]) >= 1
+        assert all("Amazing" in d["name"] for d in data["items"])
 
 
 class TestDivesUnifiedScoring:
@@ -1910,9 +1950,10 @@ class TestDivesSearchRankingStability:
         data2 = response2.json()
         
         # Results should be in same order
-        assert len(data1) == len(data2)
-        for i in range(len(data1)):
-            assert data1[i]["id"] == data2[i]["id"]
+        assert data1["total"] == data2["total"]
+        assert len(data1["items"]) == len(data2["items"])
+        for i in range(len(data1["items"])):
+            assert data1["items"][i]["id"] == data2["items"][i]["id"]
 
     def test_ranking_with_different_query_lengths(self, client, auth_headers, multiple_test_dives):
         """Test ranking stability with different query lengths."""
@@ -1923,8 +1964,8 @@ class TestDivesSearchRankingStability:
         assert long_query.status_code == status.HTTP_200_OK
         
         # Both should return results, though potentially different counts
-        assert len(short_query.json()) > 0
-        assert len(long_query.json()) > 0
+        assert len(short_query.json()["items"]) > 0
+        assert len(long_query.json()["items"]) > 0
 
     def test_ranking_with_special_characters(self, client, auth_headers, multiple_test_dives):
         """Test ranking stability with special characters."""
@@ -1935,8 +1976,8 @@ class TestDivesSearchRankingStability:
         assert special_query.status_code == status.HTTP_200_OK
         
         # Both should return results
-        assert len(normal_query.json()) > 0
-        assert len(special_query.json()) > 0
+        assert len(normal_query.json()["items"]) > 0
+        assert len(special_query.json()["items"]) > 0
 
     def test_ranking_with_typos(self, client, auth_headers, multiple_test_dives):
         """Test ranking stability with typos."""
@@ -1947,8 +1988,8 @@ class TestDivesSearchRankingStability:
         assert typo_query.status_code == status.HTTP_200_OK
         
         # Both should return results
-        assert len(correct_query.json()) > 0
-        assert len(typo_query.json()) > 0
+        assert len(correct_query.json()["items"]) > 0
+        assert len(typo_query.json()["items"]) > 0
 
 
 class TestDivesSearchPerformance:

@@ -155,7 +155,7 @@ const AdminDivingCenters = () => {
   };
 
   // Fetch diving centers data
-  const { data: divingCenters, isLoading } = useQuery(
+  const { data: divingCentersResponse, isLoading } = useQuery(
     ['admin-diving-centers', pagination, filters, sorting],
     () => {
       const params = new URLSearchParams();
@@ -172,39 +172,17 @@ const AdminDivingCenters = () => {
       // Add filters
       if (filters.name) params.append('name', filters.name);
 
-      return api.get(`/api/v1/diving-centers/?${params.toString()}`);
+      return api.get(`/api/v1/diving-centers/?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => {
-        // Get pagination info from headers
-        const getHeader = name => {
-          return (
-            response.headers[name] ||
-            response.headers[name.toLowerCase()] ||
-            response.headers[name.toUpperCase()] ||
-            '0'
-          );
-        };
-
-        const totalCount = parseInt(getHeader('x-total-count'));
-        const totalPages = parseInt(getHeader('x-total-pages'));
-
-        // Store pagination info
-        queryClient.setQueryData(['admin-diving-centers-pagination'], {
-          totalCount,
-          totalPages,
-        });
-
-        return response.data;
-      },
       keepPreviousData: true,
     }
   );
 
-  // Get pagination info
-  const paginationInfo = queryClient.getQueryData(['admin-diving-centers-pagination']) || {
-    totalCount: 0,
-    totalPages: 0,
+  const divingCenters = divingCentersResponse?.items || [];
+  const paginationInfo = {
+    totalCount: divingCentersResponse?.total || 0,
+    totalPages: divingCentersResponse?.total_pages || 0,
   };
 
   // Handle pagination change
@@ -787,16 +765,21 @@ const AdminDivingCenters = () => {
                   }
 
                   const response = await api.get(`/api/v1/diving-centers/?${params.toString()}`);
-                  const pageData = response.data;
+                  const responseData = response.data;
+                  const pageData = responseData?.items || responseData || [];
 
                   if (pageData && pageData.length > 0) {
                     allDivingCenters.push(...pageData);
                     currentPage++;
 
                     // Check if there's more data
-                    const totalPages = parseInt(
-                      response.headers['x-total-pages'] || response.headers['X-Total-Pages'] || '1'
-                    );
+                    const totalPages =
+                      responseData?.total_pages ||
+                      parseInt(
+                        response.headers['x-total-pages'] ||
+                          response.headers['X-Total-Pages'] ||
+                          '1'
+                      );
                     hasMore = currentPage <= totalPages;
                   } else {
                     hasMore = false;

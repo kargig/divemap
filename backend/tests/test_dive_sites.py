@@ -14,8 +14,9 @@ class TestDiveSites:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["name"] == test_dive_site.name
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == test_dive_site.name
 
     def test_get_dive_sites_short_search_query(self, client):
         """Test that short search queries (less than 3 chars) return 400."""
@@ -29,9 +30,10 @@ class TestDiveSites:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
-        assert data[0]["difficulty_label"] == "Advanced Open Water"
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
+        assert data["items"][0]["difficulty_label"] == "Advanced Open Water"
 
     def test_get_dive_sites_with_dive_site_id_filter_admin(self, client, db_session, test_admin_user, admin_headers, test_dive_site):
         """Test getting dive sites with dive_site_id filter as admin."""
@@ -53,8 +55,9 @@ class TestDiveSites:
 
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 1
-        assert data[0]["id"] == test_dive_site.id
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["id"] == test_dive_site.id
         
         # Clean up
         db_session.delete(new_site)
@@ -81,7 +84,8 @@ class TestDiveSites:
         assert response.status_code == 200
         data = response.json()
         # Should return both sites because the filter is ignored
-        assert len(data) >= 2
+        assert data["total"] >= 2
+        assert len(data["items"]) >= 2
         
         # Clean up
         db_session.delete(new_site)
@@ -597,15 +601,13 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 25
-
-    # Check pagination headers
-    assert response.headers["X-Total-Count"] == "75"
-    assert response.headers["X-Total-Pages"] == "3"
-    assert response.headers["X-Current-Page"] == "1"
-    assert response.headers["X-Page-Size"] == "25"
-    assert response.headers["X-Has-Next-Page"] == "true"
-    assert response.headers["X-Has-Prev-Page"] == "false"
+    assert data["total"] == 75
+    assert len(data["items"]) == 25
+    assert data["total_pages"] == 3
+    assert data["page"] == 1
+    assert data["page_size"] == 25
+    assert data["has_next_page"] == True
+    assert data["has_prev_page"] == False
 
     # Test page 2
     response = client.get(
@@ -615,11 +617,11 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 25
-
-    assert response.headers["X-Current-Page"] == "2"
-    assert response.headers["X-Has-Next-Page"] == "true"
-    assert response.headers["X-Has-Prev-Page"] == "true"
+    assert data["total"] == 75
+    assert len(data["items"]) == 25
+    assert data["page"] == 2
+    assert data["has_next_page"] == True
+    assert data["has_prev_page"] == True
 
     # Test page 3 (last page)
     response = client.get(
@@ -629,11 +631,11 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 25
-
-    assert response.headers["X-Current-Page"] == "3"
-    assert response.headers["X-Has-Next-Page"] == "false"
-    assert response.headers["X-Has-Prev-Page"] == "true"
+    assert data["total"] == 75
+    assert len(data["items"]) == 25
+    assert data["page"] == 3
+    assert data["has_next_page"] == False
+    assert data["has_prev_page"] == True
 
     # Test page_size 50
     response = client.get(
@@ -643,10 +645,10 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 50
-
-    assert response.headers["X-Total-Pages"] == "2"
-    assert response.headers["X-Page-Size"] == "50"
+    assert data["total"] == 75
+    assert len(data["items"]) == 50
+    assert data["total_pages"] == 2
+    assert data["page_size"] == 50
 
     # Test page_size 100
     response = client.get(
@@ -656,10 +658,10 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 75  # All dive sites fit in one page
-
-    assert response.headers["X-Total-Pages"] == "1"
-    assert response.headers["X-Page-Size"] == "100"
+    assert data["total"] == 75
+    assert len(data["items"]) == 75  # All dive sites fit in one page
+    assert data["total_pages"] == 1
+    assert data["page_size"] == 100
 
 def test_get_dive_sites_invalid_page_size(client, admin_token):
     """Test that invalid page_size values are rejected"""
@@ -701,10 +703,11 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 25
+    assert data["total"] == 30
+    assert len(data["items"]) == 25
 
-    assert response.headers["X-Total-Count"] == "30"  # Only 30 sites in Test Country A
-    assert response.headers["X-Total-Pages"] == "2"
+    assert data["total"] == 30  # Only 30 sites in Test Country A
+    assert data["total_pages"] == 2
 
     # Test second page
     response = client.get(
@@ -714,10 +717,11 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 5  # Remaining 5 sites
+    assert data["total"] == 30
+    assert len(data["items"]) == 5  # Remaining 5 sites
 
-    assert response.headers["X-Has-Next-Page"] == "false"
-    assert response.headers["X-Has-Prev-Page"] == "true"
+    assert data["has_next_page"] == False
+    assert data["has_prev_page"] == True
 
 
 class TestDiveSitesHealthAndUtilities:
@@ -946,7 +950,7 @@ class TestDiveSitesDives:
         response = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/dives")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert len(data) == 2
         dive_names = [dive["name"] for dive in data]
         assert "Test Dive 1" in dive_names
@@ -963,7 +967,6 @@ class TestDiveSitesDives:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 0
-
 
 class TestDiveSitesAdvancedFeatures:
     """Test advanced dive site features and edge cases."""

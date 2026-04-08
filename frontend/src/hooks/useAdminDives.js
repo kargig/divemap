@@ -85,27 +85,7 @@ export const useAdminDives = () => {
   };
 
   // Queries
-  const { data: totalCount } = useQuery(
-    ['admin-dives-count', filters],
-    () => {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (key === 'dive_site_ids') {
-          if (value && value.length > 0) {
-            params.append('dive_site_ids', value.join(','));
-          }
-        } else if (value) {
-          params.append(key, value);
-        }
-      });
-      return api.get(`/api/v1/dives/admin/dives/count?${params.toString()}`);
-    },
-    {
-      select: response => response.data.total,
-    }
-  );
-
-  const { data: dives, isLoading } = useQuery(
+  const { data: divesResponse, isLoading } = useQuery(
     ['admin-dives', filters, pagination, sorting],
     () => {
       const params = new URLSearchParams();
@@ -124,15 +104,17 @@ export const useAdminDives = () => {
         params.append('sort_by', sortParams.sort_by);
         params.append('sort_order', sortParams.sort_order);
       }
-      params.append('limit', pagination.pageSize.toString());
-      params.append('offset', (pagination.pageIndex * pagination.pageSize).toString());
-      return api.get(`/api/v1/dives/admin/dives?${params.toString()}`);
+      params.append('page_size', pagination.pageSize.toString());
+      params.append('page', (pagination.pageIndex + 1).toString());
+      return api.get(`/api/v1/dives/admin/dives?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => response.data,
       keepPreviousData: true,
     }
   );
+
+  const dives = divesResponse?.items || [];
+  const totalCount = divesResponse?.total || 0;
 
   const { data: users } = useQuery(['admin-users'], () => api.get('/api/v1/users/admin/users'), {
     select: response => response.data,
@@ -170,7 +152,10 @@ export const useAdminDives = () => {
           const response = await api.get('/api/v1/dive-sites/', {
             params: { search: diveSiteSearchTerm, limit: 20 },
           });
-          setDiveSiteSearchResults(response.data);
+          // Handle new response structure { items, total } or old list structure
+          setDiveSiteSearchResults(
+            response.data?.items || (Array.isArray(response.data) ? response.data : [])
+          );
         } catch (error) {
           console.error('Failed to search dive sites:', error);
         } finally {

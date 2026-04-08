@@ -433,31 +433,49 @@ const DiveSites = () => {
       }
 
       const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
+      const data = response.data;
 
-      // Extract pagination info from response headers
+      // Extract pagination info from response body (new) or headers (fallback)
       const paginationInfo = {
-        totalCount: parseInt(response.headers['x-total-count'] || '0'),
-        totalPages: parseInt(response.headers['x-total-pages'] || '0'),
-        currentPage: parseInt(response.headers['x-current-page'] || '1'),
-        pageSize: parseInt(response.headers['x-page-size'] || '25'),
-        hasNextPage: response.headers['x-has-next-page'] === 'true',
-        hasPrevPage: response.headers['x-has-prev-page'] === 'true',
+        totalCount:
+          data.total !== undefined
+            ? data.total
+            : parseInt(response.headers['x-total-count'] || '0'),
+        totalPages:
+          data.total_pages !== undefined
+            ? data.total_pages
+            : parseInt(response.headers['x-total-pages'] || '0'),
+        currentPage:
+          data.page !== undefined ? data.page : parseInt(response.headers['x-current-page'] || '1'),
+        pageSize:
+          data.page_size !== undefined
+            ? data.page_size
+            : parseInt(response.headers['x-page-size'] || '25'),
+        hasNextPage:
+          data.has_next_page !== undefined
+            ? data.has_next_page
+            : response.headers['x-has-next-page'] === 'true',
+        hasPrevPage:
+          data.has_prev_page !== undefined
+            ? data.has_prev_page
+            : response.headers['x-has-prev-page'] === 'true',
       };
 
-      // Extract match type information from response headers
-      const matchTypesHeader = response.headers['x-match-types'];
-      let matchTypes = {};
-
-      if (matchTypesHeader) {
-        try {
-          matchTypes = JSON.parse(matchTypesHeader);
-        } catch (e) {
-          console.warn('Failed to parse match types header:', e);
+      // Extract match type information from response body (new) or headers (fallback)
+      let matchTypes = data.match_types || {};
+      if (!data.match_types) {
+        const matchTypesHeader = response.headers['x-match-types'];
+        if (matchTypesHeader) {
+          try {
+            matchTypes = JSON.parse(matchTypesHeader);
+          } catch (e) {
+            console.warn('Failed to parse match types header:', e);
+          }
         }
       }
 
       return {
-        data: response.data,
+        data: data.items || data,
         matchTypes: matchTypes,
         paginationInfo: paginationInfo,
       };

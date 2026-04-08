@@ -95,11 +95,13 @@ const CreateDive = () => {
   const [submitStatus, setSubmitStatus] = useState('');
 
   // Fetch dive sites for dropdown
-  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }));
+  const { data: diveSites = [] } = useQuery(['dive-sites'], () =>
+    getDiveSites({ page_size: 100 }).then(res => res.items || [])
+  );
 
   // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
-    getDivingCenters({ page_size: 100 })
+    getDivingCenters({ page_size: 100 }).then(res => res.items || [])
   );
 
   // Fetch available tags
@@ -129,7 +131,7 @@ const CreateDive = () => {
           search: 'Attiki',
           page_size: 25,
         });
-        setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+        setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
       } catch (error) {
         console.error('Failed to load initial dive sites:', error);
         setDiveSiteSearchError('Failed to load dive sites');
@@ -310,7 +312,7 @@ const CreateDive = () => {
             search: 'Attiki',
             page_size: 25,
           });
-          setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+          setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
         } catch (error) {
           console.error('Failed to load initial dive sites:', error);
           setDiveSiteSearchError('Failed to load dive sites');
@@ -337,7 +339,7 @@ const CreateDive = () => {
           search: value,
           page_size: 25,
         });
-        setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+        setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
       } catch (error) {
         console.error('Search dive sites failed', error);
         setDiveSiteSearchError('Search failed');

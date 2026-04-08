@@ -1147,6 +1147,11 @@ const LeafletMapView = ({
   const markers = useMemo(() => {
     if (!data) return [];
 
+    const diveSitesArr = data.dive_sites?.items || [];
+    const divingCentersArr = data.diving_centers?.items || [];
+    const divesArr = data.dives?.items || [];
+    const diveTripsArr = data.dive_trips?.items || [];
+
     const allMarkers = [];
 
     // Determine if suitability indicators should be shown
@@ -1159,8 +1164,8 @@ const LeafletMapView = ({
       Object.keys(recommendationsMap).length > 0;
 
     // Process dive sites
-    if (data.dive_sites && selectedEntityType === 'dive-sites') {
-      data.dive_sites.forEach(site => {
+    if (diveSitesArr.length > 0 && selectedEntityType === 'dive-sites') {
+      diveSitesArr.forEach(site => {
         if (site.latitude && site.longitude) {
           // Get suitability for this dive site if available
           const recommendation = showSuitability ? recommendationsMap[site.id] : null;
@@ -1179,8 +1184,8 @@ const LeafletMapView = ({
     }
 
     // Process diving centers
-    if (data.diving_centers && selectedEntityType === 'diving-centers') {
-      data.diving_centers.forEach(center => {
+    if (divingCentersArr.length > 0 && selectedEntityType === 'diving-centers') {
+      divingCentersArr.forEach(center => {
         if (center.latitude && center.longitude) {
           allMarkers.push({
             id: `diving-center-${center.id}`,
@@ -1194,8 +1199,8 @@ const LeafletMapView = ({
     }
 
     // Process dives
-    if (data.dives && selectedEntityType === 'dives') {
-      data.dives.forEach(dive => {
+    if (divesArr.length > 0 && selectedEntityType === 'dives') {
+      divesArr.forEach(dive => {
         if (dive.dive_site?.latitude && dive.dive_site?.longitude) {
           allMarkers.push({
             id: `dive-${dive.id}`,
@@ -1209,17 +1214,17 @@ const LeafletMapView = ({
     }
 
     // Process dive trips
-    if (data.dive_trips && selectedEntityType === 'dive-trips') {
-      data.dive_trips.forEach(trip => {
+    if (diveTripsArr.length > 0 && selectedEntityType === 'dive-trips') {
+      diveTripsArr.forEach(trip => {
         // For trips, we need to find coordinates from associated dive sites or diving centers
         let latitude, longitude;
 
         // Priority 1: Look for dive site coordinates from trip's dives
         if (trip.dives && trip.dives.length > 0) {
           const firstDive = trip.dives[0];
-          if (firstDive.dive_site_id && data.dive_sites) {
+          if (firstDive.dive_site_id && diveSitesArr.length > 0) {
             // Find the dive site by ID in the loaded dive sites data
-            const diveSite = data.dive_sites.find(site => site.id === firstDive.dive_site_id);
+            const diveSite = diveSitesArr.find(site => site.id === firstDive.dive_site_id);
             if (diveSite && diveSite.latitude && diveSite.longitude) {
               latitude = diveSite.latitude;
               longitude = diveSite.longitude;
@@ -1228,11 +1233,9 @@ const LeafletMapView = ({
         }
 
         // Priority 2: Look for diving center coordinates
-        if ((!latitude || !longitude) && trip.diving_center_id && data.diving_centers) {
+        if ((!latitude || !longitude) && trip.diving_center_id && divingCentersArr.length > 0) {
           // Find the diving center by ID in the loaded diving centers data
-          const divingCenter = data.diving_centers.find(
-            center => center.id === trip.diving_center_id
-          );
+          const divingCenter = divingCentersArr.find(center => center.id === trip.diving_center_id);
           if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
             latitude = divingCenter.latitude;
             longitude = divingCenter.longitude;
@@ -1241,7 +1244,7 @@ const LeafletMapView = ({
 
         if (latitude && longitude) {
           allMarkers.push({
-            id: `trip-${trip.id}`,
+            id: `dive-trip-${trip.id}`,
             position: [latitude, longitude],
             entityType: 'dive_trip',
             data: trip,

@@ -50,9 +50,10 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should only return site1 (good conditions)
-        assert len(data) == 1
-        assert data[0]["name"] == "Site Good Conditions"
+        assert len(items) == 1
+        assert items[0]["name"] == "Site Good Conditions"
         # Verify wind data was fetched for center point
         assert mock_fetch_wind.called
         call_args = mock_fetch_wind.call_args
@@ -101,11 +102,12 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # With range-based filtering, "avoid" includes all conditions (good, caution, difficult, avoid)
         # So both sites are returned: site1 (good) and site2 (avoid)
-        assert len(data) == 2
+        assert len(items) == 2
         # Verify both sites are present
-        site_names = [site["name"] for site in data]
+        site_names = [site["name"] for site in items]
         assert "Site Good Conditions" in site_names
         assert "Site Bad Conditions" in site_names
 
@@ -145,9 +147,10 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return site1 (good conditions) and site2 (unknown conditions)
-        assert len(data) == 2
-        site_names = [site["name"] for site in data]
+        assert len(items) == 2
+        site_names = [site["name"] for site in items]
         assert "Site With Shore Direction" in site_names
         assert "Site Without Shore Direction" in site_names
 
@@ -300,8 +303,9 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return empty result when wind data fetch fails
-        assert len(data) == 0
+        assert len(items) == 0
 
     @patch('app.routers.dive_sites.fetch_wind_data_single_point')
     def test_wind_data_fetch_exception(self, mock_fetch_wind, client, db_session):
@@ -328,8 +332,9 @@ class TestDiveSitesWindSuitabilityFilter:
         # The implementation should gracefully handle exceptions and return empty result
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return empty result when wind data fetch fails
-        assert len(data) == 0
+        assert len(items) == 0
 
     @patch('app.routers.dive_sites.fetch_wind_data_single_point')
     def test_wind_suitability_filter_no_sites_with_coords(self, mock_fetch_wind, client, db_session):
@@ -352,8 +357,9 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return empty result when no sites have coordinates
-        assert len(data) == 0
+        assert len(items) == 0
         # Should not call fetch_wind_data_single_point
         assert not mock_fetch_wind.called
 
@@ -395,9 +401,10 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return only site1 (matches both filters)
-        assert len(data) == 1
-        assert data[0]["name"] == "Good Wind Site"
+        assert len(items) == 1
+        assert items[0]["name"] == "Good Wind Site"
 
     @patch('app.routers.dive_sites.fetch_wind_data_single_point')
     def test_wind_suitability_filter_high_wind_speed(self, mock_fetch_wind, client, db_session):
@@ -427,9 +434,10 @@ class TestDiveSitesWindSuitabilityFilter:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        items = data.get("items", [])
         # Should return site (high wind = avoid)
-        assert len(data) == 1
-        assert data[0]["name"] == "High Wind Site"
+        assert len(items) == 1
+        assert items[0]["name"] == "High Wind Site"
 
         # Filter for good (should return empty)
         response = client.get(
@@ -438,7 +446,8 @@ class TestDiveSitesWindSuitabilityFilter:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        data2 = response.json()
+        items2 = data2.get("items", [])
         # Should return empty (high wind != good)
-        assert len(data) == 0
+        assert len(items2) == 0
 

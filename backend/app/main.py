@@ -507,12 +507,17 @@ def load_dives_router():
         print("🔧 Loading dives router lazily...")
         router_start = time.time()
 
-        from app.routers.dives import router as dives_router
-        app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
-
-        app._dives_router_loaded = True
-        router_time = time.time() - router_start
-        print(f"✅ Dives router loaded lazily in {router_time:.2f}s")
+        try:
+            from app.routers.dives import router as dives_router
+            app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
+            app._dives_router_loaded = True
+            router_time = time.time() - router_start
+            print(f"✅ Dives router loaded lazily in {router_time:.2f}s")
+        except Exception as e:
+            print(f"❌ Error loading dives router: {e}")
+            import traceback
+            traceback.print_exc()
+            raise e
 
 def load_dive_routes_router():
     """Load dive routes router lazily when first accessed"""

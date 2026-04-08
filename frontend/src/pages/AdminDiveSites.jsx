@@ -158,7 +158,7 @@ const AdminDiveSites = () => {
   };
 
   // Fetch dive sites data
-  const { data: diveSites, isLoading } = useQuery(
+  const { data: diveSitesResponse, isLoading } = useQuery(
     ['admin-dive-sites', pagination, filters, sorting],
     () => {
       const params = new URLSearchParams();
@@ -183,39 +183,17 @@ const AdminDiveSites = () => {
       if (filters.status) params.append('status', filters.status);
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
 
-      return api.get(`/api/v1/dive-sites/?${params.toString()}`);
+      return api.get(`/api/v1/dive-sites/?${params.toString()}`).then(res => res.data);
     },
     {
-      select: response => {
-        // Get pagination info from headers
-        const getHeader = name => {
-          return (
-            response.headers[name] ||
-            response.headers[name.toLowerCase()] ||
-            response.headers[name.toUpperCase()] ||
-            '0'
-          );
-        };
-
-        const totalCount = parseInt(getHeader('x-total-count'));
-        const totalPages = parseInt(getHeader('x-total-pages'));
-
-        // Store pagination info
-        queryClient.setQueryData(['admin-dive-sites-pagination'], {
-          totalCount,
-          totalPages,
-        });
-
-        return response.data;
-      },
       keepPreviousData: true,
     }
   );
 
-  // Get pagination info
-  const paginationInfo = queryClient.getQueryData(['admin-dive-sites-pagination']) || {
-    totalCount: 0,
-    totalPages: 0,
+  const diveSites = diveSitesResponse?.items || [];
+  const paginationInfo = {
+    totalCount: diveSitesResponse?.total || 0,
+    totalPages: diveSitesResponse?.total_pages || 0,
   };
 
   // Handle pagination change
@@ -1133,16 +1111,21 @@ const AdminDiveSites = () => {
                   }
 
                   const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
-                  const pageData = response.data;
+                  const responseData = response.data;
+                  const pageData = responseData?.items || responseData || [];
 
                   if (pageData && pageData.length > 0) {
                     allDiveSites.push(...pageData);
                     currentPage++;
 
                     // Check if there's more data
-                    const totalPages = parseInt(
-                      response.headers['x-total-pages'] || response.headers['X-Total-Pages'] || '1'
-                    );
+                    const totalPages =
+                      responseData?.total_pages ||
+                      parseInt(
+                        response.headers['x-total-pages'] ||
+                          response.headers['X-Total-Pages'] ||
+                          '1'
+                      );
                     hasMore = currentPage <= totalPages;
                   } else {
                     hasMore = false;

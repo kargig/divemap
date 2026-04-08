@@ -12,15 +12,15 @@ This module contains core CRUD operations for dives:
 """
 
 from fastapi import Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, desc, asc
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import or_, and_, desc, asc, distinct, func
 from typing import List, Optional
 from datetime import datetime
 import orjson
 
-from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage, UNIFIED_TYPO_TOLERANCE
-from app.models import DiveBuddy
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, AddBuddiesRequest, ReplaceBuddiesRequest
+from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, DiveBuddy, r2_storage, UNIFIED_TYPO_TOLERANCE
+
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, AddBuddiesRequest, ReplaceBuddiesRequest
 from app.models import DiveSite, DivingCenter, DiveSiteAlias, DifficultyLevel, get_difficulty_id_by_code
 from .dives_utils import generate_dive_name
 from .dives_import import parse_dive_information_text
@@ -191,71 +191,21 @@ async def create_dive(
 
         db.commit()
 
-    # Get dive site information if available
-    dive_site_info = None
-    if db_dive.dive_site_id:
-        dive_site = db.query(DiveSite).filter(DiveSite.id == db_dive.dive_site_id).first()
-        if dive_site:
-            dive_site_info = {
-                "id": dive_site.id,
-                "name": dive_site.name,
-                "description": dive_site.description,
-                "latitude": float(dive_site.latitude) if dive_site.latitude else None,
-                "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                "country": dive_site.country,
-                "region": dive_site.region,
-                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
-            }
+    # Ensure relationships are loaded for response serialization
+    db_dive = db.query(Dive).options(
+        joinedload(Dive.difficulty),
+        joinedload(Dive.user),
+        joinedload(Dive.dive_site),
+        joinedload(Dive.diving_center),
+        selectinload(Dive.buddies),
+        selectinload(Dive.tags).joinedload(DiveTag.tag)
+    ).filter(Dive.id == db_dive.id).first()
 
-    # Get diving center information if available
-    diving_center_info = None
-    if db_dive.diving_center_id:
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == db_dive.diving_center_id).first()
-        if diving_center:
-            diving_center_info = {
-                "id": diving_center.id,
-                "name": diving_center.name,
-                "description": diving_center.description,
-                "email": diving_center.email,
-                "phone": diving_center.phone,
-                "website": diving_center.website,
-                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                "longitude": float(diving_center.longitude) if diving_center.longitude else None
-            }
+    # Parse dive information
+    parsed_info = parse_dive_information_text(db_dive.dive_information)
 
-    # Get selected route information if available
-    selected_route_info = None
-    if db_dive.selected_route_id:
-        from app.models import DiveRoute
-        selected_route = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(DiveRoute.id == db_dive.selected_route_id).first()
-        if selected_route:
-            selected_route_info = {
-                "id": selected_route.id,
-                "name": selected_route.name,
-                "description": selected_route.description,
-                "route_type": selected_route.route_type,
-                "route_data": selected_route.route_data,
-                "created_by": selected_route.created_by,
-                "creator_username": selected_route.creator.username,
-                "created_at": selected_route.created_at
-            }
-
-    # Ensure difficulty relationship is loaded for response serialization
-    db_dive = db.query(Dive).options(joinedload(Dive.difficulty)).filter(Dive.id == db_dive.id).first()
-
-    # Get buddies for this dive
-    dive_buddies = db.query(User).join(DiveBuddy).filter(DiveBuddy.dive_id == db_dive.id).all()
-    buddies_list = [
-        {
-            "id": buddy.id,
-            "username": buddy.username,
-            "name": buddy.name,
-            "avatar_url": buddy.avatar_url
-        }
-        for buddy in dive_buddies
-    ]
-
-    # Convert to dict to avoid SQLAlchemy relationship serialization issues
+    # Build response manually to ensure all fields are correctly populated
+    # (consistent with DiveResponse schema)
     dive_dict = {
         "id": db_dive.id,
         "user_id": db_dive.user_id,
@@ -279,16 +229,48 @@ async def create_dive(
         "view_count": db_dive.view_count,
         "created_at": db_dive.created_at,
         "updated_at": db_dive.updated_at,
-        "dive_site": dive_site_info,
-        "diving_center": diving_center_info,
-        "selected_route": selected_route_info,
+        "dive_site": {
+            "id": db_dive.dive_site.id,
+            "name": db_dive.dive_site.name,
+            "description": db_dive.dive_site.description,
+            "latitude": float(db_dive.dive_site.latitude) if db_dive.dive_site.latitude else None,
+            "longitude": float(db_dive.dive_site.longitude) if db_dive.dive_site.longitude else None,
+            "country": db_dive.dive_site.country,
+            "region": db_dive.dive_site.region,
+            "deleted_at": db_dive.dive_site.deleted_at.isoformat() if db_dive.dive_site.deleted_at else None
+        } if db_dive.dive_site else None,
+        "diving_center": {
+            "id": db_dive.diving_center.id,
+            "name": db_dive.diving_center.name,
+            "description": db_dive.diving_center.description,
+            "email": db_dive.diving_center.email,
+            "phone": db_dive.diving_center.phone,
+            "website": db_dive.diving_center.website,
+            "latitude": float(db_dive.diving_center.latitude) if db_dive.diving_center.latitude else None,
+            "longitude": float(db_dive.diving_center.longitude) if db_dive.diving_center.longitude else None
+        } if db_dive.diving_center else None,
         "media": [],
-        "tags": [],
-        "buddies": buddies_list,
-        "user_username": current_user.username
+        "tags": [{"id": t.tag.id, "name": t.tag.name} for t in db_dive.tags if t.tag],
+        "buddies": [
+            {
+                "id": buddy.id,
+                "username": buddy.username,
+                "name": buddy.name,
+                "avatar_url": buddy.avatar_url
+            }
+            for buddy in db_dive.buddies
+        ],
+        "user_username": db_dive.user.username,
+        "buddy": parsed_info.get('buddy'),
+        "sac": parsed_info.get('sac'),
+        "otu": parsed_info.get('otu'),
+        "cns": parsed_info.get('cns'),
+        "water_temperature": parsed_info.get('water_temperature'),
+        "deco_model": parsed_info.get('deco_model'),
+        "weights": parsed_info.get('weights')
     }
 
-    return dive_dict
+    return DiveResponse(**dive_dict)
 
 
 @router.get("/count")
@@ -448,11 +430,11 @@ def get_dives_count(
         query = query.filter(DiveBuddy.user_id == buddy_id)
 
     # Get total count
-    total_count = query.count()
+    total_count = query.distinct().count()
 
     return {"total": total_count}
 
-@router.get("/", response_model=List[DiveResponse])
+@router.get("/", response_model=DiveListResponse)
 def get_dives(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -497,11 +479,7 @@ def get_dives(
         )
 
     # Build query - user can see their own dives and public dives from others
-    # Eager load difficulty and buddies relationships for efficient access
-    query = db.query(Dive).options(
-        joinedload(Dive.difficulty),
-        joinedload(Dive.buddies)
-    ).join(User, Dive.user_id == User.id)
+    query = db.query(Dive).join(User, Dive.user_id == User.id)
 
     # Filter by user if specified, otherwise show own dives and public dives from others
     if user_id:
@@ -665,7 +643,8 @@ def get_dives(
         query = query.filter(DiveBuddy.user_id == buddy_id)
 
     # Get total count for pagination headers
-    total_count = query.count()
+    # Use distinct() to avoid inflated counts when joins are present (e.g., tags, buddies)
+    total_count = query.distinct().count()
 
     # Apply dynamic sorting based on parameters
     if sort_by:
@@ -731,14 +710,22 @@ def get_dives(
     has_next_page = page < total_pages
     has_prev_page = page > 1
 
-    # Apply pagination
-    dives = query.offset(offset).limit(page_size).all()
+    # Apply pagination and eager load relationships for efficient access
+    dives = query.options(
+        joinedload(Dive.difficulty),
+        joinedload(Dive.user),
+        joinedload(Dive.dive_site),
+        joinedload(Dive.diving_center),
+        selectinload(Dive.buddies),
+        selectinload(Dive.tags).joinedload(DiveTag.tag)
+    ).offset(offset).limit(page_size).all()
 
     # Apply fuzzy search if we have a search query and should use fuzzy search
     match_types = {}
     if search:
         # Check if we should use fuzzy search based on unified conditions
-        should_use_fuzzy = get_unified_fuzzy_trigger_conditions(search, len(dives))
+        # Also force fuzzy search if we have zero exact results to allow geographic matching
+        should_use_fuzzy = get_unified_fuzzy_trigger_conditions(search, len(dives)) or len(dives) == 0
 
         if should_use_fuzzy:
             # Get the search query for fuzzy search
@@ -764,46 +751,41 @@ def get_dives(
                     'score': result['score']
                 }
 
-    # Convert SQLAlchemy objects to dictionaries to avoid serialization issues
+    # Convert SQLAlchemy objects to dictionaries for DiveListResponse
     dive_list = []
     for dive in dives:
-        # Get dive site information if available
+        # Get dive site information (already eagerly loaded)
         dive_site_info = None
-        if dive.dive_site_id:
-            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
-            if dive_site:
-                dive_site_info = {
-                    "id": dive_site.id,
-                    "name": dive_site.name,
-                    "description": dive_site.description,
-                    "latitude": float(dive_site.latitude) if dive_site.latitude else None,
-                    "longitude": float(dive_site.longitude) if dive_site.longitude else None,
-                    "country": dive_site.country,
-                    "region": dive_site.region,
-                    "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
-                }
+        if dive.dive_site:
+            dive_site_info = {
+                "id": dive.dive_site.id,
+                "name": dive.dive_site.name,
+                "description": dive.dive_site.description,
+                "latitude": float(dive.dive_site.latitude) if dive.dive_site.latitude else None,
+                "longitude": float(dive.dive_site.longitude) if dive.dive_site.longitude else None,
+                "country": dive.dive_site.country,
+                "region": dive.dive_site.region,
+                "deleted_at": dive.dive_site.deleted_at.isoformat() if dive.dive_site.deleted_at else None
+            }
 
-        # Get diving center information if available
+        # Get diving center information (already eagerly loaded)
         diving_center_info = None
-        if dive.diving_center_id:
-            diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
-            if diving_center:
-                diving_center_info = {
-                    "id": diving_center.id,
-                    "name": diving_center.name,
-                    "description": diving_center.description,
-                    "email": diving_center.email,
-                    "phone": diving_center.phone,
-                    "website": diving_center.website,
-                    "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                    "longitude": float(diving_center.longitude) if diving_center.longitude else None
-                }
+        if dive.diving_center:
+            diving_center_info = {
+                "id": dive.diving_center.id,
+                "name": dive.diving_center.name,
+                "description": dive.diving_center.description,
+                "email": dive.diving_center.email,
+                "phone": dive.diving_center.phone,
+                "website": dive.diving_center.website,
+                "latitude": float(dive.diving_center.latitude) if dive.diving_center.latitude else None,
+                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None
+            }
 
-        # Get tags for this dive
-        dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
-        tags_list = [{"id": tag.id, "name": tag.name} for tag in dive_tags]
+        # Get tags (already eagerly loaded via selectinload)
+        tags_list = [{"id": t.tag.id, "name": t.tag.name} for t in dive.tags if t.tag]
 
-        # Get buddies for this dive (already eagerly loaded)
+        # Get buddies (already eagerly loaded)
         buddies_list = [
             {
                 "id": buddy.id,
@@ -814,7 +796,7 @@ def get_dives(
             for buddy in dive.buddies
         ]
 
-        # Parse dive information to extract individual fields
+        # Parse dive information
         parsed_info = parse_dive_information_text(dive.dive_information)
 
         dive_dict = {
@@ -838,15 +820,14 @@ def get_dives(
             "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
             "duration": dive.duration,
             "view_count": dive.view_count,
-            "created_at": dive.created_at.isoformat() if dive.created_at else None,
-            "updated_at": dive.updated_at.isoformat() if dive.updated_at else None,
+            "created_at": dive.created_at,
+            "updated_at": dive.updated_at,
             "dive_site": dive_site_info,
             "diving_center": diving_center_info,
             "media": [],
             "tags": tags_list,
             "buddies": buddies_list,
             "user_username": dive.user.username,
-            # Add parsed fields from dive_information
             "buddy": parsed_info.get('buddy'),
             "sac": parsed_info.get('sac'),
             "otu": parsed_info.get('otu'),
@@ -857,40 +838,22 @@ def get_dives(
         }
         dive_list.append(dive_dict)
 
-    # Return response with pagination headers
-    from fastapi.responses import JSONResponse
-    response = JSONResponse(content=dive_list)
-    response.headers["X-Total-Count"] = str(total_count)
-    response.headers["X-Total-Pages"] = str(total_pages)
-    response.headers["X-Current-Page"] = str(page)
-    response.headers["X-Page-Size"] = str(page_size)
-    response.headers["X-Has-Next-Page"] = str(has_next_page).lower()
-    response.headers["X-Has-Prev-Page"] = str(has_prev_page).lower()
-
-    # Add match types header if available
+    # Create and return the response object directly
+    # Ensure match_types keys are strings for Pydantic validation
+    str_match_types = None
     if match_types:
-        # Optimize match_types to prevent extremely large headers
-        # Only include essential match information and limit size
-        optimized_match_types = {}
-        for dive_id, match_info in match_types.items():
-            # Include only essential fields to reduce header size
-            optimized_match_types[dive_id] = {
-                'type': match_info.get('type', 'unknown'),
-                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
-            }
+        str_match_types = {str(k): v for k, v in match_types.items()}
 
-        # Convert to JSON and check size
-        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
-
-        # If header is still too large, truncate or omit it
-        if len(match_types_json) > 8000:  # 8KB limit for headers
-            # Log warning about large header
-            logger = logging.getLogger(__name__)
-            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
-        else:
-            response.headers["X-Match-Types"] = match_types_json
-
-    return response
+    return DiveListResponse(
+        items=dive_list,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next_page=has_next_page,
+        has_prev_page=has_prev_page,
+        match_types=str_match_types
+    )
 
 
 @router.get("/{dive_id}", response_model=DiveResponse)

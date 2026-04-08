@@ -128,7 +128,8 @@ def test_list_dive_sites_hides_archived_by_default(client, test_dive_site, db_se
     
     response = client.get(f"/api/v1/dive-sites/")
     assert response.status_code == status.HTTP_200_OK
-    sites = response.json()
+    data = response.json()
+    sites = data.get("items", [])
     assert not any(s["id"] == test_dive_site.id for s in sites)
 
 def test_list_dive_sites_include_archived_admin(client, admin_headers, test_dive_site, db_session):
@@ -139,7 +140,8 @@ def test_list_dive_sites_include_archived_admin(client, admin_headers, test_dive
     
     response = client.get(f"/api/v1/dive-sites/?include_archived=true", headers=admin_headers)
     assert response.status_code == status.HTTP_200_OK
-    sites = response.json()
+    data = response.json()
+    sites = data.get("items", [])
     assert any(s["id"] == test_dive_site.id for s in sites)
 
 def test_list_dive_sites_include_archived_user(client, auth_headers, test_dive_site, db_session):
@@ -150,7 +152,8 @@ def test_list_dive_sites_include_archived_user(client, auth_headers, test_dive_s
     
     response = client.get(f"/api/v1/dive-sites/?include_archived=true", headers=auth_headers)
     assert response.status_code == status.HTTP_200_OK
-    sites = response.json()
+    data = response.json()
+    sites = data.get("items", [])
     assert not any(s["id"] == test_dive_site.id for s in sites)
 
 def test_global_search_hides_archived(client, test_dive_site, db_session):

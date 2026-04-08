@@ -26,7 +26,7 @@ import {
   Anchor,
   Notebook,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -491,69 +491,9 @@ const Dives = () => {
     }
   );
 
-  // Convert single dive site to array format expected by ResponsiveFilterBar
-  const diveSites = selectedDiveSite ? [selectedDiveSite] : [];
-
-  // Fetch total count
-  const { data: totalCountResponse } = useQuery(
-    [
-      'dives-count',
-      debouncedSearchTerms.search,
-      filters.username,
-      filters.dive_site_id,
-      filters.difficulty_code,
-      filters.exclude_unspecified_difficulty,
-      filters.min_depth,
-      filters.min_rating,
-      filters.start_date,
-      filters.end_date,
-      filters.my_dives,
-      filters.tag_ids,
-    ],
-    () => {
-      const params = new URLSearchParams();
-
-      if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
-      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
-      if (filters.username && filters.username.trim()) {
-        params.append('username', filters.username.trim());
-      }
-      if (filters.buddy_username && filters.buddy_username.trim()) {
-        params.append('buddy_username', filters.buddy_username.trim());
-      }
-      if (filters.difficulty_code) params.append('difficulty_code', filters.difficulty_code);
-      if (filters.exclude_unspecified_difficulty) {
-        params.append('exclude_unspecified_difficulty', 'true');
-      }
-      if (filters.min_depth) params.append('min_depth', filters.min_depth);
-      if (filters.min_rating) params.append('min_rating', filters.min_rating);
-      if (filters.start_date) params.append('start_date', filters.start_date);
-      if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.my_dives && filters.my_dives.toString) {
-        params.append('my_dives', filters.my_dives.toString());
-      }
-
-      if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
-        filters.tag_ids.forEach(tagId => {
-          if (tagId && tagId.toString) {
-            params.append('tag_ids', tagId.toString());
-          }
-        });
-      }
-
-      return api.get(`/api/v1/dives/count?${params.toString()}`).then(res => res.data);
-    },
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    }
-  );
-
-  // Extract total count from response
-  const totalCount = totalCountResponse?.total || 0;
-
-  // Fetch dives
+  // Consolidated query for dives and total count
   const {
-    data: dives,
+    data: divesResponse,
     isLoading,
     error,
   } = useQuery(
@@ -603,7 +543,7 @@ const Dives = () => {
         });
       }
 
-      // Add sorting parameters directly from state (not from getSortParams)
+      // Add sorting parameters directly from state
       if (sortBy) params.append('sort_by', sortBy);
       if (sortOrder) params.append('sort_order', sortOrder);
 
@@ -615,18 +555,21 @@ const Dives = () => {
       }
 
       return api.get(`/api/v1/dives/?${params.toString()}`).then(res => {
-        // Extract match types from response headers
-        const matchTypesHeader = res.headers['x-match-types'];
-        if (matchTypesHeader) {
-          try {
-            const parsedMatchTypes = JSON.parse(matchTypesHeader);
-            setMatchTypes(parsedMatchTypes);
-          } catch (error) {
-            console.warn('Failed to parse match types header:', error);
+        // Match types are now included in the response body for better performance
+        if (res.data?.match_types) {
+          setMatchTypes(res.data.match_types);
+        } else {
+          // Backward compatibility check for headers
+          const matchTypesHeader = res.headers['x-match-types'];
+          if (matchTypesHeader) {
+            try {
+              setMatchTypes(JSON.parse(matchTypesHeader));
+            } catch (e) {
+              setMatchTypes({});
+            }
+          } else {
             setMatchTypes({});
           }
-        } else {
-          setMatchTypes({});
         }
         return res.data;
       });
@@ -636,14 +579,36 @@ const Dives = () => {
     }
   );
 
+  // Derived state from the consolidated response
+  const dives = divesResponse?.items || [];
+  const totalCount = divesResponse?.total || 0;
+
+  // Convert single dive site to array format expected by ResponsiveFilterBar
+  // Also extract unique dive sites from the loaded dives to populate the filter dropdown without extra API calls
+  const diveSites = useMemo(() => {
+    const sitesMap = {};
+
+    // Add the site from URL if it was fetched
+    if (selectedDiveSite) {
+      sitesMap[selectedDiveSite.id] = selectedDiveSite;
+    }
+
+    // Add all unique sites from the current dives results
+    if (dives && Array.isArray(dives)) {
+      dives.forEach(dive => {
+        if (dive.dive_site && dive.dive_site.id) {
+          sitesMap[dive.dive_site.id] = dive.dive_site;
+        }
+      });
+    }
+
+    return Object.values(sitesMap).sort((a, b) => a.name.localeCompare(b.name));
+  }, [selectedDiveSite, dives]);
+
   // Show toast notifications for rate limiting errors
   useEffect(() => {
     handleRateLimitError(error, 'dives', () => window.location.reload());
   }, [error]);
-
-  useEffect(() => {
-    handleRateLimitError(totalCountResponse?.error, 'dives count', () => window.location.reload());
-  }, [totalCountResponse?.error]);
 
   const handleSearch = e => {
     e.preventDefault();
