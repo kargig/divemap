@@ -245,6 +245,7 @@ export const userAdminSchema = z
     is_admin: z.boolean().default(false),
     is_moderator: z.boolean().default(false),
     enabled: z.boolean().default(true),
+    email_verified: z.boolean().default(true),
     is_edit: z.boolean().default(false), // Virtual field for conditional validation
   })
   .superRefine((data, ctx) => {

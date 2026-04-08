@@ -78,6 +78,7 @@ const AdminUsers = () => {
       is_admin: false,
       is_moderator: false,
       enabled: true,
+      email_verified: true,
       is_edit: false,
     },
   });
@@ -393,6 +394,7 @@ const AdminUsers = () => {
       is_admin: false,
       is_moderator: false,
       enabled: true,
+      email_verified: true,
       is_edit: false,
     });
     setShowCreateUserModal(true);
@@ -407,6 +409,7 @@ const AdminUsers = () => {
       is_admin: userItem.is_admin,
       is_moderator: userItem.is_moderator,
       enabled: userItem.enabled,
+      email_verified: userItem.email_verified,
       is_edit: true,
     });
     setShowEditUserModal(true);
@@ -1329,6 +1332,20 @@ const AdminUsers = () => {
                       className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
                     />
                     <span className='ml-2 text-sm text-gray-700'>Account enabled</span>
+                  </label>
+                )}
+              </FormField>
+
+              <FormField name='email_verified'>
+                {({ register, name }) => (
+                  <label htmlFor={name} className='flex items-center cursor-pointer'>
+                    <input
+                      id={name}
+                      type='checkbox'
+                      {...register(name)}
+                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                    />
+                    <span className='ml-2 text-sm text-gray-700'>Email verified</span>
                   </label>
                 )}
               </FormField>

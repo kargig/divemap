@@ -95,7 +95,9 @@ const CreateDive = () => {
   const [submitStatus, setSubmitStatus] = useState('');
 
   // Fetch dive sites for dropdown
-  const { data: diveSites = [] } = useQuery(['dive-sites'], () => getDiveSites({ page_size: 100 }).then(res => res.items || []));
+  const { data: diveSites = [] } = useQuery(['dive-sites'], () =>
+    getDiveSites({ page_size: 100 }).then(res => res.items || [])
+  );
 
   // Fetch diving centers for dropdown
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>

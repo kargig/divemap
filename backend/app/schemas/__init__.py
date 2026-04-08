@@ -173,6 +173,7 @@ class UserCreateAdmin(BaseModel):
     is_admin: bool = False
     is_moderator: bool = False
     enabled: bool = True
+    email_verified: bool = True
 
 class UserUpdateAdmin(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
@@ -181,6 +182,7 @@ class UserUpdateAdmin(BaseModel):
     is_admin: Optional[bool] = None
     is_moderator: Optional[bool] = None
     enabled: Optional[bool] = None
+    email_verified: Optional[bool] = None
 
 class UserListResponse(BaseModel):
     id: int
