@@ -110,15 +110,19 @@ const DivingCenterDetail = () => {
   );
 
   // Query for dive sites (for dropdown)
-  const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
-    enabled: !!id && isEditTripModalOpen,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: diveSites = [] } = useQuery(
+    'dive-sites',
+    () => getDiveSites({ page_size: 100 }).then(res => res.items || []),
+    {
+      enabled: !!id && isEditTripModalOpen,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   // Query for diving centers (for dropdown)
   const { data: divingCenters = [] } = useQuery(
     'diving-centers',
-    () => getDivingCenters({ page_size: 100 }),
+    () => getDivingCenters({ page_size: 100 }).then(res => res.items || []),
     {
       enabled: !!id && isEditTripModalOpen,
       staleTime: 5 * 60 * 1000,

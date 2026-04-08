@@ -785,7 +785,8 @@ const AdminDivesDesktop = () => {
                   });
 
                   const response = await api.get(`/api/v1/dives/admin/dives?${params.toString()}`);
-                  const pageData = response.data;
+                  const responseData = response.data;
+                  const pageData = responseData?.items || responseData || [];
 
                   if (pageData && pageData.length > 0) {
                     allDives.push(...pageData);

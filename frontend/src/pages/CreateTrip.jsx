@@ -39,13 +39,17 @@ const CreateTrip = () => {
   const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
 
   // Fetch dive sites and diving centers
-  const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: diveSites = [] } = useQuery(
+    'dive-sites',
+    () => getDiveSites({ page_size: 100 }).then(res => res.items || []),
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  );
 
   const { data: allDivingCenters = [] } = useQuery(
     'diving-centers',
-    () => getDivingCenters({ page_size: 100 }),
+    () => getDivingCenters({ page_size: 100 }).then(res => res.items || []),
     {
       staleTime: 5 * 60 * 1000,
     }
@@ -57,7 +61,8 @@ const CreateTrip = () => {
     async () => {
       if (!user || user.is_admin || user.is_moderator) return [];
       // Fetch all diving centers and filter by owner
-      const centers = await getDivingCenters({ page_size: 1000 });
+      const centersRes = await getDivingCenters({ page_size: 1000 });
+      const centers = centersRes.items || [];
       // Filter centers where the user is the approved owner (check both owner_id and owner_username)
       // Only 'approved' status means the user is truly an owner
       return centers.filter(

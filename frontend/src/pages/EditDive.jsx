@@ -198,7 +198,7 @@ const EditDive = () => {
   // Note: Dive sites are now loaded dynamically via search, not statically
 
   const { data: divingCenters = [] } = useQuery(['diving-centers'], () =>
-    getDivingCenters({ page_size: 100 })
+    getDivingCenters({ page_size: 100 }).then(res => res.items || [])
   );
 
   const { data: availableTags = [] } = useQuery(['tags'], getAvailableTags);
@@ -309,7 +309,7 @@ const EditDive = () => {
             search: 'Attiki',
             page_size: 25,
           });
-          setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+          setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
         } catch (error) {
           console.error('Failed to load initial dive sites:', error);
           setDiveSiteSearchError('Failed to load dive sites');
@@ -441,7 +441,7 @@ const EditDive = () => {
             search: 'Attiki',
             page_size: 25,
           });
-          setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+          setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
         } catch (error) {
           console.error('Failed to load initial dive sites:', error);
           setDiveSiteSearchError('Failed to load dive sites');
@@ -468,7 +468,7 @@ const EditDive = () => {
           search: value,
           page_size: 25,
         });
-        setDiveSiteSearchResults(Array.isArray(results) ? results : []);
+        setDiveSiteSearchResults(results?.items || (Array.isArray(results) ? results : []));
       } catch (error) {
         console.error('Search dive sites failed', error);
         setDiveSiteSearchError('Search failed');

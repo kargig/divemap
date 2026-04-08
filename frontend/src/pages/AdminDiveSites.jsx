@@ -1111,16 +1111,21 @@ const AdminDiveSites = () => {
                   }
 
                   const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
-                  const pageData = response.data;
+                  const responseData = response.data;
+                  const pageData = responseData?.items || responseData || [];
 
                   if (pageData && pageData.length > 0) {
                     allDiveSites.push(...pageData);
                     currentPage++;
 
                     // Check if there's more data
-                    const totalPages = parseInt(
-                      response.headers['x-total-pages'] || response.headers['X-Total-Pages'] || '1'
-                    );
+                    const totalPages =
+                      responseData?.total_pages ||
+                      parseInt(
+                        response.headers['x-total-pages'] ||
+                          response.headers['X-Total-Pages'] ||
+                          '1'
+                      );
                     hasMore = currentPage <= totalPages;
                   } else {
                     hasMore = false;

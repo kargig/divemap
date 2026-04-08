@@ -129,7 +129,7 @@ const AdminNewsletters = () => {
   // Query for diving centers (for dropdown)
   const { data: divingCenters = [] } = useQuery(
     'diving-centers',
-    () => getDivingCenters({ page_size: 100 }),
+    () => getDivingCenters({ page_size: 100 }).then(res => res.items || []),
     {
       enabled: !!editingTrip || creatingTrip,
       staleTime: 5 * 60 * 1000,
