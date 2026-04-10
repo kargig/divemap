@@ -1027,6 +1027,8 @@ class ParsedDiveResponse(BaseModel):
     dive_site_average_rating: Optional[float] = None
     dive_site_tags: Optional[List[dict]] = None
     max_depth: Optional[float] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 

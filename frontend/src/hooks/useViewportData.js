@@ -199,7 +199,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           );
           results.dive_trips = tripsResponse.data;
 
-          // SHORT-CIRCUIT: If there are no dive trips, there is no need to fetch 
+          // SHORT-CIRCUIT: If there are no dive trips, there is no need to fetch
           // dive sites or diving centers to plot them on the map.
           if (!results.dive_trips?.items || results.dive_trips.items.length === 0) {
             return results;

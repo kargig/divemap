@@ -380,61 +380,75 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
 
           const leafletMarker = L.marker([lat, lng], { icon: marker.icon });
 
-          // Add popup with clickable title
-          const popupContent = `
-          <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
+          let headerAndDescriptionHtml = '';
+          if (marker.entityType === 'dive_trip') {
+            headerAndDescriptionHtml = `
             <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
-              <a href="/${
-                marker.entityType === 'dive_site'
-                  ? 'dive-sites'
-                  : marker.entityType === 'diving_center'
-                    ? 'diving-centers'
-                    : marker.entityType === 'dive'
-                      ? 'dives'
-                      : 'dive-trips'
-              }/${marker.data.id}"
-                 class="text-blue-600 hover:text-blue-800 hover:underline">
-                ${
-                  marker.entityType === 'dive_site'
-                    ? escape(marker.data.name) || `Dive Site #${marker.data.id}`
-                    : ''
-                }
-                ${marker.entityType === 'diving_center' ? escape(marker.data.name) : ''}
-                ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
-                ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
+              ${
+                marker.diveData && marker.diveData.dive_site_id
+                  ? `<a href="/dive-sites/${marker.diveData.dive_site_id}" class="text-blue-600 hover:text-blue-800 hover:underline">${escape(marker.diveData.dive_site_name) || `Dive Site #${marker.diveData.dive_site_id}`}</a>`
+                  : `<span>Trip #${marker.data.id}</span>`
+              }
+            </h3>
+            <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none mb-1">
+              <a href="/dive-trips/${marker.data.id}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                Trip #${marker.data.id} on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}
+              </a>
+            </p>
+            ${
+              marker.data.trip_description
+                ? `<p class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</p>`
+                : ''
+            }
+            `;
+          } else {
+            const entityPath =
+              marker.entityType === 'dive_site'
+                ? 'dive-sites'
+                : marker.entityType === 'diving_center'
+                  ? 'diving-centers'
+                  : 'dives';
+
+            const title =
+              marker.entityType === 'dive_site'
+                ? escape(marker.data.name) || `Dive Site #${marker.data.id}`
+                : marker.entityType === 'diving_center'
+                  ? escape(marker.data.name)
+                  : `Dive #${marker.data.id}`;
+
+            let description = '';
+            if (marker.entityType === 'dive_site' && marker.data.description) {
+              description = trimWithMore(
+                marker.data.description,
+                150,
+                `/dive-sites/${marker.data.id}`
+              );
+            } else if (marker.entityType === 'diving_center') {
+              description = trimWithMore(
+                marker.data.description || '',
+                150,
+                `/diving-centers/${marker.data.id}`
+              );
+            } else if (marker.entityType === 'dive') {
+              description = `Dive at ${escape(marker.data.dive_site?.name || 'Unknown Site')}`;
+            }
+
+            headerAndDescriptionHtml = `
+            <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
+              <a href="/${entityPath}/${marker.data.id}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                ${title}
               </a>
             </h3>
             <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none">
-              ${
-                marker.entityType === 'dive_site' && marker.data.description
-                  ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`)
-                  : ''
-              }
-              ${
-                marker.entityType === 'diving_center'
-                  ? trimWithMore(
-                      marker.data.description || '',
-                      150,
-                      `/diving-centers/${marker.data.id}`
-                    )
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive'
-                  ? `Dive at ${escape(marker.data.dive_site?.name || 'Unknown Site')}`
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive_trip'
-                  ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}`
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive_trip' && marker.data.trip_description
-                  ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>`
-                  : ''
-              }
+              ${description}
             </p>
+            `;
+          }
+
+          // Add popup with clickable title
+          const popupContent = `
+          <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
+            ${headerAndDescriptionHtml}
             ${
               marker.entityType === 'diving_center'
                 ? `
@@ -544,7 +558,9 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                       }
                     </div>
                   `
-                    : `
+                    : marker.entityType === 'dive_trip'
+                      ? ''
+                      : `
                     <p class="text-xs text-gray-500 mt-1">
                       ${lat.toFixed(4)}, ${lng.toFixed(4)}
                     </p>
@@ -857,7 +873,7 @@ const LeafletMapView = ({
 
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
-    (entityType, isCluster = false, count = 1, suitability = null) => {
+    (entityType, isCluster = false, count = 1, suitability = null, tripDate = null) => {
       const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
       const borderWidth = suitability ? 4 : 0; // 4px colored border for suitability - increased for better visibility
       const borderColor = suitability ? getSuitabilityColor(suitability) : null;
@@ -918,7 +934,20 @@ const LeafletMapView = ({
           break;
         case 'dive_trip': {
           // Trip icon with status-based color
-          const baseColor = '#3b82f6'; // Default blue for scheduled
+          let baseColor = '#3b82f6'; // Default blue for scheduled
+          if (tripDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tDate = new Date(tripDate);
+            if (tDate < today) {
+              baseColor = '#6b7280'; // Gray for past trips
+            } else if (tDate.getTime() === today.getTime()) {
+              baseColor = '#f59e0b'; // Orange/Yellow for today
+            } else {
+              baseColor = '#10b981'; // Green for future
+            }
+          }
+
           svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Background circle -->
@@ -1216,14 +1245,34 @@ const LeafletMapView = ({
     // Process dive trips
     if (diveTripsArr.length > 0 && selectedEntityType === 'dive-trips') {
       diveTripsArr.forEach(trip => {
-        // Backend now returns latitude and longitude directly on the trip object
-        if (trip.latitude && trip.longitude) {
+        let hasPlottedDives = false;
+
+        // Plot a marker for each dive site associated with this trip
+        if (trip.dives && trip.dives.length > 0) {
+          trip.dives.forEach(dive => {
+            if (dive.latitude && dive.longitude) {
+              hasPlottedDives = true;
+              allMarkers.push({
+                id: `dive-trip-${trip.id}-dive-${dive.id}`,
+                position: [dive.latitude, dive.longitude],
+                entityType: 'dive_trip',
+                data: trip, // We still pass the parent trip data for the popup
+                diveData: dive, // Pass the individual dive data for the popup
+                icon: createEntityIcon('dive_trip', false, 1, null, trip.trip_date),
+              });
+            }
+          });
+        }
+
+        // Fallback: If no dive sites had coordinates (or there were no dives),
+        // plot a single marker using the trip's fallback coordinates (diving center)
+        if (!hasPlottedDives && trip.latitude && trip.longitude) {
           allMarkers.push({
             id: `dive-trip-${trip.id}`,
             position: [trip.latitude, trip.longitude],
             entityType: 'dive_trip',
             data: trip,
-            icon: createEntityIcon('dive_trip'),
+            icon: createEntityIcon('dive_trip', false, 1, null, trip.trip_date),
           });
         }
       });

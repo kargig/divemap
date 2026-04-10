@@ -368,7 +368,7 @@ const IndependentMapView = () => {
       visibility_max: '',
       suit_type: '',
       tag_ids: [],
-      ...urlFilters
+      ...urlFilters,
     };
   });
 

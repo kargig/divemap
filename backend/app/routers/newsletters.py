@@ -1598,20 +1598,25 @@ async def get_parsed_trips(
         latitude = None
         longitude = None
         
-        # Determine coordinates based on priority (Dives > Diving Center)
-        for dive in trip.dives:
-            if dive.dive_site and dive.dive_site.latitude is not None and dive.dive_site.longitude is not None:
-                latitude = float(dive.dive_site.latitude)
-                longitude = float(dive.dive_site.longitude)
-                break
-        
-        if latitude is None and trip.diving_center and trip.diving_center.latitude is not None and trip.diving_center.longitude is not None:
+        # The trip's root coordinates now strictly represent the diving center
+        if trip.diving_center and trip.diving_center.latitude is not None and trip.diving_center.longitude is not None:
             latitude = float(trip.diving_center.latitude)
             longitude = float(trip.diving_center.longitude)
             
         if sort_by == "distance" and user_lat is not None and user_lon is not None:
-            if latitude is not None and longitude is not None:
-                distance = calculate_distance(user_lat, user_lon, latitude, longitude)
+            # For distance calculation, still prioritize the actual dive site if available
+            calc_lat, calc_lon = None, None
+            for dive in trip.dives:
+                if dive.dive_site and dive.dive_site.latitude is not None and dive.dive_site.longitude is not None:
+                    calc_lat = float(dive.dive_site.latitude)
+                    calc_lon = float(dive.dive_site.longitude)
+                    break
+            
+            if calc_lat is None:
+                calc_lat, calc_lon = latitude, longitude
+                
+            if calc_lat is not None and calc_lon is not None:
+                distance = calculate_distance(user_lat, user_lon, calc_lat, calc_lon)
         
         trip_data.append({
             'trip': trip,
@@ -1663,6 +1668,8 @@ async def get_parsed_trips(
                     dive_site_name=dive.dive_site.name if dive.dive_site else None,
                     dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
                     dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
+                    latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
+                    longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
                     created_at=dive.created_at,
                     updated_at=dive.updated_at
                 )
@@ -2134,6 +2141,8 @@ async def create_parsed_trip(
                 dive_site_name=dive.dive_site.name if dive.dive_site else None,
                 dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
                 dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
+                latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
+                longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))
@@ -2154,6 +2163,8 @@ async def create_parsed_trip(
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
+            latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
+            longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
             dives=dive_responses,
             extracted_at=trip.extracted_at,
             created_at=trip.created_at,
@@ -2207,6 +2218,8 @@ async def get_parsed_trip(
         special_requirements=trip.special_requirements,
         trip_status=trip.trip_status.value,
         diving_center_name=trip.diving_center.name if trip.diving_center else None,
+        latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
+        longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
         # Restrict raw newsletter content access (Finding 4: Medium)
         newsletter_content=(
             db.query(Newsletter).filter(Newsletter.id == trip.source_newsletter_id).first().content 
@@ -2344,6 +2357,8 @@ async def update_parsed_trip(
                 dive_site_name=dive.dive_site.name if dive.dive_site else None,
                 dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
                 dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
+                latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
+                longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             ))
@@ -2364,6 +2379,8 @@ async def update_parsed_trip(
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
+            latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
+            longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
             dives=dive_responses,
             extracted_at=trip.extracted_at,
             created_at=trip.created_at,
