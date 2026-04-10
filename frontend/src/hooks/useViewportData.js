@@ -53,8 +53,8 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
     // Include windDateTime in cache key if provided (for wind suitability filtering)
     const datetimeKey = windDateTime ? `-${windDateTime}` : '';
 
-    // For world view (zoom < 4), don't include bounds in cache key
-    if (zoom < 4 || !bounds) {
+    // For world view (zoom < 4) or dive-trips (no bounds filtering), don't include bounds in cache key
+    if (zoom < 4 || !bounds || entityType === 'dive-trips') {
       return `${entityType}-${detailLevel}-${JSON.stringify(filters)}${datetimeKey}`;
     }
 
@@ -458,7 +458,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       selectedEntityType,
       detailLevel,
       zoomThreshold,
-      boundsKey,
+      selectedEntityType === 'dive-trips' ? 'no-bounds' : boundsKey,
       filters,
       windDateTime,
     ];
@@ -738,10 +738,12 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
 
   // Trigger preloading after successful data fetch
   useEffect(() => {
-    if (data && !isLoading) {
+    // We don't need to preload adjacent viewports for dive trips because the trips API
+    // doesn't support bounding box filtering (it returns global results based on date)
+    if (data && !isLoading && selectedEntityType !== 'dive-trips') {
       preloadAdjacentData(debouncedViewport);
     }
-  }, [data, isLoading, debouncedViewport, preloadAdjacentData]);
+  }, [data, isLoading, debouncedViewport, preloadAdjacentData, selectedEntityType]);
 
   return {
     data,

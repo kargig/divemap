@@ -1310,7 +1310,8 @@ async def get_newsletters(
     Get all newsletters with optional pagination.
     """
 
-    newsletters = db.query(Newsletter).offset(offset).limit(limit).all()
+    from sqlalchemy.orm import defer
+    newsletters = db.query(Newsletter).options(defer(Newsletter.content)).offset(offset).limit(limit).all()
 
     # Add trip count for each newsletter
     result = []
@@ -1505,10 +1506,35 @@ async def get_parsed_trips(
     elif sort_by == "distance":
         # Sort by distance from user location
         if user_lat is not None and user_lon is not None:
-            # Join through dives to get dive site coordinates
-            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id)
-            # We'll sort by distance after fetching the results
-            # For now, just ensure we have the dive site data
+            from sqlalchemy import func
+            
+            # Left join diving_center to get its location
+            # (We sort by diving center location to avoid 1-to-many row multiplication from dives)
+            query = query.outerjoin(DivingCenter, ParsedDiveTrip.diving_center_id == DivingCenter.id)
+            
+            # Use MySQL ST_Distance_Sphere or fallback to haversine if SQLite
+            bind = db.get_bind()
+            dialect = bind.dialect.name if bind is not None else None
+            
+            if dialect == 'mysql':
+                # Use diving center location
+                location_expr = DivingCenter.location
+                distance_expr = func.ST_Distance_Sphere(location_expr, func.ST_SRID(func.POINT(user_lon, user_lat), 4326))
+            else:
+                # Haversine fallback for sqlite tests
+                # Use diving center lat/lon
+                lat_expr = DivingCenter.latitude
+                lon_expr = DivingCenter.longitude
+                distance_expr = (6371 * func.acos(
+                    func.cos(func.radians(user_lat)) * func.cos(func.radians(lat_expr)) *
+                    func.cos(func.radians(lon_expr) - func.radians(user_lon)) +
+                    func.sin(func.radians(user_lat)) * func.sin(func.radians(lat_expr))
+                )) * 1000
+
+            if sort_order.lower() == "desc":
+                query = query.order_by(distance_expr.desc())
+            else:
+                query = query.order_by(distance_expr.asc())
         else:
             # If no user coordinates provided, fall back to trip_date
             sort_field = ParsedDiveTrip.trip_date
@@ -1624,16 +1650,6 @@ async def get_parsed_trips(
             'latitude': latitude,
             'longitude': longitude
         })
-
-    # Sort by distance if requested
-    if sort_by == "distance" and user_lat is not None and user_lon is not None:
-        # Filter out trips without distance information
-        trip_data = [td for td in trip_data if td['distance'] is not None]
-        
-        if sort_order.lower() == "desc":
-            trip_data.sort(key=lambda x: x['distance'], reverse=True)
-        else:
-            trip_data.sort(key=lambda x: x['distance'])
 
     # Build the response
     items = [

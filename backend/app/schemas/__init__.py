@@ -1101,7 +1101,7 @@ class NewsletterParseTextRequest(BaseModel):
 # Newsletter Management Schemas
 class NewsletterResponse(BaseModel):
     id: int
-    content: str
+    content: Optional[str] = None
     received_at: datetime
     trips_count: int = 0
 
