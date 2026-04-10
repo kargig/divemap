@@ -624,6 +624,10 @@ async def get_diving_centers(
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
     detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
@@ -641,6 +645,14 @@ async def get_diving_centers(
     else:
         detail_level = 'full'
     
+    # Validate bounds if provided
+    if all(x is not None for x in [north, south, east, west]):
+        if north <= south:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="north must be greater than south"
+            )
+
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)
     
@@ -656,7 +668,16 @@ async def get_diving_centers(
             detail="page_size must be one of: 25, 50, 100, 1000"
         )
 
+    from sqlalchemy.orm import defer
     query = db.query(DivingCenter)
+    if detail_level != 'full':
+        query = query.options(
+            defer(DivingCenter.description),
+            defer(DivingCenter.address),
+            defer(DivingCenter.email),
+            defer(DivingCenter.phone),
+            defer(DivingCenter.website)
+        )
 
     # Apply filters
     if name:
@@ -670,6 +691,13 @@ async def get_diving_centers(
     
     if city:
         query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
+
+    # Apply bounds filtering if provided
+    if all(x is not None for x in [north, south, east, west]):
+        query = query.filter(
+            DivingCenter.latitude.between(south, north),
+            DivingCenter.longitude.between(west, east)
+        )
 
     # Apply unified search across multiple fields (case-insensitive)
     if search:
@@ -921,14 +949,23 @@ async def get_diving_centers(
         total_ratings = center_data[2]
 
         if detail_level == 'minimal':
-            center_dict = {"id": center.id, "name": center.name}
+            center_dict = {
+                "id": center.id, 
+                "name": center.name,
+                "latitude": float(center.latitude) if center.latitude else None,
+                "longitude": float(center.longitude) if center.longitude else None,
+            }
         elif detail_level == 'basic':
             center_dict = {
                 "id": center.id,
                 "name": center.name,
+                "latitude": float(center.latitude) if center.latitude else None,
+                "longitude": float(center.longitude) if center.longitude else None,
                 "country": center.country,
                 "region": center.region,
                 "city": center.city,
+                "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+                "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
             }
         else:
             owner_username = None

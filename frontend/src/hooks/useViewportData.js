@@ -29,6 +29,10 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
     // OPTIMIZATION: If this is the initial load (we just got bounds for the first time),
     // sync immediately. Do not force the user to wait 1.5 seconds for the first render!
     setDebouncedViewport(prev => {
+      // Trips don't use bounds, so they don't need this immediate sync optimization
+      // If we sync them here, it triggers a double-fetch because their query is already running
+      if (selectedEntityType === 'dive-trips') return prev;
+
       if (!prev?.bounds && viewport?.bounds) {
         return viewport;
       }
@@ -40,7 +44,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
     }, 1500); // 1.5 second debounce to reduce API calls and prevent annoying reloads
 
     return () => clearTimeout(timer);
-  }, [viewport]);
+  }, [viewport, selectedEntityType]);
 
   // Generate cache key for current viewport and filters
   const generateCacheKey = useCallback((viewport, filters, entityType, windDateTime = null) => {
@@ -335,6 +339,41 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           divingCentersParams.append('page_size', '1000'); // Max allowed page size
           divingCentersParams.append('page', '1');
 
+          // Determine detail_level based on zoom (identical to dive-sites logic)
+          let detailLevel = 'full';
+          if (zoom < 4) {
+            detailLevel = 'minimal';
+          } else if (zoom < 8) {
+            detailLevel = 'minimal';
+          } else if (zoom < 10) {
+            detailLevel = 'basic';
+          } else {
+            detailLevel = 'full';
+          }
+
+          // Add bounds if available and not zoomed way out
+          if (zoom >= 4 && bounds) {
+            let expandedBounds = bounds;
+
+            if (zoom >= 11) {
+              const latMargin = (bounds.north - bounds.south) * 0.025;
+              const lonMargin = (bounds.east - bounds.west) * 0.025;
+              expandedBounds = {
+                north: bounds.north + latMargin,
+                south: bounds.south - latMargin,
+                east: bounds.east + lonMargin,
+                west: bounds.west - lonMargin,
+              };
+            }
+
+            divingCentersParams.append('north', expandedBounds.north.toString());
+            divingCentersParams.append('south', expandedBounds.south.toString());
+            divingCentersParams.append('east', expandedBounds.east.toString());
+            divingCentersParams.append('west', expandedBounds.west.toString());
+          }
+
+          divingCentersParams.append('detail_level', detailLevel);
+
           // Add filters
           Object.entries(filters).forEach(([key, value]) => {
             if (
@@ -363,6 +402,41 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           const divesParams = new URLSearchParams();
           divesParams.append('page_size', '1000'); // Max allowed page size
           divesParams.append('page', '1');
+
+          // Determine detail_level based on zoom (identical to dive-sites logic)
+          let detailLevel = 'full';
+          if (zoom < 4) {
+            detailLevel = 'minimal';
+          } else if (zoom < 8) {
+            detailLevel = 'minimal';
+          } else if (zoom < 10) {
+            detailLevel = 'basic';
+          } else {
+            detailLevel = 'full';
+          }
+
+          // Add bounds if available and not zoomed way out
+          if (zoom >= 4 && bounds) {
+            let expandedBounds = bounds;
+
+            if (zoom >= 11) {
+              const latMargin = (bounds.north - bounds.south) * 0.025;
+              const lonMargin = (bounds.east - bounds.west) * 0.025;
+              expandedBounds = {
+                north: bounds.north + latMargin,
+                south: bounds.south - latMargin,
+                east: bounds.east + lonMargin,
+                west: bounds.west - lonMargin,
+              };
+            }
+
+            divesParams.append('north', expandedBounds.north.toString());
+            divesParams.append('south', expandedBounds.south.toString());
+            divesParams.append('east', expandedBounds.east.toString());
+            divesParams.append('west', expandedBounds.west.toString());
+          }
+
+          divesParams.append('detail_level', detailLevel);
 
           // Add filters
           Object.entries(filters).forEach(([key, value]) => {
@@ -617,7 +691,10 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       // Only fetch if we are zoomed way out (world view) OR if we have calculated the bounds
       // This prevents fetching 1000 unbounded random sites globally before the map finishes rendering
       enabled:
-        !!debouncedViewport && ((debouncedViewport.zoom || 2) < 4 || !!debouncedViewport.bounds),
+        !!debouncedViewport &&
+        ((debouncedViewport.zoom || 2) < 4 ||
+          !!debouncedViewport.bounds ||
+          selectedEntityType === 'dive-trips'),
       staleTime: 300000, // 5 minutes - data stays fresh longer to prevent unnecessary refetches
       cacheTime: 600000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
