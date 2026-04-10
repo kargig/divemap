@@ -639,7 +639,7 @@ const IndependentMapView = () => {
     }
   };
 
-  // Update zoom from map instance when available
+  // Update zoom and bounds from map instance when available
   useEffect(() => {
     if (mapInstance) {
       const updateZoom = () => {
@@ -652,14 +652,39 @@ const IndependentMapView = () => {
       // Initial update
       updateZoom();
 
+      // Initial bounds update (crucial for useViewportData to start fetching)
+      // We must wrap this in a small timeout to let Leaflet calculate the container size
+      let boundsTimer = null;
+      if (!viewport.bounds) {
+        boundsTimer = setTimeout(() => {
+          try {
+            const bounds = mapInstance.getBounds();
+            if (bounds && bounds.isValid()) {
+              setViewport(prev => ({
+                ...prev,
+                bounds: {
+                  north: bounds.getNorth(),
+                  south: bounds.getSouth(),
+                  east: bounds.getEast(),
+                  west: bounds.getWest(),
+                },
+              }));
+            }
+          } catch (error) {
+            // Map might be unmounted or calculating
+          }
+        }, 100);
+      }
+
       // Listen to zoom changes
       mapInstance.on('zoomend', updateZoom);
 
       return () => {
+        if (boundsTimer) clearTimeout(boundsTimer);
         mapInstance.off('zoomend', updateZoom);
       };
     }
-  }, [mapInstance]);
+  }, [mapInstance, viewport.bounds]);
 
   // Handle filter changes
   const handleFilterChange = newFilters => {

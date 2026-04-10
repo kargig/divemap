@@ -26,6 +26,15 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
   const [debouncedViewport, setDebouncedViewport] = useState(viewport);
 
   useEffect(() => {
+    // OPTIMIZATION: If this is the initial load (we just got bounds for the first time),
+    // sync immediately. Do not force the user to wait 1.5 seconds for the first render!
+    setDebouncedViewport(prev => {
+      if (!prev?.bounds && viewport?.bounds) {
+        return viewport;
+      }
+      return prev; // No immediate update needed
+    });
+
     const timer = setTimeout(() => {
       setDebouncedViewport(viewport);
     }, 1500); // 1.5 second debounce to reduce API calls and prevent annoying reloads
@@ -605,7 +614,10 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       return data;
     },
     {
-      enabled: !!debouncedViewport, // Always enabled when viewport is available
+      // Only fetch if we are zoomed way out (world view) OR if we have calculated the bounds
+      // This prevents fetching 1000 unbounded random sites globally before the map finishes rendering
+      enabled:
+        !!debouncedViewport && ((debouncedViewport.zoom || 2) < 4 || !!debouncedViewport.bounds),
       staleTime: 300000, // 5 minutes - data stays fresh longer to prevent unnecessary refetches
       cacheTime: 600000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
