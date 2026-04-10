@@ -380,182 +380,210 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
 
           const leafletMarker = L.marker([lat, lng], { icon: marker.icon });
 
-          // Add popup with clickable title
-          const popupContent = `
-          <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
-            <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
-              <a href="/${
+          // Bind a temporary loading popup
+          leafletMarker.bindPopup(
+            '<div class="p-4 text-center"><div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>',
+            {
+              maxWidth: 240,
+              autoPanPadding: [20, 20],
+            }
+          );
+
+          // Defer popup content generation to click event to vastly improve map rendering performance
+          leafletMarker.on('popupopen', e => {
+            const popup = e.popup;
+            if (popup._isGenerated) return;
+
+            let headerAndDescriptionHtml = '';
+            if (marker.entityType === 'dive_trip') {
+              headerAndDescriptionHtml = `
+              <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
+                ${
+                  marker.diveData && marker.diveData.dive_site_id
+                    ? `<a href="/dive-sites/${marker.diveData.dive_site_id}" class="text-blue-600 hover:text-blue-800 hover:underline">${escape(marker.diveData.dive_site_name) || `Dive Site #${marker.diveData.dive_site_id}`}</a>`
+                    : `<span>Trip #${marker.data.id}</span>`
+                }
+              </h3>
+              <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none mb-1">
+                <a href="/dive-trips/${marker.data.id}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                  Trip #${marker.data.id} on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}
+                </a>
+              </p>
+              ${
+                marker.data.trip_description
+                  ? `<p class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</p>`
+                  : ''
+              }
+              `;
+            } else {
+              const entityPath =
                 marker.entityType === 'dive_site'
                   ? 'dive-sites'
                   : marker.entityType === 'diving_center'
                     ? 'diving-centers'
-                    : marker.entityType === 'dive'
-                      ? 'dives'
-                      : 'dive-trips'
-              }/${marker.data.id}"
-                 class="text-blue-600 hover:text-blue-800 hover:underline">
-                ${
-                  marker.entityType === 'dive_site'
-                    ? escape(marker.data.name) || `Dive Site #${marker.data.id}`
-                    : ''
-                }
-                ${marker.entityType === 'diving_center' ? escape(marker.data.name) : ''}
-                ${marker.entityType === 'dive' ? `Dive #${marker.data.id}` : ''}
-                ${marker.entityType === 'dive_trip' ? `Trip #${marker.data.id}` : ''}
-              </a>
-            </h3>
-            <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none">
-              ${
-                marker.entityType === 'dive_site' && marker.data.description
-                  ? trimWithMore(marker.data.description, 150, `/dive-sites/${marker.data.id}`)
-                  : ''
+                    : 'dives';
+
+              const title =
+                marker.entityType === 'dive_site'
+                  ? escape(marker.data.name) || `Dive Site #${marker.data.id}`
+                  : marker.entityType === 'diving_center'
+                    ? escape(marker.data.name)
+                    : `Dive #${marker.data.id}`;
+
+              let description = '';
+              if (marker.entityType === 'dive_site' && marker.data.description) {
+                description = trimWithMore(
+                  marker.data.description,
+                  150,
+                  `/dive-sites/${marker.data.id}`
+                );
+              } else if (marker.entityType === 'diving_center') {
+                description = trimWithMore(
+                  marker.data.description || '',
+                  150,
+                  `/diving-centers/${marker.data.id}`
+                );
+              } else if (marker.entityType === 'dive') {
+                description = `Dive at ${escape(marker.data.dive_site?.name || 'Unknown Site')}`;
               }
+
+              headerAndDescriptionHtml = `
+              <h3 class="font-semibold text-sm sm:text-lg mb-1 sm:mb-2">
+                <a href="/${entityPath}/${marker.data.id}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                  ${title}
+                </a>
+              </h3>
+              <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none">
+                ${description}
+              </p>
+              `;
+            }
+
+            const popupContent = `
+            <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
+              ${headerAndDescriptionHtml}
               ${
                 marker.entityType === 'diving_center'
-                  ? trimWithMore(
-                      marker.data.description || '',
-                      150,
-                      `/diving-centers/${marker.data.id}`
-                    )
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive'
-                  ? `Dive at ${escape(marker.data.dive_site?.name || 'Unknown Site')}`
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive_trip'
-                  ? `Trip on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}`
-                  : ''
-              }
-              ${
-                marker.entityType === 'dive_trip' && marker.data.trip_description
-                  ? `<br/><span class="text-xs text-gray-500">${trimWithMore(marker.data.trip_description, 100, `/dive-trips/${marker.data.id}`)}</span>`
-                  : ''
-              }
-            </p>
-            ${
-              marker.entityType === 'diving_center'
-                ? `
-                  <div class="flex items-center space-x-3 mt-1">
-                    ${marker.data.phone ? `<a href="tel:${marker.data.phone}" title="Call" class="text-gray-600 hover:text-gray-800">📞</a>` : ''}
-                    ${marker.data.email ? `<a href="mailto:${marker.data.email}" title="Email" class="text-gray-600 hover:text-gray-800">📧</a>` : ''}
-                    ${marker.data.website ? `<a href="${(marker.data.website || '').startsWith('http') ? marker.data.website : `https://${marker.data.website}`}" target="_blank" rel="noopener" title="Website" class="text-gray-600 hover:text-gray-800">🌐</a>` : ''}
-                  </div>
-                `
-                : marker.entityType === 'dive'
                   ? `
-                  <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mt-1">
-                    ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.average_depth}m avg</span></div>` : ''}
-                    ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.max_depth}m max</span></div>` : ''}
-                    ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${marker.data.duration}min</span></div>` : ''}
-                    ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><img src="/arts/divemap_shell.png" alt="Rating" width="16" height="16" class="object-contain"><span>${marker.data.user_rating}/10</span></div>` : ''}
-                  </div>
-                `
-                  : marker.entityType === 'dive_site'
+                    <div class="flex items-center space-x-3 mt-1">
+                      ${marker.data.phone ? `<a href="tel:${marker.data.phone}" title="Call" class="text-gray-600 hover:text-gray-800">📞</a>` : ''}
+                      ${marker.data.email ? `<a href="mailto:${marker.data.email}" title="Email" class="text-gray-600 hover:text-gray-800">📧</a>` : ''}
+                      ${marker.data.website ? `<a href="${(marker.data.website || '').startsWith('http') ? marker.data.website : `https://${marker.data.website}`}" target="_blank" rel="noopener" title="Website" class="text-gray-600 hover:text-gray-800">🌐</a>` : ''}
+                    </div>
+                  `
+                  : marker.entityType === 'dive'
                     ? `
-                    <div class="space-y-2 mt-1">
-                      ${marker.data.difficulty_code ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_label || marker.data.difficulty_code}</span></div>` : ''}
-                      ${marker.data.average_rating ? `<div class="text-sm text-gray-700"><span class="mr-1">⭐</span>Rating: <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span></div>` : ''}
-                      ${
-                        marker.data.tags && marker.data.tags.length > 0
-                          ? `
-                        <div class="flex flex-wrap gap-1 items-center text-xs text-gray-600">
-                          ${marker.data.tags.map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">${tag.name}</span>`).join('')}
-                        </div>
-                      `
-                          : ''
-                      }
-                      ${
-                        marker.recommendation
-                          ? (() => {
-                              const rec = marker.recommendation;
-                              const suitability = rec.suitability || 'unknown';
-                              const suitabilityColor = getSuitabilityColor(suitability);
-                              const suitabilityLabel = getSuitabilityLabel(suitability);
-                              // Wind data is directly on the recommendation object, not nested in wind_data
-                              const windSpeed = rec.wind_speed || 0;
-                              const windDirection = rec.wind_direction || 0;
-                              const windGusts = rec.wind_gusts;
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mt-1">
+                      ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.average_depth}m avg</span></div>` : ''}
+                      ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.max_depth}m max</span></div>` : ''}
+                      ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${marker.data.duration}min</span></div>` : ''}
+                      ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><img src="/arts/divemap_shell.png" alt="Rating" width="16" height="16" class="object-contain"><span>${marker.data.user_rating}/10</span></div>` : ''}
+                    </div>
+                  `
+                    : marker.entityType === 'dive_site'
+                      ? `
+                      <div class="space-y-2 mt-1">
+                        ${marker.data.difficulty_code ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_label || marker.data.difficulty_code}</span></div>` : ''}
+                        ${marker.data.average_rating ? `<div class="text-sm text-gray-700"><span class="mr-1">⭐</span>Rating: <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span></div>` : ''}
+                        ${
+                          marker.data.tags && marker.data.tags.length > 0
+                            ? `
+                          <div class="flex flex-wrap gap-1 items-center text-xs text-gray-600">
+                            ${marker.data.tags.map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">${tag.name}</span>`).join('')}
+                          </div>
+                        `
+                            : ''
+                        }
+                        ${
+                          marker.recommendation
+                            ? (() => {
+                                const rec = marker.recommendation;
+                                const suitability = rec.suitability || 'unknown';
+                                const suitabilityColor = getSuitabilityColor(suitability);
+                                const suitabilityLabel = getSuitabilityLabel(suitability);
+                                // Wind data is directly on the recommendation object, not nested in wind_data
+                                const windSpeed = rec.wind_speed || 0;
+                                const windDirection = rec.wind_direction || 0;
+                                const windGusts = rec.wind_gusts;
 
-                              const speedFormatted = formatWindSpeed(windSpeed);
-                              const directionFormatted = formatWindDirection(windDirection);
+                                const speedFormatted = formatWindSpeed(windSpeed);
+                                const directionFormatted = formatWindDirection(windDirection);
 
-                              // Icons
-                              const windIcon =
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>';
-                              const waveIcon =
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>';
-                              const thermoIcon =
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>';
-                              const infoIcon =
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+                                // Icons
+                                const windIcon =
+                                  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>';
+                                const waveIcon =
+                                  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></svg>';
+                                const thermoIcon =
+                                  '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 inline mr-0.5 text-gray-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>';
+                                const infoIcon =
+                                  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
-                              return `
-                        <div class="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
-                          <div class="flex justify-between items-center mb-1 sm:mb-2 border-b pb-1">
-                            <h4 class="font-semibold text-xs sm:text-sm text-blue-800">Weather & Sea</h4>
-                            <div class="flex items-center gap-1.5">
-                              <span class="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
-                                ${suitabilityLabel}
-                              </span>
-                              <div class="group relative cursor-pointer">
-                                ${infoIcon}
-                                <div class="absolute right-0 bottom-full mb-2 w-56 sm:w-64 bg-white p-2 rounded shadow-xl border border-gray-200 z-[9999] text-[10px] sm:text-xs leading-tight hidden group-hover:block">
-                                  <div class="mb-1"><strong>Wind:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} kt) ${directionFormatted.cardinal}</div>
-                                  ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div class="mb-1"><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s period)` : ''}</div>` : ''}
-                                  ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div class="mb-1"><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
-                                  ${rec.reasoning ? `<div class="text-gray-500 italic border-t pt-1 mt-1">${rec.reasoning}</div>` : ''}
+                                return `
+                          <div class="border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2">
+                            <div class="flex justify-between items-center mb-1 sm:mb-2 border-b pb-1">
+                              <h4 class="font-semibold text-xs sm:text-sm text-blue-800">Weather & Sea</h4>
+                              <div class="flex items-center gap-1.5">
+                                <span class="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full" style="background-color: ${suitabilityColor}20; color: ${suitabilityColor}; border: 1px solid ${suitabilityColor}40;">
+                                  ${suitabilityLabel}
+                                </span>
+                                <div class="group relative cursor-pointer">
+                                  ${infoIcon}
+                                  <div class="absolute right-0 bottom-full mb-2 w-56 sm:w-64 bg-white p-2 rounded shadow-xl border border-gray-200 z-[9999] text-[10px] sm:text-xs leading-tight hidden group-hover:block">
+                                    <div class="mb-1"><strong>Wind:</strong> ${speedFormatted.ms} m/s (${speedFormatted.knots} kt) ${directionFormatted.cardinal}</div>
+                                    ${rec.wave_height !== undefined && rec.wave_height !== null ? `<div class="mb-1"><strong>Waves:</strong> ${rec.wave_height.toFixed(1)}m ${rec.wave_period ? `(${rec.wave_period.toFixed(1)}s period)` : ''}</div>` : ''}
+                                    ${rec.sea_surface_temperature !== undefined && rec.sea_surface_temperature !== null ? `<div class="mb-1"><strong>Water:</strong> ${rec.sea_surface_temperature.toFixed(1)}°C</div>` : ''}
+                                    ${rec.reasoning ? `<div class="text-gray-500 italic border-t pt-1 mt-1">${rec.reasoning}</div>` : ''}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          <!-- Unified Compact View -->
-                          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] sm:text-xs text-gray-600">
-                            <div class="flex items-center gap-1" title="Wind">
-                              ${windIcon} <span>${speedFormatted.ms}</span>
+                            
+                            <!-- Unified Compact View -->
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] sm:text-xs text-gray-600">
+                              <div class="flex items-center gap-1" title="Wind">
+                                ${windIcon} <span>${speedFormatted.ms}</span>
+                              </div>
+                              ${
+                                rec.wave_height !== undefined && rec.wave_height !== null
+                                  ? `
+                              <div class="flex items-center gap-1" title="Waves">
+                                ${waveIcon} <span>${rec.wave_height.toFixed(1)}m</span>
+                              </div>`
+                                  : ''
+                              }
+                              ${
+                                rec.sea_surface_temperature !== undefined &&
+                                rec.sea_surface_temperature !== null
+                                  ? `
+                              <div class="flex items-center gap-1" title="Water Temp">
+                                ${thermoIcon} <span>${rec.sea_surface_temperature.toFixed(1)}°C</span>
+                              </div>`
+                                  : ''
+                              }
                             </div>
-                            ${
-                              rec.wave_height !== undefined && rec.wave_height !== null
-                                ? `
-                            <div class="flex items-center gap-1" title="Waves">
-                              ${waveIcon} <span>${rec.wave_height.toFixed(1)}m</span>
-                            </div>`
-                                : ''
-                            }
-                            ${
-                              rec.sea_surface_temperature !== undefined &&
-                              rec.sea_surface_temperature !== null
-                                ? `
-                            <div class="flex items-center gap-1" title="Water Temp">
-                              ${thermoIcon} <span>${rec.sea_surface_temperature.toFixed(1)}°C</span>
-                            </div>`
-                                : ''
-                            }
+                            
+                            ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
                           </div>
-                          
-                          ${suitability === 'unknown' ? `<div class="text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium">⚠️ Warning: Shore direction unknown</div>` : ''}
-                        </div>
-                      `;
-                            })()
-                          : ''
-                      }
-                    </div>
-                  `
-                    : `
-                    <p class="text-xs text-gray-500 mt-1">
-                      ${lat.toFixed(4)}, ${lng.toFixed(4)}
-                    </p>
-                  `
-            }
-          </div>
-        `;
+                        `;
+                              })()
+                            : ''
+                        }
+                      </div>
+                    `
+                      : marker.entityType === 'dive_trip'
+                        ? ''
+                        : `
+                      <p class="text-xs text-gray-500 mt-1">
+                        ${lat.toFixed(4)}, ${lng.toFixed(4)}
+                      </p>
+                    `
+              }
+            </div>
+            `;
 
-          leafletMarker.bindPopup(DOMPurify.sanitize(popupContent), {
-            maxWidth: 240,
-            autoPanPadding: [20, 20], // Reduced padding to prevent unnecessary auto-panning
+            popup.setContent(DOMPurify.sanitize(popupContent));
+            popup._isGenerated = true;
           });
           return leafletMarker;
         } catch (error) {
@@ -857,7 +885,7 @@ const LeafletMapView = ({
 
   // Create custom icons for different entity types
   const createEntityIcon = useCallback(
-    (entityType, isCluster = false, count = 1, suitability = null) => {
+    (entityType, isCluster = false, count = 1, suitability = null, tripDate = null) => {
       const size = isCluster ? Math.min(24 + count * 2, 48) : 24;
       const borderWidth = suitability ? 4 : 0; // 4px colored border for suitability - increased for better visibility
       const borderColor = suitability ? getSuitabilityColor(suitability) : null;
@@ -918,7 +946,20 @@ const LeafletMapView = ({
           break;
         case 'dive_trip': {
           // Trip icon with status-based color
-          const baseColor = '#3b82f6'; // Default blue for scheduled
+          let baseColor = '#3b82f6'; // Default blue for scheduled
+          if (tripDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tDate = new Date(tripDate);
+            if (tDate < today) {
+              baseColor = '#6b7280'; // Gray for past trips
+            } else if (tDate.getTime() === today.getTime()) {
+              baseColor = '#f59e0b'; // Orange/Yellow for today
+            } else {
+              baseColor = '#10b981'; // Green for future
+            }
+          }
+
           svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Background circle -->
@@ -1216,39 +1257,34 @@ const LeafletMapView = ({
     // Process dive trips
     if (diveTripsArr.length > 0 && selectedEntityType === 'dive-trips') {
       diveTripsArr.forEach(trip => {
-        // For trips, we need to find coordinates from associated dive sites or diving centers
-        let latitude, longitude;
+        let hasPlottedDives = false;
 
-        // Priority 1: Look for dive site coordinates from trip's dives
+        // Plot a marker for each dive site associated with this trip
         if (trip.dives && trip.dives.length > 0) {
-          const firstDive = trip.dives[0];
-          if (firstDive.dive_site_id && diveSitesArr.length > 0) {
-            // Find the dive site by ID in the loaded dive sites data
-            const diveSite = diveSitesArr.find(site => site.id === firstDive.dive_site_id);
-            if (diveSite && diveSite.latitude && diveSite.longitude) {
-              latitude = diveSite.latitude;
-              longitude = diveSite.longitude;
+          trip.dives.forEach(dive => {
+            if (dive.latitude && dive.longitude) {
+              hasPlottedDives = true;
+              allMarkers.push({
+                id: `dive-trip-${trip.id}-dive-${dive.id}`,
+                position: [dive.latitude, dive.longitude],
+                entityType: 'dive_trip',
+                data: trip, // We still pass the parent trip data for the popup
+                diveData: dive, // Pass the individual dive data for the popup
+                icon: createEntityIcon('dive_trip', false, 1, null, trip.trip_date),
+              });
             }
-          }
+          });
         }
 
-        // Priority 2: Look for diving center coordinates
-        if ((!latitude || !longitude) && trip.diving_center_id && divingCentersArr.length > 0) {
-          // Find the diving center by ID in the loaded diving centers data
-          const divingCenter = divingCentersArr.find(center => center.id === trip.diving_center_id);
-          if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
-            latitude = divingCenter.latitude;
-            longitude = divingCenter.longitude;
-          }
-        }
-
-        if (latitude && longitude) {
+        // Fallback: If no dive sites had coordinates (or there were no dives),
+        // plot a single marker using the trip's fallback coordinates (diving center)
+        if (!hasPlottedDives && trip.latitude && trip.longitude) {
           allMarkers.push({
             id: `dive-trip-${trip.id}`,
-            position: [latitude, longitude],
+            position: [trip.latitude, trip.longitude],
             entityType: 'dive_trip',
             data: trip,
-            icon: createEntityIcon('dive_trip'),
+            icon: createEntityIcon('dive_trip', false, 1, null, trip.trip_date),
           });
         }
       });

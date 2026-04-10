@@ -232,10 +232,10 @@ class TestDiveTripsSorting:
     
     def test_sort_by_trip_date_desc(self, client, sample_dive_trips):
         """Test sorting dive trips by trip date in descending order."""
-        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=desc&skip=0&limit=10")
+        response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=desc&page=1&page_size=10")
         
         assert response.status_code == 200
-        trips = response.json()
+        trips = response.json().get('items', [])
         
         # Verify sorting order
         trip_dates = [trip["trip_date"] for trip in trips]
@@ -243,10 +243,10 @@ class TestDiveTripsSorting:
     
     def test_sort_by_trip_price_desc(self, client, sample_dive_trips):
         """Test sorting dive trips by price in descending order."""
-        response = client.get("/api/v1/newsletters/trips?sort_by=trip_price&sort_order=desc&skip=0&limit=10")
+        response = client.get("/api/v1/newsletters/trips?sort_by=trip_price&sort_order=desc&page=1&page_size=10")
         
         assert response.status_code == 200
-        trips = response.json()
+        trips = response.json().get('items', [])
         
         # Verify sorting order
         prices = [trip["trip_price"] for trip in trips if trip["trip_price"] is not None]
@@ -255,7 +255,7 @@ class TestDiveTripsSorting:
     def test_sort_by_popularity_admin_only(self, client, sample_dive_trips):
         """Test that sorting by popularity is restricted to admin users."""
         # Test as non-admin user (should fail)
-        response = client.get("/api/v1/newsletters/trips?sort_by=popularity&sort_order=desc&skip=0&limit=10")
+        response = client.get("/api/v1/newsletters/trips?sort_by=popularity&sort_order=desc&page=1&page_size=10")
         assert response.status_code == 403
         assert "Sorting by popularity is only available for admin users" in response.json()["detail"]
     
@@ -264,23 +264,23 @@ class TestDiveTripsSorting:
         user_lat = 37.9838  # Athens, Greece
         user_lon = 23.7275
         
-        response = client.get(f"/api/v1/newsletters/trips?sort_by=distance&sort_order=asc&user_lat={user_lat}&user_lon={user_lon}&skip=0&limit=10")
+        response = client.get(f"/api/v1/newsletters/trips?sort_by=distance&sort_order=asc&user_lat={user_lat}&user_lon={user_lon}&page=1&page_size=10")
         
         # Distance sorting requires dive sites with coordinates, which our test data doesn't have
         # So we expect either no results or an error, but not a crash
         assert response.status_code in [200, 400, 422]
         
         if response.status_code == 200:
-            trips = response.json()
+            trips = response.json().get('items', [])
             # If we get results, verify they're returned
             assert len(trips) >= 0
     
     def test_sort_by_difficulty_level_asc(self, client, sample_dive_trips):
         """Test sorting dive trips by difficulty level in ascending order."""
-        response = client.get("/api/v1/newsletters/trips?sort_by=difficulty_level&sort_order=asc&skip=0&limit=10")
+        response = client.get("/api/v1/newsletters/trips?sort_by=difficulty_level&sort_order=asc&page=1&page_size=10")
         
         assert response.status_code == 200
-        trips = response.json()
+        trips = response.json().get('items', [])
         
         # Verify that results are returned
         assert len(trips) > 0

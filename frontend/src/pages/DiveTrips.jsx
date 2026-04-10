@@ -277,7 +277,7 @@ const DiveTrips = () => {
 
   // Query for parsed trips with pagination
   const {
-    data: trips,
+    data: tripsResponse,
     isLoading,
     error,
   } = useQuery(
@@ -316,8 +316,8 @@ const DiveTrips = () => {
         ...validFilters,
         sort_by: sortParams.sort_by || 'trip_date',
         sort_order: sortParams.sort_order || 'desc',
-        skip: (pagination.page - 1) * pagination.per_page,
-        limit: pagination.per_page,
+        page: pagination.page,
+        page_size: pagination.per_page,
       };
 
       // Add user location for distance sorting
@@ -336,6 +336,9 @@ const DiveTrips = () => {
   // Set dynamic page title
   const pageTitle = 'Divemap - Dive Trips';
   usePageTitle(pageTitle);
+
+  const trips = tripsResponse?.items || [];
+  const paginationData = tripsResponse?.total !== undefined ? tripsResponse : null;
 
   // Extract unique diving centers and dive sites directly from the loaded trips
   // This completely eliminates the need for separate API queries to /dive-sites and /diving-centers
@@ -746,6 +749,75 @@ const DiveTrips = () => {
           </div>
         )}
 
+        {/* Top Pagination Controls */}
+        {sortedTrips && sortedTrips.length > 0 && !isLoading && !error && viewMode !== 'map' && (
+          <div className='mt-4 mb-4 sm:mt-6 sm:mb-6'>
+            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4'>
+              <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
+                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
+                  {/* Page Size Selection */}
+                  <div className='flex items-center gap-2'>
+                    <label className='text-sm font-medium text-gray-700'>Show:</label>
+                    <select
+                      value={pagination.per_page}
+                      onChange={e => handlePageSizeChange(parseInt(e.target.value))}
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
+                    >
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span className='text-sm text-gray-600'>per page</span>
+                  </div>
+
+                  {/* Pagination Info */}
+                  <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
+                    Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
+                    {(pagination.page - 1) * pagination.per_page + sortedTrips.length} of{' '}
+                    {paginationData
+                      ? paginationData.total
+                      : (pagination.page - 1) * pagination.per_page + sortedTrips.length}{' '}
+                    trips
+                  </div>
+
+                  {/* Pagination Navigation */}
+                  <div className='flex items-center gap-2'>
+                    <button
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page <= 1}
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                    >
+                      <ChevronLeft className='h-4 w-4' />
+                    </button>
+
+                    <span className='text-xs sm:text-sm text-gray-700'>
+                      Page {pagination.page} of{' '}
+                      {paginationData
+                        ? Math.max(1, paginationData.pages)
+                        : Math.max(
+                            1,
+                            pagination.page + (sortedTrips.length === pagination.per_page ? 1 : 0)
+                          )}
+                    </span>
+
+                    <button
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={
+                        paginationData
+                          ? pagination.page >= paginationData.pages
+                          : sortedTrips.length < pagination.per_page
+                      }
+                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
+                    >
+                      <ChevronRight className='h-4 w-4' />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         {isLoading && (
           <div className='text-center py-12'>
@@ -952,8 +1024,8 @@ const DiveTrips = () => {
                   <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
                     Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
                     {(pagination.page - 1) * pagination.per_page + sortedTrips.length} of{' '}
-                    {sortedTrips.length === pagination.per_page
-                      ? `${(pagination.page - 1) * pagination.per_page + sortedTrips.length}+`
+                    {paginationData
+                      ? paginationData.total
                       : (pagination.page - 1) * pagination.per_page + sortedTrips.length}{' '}
                     trips
                   </div>
@@ -969,13 +1041,22 @@ const DiveTrips = () => {
                     </button>
 
                     <span className='text-xs sm:text-sm text-gray-700'>
-                      Page {pagination.page}
-                      {sortedTrips.length === pagination.per_page && '+'}
+                      Page {pagination.page} of{' '}
+                      {paginationData
+                        ? Math.max(1, paginationData.pages)
+                        : Math.max(
+                            1,
+                            pagination.page + (sortedTrips.length === pagination.per_page ? 1 : 0)
+                          )}
                     </span>
 
                     <button
                       onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={sortedTrips.length < pagination.per_page}
+                      disabled={
+                        paginationData
+                          ? pagination.page >= paginationData.pages
+                          : sortedTrips.length < pagination.per_page
+                      }
                       className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
                     >
                       <ChevronRight className='h-4 w-4' />

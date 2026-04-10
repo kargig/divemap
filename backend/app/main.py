@@ -5,7 +5,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, ORJSONResponse
 from datetime import datetime, timedelta, timezone
 from contextlib import asynccontextmanager
 import os
@@ -117,7 +117,8 @@ app = FastAPI(
     title="Divemap API",
     description="Scuba diving site and center review platform",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    default_response_class=ORJSONResponse
 )
 
 # Add rate limiter to app state

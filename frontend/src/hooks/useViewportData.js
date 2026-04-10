@@ -26,12 +26,25 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
   const [debouncedViewport, setDebouncedViewport] = useState(viewport);
 
   useEffect(() => {
+    // OPTIMIZATION: If this is the initial load (we just got bounds for the first time),
+    // sync immediately. Do not force the user to wait 1.5 seconds for the first render!
+    setDebouncedViewport(prev => {
+      // Trips don't use bounds, so they don't need this immediate sync optimization
+      // If we sync them here, it triggers a double-fetch because their query is already running
+      if (selectedEntityType === 'dive-trips') return prev;
+
+      if (!prev?.bounds && viewport?.bounds) {
+        return viewport;
+      }
+      return prev; // No immediate update needed
+    });
+
     const timer = setTimeout(() => {
       setDebouncedViewport(viewport);
     }, 1500); // 1.5 second debounce to reduce API calls and prevent annoying reloads
 
     return () => clearTimeout(timer);
-  }, [viewport]);
+  }, [viewport, selectedEntityType]);
 
   // Generate cache key for current viewport and filters
   const generateCacheKey = useCallback((viewport, filters, entityType, windDateTime = null) => {
@@ -53,8 +66,8 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
     // Include windDateTime in cache key if provided (for wind suitability filtering)
     const datetimeKey = windDateTime ? `-${windDateTime}` : '';
 
-    // For world view (zoom < 4), don't include bounds in cache key
-    if (zoom < 4 || !bounds) {
+    // For world view (zoom < 4) or dive-trips (no bounds filtering), don't include bounds in cache key
+    if (zoom < 4 || !bounds || entityType === 'dive-trips') {
       return `${entityType}-${detailLevel}-${JSON.stringify(filters)}${datetimeKey}`;
     }
 
@@ -158,8 +171,56 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       };
 
       try {
+        // Fetch dive trips FIRST if needed, so we can short-circuit if empty
+        if (entityType === 'dive-trips') {
+          const tripsParams = new URLSearchParams();
+          tripsParams.append('page_size', '1000'); // Max allowed page size
+          tripsParams.append('page', '1');
+
+          // Add filters
+          Object.entries(filters).forEach(([key, value]) => {
+            if (
+              value &&
+              value !== '' &&
+              [
+                'search',
+                'dive_site_id',
+                'diving_center_id',
+                'min_rating',
+                'max_rating',
+                'trip_status',
+                'difficulty_code',
+                'min_price',
+                'max_price',
+                'start_date',
+                'end_date',
+                'tag_ids',
+              ].includes(key)
+            ) {
+              if (Array.isArray(value)) {
+                value.forEach(v => tripsParams.append(key, v));
+              } else {
+                tripsParams.append(key, value);
+              }
+            } else if (key === 'exclude_unspecified_difficulty' && value) {
+              tripsParams.append('exclude_unspecified_difficulty', 'true');
+            }
+          });
+
+          const tripsResponse = await api.get(
+            `/api/v1/newsletters/trips?${tripsParams.toString()}`
+          );
+          results.dive_trips = tripsResponse.data;
+
+          // SHORT-CIRCUIT: If there are no dive trips, there is no need to fetch
+          // dive sites or diving centers to plot them on the map.
+          if (!results.dive_trips?.items || results.dive_trips.items.length === 0) {
+            return results;
+          }
+        }
+
         // Fetch dive sites if needed
-        if (entityType === 'dive-sites' || entityType === 'dive-trips') {
+        if (entityType === 'dive-sites') {
           const diveSitesParams = new URLSearchParams();
           diveSitesParams.append('page_size', '1000'); // Max allowed page size
           diveSitesParams.append('page', '1');
@@ -273,10 +334,45 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
         }
 
         // Fetch diving centers if needed
-        if (entityType === 'diving-centers' || entityType === 'dive-trips') {
+        if (entityType === 'diving-centers') {
           const divingCentersParams = new URLSearchParams();
           divingCentersParams.append('page_size', '1000'); // Max allowed page size
           divingCentersParams.append('page', '1');
+
+          // Determine detail_level based on zoom (identical to dive-sites logic)
+          let detailLevel = 'full';
+          if (zoom < 4) {
+            detailLevel = 'minimal';
+          } else if (zoom < 8) {
+            detailLevel = 'minimal';
+          } else if (zoom < 10) {
+            detailLevel = 'basic';
+          } else {
+            detailLevel = 'full';
+          }
+
+          // Add bounds if available and not zoomed way out
+          if (zoom >= 4 && bounds) {
+            let expandedBounds = bounds;
+
+            if (zoom >= 11) {
+              const latMargin = (bounds.north - bounds.south) * 0.025;
+              const lonMargin = (bounds.east - bounds.west) * 0.025;
+              expandedBounds = {
+                north: bounds.north + latMargin,
+                south: bounds.south - latMargin,
+                east: bounds.east + lonMargin,
+                west: bounds.west - lonMargin,
+              };
+            }
+
+            divingCentersParams.append('north', expandedBounds.north.toString());
+            divingCentersParams.append('south', expandedBounds.south.toString());
+            divingCentersParams.append('east', expandedBounds.east.toString());
+            divingCentersParams.append('west', expandedBounds.west.toString());
+          }
+
+          divingCentersParams.append('detail_level', detailLevel);
 
           // Add filters
           Object.entries(filters).forEach(([key, value]) => {
@@ -306,6 +402,41 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
           const divesParams = new URLSearchParams();
           divesParams.append('page_size', '1000'); // Max allowed page size
           divesParams.append('page', '1');
+
+          // Determine detail_level based on zoom (identical to dive-sites logic)
+          let detailLevel = 'full';
+          if (zoom < 4) {
+            detailLevel = 'minimal';
+          } else if (zoom < 8) {
+            detailLevel = 'minimal';
+          } else if (zoom < 10) {
+            detailLevel = 'basic';
+          } else {
+            detailLevel = 'full';
+          }
+
+          // Add bounds if available and not zoomed way out
+          if (zoom >= 4 && bounds) {
+            let expandedBounds = bounds;
+
+            if (zoom >= 11) {
+              const latMargin = (bounds.north - bounds.south) * 0.025;
+              const lonMargin = (bounds.east - bounds.west) * 0.025;
+              expandedBounds = {
+                north: bounds.north + latMargin,
+                south: bounds.south - latMargin,
+                east: bounds.east + lonMargin,
+                west: bounds.west - lonMargin,
+              };
+            }
+
+            divesParams.append('north', expandedBounds.north.toString());
+            divesParams.append('south', expandedBounds.south.toString());
+            divesParams.append('east', expandedBounds.east.toString());
+            divesParams.append('west', expandedBounds.west.toString());
+          }
+
+          divesParams.append('detail_level', detailLevel);
 
           // Add filters
           Object.entries(filters).forEach(([key, value]) => {
@@ -342,48 +473,6 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
 
           const divesResponse = await api.get(`/api/v1/dives/?${divesParams.toString()}`);
           results.dives = divesResponse.data;
-        }
-
-        // Fetch dive trips if needed
-        if (entityType === 'dive-trips') {
-          const tripsParams = new URLSearchParams();
-          tripsParams.append('page_size', '1000'); // Max allowed page size
-          tripsParams.append('page', '1');
-
-          // Add filters
-          Object.entries(filters).forEach(([key, value]) => {
-            if (
-              value &&
-              value !== '' &&
-              [
-                'search',
-                'dive_site_id',
-                'diving_center_id',
-                'min_rating',
-                'max_rating',
-                'trip_status',
-                'difficulty_code',
-                'min_price',
-                'max_price',
-                'start_date',
-                'end_date',
-                'tag_ids',
-              ].includes(key)
-            ) {
-              if (Array.isArray(value)) {
-                value.forEach(v => tripsParams.append(key, v));
-              } else {
-                tripsParams.append(key, value);
-              }
-            } else if (key === 'exclude_unspecified_difficulty' && value) {
-              tripsParams.append('exclude_unspecified_difficulty', 'true');
-            }
-          });
-
-          const tripsResponse = await api.get(
-            `/api/v1/newsletters/trips?${tripsParams.toString()}`
-          );
-          results.dive_trips = tripsResponse.data;
         }
 
         return results;
@@ -452,7 +541,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       selectedEntityType,
       detailLevel,
       zoomThreshold,
-      boundsKey,
+      selectedEntityType === 'dive-trips' ? 'no-bounds' : boundsKey,
       filters,
       windDateTime,
     ];
@@ -599,7 +688,13 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       return data;
     },
     {
-      enabled: !!debouncedViewport, // Always enabled when viewport is available
+      // Only fetch if we are zoomed way out (world view) OR if we have calculated the bounds
+      // This prevents fetching 1000 unbounded random sites globally before the map finishes rendering
+      enabled:
+        !!debouncedViewport &&
+        ((debouncedViewport.zoom || 2) < 4 ||
+          !!debouncedViewport.bounds ||
+          selectedEntityType === 'dive-trips'),
       staleTime: 300000, // 5 minutes - data stays fresh longer to prevent unnecessary refetches
       cacheTime: 600000, // 10 minutes - keep in cache longer
       refetchOnWindowFocus: false,
@@ -732,10 +827,12 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
 
   // Trigger preloading after successful data fetch
   useEffect(() => {
-    if (data && !isLoading) {
+    // We don't need to preload adjacent viewports for dive trips because the trips API
+    // doesn't support bounding box filtering (it returns global results based on date)
+    if (data && !isLoading && selectedEntityType !== 'dive-trips') {
       preloadAdjacentData(debouncedViewport);
     }
-  }, [data, isLoading, debouncedViewport, preloadAdjacentData]);
+  }, [data, isLoading, debouncedViewport, preloadAdjacentData, selectedEntityType]);
 
   return {
     data,

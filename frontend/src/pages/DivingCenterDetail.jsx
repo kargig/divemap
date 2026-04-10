@@ -303,7 +303,7 @@ const DivingCenterDetail = () => {
   const shouldShowEdit = isOwner || isAdmin || isModerator;
 
   // Fetch dive trips for this diving center within the date range
-  const { data: trips, isLoading: tripsLoading } = useQuery(
+  const { data: tripsResponse, isLoading: tripsLoading } = useQuery(
     ['diving-center-trips', id, tripsDateRange.startDate, tripsDateRange.endDate],
     () =>
       getParsedTrips({
@@ -323,6 +323,8 @@ const DivingCenterDetail = () => {
       staleTime: 2 * 60 * 1000, // 2 minutes
     }
   );
+
+  const trips = tripsResponse?.items || [];
 
   // Rating mutation
   const rateMutation = useMutation(

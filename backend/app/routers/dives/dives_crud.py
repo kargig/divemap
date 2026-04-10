@@ -295,7 +295,11 @@ def get_dives_count(
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
     buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
-    buddy_username: Optional[str] = Query(None, description="Filter by buddy username")
+    buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering")
 ):
     """Get total count of dives matching the filters."""
     query = db.query(Dive).join(User, Dive.user_id == User.id)
@@ -327,6 +331,16 @@ def get_dives_count(
     # Apply filters
     if dive_site_id:
         query = query.filter(Dive.dive_site_id == dive_site_id)
+        
+    # Apply bounds filtering if provided
+    if all(x is not None for x in [north, south, east, west]):
+        # Join DiveSite to access latitude and longitude if not already joined
+        if not dive_site_name and not search:
+            query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        query = query.filter(
+            DiveSite.latitude.between(south, north),
+            DiveSite.longitude.between(west, east)
+        )
 
     if dive_site_name:
         # Join with DiveSite table to filter by dive site name
@@ -461,9 +475,22 @@ def get_dives(
     sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count."),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)")
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
+    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
+    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
+    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
+    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
+    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name), 'full' (all fields)")
 ):
     """Get dives with filtering options. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
+    
+    # Validate bounds if provided
+    if all(x is not None for x in [north, south, east, west]):
+        if north <= south:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="north must be greater than south"
+            )
     # Validate page_size
     if page_size not in [1, 5, 25, 50, 100, 1000]:
         raise HTTPException(
@@ -518,6 +545,16 @@ def get_dives(
     # Apply filters
     if dive_site_id:
         query = query.filter(Dive.dive_site_id == dive_site_id)
+        
+    # Apply bounds filtering if provided
+    if all(x is not None for x in [north, south, east, west]):
+        # Join DiveSite to access latitude and longitude if not already joined
+        if not dive_site_name and not search:
+            query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
+        query = query.filter(
+            DiveSite.latitude.between(south, north),
+            DiveSite.longitude.between(west, east)
+        )
 
     # Filter by username (partial match)
     if username:

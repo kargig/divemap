@@ -178,7 +178,11 @@ const IndependentMapView = () => {
   const [showLayers, setShowLayers] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMobileControls, setShowMobileControls] = useState(!isMobile);
-  const [selectedEntityType, setSelectedEntityType] = useState('dive-sites'); // 'dive-sites', 'diving-centers', 'dives', 'dive-trips'
+  const [selectedEntityType, setSelectedEntityType] = useState(() => {
+    const entityType = searchParams.get('type');
+    const validTypes = ['dive-sites', 'diving-centers', 'dives', 'dive-trips'];
+    return validTypes.includes(entityType) ? entityType : 'dive-sites';
+  });
   const [windOverlayEnabled, setWindOverlayEnabled] = useState(() => {
     return searchParams.get('wind') === 'true';
   });
@@ -290,23 +294,82 @@ const IndependentMapView = () => {
   });
 
   // Filter state
-  const [filters, setFilters] = useState({
-    search: '',
-    difficulty_code: '',
-    exclude_unspecified_difficulty: false,
-    wind_suitability: '',
-    min_rating: '',
-    max_rating: '',
-    country: '',
-    region: '',
-    date_from: '',
-    date_to: '',
-    depth_min: '',
-    depth_max: '',
-    visibility_min: '',
-    visibility_max: '',
-    suit_type: '',
-    tag_ids: [],
+  const [filters, setFilters] = useState(() => {
+    const urlFilters = {};
+    const filterKeys = [
+      'search',
+      'difficulty_code',
+      'my_dives',
+      'exclude_unspecified_difficulty',
+      'wind_suitability',
+      'min_rating',
+      'max_rating',
+      'country',
+      'region',
+      'date_from',
+      'date_to',
+      'depth_min',
+      'depth_max',
+      'visibility_min',
+      'visibility_max',
+      'suit_type',
+      'tag_ids',
+      'diving_center_id',
+      'trip_status',
+      'min_price',
+      'max_price',
+      'start_date',
+      'end_date',
+    ];
+
+    filterKeys.forEach(key => {
+      const value = searchParams.get(key);
+      if (value !== null) {
+        if (key === 'tag_ids') {
+          urlFilters[key] = value
+            ? value
+                .split(',')
+                .map(id => parseInt(id))
+                .filter(id => !isNaN(id))
+            : [];
+        } else {
+          urlFilters[key] = value;
+        }
+      }
+    });
+
+    // Default dates for dive-trips if not provided in URL
+    const entityType = searchParams.get('type');
+    if (entityType === 'dive-trips' && !urlFilters.start_date && !urlFilters.end_date) {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 7); // 7 days ago
+      const endDate = new Date(today);
+      endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
+
+      urlFilters.start_date = startDate.toISOString().split('T')[0];
+      urlFilters.end_date = endDate.toISOString().split('T')[0];
+    }
+
+    return {
+      search: '',
+      difficulty_code: '',
+      exclude_unspecified_difficulty: false,
+      wind_suitability: '',
+      min_rating: '',
+      max_rating: '',
+      country: '',
+      region: '',
+      date_from: '',
+      date_to: '',
+      depth_min: '',
+      depth_max: '',
+      visibility_min: '',
+      visibility_max: '',
+      suit_type: '',
+      tag_ids: [],
+      ...urlFilters,
+    };
   });
 
   // Performance state
@@ -468,7 +531,7 @@ const IndependentMapView = () => {
         if (!prevFilters.start_date && !prevFilters.end_date) {
           const today = new Date();
           const startDate = new Date(today);
-          startDate.setDate(today.getDate() - 14); // 14 days ago
+          startDate.setDate(today.getDate() - 7); // 7 days ago
           const endDate = new Date(today);
           endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
 
@@ -576,7 +639,7 @@ const IndependentMapView = () => {
     }
   };
 
-  // Update zoom from map instance when available
+  // Update zoom and bounds from map instance when available
   useEffect(() => {
     if (mapInstance) {
       const updateZoom = () => {
@@ -589,14 +652,39 @@ const IndependentMapView = () => {
       // Initial update
       updateZoom();
 
+      // Initial bounds update (crucial for useViewportData to start fetching)
+      // We must wrap this in a small timeout to let Leaflet calculate the container size
+      let boundsTimer = null;
+      if (!viewport.bounds) {
+        boundsTimer = setTimeout(() => {
+          try {
+            const bounds = mapInstance.getBounds();
+            if (bounds && bounds.isValid()) {
+              setViewport(prev => ({
+                ...prev,
+                bounds: {
+                  north: bounds.getNorth(),
+                  south: bounds.getSouth(),
+                  east: bounds.getEast(),
+                  west: bounds.getWest(),
+                },
+              }));
+            }
+          } catch (error) {
+            // Map might be unmounted or calculating
+          }
+        }, 100);
+      }
+
       // Listen to zoom changes
       mapInstance.on('zoomend', updateZoom);
 
       return () => {
+        if (boundsTimer) clearTimeout(boundsTimer);
         mapInstance.off('zoomend', updateZoom);
       };
     }
-  }, [mapInstance]);
+  }, [mapInstance, viewport.bounds]);
 
   // Handle filter changes
   const handleFilterChange = newFilters => {

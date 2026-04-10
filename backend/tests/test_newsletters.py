@@ -18,7 +18,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/", headers=admin_headers)
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', []) if isinstance(response_data, dict) else response_data
         assert isinstance(data, list)
         assert len(data) == 1
         assert data[0]["content"] == "Test newsletter content"
@@ -34,7 +35,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/", headers=moderator_headers)
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', []) if isinstance(response_data, dict) else response_data
         assert isinstance(data, list)
         assert len(data) == 1
         assert data[0]["content"] == "Test newsletter content"
@@ -66,7 +68,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert "newsletter_id" in data
         assert "trips_created" in data
         assert "message" in data
@@ -84,7 +87,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert "newsletter_id" in data
         assert "trips_created" in data
         assert "message" in data
@@ -131,7 +135,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["content"] == "Updated content"
 
     def test_update_newsletter_moderator_success(self, client, moderator_headers, db_session):
@@ -150,7 +155,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["content"] == "Updated content"
 
     def test_update_newsletter_regular_user_forbidden(self, client, auth_headers, db_session):
@@ -250,7 +256,8 @@ class TestNewsletters:
             print(f"Validation error: {response.json()}")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["diving_center_id"] == diving_center.id
         assert data["trip_date"] == "2024-01-15"
         assert len(data["dives"]) == 0
@@ -287,7 +294,8 @@ class TestNewsletters:
             print(f"Validation error: {response.json()}")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["diving_center_id"] == diving_center.id
         assert data["trip_date"] == "2024-01-15"
         assert len(data["dives"]) == 0
@@ -331,7 +339,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["trip_description"] == "Updated description"
         assert data["trip_status"] == "confirmed"
 
@@ -358,7 +367,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert data["trip_description"] == "Updated description"
         assert data["trip_status"] == "confirmed"
 
@@ -455,7 +465,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert "message" in data
         assert "Newsletter re-parsed successfully" in data["message"]
 
@@ -473,7 +484,8 @@ class TestNewsletters:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert "message" in data
         assert "Newsletter re-parsed successfully" in data["message"]
 
@@ -556,7 +568,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         
         # Verify the response structure
         assert isinstance(data, list)
@@ -666,7 +679,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=desc", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 3
         
         # Should be sorted by date descending: 2024-12-20, 2024-12-15, 2024-12-10
@@ -678,7 +692,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?sort_by=trip_date&sort_order=asc", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 3
         
         # Should be sorted by date ascending: 2024-12-10, 2024-12-15, 2024-12-20
@@ -741,7 +756,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?min_price=150&max_price=250")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 1
         assert data[0]["trip_price"] == 200.0
 
@@ -749,7 +765,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?min_duration=150&max_duration=200")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 1
         assert data[0]["trip_duration"] == 180
 
@@ -757,7 +774,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips?trip_status=confirmed")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         # The API might not be filtering by status correctly, so we'll check what we get
         # and adjust our expectations accordingly
         if len(data) == 1:
@@ -825,7 +843,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 2
         
         # Verify datetime serialization works
@@ -845,7 +864,8 @@ class TestNewsletters:
             response = client.get("/api/v1/newsletters/trips?search_query=shark")
             assert response.status_code == status.HTTP_200_OK
             
-            data = response.json()
+            response_data = response.json()
+            data = response_data.get('items', []) if isinstance(response_data, dict) else response_data
             # The search might return all trips or just the matching one
             # The important thing is that datetime serialization works
             assert len(data) > 0
@@ -921,28 +941,31 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 25
 
         # Test with custom limit
-        response = client.get("/api/v1/newsletters/trips?limit=10", headers=auth_headers)
+        response = client.get("/api/v1/newsletters/trips?page_size=10", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 10
 
         # Test with skip - the skip parameter skips the first N results
-        # So skip=10 should skip trips 1-10 and return trips 11-20
-        response = client.get("/api/v1/newsletters/trips?skip=10&limit=10", headers=auth_headers)
+        # So page=2 should skip trips 1-10 and return trips 11-20
+        response = client.get("/api/v1/newsletters/trips?page_size=10&page=2", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 10
         
         # The first trip in the result should be Trip 11 (since we skipped 0-9)
         # But the actual trip number depends on how the database orders the results
         # Let's just verify we got the right number of results and they're different from the first page
-        first_page_response = client.get("/api/v1/newsletters/trips?limit=10", headers=auth_headers)
+        first_page_response = client.get("/api/v1/newsletters/trips?page_size=10", headers=auth_headers)
         first_page_data = first_page_response.json()
         
         # The skip=10 results should be different from the first 10 results
@@ -953,7 +976,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips")
         
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', []) if isinstance(response_data, dict) else response_data
         assert isinstance(data, list)
         assert len(data) == 0
 
@@ -1015,7 +1039,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         assert len(data) == 1
         
         trip_data = data[0]
@@ -1067,7 +1092,8 @@ class TestNewsletters:
         
         # Check if match types header is present (may or may not be depending on fuzzy search logic)
         # The important thing is that the response is successful and properly serialized
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', []) if isinstance(response_data, dict) else response_data
         assert isinstance(data, list)
         
         # Verify datetime serialization still works
@@ -1147,7 +1173,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips")
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         # Should get 2 from center1 + 2 from center2 = 4 total
         assert len(data) == 4
         
@@ -1219,7 +1246,8 @@ class TestNewsletters:
         response = client.get("/api/v1/newsletters/trips", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         
-        data = response.json()
+        response_data = response.json()
+        data = response_data.get('items', response_data) if isinstance(response_data, dict) else response_data
         # Should get all 5 trips
         assert len(data) == 5
         

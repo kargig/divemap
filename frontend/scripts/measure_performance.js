@@ -20,6 +20,7 @@ const URLS = [
   `${BASE_URL}/map?lat=37.709533&lng=23.907795&zoom=13.0&wind=true`,
   `${BASE_URL}/map?lat=37.984200&lng=23.735300&zoom=10.0&type=diving-centers`,
   `${BASE_URL}/map?lat=37.984200&lng=23.735300&zoom=10.0&type=dives`,
+  `${BASE_URL}/map?lat=37.984200&lng=23.735300&zoom=10.0&type=dive-trips`,
 ];
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -34,8 +35,8 @@ async function authenticate(browser) {
   }
 
   // Mask username for security in logs
-  const maskedUsername = username.length > 2 
-    ? `${username.charAt(0)}***${username.charAt(username.length - 1)}` 
+  const maskedUsername = username.length > 2
+    ? `${username.charAt(0)}***${username.charAt(username.length - 1)}`
     : '***';
 
   console.log(`Authenticating user (${maskedUsername})...`);
@@ -180,10 +181,10 @@ const calcP95 = (arr, key) => {
 async function runMeasurements(outputName) {
   console.log(`Starting performance measurements for ${outputName}.`);
   const browser = await chromium.launch();
-  
+
   // Get authenticated state (returns null if credentials missing)
   const authState = await authenticate(browser);
-  
+
   const results = {};
 
   for (const url of URLS) {
