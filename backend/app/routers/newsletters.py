@@ -11,7 +11,7 @@ import math
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, get_difficulty_id_by_code
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
-from app.schemas import ParsedDiveTripResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
+from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
 import openai
 import quopri
@@ -1328,7 +1328,7 @@ async def get_newsletters(
 
     return result
 
-@router.get("/trips", response_model=List[ParsedDiveTripResponse])
+@router.get("/trips", response_model=ParsedDiveTripListResponse)
 async def get_parsed_trips(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
@@ -1349,8 +1349,8 @@ async def get_parsed_trips(
     sort_order: Optional[str] = "desc",
     user_lat: Optional[float] = None,
     user_lon: Optional[float] = None,
-    skip: int = 0,
-    limit: int = 100,
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(100, description="Page size"),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
@@ -1480,6 +1480,14 @@ async def get_parsed_trips(
             )
         )
 
+    # Get total count for pagination BEFORE applying order_by and joins for sorting
+    # This prevents 'Expression of ORDER BY clause is not in SELECT list' errors with DISTINCT
+    total_count = query.distinct().count()
+
+    # Calculate pagination parameters
+    offset = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
+
     # Sorting
     if sort_by == "popularity":
         # Only admin users can sort by popularity (view count)
@@ -1527,10 +1535,8 @@ async def get_parsed_trips(
             query = query.order_by(sort_field.asc())
 
     # Apply pagination
-    if skip > 0:
-        query = query.offset(skip)
-    if limit > 0:
-        query = query.limit(limit)
+    if page_size > 0:
+        query = query.offset(offset).limit(page_size)
 
     trips = query.all()
     
@@ -1582,34 +1588,36 @@ async def get_parsed_trips(
         # Re-query with the enhanced results to get proper pagination with eager loading
         # Note: trips already have relationships loaded from the main query, so we can skip re-querying
         # Just ensure we respect pagination limits
-        if len(trips) > limit:
-            trips = trips[:limit]
+        if len(trips) > page_size:
+            trips = trips[:page_size]
 
-    # Process trips and add distance information if needed
+    # Process trips and add distance/coordinate information if needed
     trip_data = []
     for trip in trips:
         distance = None
-        if sort_by == "distance" and user_lat is not None and user_lon is not None:
-            # Calculate distance from user to dive site through the dives relationship
-            distance = None
-            for dive in trip.dives:
-                if dive.dive_site and dive.dive_site.latitude and dive.dive_site.longitude:
-                    distance = calculate_distance(
-                        user_lat, user_lon,
-                        float(dive.dive_site.latitude), float(dive.dive_site.longitude)
-                    )
-                    break  # Use the first dive site with coordinates
+        latitude = None
+        longitude = None
+        
+        # Determine coordinates based on priority (Dives > Diving Center)
+        for dive in trip.dives:
+            if dive.dive_site and dive.dive_site.latitude is not None and dive.dive_site.longitude is not None:
+                latitude = float(dive.dive_site.latitude)
+                longitude = float(dive.dive_site.longitude)
+                break
+        
+        if latitude is None and trip.diving_center and trip.diving_center.latitude is not None and trip.diving_center.longitude is not None:
+            latitude = float(trip.diving_center.latitude)
+            longitude = float(trip.diving_center.longitude)
             
-            # If no dive site coordinates, check diving center coordinates as fallback
-            if distance is None and trip.diving_center and trip.diving_center.latitude and trip.diving_center.longitude:
-                distance = calculate_distance(
-                    user_lat, user_lon,
-                    float(trip.diving_center.latitude), float(trip.diving_center.longitude)
-                )
+        if sort_by == "distance" and user_lat is not None and user_lon is not None:
+            if latitude is not None and longitude is not None:
+                distance = calculate_distance(user_lat, user_lon, latitude, longitude)
         
         trip_data.append({
             'trip': trip,
-            'distance': distance
+            'distance': distance,
+            'latitude': latitude,
+            'longitude': longitude
         })
 
     # Sort by distance if requested
@@ -1623,7 +1631,7 @@ async def get_parsed_trips(
             trip_data.sort(key=lambda x: x['distance'])
 
     # Build the response
-    response_data = [
+    items = [
         ParsedDiveTripResponse(
             id=td['trip'].id,
             diving_center_id=td['trip'].diving_center_id,
@@ -1640,6 +1648,8 @@ async def get_parsed_trips(
             special_requirements=td['trip'].special_requirements,
             trip_status=td['trip'].trip_status.value,
             diving_center_name=td['trip'].diving_center.name if td['trip'].diving_center else None,
+            latitude=td['latitude'],
+            longitude=td['longitude'],
             distance=td['distance'],
             dives=[
                 ParsedDiveResponse(
@@ -1669,6 +1679,14 @@ async def get_parsed_trips(
 
     # Return response with match type headers if available
     from fastapi.responses import Response
+
+    response_data = ParsedDiveTripListResponse(
+        items=items,
+        total=total_count,
+        page=page,
+        size=page_size,
+        pages=total_pages
+    )
     
     # Create response with custom headers if match types are available
     if match_types:
@@ -1693,17 +1711,12 @@ async def get_parsed_trips(
             logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
             # Return response without the header
             return Response(
-                content=orjson.dumps(serialized_trips),
+                content=orjson.dumps(response_data.model_dump()),
                 media_type="application/json"
             )
         
-        # Properly serialize the Pydantic models to handle datetime fields
-        serialized_trips = []
-        for trip in response_data:
-            serialized_trips.append(trip.model_dump())
-        
         response = Response(
-            content=orjson.dumps(serialized_trips),
+            content=orjson.dumps(response_data.model_dump()),
             media_type="application/json",
             headers={"X-Match-Types": match_types_json}
         )

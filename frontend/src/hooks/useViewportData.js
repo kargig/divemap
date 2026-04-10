@@ -158,8 +158,56 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       };
 
       try {
+        // Fetch dive trips FIRST if needed, so we can short-circuit if empty
+        if (entityType === 'dive-trips') {
+          const tripsParams = new URLSearchParams();
+          tripsParams.append('page_size', '1000'); // Max allowed page size
+          tripsParams.append('page', '1');
+
+          // Add filters
+          Object.entries(filters).forEach(([key, value]) => {
+            if (
+              value &&
+              value !== '' &&
+              [
+                'search',
+                'dive_site_id',
+                'diving_center_id',
+                'min_rating',
+                'max_rating',
+                'trip_status',
+                'difficulty_code',
+                'min_price',
+                'max_price',
+                'start_date',
+                'end_date',
+                'tag_ids',
+              ].includes(key)
+            ) {
+              if (Array.isArray(value)) {
+                value.forEach(v => tripsParams.append(key, v));
+              } else {
+                tripsParams.append(key, value);
+              }
+            } else if (key === 'exclude_unspecified_difficulty' && value) {
+              tripsParams.append('exclude_unspecified_difficulty', 'true');
+            }
+          });
+
+          const tripsResponse = await api.get(
+            `/api/v1/newsletters/trips?${tripsParams.toString()}`
+          );
+          results.dive_trips = tripsResponse.data;
+
+          // SHORT-CIRCUIT: If there are no dive trips, there is no need to fetch 
+          // dive sites or diving centers to plot them on the map.
+          if (!results.dive_trips?.items || results.dive_trips.items.length === 0) {
+            return results;
+          }
+        }
+
         // Fetch dive sites if needed
-        if (entityType === 'dive-sites' || entityType === 'dive-trips') {
+        if (entityType === 'dive-sites') {
           const diveSitesParams = new URLSearchParams();
           diveSitesParams.append('page_size', '1000'); // Max allowed page size
           diveSitesParams.append('page', '1');
@@ -273,7 +321,7 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
         }
 
         // Fetch diving centers if needed
-        if (entityType === 'diving-centers' || entityType === 'dive-trips') {
+        if (entityType === 'diving-centers') {
           const divingCentersParams = new URLSearchParams();
           divingCentersParams.append('page_size', '1000'); // Max allowed page size
           divingCentersParams.append('page', '1');
@@ -342,48 +390,6 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
 
           const divesResponse = await api.get(`/api/v1/dives/?${divesParams.toString()}`);
           results.dives = divesResponse.data;
-        }
-
-        // Fetch dive trips if needed
-        if (entityType === 'dive-trips') {
-          const tripsParams = new URLSearchParams();
-          tripsParams.append('page_size', '1000'); // Max allowed page size
-          tripsParams.append('page', '1');
-
-          // Add filters
-          Object.entries(filters).forEach(([key, value]) => {
-            if (
-              value &&
-              value !== '' &&
-              [
-                'search',
-                'dive_site_id',
-                'diving_center_id',
-                'min_rating',
-                'max_rating',
-                'trip_status',
-                'difficulty_code',
-                'min_price',
-                'max_price',
-                'start_date',
-                'end_date',
-                'tag_ids',
-              ].includes(key)
-            ) {
-              if (Array.isArray(value)) {
-                value.forEach(v => tripsParams.append(key, v));
-              } else {
-                tripsParams.append(key, value);
-              }
-            } else if (key === 'exclude_unspecified_difficulty' && value) {
-              tripsParams.append('exclude_unspecified_difficulty', 'true');
-            }
-          });
-
-          const tripsResponse = await api.get(
-            `/api/v1/newsletters/trips?${tripsParams.toString()}`
-          );
-          results.dive_trips = tripsResponse.data;
         }
 
         return results;

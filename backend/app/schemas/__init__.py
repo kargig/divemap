@@ -1065,6 +1065,8 @@ class ParsedDiveTripResponse(BaseModel):
     view_count: int = 0
     diving_center_name: Optional[str] = None
     max_depth: Optional[float] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter
@@ -1073,6 +1075,14 @@ class ParsedDiveTripResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ParsedDiveTripListResponse(BaseModel):
+    """Response for paginated trip lists"""
+    items: List[ParsedDiveTripResponse]
+    total: int
+    page: int
+    size: int
+    pages: int
 
 # Newsletter and Parsed Dive Trip Schemas
 class NewsletterUploadResponse(BaseModel):

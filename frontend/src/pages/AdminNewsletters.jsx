@@ -79,12 +79,14 @@ const AdminNewsletters = () => {
 
   // Query for parsed trips
   const {
-    data: trips,
+    data: tripsResponse,
     isLoading: tripsLoading,
     error: tripsError,
-  } = useQuery('parsedTrips', () => getParsedTrips(), {
+  } = useQuery('parsedTrips', () => getParsedTrips({ limit: 1000 }), {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
+
+  const trips = tripsResponse?.items || [];
 
   // Query for dive sites (for dropdown)
   const { data: diveSites = [] } = useQuery('dive-sites', () => getDiveSites({ page_size: 100 }), {

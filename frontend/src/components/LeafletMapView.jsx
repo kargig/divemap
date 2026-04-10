@@ -1216,36 +1216,11 @@ const LeafletMapView = ({
     // Process dive trips
     if (diveTripsArr.length > 0 && selectedEntityType === 'dive-trips') {
       diveTripsArr.forEach(trip => {
-        // For trips, we need to find coordinates from associated dive sites or diving centers
-        let latitude, longitude;
-
-        // Priority 1: Look for dive site coordinates from trip's dives
-        if (trip.dives && trip.dives.length > 0) {
-          const firstDive = trip.dives[0];
-          if (firstDive.dive_site_id && diveSitesArr.length > 0) {
-            // Find the dive site by ID in the loaded dive sites data
-            const diveSite = diveSitesArr.find(site => site.id === firstDive.dive_site_id);
-            if (diveSite && diveSite.latitude && diveSite.longitude) {
-              latitude = diveSite.latitude;
-              longitude = diveSite.longitude;
-            }
-          }
-        }
-
-        // Priority 2: Look for diving center coordinates
-        if ((!latitude || !longitude) && trip.diving_center_id && divingCentersArr.length > 0) {
-          // Find the diving center by ID in the loaded diving centers data
-          const divingCenter = divingCentersArr.find(center => center.id === trip.diving_center_id);
-          if (divingCenter && divingCenter.latitude && divingCenter.longitude) {
-            latitude = divingCenter.latitude;
-            longitude = divingCenter.longitude;
-          }
-        }
-
-        if (latitude && longitude) {
+        // Backend now returns latitude and longitude directly on the trip object
+        if (trip.latitude && trip.longitude) {
           allMarkers.push({
             id: `dive-trip-${trip.id}`,
-            position: [latitude, longitude],
+            position: [trip.latitude, trip.longitude],
             entityType: 'dive_trip',
             data: trip,
             icon: createEntityIcon('dive_trip'),
