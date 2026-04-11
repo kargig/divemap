@@ -1963,8 +1963,11 @@ async def create_dive_site(
     
     return response_data
 
+from fastapi_cache.decorator import cache
+
 @router.get("/countries", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")
+@cache(expire=3600)
 async def get_unique_countries(request: Request, search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
     """Get unique countries from dive sites with optional search"""
     query = db.query(DiveSite.country).filter(DiveSite.country.isnot(None))
@@ -1977,6 +1980,7 @@ async def get_unique_countries(request: Request, search: Optional[str] = Query(N
 
 @router.get("/regions", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")
+@cache(expire=3600)
 async def get_unique_regions(request: Request, country: Optional[str] = Query(None, max_length=100), search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
     """Get unique regions from dive sites with optional country and search filtering"""
     query = db.query(DiveSite.region).filter(DiveSite.region.isnot(None))

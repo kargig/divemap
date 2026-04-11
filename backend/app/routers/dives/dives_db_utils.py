@@ -5,7 +5,7 @@ This module contains common database operations and utilities
 that are shared across multiple dives modules.
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 from typing import Optional
 from app.models import Dive, DiveSite, AvailableTag
 from .dives_shared import logger
@@ -25,6 +25,6 @@ def get_dive_with_relations(db: Session, dive_id: int) -> Optional[Dive]:
     """Get dive by ID with all relations loaded."""
     return db.query(Dive).options(
         joinedload(Dive.dive_site),
-        joinedload(Dive.tags),
-        joinedload(Dive.media)
+        selectinload(Dive.tags),
+        selectinload(Dive.media)
     ).filter(Dive.id == dive_id).first()

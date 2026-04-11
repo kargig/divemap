@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, desc, or_, and_
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -278,7 +278,7 @@ async def list_chat_rooms(
         b2c_manager_condition = False
 
     rooms = db.query(UserChatRoom).options(
-        joinedload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
+        selectinload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
         joinedload(UserChatRoom.diving_center)
     ).filter(
         or_(

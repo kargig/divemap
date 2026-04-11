@@ -130,6 +130,11 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     
+    # Initialize fastapi-cache for tests
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache-test")
+
     # Create TestClient with specific configuration to handle anyio issues
     test_client = TestClient(app, raise_server_exceptions=False)
     

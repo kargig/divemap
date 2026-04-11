@@ -43,3 +43,4 @@ python-magic==0.4.27
 tenacity==8.2.3
 cachetools==5.5.2
 rapidfuzz==3.14.3
+fastapi-cache2==0.2.1

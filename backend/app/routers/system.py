@@ -39,7 +39,10 @@ async def get_system_metrics(
     # Get system health (reuse existing endpoint logic)
     return await get_system_health(current_user, db)
 
+from fastapi_cache.decorator import cache
+
 @router.get("/statistics")
+@cache(expire=300)
 async def get_general_statistics(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
@@ -545,6 +548,7 @@ async def get_system_health(
     }
 
 @router.get("/stats", response_model=PlatformStatsResponse)
+@cache(expire=300)
 async def get_platform_stats(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)

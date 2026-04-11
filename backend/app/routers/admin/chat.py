@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, desc
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
@@ -87,7 +87,7 @@ async def get_session_detail(
     """
     Get full transcript for a chat session.
     """
-    session = db.query(ChatSession).options(joinedload(ChatSession.user), joinedload(ChatSession.messages)).filter(ChatSession.id == session_id).first()
+    session = db.query(ChatSession).options(joinedload(ChatSession.user), selectinload(ChatSession.messages)).filter(ChatSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Chat session not found")
     

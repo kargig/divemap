@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
 from app.database import get_db
@@ -53,7 +53,7 @@ async def get_pending_edit_requests(db: Session = Depends(get_db), current_user:
     requests = db.query(DiveSiteEditRequest)\
         .options(
             joinedload(DiveSiteEditRequest.requested_by),
-            joinedload(DiveSiteEditRequest.dive_site).joinedload(DiveSite.media)
+            joinedload(DiveSiteEditRequest.dive_site).selectinload(DiveSite.media)
         )\
         .filter(DiveSiteEditRequest.status == EditRequestStatus.pending)\
         .all()

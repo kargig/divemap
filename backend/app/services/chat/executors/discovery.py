@@ -64,9 +64,10 @@ def execute_discovery(
     
     # 1. Search Dive Sites
     if not entity_type_filter or entity_type_filter == 'dive_site':
+        from sqlalchemy.orm import selectinload
         search_query = db.query(DiveSite).options(
             joinedload(DiveSite.difficulty),
-            joinedload(DiveSite.ratings)
+            selectinload(DiveSite.ratings)
         )
         
         has_filters = False
