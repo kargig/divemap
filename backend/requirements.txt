@@ -1,5 +1,6 @@
 fastapi==0.116.1
 uvicorn[standard]==0.24.0
+gunicorn==21.2.0
 sqlalchemy==2.0.23
 pymysql==1.1.1
 python-multipart==0.0.20

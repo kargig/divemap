@@ -38,7 +38,6 @@ export const useViewportData = (viewport, filters, selectedEntityType, windDateT
       }
       return prev; // No immediate update needed
     });
-
     const timer = setTimeout(() => {
       setDebouncedViewport(viewport);
     }, 300); // 300ms debounce: fast enough to feel instant, slow enough to prevent API spam while actively dragging

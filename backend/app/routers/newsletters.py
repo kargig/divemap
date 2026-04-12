@@ -2202,8 +2202,11 @@ async def get_parsed_trip(
     Requires authentication but allows all authenticated users to view trips.
     """
 
-    # Eager load difficulty relationship
-    trip = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.difficulty)).filter(ParsedDiveTrip.id == trip_id).first()
+    # Eager load difficulty relationship and dives collection to prevent N+1 queries
+    trip = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.difficulty),
+        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
+    ).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
