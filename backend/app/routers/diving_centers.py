@@ -611,7 +611,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=DivingCenterListResponse)
+@router.get("/", response_model=DivingCenterListResponse, response_model_exclude_none=True)
 async def get_diving_centers(
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
     name: Optional[str] = Query(None, max_length=100),

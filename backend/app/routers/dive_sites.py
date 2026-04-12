@@ -884,7 +884,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=DiveSiteListResponse)
+@router.get("/", response_model=DiveSiteListResponse, response_model_exclude_none=True)
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites(
     request: Request,

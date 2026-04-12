@@ -260,7 +260,13 @@ class TestDivingCenters:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         items = data.get("items", [])
-        assert any(item["name"] == "Null Coords Center List" and item["latitude"] is None and item["longitude"] is None for item in items)
+        
+        # Find the specific center to verify
+        target_center = next((item for item in items if item["name"] == "Null Coords Center List"), None)
+        assert target_center is not None
+        # With response_model_exclude_none=True, null fields are omitted entirely
+        assert "latitude" not in target_center or target_center["latitude"] is None
+        assert "longitude" not in target_center or target_center["longitude"] is None
 
     def test_delete_diving_center_admin_success(self, client, admin_headers, test_diving_center):
         """Test deleting diving center as admin."""

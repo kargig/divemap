@@ -904,8 +904,10 @@ class TestDives:
 
         # Check dive without center
         dive_without_center_data = next(d for d in data["items"] if d["name"] == "Dive without Center")
-        assert dive_without_center_data["diving_center_id"] is None
-        assert dive_without_center_data["diving_center"] is None
+        # With response_model_exclude_none=True, null fields are omitted entirely
+        assert "diving_center_id" not in dive_without_center_data or dive_without_center_data["diving_center_id"] is None
+
+        assert "diving_center_name" not in dive_without_center_data or dive_without_center_data["diving_center_name"] is None
 
     def test_admin_get_dives_with_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
         """Test admin getting dives with diving center information."""

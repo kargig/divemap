@@ -474,7 +474,7 @@ def get_dives_count(
 
     return {"total": total_count}
 
-@router.get("/", response_model=DiveListResponse)
+@router.get("/", response_model=DiveListResponse, response_model_exclude_none=True)
 def get_dives(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),

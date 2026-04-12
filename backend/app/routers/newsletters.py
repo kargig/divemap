@@ -1329,7 +1329,7 @@ async def get_newsletters(
 
     return result
 
-@router.get("/trips", response_model=ParsedDiveTripListResponse)
+@router.get("/trips", response_model=ParsedDiveTripListResponse, response_model_exclude_none=True)
 async def get_parsed_trips(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
