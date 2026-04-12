@@ -216,13 +216,13 @@ async function recordScenario(scenario, iterations, concurrency) {
   console.log(`  Running Mode 1: Single Query (Sequential)...`);
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
+    let allSuccess = true;
     for (const req of scenario.requests) {
       const res = await measureRequest(req);
-      if (res.success) {
-        results.single.requests[req].push(res);
-      }
+      results.single.requests[req].push(res);
+      if (!res.success) allSuccess = false;
     }
-    results.single.total_durations.push(performance.now() - start);
+    results.single.total_durations.push({ duration: performance.now() - start, success: allSuccess });
   }
 
   // --- Mode 2: Browser Execution ---
@@ -230,35 +230,34 @@ async function recordScenario(scenario, iterations, concurrency) {
   console.log(`  Running Mode 2: Single Browser (Parallel calls)...`);
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
+    let allSuccess = true;
     const reqPromises = scenario.requests.map(async req => {
       const res = await measureRequest(req);
-      if (res.success) {
-        results.browser.requests[req].push(res);
-      }
+      results.browser.requests[req].push(res);
+      if (!res.success) allSuccess = false;
     });
     await Promise.all(reqPromises);
-    results.browser.total_durations.push(performance.now() - start);
+    results.browser.total_durations.push({ duration: performance.now() - start, success: allSuccess });
   }
 
   // --- Mode 3: Concurrent Execution ---
-  // Simulates Z users opening the page at the exact same millisecond.
+  // Simulates Z users opening the page at the exact same millisecond. 
   console.log(`  Running Mode 3: Concurrent Load (${concurrency} users)...`);
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
+    let allSuccess = true;
     const userPromises = Array.from({ length: concurrency }).map(async () => {
       // One user firing all scenario requests in parallel
       const reqPromises = scenario.requests.map(async req => {
         const res = await measureRequest(req);
-        if (res.success) {
-          results.concurrent.requests[req].push(res);
-        }
+        results.concurrent.requests[req].push(res);
+        if (!res.success) allSuccess = false;
       });
       await Promise.all(reqPromises);
     });
     await Promise.all(userPromises);
-    results.concurrent.total_durations.push(performance.now() - start);
+    results.concurrent.total_durations.push({ duration: performance.now() - start, success: allSuccess });
   }
-
   return results;
 }
 
@@ -280,10 +279,13 @@ async function runRecord(filename) {
 }
 
 function calculateMetrics(arr) {
-  if (!arr || arr.length === 0) return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0, size: 0, count: 0 };
+  if (!arr || arr.length === 0) return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0, size: 0, count: 0, total: 0 };
 
-  const durations = arr.map(a => typeof a === 'number' ? a : a.duration).sort((a, b) => a - b);
-  const size = arr[0]?.size || 0; // Take size from first successful request
+  const successes = arr.filter(a => typeof a === 'number' || a.success !== false);
+  const durations = successes.map(a => typeof a === 'number' ? a : a.duration).sort((a, b) => a - b);
+  const size = successes[0]?.size || 0;
+
+  if (durations.length === 0) return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0, size: 0, count: 0, total: arr.length };
 
   const sum = durations.reduce((a, b) => a + b, 0);
   return {
@@ -295,7 +297,8 @@ function calculateMetrics(arr) {
     p95: durations[Math.floor(durations.length * 0.95)],
     p99: durations[Math.floor(durations.length * 0.99)],
     size: size,
-    count: durations.length
+    count: durations.length,
+    total: arr.length
   };
 }
 
@@ -355,7 +358,7 @@ function runCompare(file1, file2) {
 
       const sizeStr = tReq.size ? (tReq.size / 1024).toFixed(1) + 'KB' : '0KB';
 
-      console.log(`| \`${reqDisplay}\` | ${bReq.avg.toFixed(2)}ms | ${formatDiff(bReq.avg, tReq.avg)} | ${bReq.p95.toFixed(2)}ms | ${formatDiff(bReq.p95, tReq.p95)} | ${sizeStr} | ${tReq.count} |`);
+      console.log(`| \`${reqDisplay}\` | ${bReq.avg.toFixed(2)}ms | ${formatDiff(bReq.avg, tReq.avg)} | ${bReq.p95.toFixed(2)}ms | ${formatDiff(bReq.p95, tReq.p95)} | ${sizeStr} | ${tReq.count}/${tReq.total || tReq.count} |`);
     }
     console.log(`\n`);
   }
