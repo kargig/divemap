@@ -337,10 +337,36 @@ def get_dives_count(
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        query = query.filter(
-            DiveSite.latitude.between(south, north),
-            DiveSite.longitude.between(west, east)
-        )
+            
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DiveSite.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DiveSite.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DiveSite.longitude >= west) | (DiveSite.longitude <= east)
+                )
 
     if dive_site_name:
         # Join with DiveSite table to filter by dive site name
@@ -551,10 +577,36 @@ def get_dives(
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        query = query.filter(
-            DiveSite.latitude.between(south, north),
-            DiveSite.longitude.between(west, east)
-        )
+            
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DiveSite.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DiveSite.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DiveSite.longitude >= west) | (DiveSite.longitude <= east)
+                )
 
     # Filter by username (partial match)
     if username:

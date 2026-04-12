@@ -241,7 +241,7 @@ async function recordScenario(scenario, iterations, concurrency) {
   }
 
   // --- Mode 3: Concurrent Execution ---
-  // Simulates Z users opening the page at the exact same millisecond. 
+  // Simulates Z users opening the page at the exact same millisecond.
   console.log(`  Running Mode 3: Concurrent Load (${concurrency} users)...`);
   for (let i = 0; i < iterations; i++) {
     const start = performance.now();
@@ -302,12 +302,12 @@ function calculateMetrics(arr) {
   };
 }
 
-function formatDiff(base, target) {
+function formatDiff(base, target, unit = 'ms') {
   const diff = target - base;
   const pct = base > 0 ? (diff / base) * 100 : 0;
   const sign = pct > 0 ? '+' : '';
   const color = pct > 0 ? '\x1b[31m' : '\x1b[32m';
-  return `${target.toFixed(2)}ms (${color}${sign}${pct.toFixed(2)}%\x1b[0m)`;
+  return `${target.toFixed(1)}${unit} (${color}${sign}${pct.toFixed(2)}%\x1b[0m)`;
 }
 
 function runCompare(file1, file2) {
@@ -331,19 +331,19 @@ function runCompare(file1, file2) {
 
     // Overall execution time
     console.log(`\n1. Overall Execution Time (Total time to resolve all requests for the scenario)`);
-    console.log(`| Mode | Base Avg | Target Avg | Base P95 | Target P95 | Base Max | Target Max |`);
+    console.log(`| Mode | Trimmed Avg | Target Avg | Base P50 (Median) | Target P50 | Base P95 | Target P95 |`);
     console.log(`|---|---|---|---|---|---|---|`);
 
     for (const mode of ['single', 'browser', 'concurrent']) {
       const bMetrics = calculateMetrics(baseData[mode].total_durations);
       const tMetrics = calculateMetrics(targetData[mode].total_durations);
 
-      console.log(`| ${mode.toUpperCase()} | ${bMetrics.avg.toFixed(2)}ms | ${formatDiff(bMetrics.avg, tMetrics.avg)} | ${bMetrics.p95.toFixed(2)}ms | ${formatDiff(bMetrics.p95, tMetrics.p95)} | ${bMetrics.max.toFixed(2)}ms | ${formatDiff(bMetrics.max, tMetrics.max)} |`);
+      console.log(`| ${mode.toUpperCase()} | ${bMetrics.avg.toFixed(2)}ms | ${formatDiff(bMetrics.avg, tMetrics.avg, 'ms')} | ${bMetrics.p50.toFixed(2)}ms | ${formatDiff(bMetrics.p50, tMetrics.p50, 'ms')} | ${bMetrics.p95.toFixed(2)}ms | ${formatDiff(bMetrics.p95, tMetrics.p95, 'ms')} |`);
     }
 
     // Individual Requests Breakdown (Measured during CONCURRENT load)
     console.log(`\n2. Individual Endpoint Breakdown (Measured during CONCURRENT load)`);
-    console.log(`| API Endpoint | Base Avg | Target Avg | Base P95 | Target P95 | Size (Tgt) | Success |`);
+    console.log(`| API Endpoint | Trimmed Avg | Target Avg | Base P50 | Target P50 | Size (Tgt) | Success (Base->Tgt) |`);
     console.log(`|---|---|---|---|---|---|---|`);
 
     for (const req of Object.keys(baseData.concurrent.requests)) {
@@ -356,11 +356,22 @@ function runCompare(file1, file2) {
       if (req.includes('?')) reqDisplay += '?…';
       if (reqDisplay.length > 30) reqDisplay = reqDisplay.substring(0, 27) + '...';
 
-      const sizeStr = tReq.size ? (tReq.size / 1024).toFixed(1) + 'KB' : '0KB';
+      let sizeDisplay = '0.0KB';
+      if (tReq.size || bReq.size) {
+         sizeDisplay = formatDiff(bReq.size / 1024, tReq.size / 1024, 'KB');
+      }
 
-      console.log(`| \`${reqDisplay}\` | ${bReq.avg.toFixed(2)}ms | ${formatDiff(bReq.avg, tReq.avg)} | ${bReq.p95.toFixed(2)}ms | ${formatDiff(bReq.p95, tReq.p95)} | ${sizeStr} | ${tReq.count}/${tReq.total || tReq.count} |`);
-    }
-    console.log(`\n`);
+      const baseSuccessStr = `${bReq.count}/${bReq.total || bReq.count}`;
+      const targetSuccessStr = `${tReq.count}/${tReq.total || tReq.count}`;
+
+      // Highlight success drops in red
+      let successDisplay = `${baseSuccessStr} -> ${targetSuccessStr}`;
+      if (tReq.count < bReq.count) {
+        successDisplay = `\x1b[31m${successDisplay}\x1b[0m`;
+      }
+
+      console.log(`| \`${reqDisplay}\` | ${bReq.avg.toFixed(2)}ms | ${formatDiff(bReq.avg, tReq.avg, 'ms')} | ${bReq.p50.toFixed(2)}ms | ${formatDiff(bReq.p50, tReq.p50, 'ms')} | ${sizeDisplay} | ${successDisplay} |`);
+    }    console.log(`\n`);
   }
 }
 

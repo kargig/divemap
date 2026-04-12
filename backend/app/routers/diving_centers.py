@@ -694,10 +694,35 @@ async def get_diving_centers(
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
-        query = query.filter(
-            DivingCenter.latitude.between(south, north),
-            DivingCenter.longitude.between(west, east)
-        )
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DivingCenter.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DivingCenter.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DivingCenter.longitude >= west) | (DivingCenter.longitude <= east)
+                )
 
     # Apply unified search across multiple fields (case-insensitive)
     if search:
