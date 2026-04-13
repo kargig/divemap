@@ -30,7 +30,7 @@
 
 const fs = require('fs');
 
-const BASE_URL = process.env.PERF_TEST_API_URL || 'http://localhost:8000';
+const BASE_URL = process.env.PERF_TEST_API_URL || 'http://localhost:80';
 const API_TOKEN = process.env.PERF_TEST_API_TOKEN || '';
 const ITERATIONS = parseInt(process.env.PERF_TEST_ITERATIONS || '20', 10);
 const CONCURRENCY = parseInt(process.env.PERF_TEST_CONCURRENCY || '5', 10);
