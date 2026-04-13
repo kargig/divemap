@@ -487,7 +487,11 @@ const ResponsiveFilterBar = ({
                 label='Sort by:'
                 className='flex-row items-center gap-2'
                 value={sortBy}
-                onValueChange={value => onSortChange(value, sortOrder)}
+                onValueChange={value => {
+                  const option = sortOptions.find(opt => opt.value === value);
+                  const nextOrder = option?.defaultOrder ?? sortOrder;
+                  onSortChange(value, nextOrder);
+                }}
                 options={sortOptions.map(opt => ({ value: opt.value, label: opt.label }))}
               />
 

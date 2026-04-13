@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct
+from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct, literal_column
 from slowapi.util import get_remote_address
 from datetime import datetime, timedelta
 import difflib
@@ -316,7 +316,7 @@ def apply_rating_filtering(query, min_rating, db):
     return query
 
 
-def apply_sorting(query, sort_by, sort_order, current_user):
+def apply_sorting(query, sort_by, sort_order, current_user, ratings_subquery=None):
     """
     Apply sorting logic to a query.
 
@@ -325,6 +325,7 @@ def apply_sorting(query, sort_by, sort_order, current_user):
         sort_by: Field to sort by
         sort_order: Sort order ('asc' or 'desc')
         current_user: Current authenticated user
+        ratings_subquery: Optional aggregated ratings subquery (required when sort_by is average_rating)
 
     Returns:
         Sorted query object
@@ -392,12 +393,13 @@ def apply_sorting(query, sort_by, sort_order, current_user):
                 query = query.outerjoin(DiveRoute, and_(DiveSite.id == DiveRoute.dive_site_id, DiveRoute.deleted_at.is_(None))).group_by(DiveSite.id)
                 sort_field = func.count(DiveRoute.id)
         elif sort_by == 'average_rating':
-            if 'avg_rating' in [c.name for c in query.column_descriptions if hasattr(c, 'name')]:
-                sort_field = text('avg_rating')
-            else:
-                from app.models import SiteRating
-                query = query.outerjoin(SiteRating).group_by(DiveSite.id)
-                sort_field = func.avg(SiteRating.score)
+            # ratings_subquery.c.avg_rating still traces to ORM (func.avg(SiteRating.score)); during
+            # distinct().count() SQLAlchemy rewrites ORDER BY to avg(site_ratings.score) and adds
+            # duplicate JOINs to site_ratings (MySQL 1066). Use a literal qualified column on the
+            # named Core-built subquery instead.
+            if ratings_subquery is None:
+                raise RuntimeError("ratings_subquery is required when sort_by is average_rating")
+            sort_field = literal_column(f"{ratings_subquery.name}.avg_rating")
         elif sort_by == 'created_at':
             sort_field = DiveSite.created_at
         elif sort_by == 'updated_at':
@@ -1030,14 +1032,17 @@ async def get_dive_sites(
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
+        from app.utils import get_rounded_buffered_bounds
+        north, south, east, west = get_rounded_buffered_bounds(north, south, east, west)
+        
         query = query.filter(
             DiveSite.latitude.between(south, north),
             DiveSite.longitude.between(west, east)
         )
 
     # Apply sorting using utility function
-    query = apply_sorting(query, sort_by, sort_order, current_user)
-
+    # Removed premature sorting call here to prevent subquery aliasing conflicts later
+    
     # Apply wind suitability filtering if requested
     if wind_suitability is not None:
         try:
@@ -1201,13 +1206,32 @@ async def get_dive_sites(
             # If any error occurs, return empty result when filtering by suitability
             query = query.filter(False)
 
-    # Define subqueries for metadata to avoid N+1 queries
+    # Pagination total: count filtered sites via a distinct-ID subquery only (no metadata JOINs,
+    # no ORDER BY). Calling .distinct().count() on the later query that outer-joins rating
+    # subqueries and orders by average_rating makes SQLAlchemy emit duplicate JOINs to
+    # site_ratings on MySQL (OperationalError 1066).
+    _count_q = query._generate()
+    count_id_subq = (
+        _count_q.enable_eagerloads(False)
+        .with_entities(DiveSite.id)
+        .distinct()
+        .subquery(name="ds_matching_ids")
+    )
+    total_count = db.execute(select(func.count()).select_from(count_id_subq)).scalar_one()
+
+    # Define subqueries for metadata to avoid N+1 queries.
+    # Build ratings aggregate with Core (SiteRating.__table__) so ORDER BY does not unwrap to
+    # avg(site_ratings.score) and duplicate JOINs during count().
     from app.models import SiteRating, SiteComment, DiveRoute
-    ratings_subquery = db.query(
-        SiteRating.dive_site_id,
-        func.avg(SiteRating.score).label('avg_rating'),
-        func.count(SiteRating.id).label('total_ratings')
-    ).group_by(SiteRating.dive_site_id).subquery()
+    _sr = SiteRating.__table__
+    ratings_subquery = (
+        select(
+            _sr.c.dive_site_id,
+            func.avg(_sr.c.score).label("avg_rating"),
+            func.count(_sr.c.id).label("total_ratings"),
+        )
+        .group_by(_sr.c.dive_site_id)
+    ).subquery(name="ds_rating_agg")
 
     comments_subquery = db.query(
         SiteComment.dive_site_id,
@@ -1232,10 +1256,7 @@ async def get_dive_sites(
 
     # Apply sorting using updated apply_sorting
     if sort_by:
-        query = apply_sorting(query, sort_by, sort_order, current_user)
-
-    # Get total count for pagination before adding extra columns
-    total_count = query.distinct().count()
+        query = apply_sorting(query, sort_by, sort_order, current_user, ratings_subquery)
 
     # Add metadata columns to the query results for fetching
     query = query.add_columns(

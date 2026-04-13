@@ -15,8 +15,17 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models import (
-    DiveSite, DivingCenter, Dive, User, ParsedDiveTrip, 
-    DiveSiteAlias, DiveTag, AvailableTag, ParsedDive, DifficultyLevel
+    DiveSite,
+    DivingCenter,
+    Dive,
+    User,
+    ParsedDiveTrip,
+    DiveSiteAlias,
+    DiveTag,
+    AvailableTag,
+    ParsedDive,
+    DifficultyLevel,
+    SiteRating,
 )
 from app.schemas import (
     DiveSiteSearchParams, DivingCenterSearchParams, 
@@ -59,6 +68,15 @@ class TestDiveSitesSorting:
         assert response.status_code == 403
         assert "Sorting by view_count is only available for admin users" in response.json()["detail"]
     
+    def test_sort_by_average_rating_asc(self, client, sample_dive_sites):
+        """Sorting by average_rating must not duplicate site_ratings joins (MySQL 1066)."""
+        response = client.get(
+            "/api/v1/dive-sites/?sort_by=average_rating&sort_order=asc&page=1&page_size=25"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "items" in data
+
     def test_sort_by_created_at_desc(self, client, sample_dive_sites):
         """Test sorting dive sites by creation date in descending order."""
         response = client.get("/api/v1/dive-sites/?sort_by=created_at&sort_order=desc&page=1&page_size=25")
@@ -93,6 +111,70 @@ class TestDiveSitesSorting:
         assert response.status_code == 400
         data = response.json()
         assert "sort_order must be 'asc' or 'desc'" in data["detail"]
+
+    def test_sort_by_region_asc(self, client, sample_dive_sites):
+        """Regions sort case-insensitively (Crete, Rhodes, Santorini)."""
+        response = client.get("/api/v1/dive-sites/?sort_by=region&sort_order=asc&page=1&page_size=25")
+        assert response.status_code == 200
+        regions = [s["region"] for s in response.json()["items"]]
+        assert regions == sorted(regions, key=lambda x: (x or "").lower())
+
+    def test_sort_by_updated_at_desc(self, client, sample_dive_sites):
+        response = client.get("/api/v1/dive-sites/?sort_by=updated_at&sort_order=desc&page=1&page_size=25")
+        assert response.status_code == 200
+        times = [datetime.fromisoformat(s["updated_at"]) for s in response.json()["items"]]
+        assert times == sorted(times, reverse=True)
+
+    def test_sort_by_difficulty_level_asc(self, client, sample_dive_sites):
+        response = client.get(
+            "/api/v1/dive-sites/?sort_by=difficulty_level&sort_order=asc&page=1&page_size=25"
+        )
+        assert response.status_code == 200
+        codes = [s["difficulty_code"] for s in response.json()["items"] if s.get("difficulty_code")]
+        rank = {"OPEN_WATER": 1, "ADVANCED_OPEN_WATER": 2, "DEEP_NITROX": 3, "TECHNICAL_DIVING": 4}
+        keys = [rank.get(c, 0) for c in codes]
+        assert keys == sorted(keys)
+
+    def test_admin_sort_by_view_count_desc(self, client, sample_dive_sites, admin_headers):
+        response = client.get(
+            "/api/v1/dive-sites/?sort_by=view_count&sort_order=desc&page=1&page_size=25",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        views = [s["view_count"] for s in response.json()["items"]]
+        assert views == sorted(views, reverse=True)
+
+    def test_sort_by_average_rating_desc_order(self, client, sample_dive_sites_with_ratings):
+        """Average rating desc: highest-rated site first."""
+        response = client.get(
+            "/api/v1/dive-sites/?sort_by=average_rating&sort_order=desc&page=1&page_size=25"
+        )
+        assert response.status_code == 200
+        items = response.json()["items"]
+        ours = [s for s in items if s["name"].startswith("RatingSort ")]
+        assert [s["name"] for s in ours] == ["RatingSort High", "RatingSort Mid", "RatingSort Low"]
+
+    def test_sort_by_country_asc_distinct_countries(self, client, db_session):
+        """Lexicographic country sort across distinct values."""
+        ow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "OPEN_WATER").first()
+        did = ow.id if ow else 1
+        sites = [
+            DiveSite(name="CountrySort Malta", country="Malta", region="r", difficulty_id=did, latitude=35.0, longitude=14.0),
+            DiveSite(name="CountrySort Albania", country="Albania", region="r", difficulty_id=did, latitude=41.0, longitude=20.0),
+            DiveSite(name="CountrySort Greece", country="Greece", region="r", difficulty_id=did, latitude=37.0, longitude=24.0),
+        ]
+        db_session.add_all(sites)
+        db_session.commit()
+        try:
+            r = client.get("/api/v1/dive-sites/?sort_by=country&sort_order=asc&page=1&page_size=100")
+            assert r.status_code == 200
+            subset = [x for x in r.json()["items"] if x["name"].startswith("CountrySort ")]
+            assert [x["country"] for x in subset] == ["Albania", "Greece", "Malta"]
+        finally:
+            db_session.query(DiveSite).filter(DiveSite.name.startswith("CountrySort ")).delete(
+                synchronize_session=False
+            )
+            db_session.commit()
 
 
 class TestDivingCentersSorting:
@@ -141,6 +223,48 @@ class TestDivingCentersSorting:
         # Verify sorting order (by name, ascending)
         names = [center["name"] for center in diving_centers]
         assert names == sorted(names)
+
+    def test_invalid_sort_field(self, client, sample_diving_centers):
+        response = client.get("/api/v1/diving-centers/?sort_by=not_a_field&sort_order=asc&page=1&page_size=25")
+        assert response.status_code == 400
+        assert "Invalid sort_by field" in response.json()["detail"]
+
+    def test_sort_by_created_at_desc(self, client, sample_diving_centers):
+        response = client.get(
+            "/api/v1/diving-centers/?sort_by=created_at&sort_order=desc&page=1&page_size=25"
+        )
+        assert response.status_code == 200
+        times = [datetime.fromisoformat(c["created_at"]) for c in response.json()["items"]]
+        assert times == sorted(times, reverse=True)
+
+    def test_sort_by_updated_at_asc(self, client, sample_diving_centers):
+        response = client.get(
+            "/api/v1/diving-centers/?sort_by=updated_at&sort_order=asc&page=1&page_size=25"
+        )
+        assert response.status_code == 200
+        times = [datetime.fromisoformat(c["updated_at"]) for c in response.json()["items"]]
+        assert times == sorted(times)
+
+    def test_sort_by_country_region_city(self, client, sample_diving_centers_geo):
+        """Geographic fields sort lexicographically."""
+        r = client.get("/api/v1/diving-centers/?sort_by=country&sort_order=asc&page=1&page_size=25")
+        assert r.status_code == 200
+        countries = [c["country"] for c in r.json()["items"] if c["name"].startswith("GeoCenter ")]
+        assert countries == ["Albania", "Greece", "Malta"]
+
+        r2 = client.get("/api/v1/diving-centers/?sort_by=city&sort_order=desc&page=1&page_size=25")
+        assert r2.status_code == 200
+        cities = [c["city"] for c in r2.json()["items"] if c["name"].startswith("GeoCenter ")]
+        assert cities == sorted(cities, reverse=True)
+
+    def test_admin_sort_by_view_count_desc(self, client, sample_diving_centers, admin_headers):
+        response = client.get(
+            "/api/v1/diving-centers/?sort_by=view_count&sort_order=desc&page=1&page_size=25",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        views = [c["view_count"] for c in response.json()["items"]]
+        assert views == sorted(views, reverse=True)
 
 
 class TestDivesSorting:
@@ -213,6 +337,26 @@ class TestDivesSorting:
         response = client.get("/api/v1/dives/?sort_by=view_count&sort_order=desc&page=1&page_size=25")
         assert response.status_code == 403
         assert "Sorting by view_count is only available for admin users" in response.json()["detail"]
+
+    def test_sort_by_visibility_rating_desc(self, client, sample_dives):
+        response = client.get("/api/v1/dives/?sort_by=visibility_rating&sort_order=desc&page=1&page_size=25")
+        assert response.status_code == 200
+        ratings = [d["visibility_rating"] for d in response.json()["items"] if d.get("visibility_rating") is not None]
+        assert ratings == sorted(ratings, reverse=True)
+
+    def test_invalid_sort_field(self, client, sample_dives):
+        response = client.get("/api/v1/dives/?sort_by=bad_field&sort_order=asc&page=1&page_size=25")
+        assert response.status_code == 400
+        assert "Invalid sort_by field" in response.json()["detail"]
+
+    def test_admin_sort_by_view_count_desc(self, client, sample_dives, admin_headers):
+        response = client.get(
+            "/api/v1/dives/?sort_by=view_count&sort_order=desc&page=1&page_size=25",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        counts = [d["view_count"] for d in response.json()["items"]]
+        assert counts == sorted(counts, reverse=True)
     
     def test_default_sorting(self, client, sample_dives):
         """Test that default sorting by dive date works correctly."""
@@ -258,7 +402,25 @@ class TestDiveTripsSorting:
         response = client.get("/api/v1/newsletters/trips?sort_by=popularity&sort_order=desc&page=1&page_size=10")
         assert response.status_code == 403
         assert "Sorting by popularity is only available for admin users" in response.json()["detail"]
-    
+
+    def test_sort_by_popularity_admin_returns_200(self, client, sample_dive_trips, admin_headers):
+        response = client.get(
+            "/api/v1/newsletters/trips?sort_by=popularity&sort_order=desc&page=1&page_size=10",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        assert "items" in response.json()
+
+    def test_sort_by_created_at_desc(self, client, sample_dive_trips):
+        response = client.get(
+            "/api/v1/newsletters/trips?sort_by=created_at&sort_order=desc&page=1&page_size=10"
+        )
+        assert response.status_code == 200
+        items = response.json().get("items", [])
+        if len(items) >= 2:
+            times = [datetime.fromisoformat(t["created_at"]) for t in items]
+            assert times == sorted(times, reverse=True)
+
     def test_sort_by_distance(self, client, sample_dive_trips):
         """Test sorting dive trips by distance from user location."""
         user_lat = 37.9838  # Athens, Greece
@@ -393,29 +555,76 @@ def sample_diving_centers(db_session: Session):
             name="Alpha Diving",
             view_count=150,
             created_at=datetime.now() - timedelta(days=5),
-            updated_at=datetime.now() - timedelta(days=1)
+            updated_at=datetime.now() - timedelta(days=1),
+            latitude=35.0,
+            longitude=25.0,
         ),
         DivingCenter(
             name="Beta Diving",
             view_count=300,
             created_at=datetime.now() - timedelta(days=3),
-            updated_at=datetime.now() - timedelta(days=2)
+            updated_at=datetime.now() - timedelta(days=2),
+            latitude=35.1,
+            longitude=25.1,
         ),
         DivingCenter(
             name="Gamma Diving",
             view_count=75,
             created_at=datetime.now() - timedelta(days=1),
-            updated_at=datetime.now()
-        )
+            updated_at=datetime.now(),
+            latitude=35.2,
+            longitude=25.2,
+        ),
     ]
-    
+
     db_session.add_all(diving_centers)
     db_session.commit()
-    
+
     yield diving_centers
-    
+
     # Cleanup
     db_session.query(DivingCenter).delete()
+    db_session.commit()
+
+
+@pytest.fixture
+def sample_diving_centers_geo(db_session: Session):
+    """Centers with distinct country / city for geographic sort tests."""
+    centers = [
+        DivingCenter(
+            name="GeoCenter Malta",
+            country="Malta",
+            region="South",
+            city="Valletta",
+            latitude=35.9,
+            longitude=14.5,
+            view_count=10,
+        ),
+        DivingCenter(
+            name="GeoCenter Albania",
+            country="Albania",
+            region="South",
+            city="Sarande",
+            latitude=39.5,
+            longitude=20.0,
+            view_count=20,
+        ),
+        DivingCenter(
+            name="GeoCenter Greece",
+            country="Greece",
+            region="Attica",
+            city="Athens",
+            latitude=37.9,
+            longitude=23.7,
+            view_count=30,
+        ),
+    ]
+    db_session.add_all(centers)
+    db_session.commit()
+    yield centers
+    db_session.query(DivingCenter).filter(DivingCenter.name.startswith("GeoCenter ")).delete(
+        synchronize_session=False
+    )
     db_session.commit()
 
 
@@ -526,14 +735,14 @@ def sample_users(db_session: Session):
             username="testuser_sorting_1",
             email="test1_sorting@example.com",
             password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
-            enabled=True
+            enabled=True,
         ),
         User(
             username="testuser_sorting_2",
             email="test2_sorting@example.com",
             password_hash="$2b$12$Qf4ceC4ETacht.pNDme/H.nTnGtc7bNpWDZD2R39K.1Nh32oH7cfy",  # "password"
-            enabled=True
-        )
+            enabled=True,
+        ),
     ]
 
     db_session.add_all(users)
@@ -543,4 +752,59 @@ def sample_users(db_session: Session):
 
     # Cleanup
     db_session.query(User).delete()
+    db_session.commit()
+
+
+@pytest.fixture
+def sample_dive_sites_with_ratings(db_session: Session, sample_users):
+    """Three dive sites with distinct average ratings (4, 10, 7)."""
+    ow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "OPEN_WATER").first()
+    did = ow.id if ow else 1
+    sites = [
+        DiveSite(
+            name="RatingSort Low",
+            country="Greece",
+            region="r",
+            difficulty_id=did,
+            latitude=36.0,
+            longitude=25.0,
+        ),
+        DiveSite(
+            name="RatingSort High",
+            country="Greece",
+            region="r",
+            difficulty_id=did,
+            latitude=36.1,
+            longitude=25.1,
+        ),
+        DiveSite(
+            name="RatingSort Mid",
+            country="Greece",
+            region="r",
+            difficulty_id=did,
+            latitude=36.2,
+            longitude=25.2,
+        ),
+    ]
+    db_session.add_all(sites)
+    db_session.commit()
+    for s in sites:
+        db_session.refresh(s)
+
+    ratings = [
+        SiteRating(dive_site_id=sites[0].id, user_id=sample_users[0].id, score=4),
+        SiteRating(dive_site_id=sites[1].id, user_id=sample_users[1].id, score=10),
+        SiteRating(dive_site_id=sites[2].id, user_id=sample_users[0].id, score=7),
+    ]
+    db_session.add_all(ratings)
+    db_session.commit()
+
+    yield sites
+
+    db_session.query(SiteRating).filter(SiteRating.dive_site_id.in_([s.id for s in sites])).delete(
+        synchronize_session=False
+    )
+    db_session.query(DiveSite).filter(DiveSite.id.in_([s.id for s in sites])).delete(
+        synchronize_session=False
+    )
     db_session.commit()

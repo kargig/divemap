@@ -386,33 +386,22 @@ const DiveTrips = () => {
     }
   }, [error]);
 
-  // Sort trips by date (newest/future first)
+  // When sorting by trip_date, order by date in the UI (newest first). For any other
+  // sort (price, duration, distance, etc.) preserve the API response order — the backend
+  // applies sort_by / sort_order and client-side date sorting would scramble it.
   const sortedTrips = trips
-    ? [...trips].sort((a, b) => {
-        const dateA = new Date(a.trip_date);
-        const dateB = new Date(b.trip_date);
-        return dateB - dateA; // Descending order (newest first)
-      })
+    ? sortBy === 'trip_date'
+      ? [...trips].sort((a, b) => {
+          const dateA = new Date(a.trip_date);
+          const dateB = new Date(b.trip_date);
+          return dateB - dateA;
+        })
+      : [...trips]
     : [];
 
   // Backend already restricts unauthenticated users to 2 trips per diving center
   // So we just use sortedTrips directly for display
   const displayTrips = sortedTrips;
-
-  // Group trips by date
-  const groupedTrips = sortedTrips.reduce((groups, trip) => {
-    const dateKey = trip.trip_date;
-    if (!groups[dateKey]) {
-      groups[dateKey] = [];
-    }
-    groups[dateKey].push(trip);
-    return groups;
-  }, {});
-
-  // Sort date groups (newest first)
-  const sortedDateGroups = Object.entries(groupedTrips).sort(([dateA], [dateB]) => {
-    return new Date(dateB) - new Date(dateA);
-  });
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({

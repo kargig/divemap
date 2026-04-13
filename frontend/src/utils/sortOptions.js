@@ -32,10 +32,11 @@ export const SORT_OPTIONS = {
 
   'dive-trips': [
     { value: 'trip_date', label: 'Trip Date', defaultOrder: 'desc' },
-    { value: 'price', label: 'Price', defaultOrder: 'asc' },
-    { value: 'duration', label: 'Duration', defaultOrder: 'asc' },
-    { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
-    { value: 'distance', label: 'Distance', defaultOrder: 'asc' },
+    // API expects trip_price / trip_duration (not legacy "price" / "duration") — see newsletters trips endpoint
+    { value: 'trip_price', label: 'Price', defaultOrder: 'desc' },
+    { value: 'trip_duration', label: 'Duration', defaultOrder: 'desc' },
+    { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'desc' },
+    { value: 'distance', label: 'Distance', defaultOrder: 'desc' },
   ],
 };
 
@@ -81,9 +82,16 @@ export const getDefaultSort = entityType => {
   return { sortBy: 'name', sortOrder: 'asc' };
 };
 
+/** Default sort direction for a field (e.g. average_rating → desc). */
+export const getDefaultOrderForField = (entityType, sortBy, isAdmin = false) => {
+  const options = getSortOptions(entityType, isAdmin);
+  const opt = options.find(o => o.value === sortBy);
+  return opt?.defaultOrder || 'asc';
+};
+
 // Helper function to validate sort parameters
-export const validateSortParams = (sortBy, sortOrder, entityType) => {
-  const options = getSortOptions(entityType);
+export const validateSortParams = (sortBy, sortOrder, entityType, isAdmin = false) => {
+  const options = getSortOptions(entityType, isAdmin);
   const validSortBy = options.some(opt => opt.value === sortBy);
   const validSortOrder = ['asc', 'desc'].includes(sortOrder);
 

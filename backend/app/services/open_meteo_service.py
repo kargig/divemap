@@ -403,7 +403,20 @@ def _store_batch_in_database_cache(entries: List[Dict]):
             now_utc = datetime.utcnow()
 
             # 1. Fetch existing entries to decide between update vs insert
-            cache_keys = [e['cache_key'] for e in entries]
+            # The cache keys were missing from the query due to a bug in how they were constructed
+            cache_keys = []
+            for entry in entries:
+                # We must recalculate the cache key exactly as it's generated when stored
+                rounded_lat = round(entry['latitude'] * 10) / 10
+                rounded_lon = round(entry['longitude'] * 10) / 10
+                base_key = f"wind-{rounded_lat}-{rounded_lon}"
+                if entry.get('target_datetime'):
+                    hour_key = entry['target_datetime'].replace(minute=0, second=0, microsecond=0).isoformat()
+                    cache_keys.append(f"{base_key}-{hour_key}")
+                else:
+                    cache_keys.append(base_key)
+
+            # Query all existing records matching these exact keys in one query
             existing_records = db.query(WindDataCache).filter(
                 WindDataCache.cache_key.in_(cache_keys)
             ).all()
@@ -412,8 +425,8 @@ def _store_batch_in_database_cache(entries: List[Dict]):
             updates_count = 0
             inserts_count = 0
 
-            for entry in entries:
-                cache_key = entry['cache_key']
+            for i, entry in enumerate(entries):
+                cache_key = cache_keys[i]
                 latitude = entry['latitude']
                 longitude = entry['longitude']
                 target_datetime = entry['target_datetime']
@@ -982,8 +995,8 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                     "wind_speed_unit": "ms",
                     "timezone": "auto"
                 }
-                
-                response = requests.get(OPEN_METEO_BASE_URL, params=params, timeout=20)
+
+                response = requests.get(OPEN_METEO_BASE_URL, params=params, timeout=8)
                 response.raise_for_status()
                 
                 # Response is list of objects if multiple locations, or single object if one location
@@ -1002,7 +1015,7 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                         "end_date": end_date,
                         "timezone": "auto"
                     }
-                    marine_resp = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=20)
+                    marine_resp = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=5)
                     if marine_resp.status_code == 200:
                         data = marine_resp.json()
                         if not isinstance(data, list):

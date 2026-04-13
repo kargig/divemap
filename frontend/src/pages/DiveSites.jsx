@@ -137,8 +137,12 @@ const DiveSites = () => {
   });
 
   // Initialize sorting
-  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
-    useSorting('dive-sites');
+  const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } = useSorting(
+    'dive-sites',
+    null,
+    null,
+    isAdmin
+  );
 
   // Update viewMode when searchParams change
   useEffect(() => {
@@ -739,7 +743,7 @@ const DiveSites = () => {
             // Add sorting props
             sortBy={sortBy}
             sortOrder={sortOrder}
-            sortOptions={getSortOptions('dive-sites')}
+            sortOptions={getSortOptions('dive-sites', isAdmin)}
             onSortChange={handleSortChange}
             onReset={resetSorting}
             viewMode={viewMode}

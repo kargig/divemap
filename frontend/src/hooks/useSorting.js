@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { getDefaultSort, validateSortParams } from '../utils/sortOptions';
+import { getDefaultSort, validateSortParams, getDefaultOrderForField } from '../utils/sortOptions';
 
-const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) => {
+const useSorting = (entityType, initialSortBy = null, initialSortOrder = null, isAdmin = false) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get default sort values for the entity type
@@ -18,24 +18,14 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
     let finalSortOrder = initialSortOrder || defaultSort.sortOrder;
 
     if (urlSortBy) {
-      // Validate sort_by if provided
-      const validation = validateSortParams(
-        urlSortBy,
-        urlSortOrder || defaultSort.sortOrder,
-        entityType
-      );
+      const orderForField = urlSortOrder || getDefaultOrderForField(entityType, urlSortBy, isAdmin);
+      const validation = validateSortParams(urlSortBy, orderForField, entityType, isAdmin);
       if (validation.isValid) {
         finalSortBy = urlSortBy;
+        finalSortOrder = orderForField;
       }
-    }
-
-    if (urlSortOrder) {
-      // Validate sort_order if provided
-      const validation = validateSortParams(
-        urlSortBy || defaultSort.sortBy,
-        urlSortOrder,
-        entityType
-      );
+    } else if (urlSortOrder) {
+      const validation = validateSortParams(finalSortBy, urlSortOrder, entityType, isAdmin);
       if (validation.isValid) {
         finalSortOrder = urlSortOrder;
       }
@@ -74,10 +64,14 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
   // Handle sort field change
   const handleSortFieldChange = useCallback(
     (newSortBy, newSortOrder = null) => {
-      const sortOrder = newSortOrder || sortBy.sortOrder;
+      const sortOrder =
+        newSortOrder ||
+        (newSortBy === sortBy.sortBy
+          ? sortBy.sortOrder
+          : getDefaultOrderForField(entityType, newSortBy, isAdmin));
 
       // Validate the new sort parameters
-      const validation = validateSortParams(newSortBy, sortOrder, entityType);
+      const validation = validateSortParams(newSortBy, sortOrder, entityType, isAdmin);
       if (!validation.isValid) {
         console.error('Invalid sort parameters:', validation.errors);
         return;
@@ -86,7 +80,7 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
       setSortBy({ sortBy: newSortBy, sortOrder });
       updateURLParams(newSortBy, sortOrder);
     },
-    [sortBy.sortOrder, entityType, updateURLParams]
+    [sortBy.sortBy, sortBy.sortOrder, entityType, isAdmin, updateURLParams]
   );
 
   // Handle sort order change
@@ -95,7 +89,7 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
       if (!sortBy.sortBy) return;
 
       // Validate the new sort order
-      const validation = validateSortParams(sortBy.sortBy, newSortOrder, entityType);
+      const validation = validateSortParams(sortBy.sortBy, newSortOrder, entityType, isAdmin);
       if (!validation.isValid) {
         console.error('Invalid sort order:', validation.errors.sortOrder);
         return;
@@ -170,7 +164,7 @@ const useSorting = (entityType, initialSortBy = null, initialSortOrder = null) =
     getSortParams,
 
     // Validation
-    validateSort: (sortBy, sortOrder) => validateSortParams(sortBy, sortOrder, entityType),
+    validateSort: (sb, so) => validateSortParams(sb, so, entityType, isAdmin),
   };
 };
 

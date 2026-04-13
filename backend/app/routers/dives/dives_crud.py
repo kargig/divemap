@@ -334,6 +334,9 @@ def get_dives_count(
         
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
+        from app.utils import get_rounded_buffered_bounds
+        north, south, east, west = get_rounded_buffered_bounds(north, south, east, west)
+        
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
@@ -574,6 +577,9 @@ def get_dives(
         
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
+        from app.utils import get_rounded_buffered_bounds
+        north, south, east, west = get_rounded_buffered_bounds(north, south, east, west)
+        
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)

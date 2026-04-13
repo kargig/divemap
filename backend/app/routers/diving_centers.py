@@ -694,6 +694,9 @@ async def get_diving_centers(
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
+        from app.utils import get_rounded_buffered_bounds
+        north, south, east, west = get_rounded_buffered_bounds(north, south, east, west)
+        
         bind = db.get_bind()
         dialect = bind.dialect.name if bind is not None else None
 

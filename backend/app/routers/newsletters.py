@@ -1371,6 +1371,12 @@ async def get_parsed_trips(
     
     Distance sorting requires user_lat and user_lon coordinates.
     """
+    # UI / legacy URLs used sort_by=price and sort_by=duration; API columns are trip_price, trip_duration.
+    if sort_by == "price":
+        sort_by = "trip_price"
+    elif sort_by == "duration":
+        sort_by = "trip_duration"
+
     from sqlalchemy.orm import selectinload
     # Eager load all relationships to avoid N+1 queries
     # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET

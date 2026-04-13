@@ -1,8 +1,9 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import escape from 'lodash/escape';
-import { Info } from 'lucide-react';
+import { Info, Phone, Mail, Globe, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useQuery, useQueryClient } from 'react-query';
 import 'leaflet/dist/leaflet.css';
@@ -10,6 +11,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 
 import api from '../api';
+import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { getTagColor } from '../utils/tagHelpers';
 import {
   getSuitabilityColor,
   getSuitabilityLabel,
@@ -21,6 +24,16 @@ import WindDataError from './WindDataError';
 import WindOverlay from './WindOverlay';
 import WindOverlayLegend from './WindOverlayLegend';
 import WindOverlayToggle from './WindOverlayToggle';
+
+// Pre-rendered standard UI icons for string-based popups
+const ICONS = {
+  Phone: renderToStaticMarkup(<Phone size={16} className='text-gray-600 hover:text-gray-800' />),
+  Mail: renderToStaticMarkup(<Mail size={16} className='text-gray-600 hover:text-gray-800' />),
+  Globe: renderToStaticMarkup(<Globe size={16} className='text-gray-600 hover:text-gray-800' />),
+  AverageDepth: renderToStaticMarkup(<TrendingDown size={16} className='text-gray-400' />),
+  MaxDepth: renderToStaticMarkup(<TrendingUp size={16} className='text-gray-400' />),
+  Duration: renderToStaticMarkup(<Clock size={16} className='text-gray-400' />),
+};
 
 // Helper: convert URLs in plain text to clickable links (for HTML string popups)
 const linkifyText = text => {
@@ -384,7 +397,8 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
           leafletMarker.bindPopup(
             '<div class="p-4 text-center"><div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div></div>',
             {
-              maxWidth: 240,
+              maxWidth: 330, // ~10% wider than 300
+              minWidth: 310, // ~10% wider than 280
               autoPanPadding: [20, 20],
             }
           );
@@ -460,36 +474,51 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
             }
 
             const popupContent = `
-            <div class="p-2 max-h-[calc(100vh-160px)] overflow-y-auto">
+            <div class="p-2 max-h-[calc(100vh-160px)] sm:max-h-[315px] overflow-y-auto">
               ${headerAndDescriptionHtml}
               ${
                 marker.entityType === 'diving_center'
                   ? `
                     <div class="flex items-center space-x-3 mt-1">
-                      ${marker.data.phone ? `<a href="tel:${marker.data.phone}" title="Call" class="text-gray-600 hover:text-gray-800">📞</a>` : ''}
-                      ${marker.data.email ? `<a href="mailto:${marker.data.email}" title="Email" class="text-gray-600 hover:text-gray-800">📧</a>` : ''}
-                      ${marker.data.website ? `<a href="${(marker.data.website || '').startsWith('http') ? marker.data.website : `https://${marker.data.website}`}" target="_blank" rel="noopener" title="Website" class="text-gray-600 hover:text-gray-800">🌐</a>` : ''}
+                      ${marker.data.phone ? `<a href="tel:${marker.data.phone}" title="Call">${ICONS.Phone}</a>` : ''}
+                      ${marker.data.email ? `<a href="mailto:${marker.data.email}" title="Email">${ICONS.Mail}</a>` : ''}
+                      ${marker.data.website ? `<a href="${(marker.data.website || '').startsWith('http') ? marker.data.website : `https://${marker.data.website}`}" target="_blank" rel="noopener" title="Website">${ICONS.Globe}</a>` : ''}
                     </div>
                   `
                   : marker.entityType === 'dive'
                     ? `
                     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 mt-1">
-                      ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.average_depth}m avg</span></div>` : ''}
-                      ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg><span>${marker.data.max_depth}m max</span></div>` : ''}
-                      ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>${marker.data.duration}min</span></div>` : ''}
+                      ${marker.data.average_depth ? `<div class="flex items-center gap-1" title="Average depth">${ICONS.AverageDepth}<span>${marker.data.average_depth}m avg</span></div>` : ''}
+                      ${marker.data.max_depth ? `<div class="flex items-center gap-1" title="Max depth">${ICONS.MaxDepth}<span>${marker.data.max_depth}m max</span></div>` : ''}
+                      ${marker.data.duration ? `<div class="flex items-center gap-1" title="Duration">${ICONS.Duration}<span>${marker.data.duration}min</span></div>` : ''}
                       ${marker.data.user_rating ? `<div class="flex items-center gap-1" title="Rating"><img src="/arts/divemap_shell.png" alt="Rating" width="16" height="16" class="object-contain"><span>${marker.data.user_rating}/10</span></div>` : ''}
                     </div>
                   `
                     : marker.entityType === 'dive_site'
                       ? `
-                      <div class="space-y-2 mt-1">
-                        ${marker.data.difficulty_code ? `<div class="text-sm text-gray-700"><span class="mr-1">🏷️</span>Difficulty: <span class="font-medium">${marker.data.difficulty_label || marker.data.difficulty_code}</span></div>` : ''}
-                        ${marker.data.average_rating ? `<div class="text-sm text-gray-700"><span class="mr-1">⭐</span>Rating: <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span></div>` : ''}
+                      <div class="space-y-2 mt-2">
+                        ${
+                          marker.data.difficulty_code
+                            ? `<div class="flex items-center text-sm text-gray-700">
+                            <span class="mr-2 font-medium">Difficulty:</span>
+                            <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${getDifficultyColorClasses(marker.data.difficulty_code)}">${marker.data.difficulty_label || getDifficultyLabel(marker.data.difficulty_code)}</span>
+                          </div>`
+                            : ''
+                        }
+                        ${
+                          marker.data.average_rating
+                            ? `<div class="flex items-center text-sm text-gray-700">
+                            <span class="mr-2 font-medium">Rating:</span>
+                            <img src="/arts/divemap_shell.png" alt="Rating" width="16" height="16" class="object-contain inline-block mr-1">
+                            <span class="font-medium">${Number(marker.data.average_rating).toFixed(1)}/10</span>
+                          </div>`
+                            : ''
+                        }
                         ${
                           marker.data.tags && marker.data.tags.length > 0
                             ? `
-                          <div class="flex flex-wrap gap-1 items-center text-xs text-gray-600">
-                            ${marker.data.tags.map(tag => `<span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">${tag.name}</span>`).join('')}
+                          <div class="flex flex-wrap gap-1 items-center text-xs text-gray-600 mt-2">
+                            ${marker.data.tags.map(tag => `<span class="px-2 py-0.5 ${getTagColor(tag.name)} rounded-full">${escape(tag.name)}</span>`).join('')}
                           </div>
                         `
                             : ''
@@ -814,7 +843,6 @@ const LeafletMapView = ({
       : internalWindOverlayEnabled;
   const setWindOverlayEnabled = externalSetWindOverlayEnabled || setInternalWindOverlayEnabled;
   const [debouncedBounds, setDebouncedBounds] = useState(null);
-  const [showMapInfoBox, setShowMapInfoBox] = useState(false);
   const [internalShowWindLegend, setInternalShowWindLegend] = useState(false);
   const showWindLegend =
     externalShowWindLegend !== undefined ? externalShowWindLegend : internalShowWindLegend;
@@ -1437,28 +1465,14 @@ const LeafletMapView = ({
           />
         )}
 
-      {/* Button to show map info - left side, below zoom buttons */}
-      {!showMapInfoBox && (
-        <button
-          onClick={() => setShowMapInfoBox(true)}
-          className='absolute left-2 top-20 sm:left-4 sm:top-24 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
-          title='Show map info'
-          aria-label='Show map info'
-        >
-          <Info className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-gray-600' />
-          <span className='hidden sm:inline'>Map Info</span>
-          <span className='sm:hidden'>Info</span>
-        </button>
-      )}
-
-      {/* Button to show wind legend - positioned below Map Info button */}
+      {/* Button to show wind legend - positioned below zoom buttons */}
       {selectedEntityType === 'dive-sites' &&
         windOverlayEnabled &&
         mapMetadata?.zoom >= 10 &&
         !showWindLegend && (
           <button
             onClick={() => setShowWindLegend(true)}
-            className='absolute left-2 top-28 sm:left-4 sm:top-32 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
+            className='absolute left-2 top-20 sm:left-4 sm:top-24 z-40 bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 transition-colors flex items-center gap-1'
             title='Show wind overlay legend'
             aria-label='Show wind overlay legend'
           >
@@ -1488,51 +1502,7 @@ const LeafletMapView = ({
           </>
         )}
 
-      {/* Map controls overlay - positioned on left, below zoom buttons */}
-      {showMapInfoBox && (
-        <div className='absolute left-4 top-24 bg-white rounded-lg shadow-lg p-3 text-sm space-y-2 max-w-xs z-40'>
-          <div className='flex items-center justify-between mb-1'>
-            <span className='font-medium text-gray-700'>Map Info</span>
-            <button
-              onClick={() => setShowMapInfoBox(false)}
-              className='text-gray-400 hover:text-gray-600 transition-colors p-1 rounded hover:bg-gray-100'
-              aria-label='Close map info box'
-              title='Close'
-            >
-              <svg
-                className='w-4 h-4'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-                xmlns='http://www.w3.org/2000/svg'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M6 18L18 6M6 6l12 12'
-                />
-              </svg>
-            </button>
-          </div>
-          <div className='flex items-center space-x-2'>
-            <div className='w-3 h-3 bg-green-500 rounded-full'></div>
-            <span>{markers.length} points</span>
-          </div>
-          {mapMetadata?.center && (
-            <div className='flex items-center space-x-2'>
-              <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
-              <span>Lat: {mapMetadata.center.lat.toFixed(4)}</span>
-            </div>
-          )}
-          {mapMetadata?.center && (
-            <div className='flex items-center space-x-2'>
-              <div className='w-3 h-3 bg-purple-500 rounded-full'></div>
-              <span>Lng: {mapMetadata.center.lng.toFixed(4)}</span>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Map controls overlay removed */}
     </div>
   );
 };

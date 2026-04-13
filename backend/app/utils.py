@@ -184,6 +184,41 @@ def get_client_ip_with_headers(request: Request) -> dict:
     }
 
 
+def get_rounded_buffered_bounds(north: float, south: float, east: float, west: float, buffer_pct: float = 0.05, decimals: int = 4):
+    """
+    Expands a bounding box by a percentage and rounds to specified decimal places
+    to improve database query cacheability and prevent edge-flickering on maps.
+    
+    Returns: (buffered_north, buffered_south, buffered_east, buffered_west)
+    """
+    lat_diff = north - south
+    lat_buffer = lat_diff * buffer_pct
+    
+    b_north = round(min(90.0, north + lat_buffer), decimals)
+    b_south = round(max(-90.0, south - lat_buffer), decimals)
+    
+    if east >= west:
+        lon_diff = east - west
+    else:
+        # Crosses anti-meridian
+        lon_diff = 360.0 - west + east
+        
+    lon_buffer = lon_diff * buffer_pct
+    
+    b_east = east + lon_buffer
+    b_west = west - lon_buffer
+    
+    # Normalize longitudes
+    if b_east > 180.0:
+        b_east -= 360.0
+    if b_west < -180.0:
+        b_west += 360.0
+        
+    b_east = round(b_east, decimals)
+    b_west = round(b_west, decimals)
+    
+    return b_north, b_south, b_east, b_west
+
 def is_localhost_ip(ip_address: str) -> bool:
     """
     Check if an IP address is a localhost address.

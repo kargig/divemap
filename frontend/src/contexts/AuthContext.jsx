@@ -310,6 +310,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    /** Mirrors `user.is_admin` for callers that destructure from useAuth (navbar uses `user` directly). */
+    isAdmin: Boolean(user?.is_admin),
     login,
     loginWithGoogle,
     register,
