@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 import difflib
@@ -1183,6 +1183,7 @@ async def get_ownership_request_history(
 @router.get("/{diving_center_id}", response_model=DivingCenterResponse)
 async def get_diving_center(
     diving_center_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)  # Fix type annotation
 ):
@@ -1193,16 +1194,9 @@ async def get_diving_center(
             detail="Diving center not found"
         )
 
-    # Increment view count without updating updated_at
-    db.query(DivingCenter).filter(DivingCenter.id == diving_center.id).update(
-        {
-            DivingCenter.view_count: DivingCenter.view_count + 1,
-            DivingCenter.updated_at: DivingCenter.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(diving_center)
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, DivingCenter, diving_center.id)
 
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)

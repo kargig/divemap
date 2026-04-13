@@ -11,7 +11,7 @@ This module contains core CRUD operations for dives:
 - delete_dive
 """
 
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, desc, asc, distinct, func
 from typing import List, Optional
@@ -948,6 +948,7 @@ def get_dives(
 @router.get("/{dive_id}", response_model=DiveResponse)
 def get_dive(
     dive_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
@@ -986,16 +987,9 @@ def get_dive(
 
     # Increment view count (only for public dives or when viewing own dives)
     if not dive.is_private or (current_user and dive.user_id == current_user.id):
-        # Increment view count without updating updated_at
-        db.query(Dive).filter(Dive.id == dive.id).update(
-            {
-                Dive.view_count: Dive.view_count + 1,
-                Dive.updated_at: Dive.updated_at
-            },
-            synchronize_session=False
-        )
-        db.commit()
-        db.refresh(dive)
+        # Increment view count in the background without blocking the response
+        from app.utils import increment_view_count
+        background_tasks.add_task(increment_view_count, db, Dive, dive.id)
 
     # Get dive site information if available
     dive_site_info = None
@@ -1125,6 +1119,7 @@ def get_dive(
 @router.get("/{dive_id}/details", response_model=dict)
 def get_dive_details(
     dive_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
@@ -1168,16 +1163,9 @@ def get_dive_details(
 
     # Increment view count (only for public dives or when viewing own dives)
     if not dive.is_private or (current_user and dive.user_id == current_user.id):
-        # Increment view count without updating updated_at
-        db.query(Dive).filter(Dive.id == dive.id).update(
-            {
-                Dive.view_count: Dive.view_count + 1,
-                Dive.updated_at: Dive.updated_at
-            },
-            synchronize_session=False
-        )
-        db.commit()
-        db.refresh(dive)
+        # Increment view count in the background without blocking the response
+        from app.utils import increment_view_count
+        background_tasks.add_task(increment_view_count, db, Dive, dive.id)
 
     # Get dive site information if available
     dive_site_info = None

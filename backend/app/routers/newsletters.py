@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, func, desc, asc
 from typing import List, Optional
@@ -2194,6 +2194,7 @@ async def create_parsed_trip(
 @router.get("/trips/{trip_id}", response_model=ParsedDiveTripResponse)
 async def get_parsed_trip(
     trip_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -2210,16 +2211,9 @@ async def get_parsed_trip(
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
-    # Increment view count without updating updated_at
-    db.query(ParsedDiveTrip).filter(ParsedDiveTrip.id == trip.id).update(
-        {
-            ParsedDiveTrip.view_count: ParsedDiveTrip.view_count + 1,
-            ParsedDiveTrip.updated_at: ParsedDiveTrip.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(trip)
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, ParsedDiveTrip, trip.id)
 
     return ParsedDiveTripResponse(
         id=trip.id,

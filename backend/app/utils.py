@@ -32,6 +32,25 @@ def is_diving_center_reviews_enabled(db: Session) -> bool:
         # If value is not a valid boolean, default to enabled
         return True
 
+def increment_view_count(db: Session, model_class, item_id: int):
+    """
+    Background task to increment view count without blocking the API response.
+    Expects the database session to be managed correctly by FastAPI's dependency injection.
+    """
+    try:
+        db.query(model_class).filter(model_class.id == item_id).update(
+            {
+                model_class.view_count: model_class.view_count + 1,
+                model_class.updated_at: model_class.updated_at
+            },
+            synchronize_session=False
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        import logging
+        logging.error(f"Failed to increment view count for {model_class.__name__} {item_id}: {e}")
+
 
 def get_client_ip(request: Request) -> str:
     """

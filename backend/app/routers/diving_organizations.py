@@ -1,6 +1,6 @@
 import re
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -96,26 +96,19 @@ async def get_diving_organizations(
 @router.get("/{identifier}", response_model=DivingOrganizationResponse)
 async def get_diving_organization(
     identifier: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Get a specific diving organization by ID, name, or acronym."""
     organization = get_org_by_id_or_name(db, identifier)
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
-    
-    # Increment view count without updating updated_at
-    db.query(DivingOrganization).filter(DivingOrganization.id == organization.id).update(
-        {
-            DivingOrganization.view_count: DivingOrganization.view_count + 1,
-            DivingOrganization.updated_at: DivingOrganization.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(organization)
-    
-    return organization
 
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, DivingOrganization, organization.id)
+
+    return organization
 @router.get("/{identifier}/levels", response_model=List[CertificationLevelResponse])
 async def get_organization_certification_levels(
     identifier: str,
