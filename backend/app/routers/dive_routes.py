@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import re
 import html
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc, asc, func, String
 from slowapi.util import get_remote_address
@@ -275,6 +275,7 @@ async def create_route(
 @router.get("/{route_id}", response_model=DiveRouteWithDetails)
 async def get_route(
     route_id: int,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
@@ -282,30 +283,23 @@ async def get_route(
     route = db.query(DiveRoute).filter(
         and_(DiveRoute.id == route_id, DiveRoute.deleted_at.is_(None))
     ).first()
-    
+
     if not route:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Route not found"
         )
-        
+
     if route.dive_site and route.dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Route not found"
         )
-    
-    # Increment view count without updating updated_at
-    db.query(DiveRoute).filter(DiveRoute.id == route.id).update(
-        {
-            DiveRoute.view_count: DiveRoute.view_count + 1,
-            DiveRoute.updated_at: DiveRoute.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(route)
-    
+
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, DiveRoute, route.id)
+
     # Add related data
     route_dict = route.__dict__.copy()
     route_dict['dive_site'] = {

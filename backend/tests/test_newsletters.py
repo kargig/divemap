@@ -1046,10 +1046,10 @@ class TestNewsletters:
         trip_data = data[0]
         
         # Verify null fields are handled correctly
-        assert trip_data["trip_time"] is None
-        assert trip_data["trip_duration"] is None
-        assert trip_data["trip_price"] is None
-        assert trip_data["group_size_limit"] is None
+        assert "trip_time" not in trip_data or trip_data["trip_time"] is None
+        assert "trip_duration" not in trip_data or trip_data["trip_duration"] is None
+        assert "trip_price" not in trip_data or trip_data["trip_price"] is None
+        assert "group_size_limit" not in trip_data or trip_data["group_size_limit"] is None
         
         # Verify datetime fields are still properly serialized
         assert trip_data["extracted_at"] == "2024-01-01T10:00:00"

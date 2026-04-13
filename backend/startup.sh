@@ -73,9 +73,9 @@ python generate_static_content.py > /tmp/llm_gen.log 2>&1 &
 
 # Check if we're in development mode
 if [ "$ENVIRONMENT" = "development" ]; then
-    echo "🔄 Development mode detected - enabling auto-reload"
-    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips '*'
+    echo "🔄 Development mode detected - enabling auto-reload with Gunicorn (4 workers)"
+    python run_migrations.py && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --reload --forwarded-allow-ips '*' --access-logfile -
 else
-    echo "🚀 Production mode - no auto-reload"
-    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'
+    echo "🚀 Production mode - starting Gunicorn with 4 workers"
+    python run_migrations.py && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --forwarded-allow-ips '*' --access-logfile -
 fi 

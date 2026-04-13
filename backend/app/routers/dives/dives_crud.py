@@ -11,7 +11,7 @@ This module contains core CRUD operations for dives:
 - delete_dive
 """
 
-from fastapi import Depends, HTTPException, status, Query
+from fastapi import Depends, HTTPException, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, desc, asc, distinct, func
 from typing import List, Optional
@@ -337,10 +337,36 @@ def get_dives_count(
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        query = query.filter(
-            DiveSite.latitude.between(south, north),
-            DiveSite.longitude.between(west, east)
-        )
+            
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DiveSite.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DiveSite.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DiveSite.longitude >= west) | (DiveSite.longitude <= east)
+                )
 
     if dive_site_name:
         # Join with DiveSite table to filter by dive site name
@@ -448,7 +474,7 @@ def get_dives_count(
 
     return {"total": total_count}
 
-@router.get("/", response_model=DiveListResponse)
+@router.get("/", response_model=DiveListResponse, response_model_exclude_none=True)
 def get_dives(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
@@ -551,10 +577,36 @@ def get_dives(
         # Join DiveSite to access latitude and longitude if not already joined
         if not dive_site_name and not search:
             query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id)
-        query = query.filter(
-            DiveSite.latitude.between(south, north),
-            DiveSite.longitude.between(west, east)
-        )
+            
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DiveSite.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DiveSite.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DiveSite.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DiveSite.longitude >= west) | (DiveSite.longitude <= east)
+                )
 
     # Filter by username (partial match)
     if username:
@@ -896,6 +948,7 @@ def get_dives(
 @router.get("/{dive_id}", response_model=DiveResponse)
 def get_dive(
     dive_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
@@ -934,16 +987,9 @@ def get_dive(
 
     # Increment view count (only for public dives or when viewing own dives)
     if not dive.is_private or (current_user and dive.user_id == current_user.id):
-        # Increment view count without updating updated_at
-        db.query(Dive).filter(Dive.id == dive.id).update(
-            {
-                Dive.view_count: Dive.view_count + 1,
-                Dive.updated_at: Dive.updated_at
-            },
-            synchronize_session=False
-        )
-        db.commit()
-        db.refresh(dive)
+        # Increment view count in the background without blocking the response
+        from app.utils import increment_view_count
+        background_tasks.add_task(increment_view_count, db, Dive, dive.id)
 
     # Get dive site information if available
     dive_site_info = None
@@ -1073,6 +1119,7 @@ def get_dive(
 @router.get("/{dive_id}/details", response_model=dict)
 def get_dive_details(
     dive_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
@@ -1116,16 +1163,9 @@ def get_dive_details(
 
     # Increment view count (only for public dives or when viewing own dives)
     if not dive.is_private or (current_user and dive.user_id == current_user.id):
-        # Increment view count without updating updated_at
-        db.query(Dive).filter(Dive.id == dive.id).update(
-            {
-                Dive.view_count: Dive.view_count + 1,
-                Dive.updated_at: Dive.updated_at
-            },
-            synchronize_session=False
-        )
-        db.commit()
-        db.refresh(dive)
+        # Increment view count in the background without blocking the response
+        from app.utils import increment_view_count
+        background_tasks.add_task(increment_view_count, db, Dive, dive.id)
 
     # Get dive site information if available
     dive_site_info = None

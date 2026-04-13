@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List
 
 from app.database import get_db
@@ -152,7 +152,7 @@ async def get_my_session_detail(
     """
     Get full transcript for a specific chat session of the current user.
     """
-    session = db.query(ChatSession).options(joinedload(ChatSession.messages)).filter(
+    session = db.query(ChatSession).options(selectinload(ChatSession.messages)).filter(
         ChatSession.id == session_id,
         ChatSession.user_id == current_user.id
     ).first()

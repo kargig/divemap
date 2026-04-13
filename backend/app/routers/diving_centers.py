@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 import difflib
@@ -611,7 +611,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=DivingCenterListResponse)
+@router.get("/", response_model=DivingCenterListResponse, response_model_exclude_none=True)
 async def get_diving_centers(
     search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
     name: Optional[str] = Query(None, max_length=100),
@@ -694,10 +694,35 @@ async def get_diving_centers(
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
-        query = query.filter(
-            DivingCenter.latitude.between(south, north),
-            DivingCenter.longitude.between(west, east)
-        )
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            # Create a Polygon representing the bounding box using ST_GeomFromText
+            # MySQL Polygons must be closed (start point == end point)
+            
+            if east >= west:
+                # Normal bounding box
+                polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
+                query = query.filter(func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+            else:
+                # Anti-meridian crossing (split into two polygons and check if within either)
+                poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
+                poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
+                
+                query = query.filter(
+                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
+                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                )
+        else:
+            # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
+            query = query.filter(DivingCenter.latitude.between(south, north))
+            if east >= west:
+                query = query.filter(DivingCenter.longitude.between(west, east))
+            else:
+                query = query.filter(
+                    (DivingCenter.longitude >= west) | (DivingCenter.longitude <= east)
+                )
 
     # Apply unified search across multiple fields (case-insensitive)
     if search:
@@ -1158,6 +1183,7 @@ async def get_ownership_request_history(
 @router.get("/{diving_center_id}", response_model=DivingCenterResponse)
 async def get_diving_center(
     diving_center_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)  # Fix type annotation
 ):
@@ -1168,16 +1194,9 @@ async def get_diving_center(
             detail="Diving center not found"
         )
 
-    # Increment view count without updating updated_at
-    db.query(DivingCenter).filter(DivingCenter.id == diving_center.id).update(
-        {
-            DivingCenter.view_count: DivingCenter.view_count + 1,
-            DivingCenter.updated_at: DivingCenter.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(diving_center)
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, DivingCenter, diving_center.id)
 
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)

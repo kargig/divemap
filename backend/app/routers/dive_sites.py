@@ -49,7 +49,7 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
     """
     Calculate a relevance score using phrase-aware logic that prioritizes site names
     over geographic fields and handles multi-word queries intelligently.
-    
+
     Args:
         query: The search query string
         site_name: The dive site name
@@ -57,7 +57,7 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
         site_region: The dive site region (can be None)
         site_description: The dive site description (can be None)
         site_tags: List of tag names for the dive site (can be None)
-    
+
     Returns:
         Float score between 0.0 and 1.0, where higher is more relevant
     """
@@ -66,15 +66,15 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
     country_lower = (site_country or "").lower()
     region_lower = (site_region or "").lower()
     desc_lower = (site_description or "").lower()
-    
+
     # 1. Exact phrase match (highest priority)
     if query_lower in name_lower:
         return 1.0
-    
+
     # 2. Word-by-word matching in name (with fuzzy matching for typos)
     query_words = query_lower.split()
     name_words = name_lower.split()
-    
+
     # Count how many query words appear in name (with fuzzy matching)
     matching_words = 0
     for query_word in query_words:
@@ -87,9 +87,9 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
                 if difflib.SequenceMatcher(None, query_word, name_word).ratio() >= 0.7:
                     matching_words += 1
                     break
-    
+
     word_match_ratio = matching_words / len(query_words)
-    
+
     # 3. Consecutive word bonus (for "blue hole" in "bluehole reef")
     consecutive_bonus = 0.0
     if len(query_words) > 1:
@@ -102,14 +102,14 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
             name_no_spaces = name_lower.replace(' ', '')
             if difflib.SequenceMatcher(None, query_phrase, name_no_spaces).ratio() >= 0.7:
                 consecutive_bonus = 0.2
-    
+
     # 4. Geographic field matching (country and region)
     geographic_bonus = 0.0
     if country_lower and query_lower in country_lower:
         geographic_bonus += 0.2
     if region_lower and query_lower in region_lower:
         geographic_bonus += 0.2
-    
+
     # 5. Tag matching (high priority for specialized searches)
     tag_bonus = 0.0
     if site_tags:
@@ -123,10 +123,10 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
                 if query_word in tag_lower:
                     tag_bonus += 0.2
                     break
-    
+
     # 6. Traditional similarity for edge cases
     similarity_score = difflib.SequenceMatcher(None, query_lower, name_lower).ratio()
-    
+
     # 7. Weighted final score
     final_score = (
         word_match_ratio * 0.4 +      # Word matching (40%)
@@ -136,7 +136,7 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
         similarity_score * 0.2 +      # Traditional similarity (20%)
         (0.1 if query_lower in desc_lower else 0.0)  # Description bonus (10%)
     )
-    
+
     # 7. Special case: if it's a single word and has high similarity to any name word, boost the score
     if len(query_words) == 1 and len(name_words) > 0:
         best_word_similarity = max(
@@ -145,41 +145,41 @@ def calculate_phrase_aware_score(query: str, site_name: str, site_country: str, 
         )
         if best_word_similarity >= 0.8:  # High similarity threshold for single words
             final_score = max(final_score, best_word_similarity * 0.8)
-    
+
     return min(final_score, 1.0)
 
 
 def apply_tag_filtering(query, tag_ids, db):
     """
     Apply tag filtering to a query using consistent logic.
-    
+
     Args:
         query: SQLAlchemy query object to filter
         tag_ids: List of tag IDs to filter by (AND logic)
         db: Database session
-        
+
     Returns:
         Filtered query object
-        
+
     Raises:
         HTTPException: If too many tag filters are provided
     """
     if not tag_ids:
         return query
-    
+
     # Validate tag_ids to prevent injection
     if len(tag_ids) > 20:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Too many tag filters"
         )
-    
+
     # Import required models
     from app.models import DiveSiteTag
-    
+
     # If multiple tags are provided, ensure the site has ALL of them
     tag_count = len(tag_ids)
-    
+
     # Use select() construct explicitly to avoid SQLAlchemy warning
     # "Coercing Subquery object into a select() for use in IN()"
     stmt = select(DiveSiteTag.dive_site_id).where(
@@ -187,20 +187,20 @@ def apply_tag_filtering(query, tag_ids, db):
     ).group_by(DiveSiteTag.dive_site_id).having(
         func.count(DiveSiteTag.tag_id) == tag_count
     )
-    
+
     return query.filter(DiveSite.id.in_(stmt))
 
 
 def apply_search_filters(query, search, name, db):
     """
     Apply search and name filtering to a query.
-    
+
     Args:
         query: SQLAlchemy query object to filter
         search: Search query string
         name: Name filter string
         db: Database session
-        
+
     Returns:
         Filtered query object
     """
@@ -221,7 +221,7 @@ def apply_search_filters(query, search, name, db):
             )
         )
         query = query.filter(search_filter)
-    
+
     if name:
         # Sanitize name input to prevent injection
         sanitized_name = name.strip()[:100]
@@ -236,14 +236,14 @@ def apply_search_filters(query, search, name, db):
                 )
             )
         )
-    
+
     return query
 
 
 def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, country, region, my_dive_sites, current_user, db, created_by_username=None):
     """
     Apply basic filtering criteria to a query.
-    
+
     Args:
         query: SQLAlchemy query object to filter
         difficulty_code: Difficulty code filter (e.g., 'OPEN_WATER')
@@ -254,7 +254,7 @@ def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, 
         current_user: Current authenticated user
         db: Database session for lookups
         created_by_username: Username of the user who created the dive sites
-        
+
     Returns:
         Filtered query object
     """
@@ -268,18 +268,18 @@ def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, 
     elif exclude_unspecified_difficulty:
         # If no difficulty_code filter but we want to exclude unspecified, exclude NULL
         query = query.filter(DiveSite.difficulty_id.isnot(None))
-    
+
     if country:
         sanitized_country = country.strip()[:100]
         query = query.filter(DiveSite.country.ilike(f"%{sanitized_country}%"))
-    
+
     if region:
         sanitized_region = region.strip()[:100]
         query = query.filter(DiveSite.region.ilike(f"%{sanitized_region}%"))
-    
+
     if my_dive_sites and current_user:
         query = query.filter(DiveSite.created_by == current_user.id)
-    
+
     if created_by_username:
         # Find user by username and filter by their created_by ID
         user = db.query(User).filter(User.username == created_by_username, User.enabled == True).first()
@@ -288,19 +288,19 @@ def apply_basic_filters(query, difficulty_code, exclude_unspecified_difficulty, 
         else:
             # User not found, return empty result
             query = query.filter(False)
-    
+
     return query
 
 
 def apply_rating_filtering(query, min_rating, db):
     """
     Apply minimum rating filtering to a query.
-    
+
     Args:
         query: SQLAlchemy query object to filter
         min_rating: Minimum average rating threshold
         db: Database session
-        
+
     Returns:
         Filtered query object
     """
@@ -312,46 +312,46 @@ def apply_rating_filtering(query, min_rating, db):
             func.avg(SiteRating.score) >= min_rating
         )
         query = query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
-    
+
     return query
 
 
 def apply_sorting(query, sort_by, sort_order, current_user):
     """
     Apply sorting logic to a query.
-    
+
     Args:
         query: SQLAlchemy query object to sort
         sort_by: Field to sort by
         sort_order: Sort order ('asc' or 'desc')
         current_user: Current authenticated user
-        
+
     Returns:
         Sorted query object
-        
+
     Raises:
         HTTPException: If sort parameters are invalid
     """
     if sort_by:
         # All valid sort fields (including admin-only ones)
         valid_sort_fields = {
-            'name', 'country', 'region', 'difficulty_level', 
+            'name', 'country', 'region', 'difficulty_level',
             'view_count', 'comment_count', 'created_at', 'updated_at', 'average_rating'
         }
-        
+
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
             )
-        
+
         # Validate sort_order parameter
         if sort_order not in ['asc', 'desc']:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="sort_order must be 'asc' or 'desc'"
             )
-        
+
         # Apply sorting based on field
         if sort_by == 'name':
             sort_field = func.lower(DiveSite.name)
@@ -407,7 +407,7 @@ def apply_sorting(query, sort_by, sort_order, current_user):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid sort_by field: {sort_by}"
             )
-        
+
         # Apply the sorting
         if sort_order == 'asc':
             query = query.order_by(sort_field.asc())
@@ -416,14 +416,14 @@ def apply_sorting(query, sort_by, sort_order, current_user):
     else:
         # Default sorting by name (case-insensitive)
         query = query.order_by(func.lower(DiveSite.name).asc())
-    
+
     return query
 
 
 def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10, **filters):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
-    
+
     Args:
         query: The search query string
         exact_results: List of dive sites from exact search
@@ -431,7 +431,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         similarity_threshold: Minimum similarity score (0.0 to 1.0)
         max_fuzzy_results: Maximum number of fuzzy results to return
         **filters: Additional filters to apply (tag_ids, difficulty_code, etc.)
-    
+
     Returns:
         List of dive sites with exact results first, followed by fuzzy matches
     """
@@ -450,21 +450,21 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
                 'description_contains': site.description and query.lower() in site.description.lower()
             })
         return final_results
-    
+
     # Build a filtered query that respects the same filters as the main query
     filtered_query = db.query(DiveSite)
-    
+
     show_archived = filters.get('show_archived', False)
     if not show_archived:
         filtered_query = filtered_query.filter(DiveSite.deleted_at.is_(None))
-    
+
     # Apply status filter if provided
     if 'status' in filters and filters['status'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
         filtered_query = filtered_query.filter(DiveSite.status == filters['status'])
     elif not show_archived:
         # Default to approved for non-admins if no explicit status is provided
         filtered_query = filtered_query.filter(DiveSite.status == 'approved')
-    
+
     # Apply the same filters that were used in the main query
     if 'dive_site_id' in filters and filters['dive_site_id'] and ('current_user' in filters and (filters['current_user'].is_admin or filters['current_user'].is_moderator)):
         filtered_query = filtered_query.filter(DiveSite.id == filters['dive_site_id'])
@@ -474,13 +474,13 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         difficulty_id = get_difficulty_id_by_code(db, filters['difficulty_code'])
         if difficulty_id:
             filtered_query = filtered_query.filter(DiveSite.difficulty_id == difficulty_id)
-    
+
     if 'country' in filters and filters['country']:
         filtered_query = filtered_query.filter(DiveSite.country.ilike(f"%{filters['country']}%"))
-    
+
     if 'region' in filters and filters['region']:
         filtered_query = filtered_query.filter(DiveSite.region.ilike(f"%{filters['region']}%"))
-    
+
     if 'min_rating' in filters and filters['min_rating'] is not None:
         from app.models import SiteRating
         dive_site_ids_with_min_rating = db.query(SiteRating.dive_site_id).group_by(
@@ -489,7 +489,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             func.avg(SiteRating.score) >= filters['min_rating']
         )
         filtered_query = filtered_query.filter(DiveSite.id.in_(dive_site_ids_with_min_rating))
-    
+
     if 'tag_ids' in filters and filters['tag_ids']:
         from app.models import DiveSiteTag
         # Apply the same tag filtering logic
@@ -500,25 +500,25 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             func.count(DiveSiteTag.tag_id) == tag_count
         ).subquery()
         filtered_query = filtered_query.filter(DiveSite.id.in_(dive_sites_with_all_tags))
-    
+
     if 'my_dive_sites' in filters and filters['my_dive_sites'] and 'current_user' in filters and filters['current_user']:
         filtered_query = filtered_query.filter(DiveSite.created_by == filters['current_user'].id)
-    
+
     # Get filtered dive sites for fuzzy matching
     all_dive_sites = filtered_query.all()
-    
+
     # Create a set of exact result IDs to avoid duplicates
     exact_ids = {site.id for site in exact_results}
-    
+
     # Perform fuzzy matching on filtered dive sites (case-insensitive)
     fuzzy_matches = []
     query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
-    
+
     for site in all_dive_sites:
         # Skip if already in exact results
         if site.id in exact_ids:
             continue
-            
+
         # Get tags for this dive site for scoring
         site_tags = []
         if hasattr(site, 'tags') and site.tags:
@@ -530,27 +530,27 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
                 DiveSiteTag.dive_site_id == site.id
             ).all()
             site_tags = [tag.name for tag in tags]
-        
+
         # Use the unified phrase-aware scoring function with tags
         weighted_score = calculate_unified_phrase_aware_score(
-            query_lower, 
-            site.name, 
-            site.description, 
-            site.country, 
+            query_lower,
+            site.name,
+            site.description,
+            site.country,
             site.region,
             None,  # city parameter (not used for dive sites)
             site_tags
         )
-        
+
         # Check for partial matches (substring matches) for match type classification
         name_contains = query_lower in site.name.lower()
         country_contains = site.country and query_lower in site.country.lower()
         region_contains = site.region and query.lower() in site.region.lower()
         description_contains = site.description and query.lower() in site.description.lower()
-        
+
         # Determine match type using unified classification
         match_type = classify_match_type(weighted_score)
-        
+
         # Add to fuzzy matches if above threshold
         if weighted_score >= UNIFIED_TYPO_TOLERANCE['overall_threshold']:
             fuzzy_matches.append({
@@ -562,16 +562,16 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
                 'region_contains': region_contains,
                 'description_contains': description_contains
             })
-    
+
     # Sort fuzzy matches by score (highest first)
     fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
-    
+
     # Limit fuzzy results
     fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
-    
+
     # Create final results with match type information
     final_results = []
-    
+
     # Add exact results first with match type
     for site in exact_results:
         final_results.append({
@@ -583,11 +583,11 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             'region_contains': site.region and query.lower() in site.region.lower(),
             'description_contains': site.description and query.lower() in site.description.lower()
         })
-    
+
     # Add fuzzy matches
     for match in fuzzy_matches:
         final_results.append(match)
-    
+
     return final_results
 
 def _perform_reverse_geocode(latitude: float, longitude: float) -> Optional[Dict]:
@@ -612,13 +612,13 @@ def _perform_reverse_geocode(latitude: float, longitude: float) -> Optional[Dict
         response = requests.get(url, params=params, headers=headers, timeout=10)
         if response.status_code != 200:
             return None
-        
+
         data = response.json()
         address = data.get("address", {})
 
         # Extract country and region information
         country = address.get("country")
-        
+
         def clean_regional_unit(text):
             if text:
                 if text.endswith(" Regional Unit"):
@@ -627,10 +627,10 @@ def _perform_reverse_geocode(latitude: float, longitude: float) -> Optional[Dict
                     return text[:-len("Regional Unit")].strip()
                 return text
             return text
-        
+
         county = clean_regional_unit(address.get("county"))
         state_district = clean_regional_unit(address.get("state_district"))
-        
+
         if county and state_district:
             region = f"{county}, {state_district}"
         else:
@@ -654,7 +654,7 @@ async def _update_location_data_background(dive_site_id: int):
     """Background task to automatically detect country, region and shore direction."""
     from app.database import SessionLocal
     from app.services.osm_coastline_service import detect_shore_direction
-    
+
     db = SessionLocal()
     try:
         dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -662,7 +662,7 @@ async def _update_location_data_background(dive_site_id: int):
             return
 
         has_updates = False
-        
+
         # 1. Automatic Geocoding (Country/Region)
         if not dive_site.country or not dive_site.region:
             location_data = _perform_reverse_geocode(float(dive_site.latitude), float(dive_site.longitude))
@@ -687,7 +687,7 @@ async def _update_location_data_background(dive_site_id: int):
         if has_updates:
             db.commit()
             logger.info(f"Automatically updated location/shore data for dive site {dive_site_id}")
-            
+
     except Exception as e:
         logger.error(f"Error in automatic location background task for site {dive_site_id}: {e}")
     finally:
@@ -731,23 +731,23 @@ async def reverse_geocode(
             print(f"   Parameters: {params}")
             print(f"   Headers: {headers}")
             print(f"   Coordinates: lat={latitude}, lon={longitude}")
-        
+
         response.raise_for_status()
-        
+
         data = response.json()
-        
+
         if debug:
             print(f"📡 Nominatim API Response:")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Headers: {dict(response.headers)}")
             print(f"   Full Response Content:")
             print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
-        
+
         address = data.get("address", {})
 
         # Extract country and region information
         country = address.get("country")
-        
+
         # Helper function to clean "Regional Unit" from text
         # Only remove "Regional Unit" if it appears at the end, keep it if it appears at the beginning
         def clean_regional_unit(text):
@@ -760,11 +760,11 @@ async def reverse_geocode(
                     return text[:-len("Regional Unit")].strip()
                 return text
             return text
-        
+
         # Get and clean county and state_district fields
         county = clean_regional_unit(address.get("county"))
         state_district = clean_regional_unit(address.get("state_district"))
-        
+
         if county and state_district:
             region = f"{county}, {state_district}"
         else:
@@ -783,7 +783,7 @@ async def reverse_geocode(
             print(f"   Region: '{region}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
             print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
-            
+
             # Show which region fields were found and used
             print(f"   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
@@ -835,7 +835,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     """
     if debug:
         print(f"🔄 Using fallback location detection for coordinates: lat={latitude}, lon={longitude}")
-    
+
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
         # Basic region detection based on longitude
@@ -869,12 +869,12 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             "region": region,
             "full_address": f"Coordinates: {latitude}, {longitude}"
         }
-        
+
         if debug:
             print(f"   Fallback region detection: {region}")
             print(f"   Fallback country detection: {country}")
             print(f"   Fallback result: {fallback_result}")
-        
+
         return fallback_result
     else:
         if debug:
@@ -884,7 +884,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             detail="Invalid coordinates provided"
         )
 
-@router.get("/", response_model=DiveSiteListResponse)
+@router.get("/", response_model=DiveSiteListResponse, response_model_exclude_none=True)
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites(
     request: Request,
@@ -930,7 +930,7 @@ async def get_dive_sites(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Search query must be at least 3 characters long"
         )
-    
+
     # Validate wind_suitability parameter if provided
     if wind_suitability is not None:
         valid_suitabilities = ['good', 'caution', 'difficult', 'avoid', 'unknown']
@@ -940,7 +940,7 @@ async def get_dive_sites(
                 detail=f"wind_suitability must be one of: {', '.join(valid_suitabilities)}"
             )
         wind_suitability = wind_suitability.lower()
-    
+
     # Validate detail_level parameter if provided
     if detail_level is not None:
         valid_detail_levels = ['minimal', 'basic', 'full']
@@ -952,7 +952,7 @@ async def get_dive_sites(
         detail_level = detail_level.lower()
     else:
         detail_level = 'full'
-    
+
     # Validate bounds if provided
     if all(x is not None for x in [north, south, east, west]):
         if north <= south:
@@ -963,7 +963,7 @@ async def get_dive_sites(
         # Handle longitude wrap-around (e.g., -179 to 179)
         # For now, we'll allow east < west to handle date line crossing
         # The between() filter will handle this correctly
-    
+
     # Parse and validate datetime_str if provided
     target_datetime = None
     if datetime_str:
@@ -997,7 +997,7 @@ async def get_dive_sites(
     query = db.query(DiveSite).options(joinedload(DiveSite.difficulty))
     if not show_archived:
         query = query.filter(DiveSite.deleted_at.is_(None))
-        
+
         # Apply status filter
         if site_status and (current_user and (current_user.is_admin or current_user.is_moderator)):
             query = query.filter(DiveSite.status == site_status)
@@ -1042,11 +1042,11 @@ async def get_dive_sites(
     if wind_suitability is not None:
         try:
             logger.info(f"[WIND FILTER] Filtering by wind_suitability={wind_suitability}, include_unknown_wind={include_unknown_wind}, target_datetime={target_datetime}")
-            
+
             # Define suitability hierarchy for range filtering
             # Order: good < caution < difficult < avoid
             suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3}
-            
+
             # Determine which suitabilities to include based on range
             if wind_suitability == "good":
                 allowed_suitabilities = ["good"]
@@ -1061,30 +1061,30 @@ async def get_dive_sites(
                 logger.warning(f"[WIND FILTER] Invalid wind_suitability value: {wind_suitability}")
                 query = query.filter(False)
                 allowed_suitabilities = []
-            
+
             # Get all matching dive sites before pagination (needed for wind filtering)
             all_matching_sites = query.all()
             logger.info(f"[WIND FILTER] Found {len(all_matching_sites)} sites before wind suitability filtering")
-            
+
             if all_matching_sites and allowed_suitabilities:
                 sites_with_coords = [s for s in all_matching_sites if s.latitude is not None and s.longitude is not None]
                 if sites_with_coords:
                     # OPTIMIZATION: Group sites by cache key (0.1° grid cell) to batch fetch wind data
                     # This reduces API calls and improves accuracy (sites get wind data from their actual grid cell)
                     # The open_meteo_service cache already handles deduplication at the 0.1° level
-                    
+
                     def get_cache_key_for_site(site, target_datetime):
                         """Generate cache key for a site (matches open_meteo_service logic)."""
                         rounded_lat = round(site.latitude * 10) / 10
                         rounded_lon = round(site.longitude * 10) / 10
                         base_key = (rounded_lat, rounded_lon)
-                        
+
                         if target_datetime:
                             # Round to nearest hour for cache efficiency
                             hour_key = target_datetime.replace(minute=0, second=0, microsecond=0).isoformat()
                             return (base_key, hour_key)
                         return base_key
-                    
+
                     # Group sites by cache key
                     sites_by_cache_key = {}
                     for site in sites_with_coords:
@@ -1092,16 +1092,16 @@ async def get_dive_sites(
                         if cache_key not in sites_by_cache_key:
                             sites_by_cache_key[cache_key] = []
                         sites_by_cache_key[cache_key].append(site)
-                    
+
                     # Fetch wind data once per unique grid cell
                     # Use a representative site from each group (first site in group)
                     wind_data_by_cache_key = {}
                     fetch_errors = []
-                    
+
                     for cache_key, sites_in_group in sites_by_cache_key.items():
                         # Use first site in group as representative for fetching wind data
                         representative_site = sites_in_group[0]
-                        
+
                         try:
                             wind_data = fetch_wind_data_single_point(
                                 representative_site.latitude,
@@ -1109,7 +1109,7 @@ async def get_dive_sites(
                                 target_datetime,
                                 skip_validation=True  # Validation already done at endpoint level
                             )
-                            
+
                             if wind_data:
                                 wind_data_by_cache_key[cache_key] = wind_data
                             else:
@@ -1117,10 +1117,10 @@ async def get_dive_sites(
                         except Exception as e:
                             logger.error(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
                             fetch_errors.append(f"Error fetching wind data for grid cell {cache_key}: {str(e)}")
-                    
+
                     # Calculate suitability for each site
                     filtered_site_ids = []
-                    
+
                     for site in all_matching_sites:
                         try:
                             # Handle sites without coordinates (they have "unknown" suitability)
@@ -1128,25 +1128,25 @@ async def get_dive_sites(
                                 if include_unknown_wind:
                                     filtered_site_ids.append(site.id)
                                 continue
-                            
+
                             # Get cache key for this site
                             cache_key = get_cache_key_for_site(site, target_datetime)
-                            
+
                             # Get wind data for this site's grid cell
                             wind_data = wind_data_by_cache_key.get(cache_key)
-                            
+
                             if not wind_data:
                                 # No wind data for this grid cell - site has "unknown" suitability
                                 if include_unknown_wind:
                                     filtered_site_ids.append(site.id)
                                 continue
-                            
+
                             wind_direction = wind_data.get("wind_direction_10m")
                             wind_speed = wind_data.get("wind_speed_10m")
                             wind_gusts = wind_data.get("wind_gusts_10m")
                             wave_height = wind_data.get("wave_height")
                             wave_period = wind_data.get("wave_period")
-                            
+
                             if wind_direction is not None and wind_speed is not None:
                                 suitability_result = calculate_wind_suitability(
                                     wind_direction=wind_direction,
@@ -1156,9 +1156,9 @@ async def get_dive_sites(
                                     wave_height=wave_height,
                                     wave_period=wave_period
                                 )
-                                
+
                                 site_suitability = suitability_result["suitability"]
-                                
+
                                 # Filter by suitability range
                                 if site_suitability in allowed_suitabilities:
                                     filtered_site_ids.append(site.id)
@@ -1173,7 +1173,7 @@ async def get_dive_sites(
                             logger.error(f"Error calculating suitability for site {site.id}: {str(e)}")
                             # Skip this site if calculation fails
                             continue
-                    
+
                     # Rebuild query with filtered site IDs
                     logger.info(f"[WIND FILTER] After filtering: {len(filtered_site_ids)} sites match wind_suitability={wind_suitability} (range: {allowed_suitabilities}), include_unknown={include_unknown_wind} for target_datetime={target_datetime}")
                     if filtered_site_ids:
@@ -1254,7 +1254,7 @@ async def get_dive_sites(
 
     # Apply pagination and fetch results
     rows = query.offset(offset).limit(page_size).all()
-    
+
     # Process results (rows are tuples because of add_columns)
     dive_sites = []
     metadata_map = {}
@@ -1273,9 +1273,9 @@ async def get_dive_sites(
         search_query_for_fuzzy = search.strip()[:200]
         if get_unified_fuzzy_trigger_conditions(search_query_for_fuzzy, len(dive_sites), max_exact_results=5, max_query_length=10):
             enhanced_results = search_dive_sites_with_fuzzy(
-                search_query_for_fuzzy, 
-                dive_sites, 
-                db, 
+                search_query_for_fuzzy,
+                dive_sites,
+                db,
                 similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
                 max_fuzzy_results=10,
                 tag_ids=tag_ids,
@@ -1289,7 +1289,7 @@ async def get_dive_sites(
                 status=site_status,
                 dive_site_id=dive_site_id
             )
-            
+
             dive_sites = []
             for result in enhanced_results:
                 site = result['site']
@@ -1302,7 +1302,7 @@ async def get_dive_sites(
                     'region_contains': result['region_contains'],
                     'description_contains': result['description_contains']
                 }
-                
+
                 # If site was not in original results, we might need to fetch its metadata
                 if site.id not in metadata_map:
                     # Individual fetch for fuzzy matches (rare and limited to 10)
@@ -1322,7 +1322,7 @@ async def get_dive_sites(
     dive_media_map = {}
     if detail_level in ['basic', 'full'] and dive_sites:
         site_ids = [s.id for s in dive_sites]
-        
+
         # Fetch all media from SiteMedia for these sites
         from app.models import SiteMedia, DiveMedia, Dive
         all_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id.in_(site_ids)).all()
@@ -1330,7 +1330,7 @@ async def get_dive_sites(
             if sm.dive_site_id not in site_media_map:
                 site_media_map[sm.dive_site_id] = []
             site_media_map[sm.dive_site_id].append(sm)
-            
+
         # Fetch all media from DiveMedia for these sites
         all_dive_media = db.query(DiveMedia).join(Dive).filter(Dive.dive_site_id.in_(site_ids)).all()
         for dm in all_dive_media:
@@ -1367,10 +1367,10 @@ async def get_dive_sites(
         if detail_level in ['basic', 'full']:
             site_media = site_media_map.get(site.id, [])
             dive_media = dive_media_map.get(site.id, [])
-            
+
             # Combine all media items with source info
             all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
-            
+
             if all_media:
                 # Use ordering logic if available
                 if site.media_order and len(site.media_order) > 0:
@@ -1379,18 +1379,18 @@ async def get_dive_sites(
                     for key in site.media_order:
                         if key in media_map:
                             ordered_media.append(media_map[key])
-                    
+
                     if ordered_media:
                         selected_media, source = ordered_media[0]
                     else:
                         selected_media, source = random.choice(all_media)
                 else:
                     selected_media, source = random.choice(all_media)
-                
+
                 thumbnail = selected_media.thumbnail_url or selected_media.url
                 thumbnail_id = selected_media.id
                 thumbnail_source = source
-                
+
                 media_type_val = selected_media.media_type
                 thumbnail_type = media_type_val.value if hasattr(media_type_val, 'value') else str(media_type_val)
 
@@ -1534,10 +1534,10 @@ async def get_wind_recommendations(
 ):
     """
     Get wind suitability recommendations for dive sites.
-    
+
     Fetches wind data if not provided, then calculates suitability for each dive site
     based on wind direction, wind speed, and shore direction.
-    
+
     Date/time parameter:
     - If not provided, fetches current weather data (NOW)
     - If provided, fetches forecast for that date/time (max +2 days ahead)
@@ -1569,7 +1569,7 @@ async def get_wind_recommendations(
                     status_code=400,
                     detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
                 )
-        
+
         # Determine wind data source
         wave_height = None
         wave_period = None
@@ -1622,29 +1622,29 @@ async def get_wind_recommendations(
                     status_code=400,
                     detail="Must provide (latitude, longitude) or bounds to fetch wind data"
                 )
-        
+
         if wind_direction is None or wind_speed is None:
             raise HTTPException(
                 status_code=400,
                 detail="Wind direction and speed are required"
             )
-        
+
         # Query dive sites
         query = db.query(DiveSite).filter(DiveSite.deleted_at.is_(None))
-        
+
         # Filter by bounds if provided
         if all(x is not None for x in [north, south, east, west]):
             query = query.filter(
                 DiveSite.latitude.between(south, north),
                 DiveSite.longitude.between(west, east)
             )
-        
+
         # Filter out sites without shore_direction if include_unknown is False
         if not include_unknown:
             query = query.filter(DiveSite.shore_direction.isnot(None))
-        
+
         dive_sites = query.all()
-        
+
         # Calculate suitability for each dive site
         recommendations = []
         for site in dive_sites:
@@ -1656,7 +1656,7 @@ async def get_wind_recommendations(
                 wave_height=wave_height,
                 wave_period=wave_period
             )
-            
+
             # Apply min_suitability filter if specified
             if min_suitability:
                 suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3, "unknown": 4}
@@ -1664,7 +1664,7 @@ async def get_wind_recommendations(
                 site_order = suitability_order.get(suitability_result["suitability"], 4)
                 if site_order > min_order:
                     continue
-            
+
             recommendations.append({
                 "dive_site_id": site.id,
                 "name": site.name,
@@ -1684,11 +1684,11 @@ async def get_wind_recommendations(
                 "reasoning": suitability_result["reasoning"],
                 "wind_speed_category": suitability_result["wind_speed_category"]
             })
-        
+
         # Sort by suitability (good first, then caution, then difficult, then avoid, then unknown)
         suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3, "unknown": 4}
         recommendations.sort(key=lambda x: suitability_order.get(x["suitability"], 4))
-        
+
         return {
             "recommendations": recommendations,
             "wind_data": {
@@ -1706,7 +1706,7 @@ async def get_wind_recommendations(
             },
             "total_sites": len(recommendations)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -1786,7 +1786,7 @@ async def _send_dive_site_notifications(dive_site_id: int):
     try:
         from app.services.notification_service import NotificationService
         from app.database import SessionLocal
-        
+
         # Create a new database session for the background task
         db = SessionLocal()
         try:
@@ -1886,7 +1886,7 @@ async def create_dive_site(
     dive_site_data = dive_site.model_dump()
     moderation_needed = dive_site_data.pop('moderation_needed', False)
     dive_site_data['created_by'] = current_user.id
-    
+
     # Check for proximity
     if not moderation_needed and dive_site.latitude and dive_site.longitude:
         # Check proximity internally
@@ -1906,12 +1906,12 @@ async def create_dive_site(
         dive_site_data['status'] = 'pending'
     else:
         dive_site_data['status'] = 'approved'
-    
+
     # Convert difficulty_code to difficulty_id
     if 'difficulty_code' in dive_site_data:
         difficulty_code = dive_site_data.pop('difficulty_code')
         dive_site_data['difficulty_id'] = get_difficulty_id_by_code(db, difficulty_code)
-    
+
     db_dive_site = DiveSite(**dive_site_data)
     db.add(db_dive_site)
     db.commit()
@@ -1922,10 +1922,10 @@ async def create_dive_site(
         # Check if we need geocoding or shore detection
         needs_geocoding = not db_dive_site.country or not db_dive_site.region
         needs_shore = db_dive_site.shore_direction is None
-        
+
         if needs_geocoding or needs_shore:
             background_tasks.add_task(_update_location_data_background, db_dive_site.id)
-    
+
     # Re-query with eager loading for response
     db_dive_site = db.query(DiveSite).options(
         joinedload(DiveSite.difficulty)
@@ -1940,7 +1940,7 @@ async def create_dive_site(
     # Serialize response with difficulty_code and difficulty_label
     input_data = dive_site.model_dump()
     input_data.pop('moderation_needed', None)
-    
+
     response_data = {
         **input_data,
         "id": db_dive_site.id,
@@ -1952,7 +1952,7 @@ async def create_dive_site(
         "total_ratings": 0,
         "tags": []
     }
-    
+
     # Add difficulty_code and difficulty_label from relationship
     if db_dive_site.difficulty:
         response_data["difficulty_code"] = db_dive_site.difficulty.code
@@ -1960,33 +1960,37 @@ async def create_dive_site(
     else:
         response_data["difficulty_code"] = None
         response_data["difficulty_label"] = None
-    
+
     return response_data
+
+from fastapi_cache.decorator import cache
 
 @router.get("/countries", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")
+@cache(expire=3600)
 async def get_unique_countries(request: Request, search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
     """Get unique countries from dive sites with optional search"""
     query = db.query(DiveSite.country).filter(DiveSite.country.isnot(None))
-    
+
     if search:
         query = query.filter(DiveSite.country.ilike(f"%{search}%"))
-    
+
     countries = query.distinct().order_by(DiveSite.country).all()
     return [c[0] for c in countries]
 
 @router.get("/regions", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")
+@cache(expire=3600)
 async def get_unique_regions(request: Request, country: Optional[str] = Query(None, max_length=100), search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
     """Get unique regions from dive sites with optional country and search filtering"""
     query = db.query(DiveSite.region).filter(DiveSite.region.isnot(None))
-    
+
     if country:
         query = query.filter(DiveSite.country == country)
-    
+
     if search:
         query = query.filter(DiveSite.region.ilike(f"%{search}%"))
-    
+
     regions = query.distinct().order_by(DiveSite.region).all()
     return [r[0] for r in regions]
 
@@ -1995,6 +1999,7 @@ async def get_unique_regions(request: Request, country: Optional[str] = Query(No
 async def get_dive_site(
     request: Request,
     dive_site_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)  # <-- new optional dependency
 ):
@@ -2005,23 +2010,16 @@ async def get_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-        
+
     if dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
 
-    # Increment view count without updating updated_at
-    db.query(DiveSite).filter(DiveSite.id == dive_site.id).update(
-        {
-            DiveSite.view_count: DiveSite.view_count + 1,
-            DiveSite.updated_at: DiveSite.updated_at
-        },
-        synchronize_session=False
-    )
-    db.commit()
-    db.refresh(dive_site)
+    # Increment view count in the background without blocking the response
+    from app.utils import increment_view_count
+    background_tasks.add_task(increment_view_count, db, DiveSite, dive_site.id)
 
     # Calculate average rating
     avg_rating = db.query(func.avg(SiteRating.score)).filter(
@@ -2086,28 +2084,28 @@ async def get_dive_site(
     site_media = db.query(SiteMedia.id, SiteMedia.media_type, SiteMedia.url, SiteMedia.thumbnail_url).filter(
         SiteMedia.dive_site_id == dive_site.id
     ).all()
-    
+
     # Get all media from DiveMedia (id, media_type, url, thumbnail_url)
     dive_media = db.query(DiveMedia.id, DiveMedia.media_type, DiveMedia.url, DiveMedia.thumbnail_url).join(Dive).filter(
         Dive.dive_site_id == dive_site.id
     ).all()
-    
+
     # Combine all media items with source info
     # Format: (media_object, source_string)
     all_media = [(m, 'site_media') for m in site_media] + [(m, 'dive_media') for m in dive_media]
-    
+
     if all_media:
         import random
         # If there's a defined media order, try to respect it
         if dive_site.media_order and len(dive_site.media_order) > 0:
             ordered_media = []
             media_map = {f"{src}_{m.id}": (m, src) for m, src in all_media}
-            
+
             # Add ordered items first
             for key in dive_site.media_order:
                 if key in media_map:
                     ordered_media.append(media_map[key])
-            
+
             # If we found ordered items, pick the first one
             if ordered_media:
                 selected_media, source = ordered_media[0]
@@ -2115,16 +2113,16 @@ async def get_dive_site(
                 selected_media, source = random.choice(all_media)
         else:
             selected_media, source = random.choice(all_media)
-        
+
         # Use thumbnail_url if available, otherwise fallback to url (original)
         if selected_media.thumbnail_url:
             thumbnail = selected_media.thumbnail_url
         else:
             thumbnail = selected_media.url
-            
+
         thumbnail_id = selected_media.id
         thumbnail_source = source
-        
+
         # Determine media type
         media_type_val = selected_media.media_type
         if hasattr(media_type_val, 'value'):
@@ -2150,7 +2148,7 @@ async def get_dive_site(
     # Extract difficulty_code and difficulty_label from relationship
     difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
     difficulty_label = dive_site.difficulty.label if dive_site.difficulty else None
-    
+
     response_data = {
         "id": dive_site.id,
         "name": dive_site.name,
@@ -2209,7 +2207,7 @@ async def get_dive_site_media(
 
     # Get admin-uploaded site media
     site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id == dive_site_id).all()
-    
+
     # Get public media from dives associated with this dive site
     # Also include private media if current user owns the dive
     # Use joinedload to eagerly load dive and user relationships to avoid N+1 queries
@@ -2218,18 +2216,18 @@ async def get_dive_site_media(
     ).filter(
         Dive.dive_site_id == dive_site_id,
     )
-    
+
     dive_media = dive_media_query.all()
-    
+
     # Convert to SiteMediaResponse format
     # Note: We're using SiteMediaResponse but it will contain dive media too
     # The frontend will need to handle both types
     result = []
     r2_storage = get_r2_storage()
-    
+
     # Map for easy access by composite ID (e.g. "site_123", "dive_456")
     media_map = {}
-    
+
     # Add site media (admin-uploaded)
     for media in site_media:
         # If URL is an R2 path (starts with 'user_'), generate presigned URL
@@ -2237,17 +2235,17 @@ async def get_dive_site_media(
         thumbnail_url = media.thumbnail_url
         medium_url = media.medium_url
         download_url = None
-        
+
         if media_url and media_url.startswith('user_'):
             # Generate download URL from the original path
             download_url = r2_storage.get_photo_url(media_url, download=True)
             media_url = r2_storage.get_photo_url(media_url)
-        
+
         if thumbnail_url and thumbnail_url.startswith('user_'):
             thumbnail_url = r2_storage.get_photo_url(thumbnail_url)
         if medium_url and medium_url.startswith('user_'):
             medium_url = r2_storage.get_photo_url(medium_url)
-        
+
         response_obj = SiteMediaResponse(
             id=media.id,
             dive_site_id=media.dive_site_id,
@@ -2264,14 +2262,14 @@ async def get_dive_site_media(
         )
         media_map[f"site_{media.id}"] = response_obj
 
-    
+
     for media in dive_media:
         # Get the dive to access user info (already loaded via joinedload)
         dive = media.dive
-        
+
         # Get username from dive's user relationship (already loaded)
         user_username = dive.user.username if dive and dive.user else None
-        
+
         # Format description: if user provided description, append "From dive: XXX", otherwise just "From dive: XXX"
         dive_name = dive.name if dive else 'Unknown'
         default_description = f"By: {user_username}\nDive: {dive_name}"
@@ -2281,22 +2279,22 @@ async def get_dive_site_media(
         else:
             # No user description - just default description
             formatted_description = default_description
-        
+
         # If URL is an R2 path (starts with 'user_'), generate presigned URL
         media_url = media.url
         thumbnail_url = media.thumbnail_url
         medium_url = media.medium_url
         download_url = None
-        
+
         if media_url and media_url.startswith('user_'):
             download_url = r2_storage.get_photo_url(media_url, download=True)
             media_url = r2_storage.get_photo_url(media_url)
-            
+
         if thumbnail_url and thumbnail_url.startswith('user_'):
             thumbnail_url = r2_storage.get_photo_url(thumbnail_url)
         if medium_url and medium_url.startswith('user_'):
             medium_url = r2_storage.get_photo_url(medium_url)
-        
+
         response_obj = SiteMediaResponse(
             id=media.id,
             dive_site_id=dive_site_id,
@@ -2312,7 +2310,7 @@ async def get_dive_site_media(
             download_url=download_url
         )
         media_map[f"dive_{media.id}"] = response_obj
-    
+
     # Apply ordering if exists
     if dive_site.media_order:
         try:
@@ -2325,13 +2323,13 @@ async def get_dive_site_media(
         except Exception as e:
             logger.error(f"Error applying media order: {e}")
             # Continue with remaining items if ordering fails
-    
+
     # Add any remaining items (newly uploaded or not in order list)
     # Sort them by ID/created_at implicitly (or could sort explicitly here)
     remaining_keys = sorted(media_map.keys()) # Sort keys for consistent fallback order
     for key in remaining_keys:
         result.append(media_map[key])
-    
+
     return result
 
 @router.put("/{dive_site_id}/media/order")
@@ -2361,7 +2359,7 @@ async def update_media_order(
         current_user.is_moderator or
         dive_site.created_by == current_user.id
     )
-    
+
     if not can_edit:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -2372,10 +2370,10 @@ async def update_media_order(
     # Note: We don't validate that every ID exists here, as that would be expensive
     # and "ghost" IDs are handled gracefully by the GET endpoint.
     # However, basic validation of format is handled by Pydantic model.
-    
+
     dive_site.media_order = order_data.order
     db.commit()
-    
+
     return {"message": "Media order updated successfully", "order": dive_site.media_order}
 
 @router.post("/{dive_site_id}/media", response_model=SiteMediaResponse)
@@ -2519,7 +2517,7 @@ async def delete_dive_site_media(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Media not found"
         )
-    
+
     # Remove from media_order if present
     if dive_site.media_order:
         media_key = f"site_{media_id}"
@@ -2571,10 +2569,10 @@ async def upload_dive_site_photo_r2_only(
     MAX_FILE_SIZE = 15 * 1024 * 1024
     file_size = 0
     file_content = bytearray()
-    
+
     # Use 1MB chunks
     CHUNK_SIZE = 1024 * 1024
-    
+
     while True:
         chunk = await file.read(CHUNK_SIZE)
         if not chunk:
@@ -2586,7 +2584,7 @@ async def upload_dive_site_photo_r2_only(
                 detail="File size exceeds 15MB limit"
             )
         file_content.extend(chunk)
-    
+
     # Convert bytearray back to bytes for downstream processing
     file_content = bytes(file_content)
 
@@ -2595,7 +2593,7 @@ async def upload_dive_site_photo_r2_only(
     # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
     if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
         file_ext = '.jpg'
-        
+
     unique_filename = f"{uuid.uuid4()}{file_ext}"
 
     # Process image (Generate variants)
@@ -2617,9 +2615,9 @@ async def upload_dive_site_photo_r2_only(
             image_streams=image_streams,
             dive_site_id=dive_site_id
         )
-        
+
         response_data = {}
-        
+
         # Helper to generate URL
         def get_url(path):
             if not path: return None
@@ -2630,15 +2628,15 @@ async def upload_dive_site_photo_r2_only(
         # Populate response with paths and signed URLs
         response_data["r2_path"] = uploaded_paths.get("original")
         response_data["url"] = get_url(uploaded_paths.get("original"))
-        
+
         if uploaded_paths.get("medium"):
             response_data["medium_path"] = uploaded_paths.get("medium")
             response_data["medium_url"] = get_url(uploaded_paths.get("medium"))
-            
+
         if uploaded_paths.get("thumbnail"):
             response_data["thumbnail_path"] = uploaded_paths.get("thumbnail")
             response_data["thumbnail_url"] = get_url(uploaded_paths.get("thumbnail"))
-        
+
         return response_data
 
     except Exception as e:
@@ -2715,7 +2713,7 @@ async def add_diving_center_to_dive_site(
         )
 
     # Check if user has permission to manage this diving center
-    if not (current_user.is_admin or current_user.is_moderator or 
+    if not (current_user.is_admin or current_user.is_moderator or
             (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -2782,7 +2780,7 @@ async def remove_diving_center_from_dive_site(
         )
 
     # Check if user has permission to manage this diving center
-    if not (current_user.is_admin or current_user.is_moderator or 
+    if not (current_user.is_admin or current_user.is_moderator or
             (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -2828,7 +2826,7 @@ async def approve_dive_site(
     dive_site.status = 'approved'
     db.commit()
     db.refresh(dive_site)
-    
+
     # Trigger notifications as if it was just created
     background_tasks.add_task(_send_dive_site_notifications, dive_site.id)
 
@@ -2860,7 +2858,7 @@ async def reject_dive_site(
 
     dive_site.status = 'rejected'
     db.commit()
-    
+
     return {"status": "success", "message": "Dive site rejected"}
 
 @router.put("/{dive_site_id}", response_model=DiveSiteResponse)
@@ -2885,20 +2883,20 @@ async def update_dive_site(
         update_data = dive_site_update.dict(exclude_unset=True)
         # Compute a strict diff against the current dive site
         diff_data = {}
-        
-        # In the frontend payload, the difficulty is called `difficulty_code`, but the ORM 
-        # stores it as `difficulty_id`. We need to handle this explicitly so it doesn't 
+
+        # In the frontend payload, the difficulty is called `difficulty_code`, but the ORM
+        # stores it as `difficulty_id`. We need to handle this explicitly so it doesn't
         # erroneously trigger a "modified" diff simply because `dive_site.difficulty_code` is missing.
         if 'difficulty_code' in update_data:
             difficulty_code = update_data.pop('difficulty_code')
             new_difficulty_id = get_difficulty_id_by_code(db, difficulty_code) if difficulty_code else None
-            
+
             if dive_site.difficulty_id != new_difficulty_id:
                 diff_data['difficulty_code'] = difficulty_code
-                
+
         for key, value in update_data.items():
             current_val = getattr(dive_site, key, None)
-            
+
             # Simple conversion to prevent strict string/float mismatches
             # e.g., '10.0' vs 10.0
             if current_val is not None and value is not None:
@@ -2956,7 +2954,7 @@ async def update_dive_site(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Longitude cannot be empty"
         )
-    
+
     # Validate shore_direction if provided - must be a valid value (0-360), cannot be None
     if 'shore_direction' in update_data:
         if update_data['shore_direction'] is None:
@@ -2969,11 +2967,11 @@ async def update_dive_site(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Shore direction must be between 0 and 360 degrees"
             )
-    
+
     # Auto-detect shore direction if:
     # 1. Coordinates actually changed and shore_direction not provided, OR
     # 2. Shore direction is currently NULL in database and not being explicitly set
-    
+
     actual_coords_changed = False
     if 'latitude' in update_data and dive_site.latitude is not None:
         if abs(float(update_data['latitude']) - float(dive_site.latitude)) > 1e-7:
@@ -2988,14 +2986,14 @@ async def update_dive_site(
         actual_coords_changed = True
 
     shore_direction_not_provided = 'shore_direction' not in update_data or update_data.get('shore_direction') is None
-    
+
     # Check if we should trigger detection
     # Only if coordinates changed OR (missing AND hasn't failed before)
     shore_direction_is_missing = dive_site.shore_direction is None and dive_site.shore_direction_method != 'osm_failed'
-    
+
     # Auto-detect location data if coordinates changed or data is missing
     country_region_missing = not dive_site.country or not dive_site.region
-    
+
     if (actual_coords_changed or shore_direction_is_missing or country_region_missing) and (shore_direction_not_provided or country_region_missing):
         # Schedule background detection (includes geocoding and shore direction)
         background_tasks.add_task(_update_location_data_background, dive_site_id)
@@ -3006,7 +3004,7 @@ async def update_dive_site(
 
     db.commit()
     db.refresh(dive_site)
-    
+
     # Re-query with eager loading of difficulty relationship for response
     dive_site = db.query(DiveSite).options(joinedload(DiveSite.difficulty)).filter(DiveSite.id == dive_site_id).first()
 
@@ -3040,7 +3038,7 @@ async def update_dive_site(
     # Difficulty information is already eager-loaded above
     difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
     difficulty_label = dive_site.difficulty.label if dive_site.difficulty else None
-    
+
     return {
         "id": dive_site.id,
         "name": dive_site.name,
@@ -3083,13 +3081,13 @@ async def restore_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     if dive_site.deleted_at is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Dive site is not archived"
         )
-        
+
     try:
         dive_site.deleted_at = None
         db.commit()
@@ -3117,14 +3115,14 @@ async def delete_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     # Permission check: must be admin or the creator
     if not current_user.is_admin and dive_site.created_by != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this dive site"
         )
-    
+
     try:
         if current_user.is_admin and force:
             # Hard delete
@@ -3332,7 +3330,7 @@ async def get_nearby_dive_sites(
         # ST_Distance_Sphere returns distance in meters, we divide by 1000 for km
         nearby_query = text("""
             SELECT
-                ds.id, ds.name, ds.description, 
+                ds.id, ds.name, ds.description,
                 dl.code AS difficulty_code, dl.label AS difficulty_label,
                 ds.latitude, ds.longitude,
                 ds.access_instructions, ds.safety_information, ds.marine_life,
@@ -3352,7 +3350,7 @@ async def get_nearby_dive_sites(
         # Fallback to Haversine formula for non-MySQL dialects (e.g., SQLite in tests)
         nearby_query = text("""
             SELECT
-                ds.id, ds.name, ds.description, 
+                ds.id, ds.name, ds.description,
                 dl.code AS difficulty_code, dl.label AS difficulty_label,
                 ds.latitude, ds.longitude,
                 ds.access_instructions, ds.safety_information, ds.marine_life,
@@ -3710,25 +3708,25 @@ async def get_dive_site_routes(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-        
+
     if dive_site.deleted_at is not None and not (current_user and current_user.is_admin):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     routes = db.query(DiveRoute).filter(
         and_(
             DiveRoute.dive_site_id == dive_site_id,
             DiveRoute.deleted_at.is_(None)
         )
     ).order_by(desc(DiveRoute.created_at)).all()
-    
+
     # Convert routes to dictionaries and add creator information
     routes_with_creator = []
     for route in routes:
         route_dict = route.__dict__.copy()
-        
+
         # Manually fetch creator information
         creator = db.query(User).filter(User.id == route.created_by).first()
         route_dict['creator'] = {
@@ -3736,9 +3734,9 @@ async def get_dive_site_routes(
             'username': creator.username,
             'name': creator.name
         } if creator else None
-        
+
         routes_with_creator.append(route_dict)
-    
+
     return routes_with_creator
 
 
@@ -3759,14 +3757,14 @@ async def create_dive_site_route(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     # Ensure route_data.dive_site_id matches the URL parameter
     if route_data.dive_site_id != dive_site_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Route dive_site_id must match URL parameter"
         )
-    
+
     # Create route
     db_route = DiveRoute(
         dive_site_id=dive_site_id,
@@ -3776,11 +3774,11 @@ async def create_dive_site_route(
         route_data=route_data.route_data,
         route_type=route_data.route_type
     )
-    
+
     db.add(db_route)
     db.commit()
     db.refresh(db_route)
-    
+
     return db_route
 
 @router.post("/{dive_site_id}/detect-shore-direction")
@@ -3793,11 +3791,11 @@ async def detect_shore_direction_for_dive_site(
 ):
     """
     Detect shore direction for an existing dive site using OpenStreetMap coastline data.
-    
+
     This endpoint triggers automatic detection of shore direction based on the dive site's
     coordinates. The detected value can be used to update the dive site or returned for
     user confirmation.
-    
+
     Rate limited to prevent API abuse.
     """
     # Check if dive site exists
@@ -3807,31 +3805,31 @@ async def detect_shore_direction_for_dive_site(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dive site not found"
         )
-    
+
     # Check permissions (user must own the site or be admin/moderator)
-    if not (current_user.is_admin or current_user.is_moderator or 
+    if not (current_user.is_admin or current_user.is_moderator or
             (dive_site.created_by == current_user.id)):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions to modify this dive site"
         )
-    
+
     # Check if coordinates are available
     if dive_site.latitude is None or dive_site.longitude is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Dive site must have latitude and longitude to detect shore direction"
         )
-    
+
     # Detect shore direction
     result = detect_shore_direction(float(dive_site.latitude), float(dive_site.longitude))
-    
+
     if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Could not detect shore direction. No coastline found nearby or API error occurred."
         )
-    
+
     return {
         "shore_direction": result.get("shore_direction"),
         "confidence": result.get("confidence"),

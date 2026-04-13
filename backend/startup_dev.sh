@@ -70,8 +70,8 @@ echo "🔄 Development mode - enabling auto-reload with enhanced directory watch
 # Check if we should skip migrations (for faster development startup)
 if [ "$SKIP_MIGRATIONS" = "true" ]; then
     echo "⚡ Skipping migrations for faster development startup"
-    uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations
+    gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --reload --forwarded-allow-ips '*' --access-logfile -
 else
     echo "🔧 Running migrations before startup..."
-    python run_migrations.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app --reload-dir /app/migrations
+    python run_migrations.py && gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --reload --forwarded-allow-ips '*' --access-logfile -
 fi 

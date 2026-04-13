@@ -638,8 +638,9 @@ def execute_other_intents(
 
     elif intent_type == IntentType.CONTEXT_QA and context_entity_id:
         if context_entity_type == "dive_site":
+            from sqlalchemy.orm import selectinload
             site = db.query(DiveSite).options(
-                joinedload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
+                selectinload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
                 joinedload(DiveSite.difficulty)
             ).filter(DiveSite.id == context_entity_id).first()
 

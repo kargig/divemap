@@ -97,6 +97,10 @@ async def lifespan(app: FastAPI):
     Replaces the deprecated @app.on_event("startup") and @app.on_event("shutdown").
     """
     # Startup logic
+    from fastapi_cache import FastAPICache
+    from fastapi_cache.backends.inmemory import InMemoryBackend
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
+    
     startup_end_time = time.time()
     total_startup_time = startup_end_time - startup_start_time
 
