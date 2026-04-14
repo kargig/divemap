@@ -66,14 +66,10 @@ class EmailVerificationService:
     
     def verify_token(self, token: str, db: Session) -> Optional[User]:
         """
-        Verify a token and mark email as verified.
-        
-        This method uses a transaction to ensure atomicity: if verification fails,
-        the operation is rolled back. The token is marked as used and the user's
-        email is marked as verified in a single atomic operation.
+        Verify an email verification token.
         
         Args:
-            token: Verification token
+            token: The token to verify
             db: Database session
             
         Returns:
@@ -91,11 +87,10 @@ class EmailVerificationService:
         
         # Check if token is expired
         # Ensure both datetimes are timezone-aware for comparison
-        expires_at = verification_token.expires_at
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        from app.utils import normalize_datetime_to_utc
+        expires_at = normalize_datetime_to_utc(verification_token.expires_at)
         now = datetime.now(timezone.utc)
-        if expires_at < now:
+        if expires_at and expires_at < now:
             logger.warning(f"Verification token expired: {token[:10]}...")
             return None
         
@@ -124,12 +119,11 @@ class EmailVerificationService:
             
             db.commit()
             db.refresh(user)
-            
-            logger.info(f"Email verified for user {user.id}")
+            logger.info(f"User {user.id} successfully verified email")
             return user
         except Exception as e:
             db.rollback()
-            logger.error(f"Failed to verify token for user {user.id}: {e}", exc_info=True)
+            logger.error(f"Error during email verification for user {user.id}: {e}")
             return None
     
     def is_token_valid(self, token: str, db: Session) -> bool:

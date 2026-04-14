@@ -28,6 +28,7 @@ import {
   Users,
   Crown,
   History,
+  Trophy,
 } from 'lucide-react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -109,32 +110,17 @@ const NavbarDesktopControls = () => {
                 icon: <Calendar className='h-4 w-4' />,
                 onClick: () => navigate('/dive-trips'),
               },
-            ],
-          }}
-          trigger={['click']}
-          placement='bottomRight'
-        >
-          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
-            <Compass className='h-6 w-6' />
-            <span className='text-sm'>Dive / Explore</span>
-            <ChevronDown className='h-4 w-4' />
-          </button>
-        </Dropdown>
-
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'diving-organizations',
-                label: 'Diving Organizations',
-                icon: <Award className='h-4 w-4' />,
-                onClick: () => navigate('/resources/diving-organizations'),
-              },
               {
                 key: 'tools',
                 label: 'Tools',
                 icon: <Calculator className='h-4 w-4' />,
                 onClick: () => navigate('/resources/tools'),
+              },
+              {
+                key: 'diving-organizations',
+                label: 'Diving Organizations',
+                icon: <Award className='h-4 w-4' />,
+                onClick: () => navigate('/resources/diving-organizations'),
               },
               {
                 key: 'tags',
@@ -148,11 +134,19 @@ const NavbarDesktopControls = () => {
           placement='bottomRight'
         >
           <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
-            <Award className='h-6 w-6' />
-            <span className='text-sm'>Resources</span>
+            <Compass className='h-6 w-6' />
+            <span className='text-sm'>Dive / Explore</span>
             <ChevronDown className='h-4 w-4' />
           </button>
         </Dropdown>
+
+        <Link
+          to='/leaderboard'
+          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+        >
+          <Trophy className='h-6 w-6' />
+          <span className='text-sm'>Community</span>
+        </Link>
 
         {user ? (
           <div className='flex items-center space-x-4'>

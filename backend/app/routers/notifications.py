@@ -5,7 +5,7 @@ API endpoints for notification management, preferences, and email configuration.
 """
 
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Security
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
 from datetime import datetime, timezone
@@ -65,7 +65,10 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 LAMBDA_API_KEY = os.getenv("LAMBDA_API_KEY", "")  # Legacy: fallback to env var if no DB keys
 
 
-def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends(get_db)) -> bool:
+def verify_api_key(
+    api_key: str = Security(api_key_header),
+    db: Session = Depends(get_db)
+):
     """
     Verify API key for internal service calls (Lambda, etc.).
     Checks database first, falls back to LAMBDA_API_KEY env var for backward compatibility.
@@ -81,6 +84,7 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
     try:
         from app.models import ApiKey
         from app.auth import verify_password
+        from app.utils import normalize_datetime_to_utc
             
         # Get all active API keys
         active_keys = db.query(ApiKey).filter(
@@ -90,8 +94,9 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
         # Check expiration
         now = utcnow()
         for key_record in active_keys:
-            # Check if expired
-            if key_record.expires_at and key_record.expires_at < now:
+            # Check if expired - Normalize to UTC to avoid naive vs aware comparison
+            expires_at = normalize_datetime_to_utc(key_record.expires_at)
+            if expires_at and expires_at < now:
                 continue
             
             # Verify key hash matches
@@ -134,6 +139,10 @@ def verify_api_key(api_key: str = Depends(api_key_header), db: Session = Depends
             )
         return True
     except Exception as e:
+        # Don't re-raise HTTPExceptions
+        if isinstance(e, HTTPException):
+            raise e
+            
         logger.error(f"Error verifying API key: {e}")
         # Fallback to env var on error
         if LAMBDA_API_KEY and api_key == LAMBDA_API_KEY:

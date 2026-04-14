@@ -677,6 +677,10 @@ async def lazy_router_loading(request: Request, call_next):
     if (path.startswith("/api/v1/user-friendships") or is_docs) and not hasattr(app, '_user_friendships_router_loaded'):
         load_user_friendships_router()
 
+    # Load leaderboard router
+    if (path.startswith("/api/v1/leaderboard") or is_docs) and not hasattr(app, '_leaderboard_router_loaded'):
+        load_leaderboard_router()
+
     response = await call_next(request)
     return response
 
@@ -734,6 +738,19 @@ def load_user_friendships_router():
         app._user_friendships_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ User Friendships router loaded lazily in {router_time:.2f}s")
+
+def load_leaderboard_router():
+    """Load leaderboard router lazily when first accessed"""
+    if not hasattr(app, '_leaderboard_router_loaded'):
+        print("🔧 Loading leaderboard router lazily...")
+        router_start = time.time()
+
+        from app.routers import leaderboard
+        app.include_router(leaderboard.router, prefix="/api/v1/leaderboard", tags=["Leaderboard"])
+
+        app._leaderboard_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Leaderboard router loaded lazily in {router_time:.2f}s")
 
 
 @app.get("/")

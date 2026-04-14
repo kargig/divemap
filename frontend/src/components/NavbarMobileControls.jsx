@@ -28,6 +28,7 @@ import {
   User,
   Crown,
   MessageSquare,
+  Trophy,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
@@ -193,36 +194,6 @@ const NavbarMobileControls = () => {
                     >
                       Dive Trips
                     </List.Item>
-                  </List>
-                </Collapse.Panel>
-              </Collapse>
-
-              <Collapse>
-                <Collapse.Panel
-                  key='resources'
-                  title={
-                    <div className='flex items-center gap-2'>
-                      <Award className='h-5 w-5 text-blue-100' />
-                      <span>Resources</span>
-                    </div>
-                  }
-                >
-                  <List
-                    style={{
-                      '--border-top': 'none',
-                      '--border-bottom': 'none',
-                      '--adm-color-text': '#ffffff',
-                      '--adm-color-weak': '#ffffff',
-                    }}
-                  >
-                    <List.Item
-                      prefix={<Award className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/resources/diving-organizations')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Diving Organizations
-                    </List.Item>
                     <List.Item
                       prefix={<Calculator className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/resources/tools')}
@@ -230,6 +201,14 @@ const NavbarMobileControls = () => {
                       arrow={false}
                     >
                       Tools
+                    </List.Item>
+                    <List.Item
+                      prefix={<Award className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/resources/diving-organizations')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Diving Organizations
                     </List.Item>
                     <List.Item
                       prefix={<Tags className='h-4 w-4 text-blue-200' />}
@@ -241,7 +220,17 @@ const NavbarMobileControls = () => {
                     </List.Item>
                   </List>
                 </Collapse.Panel>
+              </Collapse>
 
+              <List.Item
+                prefix={<Trophy className='h-5 w-5 text-blue-100' />}
+                onClick={() => handleNavigate('/leaderboard')}
+                arrow={false}
+              >
+                Community
+              </List.Item>
+
+              <Collapse>
                 <Collapse.Panel
                   key='info'
                   title={

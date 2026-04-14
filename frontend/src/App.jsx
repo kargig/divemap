@@ -66,6 +66,7 @@ const EditDivingCenter = lazy(() => import('./pages/EditDivingCenter'));
 const Help = lazy(() => import('./pages/Help'));
 const Home = lazy(() => import('./pages/Home'));
 const IndependentMapView = lazy(() => import('./pages/IndependentMapView'));
+const Leaderboard = lazy(() => import('./pages/LeaderboardPage'));
 const Login = lazy(() => import('./pages/Login'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
@@ -457,6 +458,7 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
+                    <Route path='/leaderboard' element={<Leaderboard />} />
                     <Route path='/dives' element={<Dives />} />
                     <Route
                       path='/dives/create'
