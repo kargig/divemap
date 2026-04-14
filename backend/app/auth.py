@@ -123,17 +123,13 @@ def verify_pat(token: str, db: Session) -> Optional[User]:
         if not matching_pats:
             return None
 
+        from app.utils import utcnow, normalize_datetime_to_utc
         now = utcnow()
         for pat in matching_pats:
             # 1. Check expiration
-            if pat.expires_at:
-                expires_at = pat.expires_at
-                if expires_at.tzinfo is None:
-                    from datetime import timezone
-                    expires_at = expires_at.replace(tzinfo=timezone.utc)
-                
-                if expires_at < now:
-                    continue
+            expires_at = normalize_datetime_to_utc(pat.expires_at)
+            if expires_at and expires_at < now:
+                continue
             
             # 2. Verify slow Bcrypt hash (only for prefix matches)
             if verify_password(token, pat.token_hash):

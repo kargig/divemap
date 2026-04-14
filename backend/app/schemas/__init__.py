@@ -1639,3 +1639,28 @@ class PushSubscriptionResponse(PushSubscriptionBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class LeaderboardUserEntry(BaseModel):
+    user_id: int
+    username: str
+    avatar_url: Optional[str] = None
+    count: int
+    points: Optional[int] = None
+    rank: int
+
+class LeaderboardCenterEntry(BaseModel):
+    center_id: int
+    name: str
+    logo_url: Optional[str] = None
+    count: int
+    rank: int
+
+class LeaderboardUserResponse(BaseModel):
+    metric: str
+    entries: List[LeaderboardUserEntry]
+    updated_at: datetime
+
+class LeaderboardCenterResponse(BaseModel):
+    metric: str
+    entries: List[LeaderboardCenterEntry]
+    updated_at: datetime

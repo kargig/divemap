@@ -613,3 +613,14 @@ def utcnow() -> datetime:
         datetime: Current UTC time as timezone-aware datetime
     """
     return datetime.now(timezone.utc) 
+
+def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    """
+    Ensure a datetime object is timezone-aware and set to UTC.
+    If naive, assume it's already UTC (common with SQLite).
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
