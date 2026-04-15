@@ -1,15 +1,28 @@
 import { Grid, Button, Typography, Space } from 'antd';
 import { Grid as MobileGrid } from 'antd-mobile';
-import { Map, Star, Anchor, Notebook, Calendar, HelpCircle } from 'lucide-react';
+import {
+  Map,
+  Star,
+  Anchor,
+  Notebook,
+  Calendar,
+  HelpCircle,
+  Trophy,
+  Medal,
+  ChevronRight,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import api from '../api';
 import AnimatedCounter from '../components/AnimatedCounter';
+import Avatar from '../components/Avatar';
 import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
+import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
+import { getOverallLeaderboard } from '../services/leaderboard';
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
@@ -81,6 +94,74 @@ const Home = () => {
 
   // Determine if backend is available
   const isBackendAvailable = !isError && !isLoading;
+
+  const { data: overallData, isLoading: isLeaderboardLoading } = useQuery(
+    ['leaderboard', 'overall'],
+    () => getOverallLeaderboard({ limit: 3 }),
+    {
+      enabled: isBackendAvailable,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  const LeaderboardSnippet = () => {
+    if (isLeaderboardLoading) {
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          <LoadingSkeleton
+            type='user'
+            count={3}
+            className='grid grid-cols-1 sm:grid-cols-3 gap-6 space-y-0'
+          />
+        </div>
+      );
+    }
+
+    const topThree = overallData?.entries || [];
+
+    if (topThree.length === 0) return null;
+
+    return (
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+        {topThree.map((user, index) => (
+          <Link
+            key={user.user_id}
+            to={`/users/${user.username}`}
+            className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4'
+          >
+            <div className='relative'>
+              <Avatar
+                src={user.avatar_url}
+                alt={user.username}
+                size='lg'
+                fallbackText={user.username}
+                className={index === 0 ? 'border-2 border-yellow-400' : ''}
+              />
+              <div
+                className={`absolute -top-2 -right-2 rounded-full p-1 shadow-sm ${
+                  index === 0
+                    ? 'bg-yellow-400 text-white'
+                    : index === 1
+                      ? 'bg-gray-300 text-gray-700'
+                      : 'bg-amber-600 text-white'
+                }`}
+              >
+                {index === 0 ? <Trophy className='w-3 h-3' /> : <Medal className='w-3 h-3' />}
+              </div>
+            </div>
+            <div>
+              <p className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors'>
+                {user.username}
+              </p>
+              <p className='text-xs font-medium text-blue-600 uppercase tracking-wider'>
+                {user.points.toLocaleString()} Points
+              </p>
+            </div>
+          </Link>
+        ))}
+      </div>
+    );
+  };
 
   const schema = {
     '@context': 'https://schema.org',
@@ -340,6 +421,27 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Top Contributors Snippet */}
+      <section className='mb-16 px-4'>
+        <div className='flex flex-col md:flex-row items-center justify-between mb-8 gap-4'>
+          <div>
+            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-600 mb-1'>
+              Community Leaders
+            </h3>
+            <h2 className='text-3xl font-bold text-gray-900'>Top Contributors</h2>
+          </div>
+          <Link
+            to='/leaderboard'
+            className='flex items-center text-blue-600 font-bold hover:text-blue-700 transition-colors group'
+          >
+            View Full Leaderboard
+            <ChevronRight className='ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform' />
+          </Link>
+        </div>
+
+        <LeaderboardSnippet />
+      </section>
 
       {/* Final CTA */}
       <div className='text-center py-20 bg-blue-50 rounded-3xl mb-12 px-6'>

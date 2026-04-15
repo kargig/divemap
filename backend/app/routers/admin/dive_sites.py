@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import DiveSite, User
 from app.auth import get_current_active_user
 from app.schemas import DiveSiteResponse
+from app.limiter import skip_rate_limit_for_admin
 
 router = APIRouter(
     prefix="/dive-sites",
@@ -96,14 +97,15 @@ async def get_pending_edit_requests(db: Session = Depends(get_db), current_user:
     return result
 
 @router.post("/edit-requests/{request_id}/approve")
-async def approve_edit_request(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
+@skip_rate_limit_for_admin("30/minute")
+async def approve_edit_request(request: Request, request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     if not (current_user.is_admin or current_user.is_moderator):
         raise HTTPException(status_code=403, detail="Forbidden")
-        
+
     edit_req = db.query(DiveSiteEditRequest).filter(DiveSiteEditRequest.id == request_id).first()
     if not edit_req or edit_req.status != EditRequestStatus.pending:
         raise HTTPException(status_code=404, detail="Pending request not found")
-        
+
     if edit_req.edit_type == EditRequestType.site_data:
         dive_site = db.query(DiveSite).filter(DiveSite.id == edit_req.dive_site_id).first()
         if not dive_site:
@@ -124,7 +126,11 @@ async def approve_edit_request(request_id: int, db: Session = Depends(get_db), c
             setattr(dive_site, key, value)
             
     elif edit_req.edit_type == EditRequestType.media_addition:
-        media = SiteMedia(dive_site_id=edit_req.dive_site_id, **edit_req.proposed_data)
+        media = SiteMedia(
+            dive_site_id=edit_req.dive_site_id, 
+            user_id=edit_req.requested_by_id,
+            **edit_req.proposed_data
+        )
         db.add(media)
 
     elif edit_req.edit_type == EditRequestType.media_update:
@@ -166,6 +172,7 @@ async def approve_edit_request(request_id: int, db: Session = Depends(get_db), c
             ).delete()
 
     edit_req.status = EditRequestStatus.approved
+    from datetime import datetime, timezone
     edit_req.reviewed_at = datetime.now(timezone.utc)
     edit_req.reviewed_by_id = current_user.id
     db.commit()

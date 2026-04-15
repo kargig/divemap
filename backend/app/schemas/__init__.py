@@ -727,6 +727,8 @@ class UserProfileStats(BaseModel):
     site_ratings_count: int
     total_dives_claimed: int
     buddy_dives_count: int
+    total_points: Optional[int] = 0
+    leaderboard_rank: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 

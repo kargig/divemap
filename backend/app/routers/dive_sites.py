@@ -2438,6 +2438,7 @@ async def add_dive_site_media(
 
     db_media = SiteMedia(
         dive_site_id=dive_site_id,
+        user_id=current_user.id,
         media_type=media.media_type,
         url=media.url,
         description=media.description,

@@ -185,25 +185,6 @@ const LeaderboardPage = () => {
 
         <CategoryCard title='Top Site Creators' icon={MapPin} metric='sites' label='Sites' />
 
-        <div className='bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
-          <div className='p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50'>
-            <div className='flex items-center space-x-2'>
-              <div className='p-1.5 bg-white rounded-lg shadow-sm'>
-                <Warehouse className='w-4 h-4 text-blue-600' />
-              </div>
-              <h3 className='font-bold text-gray-900'>Top Diving Centers</h3>
-            </div>
-          </div>
-          <div className='p-2'>
-            <LeaderboardTable
-              data={centersData?.entries}
-              isLoading={isCentersLoading}
-              type='center'
-              metricLabel='Trips'
-            />
-          </div>
-        </div>
-
         <CategoryCard title='Top Reviewers' icon={Star} metric='reviews' label='Reviews' />
 
         <CategoryCard
@@ -219,26 +200,32 @@ const LeaderboardPage = () => {
         <h3 className='text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2'>
           <span>How are points calculated?</span>
         </h3>
-        <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4'>
+        <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4'>
           {[
-            { label: 'Create Site', pts: 20 },
-            { label: 'Log Dive', pts: 10 },
-            { label: 'Create Center', pts: 15 },
-            { label: 'Edit Site', pts: 5 },
-            { label: 'Review', pts: 5 },
-            { label: 'Comment', pts: 2 },
-          ].map(item => (
+            { pts: 20, actions: ['Create Site'] },
+            { pts: 15, actions: ['Create Center', 'Edit Site'] },
+            { pts: 10, actions: ['Log Dive', 'Site Media'] },
+            { pts: 5, actions: ['Dive Media', 'Comment'] },
+            { pts: 2, actions: ['Review'] },
+          ].map(group => (
             <div
-              key={item.label}
-              className='bg-white p-3 rounded-xl border border-gray-100 text-center'
+              key={group.pts}
+              className='bg-white p-4 rounded-xl border border-gray-100 text-center flex flex-col justify-center shadow-sm'
             >
-              <p className='text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1'>
-                {item.label}
+              <p className='text-2xl font-black text-blue-600 mb-3'>
+                +{group.pts}
+                <span className='text-xs ml-1 text-gray-500 font-bold uppercase'>pts</span>
               </p>
-              <p className='text-xl font-black text-blue-600'>
-                {item.pts}
-                <span className='text-xs ml-0.5'>pts</span>
-              </p>
+              <div className='flex flex-col space-y-1.5'>
+                {group.actions.map(action => (
+                  <span
+                    key={action}
+                    className='text-[11px] font-bold text-gray-700 bg-gray-50 border border-gray-100 py-1.5 px-2 rounded-lg tracking-wide uppercase'
+                  >
+                    {action}
+                  </span>
+                ))}
+              </div>
             </div>
           ))}
         </div>
