@@ -158,6 +158,7 @@ chmod +x container_test.sh
 
 print_status "Running tests..."
 set +e
+set -o pipefail
 if [ "$VERBOSE" = true ]; then
     docker run --rm --name divemap-test-runner --network divemap-test-network \
         -e VERBOSE=true \
@@ -173,6 +174,7 @@ else
         divemap-test-backend bash /app/container_test.sh | grep -v "PASSED" > test-failures.txt 2>&1
     TEST_EXIT_CODE=$?
 fi
+set +o pipefail
 set -e
 
 # Result

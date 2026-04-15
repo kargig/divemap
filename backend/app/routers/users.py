@@ -697,6 +697,10 @@ async def get_user_public_profile(
         DiveBuddy.user_id == user.id
     ).scalar()
 
+    # Leaderboard and gamification data
+    from app.routers.leaderboard import get_user_leaderboard_data
+    total_points, leaderboard_rank = get_user_leaderboard_data(db, user.id)
+
     # Create stats object
     stats = UserProfileStats(
         dive_sites_rated=dive_sites_rated or 0,
@@ -707,7 +711,9 @@ async def get_user_public_profile(
         site_comments_count=site_comments_count or 0,
         site_ratings_count=site_ratings_count or 0,
         total_dives_claimed=total_dives_claimed,
-        buddy_dives_count=buddy_dives_count or 0
+        buddy_dives_count=buddy_dives_count or 0,
+        total_points=total_points,
+        leaderboard_rank=leaderboard_rank
     )
 
     # Filter active certifications for public profile
@@ -883,6 +889,8 @@ async def get_user_public_profile(
 
     # Remove empty categories
     gear_preferences = {k: v for k, v in gear_preferences.items() if v > 0}
+    
+    from app.schemas import FavoriteDiveSite # Ensure it's imported for selection if needed, although defined in schemas/__init__.py
     
     diving_stats = DivingStatsResponse(
       max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,

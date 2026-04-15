@@ -96,6 +96,19 @@ const LoadingSkeleton = ({ type = 'card', count = 1, className = '', compact = f
     </div>
   );
 
+  // User skeleton for leaderboard (circle avatar + name + points)
+  const UserSkeleton = () => (
+    <div className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4'>
+      <div className='animate-pulse flex items-center space-x-4 w-full'>
+        <div className='h-12 w-12 bg-gray-200 rounded-full'></div>
+        <div className='flex-1 space-y-2'>
+          <div className='h-3 bg-gray-200 rounded w-1/2'></div>
+          <div className='h-2 bg-gray-100 rounded w-1/4'></div>
+        </div>
+      </div>
+    </div>
+  );
+
   // Render appropriate skeleton based on type
   const renderSkeleton = () => {
     switch (type) {
@@ -107,6 +120,8 @@ const LoadingSkeleton = ({ type = 'card', count = 1, className = '', compact = f
         return <FilterSkeleton />;
       case 'map':
         return <MapSkeleton />;
+      case 'user':
+        return <UserSkeleton />;
       default:
         return <CardSkeleton />;
     }
@@ -127,7 +142,7 @@ const LoadingSkeleton = ({ type = 'card', count = 1, className = '', compact = f
 };
 
 LoadingSkeleton.propTypes = {
-  type: PropTypes.oneOf(['card', 'pagination', 'filter', 'map']),
+  type: PropTypes.oneOf(['card', 'pagination', 'filter', 'map', 'user']),
   count: PropTypes.number,
   className: PropTypes.string,
   compact: PropTypes.bool,

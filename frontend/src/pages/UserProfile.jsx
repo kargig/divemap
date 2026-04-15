@@ -35,6 +35,8 @@ import {
   Wind,
   Droplets,
   Award,
+  Trophy,
+  Medal,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -562,6 +564,20 @@ const UserProfile = () => {
                           : 'User'}
                     </span>
                   </div>
+                  {profile.stats.total_points > 0 && (
+                    <div className='flex items-center space-x-1'>
+                      <Trophy className='h-4 w-4 text-yellow-500' />
+                      <span className='font-bold text-blue-600'>
+                        {profile.stats.total_points.toLocaleString()} points
+                      </span>
+                    </div>
+                  )}
+                  {profile.stats.leaderboard_rank && (
+                    <div className='flex items-center space-x-1'>
+                      <Medal className='h-4 w-4 text-amber-600' />
+                      <span className='font-semibold'>Rank #{profile.stats.leaderboard_rank}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Social Media Links */}
@@ -657,6 +673,30 @@ const UserProfile = () => {
                 </div>
                 <span className='font-semibold flex-1 text-right'>{totalDives}</span>
               </div>
+              {profile.stats.total_points > 0 && (
+                <div className='flex justify-between items-center'>
+                  <div className='flex items-center gap-2'>
+                    <Trophy size={16} className='text-yellow-500' />
+                    <span className='text-gray-600'>Total Points:</span>
+                  </div>
+                  <span className='font-bold text-blue-600 flex-1 text-right'>
+                    {profile.stats.total_points.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {profile.stats.leaderboard_rank && (
+                <div className='flex justify-between items-center'>
+                  <div className='flex items-center gap-2'>
+                    <Medal size={16} className='text-amber-600' />
+                    <span className='text-gray-600'>Leaderboard Rank:</span>
+                  </div>
+                  <div className='flex-1 text-right'>
+                    <Link to='/leaderboard' className='font-semibold text-blue-600 hover:underline'>
+                      #{profile.stats.leaderboard_rank}
+                    </Link>
+                  </div>
+                </div>
+              )}
               <div className='flex justify-between items-center'>
                 <div className='flex items-center gap-2'>
                   <Activity size={16} className='text-gray-400' />

@@ -292,6 +292,7 @@ class SiteMedia(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     media_type = Column(Enum(MediaType), nullable=False)
     url = Column(String(500), nullable=False)
     description = Column(Text)
@@ -301,6 +302,7 @@ class SiteMedia(Base):
 
     # Relationships
     dive_site = relationship("DiveSite", back_populates="media")
+    user = relationship("User")
 
 class SiteRating(Base):
     __tablename__ = "site_ratings"

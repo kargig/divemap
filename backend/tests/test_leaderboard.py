@@ -26,20 +26,20 @@ class TestLeaderboard:
         site = DiveSite(name="Test Site", created_by=test_user.id, location="POINT(0 0)")
         db_session.add(site)
         
-        # 3. Post a comment (2 pts)
+        # 3. Post a comment (5 pts)
         db_session.commit() # Need site.id for comment
         comment = SiteComment(user_id=test_user.id, dive_site_id=site.id, comment_text="Great site!")
         db_session.add(comment)
         
         db_session.commit()
 
-        # Total expected points: 10 + 20 + 2 = 32
+        # Total expected points: 10 + 20 + 5 = 35
         response = client.get("/api/v1/leaderboard/users/overall")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data["entries"]) > 0
         entry = next(e for e in data["entries"] if e["user_id"] == test_user.id)
-        assert entry["points"] == 32
+        assert entry["points"] == 35
         assert entry["rank"] == 1
 
     def test_get_category_leaderboard_dives(self, client, db_session, test_user):
