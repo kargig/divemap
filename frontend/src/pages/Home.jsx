@@ -203,7 +203,7 @@ const Home = () => {
 
       {/* Visual Banner - Contained and Compact with Overlaid Headline - Visible only on Desktop */}
 
-      <div className='hidden md:block isolate w-full mb-10 shadow-sm bg-[#cee5f4] rounded-2xl overflow-hidden border border-[#c2d9ea] relative'>
+      <div className='hidden md:block isolate w-full mb-6 shadow-sm bg-[#cee5f4] rounded-2xl overflow-hidden border border-[#c2d9ea] relative'>
         <div
           className='pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[clamp(3.25rem,12vmin,6rem)] overflow-hidden'
           aria-hidden
@@ -215,26 +215,26 @@ const Home = () => {
         <img
           src='/divemap_logo_domain_top5_extend.png'
           alt='Divemap Banner'
-          className='relative z-[1] w-full h-auto object-contain max-h-[400px] mx-auto'
+          className='relative z-[1] w-full h-auto object-contain max-h-[300px] mx-auto'
         />
 
         {/* Overlaid Headline on top part - Hidden on Mobile */}
 
-        <div className='hidden md:block absolute top-0 left-0 right-0 z-[2] pt-6 md:pt-10 px-4 text-center pointer-events-none'>
-          <h1 className='text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
+        <div className='hidden md:block absolute top-0 left-0 right-0 z-[2] pt-4 md:pt-6 px-4 text-center pointer-events-none'>
+          <h1 className='text-3xl md:text-5xl lg:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
             Discover Amazing <span className='text-blue-600'>Dive Sites</span>
           </h1>
         </div>
       </div>
 
       {/* Hero CTA Buttons Below Banner */}
-      <div className='flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-10 px-4'>
+      <div className='flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-6 px-4'>
         <Link to='/map' className='w-full sm:w-auto'>
           <Button
             type='primary'
             size='large'
             icon={<Map className='h-5 w-5' />}
-            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-lg flex items-center justify-center'
+            className='w-full h-12 px-6 text-base md:text-lg font-bold rounded-xl shadow-lg flex items-center justify-center'
           >
             Explore Map
           </Button>
@@ -244,7 +244,7 @@ const Home = () => {
           <Button
             size='large'
             icon={<Calendar className='h-5 w-5' />}
-            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-blue-100 hover:border-blue-600'
+            className='w-full h-12 px-6 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-blue-100 hover:border-blue-600'
           >
             Browse Dive Trips
           </Button>
@@ -254,7 +254,7 @@ const Home = () => {
           <Button
             size='large'
             icon={<HelpCircle className='h-5 w-5' />}
-            className='w-full h-12 md:h-14 px-8 md:px-10 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-gray-200 hover:border-gray-400'
+            className='w-full h-12 px-6 text-base md:text-lg font-bold rounded-xl shadow-md flex items-center justify-center border-gray-200 hover:border-gray-400'
           >
             Getting Started
           </Button>
@@ -264,7 +264,7 @@ const Home = () => {
       {/* Hero Content - Subtitle Below CTAs - Visible only on Desktop */}
 
       <div className='hidden md:block w-full text-center mb-6 px-4'>
-        <p className='text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 leading-relaxed max-w-none inline-block lg:whitespace-nowrap'>
+        <p className='text-sm sm:text-base md:text-lg text-gray-600 leading-relaxed max-w-none inline-block lg:whitespace-nowrap'>
           Explore the world's best scuba locations, read reviews from fellow divers, and find your
           next underwater adventure.
         </p>
@@ -303,24 +303,24 @@ const Home = () => {
           </MobileGrid>
         </div>
       ) : (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 pb-12 pt-2 px-4'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pb-8 pt-2 px-4'>
           {features.map((feature, index) => {
             const content = (
               <>
                 <div
-                  className={`${feature.bgColor} w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${feature.hoverBg} transition-colors`}
+                  className={`${feature.bgColor} w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.hoverBg} transition-colors`}
                 >
                   <feature.icon
-                    className={`h-8 w-8 ${feature.iconColor} group-hover:text-white transition-colors`}
+                    className={`h-6 w-6 ${feature.iconColor} group-hover:text-white transition-colors`}
                   />
                 </div>
-                <h2 className='text-xl font-bold text-gray-900 mb-3'>{feature.title}</h2>
-                <p className='text-gray-500 leading-relaxed'>{feature.description}</p>
+                <h2 className='text-lg font-bold text-gray-900 mb-2'>{feature.title}</h2>
+                <p className='text-sm text-gray-500 leading-relaxed'>{feature.description}</p>
               </>
             );
 
             const className =
-              'group relative p-8 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block h-full';
+              'group relative p-5 bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 block h-full';
 
             return feature.link ? (
               <Link to={feature.link} className={className} key={index}>
@@ -336,18 +336,18 @@ const Home = () => {
       )}
 
       {/* Stats Section (Integrated) */}
-      <div className='relative overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl py-16 mb-16 shadow-2xl'>
+      <div className='relative overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl py-10 mb-10 shadow-2xl'>
         <div className='absolute inset-0 opacity-10 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]'></div>
         <div className='relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-          <div className='text-center mb-12'>
-            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-400 mb-3'>
+          <div className='text-center mb-8'>
+            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-400 mb-2'>
               Our Growing Community
             </h3>
-            <p className='text-3xl font-bold text-white'>Real-time Dive Statistics</p>
+            <p className='text-2xl font-bold text-white'>Real-time Dive Statistics</p>
           </div>
-          <div className='grid grid-cols-2 md:grid-cols-5 gap-8'>
+          <div className='grid grid-cols-2 md:grid-cols-5 gap-6'>
             <Link to='/dives' className='text-center group'>
-              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.dives || 0}
                   isBackendAvailable={isBackendAvailable}
@@ -360,7 +360,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/dive-sites' className='text-center group'>
-              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.dive_sites || 0}
                   duration={2200}
@@ -377,7 +377,7 @@ const Home = () => {
               to='/dive-sites?sort_by=average_rating&sort_order=desc'
               className='text-center group block'
             >
-              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.reviews || 0}
                   duration={2400}
@@ -391,7 +391,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/diving-centers' className='text-center group'>
-              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.diving_centers || 0}
                   duration={2600}
@@ -405,7 +405,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/dive-trips' className='text-center group'>
-              <div className='text-4xl font-extrabold text-white mb-2 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
                 <AnimatedCounter
                   targetValue={stats?.dive_trips || 0}
                   duration={2800}
