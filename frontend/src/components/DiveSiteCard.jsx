@@ -180,7 +180,7 @@ export const DiveSiteGridCard = ({
       <div className='relative h-48 overflow-hidden rounded-tr-xl'>
         <Link to={getMediaLink(site)}>
           <img
-            src={getThumbnailUrl(site) || '/dive-site-placeholder.jpg'}
+            src={getThumbnailUrl(site) || '/diver_watermark_improved.png'}
             alt={site.name}
             className='w-full h-full object-cover transition-transform duration-500 hover:scale-110'
             loading='lazy'
