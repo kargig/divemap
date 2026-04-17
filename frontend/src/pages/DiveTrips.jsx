@@ -305,8 +305,16 @@ const DiveTrips = () => {
             if (search_query) validFilters.search_query = search_query;
             if (location_query) validFilters.location_query = location_query;
           }
-        } else if (value && value.trim() !== '') {
-          validFilters[key] = value;
+        } else if (value !== null && value !== undefined && value !== '') {
+          // For strings, also check for whitespace-only
+          if (typeof value === 'string') {
+            if (value.trim() !== '') {
+              validFilters[key] = value;
+            }
+          } else {
+            // For numbers or other types, if they exist and are not empty string, include them
+            validFilters[key] = value;
+          }
         }
       });
 
@@ -842,7 +850,11 @@ const DiveTrips = () => {
             <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
 
             {/* Check if any filters are active */}
-            {Object.values(filters).some(value => value && value.trim() !== '') && (
+            {Object.values(filters).some(value => {
+              if (value === null || value === undefined || value === '') return false;
+              if (typeof value === 'string') return value.trim() !== '';
+              return true;
+            }) && (
               <div className='max-w-md mx-auto'>
                 <p className='text-gray-600 mb-4'>
                   No trips match your current search criteria. Try adjusting your filters:
@@ -865,7 +877,11 @@ const DiveTrips = () => {
             )}
 
             {/* No filters active */}
-            {!Object.values(filters).some(value => value && value.trim() !== '') && (
+            {!Object.values(filters).some(value => {
+              if (value === null || value === undefined || value === '') return false;
+              if (typeof value === 'string') return value.trim() !== '';
+              return true;
+            }) && (
               <p className='text-gray-600'>
                 There are currently no dive trips available. Check back later for new trips!
               </p>
