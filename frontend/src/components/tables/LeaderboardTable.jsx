@@ -41,7 +41,7 @@ const LeaderboardTable = ({
             <Avatar src={imgUrl} alt={name} size='sm' fallbackText={name} />
             <Link
               to={linkTo}
-              className='font-semibold text-gray-900 truncate max-w-[120px] sm:max-w-none hover:text-blue-600 transition-colors'
+              className='font-semibold text-blue-600 truncate max-w-[120px] sm:max-w-none hover:text-blue-800 transition-colors'
             >
               {name}
             </Link>
@@ -53,7 +53,9 @@ const LeaderboardTable = ({
       header: metricLabel,
       accessorKey: 'count',
       cell: info => (
-        <span className='font-bold text-blue-600'>{info.getValue().toLocaleString()}</span>
+        <span className='font-bold' style={{ color: '#0072B2' }}>
+          {info.getValue().toLocaleString()}
+        </span>
       ),
     },
   ];
@@ -85,7 +87,7 @@ const LeaderboardTable = ({
               {headerGroup.headers.map(header => (
                 <th
                   key={header.id}
-                  className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                  className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
@@ -96,8 +98,11 @@ const LeaderboardTable = ({
         <tbody className='bg-white divide-y divide-gray-200'>
           {table.getRowModel().rows.map(row => (
             <tr key={row.id} className='hover:bg-blue-50 transition-colors'>
-              {row.getVisibleCells().map(cell => (
-                <td key={cell.id} className='px-4 py-3 whitespace-nowrap text-sm text-gray-900'>
+              {row.getVisibleCells().map((cell, index) => (
+                <td
+                  key={cell.id}
+                  className={`px-4 py-3 whitespace-nowrap text-sm text-gray-900 ${index === 2 ? 'text-center' : ''}`}
+                >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}

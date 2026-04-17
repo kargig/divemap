@@ -31,7 +31,7 @@
                     
                     <!-- Header -->
                     <tr>
-                        <td class="email-header" style="background: linear-gradient(135deg, #2d6b8a 0%, #1e4a63 100%); padding: 35px 30px; text-align: center;">
+                        <td class="email-header" style="background: linear-gradient(135deg, #0072B2 0%, #004d7a 100%); padding: 35px 30px; text-align: center;">
                             <div>
                                 <img src="https://raw.githubusercontent.com/kargig/divemap/refs/heads/main/frontend/public/divemap_navbar_logo.png" alt="{{ site_name }} Logo" class="logo-img" width="120" height="120" style="display: block; height: 120px; width: auto; margin: 0 auto 12px;">
                                 <h1 class="header-title" style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.2); letter-spacing: 0.5px;">{{ site_name }}</h1>
@@ -49,18 +49,18 @@
                                 <div class="icon-circle" style="width: 60px; height: 60px; background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-radius: 50%; margin: 0 auto 20px; display: table-cell; vertical-align: middle; text-align: center;">
                                     <span class="icon-emoji" style="font-size: 32px; line-height: 60px; display: inline-block; vertical-align: middle;">📬</span>
                                 </div>
-                                <h2 style="color: #2d6b8a; margin: 0 0 12px 0; font-size: 26px; font-weight: 700;">You have <span style="color: #1e4a63; font-size: 32px;">{{ count }}</span> new notification{{ 's' if count != 1 else '' }}</h2>
+                                <h2 style="color: #0072B2; margin: 0 0 12px 0; font-size: 26px; font-weight: 700;">You have <span style="color: #004d7a; font-size: 32px;">{{ count }}</span> new notification{{ 's' if count != 1 else '' }}</h2>
                                 <p style="color: #64748b; font-size: 15px; margin: 0;">Here's what's new on {{ site_name }} today</p>
                             </div>
                             
                             <!-- Notifications List -->
                             <div style="margin: 30px 0;">
                                 {% for notification in notifications %}
-                                <div class="notification-card" style="background-color: #ffffff; border: 2px solid #e5e7eb; border-left: 5px solid #2d6b8a; padding: 22px; margin-bottom: 18px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
-                                    <h3 style="margin: 0 0 12px 0; color: #2d6b8a; font-size: 18px; font-weight: 600; line-height: 1.4;">{{ notification.title }}</h3>
+                                <div class="notification-card" style="background-color: #ffffff; border: 2px solid #e5e7eb; border-left: 5px solid #0072B2; padding: 22px; margin-bottom: 18px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);">
+                                    <h3 style="margin: 0 0 12px 0; color: #0072B2; font-size: 18px; font-weight: 600; line-height: 1.4;">{{ notification.title }}</h3>
                                     <p style="margin: 0 0 16px 0; color: #475569; font-size: 15px; line-height: 1.6;">{{ notification.message }}</p>
                                     {% if notification.link_url %}
-                                    <a href="{{ site_url }}{{ notification.link_url }}" style="display: inline-flex; align-items: center; gap: 6px; color: #2d6b8a; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; background-color: #f0f9ff; border-radius: 6px;">
+                                    <a href="{{ site_url }}{{ notification.link_url }}" style="display: inline-flex; align-items: center; gap: 6px; color: #0072B2; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 16px; background-color: #f0f9ff; border-radius: 6px;">
                                         View Details <span style="font-size: 16px;">→</span>
                                     </a>
                                     {% endif %}
@@ -70,7 +70,7 @@
                             
                             <!-- CTA Button -->
                             <div style="text-align: center; margin: 40px 0 30px 0;">
-                                <a href="{{ site_url }}/notifications" style="display: inline-block; background: linear-gradient(135deg, #2d6b8a 0%, #1e4a63 100%); color: #ffffff; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 17px; box-shadow: 0 4px 12px rgba(45, 107, 138, 0.35); letter-spacing: 0.3px;">
+                                <a href="{{ site_url }}/notifications" style="display: inline-block; background: linear-gradient(135deg, #0072B2 0%, #004d7a 100%); color: #ffffff; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 17px; box-shadow: 0 4px 12px rgba(0, 114, 178, 0.35); letter-spacing: 0.3px;">
                                     View All Notifications
                                 </a>
                             </div>
@@ -91,7 +91,7 @@
                             </p>
                             {% endif %}
                             <p style="margin: 0 0 20px 0;">
-                                <a href="{{ site_url }}/profile/notifications" style="display: inline-block; color: #2d6b8a; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #2d6b8a; border-radius: 6px;">
+                                <a href="{{ site_url }}/profile/notifications" style="display: inline-block; color: #0072B2; text-decoration: none; font-weight: 600; font-size: 14px; padding: 10px 20px; border: 2px solid #0072B2; border-radius: 6px;">
                                     Manage Preferences
                                 </a>
                             </p>

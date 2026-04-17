@@ -18,7 +18,7 @@ const Logo = ({
   };
 
   const textSizeClasses = {
-    small: 'text-sm',
+    small: 'text-lg',
     medium: 'text-lg',
     large: 'text-xl',
     xlarge: 'text-2xl',

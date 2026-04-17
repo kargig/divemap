@@ -35,7 +35,7 @@ const CategoryCard = ({ title, icon: Icon, metric, label, limit = 5 }) => {
           <div className='p-1.5 bg-white rounded-lg shadow-sm'>
             <Icon className='w-4 h-4 text-blue-600' />
           </div>
-          <h3 className='font-bold text-gray-900'>{title}</h3>
+          <h3 className='text-xl font-bold text-gray-900'>{title}</h3>
         </div>
       </div>
       <div className='p-2'>
@@ -90,11 +90,11 @@ const LeaderboardPage = () => {
               <div className='text-center'>
                 <Link
                   to={`/users/${topThree[1].username}`}
-                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors'
+                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors'
                 >
                   {topThree[1].username}
                 </Link>
-                <p className='text-sm font-medium text-blue-600'>
+                <p className='text-sm font-medium' style={{ color: '#0072B2' }}>
                   {topThree[1].points.toLocaleString()} pts
                 </p>
               </div>
@@ -121,11 +121,11 @@ const LeaderboardPage = () => {
               <div className='text-center'>
                 <Link
                   to={`/users/${topThree[0].username}`}
-                  className='text-xl font-black text-gray-900 hover:text-blue-600 transition-colors block'
+                  className='text-xl font-black text-blue-600 hover:text-blue-800 transition-colors block'
                 >
                   {topThree[0].username}
                 </Link>
-                <p className='text-lg font-bold text-blue-600'>
+                <p className='text-lg font-bold' style={{ color: '#0072B2' }}>
                   {topThree[0].points.toLocaleString()} pts
                 </p>
               </div>
@@ -149,11 +149,11 @@ const LeaderboardPage = () => {
               <div className='text-center'>
                 <Link
                   to={`/users/${topThree[2].username}`}
-                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors'
+                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors'
                 >
                   {topThree[2].username}
                 </Link>
-                <p className='text-sm font-medium text-blue-600'>
+                <p className='text-sm font-medium' style={{ color: '#0072B2' }}>
                   {topThree[2].points.toLocaleString()} pts
                 </p>
               </div>
@@ -169,7 +169,7 @@ const LeaderboardPage = () => {
           <div className='p-4 bg-blue-600 text-white flex items-center justify-between'>
             <div className='flex items-center space-x-2'>
               <Trophy className='w-5 h-5' />
-              <h3 className='font-bold'>Top Divers (Overall)</h3>
+              <h3 className='text-xl font-bold'>Top Divers (Overall)</h3>
             </div>
           </div>
           <div className='p-2'>
@@ -212,7 +212,7 @@ const LeaderboardPage = () => {
               key={group.pts}
               className='bg-white p-4 rounded-xl border border-gray-100 text-center flex flex-col justify-center shadow-sm'
             >
-              <p className='text-2xl font-black text-blue-600 mb-3'>
+              <p className='text-2xl font-black mb-3' style={{ color: '#0072B2' }}>
                 +{group.pts}
                 <span className='text-xs ml-1 text-gray-500 font-bold uppercase'>pts</span>
               </p>

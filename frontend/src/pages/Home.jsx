@@ -190,12 +190,17 @@ const Home = () => {
 
       {/* Mobile Hero with Gradient - Visible only on Mobile */}
 
-      <div className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-8 text-center'>
+      <div
+        className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg text-white p-8 text-center'
+        style={{
+          background: 'linear-gradient(135deg, #0072B2 0%, #004d7a 100%)',
+        }}
+      >
         <h1 className='text-3xl font-extrabold tracking-tight mb-4'>
-          Discover Amazing <span className='text-blue-200'>Dive Sites</span>
+          Discover Amazing <span style={{ color: '#80c9ed' }}>Dive Sites</span>
         </h1>
 
-        <p className='text-lg text-blue-100 leading-relaxed'>
+        <p className='text-lg leading-relaxed' style={{ color: '#eaf4f9' }}>
           Explore the world's best scuba locations, read reviews from fellow divers, and find your
           next underwater adventure.
         </p>
@@ -336,18 +341,26 @@ const Home = () => {
       )}
 
       {/* Stats Section (Integrated) */}
-      <div className='relative overflow-hidden bg-gradient-to-br from-blue-900 to-slate-900 rounded-3xl py-10 mb-10 shadow-2xl'>
+      <div
+        className='relative overflow-hidden rounded-3xl py-10 mb-10 shadow-2xl'
+        style={{
+          background: 'linear-gradient(135deg, #003656 0%, #001a2a 100%)',
+        }}
+      >
         <div className='absolute inset-0 opacity-10 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]'></div>
         <div className='relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
           <div className='text-center mb-8'>
-            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-400 mb-2'>
+            <h3
+              className='text-sm font-bold uppercase tracking-widest mb-2'
+              style={{ color: '#56B4E9' }}
+            >
               Our Growing Community
             </h3>
             <p className='text-2xl font-bold text-white'>Real-time Dive Statistics</p>
           </div>
           <div className='grid grid-cols-2 md:grid-cols-5 gap-6'>
             <Link to='/dives' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
                 <AnimatedCounter
                   targetValue={stats?.dives || 0}
                   isBackendAvailable={isBackendAvailable}
@@ -360,7 +373,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/dive-sites' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
                 <AnimatedCounter
                   targetValue={stats?.dive_sites || 0}
                   duration={2200}
@@ -377,7 +390,7 @@ const Home = () => {
               to='/dive-sites?sort_by=average_rating&sort_order=desc'
               className='text-center group block'
             >
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
                 <AnimatedCounter
                   targetValue={stats?.reviews || 0}
                   duration={2400}
@@ -391,7 +404,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/diving-centers' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
                 <AnimatedCounter
                   targetValue={stats?.diving_centers || 0}
                   duration={2600}
@@ -405,7 +418,7 @@ const Home = () => {
               </div>
             </Link>
             <Link to='/dive-trips' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 group-hover:text-blue-400 transition-colors'>
+              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
                 <AnimatedCounter
                   targetValue={stats?.dive_trips || 0}
                   duration={2800}
@@ -444,7 +457,10 @@ const Home = () => {
       </section>
 
       {/* Final CTA */}
-      <div className='text-center py-20 bg-blue-50 rounded-3xl mb-12 px-6'>
+      <div
+        className='text-center py-20 rounded-3xl mb-12 px-6'
+        style={{ backgroundColor: '#eaf4f9' }}
+      >
         <h2 className='text-4xl font-extrabold text-gray-900 mb-6'>
           Ready to Start Your Diving Journey?
         </h2>
@@ -458,6 +474,7 @@ const Home = () => {
               type='primary'
               size='large'
               className='h-14 px-10 text-lg font-bold rounded-xl shadow-lg'
+              style={{ backgroundColor: '#0072B2' }}
             >
               Get Started Free
             </Button>
@@ -465,7 +482,8 @@ const Home = () => {
           <Link to='/dive-sites'>
             <Button
               size='large'
-              className='h-14 px-10 text-lg font-bold rounded-xl border-2 border-blue-600 text-blue-600 hover:text-blue-700'
+              className='h-14 px-10 text-lg font-bold rounded-xl border-2 hover:opacity-80 transition-all'
+              style={{ borderColor: '#0072B2', color: '#0072B2' }}
             >
               Explore Sites
             </Button>

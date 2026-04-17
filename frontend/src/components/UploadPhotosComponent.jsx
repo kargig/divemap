@@ -286,7 +286,7 @@ const UploadPhotosComponent = ({
     return (
       <Card
         style={{
-          borderColor: '#2d6b8a',
+          borderColor: '#0072B2',
           borderWidth: '2px',
           marginTop: '6px',
           marginBottom: '6px',

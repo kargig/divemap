@@ -10,6 +10,14 @@ module.exports = {
         display: ['"Outfit"', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // --- Divemap.blue Accessible Theme (Okabe-Ito Palette) ---
+        'divemap-blue': '#0072B2', // Okabe-Ito True Blue - Core brand color
+        'divemap-sky': '#56B4E9',  // Okabe-Ito Sky Blue - Bright highlight color
+        'divemap-deep': '#004d7a', // Deep Ocean Blue - Used for gradients
+        'divemap-trench': '#001a2a', // Dark Trench Blue - Used for dark section backgrounds
+        'divemap-surface': '#eaf4f9', // Bright Water Tint - Used for light CTA boxes
+        
+        // --- Legacy Colors ---
         'dive-primary': '#2563eb', // blue-600
         'dive-success': '#15803d', // green-700
         'dive-warning': '#9a3412', // orange-800

@@ -16,7 +16,7 @@ const Navbar = () => {
         isMobile && !navbarVisible ? '-translate-y-full' : 'translate-y-0'
       }`}
       style={{
-        backgroundColor: '#2d6b8a',
+        backgroundColor: '#0072B2',
       }}
     >
       {/* Sea Components Background */}

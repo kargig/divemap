@@ -20,7 +20,7 @@ export const DiveSiteListCard = ({
 
   return (
     <div
-      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-2.5 sm:p-6 hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-2.5 sm:p-6'}`}
+      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-2.5 sm:p-6 hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-2.5 sm:p-6'}`}
     >
       <div className='flex gap-2.5 sm:gap-6'>
         {/* Desktop Thumbnail */}
@@ -174,7 +174,7 @@ export const DiveSiteGridCard = ({
 }) => {
   return (
     <div
-      className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 bg-white ${compactLayout ? 'h-full' : ''}`}
+      className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 bg-white ${compactLayout ? 'h-full' : ''}`}
     >
       {/* Image Header */}
       <div className='relative h-48 overflow-hidden rounded-tr-xl'>
