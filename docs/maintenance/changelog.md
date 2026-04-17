@@ -3,7 +3,81 @@
 This document tracks all recent changes, improvements, and bug fixes to the
 Divemap application.
 
-## [Latest Release] - February 15, 2026
+## [Latest Release] - April 17, 2026
+
+### ⚙️ New Features
+
+#### **Gamification & Community Leaderboard - ✅ COMPLETE**
+A new system to reward active community members.
+- **Points & Rewards**: Users earn points for uploading media, reviewing dive sites, and updating site information.
+- **Global Leaderboard**: A dedicated leaderboard page ranks users, and top contributors are now prominently featured on the Home Page.
+
+#### **B2C Communications Hub - ✅ COMPLETE**
+Integrated tools for Diving Centers to communicate with their customers.
+- **Unified Inbox**: Centers can manage direct inquiries from users.
+- **Broadcasts**: Centers can send broadcast updates regarding dive trips.
+- **Web Push Notifications**: Real-time browser alerts keep users informed of messages, trip updates, and buddy requests.
+
+#### **AI Assistant 2.0 & Personalization - ✅ COMPLETE**
+- **Agentic Multi-Step Reasoning**: The AI can now perform complex, non-blocking multi-step operations and access the physics engine directly in chat.
+- **Personal Chat History**: Users can access, browse, and search their past AI conversations with pagination and prompt details.
+- **Points of Interest (POI) Search**: AI-assisted discovery of local amenities near dive sites.
+
+#### **Account & Identity Management - ✅ COMPLETE**
+- **Secure Password Reset**: Full self-service password reset flow.
+- **Username Editing**: Users can now edit their usernames.
+- **Soft Delete & Restore**: Users can safely soft-delete their accounts and restore them later. Dive Sites also support soft deletion and restoration.
+- **Auth Audit Logs**: Comprehensive frontend and backend tracking of authentication events for improved security visibility.
+
+#### **Dive Trips & Event Management - ✅ COMPLETE**
+- **Full CRUD Capabilities**: Users and Centers now have complete control to create, read, update, and delete dive trips.
+- **Trip Updates & Broadcasts**: Enhanced broadcast labeling and recursive relay for seamless trip update notifications to participants.
+
+### 🎨 Frontend & UX Changes
+
+- **Mobile-First Redesign**: Implemented highly condensed mobile layouts, optimizing screen real estate for trip cards and dive sites.
+- **Enhanced User Profiles**: Added a GitHub-style activity heatmap, detailed diving statistics, and standardized icons across profile and resource pages.
+- **Localized Dates**: Date formatting now universally respects the user's browser locale for a more natural experience.
+- **Map Navigation**: Reduced map panning debounce delay to 300ms for smoother interactions and improved dive site selection UI.
+- **UI Standardization**: Standardized button variants, terminology, and action button layouts across Diving Centers and Dive Sites.
+- **Chat UI Polish**: Added message grouping, randomized sample questions, and a new "edge peek" mobile interaction for the AI Assistant.
+- **Visual Refinements**: Added default watermarks to dive site grids, breadcrumb titles, color-bordered cards, and fixed Flickr thumbnails and YouTube parsing.
+- **Platform Experience**: Dedicated Android PWA configuration and a new custom 422 Unprocessable Entity error page for better error recovery.
+- **Diving Gear**: Added ALU7 tank configuration for technical divers.
+
+### 🔧 Performance & Infrastructure
+
+- **Native Spatial Queries**: Replaced Haversine formulas with native MySQL spatial queries for significantly faster "nearby" dive site searches.
+- **N+1 Query Elimination**: Massively optimized Dive Trips frontend component by eliminating redundant API calls.
+- **Presentations Worker**: Deployed a new Cloudflare Worker to serve community presentations directly from R2.
+
+### 🔒 Security Enhancements
+
+- **Hardened Frontend**: Addressed potential XSS vulnerabilities in URL linkifiers and implemented strict PII masking.
+- **Personal Access Tokens (PATs)**: Secure token management for developer integrations.
+- **Admin Protection**: Protected all admin accounts from unauthorized password resets.
+
+**API Endpoints:**
+
+- `GET /api/v1/leaderboard` - Community rankings and statistics.
+- `POST /api/v1/chat/broadcast` - (Admin/Centers) Send broadcast messages.
+- `GET /api/v1/chat/inbox` - Unified message management.
+- `POST /api/v1/notifications/push/subscribe` - Manage Web Push subscriptions.
+- `GET /api/v1/user/pats` - Personal Access Token management.
+
+**Migrations:**
+
+- `0067_add_password_reset_tokens.py`
+- `0070_add_personal_access_tokens_table.py`
+- `0071_add_soft_delete_to_dive_sites.py`
+- `0072_add_deleted_at_to_users.py`
+- `0074_add_push_subscriptions.py`
+- `0079_b2c_chat_features.py`
+- `0080_migrate_chat_to_uuid.py`
+- `0081_add_dive_site_edit_requests.py`
+- `0082_add_user_id_to_site_media.py`
+
+## [Previous Release] - February 15, 2026
 
 ### ⚙️ New Features
 

@@ -46,9 +46,64 @@ const Changelog = () => {
 
   const releases = [
     {
+      date: 'April 17, 2026',
+      title: 'Gamification, B2C Communications & AI Evolution',
+      tag: 'Latest Release',
+      sections: [
+        {
+          title: 'Major Features',
+          type: 'feature',
+          color: 'blue',
+          items: [
+            'Gamified Leaderboard: Points and rewards for community contributions.',
+            'B2C Communications Hub: Integrated chat, broadcasts, and inbox management.',
+            'AI Assistant 2.0: Multi-step reasoning, physics integration, and POI search.',
+            'Account Management: Secure password resets, username editing, and account soft delete/restore.',
+            'Personal Chat History: Users can now browse and manage their past AI conversations.',
+            'Web Push Notifications: Real-time alerts for community interactions.',
+            'Presentations: New Cloudflare Worker to serve community presentations.',
+            'Dive Trips Management: Full CRUD capabilities and recursive relay for trip updates.',
+            'Auth Audit Logs: User-facing authentication event tracking for enhanced security.',
+          ],
+        },
+        {
+          title: 'UI & Experience',
+          type: 'ux',
+          color: 'cyan',
+          items: [
+            'Mobile-First Redesign: Highly condensed layouts, optimized map navigation, and standardized UI components.',
+            'Enhanced Profiles: GitHub-style activity heatmaps and detailed diving statistics.',
+            'Localization: Dates are now consistently formatted respecting the browser locale.',
+            'Home Page: Improved visibility of Community Leaders and top-rated dive sites.',
+            'Chat Polish: Message grouping, sample questions, and mobile edge peek.',
+            'Visuals & PWA: Android PWA config, dive site watermarks, color-bordered cards, and ALU7 tank support.',
+          ],
+        },
+        {
+          title: 'Improvements',
+          type: 'improvement',
+          color: 'green',
+          items: [
+            'Performance: Native MySQL spatial queries for blazing-fast "nearby" searches.',
+            'Map Optimizations: Reduced panning debounce to 300ms and eliminated N+1 queries.',
+            'Trust-Based Moderation: Community-driven quality and proximity validation.',
+          ],
+        },
+        {
+          title: 'Security',
+          type: 'security',
+          color: 'orange',
+          items: [
+            'Hardened Security: XSS protection, PII masking, and Personal Access Tokens (PATs).',
+            'Privacy: Soft delete/restore mechanisms extended to dive sites.',
+            'Admin Protection: Protected all admin accounts from unauthorized password resets.',
+          ],
+        },
+      ],
+    },
+    {
       date: 'February 15, 2026',
       title: 'AI Chatbot & Intelligent Discovery',
-      tag: 'Latest Release',
       sections: [
         {
           title: 'Major Features',
@@ -424,7 +479,7 @@ const Changelog = () => {
                 </Space>
               </Space>
               <Paragraph type='secondary' style={{ marginTop: '16px' }}>
-                Last updated: February 15, 2026
+                Last updated: April 17, 2026
               </Paragraph>
             </Space>
           </Card>
