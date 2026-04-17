@@ -290,18 +290,18 @@ const NavbarMobileControls = () => {
                     </List.Item>
                   </List>
                 </Collapse.Panel>
-
-                {user?.is_admin && (
-                  <List.Item
-                    prefix={<Shield className='h-5 w-5 text-blue-100' />}
-                    onClick={() => handleNavigate('/admin')}
-                    className='text-white'
-                    arrow={true}
-                  >
-                    Admin Panel
-                  </List.Item>
-                )}
               </Collapse>
+
+              {user?.is_admin && (
+                <List.Item
+                  prefix={<Shield className='h-5 w-5 text-blue-100' />}
+                  onClick={() => handleNavigate('/admin')}
+                  className='text-white'
+                  arrow={true}
+                >
+                  Admin Panel
+                </List.Item>
+              )}
 
               {user ? (
                 <>
