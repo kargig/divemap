@@ -41,6 +41,11 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 - **File Modifications:** NEVER use `cat << 'EOF'` or `echo ... > ...` in `run_shell_command` to write or edit files. You MUST use Serena tools (`mcp_serena_replace_content`, `mcp_serena_replace_symbol_body`, `mcp_serena_insert_after_symbol`, `mcp_serena_insert_before_symbol`, `mcp_serena_write_memory`) or native Gemini tools (`write_file`, `replace`).
 - **File Searching:** Use `mcp_serena_search_for_pattern`, `mcp_serena_find_symbol`, or `grep_search` instead of shell commands like `cat`, `grep`, or `sed` where possible.
 
+### Code Lookup & Navigation Standards
+- **REPO_MAP First:** For any task involving a new feature or bug investigation, you MUST read `REPO_MAP.md` as your first step to identify the relevant modules and services.
+- **Scope Your Searches:** Use the directory paths found in `REPO_MAP.md` to restrict the scope of your `grep_search`, `glob`, and `mcp_serena_search_for_pattern` calls. This minimizes token usage and reduces false positives.
+- **Maintenance Loop:** If you create a new directory, a new backend service, or a significant frontend component, you MUST update `REPO_MAP.md` as part of your implementation plan.
+
 ### Prerequisites
 - Docker & Docker Compose
 - Node.js (for local frontend dev/testing)
