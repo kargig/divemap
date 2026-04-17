@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 // Lazy load pages
+const AdminLayout = lazy(() => import('./components/AdminLayout'));
 const About = lazy(() => import('./pages/About'));
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminDives = lazy(() => import('./pages/AdminDives'));
@@ -344,120 +345,6 @@ function App() {
                         </ProtectedRoute>
                       }
                     />
-                    <Route
-                      path='/admin'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <Admin />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/dive-sites'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDiveSites />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/dive-sites/edit-requests'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminEditRequests />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/dive-routes'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDiveRoutes />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/dive-sites/:diveSiteId/aliases'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDiveSiteAliases />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    <Route
-                      path='/admin/diving-centers'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDivingCenters />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    <Route
-                      path='/admin/diving-organizations'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDivingOrganizations />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/diving-organizations/:identifier/certifications'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDivingOrganizationCertifications />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/tags'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminTags />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/users'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminUsers />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/audit-logs'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminAuditLogs />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/notification-preferences'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminNotificationPreferences />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/chat-feedback'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminChatFeedback />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/chat-history'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminChatHistory />
-                        </ProtectedRoute>
-                      }
-                    />
                     <Route path='/leaderboard' element={<Leaderboard />} />
                     <Route path='/dives' element={<Dives />} />
                     <Route
@@ -492,63 +379,177 @@ function App() {
                       }
                     />
 
-                    <Route
-                      path='/admin/dives'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminDives />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    <Route
-                      path='/admin/ownership-requests'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminOwnershipRequests />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/newsletters'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminNewsletters />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/system-metrics'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminSystemMetrics />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/general-statistics'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminGeneralStatistics />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/growth-visualizations'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminGrowthVisualizations />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/admin/recent-activity'
-                      element={
-                        <ProtectedRoute requireAdmin={true}>
-                          <AdminRecentActivity />
-                        </ProtectedRoute>
-                      }
-                    />
+                    {/* Admin Routes */}
+                    <Route path='/admin' element={<AdminLayout />}>
+                      <Route
+                        index
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <Admin />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='dive-sites'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDiveSites />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='dive-sites/edit-requests'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminEditRequests />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='dive-routes'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDiveRoutes />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='dive-sites/:diveSiteId/aliases'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDiveSiteAliases />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='diving-centers'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDivingCenters />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='diving-organizations'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDivingOrganizations />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='diving-organizations/:identifier/certifications'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDivingOrganizationCertifications />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='tags'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminTags />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='users'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='audit-logs'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminAuditLogs />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='notification-preferences'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminNotificationPreferences />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='chat-feedback'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminChatFeedback />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='chat-history'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminChatHistory />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='dives'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminDives />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='ownership-requests'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminOwnershipRequests />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='newsletters'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminNewsletters />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='system-metrics'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminSystemMetrics />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='general-statistics'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminGeneralStatistics />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='growth-visualizations'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminGrowthVisualizations />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path='recent-activity'
+                        element={
+                          <ProtectedRoute requireAdmin={true}>
+                            <AdminRecentActivity />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Route>
                     <Route path='/dive-trips' element={<DiveTrips />} />
                     <Route
                       path='/dive-trips/create'

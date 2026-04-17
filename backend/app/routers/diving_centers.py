@@ -1080,7 +1080,7 @@ async def get_ownership_requests(
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
-    """Get all diving centers with ownership requests (admin/moderator only)"""
+    """Get all diving centers with pending or approved ownership requests (admin/moderator only)"""
     diving_centers = db.query(DivingCenter).filter(
         DivingCenter.ownership_status.in_(["claimed", "approved"])
     ).all()

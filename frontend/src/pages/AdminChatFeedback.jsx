@@ -150,7 +150,7 @@ const AdminChatFeedback = () => {
   );
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>

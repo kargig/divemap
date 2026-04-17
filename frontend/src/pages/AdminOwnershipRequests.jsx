@@ -1,4 +1,5 @@
-import { Check, Clock, X } from 'lucide-react';
+import { Tabs, Table, Tag, Button, Space, Tooltip } from 'antd';
+import { Check, Clock, X, User, ShieldCheck, ShieldAlert, FileText } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
@@ -35,219 +36,141 @@ ErrorDisplay.propTypes = {
   }),
 };
 
-const TabNavigation = ({ activeTab, setActiveTab }) => (
-  <div className='mb-6 border-b border-gray-200'>
-    <nav className='-mb-px flex space-x-8'>
-      <button
-        onClick={() => setActiveTab('current')}
-        className={`py-2 px-1 border-b-2 font-medium text-sm ${
-          activeTab === 'current'
-            ? 'border-blue-500 text-blue-600'
-            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-        }`}
-      >
-        Current Requests
-      </button>
-      <button
-        onClick={() => setActiveTab('history')}
-        className={`py-2 px-1 border-b-2 font-medium text-sm ${
-          activeTab === 'history'
-            ? 'border-blue-500 text-blue-600'
-            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-        }`}
-      >
-        History
-      </button>
-    </nav>
-  </div>
-);
+const TimelineEvent = ({ request }) => {
+  const isUserRequest = request.request_status === 'claimed';
+  const isApproved = request.request_status === 'approved';
+  const isDenied = request.request_status === 'denied';
 
-TabNavigation.propTypes = {
-  activeTab: PropTypes.string.isRequired,
-  setActiveTab: PropTypes.func.isRequired,
-};
+  // Determine if it was a revocation (usually indicated in the notes from the backend)
+  const isRevoked = isDenied && request.notes?.toLowerCase().includes('revoc');
 
-const CurrentRequestCard = ({ request, onModalOpen }) => (
-  <div className='bg-white rounded-lg shadow-md p-6 border border-gray-200'>
-    <div className='flex items-start justify-between mb-4'>
-      <div className='flex-1'>
-        <h3 className='text-lg font-semibold text-gray-900 mb-2'>{request.name}</h3>
-        <div className='space-y-2 text-sm'>
-          <p className='text-gray-600'>
-            <span className='font-medium'>Location:</span> {request.location}
-          </p>
-          {request.owner_username && (
-            <p className='text-gray-600'>
-              <span className='font-medium'>Claimed by:</span> {request.owner_username}
-            </p>
-          )}
-          <p className='text-gray-600'>
-            <span className='font-medium'>Status:</span>{' '}
-            <span
-              className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
-                request.ownership_status === 'claimed'
-                  ? 'bg-yellow-100 text-yellow-800'
-                  : 'bg-green-100 text-green-800'
-              }`}
-            >
-              {request.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
-            </span>
-          </p>
-          {request.request_date && (
-            <p className='text-gray-600'>
-              <span className='font-medium'>Request Date:</span>{' '}
-              {new Date(request.request_date).toLocaleString()}
-            </p>
-          )}
-          {request.created_at && (
-            <p className='text-gray-600'>
-              <span className='font-medium'>Created:</span>{' '}
-              {new Date(request.created_at).toLocaleString()}
-            </p>
-          )}
-          {request.updated_at && request.updated_at !== request.created_at && (
-            <p className='text-gray-600'>
-              <span className='font-medium'>Last Updated:</span>{' '}
-              {new Date(request.updated_at).toLocaleString()}
-            </p>
-          )}
-          {request.claim_reason && (
-            <div className='mt-3 pt-3 border-t border-gray-200'>
-              <p className='text-gray-700 font-medium mb-1'>Claim Reason:</p>
-              <p className='text-gray-600 text-xs whitespace-pre-wrap'>{request.claim_reason}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-
-    <div className='flex justify-end space-x-2'>
-      {request.ownership_status === 'claimed' ? (
-        <button
-          onClick={() => onModalOpen(request, false)}
-          className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2'
-        >
-          <Clock className='h-4 w-4' />
-          <span>Review</span>
-        </button>
-      ) : (
-        <div className='flex items-center space-x-2'>
-          <span className='text-sm text-gray-500'>This diving center has an approved owner.</span>
-          <button
-            onClick={() => onModalOpen(request, true)}
-            className='px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center space-x-2'
-          >
-            <X className='h-4 w-4' />
-            <span>Revoke Ownership</span>
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
-CurrentRequestCard.propTypes = {
-  request: PropTypes.shape({
-    id: PropTypes.number,
-    name: PropTypes.string,
-    location: PropTypes.string,
-    owner_username: PropTypes.string,
-    ownership_status: PropTypes.string,
-    request_date: PropTypes.string,
-    created_at: PropTypes.string,
-    updated_at: PropTypes.string,
-    claim_reason: PropTypes.string,
-  }).isRequired,
-  onModalOpen: PropTypes.func.isRequired,
-};
-
-const HistoryCard = ({ request }) => {
-  const getStatusColor = status => {
-    switch (status) {
-      case 'claimed':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'denied':
-        return 'bg-red-100 text-red-800';
-      case 'revoked':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  let EventIcon = FileText;
+  let colorTheme = {
+    bg: 'bg-gray-100',
+    border: 'border-gray-200',
+    iconBg: 'bg-gray-500',
+    text: 'text-gray-800',
   };
+  let actionText = '';
 
-  const getStatusText = status => {
-    switch (status) {
-      case 'claimed':
-        return 'Claim Pending';
-      case 'approved':
-        return 'Approved';
-      case 'denied':
-        return 'Denied';
-      case 'revoked':
-        return 'Revoked';
-      default:
-        return status;
-    }
-  };
+  if (isUserRequest) {
+    EventIcon = User;
+    colorTheme = {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      iconBg: 'bg-blue-500',
+      text: 'text-blue-800',
+    };
+    actionText = 'requested ownership of';
+  } else if (isApproved) {
+    EventIcon = ShieldCheck;
+    colorTheme = {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      iconBg: 'bg-green-500',
+      text: 'text-green-800',
+    };
+    actionText = 'approved ownership claim for';
+  } else if (isRevoked) {
+    EventIcon = ShieldAlert;
+    colorTheme = {
+      bg: 'bg-orange-50',
+      border: 'border-orange-200',
+      iconBg: 'bg-orange-500',
+      text: 'text-orange-800',
+    };
+    actionText = 'revoked ownership from';
+  } else if (isDenied) {
+    EventIcon = X;
+    colorTheme = {
+      bg: 'bg-red-50',
+      border: 'border-red-200',
+      iconBg: 'bg-red-500',
+      text: 'text-red-800',
+    };
+    actionText = 'denied ownership claim for';
+  }
+
+  // Use processed_date for admin actions, request_date for user actions
+  const displayDate =
+    !isUserRequest && request.processed_date
+      ? new Date(request.processed_date)
+      : new Date(request.request_date);
 
   return (
-    <div className='bg-white rounded-lg shadow-md p-6 border border-gray-200'>
-      <div className='flex items-start justify-between mb-4'>
-        <div className='flex-1'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-2'>{request.diving_center_name}</h3>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
-            <div>
-              <p className='text-gray-600'>
-                <span className='font-medium'>User:</span> {request.username}
-              </p>
-              <p className='text-gray-600'>
-                <span className='font-medium'>Status:</span>
-                <span
-                  className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                    request.request_status
-                  )}`}
-                >
-                  {getStatusText(request.request_status)}
-                </span>
-              </p>
-              <p className='text-gray-600'>
-                <span className='font-medium'>Request Date:</span>{' '}
-                {new Date(request.request_date).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              {request.processed_date && (
-                <p className='text-gray-600'>
-                  <span className='font-medium'>Processed:</span>{' '}
-                  {new Date(request.processed_date).toLocaleString()}
-                </p>
-              )}
-              {request.admin_username && (
-                <p className='text-gray-600'>
-                  <span className='font-medium'>By Admin:</span> {request.admin_username}
-                </p>
-              )}
-              {request.reason && (
-                <p className='text-gray-600'>
-                  <span className='font-medium'>Reason:</span> {request.reason}
-                </p>
-              )}
-              {request.notes && (
-                <p className='text-gray-600'>
-                  <span className='font-medium'>Notes:</span> {request.notes}
-                </p>
-              )}
-            </div>
-          </div>
+    <div className='relative pl-8 sm:pl-32 py-4 group'>
+      {/* Vertical line connecting events */}
+      <div className='absolute left-4 sm:left-28 top-0 bottom-0 w-px bg-gray-200 group-last:h-full group-last:bottom-auto group-last:bg-gradient-to-b group-last:from-gray-200 group-last:to-transparent' />
+
+      {/* Icon node */}
+      <div
+        className={`absolute left-0 sm:left-24 top-5 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center shadow-sm z-10 ${colorTheme.iconBg}`}
+      >
+        <EventIcon className='w-4 h-4 text-white' />
+      </div>
+
+      {/* Date (Left sidebar on desktop, above card on mobile) */}
+      <div className='sm:absolute sm:left-0 sm:w-20 sm:text-right text-xs text-gray-500 mt-1 sm:mt-1.5 mb-2 sm:mb-0'>
+        <div className='font-medium text-gray-700'>{displayDate.toLocaleDateString()}</div>
+        <div className='text-[10px] uppercase tracking-wider'>
+          {displayDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
+      </div>
+
+      {/* Event Content Card */}
+      <div className={`rounded-lg shadow-sm border p-4 ${colorTheme.bg} ${colorTheme.border}`}>
+        <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-2'>
+          <div>
+            <p className='text-sm text-gray-800 leading-relaxed'>
+              <span className='font-semibold text-gray-900'>
+                {!isUserRequest && request.admin_username
+                  ? request.admin_username
+                  : request.username}
+              </span>{' '}
+              {actionText}{' '}
+              <span className='font-semibold text-gray-900'>{request.diving_center_name}</span>
+              {!isUserRequest && !isRevoked && (
+                <>
+                  {' '}
+                  (Claimed by <span className='font-medium'>{request.username}</span>)
+                </>
+              )}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-white border ${colorTheme.text} ${colorTheme.border}`}
+          >
+            {isUserRequest ? 'User Request' : 'Admin Decision'}
+          </span>
+        </div>
+
+        {/* Supplementary Data (Reasons & Notes) */}
+        {(request.reason || request.notes) && (
+          <div className='mt-3 pt-3 border-t border-black/5 grid grid-cols-1 gap-2 text-sm'>
+            {request.reason && (
+              <div className='bg-white/50 rounded p-2'>
+                <span className='font-medium text-gray-700 text-[10px] uppercase tracking-wider block mb-1'>
+                  Reason Provided
+                </span>
+                <p className='text-gray-600 whitespace-pre-wrap'>{request.reason}</p>
+              </div>
+            )}
+            {request.notes && !isUserRequest && (
+              <div className='bg-white/50 rounded p-2'>
+                <span className='font-medium text-gray-700 text-[10px] uppercase tracking-wider block mb-1'>
+                  Internal Admin Notes
+                </span>
+                <p className='text-gray-600 whitespace-pre-wrap'>{request.notes}</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-HistoryCard.propTypes = {
+TimelineEvent.propTypes = {
   request: PropTypes.shape({
     id: PropTypes.number,
     diving_center_name: PropTypes.string,
@@ -427,7 +350,7 @@ const AdminOwnershipRequests = () => {
   const [approvalReason, setApprovalReason] = useState('');
   const [revokeReason, setRevokeReason] = useState('');
   const [isRevoking, setIsRevoking] = useState(false);
-  const [activeTab, setActiveTab] = useState('current');
+  const [activeTab, setActiveTab] = useState('pending');
 
   const queryClient = useQueryClient();
 
@@ -526,8 +449,87 @@ const AdminOwnershipRequests = () => {
     return <ErrorDisplay error={error} />;
   }
 
+  const getColumns = isActiveTab => [
+    {
+      title: 'Diving Center',
+      dataIndex: 'name',
+      key: 'name',
+      render: (text, record) => (
+        <div className='flex flex-col'>
+          <span className='font-semibold text-gray-900'>{text}</span>
+          <span className='text-xs text-gray-500'>{record.location}</span>
+        </div>
+      ),
+    },
+    {
+      title: 'Claimed By',
+      dataIndex: 'owner_username',
+      key: 'owner_username',
+      render: text => <span className='font-medium'>{text}</span>,
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: (_, record) => (
+        <Tag color={record.ownership_status === 'claimed' ? 'orange' : 'green'}>
+          {record.ownership_status === 'claimed' ? 'Pending Approval' : 'Approved'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Request Date',
+      dataIndex: 'request_date',
+      key: 'request_date',
+      render: date => new Date(date).toLocaleString(),
+    },
+    ...(!isActiveTab
+      ? [
+          {
+            title: 'Claim Reason',
+            dataIndex: 'claim_reason',
+            key: 'claim_reason',
+            render: text =>
+              text ? (
+                <Tooltip title={text}>
+                  <div className='max-w-[200px] truncate text-gray-600 cursor-pointer'>{text}</div>
+                </Tooltip>
+              ) : (
+                <span className='text-gray-400 italic'>No reason provided</span>
+              ),
+          },
+        ]
+      : []),
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Space size='middle'>
+          {record.ownership_status === 'claimed' ? (
+            <Button
+              type='primary'
+              className='flex items-center'
+              onClick={() => handleModalOpen(record, false)}
+            >
+              <Clock className='h-4 w-4 mr-2' />
+              Review
+            </Button>
+          ) : (
+            <Button
+              danger
+              className='flex items-center'
+              onClick={() => handleModalOpen(record, true)}
+            >
+              <X className='h-4 w-4 mr-2' />
+              Revoke
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold text-gray-900 mb-2'>Ownership Requests</h1>
         <p className='text-gray-600'>
@@ -535,25 +537,62 @@ const AdminOwnershipRequests = () => {
         </p>
       </div>
 
-      <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* Current Requests Tab */}
-      {activeTab === 'current' && (
-        <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-          {requests?.map(request => (
-            <CurrentRequestCard key={request.id} request={request} onModalOpen={handleModalOpen} />
-          ))}
-        </div>
-      )}
-
-      {/* History Tab */}
-      {activeTab === 'history' && (
-        <div className='space-y-4'>
-          {history?.map(request => (
-            <HistoryCard key={request.id} request={request} />
-          ))}
-        </div>
-      )}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        className='mt-6'
+        size='large'
+        items={[
+          {
+            key: 'pending',
+            label: 'Pending Requests',
+            children: (
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 mt-4 overflow-hidden'>
+                <Table
+                  dataSource={requests?.filter(r => r.ownership_status === 'claimed')}
+                  columns={getColumns(false)}
+                  rowKey='id'
+                  pagination={{ pageSize: 15 }}
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: 'No pending ownership requests.' }}
+                />
+              </div>
+            ),
+          },
+          {
+            key: 'active',
+            label: 'Active Ownerships',
+            children: (
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 mt-4 overflow-hidden'>
+                <Table
+                  dataSource={requests?.filter(r => r.ownership_status === 'approved')}
+                  columns={getColumns(true)}
+                  rowKey='id'
+                  pagination={{ pageSize: 15 }}
+                  scroll={{ x: 'max-content' }}
+                  locale={{ emptyText: 'No active diving center ownerships.' }}
+                />
+              </div>
+            ),
+          },
+          {
+            key: 'history',
+            label: 'History',
+            children: (
+              <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mt-4'>
+                <div className='relative'>
+                  {history?.map(request => (
+                    <TimelineEvent key={request.id} request={request} />
+                  ))}
+                  {history?.length === 0 && (
+                    <div className='py-12 text-center text-gray-500'>No history recorded yet.</div>
+                  )}
+                </div>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* Approval/Revoke Modal */}
       {selectedRequest && (

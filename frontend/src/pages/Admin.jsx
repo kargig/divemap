@@ -10,23 +10,61 @@ import {
   Notebook,
   FileText,
   Bell,
-  Route,
+  Route as RouteIcon,
   MessageSquare,
   History,
   Shield,
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  BarChart3,
+  Database,
+  TrendingUp,
+  Clock,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import {
+  getSystemMetrics,
+  getTurnstileStats,
+  getStorageHealth,
+  getGeneralStatistics,
+} from '../services/admin';
 
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   // Set page title
-  usePageTitle('Divemap - Admin');
+  usePageTitle('Divemap - Admin Dashboard');
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Fetch metrics data
+  const { data: systemMetrics, isLoading: metricsLoading } = useQuery(
+    ['system-metrics', refreshKey],
+    getSystemMetrics,
+    {
+      refetchInterval: 60000, // Refetch every 60 seconds
+      enabled: !!user?.is_admin,
+    }
+  );
+
+  const { data: generalStats, isLoading: statsLoading } = useQuery(
+    ['general-statistics', refreshKey],
+    getGeneralStatistics,
+    {
+      refetchInterval: 60000,
+      enabled: !!user?.is_admin,
+    }
+  );
 
   if (!user?.is_admin) {
     return (
@@ -36,237 +74,216 @@ const Admin = () => {
     );
   }
 
-  const adminCards = [
-    {
-      id: 'dives',
-      title: 'Dive Management',
-      description: 'Manage all dives, view details, edit information, and delete dives.',
-      icon: <Notebook className='h-8 w-8 text-teal-600' />,
-      href: '/admin/dives',
-      color: 'bg-teal-50 border-teal-200 hover:bg-teal-100',
-    },
-    {
-      id: 'dive-sites',
-      title: 'Dive Sites Management',
-      description: 'Manage all dive sites, view details, edit information, and delete sites.',
-      icon: <MapPin className='h-8 w-8 text-blue-600' />,
-      href: '/admin/dive-sites',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-    },
-    {
-      id: 'edit-requests',
-      title: 'Pending Edits',
-      description: 'Review and moderate community dive site contributions.',
-      icon: <FileText className='h-8 w-8 text-blue-600' />,
-      href: '/admin/dive-sites/edit-requests',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-    },
-    {
-      id: 'dive-routes',
-      title: 'Dive Routes Management',
-      description: 'Manage all dive routes, view details, edit information, and delete routes.',
-      icon: <Route className='h-8 w-8 text-cyan-600' />,
-      href: '/admin/dive-routes',
-      color: 'bg-cyan-50 border-cyan-200 hover:bg-cyan-100',
-    },
-    {
-      id: 'diving-centers',
-      title: 'Diving Centers Management',
-      description: 'Manage all diving centers, contact information, locations, and ratings.',
-      icon: <Building2 className='h-8 w-8 text-green-600' />,
-      href: '/admin/diving-centers',
-      color: 'bg-green-50 border-green-200 hover:bg-green-100',
-    },
-    {
-      id: 'diving-organizations',
-      title: 'Diving Organizations',
-      description: 'Create, edit, and delete diving organizations (PADI, SSI, etc.).',
-      icon: <Award className='h-8 w-8 text-gray-700' />,
-      href: '/admin/diving-organizations',
-      color: 'bg-gray-50 border-gray-200 hover:bg-gray-100',
-    },
-    {
-      id: 'tags',
-      title: 'Tag Management',
-      description: 'Create, edit, and delete tags used to categorize dive sites.',
-      icon: <Tags className='h-8 w-8 text-purple-600' />,
-      href: '/admin/tags',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
-    },
-    {
-      id: 'newsletters',
-      title: 'Newsletter Management',
-      description: 'Upload and manage dive trip newsletters, view parsed trips.',
-      icon: <FileText className='h-8 w-8 text-purple-600' />,
-      href: '/admin/newsletters',
-      color: 'bg-purple-50 border-purple-200 hover:bg-purple-100',
-    },
-    {
-      id: 'ownership-requests',
-      title: 'Ownership Requests',
-      description: 'Review and approve ownership claims for diving centers.',
-      icon: <Crown className='h-8 w-8 text-yellow-600' />,
-      href: '/admin/ownership-requests',
-      color: 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100',
-    },
-    {
-      id: 'users',
-      title: 'User Management',
-      description: 'Manage user accounts, roles, permissions, and account status.',
-      icon: <Users className='h-8 w-8 text-orange-600' />,
-      href: '/admin/users',
-      color: 'bg-orange-50 border-orange-200 hover:bg-orange-100',
-    },
-    {
-      id: 'audit-logs',
-      title: 'Auth Audit Logs',
-      description: 'Monitor security-sensitive authentication and authorization events.',
-      icon: <Shield className='h-8 w-8 text-blue-700' />,
-      href: '/admin/audit-logs',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-    },
-    {
-      id: 'notification-preferences',
-      title: 'Notification Preferences',
-      description:
-        'Manage notification preferences for any user, configure email and website notifications.',
-      icon: <Bell className='h-8 w-8 text-indigo-600' />,
-      href: '/admin/notification-preferences',
-      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
-    },
-    {
-      id: 'chat-feedback',
-      title: 'Chatbot Feedback',
-      description:
-        'Review and analyze user feedback on chatbot responses to improve its performance.',
-      icon: <ChatbotIcon size={32} className='text-blue-500' />,
-      href: '/admin/chat-feedback',
-      color: 'bg-blue-50 border-blue-200 hover:bg-blue-100',
-    },
-    {
-      id: 'chat-history',
-      title: 'Chatbot History',
-      description: 'Browse full transcripts of AI chat sessions to review quality and performance.',
-      icon: <History className='h-8 w-8 text-indigo-600' />,
-      href: '/admin/chat-history',
-      color: 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100',
-    },
-  ];
-
-  const handleCardClick = href => {
-    navigate(href);
+  const formatPercentage = num => {
+    if (num === null || num === undefined) return '0%';
+    return `${num.toFixed(1)}%`;
   };
 
-  const handleCardKeyDown = (event, href) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      navigate(href);
+  const getStatusIcon = status => {
+    switch (status?.toLowerCase()) {
+      case 'healthy':
+        return <CheckCircle className='h-5 w-5 text-green-600' />;
+      case 'warning':
+        return <AlertTriangle className='h-5 w-5 text-yellow-600' />;
+      case 'critical':
+        return <XCircle className='h-5 w-5 text-red-600' />;
+      default:
+        return <Activity className='h-5 w-5 text-gray-600' />;
     }
   };
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900'>Admin Dashboard</h1>
-        <p className='text-gray-600 mt-2'>Manage all aspects of the dive site platform</p>
+    <div className='w-full max-w-full p-4 sm:p-6'>
+      <div className='mb-8 flex justify-end items-center'>
+        <button
+          onClick={() => setRefreshKey(prev => prev + 1)}
+          className='flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50'
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${metricsLoading || statsLoading ? 'animate-spin' : ''}`}
+          />
+          Refresh
+        </button>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {adminCards.map(card => (
-          <div
-            key={card.id}
-            onClick={() => handleCardClick(card.href)}
-            onKeyDown={event => handleCardKeyDown(event, card.href)}
-            role='button'
-            tabIndex={0}
-            className={`${card.color} border rounded-lg p-6 cursor-pointer transition-all duration-200 transform hover:scale-105`}
-          >
-            <div className='flex items-start justify-between'>
-              <div className='flex-1'>
-                <div className='flex items-center mb-4'>
-                  {card.icon}
-                  <h3 className='text-xl font-semibold text-gray-900 ml-3'>{card.title}</h3>
-                </div>
-                <p className='text-gray-600 mb-4'>{card.description}</p>
-                <div className='flex items-center text-blue-600 font-medium'>
-                  <span>Manage</span>
-                  <ArrowRight className='h-4 w-4 ml-2' />
-                </div>
-              </div>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
+        {/* Total Users Widget */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col'>
+          <div className='flex items-center justify-between mb-4'>
+            <h3 className='text-lg font-medium text-gray-900'>Total Users</h3>
+            <div className='p-2 bg-blue-50 rounded-lg'>
+              <Users className='h-6 w-6 text-blue-600' />
             </div>
           </div>
-        ))}
+          <div className='mt-auto'>
+            {statsLoading ? (
+              <div className='h-8 bg-gray-200 rounded animate-pulse w-1/2'></div>
+            ) : (
+              <div className='text-3xl font-bold text-gray-900'>
+                {generalStats?.platform_stats?.users?.total?.toLocaleString() || 0}
+              </div>
+            )}
+            <div className='text-sm text-gray-500 mt-1'>Registered accounts</div>
+          </div>
+        </div>
+
+        {/* Total Dives Widget */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col'>
+          <div className='flex items-center justify-between mb-4'>
+            <h3 className='text-lg font-medium text-gray-900'>Total Dives</h3>
+            <div className='p-2 bg-teal-50 rounded-lg'>
+              <Notebook className='h-6 w-6 text-teal-600' />
+            </div>
+          </div>
+          <div className='mt-auto'>
+            {statsLoading ? (
+              <div className='h-8 bg-gray-200 rounded animate-pulse w-1/2'></div>
+            ) : (
+              <div className='text-3xl font-bold text-gray-900'>
+                {generalStats?.platform_stats?.content?.dives?.toLocaleString() || 0}
+              </div>
+            )}
+            <div className='text-sm text-gray-500 mt-1'>Logged by users</div>
+          </div>
+        </div>
+
+        {/* Dive Sites Widget */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col'>
+          <div className='flex items-center justify-between mb-4'>
+            <h3 className='text-lg font-medium text-gray-900'>Dive Sites</h3>
+            <div className='p-2 bg-indigo-50 rounded-lg'>
+              <MapPin className='h-6 w-6 text-indigo-600' />
+            </div>
+          </div>
+          <div className='mt-auto'>
+            {statsLoading ? (
+              <div className='h-8 bg-gray-200 rounded animate-pulse w-1/2'></div>
+            ) : (
+              <div className='text-3xl font-bold text-gray-900'>
+                {generalStats?.platform_stats?.content?.dive_sites?.toLocaleString() || 0}
+              </div>
+            )}
+            <div className='text-sm text-gray-500 mt-1'>Published locations</div>
+          </div>
+        </div>
+
+        {/* System Health Widget */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col'>
+          <div className='flex items-center justify-between mb-4'>
+            <h3 className='text-lg font-medium text-gray-900'>Database Health</h3>
+            <div className='p-2 bg-gray-50 rounded-lg'>
+              <Database className='h-6 w-6 text-gray-600' />
+            </div>
+          </div>
+          <div className='mt-auto'>
+            {metricsLoading ? (
+              <div className='h-8 bg-gray-200 rounded animate-pulse w-full'></div>
+            ) : (
+              <div className='flex items-center space-x-2'>
+                {getStatusIcon(systemMetrics?.services?.database)}
+                <span
+                  className={`text-lg font-semibold ${
+                    systemMetrics?.services?.database === 'healthy'
+                      ? 'text-green-600'
+                      : 'text-red-600'
+                  }`}
+                >
+                  {systemMetrics?.services?.database
+                    ? systemMetrics.services.database.charAt(0).toUpperCase() +
+                      systemMetrics.services.database.slice(1)
+                    : 'Unknown'}
+                </span>
+                <span className='text-sm text-gray-500 ml-2'>
+                  ({systemMetrics?.database?.response_time_ms || 0}ms)
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className='mt-8 p-6 bg-gray-50 rounded-lg'>
-        <div className='flex items-center mb-4'>
-          <Settings className='h-6 w-6 text-gray-600 mr-3' />
-          <h3 className='text-lg font-semibold text-gray-900'>Quick Actions</h3>
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+        {/* Quick Actions Panel */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+          <h3 className='text-xl font-bold text-gray-900 mb-6'>Content Moderation</h3>
+          <div className='space-y-4'>
+            <button
+              onClick={() => navigate('/admin/dive-sites/edit-requests')}
+              className='w-full flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors'
+            >
+              <div className='flex items-center'>
+                <FileText className='h-5 w-5 text-blue-600 mr-3' />
+                <span className='font-medium text-gray-900'>Pending Site Edits</span>
+              </div>
+              <div className='flex items-center'>
+                <ArrowRight className='h-4 w-4 text-blue-600' />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/ownership-requests')}
+              className='w-full flex items-center justify-between p-4 bg-yellow-50 border border-yellow-100 rounded-lg hover:bg-yellow-100 transition-colors'
+            >
+              <div className='flex items-center'>
+                <Crown className='h-5 w-5 text-yellow-600 mr-3' />
+                <span className='font-medium text-gray-900'>Ownership Requests</span>
+              </div>
+              <div className='flex items-center'>
+                <ArrowRight className='h-4 w-4 text-yellow-600' />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/chat-feedback')}
+              className='w-full flex items-center justify-between p-4 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100 transition-colors'
+            >
+              <div className='flex items-center'>
+                <MessageSquare className='h-5 w-5 text-indigo-600 mr-3' />
+                <span className='font-medium text-gray-900'>Chatbot Feedback</span>
+              </div>
+              <div className='flex items-center'>
+                <ArrowRight className='h-4 w-4 text-indigo-600' />
+              </div>
+            </button>
+          </div>
         </div>
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          <div
-            onClick={() => navigate('/admin/system-metrics')}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate('/admin/system-metrics');
-              }
-            }}
-            role='button'
-            tabIndex={0}
-            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
-          >
-            <h4 className='font-medium text-gray-900 mb-2'>System Metrics</h4>
-            <p className='text-sm text-gray-600'>View system health, storage, and usage metrics</p>
-          </div>
-          <div
-            onClick={() => navigate('/admin/general-statistics')}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate('/admin/general-statistics');
-              }
-            }}
-            role='button'
-            tabIndex={0}
-            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
-          >
-            <h4 className='font-medium text-gray-900 mb-2'>General Statistics</h4>
-            <p className='text-sm text-gray-600'>View platform stats and notification analytics</p>
-          </div>
-          <div
-            onClick={() => navigate('/admin/growth-visualizations')}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate('/admin/growth-visualizations');
-              }
-            }}
-            role='button'
-            tabIndex={0}
-            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
-          >
-            <h4 className='font-medium text-gray-900 mb-2'>Growth Visualizations</h4>
-            <p className='text-sm text-gray-600'>Track content growth over time</p>
-          </div>
-          <div
-            onClick={() => navigate('/admin/recent-activity')}
-            onKeyDown={event => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate('/admin/recent-activity');
-              }
-            }}
-            role='button'
-            tabIndex={0}
-            className='bg-white p-4 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors'
-          >
-            <h4 className='font-medium text-gray-900 mb-2'>Recent Activity</h4>
-            <p className='text-sm text-gray-600'>Monitor recent user actions and changes</p>
-          </div>
-          <div className='bg-white p-4 rounded-lg border'>
-            <h4 className='font-medium text-gray-900 mb-2'>Backup & Export</h4>
-            <p className='text-sm text-gray-600'>Export data and manage backups</p>
+
+        {/* System & Analytics Summary */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+          <h3 className='text-xl font-bold text-gray-900 mb-6'>System & Analytics</h3>
+          <div className='grid grid-cols-2 gap-4'>
+            <div
+              onClick={() => navigate('/admin/system-metrics')}
+              className='p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors'
+            >
+              <Activity className='h-6 w-6 text-blue-600 mb-3' />
+              <h4 className='font-medium text-gray-900'>System Metrics</h4>
+              <p className='text-sm text-gray-500 mt-1'>View system health and usage</p>
+            </div>
+            <div
+              onClick={() => navigate('/admin/general-statistics')}
+              className='p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors'
+            >
+              <BarChart3 className='h-6 w-6 text-green-600 mb-3' />
+              <h4 className='font-medium text-gray-900'>Platform Stats</h4>
+              <p className='text-sm text-gray-500 mt-1'>View detailed statistics</p>
+            </div>
+            <div
+              onClick={() => navigate('/admin/growth-visualizations')}
+              className='p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors'
+            >
+              <TrendingUp className='h-6 w-6 text-indigo-600 mb-3' />
+              <h4 className='font-medium text-gray-900'>Growth Stats</h4>
+              <p className='text-sm text-gray-500 mt-1'>Track content growth</p>
+            </div>
+            <div
+              onClick={() => navigate('/admin/recent-activity')}
+              className='p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors'
+            >
+              <Clock className='h-6 w-6 text-orange-600 mb-3' />
+              <h4 className='font-medium text-gray-900'>Activity Log</h4>
+              <p className='text-sm text-gray-500 mt-1'>Monitor recent actions</p>
+            </div>
           </div>
         </div>
       </div>

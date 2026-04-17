@@ -806,7 +806,7 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4'>
         <div>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>User Management</h1>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,13 +12,31 @@ const ChatWidget = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [isInactive, setIsInactive] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragJustFinishedRef = useRef(false);
+  const fabRef = useRef(null);
+
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const location = useLocation();
 
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('divemap_chat_widget_pos');
+    const defaultPos = { x: 20, y: window.innerHeight - 80, side: 'right' };
+    if (!saved) return defaultPos;
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed.y > window.innerHeight) parsed.y = window.innerHeight - 80;
+      if (parsed.y < 0) parsed.y = 80;
+      return parsed;
+    } catch (e) {
+      return defaultPos;
+    }
+  });
+
   // Handle inactivity timeout to trigger "edge peek"
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || isDragging) {
       setIsInactive(false);
       return;
     }
@@ -27,16 +45,13 @@ const ChatWidget = () => {
     const resetTimer = () => {
       setIsInactive(false);
       clearTimeout(timeout);
-      // Wait 3 seconds of inactivity before sliding out
       timeout = setTimeout(() => setIsInactive(true), 3000);
     };
 
-    // Attach to scroll and touch events
     window.addEventListener('scroll', resetTimer, { passive: true });
     window.addEventListener('touchstart', resetTimer, { passive: true });
     window.addEventListener('mousemove', resetTimer, { passive: true });
 
-    // Start timer on mount
     resetTimer();
 
     return () => {
@@ -45,7 +60,7 @@ const ChatWidget = () => {
       window.removeEventListener('mousemove', resetTimer);
       clearTimeout(timeout);
     };
-  }, [isOpen]);
+  }, [isOpen, isDragging]);
 
   // Get user location on mount or when chat opens
   useEffect(() => {
@@ -121,6 +136,69 @@ const ChatWidget = () => {
 
   const { messages, sendMessage, isLoading, giveFeedback, clearChat } = useChat(context);
 
+  const handlePointerDown = e => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (isOpen) return; // Disable dragging when chat is open
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let hasMoved = false;
+
+    const handlePointerMove = moveEvent => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        hasMoved = true;
+        setIsDragging(true);
+      }
+
+      if (hasMoved) {
+        setPosition({
+          x: moveEvent.clientX - 28, // center offset
+          y: moveEvent.clientY - 28,
+          side: 'moving',
+        });
+      }
+    };
+
+    const handlePointerUp = upEvent => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+
+      if (hasMoved) {
+        setIsDragging(false);
+        dragJustFinishedRef.current = true;
+        setTimeout(() => {
+          dragJustFinishedRef.current = false;
+        }, 100);
+
+        const screenWidth = window.innerWidth;
+        const margin = 20;
+        const isRightSide = upEvent.clientX > screenWidth / 2;
+
+        const finalPos = {
+          x: margin,
+          y: Math.max(margin, Math.min(upEvent.clientY - 28, window.innerHeight - 80)),
+          side: isRightSide ? 'right' : 'left',
+        };
+
+        setPosition(finalPos);
+        localStorage.setItem('divemap_chat_widget_pos', JSON.stringify(finalPos));
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  const getTranslation = () => {
+    if (!isInactive || isDragging || isOpen) return 'translate-x-0 opacity-100';
+    return position.side === 'left'
+      ? '-translate-x-12 opacity-75 hover:translate-x-0 hover:opacity-100'
+      : 'translate-x-12 opacity-75 hover:translate-x-0 hover:opacity-100';
+  };
+
   return (
     <>
       {/* Chat Window Container */}
@@ -133,12 +211,16 @@ const ChatWidget = () => {
               ? 'opacity-100 translate-y-0 pointer-events-auto'
               : 'opacity-0 translate-y-10 pointer-events-none invisible'
           }
-          /* Mobile: Bottom Sheet (Size to content up to 85dvh) */
+          /* Mobile: Bottom Sheet */
           inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl shadow-[0_-8px_30px_rgb(0,0,0,0.12)]
           /* Desktop: Floating Window */
-          md:inset-auto md:right-5 md:bottom-24 md:max-h-none md:rounded-2xl md:shadow-2xl md:origin-bottom-right
+          md:inset-auto md:max-h-none md:rounded-2xl md:shadow-2xl
+          ${position.side === 'left' ? 'md:left-5 md:origin-bottom-left' : 'md:right-5 md:origin-bottom-right'}
           ${isExpanded ? 'md:w-[800px] md:h-[80dvh]' : 'md:w-[400px] md:h-[600px]'}
         `}
+        style={{
+          bottom: '100px', // Offset from the FAB
+        }}
       >
         {isOpen && (
           <ChatWindow
@@ -158,15 +240,24 @@ const ChatWidget = () => {
 
       {/* FAB (Floating Action Button) */}
       <div
-        className={`fixed right-5 z-[9999] pointer-events-none transition-all duration-300 ${
-          context?.context_entity_type === 'dive_site' ? 'bottom-24 md:bottom-5' : 'bottom-5'
-        }`}
+        ref={fabRef}
+        onPointerDown={handlePointerDown}
+        className={`fixed z-[9999] pointer-events-none transition-all duration-300 ${isDragging ? 'transition-none' : ''}`}
+        style={{
+          left: position.side === 'right' ? 'auto' : `${position.x}px`,
+          right: position.side === 'right' ? `${position.x}px` : 'auto',
+          top: `${position.y}px`,
+          touchAction: 'none',
+        }}
       >
         <button
           data-testid='chat-fab'
-          onClick={() => {
+          onClick={e => {
+            if (isDragging || dragJustFinishedRef.current) {
+              e.preventDefault();
+              return;
+            }
             if (isInactive && !isOpen) {
-              // First tap when inactive just wakes it up
               setIsInactive(false);
             } else {
               setIsOpen(!isOpen);
@@ -175,9 +266,10 @@ const ChatWidget = () => {
           }}
           className={`
             pointer-events-auto
-            items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
-            ${isOpen ? 'hidden md:flex bg-gray-200 text-gray-600 rotate-90' : 'flex bg-blue-600 text-white'}
-            ${isInactive && !isOpen ? 'translate-x-12 opacity-75 hover:opacity-100 hover:translate-x-0' : 'translate-x-0 opacity-100'}
+            flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
+            ${isOpen ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-blue-600 text-white'}
+            ${isDragging ? 'cursor-grabbing scale-110 shadow-2xl' : 'cursor-grab'}
+            ${getTranslation()}
           `}
           aria-label={isOpen ? 'Close Chat' : 'Open Chat'}
         >
