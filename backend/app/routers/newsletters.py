@@ -552,6 +552,8 @@ async def parse_newsletter_with_openai(content: str, db: Session, diving_center_
             diving_center_id = find_matching_diving_center(db, diving_center_name)
             logger.info(f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}")
 
+        current_year = date.today().year
+
         # Prepare prompt for OpenAI
         # Use robust delimiters to mitigate prompt injection (Finding 1: High)
         prompt = f"""
@@ -559,6 +561,8 @@ Parse the following newsletter content and extract dive trip information. Return
 
 ⚠️ CRITICAL: This newsletter is probably in Greek. You MUST parse Greek date formats correctly!
 ⚠️ NEVER default to today's date when a Greek date is clearly specified in the text!
+⚠️ IMPORTANT: If the newsletter content DOES NOT specify a year, use the CURRENT YEAR ({current_year}) for all extracted dates. 
+⚠️ Assume all trips are for the current year unless a future year is explicitly mentioned.
 
 ⚠️ IMPORTANT: Handle "Διπλή βουτιά" (double dive) scenarios correctly:
 ⚠️ - "διπλή βουτιά στην Μακρόνησο" = 2 dives at same location (Makronisos)
@@ -622,16 +626,16 @@ CRITICAL RULES:
 
 DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
 - You MUST parse Greek date formats correctly. This is critical!
-- Look for these exact patterns in the text:
-  * "Σάββατο 2 Αυγούστου" = "2025-08-02" (Saturday August 2nd)
-  * "Κυριακή 3 Αυγούστου" = "2025-08-03" (Sunday August 3rd)
-  * "Σάββατο 23 Αυγούστου" = "2025-08-23" (Saturday August 23rd)
-  * "Κυριακή 24 Αυγούστου" = "2025-08-24" (Sunday August 24th)
-  * "Δευτέρα 25 Αυγούστου" = "2025-08-25" (Monday August 25th)
-  * "Τρίτη 26 Αυγούστου" = "2025-08-26" (Tuesday August 26th)
-  * "Τετάρτη 27 Αυγούστου" = "2025-08-27" (Wednesday August 27th)
-  * "Πέμπτη 28 Αυγούστου" = "2025-08-28" (Thursday August 28th)
-  * "Παρασκευή 29 Αυγούστου" = "2025-08-29" (Friday August 29th)
+- Look for these exact patterns in the text (using current year {current_year} as default):
+  * "Σάββατο 2 Αυγούστου" = "{current_year}-08-02"
+  * "Κυριακή 3 Αυγούστου" = "{current_year}-08-03"
+  * "Σάββατο 23 Αυγούστου" = "{current_year}-08-23"
+  * "Κυριακή 24 Αυγούστου" = "{current_year}-08-24"
+  * "Δευτέρα 25 Αυγούστου" = "{current_year}-08-25"
+  * "Τρίτη 26 Αυγούστου" = "{current_year}-08-26"
+  * "Τετάρτη 27 Αυγούστου" = "{current_year}-08-27"
+  * "Πέμπτη 28 Αυγούστου" = "{current_year}-08-28"
+  * "Παρασκευή 29 Αυγούστου" = "{current_year}-08-29"
 - Greek month names: Ιανουαρίου(January), Φεβρουαρίου(February), Μαρτίου(March), Απριλίου(April), Μαΐου(May), Ιουνίου(June), Ιουλίου(July), Αυγούστου(August), Σεπτεμβρίου(September), Οκτωβρίου(October), Νοεμβρίου(November), Δεκεμβρίου(December)
 - Greek day names: Δευτέρα(Monday), Τρίτη(Tuesday), Τετάρτη(Wednesday), Πέμπτη(Thursday), Παρασκευή(Friday), Σάββατο(Saturday), Κυριακή(Sunday)
 - Today's date is: {date.today().strftime('%Y-%m-%d')} (Day of week: {datetime.now().strftime('%A')})
@@ -643,10 +647,10 @@ DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
 - NEVER use placeholder dates like "YYYY-MM-DD"
 - NEVER default to today's date unless explicitly mentioned
 - ALWAYS parse the actual Greek date format when present in the text
-- If you see "Σάββατο 2 Αυγούστου" in the text, the trip_date MUST be "2025-08-02"
-- If you see "Κυριακή 3 Αυγούστου" in the text, the trip_date MUST be "2025-08-03"
-- If you see "Σάββατο 23 Αυγούστου" in the text, the trip_date MUST be "2025-08-23"
-- If you see "Κυριακή 24 Αυγούστου" in the text, the trip_date MUST be "2025-08-24"
+- If you see "Σάββατο 2 Αυγούστου" in the text, the trip_date MUST be "{current_year}-08-02"
+- If you see "Κυριακή 3 Αυγούστου" in the text, the trip_date MUST be "{current_year}-08-03"
+- If you see "Σάββατο 23 Αυγούστου" in the text, the trip_date MUST be "{current_year}-08-23"
+- If you see "Κυριακή 24 Αυγούστου" in the text, the trip_date MUST be "{current_year}-08-24"
 
 TRIP STRUCTURE RULES:
 - A single dive trip can have 1 or 2 dives
@@ -680,7 +684,7 @@ CRITICAL: SINGLE DIVE vs DOUBLE DIVE DETECTION:
 
 CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
 1. "ΚΥΡ, 17 Αυγ στις 9:00" with "9:00 Άκρα Καταφυγή" and "12:00 ν. Κουδούνια, ύφαλος"
-   → Create 1 trip with 2 dives: trip_date = "2025-08-17", trip_time = "09:00"
+   → Create 1 trip with 2 dives: trip_date = "{current_year}-08-17", trip_time = "09:00"
    → Dive 1: dive_site_name = "Άκρα Καταφυγή", dive_time = "09:00"
    → Dive 2: dive_site_name = "ν. Κουδούνια, ύφαλος", dive_time = "12:00"
 
@@ -699,8 +703,8 @@ CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
 6. Newsletter with multiple dates (like newsletter 104):
    Content mentions "Σάββατο 23 Αυγούστου" and "Κυριακή 24 Αυγούστου"
    → Create 2 separate trips:
-   → Trip 1: trip_date = "2025-08-23" (Saturday August 23rd) with 2 dives
-   → Trip 2: trip_date = "2025-08-24" (Sunday August 24th) with 2 dives
+   → Trip 1: trip_date = "{current_year}-08-23" (Saturday August 23rd) with 2 dives
+   → Trip 2: trip_date = "{current_year}-08-24" (Sunday August 24th) with 2 dives
    
    CRITICAL: Each date has DIFFERENT dive sites! Do NOT copy the same dive sites to both dates!
    - August 23rd: Look for dive sites mentioned near "Σάββατο 23 Αυγούστου"

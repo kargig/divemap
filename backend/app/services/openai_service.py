@@ -49,7 +49,8 @@ class OpenAIService:
         else:
             self.client = openai.AsyncOpenAI(
                 api_key=self.api_key,
-                base_url=self.provider_config["base_url"]
+                base_url=self.provider_config["base_url"],
+                timeout=60.0
             )
 
         self._initialized = True
