@@ -465,7 +465,7 @@ const DivingCenters = () => {
                     {divingCenters?.map(center => (
                       <div
                         key={center.id}
-                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
+                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
                       >
                         {/* Main content column */}
                         <div className='flex flex-col'>
@@ -597,7 +597,7 @@ const DivingCenters = () => {
                     {divingCenters?.map(center => (
                       <div
                         key={center.id}
-                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(45,107,138)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
+                        className={`dive-item bg-white rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-[rgb(0,114,178)] overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${
                           compactLayout ? 'p-4' : 'p-6'
                         }`}
                       >

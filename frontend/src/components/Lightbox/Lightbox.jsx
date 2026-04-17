@@ -84,7 +84,7 @@ export default function Lightbox(props) {
       .yarl__thumbnails .yarl__thumbnail[aria-current="true"],
       [class*="yarl__thumbnail"][class*="active"],
       [class*="thumbnail"][class*="active"] {
-        border: 4px solid #2d6b8a !important;
+        border: 4px solid #0072B2 !important;
       }
     `;
 

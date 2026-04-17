@@ -309,7 +309,7 @@ const DiveRoutes = () => {
               return (
                 <div
                   key={route.id}
-                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(45,107,138)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
+                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
                 >
                   {/* Header: Title & Type */}
                   <div className='mb-2'>

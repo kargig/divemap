@@ -67,8 +67,8 @@ const NavbarMobileControls = () => {
 
   // Custom theme variables for antd-mobile to match the blue design
   const customTheme = {
-    '--adm-color-background': '#2d6b8a',
-    '--adm-color-box': '#2d6b8a', // Ensures list background is blue
+    '--adm-color-background': '#0072B2',
+    '--adm-color-box': '#0072B2', // Ensures list background is blue
     '--adm-color-text': '#ffffff', // White-ish for better contrast
     '--adm-color-weak': '#ffffff', // Force weak text to white
     '--adm-color-text-secondary': '#bfdbfe', // blue-200 for secondary text
@@ -79,15 +79,19 @@ const NavbarMobileControls = () => {
 
   return (
     <>
-      <div className='md:hidden flex items-center gap-4'>
+      <div className='md:hidden flex items-center gap-1 sm:gap-3'>
         {user && <ChatDropdown />}
         {user && <NotificationBell />}
         <button
           onClick={toggleMobileMenu}
-          className='text-white hover:text-blue-200 transition-colors'
+          className='text-white hover:text-blue-200 transition-colors ml-0'
           aria-label={isMobileMenuOpen ? 'Close mobile menu' : 'Open mobile menu'}
         >
-          {isMobileMenuOpen ? <X className='h-6 w-6' /> : <MenuIcon className='h-6 w-6' />}
+          {isMobileMenuOpen ? (
+            <X className='h-6 w-6' />
+          ) : (
+            <MenuIcon className='h-6 w-6 scale-150' />
+          )}
         </button>
       </div>
 
@@ -99,7 +103,7 @@ const NavbarMobileControls = () => {
           width: '85vw',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#2d6b8a',
+          backgroundColor: '#0072B2',
         }}
       >
         <div style={customTheme} className='flex flex-col h-full'>
