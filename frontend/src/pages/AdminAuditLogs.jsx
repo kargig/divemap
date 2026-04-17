@@ -221,7 +221,7 @@ const AdminAuditLogs = () => {
   ];
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
         <div>
           <Title level={2} style={{ margin: 0 }}>

@@ -695,7 +695,7 @@ const AdminDiveSites = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
         <div className='flex-1 min-w-0'>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Sites Management</h1>

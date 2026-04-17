@@ -339,7 +339,7 @@ const AdminDivesDesktop = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-4 sm:p-6'>
+    <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='mb-8'>
         <div className='flex items-center justify-between'>
           <div>
