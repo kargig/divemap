@@ -180,7 +180,17 @@ frontend/dev-dist/
 frontend/bundle-stats.html
 
 # Android / Bubblewrap
-divemap-android/
+# Android PWA Wrapper (Bubblewrap)
+divemap-android/*
+!divemap-android/twa-manifest.json
+!divemap-android/store_icon.png
+
+# STRICTLY ignore Android keystores and compiled binaries
+divemap-android/*.keystore
+divemap-android/*.jks
+divemap-android/*.apk
+divemap-android/*.aab
+divemap-android/*.idsig
 *.keystore
 *.jks
 
