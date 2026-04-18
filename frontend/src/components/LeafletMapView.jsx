@@ -966,7 +966,7 @@ const LeafletMapView = ({
           svg = `
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <!-- Blue rectangle background -->
-            <rect x="2" y="2" width="20" height="20" fill="#2563eb" stroke="white" stroke-width="1"/>
+            <rect x="2" y="2" width="20" height="20" fill="#0072B2" stroke="white" stroke-width="1"/>
             <!-- White "DC" text -->
             <text x="12" y="16" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">DC</text>
           </svg>
@@ -974,7 +974,7 @@ const LeafletMapView = ({
           break;
         case 'dive_trip': {
           // Trip icon with status-based color
-          let baseColor = '#3b82f6'; // Default blue for scheduled
+          let baseColor = '#0072B2'; // Default blue for scheduled
           if (tripDate) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);

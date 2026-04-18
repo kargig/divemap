@@ -69,7 +69,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
         return L.divIcon({
           html: `<div style="
-            background-color: #2563eb;
+            background-color: #0072B2;
             color: white;
             border: 2px solid white;
             border-radius: 50%;
@@ -215,7 +215,7 @@ const DivingCentersMap = ({ divingCenters, onViewportChange }) => {
     const svg = `
       <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- Blue circle background -->
-        <circle cx="12" cy="12" r="10" fill="#2563eb" stroke="white" stroke-width="1"/>
+        <circle cx="12" cy="12" r="10" fill="#0072B2" stroke="white" stroke-width="1"/>
         <!-- White anchor symbol -->
         <path d="M12 4 L12 8 M10 6 L14 6 M12 8 L9 11 L12 14 L15 11 L12 8 M12 14 L12 20 M10 18 L14 18"
               stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

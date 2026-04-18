@@ -43,7 +43,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: '#3b82f6',
+          colorPrimary: '#0072B2',
         },
       }}
     >

@@ -36,7 +36,7 @@ export default defineConfig({
         name: 'Divemap - Scuba Dive Site Review Platform',
         short_name: 'Divemap',
         description: 'Discover, rate and review dive sites and diving centers.',
-        theme_color: '#2563eb',
+        theme_color: '#0072B2',
         background_color: '#ffffff',
         display: 'standalone',
         display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],

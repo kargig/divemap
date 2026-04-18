@@ -197,7 +197,7 @@ export const DiveRouteLayer = ({ route, diveSiteId, diveSite }) => {
         html: `
           <div style="
             background-color: rgba(255, 255, 255, 0.9);
-            border: 2px solid #2563eb;
+            border: 2px solid #0072B2;
             border-radius: 4px;
             padding: 2px 6px;
             font-size: 11px;

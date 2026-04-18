@@ -64,7 +64,7 @@ export default function ReactImage({ slide, offset, rect }) {
               target='_blank'
               rel='noopener noreferrer'
               style={{
-                color: '#3b82f6',
+                color: '#0072B2',
                 textDecoration: 'underline',
                 fontSize: '0.875rem',
               }}

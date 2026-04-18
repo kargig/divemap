@@ -366,7 +366,7 @@ const MapInitializer = ({
         marker: {
           icon: new L.DivIcon({
             className: 'custom-marker',
-            html: `<div style="background-color: #3B82F6; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+            html: `<div style="background-color: #0072B2; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
             iconSize: [16, 16],
             iconAnchor: [8, 8],
           }),

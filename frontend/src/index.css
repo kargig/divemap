@@ -286,8 +286,8 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   top: 4rem !important;
   left: 0 !important;
   right: 0 !important;
-  background-color: #1e40af !important;
-  border-top: 1px solid #3b82f6 !important;
+  background-color: #001a2a !important;
+  border-top: 1px solid #56b4e9 !important;
   max-height: calc(100vh - 4rem) !important;
   overflow-y: auto !important;
 }
@@ -317,16 +317,16 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .mobile-menu-container::-webkit-scrollbar-track {
-  background: rgba(59, 130, 246, 0.1); /* Blue with transparency */
+  background: rgba(86, 180, 233, 0.1); /* Blue with transparency */
 }
 
 .mobile-menu-container::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.5); /* Blue with transparency */
+  background: rgba(86, 180, 233, 0.5); /* Blue with transparency */
   border-radius: 2px;
 }
 
 .mobile-menu-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.7); /* Darker blue on hover */
+  background: rgba(86, 180, 233, 0.7); /* Darker blue on hover */
 }
 
 /* Mobile Sorting Controls */
@@ -358,7 +358,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .sort-toggle-btn:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #56b4e9;
   outline-offset: 2px;
 }
 
@@ -397,7 +397,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
 .sort-option.active {
   background-color: #eff6ff;
-  color: #1d4ed8;
+  color: #004d7a;
   font-weight: 500;
 }
 
@@ -414,7 +414,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .sort-option.active .sort-icon {
-  color: #1d4ed8;
+  color: #004d7a;
 }
 
 /* Mobile responsive adjustments */
@@ -529,12 +529,12 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
 .mobile-tab.active {
   background: white;
-  color: #1d4ed8;
+  color: #004d7a;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .mobile-tab:hover:not(.active) {
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(86, 180, 233, 0.05);
   color: #374151;
 }
 
@@ -546,10 +546,10 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   min-width: 56px;
   height: 56px;
   border-radius: 28px;
-  background: #3b82f6;
+  background: #56b4e9;
   color: white;
   border: none;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px rgba(86, 180, 233, 0.4);
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 50;
@@ -561,9 +561,9 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .mobile-fab:hover {
-  background: #2563eb;
+  background: #0072b2;
   transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 16px rgba(86, 180, 233, 0.5);
 }
 
 .mobile-fab:active {
@@ -646,9 +646,9 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .quick-action-btn.active {
-  background: #3b82f6;
+  background: #56b4e9;
   color: white;
-  border-color: #3b82f6;
+  border-color: #56b4e9;
 }
 
 /* Enhanced Sort Options with Icons */
@@ -666,14 +666,14 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .enhanced-sort-option:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  border-color: #56b4e9;
+  box-shadow: 0 2px 4px rgba(86, 180, 233, 0.1);
 }
 
 .enhanced-sort-option.active {
   background: #eff6ff;
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+  border-color: #56b4e9;
+  box-shadow: 0 2px 8px rgba(86, 180, 233, 0.2);
 }
 
 .enhanced-sort-option .sort-info {
@@ -689,7 +689,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .enhanced-sort-option.active .sort-icon-large {
-  color: #3b82f6;
+  color: #56b4e9;
 }
 
 .enhanced-sort-option .sort-details {
@@ -722,7 +722,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .enhanced-sort-option.active .status-indicator {
-  background: #3b82f6;
+  background: #56b4e9;
 }
 
 /* Mobile-First Grid Layout */
@@ -1270,14 +1270,14 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
 /* Enhanced Button Styling */
 .btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #56b4e9 0%, #0072b2 100%);
   transition: all 0.2s ease;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #0072b2 0%, #004d7a 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 114, 178, 0.3);
 }
 
 .btn-secondary {
@@ -1483,7 +1483,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: #dbeafe;
-  color: #1d4ed8;
+  color: #004d7a;
   border-radius: 0.5rem;
   transition: all 0.2s ease;
   min-height: 34px;
@@ -1494,7 +1494,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .mobile-filter-count {
-  background: #2563eb;
+  background: #0072b2;
   color: white;
   font-size: 0.75rem;
   border-radius: 9999px;
@@ -1517,7 +1517,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
 .mobile-quick-filter-button.active {
   background: #dbeafe;
-  color: #1d4ed8;
+  color: #004d7a;
   border-color: #93c5fd;
 }
 
@@ -1610,7 +1610,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
 /* Filled track (portion before thumb) */
 .horizontal-slider .slider-track.slider-track-0 {
-  background: #3b82f6;
+  background: #56b4e9;
   border-radius: 2px;
 }
 
@@ -1627,7 +1627,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   transform: translate(-50%, -50%);
   width: 20px;
   height: 20px;
-  background: #2563eb;
+  background: #0072b2;
   border: 2px solid white;
   border-radius: 50%;
   cursor: grab;
@@ -1647,7 +1647,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 }
 
 .horizontal-slider .slider-thumb:hover {
-  background: #1d4ed8;
+  background: #004d7a;
   transform: translate(-50%, -50%) scale(1.1);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
 }
@@ -1661,7 +1661,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 .horizontal-slider .slider-thumb:focus {
   outline: none;
   box-shadow:
-    0 0 0 3px rgba(59, 130, 246, 0.3),
+    0 0 0 3px rgba(86, 180, 233, 0.3),
     0 2px 6px rgba(0, 0, 0, 0.2);
 }
 

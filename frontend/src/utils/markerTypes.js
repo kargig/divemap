@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 export const MARKER_TYPES = {
-  generic: { id: 'generic', name: 'Generic', icon: MapPin, color: '#3B82F6' }, // Blue
+  generic: { id: 'generic', name: 'Generic', icon: MapPin, color: '#0072B2' }, // Blue
   rock: { id: 'rock', name: 'Rock', icon: Hexagon, color: '#4B5563' }, // Gray
   coral: { id: 'coral', name: 'Coral', icon: Flower2, color: '#EC4899' }, // Pink
   wall: { id: 'wall', name: 'Wall/Drop-off', icon: Square, color: '#78350F' }, // Brown

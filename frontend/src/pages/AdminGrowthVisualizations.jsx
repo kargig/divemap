@@ -85,7 +85,7 @@ const AdminGrowthVisualizations = () => {
 
   // Chart colors constants
   const CHART_COLORS = {
-    dive_sites: '#3b82f6',
+    dive_sites: '#0072B2',
     diving_centers: '#10b981',
     dives: '#f59e0b',
     dive_routes: '#8b5cf6',
