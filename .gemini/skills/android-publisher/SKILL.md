@@ -11,28 +11,28 @@ This skill provides the procedural workflow for building and publishing updates 
 
 When asked to build or publish a new Android version, follow these steps exactly:
 
-### 1. Update Version Code and Name
+### 1. Update Version Name (Optional)
 
-Before building a new release, you MUST update the version tracking in the `divemap-android/twa-manifest.json` file. The Google Play Store will reject any upload that uses an existing `appVersionCode`.
+You only need to manually update the `twa-manifest.json` file if you are explicitly requested to change the public-facing version string. Bubblewrap will automatically handle incrementing the internal `appVersionCode` during the build process.
 
+If requested to change the version string (e.g., to "1.1"):
 1. Open `divemap-android/twa-manifest.json`
-2. Increment the `"appVersionCode"` (Must be an integer. It MUST strictly increase with every upload).
-3. Update the `"appVersionName"` and `"appVersion"` strings to reflect the new public-facing version (e.g., Semantic Versioning like `"1.0.1"`).
+2. Update the `"appVersionName"` and `"appVersion"` strings to reflect the new public-facing version.
+3. Do NOT manually increment `"appVersionCode"`.
 
-### 2. Build the Android App Bundle (AAB) and APK
+### 2. Build and Archive the Android App
 
-Navigate to the Android project directory and trigger a new Bubblewrap build.
+Navigate to the project root and execute the custom Android build script. This script automatically runs Bubblewrap and renames the output files to include the version name and code, storing them in an archive folder so previous versions are not overwritten.
 
 ```bash
-cd divemap-android
-bubblewrap build
+./scripts/build-android.sh
 ```
 
 *Note: The user will need to enter the Keystore password and Key password interactively during this build.*
 
-The build output will generate two crucial files:
-- `app-release-signed.apk` (Used for local phone testing)
-- `app-release-bundle.aab` (Used for uploading to the Google Play Console)
+The script will generate versioned files in the `divemap-android/releases/` directory:
+- `Divemap-v[versionName]-c[versionCode].apk` (Used for local phone testing)
+- `Divemap-v[versionName]-c[versionCode].aab` (Used for uploading to the Google Play Console)
 
 ### 3. Verify Digital Asset Links (Crucial for TWA)
 
@@ -48,7 +48,7 @@ If the file was modified, instruct the user to deploy the frontend before testin
 ### 4. Local Testing
 
 Instruct the user to test the APK on their physical Android device before uploading to Play Console.
-- They must transfer `divemap-android/app-release-signed.apk` to their phone.
+- They must transfer the new `divemap-android/releases/Divemap-v[versionName]-c[versionCode].apk` to their phone.
 - They must enable "Install from unknown sources" to install it.
 - **Verification Check:** Ask the user to verify that the top browser address bar is completely hidden. (If it is visible, it means the `assetlinks.json` is not correctly deployed or cached).
 
@@ -57,7 +57,7 @@ Instruct the user to test the APK on their physical Android device before upload
 Once testing is confirmed successful:
 1. Instruct the user to log into the [Google Play Console](https://play.google.com/console).
 2. Navigate to their app -> **Production** (or Internal Testing) -> **Create new release**.
-3. Instruct them to upload the `divemap-android/app-release-bundle.aab` file.
+3. Instruct them to upload the new `divemap-android/releases/Divemap-v[versionName]-c[versionCode].aab` file.
 4. Help the user draft concise release notes (under 500 characters) highlighting new features or bug fixes since the last release.
 
 ## Troubleshooting

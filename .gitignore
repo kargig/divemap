@@ -191,6 +191,7 @@ divemap-android/*.jks
 divemap-android/*.apk
 divemap-android/*.aab
 divemap-android/*.idsig
+divemap-android/releases/
 *.keystore
 *.jks
 
