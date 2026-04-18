@@ -14,29 +14,30 @@ const TripHeader = ({ trip }) => {
 
   return (
     <>
-      {/* Back Button */}
-      <button
-        onClick={() => {
-          const from = location.state?.from;
-          if (from) {
-            navigate(from);
-          } else {
-            navigate('/dive-trips');
-          }
-        }}
-        className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
-      >
-        <ArrowLeft className='w-4 h-4' />
-        <span>Back to Trips</span>
-      </button>
-
       {/* Trip Header */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6'>
         <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between'>
           <div className='flex-1'>
-            <h1 className='text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2'>
-              {generateTripName(trip) || 'Dive Trip'}
-            </h1>
+            <div className='flex items-center gap-1.5 sm:gap-4 w-full mb-2'>
+              <button
+                onClick={() => {
+                  const from = location.state?.from;
+                  if (from) {
+                    navigate(from);
+                  } else {
+                    navigate('/dive-trips');
+                  }
+                }}
+                className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
+              >
+                <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
+              </button>
+              <div className='min-w-0 flex-1'>
+                <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+                  {generateTripName(trip) || 'Dive Trip'}
+                </h1>
+              </div>
+            </div>
             <p className='text-gray-600 text-sm sm:text-base lg:text-lg mb-4'>
               {trip.trip_description || 'Experience an amazing diving adventure'}
             </p>
@@ -46,7 +47,7 @@ const TripHeader = ({ trip }) => {
               <div className='flex items-center space-x-2 sm:space-x-3'>
                 <Calendar className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
                 <div>
-                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
                     Date
                   </div>
                   <div className='font-medium text-xs sm:text-base'>
@@ -61,7 +62,7 @@ const TripHeader = ({ trip }) => {
                   className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0'
                 />
                 <div>
-                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
                     Price
                   </div>
                   <div className='font-medium text-xs sm:text-base'>
@@ -78,7 +79,7 @@ const TripHeader = ({ trip }) => {
               <div className='flex items-center space-x-2 sm:space-x-3'>
                 <Users className='w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0' />
                 <div>
-                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
                     Group
                   </div>
                   <div className='font-medium text-xs sm:text-base'>
@@ -90,11 +91,11 @@ const TripHeader = ({ trip }) => {
               <div className='flex items-center space-x-2 sm:space-x-3'>
                 <div className='w-4 h-4 sm:w-5 sm:h-5 hidden sm:block'></div>
                 <div>
-                  <div className='text-[10px] sm:text-sm text-gray-500 uppercase tracking-wide'>
+                  <div className='text-xs sm:text-sm text-gray-500 uppercase tracking-wide'>
                     Status
                   </div>
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                       trip.trip_status === 'confirmed'
                         ? 'bg-green-100 text-green-800'
                         : trip.trip_status === 'scheduled'
@@ -114,8 +115,8 @@ const TripHeader = ({ trip }) => {
           </div>
 
           {/* Trip Image Placeholder */}
-          <div className='mt-6 lg:mt-0 lg:ml-6'>
-            <div className='w-64 h-48 bg-gray-200 rounded-lg flex items-center justify-center'>
+          <div className='mt-6 lg:mt-0 lg:ml-6 shrink-0 w-full lg:w-auto'>
+            <div className='w-full lg:w-64 h-48 sm:h-56 lg:h-48 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden'>
               {trip.trip_image_url ? (
                 <img
                   src={trip.trip_image_url}

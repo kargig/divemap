@@ -608,7 +608,7 @@ const DiveDetail = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       {dive && (
         <SEO
           title={`Dive Log - ${dive.name || dive.dive_site?.name || 'Unnamed Site'} - ${formatDate(dive.dive_date)}`}
@@ -627,13 +627,12 @@ const DiveDetail = () => {
         <Breadcrumbs
           items={[
             { label: 'Public Dives', to: '/dives' },
-            { label: `Dive at ${dive.name || dive.dive_site?.name || 'Unnamed Site'}` },
           ]}
         />
       )}
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
-        <div className='flex items-center gap-3 sm:gap-4'>
+        <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
           <button
             onClick={() => {
               const from = location.state?.from;
@@ -643,16 +642,17 @@ const DiveDetail = () => {
                 navigate('/dives');
               }
             }}
-            className='text-gray-600 hover:text-gray-800 p-1'
+            className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
           >
-            <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
+            <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
           </button>
           <div className='min-w-0 flex-1'>
-            {/* Title is displayed in breadcrumbs above, removing redundant h1 */}
-            {/* Date/Time is in Dive Information below, removing redundant display */}
+            <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+              {dive.name || `Dive at ${dive.dive_site?.name || 'Unnamed Site'}`}
+            </h1>
 
             {/* Privacy Status and Created By */}
-            <div className='flex items-center gap-2 mt-1 flex-wrap'>
+            <div className='flex items-center gap-2 mt-2 flex-wrap'>
               {dive.is_private ? (
                 <div className='flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium'>
                   <EyeOff size={12} />

@@ -4,6 +4,7 @@ import {
   Mail,
   Globe,
   Navigation,
+  Share2,
   Info,
   Building,
   Ticket,
@@ -19,6 +20,7 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import Breadcrumbs from '../components/Breadcrumbs';
 import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
+import Button from '../components/ui/Button';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
@@ -394,12 +396,12 @@ const TripDetail = () => {
                 >
                   Register
                 </Link>
-                <button
+                <Button
                   onClick={() => navigate('/dive-trips')}
-                  className='inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors'
+                  variant='secondary'
                 >
                   Back to Trips
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -418,12 +420,12 @@ const TripDetail = () => {
     return (
       <div className='text-center py-8'>
         <div className='text-red-600 text-lg mb-4'>Error loading trip details</div>
-        <button
+        <Button
           onClick={() => navigate('/dive-trips')}
-          className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700'
+          variant='primary'
         >
           Back to Trips
-        </button>
+        </Button>
       </div>
     );
   }
@@ -431,7 +433,7 @@ const TripDetail = () => {
     return <NotFound />;
   }
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       {trip && (
         <SEO
           title={`Dive Trip - ${generateTripName(trip)}`}
@@ -443,13 +445,13 @@ const TripDetail = () => {
       )}
       {trip && (
         <Breadcrumbs
-          items={[{ label: 'Dive Trips', to: '/dive-trips' }, { label: generateTripName(trip) }]}
+          items={[{ label: 'Dive Trips', to: '/dive-trips' }]}
         />
       )}
 
       <div className='flex justify-end items-center space-x-2 mb-4'>
         {/* Share Button (everyone can see) */}
-        <button
+        <Button
           onClick={() => {
             if (navigator.share) {
               navigator.share({
@@ -462,29 +464,32 @@ const TripDetail = () => {
               toast.success('Link copied to clipboard!');
             }
           }}
-          className='inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs sm:text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors'
+          variant='secondary'
+          size='sm'
           title='Share trip'
+          icon={<Share2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
         >
-          <Navigation className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
           Share
-        </button>
+        </Button>
 
         {shouldShowManage && (
           <>
-            <button
+            <Button
               onClick={handleEditTrip}
-              className='inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-colors'
+              variant='primary'
+              size='sm'
+              icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
             >
-              <Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
-              Edit Trip
-            </button>
-            <button
+              Edit
+            </Button>
+            <Button
               onClick={handleDeleteTrip}
-              className='inline-flex items-center px-3 py-1.5 border border-red-300 text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm transition-colors'
+              variant='danger'
+              size='sm'
+              icon={<X className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
             >
-              <X className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
-              Delete Trip
-            </button>
+              Delete
+            </Button>
           </>
         )}
       </div>
@@ -493,7 +498,7 @@ const TripDetail = () => {
       {/* Tab Navigation */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 mb-6'>
         <div className='border-b border-gray-200'>
-          <nav className='flex space-x-8 px-6'>
+          <nav className='grid grid-cols-2 sm:flex sm:space-x-8 px-2 sm:px-6'>
             {[
               { id: 'dive-sites', label: 'Dive Sites', icon: MapPin },
               { id: 'overview', label: 'Additional Info', icon: Info },
@@ -505,7 +510,7 @@ const TripDetail = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center justify-center sm:justify-start space-x-1.5 sm:space-x-2 ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -519,7 +524,7 @@ const TripDetail = () => {
           </nav>
         </div>
         {/* Tab Content */}
-        <div className='p-6'>
+        <div className='p-4 sm:p-6'>
           {activeTab === 'overview' && (
             <div className='space-y-6'>
               {trip.special_requirements && (
@@ -631,12 +636,13 @@ const TripDetail = () => {
         <p className='text-gray-600 mb-4'>
           Discover more diving adventures from this center or similar destinations.
         </p>
-        <button
+        <Button
           onClick={() => navigate('/dive-trips')}
-          className='bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors'
+          variant='primary'
+          size='lg'
         >
           Browse All Trips
-        </button>
+        </Button>
       </div>
 
       {/* Edit Trip Modal */}

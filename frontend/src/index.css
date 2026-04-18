@@ -1268,29 +1268,7 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   transform: scale(1.05);
 }
 
-/* Enhanced Button Styling */
-.btn-primary {
-  background: linear-gradient(135deg, #56b4e9 0%, #0072b2 100%);
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #0072b2 0%, #004d7a 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 114, 178, 0.3);
-}
-
-.btn-secondary {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  transform: translateY(-1px);
-}
+/* Enhanced Button Styling removed in favor of React Button.jsx component */
 
 /* Enhanced Grid Layout */
 .grid-enhanced {

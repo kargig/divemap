@@ -149,7 +149,7 @@ const TripCard = ({
       {isGrid && (
         <div className='relative h-48 bg-blue-600 flex items-center justify-center text-white overflow-hidden'>
           <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10'></div>
-          <div className='z-20 text-center p-4'>
+          <div className='z-20 text-center p-3 sm:p-4'>
             <Calendar className='w-12 h-12 mx-auto mb-2 opacity-80' />
             <h3 className='font-bold text-lg leading-tight'>{tripName}</h3>
           </div>
@@ -167,7 +167,7 @@ const TripCard = ({
         </div>
       )}
 
-      <div className={isGrid ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-5 lg:p-4'}>
+      <div className={isGrid ? 'p-3 sm:p-4 flex-1 flex flex-col' : 'p-3 sm:p-5 lg:p-4'}>
         {!isGrid && (
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-2'>
             <div className='flex items-center gap-3'>
@@ -203,17 +203,17 @@ const TripCard = ({
                   <div className='flex items-center space-x-1 mr-2'>
                     <button
                       onClick={() => onEdit?.(trip)}
-                      className='p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
                       title='Edit Trip'
                     >
-                      <Edit className='h-4 w-4' />
+                      <Edit className='h-5 w-5' />
                     </button>
                     <button
                       onClick={() => onDelete?.(trip.id)}
-                      className='p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-md transition-colors'
                       title='Delete Trip'
                     >
-                      <X className='h-4 w-4' />
+                      <X className='h-5 w-5' />
                     </button>
                   </div>
                 )}

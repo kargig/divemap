@@ -881,7 +881,7 @@ const Dives = () => {
   // Error handling is now done within the content area to preserve hero section
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <PageHeader
         title='Dive Log'
         titleIcon={Notebook}
@@ -1028,7 +1028,7 @@ const Dives = () => {
               {dives?.map(dive => (
                 <div
                   key={dive.id}
-                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-2.5 sm:p-6 hover:shadow-md transition-all duration-200 ${
+                  className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
                     dive.is_private ? 'bg-purple-50/30' : 'bg-white'
                   }`}
                 >

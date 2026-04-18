@@ -20,9 +20,9 @@ export const DiveSiteListCard = ({
 
   return (
     <div
-      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-2.5 sm:p-6 hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-2.5 sm:p-6'}`}
+      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
     >
-      <div className='flex gap-2.5 sm:gap-6'>
+      <div className='flex gap-3 sm:gap-6'>
         {/* Desktop Thumbnail */}
         {site.thumbnail && (
           <Link
@@ -76,7 +76,7 @@ export const DiveSiteListCard = ({
           </div>
 
           {/* Content Row: Description, Stats and Mobile Thumbnail */}
-          <div className='flex gap-2.5 items-start'>
+          <div className='flex gap-3 items-start'>
             <div className='flex-1 min-w-0 flex flex-col'>
               {/* BODY: Description - More aggressive clamp on mobile */}
               {site.description && (

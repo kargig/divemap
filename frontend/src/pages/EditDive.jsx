@@ -821,7 +821,7 @@ const EditDive = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='flex items-center gap-4 mb-6'>
         <button
           onClick={() => navigate(`/dives/${id}`)}

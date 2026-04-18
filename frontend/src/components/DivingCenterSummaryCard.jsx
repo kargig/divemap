@@ -67,8 +67,8 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
   if (!center) return null;
 
   return (
-    <div className='bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'>
-      <div className='flex flex-col sm:flex-row justify-between items-start mb-6 gap-4'>
+    <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'>
+      <div className='flex flex-col sm:flex-row justify-between items-start mb-4 sm:mb-6 gap-4'>
         <div className='flex items-start gap-3 sm:gap-4 flex-1 w-full'>
           {onBack && (
             <button
@@ -89,13 +89,13 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
             <h1 className='text-3xl font-bold text-gray-900 mb-2 break-words'>{center.name}</h1>
 
             {user && (
-              <div className='flex flex-wrap gap-2 mt-3 w-full'>
+              <div className='flex flex-col sm:flex-row flex-wrap gap-2 mt-4 w-full'>
                 <Button
                   onClick={() => startChatMutation.mutate()}
                   disabled={startChatMutation.isLoading}
                   variant='white'
                   size='sm'
-                  className='flex-1 sm:flex-none shadow-sm'
+                  className='w-full sm:w-auto shadow-sm'
                   icon={<MessageSquare className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />}
                 >
                   {startChatMutation.isLoading ? 'Loading...' : 'Message'}
@@ -105,7 +105,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
                   disabled={followMutation.isLoading}
                   variant='secondary'
                   size='sm'
-                  className='flex-1 sm:flex-none shadow-sm'
+                  className='w-full sm:w-auto shadow-sm'
                   icon={
                     <Bell
                       className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`}
@@ -138,7 +138,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-100'>
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 sm:pt-6 border-t border-gray-100'>
         <div className='col-span-2'>
           {center.description ? (
             <p className='text-gray-700 leading-relaxed whitespace-pre-wrap'>
@@ -149,7 +149,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
           )}
         </div>
 
-        <div className='space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-100 h-fit'>
+        <div className='space-y-3 sm:space-y-4 bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 h-fit'>
           <h3 className='font-semibold text-gray-900 text-sm uppercase tracking-wider mb-3'>
             Contact Info
           </h3>

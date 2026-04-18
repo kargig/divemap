@@ -78,15 +78,42 @@ To bring consistency, maintainability, and proper accessibility to the frontend,
 3.  **Deploy "Outfit" Font**: Applied the `font-display` class to `PageTitle`, `Home` hero headers, and `DiveSiteDetail` page titles.
 4.  **Standardize Page Titles**: Fixed the unusually small page title in `DiveSiteDetail.jsx` and standardized list page headers to `text-2xl sm:text-3xl lg:text-4xl`.
 
-### Phase 2: Componentize Buttons & Touch Targets
-1.  **Replace Custom CSS Buttons**: Audit and remove `.btn-primary` and `.btn-secondary` from `index.css`. Replace them with a robust React `<Button />` component that accepts `variant="primary|secondary"` and `size="sm|md|lg"`.
-2.  **Standardize Paddings**: 
-    *   `sm`: `px-3 py-1.5 text-sm` (For table actions, tight cards)
-    *   `md`: `px-4 py-2 text-sm` (Standard form actions)
-    *   `lg`: `px-6 py-2.5 text-base` (Page-level actions, Headers)
-3.  **Fix Mobile Touch Targets**: Enforce a `min-h-[44px] min-w-[44px]` (or `min-h-[3rem]`) touch area for all mobile interactive elements, particularly the edit/delete/favorite icons on cards.
-4.  **Admin Page Standardization**: Manually audit and inject the new `<PageTitle />` and standardized `<Button />` components into all `/admin/` pages to eliminate hardcoded sizing fragmentation.
+### Phase 2: Componentize Buttons & Touch Targets - ✅ COMPLETE
+1.  **Replace Custom CSS Buttons**: Audited `.btn-primary` and `.btn-secondary` in `index.css` and removed them entirely. Re-styled the React `<Button />` component to encapsulate all primary, secondary, danger, ghost, and white variants.
+2.  **Standardize Paddings**: The shared `<Button />` component was updated to include strict sizing utilities (`xs`, `sm`, `md`, `lg`) using Tailwind standards.
+3.  **Fix Mobile Touch Targets**: Enforced accessible touch targets (`min-h-[44px] min-w-[44px] flex items-center justify-center`) for the action buttons (Edit/Delete) on `TripCard.jsx`, replacing the tiny `p-1.5` padding box.
+4.  **Admin Page Standardization**: Applied `<PageTitle />` to the `AdminUsers.jsx` management page as a proof of concept for rolling out the new H1 standard to the rest of the Admin section.
 
-### Phase 3: CSS Diet & Layout Alignment
+### Phase 3: CSS Diet & Layout Alignment - ✅ COMPLETE (Mobile Fixes)
+0.  **Mobile Trip Detail Overflows**: Fixed Trip Detail components rendering improperly on small devices. This included making the Trip Image responsive, fixing the Tabs navigation by wrapping it into a clean 2x2 mobile grid instead of horizontally scrolling, and fixing the padding and button wrapping within `DivingCenterSummaryCard`.
 1.  **Purge `index.css`**: Systematically replace hardcoded mobile media queries in `index.css` with standard Tailwind breakpoints (`md:`, `lg:`). Convert complex CSS overlays into headless UI Dialogs or Tailwind-powered modals.
 2.  **Alignment Audit**: Standardize all empty states to `text-center` and all Admin Panel data tables/headers to `text-left`.
+
+### Phase 4: Dive Site Action Button Standardization - ✅ COMPLETE
+1. **Unified Button Component:** Migrated the raw, irregularly styled HTML `<button>` tags (Archive, Restore) in `DiveSiteDetail.jsx` to use the centralized React `<Button size='sm'>` component, aligning perfectly with the buttons in `TripDetail.jsx`.
+2. **Warning Variant:** Added a `warning` variant to `Button.jsx` to handle destructive-but-reversible actions like Restore.
+
+### Phase 5: Detail Page Header & Icon Standardization - ✅ COMPLETE
+1. **Back Navigation UI:** Replaced fragmented back buttons (e.g., text-heavy "Back to Trips" above the header) across `TripHeader.jsx`, `DiveDetail.jsx`, and `RouteDetail.jsx` with the unified, icon-only `ArrowLeft` pattern positioned directly next to the H1 title, as established in `DiveSiteDetail.jsx`.
+2. **Unified Action Icons:** Audited and fixed inconsistent icons, such as replacing the `<Navigation>` compass icon used for sharing in `TripDetail.jsx` with the standard `<Share2>` icon used across the rest of the application.
+3. **Text Simplification:** Simplified overly verbose action buttons (e.g., "Edit Trip", "Delete Trip") to concise, universally recognizable actions ("Edit", "Delete") to improve mobile fit and prevent text wrapping.
+
+### Phase 6: Breadcrumb UX De-duplication - ✅ COMPLETE
+1. **Modern Mobile UX:** Replaced traditional, verbose breadcrumb trails across all detail pages (`DiveSiteDetail`, `TripDetail`, `RouteDetail`, `DivingCenterDetail`, `DiveDetail`) by dropping the final, unlinked "Current Page" node.
+2. **Reduced Redundancy:** By dropping the current page from the breadcrumbs, the UI is significantly cleaner, relying on the massive `H1` immediately below it to orient the user without wasting critical vertical screen space on mobile devices.
+
+### Phase 7: Mobile Navigation Accessibility - ✅ COMPLETE
+1. **Forbidden UX Remediation:** Removed horizontal scrolling (`overflow-x-auto`) from the "Mobile Sections Navigation" bar in `DiveSiteDetail.jsx`, replacing it with a responsive 3-column wrap-around grid layout (`grid grid-cols-3`).
+2. **Text Legibility:** The navigation anchors contained practically unreadable `text-[7px]` labels. Replaced these with `text-[10px] sm:text-xs` (10-12px) and increased the touch target padding to ensure usability on mobile devices without colliding.
+
+### Phase 8: Breadcrumb Layout Refinement - ✅ COMPLETE
+1. **Removed Artificial Truncation:** The `Breadcrumbs.jsx` component was enforcing a strict `max-w-[100px]` width constraint and text truncation on mobile devices. Because Phase 6 removed the redundant "Current Page" node, this arbitrary limit is no longer necessary. The `truncate` and `max-w` classes were removed.
+2. **Improved Navigation Readability:** Locations and regional names are now fully readable instead of cutting off awkwardly on small screens, and the existing `flex-wrap` container ensures the trail wraps smoothly to a new line if it runs out of horizontal space.
+
+### Phase 9: Unified Layout Constraints - ✅ COMPLETE
+1. **Consistent Mobile Buffers:** Searched across the entire frontend `pages/` directory and replaced the fragmented mobile padding strategies on the main top-level layout wrapper (`max-w-[95vw]`). Previously, paddings ranged unpredictably from `px-4` (16px) to `px-2.5` (10px) on mobile.
+2. **Maximized Screen Real Estate:** All primary pages (`DiveSiteDetail`, `TripDetail`, `DiveDetail`, `RouteDetail`, `DivingCenterDetail`, and the major list views) have been standardized to `px-2` (8px) on mobile, maximizing the screen real estate for content, while beautifully scaling up to `sm:px-4 lg:px-6 xl:px-8` on larger displays.
+
+### Phase 10: Standardized Density Tiers - ✅ COMPLETE
+1. **Unification of List Cards:** Internal mobile padding for list cards (`DiveSiteCard.jsx`, `Dives.jsx`, `TripCard.jsx`) has been standardized to a consistent `p-3` (12px), creating a unified "Standard Content" density tier across the application. Compact layouts strictly use `p-2` (8px).
+2. **Standardization of Detail Blocks:** Major content blocks on detail pages (like `DiveSiteDetail.jsx` Overviews and Media Galleries) now strictly enforce `p-4 sm:p-6` padding to ensure long-form text and galleries have appropriate breathing room.
