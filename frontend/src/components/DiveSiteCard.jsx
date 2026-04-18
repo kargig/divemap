@@ -52,7 +52,7 @@ export const DiveSiteListCard = ({
                   {site.name}
                 </Link>
                 {site.country && (
-                  <span className='text-[10px] sm:text-xs font-medium text-blue-500 ml-1.5 opacity-80'>
+                  <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
                     @ {site.country}
                     {site.region ? `, ${site.region}` : ''}
                   </span>
@@ -81,7 +81,7 @@ export const DiveSiteListCard = ({
               {/* BODY: Description - More aggressive clamp on mobile */}
               {site.description && (
                 <div
-                  className={`text-gray-600 leading-snug line-clamp-2 mb-1.5 ${compactLayout ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm'}`}
+                  className={`text-gray-600 leading-snug line-clamp-2 mb-1.5 ${compactLayout ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}
                 >
                   {renderTextWithLinks(decodeHtmlEntities(site.description), {
                     shorten: true,
@@ -95,14 +95,14 @@ export const DiveSiteListCard = ({
                 {site.max_depth && (
                   <div className='flex items-center gap-1'>
                     <TrendingUp className='w-3 h-3 text-gray-400' />
-                    <span className='text-[10px] sm:text-sm font-bold text-gray-900'>
+                    <span className='text-xs sm:text-sm font-bold text-gray-900'>
                       {site.max_depth}m
                     </span>
                   </div>
                 )}
                 {site.difficulty_code && site.difficulty_code !== 'unspecified' && (
                   <span
-                    className={`inline-flex items-center rounded-full px-1.5 py-0 text-[9px] sm:text-xs font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
+                    className={`inline-flex items-center rounded-full px-1.5 py-0 text-xs sm:text-sm font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
                   >
                     {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                   </span>
@@ -110,7 +110,7 @@ export const DiveSiteListCard = ({
                 {site.route_count > 0 && (
                   <div className='flex items-center gap-1'>
                     <Route className='w-3 h-3 text-blue-400' />
-                    <span className='text-[10px] font-bold text-gray-700'>{site.route_count}</span>
+                    <span className='text-xs font-bold text-gray-700'>{site.route_count}</span>
                   </div>
                 )}
               </div>
@@ -139,13 +139,13 @@ export const DiveSiteListCard = ({
               {site.tags?.slice(0, isMobile ? 3 : 5).map((tag, index) => (
                 <span
                   key={index}
-                  className={`px-1.5 py-0.5 rounded-full text-[9px] sm:text-xs font-medium ${getTagColor(tag.name || tag)}`}
+                  className={`px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getTagColor(tag.name || tag)}`}
                 >
                   {tag.name || tag}
                 </span>
               ))}
               {site.tags?.length > (isMobile ? 3 : 5) && (
-                <span className='text-[9px] text-gray-400'>
+                <span className='text-xs text-gray-400'>
                   +{site.tags.length - (isMobile ? 3 : 5)}
                 </span>
               )}
@@ -191,7 +191,7 @@ export const DiveSiteGridCard = ({
         <div className='absolute top-3 left-3 flex flex-wrap gap-2'>
           {site.difficulty_code && (
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${getDifficultyColorClasses(site.difficulty_code)}`}
+              className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${getDifficultyColorClasses(site.difficulty_code)}`}
             >
               {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
             </span>
@@ -215,7 +215,7 @@ export const DiveSiteGridCard = ({
 
       <div className='p-4 flex flex-col flex-1'>
         {/* Location Kicker */}
-        <div className='flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1'>
+        <div className='flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-blue-600 mb-1'>
           <Globe className='w-2.5 h-2.5' />
           <span className='truncate'>{site.country || 'Global'}</span>
         </div>

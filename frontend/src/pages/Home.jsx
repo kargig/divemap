@@ -196,7 +196,7 @@ const Home = () => {
           background: 'linear-gradient(135deg, #0072B2 0%, #004d7a 100%)',
         }}
       >
-        <h1 className='text-3xl font-extrabold tracking-tight mb-4'>
+        <h1 className='text-3xl font-display font-extrabold tracking-tight mb-4'>
           Discover Amazing <span style={{ color: '#80c9ed' }}>Dive Sites</span>
         </h1>
 
@@ -226,7 +226,7 @@ const Home = () => {
         {/* Overlaid Headline on top part - Hidden on Mobile */}
 
         <div className='hidden md:block absolute top-0 left-0 right-0 z-[2] pt-4 md:pt-6 px-4 text-center pointer-events-none'>
-          <h1 className='text-3xl md:text-5xl lg:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
+          <h1 className='text-3xl md:text-5xl lg:text-5xl font-display font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
             Discover Amazing <span className='text-blue-600'>Dive Sites</span>
           </h1>
         </div>

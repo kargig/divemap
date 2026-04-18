@@ -86,7 +86,7 @@ const TripCard = ({
           alt='Rating'
           className='w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain'
         />
-        <span className='text-[10px] sm:text-[11px] font-bold text-yellow-800 leading-none'>
+        <span className='text-xs sm:text-sm font-bold text-yellow-800 leading-none'>
           {rating.toFixed(1)}
         </span>
       </div>
@@ -155,7 +155,7 @@ const TripCard = ({
           </div>
           <div className='absolute top-3 right-3 z-30'>
             <span
-              className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${
+              className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${
                 trip.trip_status === 'confirmed'
                   ? 'bg-green-500 text-white'
                   : 'bg-blue-500 text-white'
@@ -241,14 +241,14 @@ const TripCard = ({
           </div>
           {trip.trip_difficulty_code && (
             <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
             >
               {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
             </span>
           )}
           {!isGrid && trip.trip_status && (
             <span
-              className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+              className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                 trip.trip_status === 'confirmed'
                   ? 'bg-green-100 text-green-800'
                   : 'bg-blue-100 text-blue-800'
@@ -275,10 +275,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Calendar className='h-3.5 w-3.5 mr-2 text-blue-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Date
               </div>
-              <div className='font-medium text-[11px] sm:text-xs truncate'>
+              <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_date
                   ? new Date(trip.trip_date).toLocaleDateString(undefined, {
                       day: 'numeric',
@@ -292,10 +292,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Clock className='h-3.5 w-3.5 mr-2 text-green-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Time
               </div>
-              <div className='font-medium text-[11px] sm:text-xs'>
+              <div className='font-medium text-xs sm:text-sm'>
                 {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
               </div>
             </div>
@@ -304,10 +304,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Euro className='h-3.5 w-3.5 mr-2 text-amber-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Price
               </div>
-              <div className='font-medium text-[11px] sm:text-xs truncate'>
+              <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
             </div>
@@ -316,10 +316,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Users className='h-3.5 w-3.5 mr-2 text-orange-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Group
               </div>
-              <div className='font-medium text-[11px] sm:text-xs'>
+              <div className='font-medium text-xs sm:text-sm'>
                 Max {trip.group_size_limit || 'N/A'}
               </div>
             </div>
@@ -331,10 +331,10 @@ const TripCard = ({
                 <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <Clock className='h-3.5 w-3.5 mr-2 text-purple-600 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Duration
                     </div>
-                    <div className='font-medium text-[11px] sm:text-xs'>{trip.trip_duration}m</div>
+                    <div className='font-medium text-xs sm:text-sm'>{trip.trip_duration}m</div>
                   </div>
                 </div>
               ) : (
@@ -344,10 +344,10 @@ const TripCard = ({
                 <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <TrendingUp className='h-3.5 w-3.5 mr-2 text-blue-400 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Max Depth
                     </div>
-                    <div className='font-medium text-[11px] sm:text-xs'>{trip.max_depth}m</div>
+                    <div className='font-medium text-xs sm:text-sm'>{trip.max_depth}m</div>
                   </div>
                 </div>
               ) : (
@@ -377,7 +377,7 @@ const TripCard = ({
         {/* Compact Dive Plan */}
         {trip.dives && trip.dives.length > 0 && (
           <div className='mb-3 lg:mb-2'>
-            <h4 className='text-[10px] sm:text-xs font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
+            <h4 className='text-xs sm:text-sm font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
               Dive Plan ({trip.dives.length})
             </h4>
             <div className='space-y-1 lg:space-y-0.5'>
@@ -390,7 +390,7 @@ const TripCard = ({
                     key={dive.id}
                     className='flex gap-2 p-1.5 sm:p-2 lg:p-1.5 bg-blue-50/30 rounded-md border border-blue-100/50 overflow-hidden items-center'
                   >
-                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-[9px] sm:text-[10px] font-bold text-blue-700 shrink-0'>
+                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-xs sm:text-sm font-bold text-blue-700 shrink-0'>
                       {index + 1}
                     </div>
                     <div className='flex gap-1.5 items-center min-w-0'>
@@ -403,7 +403,7 @@ const TripCard = ({
                         {site.tags.map(tag => (
                           <span
                             key={tag.id}
-                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
+                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
                           >
                             {tag.name}
                           </span>
@@ -428,7 +428,7 @@ const TripCard = ({
 
         {/* Footer info: Added/Updated */}
         {!isGrid && (
-          <div className='flex flex-row flex-wrap items-center gap-y-1 text-[10px] sm:text-xs text-gray-400 mt-auto pt-3 border-t border-gray-50'>
+          <div className='flex flex-row flex-wrap items-center gap-y-1 text-xs sm:text-sm text-gray-400 mt-auto pt-3 border-t border-gray-50'>
             <div className='flex flex-wrap gap-y-1 flex-1'>
               {trip.created_at && (
                 <div className='flex items-center'>

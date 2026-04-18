@@ -1045,14 +1045,14 @@ const Dives = () => {
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
                           {dive.dive_site?.name && (
-                            <span className='text-[10px] sm:text-xs font-medium text-blue-500 ml-1.5 opacity-80'>
+                            <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
                               @ {dive.dive_site.name}
                             </span>
                           )}
                         </h3>
 
                         {/* Meta Byline - Single line on mobile */}
-                        <div className='mt-0.5 text-[10px] sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
+                        <div className='mt-0.5 text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
                           <Calendar className='w-3 h-3 text-gray-400' />
                           {new Date(dive.dive_date).toLocaleDateString(undefined, {
                             day: 'numeric',
@@ -1088,7 +1088,7 @@ const Dives = () => {
                       {dive.max_depth && (
                         <div className='flex items-center gap-1'>
                           <TrendingUp className='w-3 h-3 text-gray-400' />
-                          <span className='text-[11px] sm:text-sm font-semibold text-gray-700'>
+                          <span className='text-xs sm:text-sm font-semibold text-gray-700'>
                             {dive.max_depth}m
                           </span>
                         </div>
@@ -1096,13 +1096,13 @@ const Dives = () => {
                       {dive.duration && (
                         <div className='flex items-center gap-1'>
                           <Clock className='w-3 h-3 text-gray-400' />
-                          <span className='text-[11px] sm:text-sm font-semibold text-gray-700'>
+                          <span className='text-xs sm:text-sm font-semibold text-gray-700'>
                             {dive.duration}m
                           </span>
                         </div>
                       )}
                       <span
-                        className={`inline-flex items-center rounded-full px-1.5 py-0 text-[9px] sm:text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                        className={`inline-flex items-center rounded-full px-1.5 py-0 text-xs sm:text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
                       >
                         {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                       </span>
@@ -1116,13 +1116,13 @@ const Dives = () => {
                             {dive.tags.slice(0, isMobile ? 3 : 5).map(tag => (
                               <span
                                 key={tag.id}
-                                className={`px-1.5 py-0.5 rounded-full text-[9px] sm:text-xs font-medium ${getTagColor(tag.name)}`}
+                                className={`px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getTagColor(tag.name)}`}
                               >
                                 {tag.name}
                               </span>
                             ))}
                             {dive.tags.length > (isMobile ? 3 : 5) && (
-                              <span className='text-[9px] text-gray-400'>
+                              <span className='text-xs text-gray-400'>
                                 +{dive.tags.length - (isMobile ? 3 : 5)}
                               </span>
                             )}
@@ -1181,7 +1181,7 @@ const Dives = () => {
                     {/* Header: Title & Site */}
                     <div className='mb-3'>
                       {dive.dive_site && (
-                        <div className='text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
+                        <div className='text-xs font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
                           <MapPin className='w-2.5 h-2.5' />
                           {dive.dive_site.name}
                           {dive.dive_site.deleted_at && ' (Archived)'}
@@ -1219,7 +1219,7 @@ const Dives = () => {
                       <div className='flex items-center gap-2'>
                         <TrendingUp className='w-4 h-4 text-gray-400' />
                         <div>
-                          <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                          <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                             Depth
                           </p>
                           <p className='text-sm font-semibold text-gray-700'>{dive.max_depth}m</p>
@@ -1228,7 +1228,7 @@ const Dives = () => {
                       <div className='flex items-center gap-2'>
                         <Clock className='w-4 h-4 text-gray-400' />
                         <div>
-                          <p className='text-[10px] text-gray-400 uppercase font-medium leading-none mb-0.5'>
+                          <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                             Time
                           </p>
                           <p className='text-sm font-semibold text-gray-700'>{dive.duration}m</p>
@@ -1242,7 +1242,7 @@ const Dives = () => {
                         {dive.tags?.slice(0, 2).map(tag => (
                           <span
                             key={tag.id}
-                            className={`text-[10px] font-medium px-1.5 py-0.5 rounded border border-transparent ${getTagColor(tag.name)} truncate`}
+                            className={`text-xs font-medium px-1.5 py-0.5 rounded border border-transparent ${getTagColor(tag.name)} truncate`}
                           >
                             {tag.name}
                           </span>
@@ -1263,7 +1263,7 @@ const Dives = () => {
                           </div>
                         )}
                         <span
-                          className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
                         >
                           {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
                         </span>

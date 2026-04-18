@@ -168,7 +168,7 @@ const HeroSection = ({
 
         {/* Top Section - Title and Subtitle */}
         <div className='max-w-6xl mx-auto relative z-10 flex-shrink-0 pt-0'>
-          <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${textColor} mb-4`}>
+          <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-display font-bold ${textColor} mb-4`}>
             {title}
           </h1>
           {subtitle && (
@@ -238,7 +238,7 @@ const HeroSection = ({
             />
           </div>
         )}
-        <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold ${textColor} mb-4`}>{title}</h1>
+        <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-display font-bold ${textColor} mb-4`}>{title}</h1>
         {subtitle && (
           <p
             className={`text-lg sm:text-xl ${textColor} opacity-90 max-w-3xl ${

@@ -807,7 +807,7 @@ const DiveSiteDetail = () => {
                   <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
                 </button>
                 <div className='min-w-0 flex-1'>
-                  <h1 className='text-[17px] sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words leading-tight'>
+                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
                     {diveSite.name}
                     {diveSite.deleted_at && (
                       <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
