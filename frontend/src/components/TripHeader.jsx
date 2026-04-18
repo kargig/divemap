@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 import { formatCost } from '../utils/currency';
-import { formatDate } from '../utils/tripHelpers';
+import { formatDate, getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 import CurrencyIcon from './ui/CurrencyIcon';
@@ -11,6 +11,7 @@ import CurrencyIcon from './ui/CurrencyIcon';
 const TripHeader = ({ trip }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const displayStatus = getDisplayStatus(trip);
 
   return (
     <>
@@ -95,19 +96,9 @@ const TripHeader = ({ trip }) => {
                     Status
                   </div>
                   <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      trip.trip_status === 'confirmed'
-                        ? 'bg-green-100 text-green-800'
-                        : trip.trip_status === 'scheduled'
-                          ? 'bg-blue-100 text-blue-800'
-                          : trip.trip_status === 'cancelled'
-                            ? 'bg-red-100 text-red-800'
-                            : trip.trip_status === 'completed'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                    }`}
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColorClasses(displayStatus, false)}`}
                   >
-                    {trip.trip_status || 'Active'}
+                    {displayStatus || 'Active'}
                   </span>
                 </div>
               </div>

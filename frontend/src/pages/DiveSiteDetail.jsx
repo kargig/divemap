@@ -936,10 +936,7 @@ const DiveSiteDetail = () => {
 
       {/* Mobile Horizontal Tabs Navigation */}
       <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50'>
-        <nav
-          className='grid grid-cols-3 gap-2 px-1'
-          aria-label='Mobile Sections'
-        >
+        <nav className='grid grid-cols-3 gap-2 px-1' aria-label='Mobile Sections'>
           <a
             href='#overview'
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'

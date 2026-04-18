@@ -117,3 +117,19 @@ To bring consistency, maintainability, and proper accessibility to the frontend,
 ### Phase 10: Standardized Density Tiers - ✅ COMPLETE
 1. **Unification of List Cards:** Internal mobile padding for list cards (`DiveSiteCard.jsx`, `Dives.jsx`, `TripCard.jsx`) has been standardized to a consistent `p-3` (12px), creating a unified "Standard Content" density tier across the application. Compact layouts strictly use `p-2` (8px).
 2. **Standardization of Detail Blocks:** Major content blocks on detail pages (like `DiveSiteDetail.jsx` Overviews and Media Galleries) now strictly enforce `p-4 sm:p-6` padding to ensure long-form text and galleries have appropriate breathing room.
+
+### Phase 11: Trip Status Color Standardization - ✅ COMPLETE
+1. **Utility Extraction:** The logic for determining dive trip status colors (e.g., Scheduled, Confirmed, Cancelled, Completed) was fragmented and partially hardcoded. Extracted a central `getStatusColorClasses` utility in `tripHelpers.js`.
+2. **Visual Consistency:** `TripCard.jsx` previously defaulted everything to blue or green, making cancelled or completed trips visually incorrect. It now fully supports the 5 status states (Blue, Green, Red, Gray, Orange) for both solid grid badges and light list badges.
+
+### Phase 12: Business Logic Enforced Status States - ✅ COMPLETE
+1. **Extracted Logic:** Abstracted the date-aware `getDisplayStatus` logic from `DiveTrips.jsx` into `utils/tripHelpers.js`. 
+2. **Eliminated Display Bugs:** Applied `getDisplayStatus` to `TripCard.jsx` and `TripHeader.jsx`. Previously, a scheduled trip from last year would stubbornly show as "Scheduled" if the center forgot to manually update the database. Now, any uncancelled trip whose date has elapsed immediately and globally displays as "Completed" across all UI components, while preserving the raw database state.
+
+### Phase 13: Inactive State Visual Affordances - ✅ COMPLETE
+1. **Dynamic Visual States:** Dive trips that have automatically transitioned to "Completed" or were manually marked as "Cancelled" now have distinct visual affordances beyond just their text badge.
+2. **Card Restyling:** The vibrant True Blue (`rgb(0,114,178)`) left-border and grid background headers have been stripped from inactive trips and replaced with a muted slate gray. The entire inactive card receives an `0.85` opacity tint and a slightly darker `bg-gray-50` background to instantly communicate to the user that the trip is no longer active without having to read the badge text.
+
+### Phase 14: Mobile Dive Trips Delimiters & Alignment - ✅ COMPLETE
+1. **Dynamic Grouping:** `DiveTrips.jsx` was enhanced to dynamically divide Dive Trips into "Upcoming Trips" and "Past Trips" groupings based on the user's current date, applying distinct section headers (Calendar for upcoming, Clock for past) and labels (Future/Archive).
+2. **Alignment & Overlap Fixes:** The "Location & Tags Row" inside `TripCard.jsx` used `flex-wrap` which frequently caused diving center titles to aggressively overlap with status/difficulty badges on narrow mobile screens. The structure was refactored to use a `flex-col sm:flex-row` pattern so the diving center title stacks cleanly above the badges on mobile, effectively preventing any overlap.

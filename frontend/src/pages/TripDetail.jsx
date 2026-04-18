@@ -20,11 +20,11 @@ import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 
 import Breadcrumbs from '../components/Breadcrumbs';
 import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
-import Button from '../components/ui/Button';
 import MaskedEmail from '../components/MaskedEmail';
 import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import TripHeader from '../components/TripHeader';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
 import { getDiveSites, getDiveSite } from '../services/diveSites';
@@ -396,10 +396,7 @@ const TripDetail = () => {
                 >
                   Register
                 </Link>
-                <Button
-                  onClick={() => navigate('/dive-trips')}
-                  variant='secondary'
-                >
+                <Button onClick={() => navigate('/dive-trips')} variant='secondary'>
                   Back to Trips
                 </Button>
               </div>
@@ -420,10 +417,7 @@ const TripDetail = () => {
     return (
       <div className='text-center py-8'>
         <div className='text-red-600 text-lg mb-4'>Error loading trip details</div>
-        <Button
-          onClick={() => navigate('/dive-trips')}
-          variant='primary'
-        >
+        <Button onClick={() => navigate('/dive-trips')} variant='primary'>
           Back to Trips
         </Button>
       </div>
@@ -443,11 +437,7 @@ const TripDetail = () => {
           schema={getSchema()}
         />
       )}
-      {trip && (
-        <Breadcrumbs
-          items={[{ label: 'Dive Trips', to: '/dive-trips' }]}
-        />
-      )}
+      {trip && <Breadcrumbs items={[{ label: 'Dive Trips', to: '/dive-trips' }]} />}
 
       <div className='flex justify-end items-center space-x-2 mb-4'>
         {/* Share Button (everyone can see) */}
@@ -636,11 +626,7 @@ const TripDetail = () => {
         <p className='text-gray-600 mb-4'>
           Discover more diving adventures from this center or similar destinations.
         </p>
-        <Button
-          onClick={() => navigate('/dive-trips')}
-          variant='primary'
-          size='lg'
-        >
+        <Button onClick={() => navigate('/dive-trips')} variant='primary' size='lg'>
           Browse All Trips
         </Button>
       </div>

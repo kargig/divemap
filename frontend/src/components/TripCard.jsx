@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { formatCost } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
+import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 /**
@@ -132,22 +133,31 @@ const TripCard = ({
   const tripName = generateTripName(trip);
   const tripSlug = slugify(tripName);
   const tripUrl = `/dive-trips/${trip.id}/${tripSlug}`;
+  const displayStatus = getDisplayStatus(trip);
+
+  const isInactive = displayStatus === 'completed' || displayStatus === 'cancelled';
+  const borderLeftColor = isInactive ? 'border-l-gray-400' : 'border-l-[rgb(0,114,178)]';
 
   // Card classes based on view mode
   const cardClasses = isGrid
-    ? 'bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300'
-    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] mb-6 hover:shadow-md transition-shadow duration-300 relative ${
+    ? `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
+    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
         !user ? 'pointer-events-none' : ''
       }`;
 
-  const cardStyle = !user && !isGrid ? { filter: 'blur(1.5px)' } : {};
+  const cardStyle = {
+    ...(!user && !isGrid ? { filter: 'blur(1.5px)' } : {}),
+    ...(isInactive ? { opacity: 0.85, backgroundColor: '#f9fafb' } : {}),
+  };
 
   return (
     <div className={cardClasses} style={cardStyle}>
       {!user && !isGrid && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
 
       {isGrid && (
-        <div className='relative h-48 bg-blue-600 flex items-center justify-center text-white overflow-hidden'>
+        <div
+          className={`relative h-48 ${isInactive ? 'bg-gray-500' : 'bg-divemap-blue'} flex items-center justify-center text-white overflow-hidden`}
+        >
           <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10'></div>
           <div className='z-20 text-center p-3 sm:p-4'>
             <Calendar className='w-12 h-12 mx-auto mb-2 opacity-80' />
@@ -155,13 +165,9 @@ const TripCard = ({
           </div>
           <div className='absolute top-3 right-3 z-30'>
             <span
-              className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${
-                trip.trip_status === 'confirmed'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-blue-500 text-white'
-              }`}
+              className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${getStatusColorClasses(displayStatus, true)}`}
             >
-              {trip.trip_status}
+              {displayStatus}
             </span>
           </div>
         </div>
@@ -223,9 +229,9 @@ const TripCard = ({
         )}
 
         {/* Location & Tags Row */}
-        <div className='flex flex-wrap items-center gap-3 mb-3 lg:mb-2'>
-          <div className='gap-1.5 text-gray-600 min-w-0 flex-1 sm:flex-initial flex'>
-            <Building className='w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5' />
+        <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 lg:mb-2'>
+          <div className='flex items-center gap-1.5 text-gray-600 min-w-0 flex-1'>
+            <Building className='w-3.5 h-3.5 text-gray-400 shrink-0' />
             {trip.diving_center_id && trip.diving_center_name ? (
               <Link
                 to={`/diving-centers/${trip.diving_center_id}/${slugify(trip.diving_center_name)}`}
@@ -239,24 +245,23 @@ const TripCard = ({
               </span>
             )}
           </div>
-          {trip.trip_difficulty_code && (
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
-            >
-              {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
-            </span>
-          )}
-          {!isGrid && trip.trip_status && (
-            <span
-              className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                trip.trip_status === 'confirmed'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-blue-100 text-blue-800'
-              } shrink-0`}
-            >
-              {trip.trip_status}
-            </span>
-          )}
+
+          <div className='flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0'>
+            {trip.trip_difficulty_code && (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
+              >
+                {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
+              </span>
+            )}
+            {!isGrid && displayStatus && (
+              <span
+                className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColorClasses(displayStatus, false)} shrink-0`}
+              >
+                {displayStatus}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Description - Hidden on grid if too long */}

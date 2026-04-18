@@ -28,9 +28,7 @@ const PageHeader = ({
       <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6'>
         {/* Title Group */}
         <div className='flex-1 min-w-0'>
-          <PageTitle icon={TitleIcon}>
-            {title}
-          </PageTitle>
+          <PageTitle icon={TitleIcon}>{title}</PageTitle>
         </div>
 
         {/* Action Toolbar */}

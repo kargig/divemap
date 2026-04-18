@@ -623,13 +623,7 @@ const DiveDetail = () => {
         />
       )}
       {/* Breadcrumbs - Always visible as the primary title source */}
-      {dive && (
-        <Breadcrumbs
-          items={[
-            { label: 'Public Dives', to: '/dives' },
-          ]}
-        />
-      )}
+      {dive && <Breadcrumbs items={[{ label: 'Public Dives', to: '/dives' }]} />}
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
         <div className='flex items-center gap-1.5 sm:gap-4 w-full'>

@@ -23,7 +23,7 @@ import {
   Compass,
   Plus,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
@@ -411,6 +411,22 @@ const DiveTrips = () => {
   // So we just use sortedTrips directly for display
   const displayTrips = sortedTrips;
 
+  // Group trips into Upcoming and Past
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const categorizedTrips = useMemo(() => {
+    if (!displayTrips) return [];
+    return displayTrips.map(trip => {
+      const tripDate = new Date(trip.trip_date);
+      tripDate.setHours(0, 0, 0, 0);
+      return {
+        ...trip,
+        isUpcoming: tripDate >= today,
+      };
+    });
+  }, [displayTrips]);
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
@@ -570,23 +586,6 @@ const DiveTrips = () => {
   const formatTime = timeString => {
     if (!timeString) return 'N/A';
     return timeString.substring(0, 5); // Extract HH:MM from HH:MM:SS
-  };
-
-  const getStatusColor = status => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'confirmed':
-        return 'bg-green-100 text-green-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      case 'today':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
   };
 
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
@@ -895,16 +894,40 @@ const DiveTrips = () => {
             <div
               className={`space-y-4 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2' : ''}`}
             >
-              {displayTrips?.map(trip => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  user={user}
-                  diveSites={diveSites}
-                  compactLayout={compactLayout}
-                  viewMode='list'
-                />
-              ))}
+              {(() => {
+                let lastWasUpcoming = null;
+                return categorizedTrips.map(trip => {
+                  const showHeader = lastWasUpcoming !== trip.isUpcoming;
+                  lastWasUpcoming = trip.isUpcoming;
+
+                  return (
+                    <React.Fragment key={trip.id}>
+                      {showHeader && sortBy === 'trip_date' && (
+                        <div className='py-4 border-b border-gray-200 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
+                          <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                            {trip.isUpcoming ? (
+                              <Calendar className='w-5 h-5 text-blue-600' />
+                            ) : (
+                              <Clock className='w-5 h-5 text-gray-500' />
+                            )}
+                            {trip.isUpcoming ? 'Upcoming Trips' : 'Past Trips'}
+                          </h2>
+                          <span className='text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 px-2 py-1 rounded'>
+                            {trip.isUpcoming ? 'Future' : 'Archive'}
+                          </span>
+                        </div>
+                      )}
+                      <TripCard
+                        trip={trip}
+                        user={user}
+                        diveSites={diveSites}
+                        compactLayout={compactLayout}
+                        viewMode='list'
+                      />
+                    </React.Fragment>
+                  );
+                });
+              })()}
             </div>
             {!user && (
               <div
@@ -952,16 +975,40 @@ const DiveTrips = () => {
             <div
               className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''} ${isMobile ? 'px-2 gap-4' : ''}`}
             >
-              {displayTrips?.map(trip => (
-                <TripCard
-                  key={trip.id}
-                  trip={trip}
-                  user={user}
-                  diveSites={diveSites}
-                  compactLayout={compactLayout}
-                  viewMode='grid'
-                />
-              ))}
+              {(() => {
+                let lastWasUpcoming = null;
+                return categorizedTrips.map(trip => {
+                  const showHeader = lastWasUpcoming !== trip.isUpcoming;
+                  lastWasUpcoming = trip.isUpcoming;
+
+                  return (
+                    <React.Fragment key={trip.id}>
+                      {showHeader && sortBy === 'trip_date' && (
+                        <div className='col-span-1 md:col-span-2 lg:col-span-3 py-4 border-b border-gray-200 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
+                          <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                            {trip.isUpcoming ? (
+                              <Calendar className='w-5 h-5 text-blue-600' />
+                            ) : (
+                              <Clock className='w-5 h-5 text-gray-500' />
+                            )}
+                            {trip.isUpcoming ? 'Upcoming Trips' : 'Past Trips'}
+                          </h2>
+                          <span className='text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 px-2 py-1 rounded'>
+                            {trip.isUpcoming ? 'Future' : 'Archive'}
+                          </span>
+                        </div>
+                      )}
+                      <TripCard
+                        trip={trip}
+                        user={user}
+                        diveSites={diveSites}
+                        compactLayout={compactLayout}
+                        viewMode='grid'
+                      />
+                    </React.Fragment>
+                  );
+                });
+              })()}
             </div>
             {!user && (
               <div

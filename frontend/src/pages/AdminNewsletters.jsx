@@ -36,6 +36,7 @@ import {
   updateParsedTrip,
 } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
+import { getDisplayStatus } from '../utils/tripHelpers';
 
 const AdminNewsletters = () => {
   // Set page title
@@ -361,20 +362,6 @@ const AdminNewsletters = () => {
   };
 
   // Function to determine the display status based on trip date
-  const getDisplayStatus = trip => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
-
-    const tripDate = new Date(trip.trip_date);
-    tripDate.setHours(0, 0, 0, 0);
-
-    // If the trip date is in the past and status is 'scheduled', show 'completed'
-    if (tripDate < today && trip.trip_status === 'scheduled') {
-      return 'completed';
-    }
-
-    return trip.trip_status;
-  };
 
   return (
     <div className='w-full max-w-full p-4 sm:p-6'>
