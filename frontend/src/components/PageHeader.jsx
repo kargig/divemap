@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 
 import Breadcrumbs from './Breadcrumbs';
+import PageTitle from './PageTitle';
 
 /**
  * PageHeader Component
@@ -27,12 +28,7 @@ const PageHeader = ({
       <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6'>
         {/* Title Group */}
         <div className='flex-1 min-w-0'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 sm:gap-3'>
-            {TitleIcon && (
-              <TitleIcon className='w-6 h-6 sm:w-7 h-7 text-gray-700' aria-hidden='true' />
-            )}
-            <span>{title}</span>
-          </h1>
+          <PageTitle icon={TitleIcon}>{title}</PageTitle>
         </div>
 
         {/* Action Toolbar */}

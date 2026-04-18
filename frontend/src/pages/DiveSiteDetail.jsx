@@ -642,7 +642,7 @@ const DiveSiteDetail = () => {
   );
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2.5 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       {diveSite && (
         <StickyRateBar
           diveSite={diveSite}
@@ -689,7 +689,6 @@ const DiveSiteDetail = () => {
                       },
                     ]
                   : []),
-                { label: diveSite.name },
               ]}
             />
           </div>
@@ -751,31 +750,33 @@ const DiveSiteDetail = () => {
                   <Button
                     to={`/dive-sites/${id}/edit`}
                     variant='primary'
+                    size='sm'
                     icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
-                    className='px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
                   >
                     Edit
                   </Button>
                 )}
                 {shouldShowDelete && (
-                  <button
+                  <Button
                     onClick={handleDelete}
-                    className='inline-flex items-center px-3 py-1.5 border border-red-300 text-xs sm:text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm transition-colors'
+                    variant='danger'
+                    size='sm'
+                    icon={<Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
                     title='Archive dive site'
                   >
-                    <Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                     Archive
-                  </button>
+                  </Button>
                 )}
                 {shouldShowRestore && (
-                  <button
+                  <Button
                     onClick={handleRestore}
-                    className='inline-flex items-center px-3 py-1.5 border border-yellow-400 text-xs sm:text-sm font-medium rounded-md text-yellow-700 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 shadow-sm transition-colors'
+                    variant='warning'
+                    size='sm'
+                    icon={<RotateCcw className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
                     title='Restore dive site'
                   >
-                    <RotateCcw className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
                     Restore
-                  </button>
+                  </Button>
                 )}
               </>
             );
@@ -786,7 +787,7 @@ const DiveSiteDetail = () => {
       {/* Header */}
       <div
         id='overview'
-        className='bg-white p-2.5 sm:p-6 rounded-xl shadow-sm border border-gray-100 mb-4 sm:mb-6 scroll-mt-20'
+        className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 mb-4 sm:mb-6 scroll-mt-20'
       >
         <div className='flex flex-col lg:flex-row gap-2 sm:gap-6'>
           {/* Left Column: Title & Metadata */}
@@ -807,7 +808,7 @@ const DiveSiteDetail = () => {
                   <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
                 </button>
                 <div className='min-w-0 flex-1'>
-                  <h1 className='text-[17px] sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words leading-tight'>
+                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
                     {diveSite.name}
                     {diveSite.deleted_at && (
                       <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
@@ -934,18 +935,15 @@ const DiveSiteDetail = () => {
       </div>
 
       {/* Mobile Horizontal Tabs Navigation */}
-      <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 overflow-x-auto hide-scrollbar sticky top-0 bg-gray-50/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50'>
-        <nav
-          className='flex justify-between items-center w-full gap-1 px-1'
-          aria-label='Mobile Sections'
-        >
+      <div className='lg:hidden -mx-2.5 px-2.5 sm:-mx-4 sm:px-4 mb-4 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-40 py-2 border-b border-gray-200/50'>
+        <nav className='grid grid-cols-3 gap-2 px-1' aria-label='Mobile Sections'>
           <a
             href='#overview'
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Overview'
           >
-            <Info className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <Info className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Info
             </span>
           </a>
@@ -955,8 +953,8 @@ const DiveSiteDetail = () => {
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Location'
           >
-            <MapPin className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <MapPin className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Map
             </span>
           </a>
@@ -966,8 +964,8 @@ const DiveSiteDetail = () => {
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Weather Conditions'
           >
-            <CloudSun className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <CloudSun className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Weather
             </span>
           </a>
@@ -977,8 +975,8 @@ const DiveSiteDetail = () => {
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Available Routes'
           >
-            <Route className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <Route className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Routes
             </span>
           </a>
@@ -988,8 +986,8 @@ const DiveSiteDetail = () => {
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Top Dives'
           >
-            <TrendingUp className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <TrendingUp className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Dives
             </span>
           </a>
@@ -998,8 +996,8 @@ const DiveSiteDetail = () => {
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
             title='Comments'
           >
-            <MessageCircle className='w-3.5 h-3.5 text-blue-600 group-hover:text-blue-800' />
-            <span className='text-[7px] font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
+            <MessageCircle className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
+            <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
               Comments
             </span>
           </a>
@@ -1011,7 +1009,7 @@ const DiveSiteDetail = () => {
         <div className='lg:col-span-2 space-y-4 sm:space-y-6'>
           {/* Description & Media Gallery with Tabs */}
           {(diveSite.description || (media && media.length > 0)) && (
-            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+            <div className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
               {/* Main Tab Navigation */}
               <div className='border-b border-gray-200 mb-3 sm:mb-4'>
                 <nav className='flex space-x-4 sm:space-x-8'>

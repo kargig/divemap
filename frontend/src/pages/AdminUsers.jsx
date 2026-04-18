@@ -19,6 +19,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
+import PageTitle from '../components/PageTitle';
 import AdminUsersTable from '../components/tables/AdminUsersTable';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
@@ -809,7 +810,7 @@ const AdminUsers = () => {
     <div className='w-full max-w-full p-4 sm:p-6'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4'>
         <div>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>User Management</h1>
+          <PageTitle>User Management</PageTitle>
           <p className='text-gray-600 mt-2'>Manage all users in the system</p>
         </div>
         <button

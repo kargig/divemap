@@ -19,18 +19,24 @@ const Button = ({
 
   const variants = {
     primary:
-      'border border-transparent text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
-    secondary: 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-blue-500',
-    danger: 'border border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500',
-    ghost: 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 shadow-none border-transparent',
-    white: 'bg-white border border-blue-600 text-blue-600 hover:bg-blue-50', // For things like "Full Map View"
+      'border border-transparent text-white bg-divemap-blue hover:opacity-90 focus:ring-divemap-sky shadow-sm transition-all',
+    secondary:
+      'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-divemap-blue shadow-sm transition-all',
+    danger:
+      'border border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-sm transition-all',
+    warning:
+      'border border-transparent text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500 shadow-sm transition-all',
+    ghost:
+      'text-gray-500 hover:text-gray-700 hover:bg-gray-100 shadow-none border-transparent transition-all',
+    white:
+      'bg-white border border-divemap-blue text-divemap-blue hover:bg-blue-50 shadow-sm transition-all',
   };
 
   const sizes = {
     xs: 'px-2 py-1 text-xs',
-    sm: 'px-3 py-1.5 text-sm leading-4',
-    md: 'px-3 py-2 text-sm leading-4',
-    lg: 'px-4 py-2 text-base',
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-6 py-2.5 text-base',
   };
 
   const classes = `
@@ -69,7 +75,7 @@ Button.propTypes = {
   children: PropTypes.node,
   onClick: PropTypes.func,
   to: PropTypes.string,
-  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'ghost', 'white']),
+  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'warning', 'ghost', 'white']),
   size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg']),
   className: PropTypes.string,
   icon: PropTypes.node,

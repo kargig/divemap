@@ -17,12 +17,10 @@ const Breadcrumbs = ({ items }) => {
           <ChevronRight className='h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 mx-1 sm:mx-2 text-gray-400 flex-shrink-0' />
           {item.to ? (
             <Link to={item.to} className='hover:text-blue-600 transition-colors flex items-center'>
-              <span className='leading-tight mt-0.5 sm:mt-1 truncate max-w-[100px] sm:max-w-none'>
-                {item.label}
-              </span>
+              <span className='leading-tight mt-0.5 sm:mt-1'>{item.label}</span>
             </Link>
           ) : (
-            <span className='font-bold sm:font-medium text-gray-900 leading-tight mt-0.5 sm:mt-1 truncate max-w-[150px] sm:max-w-none'>
+            <span className='font-bold sm:font-medium text-gray-900 leading-tight mt-0.5 sm:mt-1'>
               {item.label}
             </span>
           )}

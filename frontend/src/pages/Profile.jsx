@@ -618,7 +618,7 @@ const Profile = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='mb-6 sm:mb-8'>
         <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
         <p className='text-sm sm:text-base text-gray-600'>

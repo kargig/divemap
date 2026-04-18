@@ -850,14 +850,13 @@ const RouteDetail = () => {
           schema={getSchema()}
         />
       )}
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-4 sm:px-6 py-6'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         {/* Breadcrumbs */}
         <Breadcrumbs
           items={[
             { label: 'Dive Sites', to: '/dive-sites' },
             ...(diveSite ? [{ label: diveSite.name, to: `/dive-sites/${diveSite.id}` }] : []),
             { label: 'Dive Routes', to: '/dive-routes' },
-            { label: route?.name || 'Route Detail' },
           ]}
         />
 
@@ -881,22 +880,21 @@ const RouteDetail = () => {
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4'>
-            <div className='flex items-center gap-3'>
+            <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
               <button
                 onClick={handleBack}
-                className='text-gray-600 hover:text-gray-800 p-1 flex items-center gap-1'
+                className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
                 title='Go back'
               >
-                <ArrowLeft size={20} />
-                <span className='hidden sm:inline text-sm font-medium'>Back</span>
+                <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
               </button>
               <div className='min-w-0 flex-1'>
                 <div className='flex items-center gap-2 mb-2'>
                   {getRouteTypeIcon(route.route_type)}
-                  <h1 className='text-xl sm:text-2xl font-bold text-gray-900 truncate'>
+                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
                     {route.name}
                   </h1>
-                  <span className='px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full'>
+                  <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 align-middle uppercase tracking-tighter'>
                     {getRouteTypeLabel(route.route_type, null, route.route_data)}
                   </span>
                 </div>

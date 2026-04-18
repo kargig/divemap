@@ -79,7 +79,7 @@ const Notifications = () => {
 
   if (error) {
     return (
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <div className='w-full'>
           <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
             <p className='text-red-800'>Error loading notifications. Please try again.</p>
@@ -90,7 +90,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='w-full'>
         {/* Header */}
         <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6'>

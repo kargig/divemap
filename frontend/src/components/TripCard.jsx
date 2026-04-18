@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom';
 import { formatCost } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
+import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
 /**
@@ -86,7 +87,7 @@ const TripCard = ({
           alt='Rating'
           className='w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain'
         />
-        <span className='text-[10px] sm:text-[11px] font-bold text-yellow-800 leading-none'>
+        <span className='text-xs sm:text-sm font-bold text-yellow-800 leading-none'>
           {rating.toFixed(1)}
         </span>
       </div>
@@ -132,42 +133,47 @@ const TripCard = ({
   const tripName = generateTripName(trip);
   const tripSlug = slugify(tripName);
   const tripUrl = `/dive-trips/${trip.id}/${tripSlug}`;
+  const displayStatus = getDisplayStatus(trip);
+
+  const isInactive = displayStatus === 'completed' || displayStatus === 'cancelled';
+  const borderLeftColor = isInactive ? 'border-l-gray-400' : 'border-l-[rgb(0,114,178)]';
 
   // Card classes based on view mode
   const cardClasses = isGrid
-    ? 'bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300'
-    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] mb-6 hover:shadow-md transition-shadow duration-300 relative ${
+    ? `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
+    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
         !user ? 'pointer-events-none' : ''
       }`;
 
-  const cardStyle = !user && !isGrid ? { filter: 'blur(1.5px)' } : {};
+  const cardStyle = {
+    ...(!user && !isGrid ? { filter: 'blur(1.5px)' } : {}),
+    ...(isInactive ? { opacity: 0.85, backgroundColor: '#f9fafb' } : {}),
+  };
 
   return (
     <div className={cardClasses} style={cardStyle}>
       {!user && !isGrid && <div className='absolute inset-0 bg-white bg-opacity-30 z-10'></div>}
 
       {isGrid && (
-        <div className='relative h-48 bg-blue-600 flex items-center justify-center text-white overflow-hidden'>
+        <div
+          className={`relative h-48 ${isInactive ? 'bg-gray-500' : 'bg-divemap-blue'} flex items-center justify-center text-white overflow-hidden`}
+        >
           <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10'></div>
-          <div className='z-20 text-center p-4'>
+          <div className='z-20 text-center p-3 sm:p-4'>
             <Calendar className='w-12 h-12 mx-auto mb-2 opacity-80' />
             <h3 className='font-bold text-lg leading-tight'>{tripName}</h3>
           </div>
           <div className='absolute top-3 right-3 z-30'>
             <span
-              className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm ${
-                trip.trip_status === 'confirmed'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-blue-500 text-white'
-              }`}
+              className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${getStatusColorClasses(displayStatus, true)}`}
             >
-              {trip.trip_status}
+              {displayStatus}
             </span>
           </div>
         </div>
       )}
 
-      <div className={isGrid ? 'p-4 flex-1 flex flex-col' : 'p-4 sm:p-5 lg:p-4'}>
+      <div className={isGrid ? 'p-3 sm:p-4 flex-1 flex flex-col' : 'p-3 sm:p-5 lg:p-4'}>
         {!isGrid && (
           <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 lg:mb-2'>
             <div className='flex items-center gap-3'>
@@ -203,17 +209,17 @@ const TripCard = ({
                   <div className='flex items-center space-x-1 mr-2'>
                     <button
                       onClick={() => onEdit?.(trip)}
-                      className='p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
                       title='Edit Trip'
                     >
-                      <Edit className='h-4 w-4' />
+                      <Edit className='h-5 w-5' />
                     </button>
                     <button
                       onClick={() => onDelete?.(trip.id)}
-                      className='p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-md transition-colors'
                       title='Delete Trip'
                     >
-                      <X className='h-4 w-4' />
+                      <X className='h-5 w-5' />
                     </button>
                   </div>
                 )}
@@ -223,9 +229,9 @@ const TripCard = ({
         )}
 
         {/* Location & Tags Row */}
-        <div className='flex flex-wrap items-center gap-3 mb-3 lg:mb-2'>
-          <div className='gap-1.5 text-gray-600 min-w-0 flex-1 sm:flex-initial flex'>
-            <Building className='w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5' />
+        <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 lg:mb-2'>
+          <div className='flex items-center gap-1.5 text-gray-600 min-w-0 flex-1'>
+            <Building className='w-3.5 h-3.5 text-gray-400 shrink-0' />
             {trip.diving_center_id && trip.diving_center_name ? (
               <Link
                 to={`/diving-centers/${trip.diving_center_id}/${slugify(trip.diving_center_name)}`}
@@ -239,24 +245,23 @@ const TripCard = ({
               </span>
             )}
           </div>
-          {trip.trip_difficulty_code && (
-            <span
-              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
-            >
-              {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
-            </span>
-          )}
-          {!isGrid && trip.trip_status && (
-            <span
-              className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                trip.trip_status === 'confirmed'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-blue-100 text-blue-800'
-              } shrink-0`}
-            >
-              {trip.trip_status}
-            </span>
-          )}
+
+          <div className='flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0'>
+            {trip.trip_difficulty_code && (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
+              >
+                {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
+              </span>
+            )}
+            {!isGrid && displayStatus && (
+              <span
+                className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColorClasses(displayStatus, false)} shrink-0`}
+              >
+                {displayStatus}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Description - Hidden on grid if too long */}
@@ -275,10 +280,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Calendar className='h-3.5 w-3.5 mr-2 text-blue-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Date
               </div>
-              <div className='font-medium text-[11px] sm:text-xs truncate'>
+              <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_date
                   ? new Date(trip.trip_date).toLocaleDateString(undefined, {
                       day: 'numeric',
@@ -292,10 +297,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Clock className='h-3.5 w-3.5 mr-2 text-green-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Time
               </div>
-              <div className='font-medium text-[11px] sm:text-xs'>
+              <div className='font-medium text-xs sm:text-sm'>
                 {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
               </div>
             </div>
@@ -304,10 +309,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Euro className='h-3.5 w-3.5 mr-2 text-amber-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Price
               </div>
-              <div className='font-medium text-[11px] sm:text-xs truncate'>
+              <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
             </div>
@@ -316,10 +321,10 @@ const TripCard = ({
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
             <Users className='h-3.5 w-3.5 mr-2 text-orange-600 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Group
               </div>
-              <div className='font-medium text-[11px] sm:text-xs'>
+              <div className='font-medium text-xs sm:text-sm'>
                 Max {trip.group_size_limit || 'N/A'}
               </div>
             </div>
@@ -331,10 +336,10 @@ const TripCard = ({
                 <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <Clock className='h-3.5 w-3.5 mr-2 text-purple-600 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Duration
                     </div>
-                    <div className='font-medium text-[11px] sm:text-xs'>{trip.trip_duration}m</div>
+                    <div className='font-medium text-xs sm:text-sm'>{trip.trip_duration}m</div>
                   </div>
                 </div>
               ) : (
@@ -344,10 +349,10 @@ const TripCard = ({
                 <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
                   <TrendingUp className='h-3.5 w-3.5 mr-2 text-blue-400 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-[9px] text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Max Depth
                     </div>
-                    <div className='font-medium text-[11px] sm:text-xs'>{trip.max_depth}m</div>
+                    <div className='font-medium text-xs sm:text-sm'>{trip.max_depth}m</div>
                   </div>
                 </div>
               ) : (
@@ -377,7 +382,7 @@ const TripCard = ({
         {/* Compact Dive Plan */}
         {trip.dives && trip.dives.length > 0 && (
           <div className='mb-3 lg:mb-2'>
-            <h4 className='text-[10px] sm:text-xs font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
+            <h4 className='text-xs sm:text-sm font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
               Dive Plan ({trip.dives.length})
             </h4>
             <div className='space-y-1 lg:space-y-0.5'>
@@ -390,7 +395,7 @@ const TripCard = ({
                     key={dive.id}
                     className='flex gap-2 p-1.5 sm:p-2 lg:p-1.5 bg-blue-50/30 rounded-md border border-blue-100/50 overflow-hidden items-center'
                   >
-                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-[9px] sm:text-[10px] font-bold text-blue-700 shrink-0'>
+                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-xs sm:text-sm font-bold text-blue-700 shrink-0'>
                       {index + 1}
                     </div>
                     <div className='flex gap-1.5 items-center min-w-0'>
@@ -403,7 +408,7 @@ const TripCard = ({
                         {site.tags.map(tag => (
                           <span
                             key={tag.id}
-                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-[9px] font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
+                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
                           >
                             {tag.name}
                           </span>
@@ -428,7 +433,7 @@ const TripCard = ({
 
         {/* Footer info: Added/Updated */}
         {!isGrid && (
-          <div className='flex flex-row flex-wrap items-center gap-y-1 text-[10px] sm:text-xs text-gray-400 mt-auto pt-3 border-t border-gray-50'>
+          <div className='flex flex-row flex-wrap items-center gap-y-1 text-xs sm:text-sm text-gray-400 mt-auto pt-3 border-t border-gray-50'>
             <div className='flex flex-wrap gap-y-1 flex-1'>
               {trip.created_at && (
                 <div className='flex items-center'>
