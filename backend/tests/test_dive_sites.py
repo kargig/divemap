@@ -1206,8 +1206,9 @@ class TestDiveSitesAuthorization:
             headers=auth_headers
         )
         
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "submitted for moderation" in response.json()["message"]
 
     def test_add_diving_center_to_dive_site_unapproved_owner(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
         """Test that unapproved owners cannot add their centers to dive sites."""
@@ -1232,8 +1233,9 @@ class TestDiveSitesAuthorization:
             headers=auth_headers
         )
         
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "submitted for moderation" in response.json()["message"]
 
     def test_add_diving_center_to_dive_site_nonexistent_site(self, client, auth_headers, test_diving_center):
         """Test that requests to non-existent dive sites return 404."""
@@ -1350,15 +1352,12 @@ class TestDiveSitesAuthorization:
         assert "Diving center is not associated with this dive site" in response.json()["detail"]
 
     def test_diving_center_dive_site_cross_center_access(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
-        """Test that users cannot manage diving center relationships for other centers."""
+        """Test that users cannot manage diving center relationships for other centers without moderation."""
         from app.models import OwnershipStatus, DivingCenter
         
-        # Set the user as the owner of the diving center
-        test_diving_center.owner_id = test_user.id
-        test_diving_center.ownership_status = OwnershipStatus.approved
-        db_session.commit()
-        db_session.refresh(test_diving_center)
-
+        # Ensure the user is NOT a trusted contributor (no ownership, no dives, etc.)
+        # test_user from fixture is already clean.
+        
         # Create another diving center
         other_center = DivingCenter(
             name="Other Diving Center",
@@ -1384,8 +1383,9 @@ class TestDiveSitesAuthorization:
             headers=auth_headers
         )
         
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "Not enough permissions" in response.json()["detail"]
+        # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "submitted for moderation" in response.json()["message"]
 
     def test_diving_center_dive_site_ownership_status_enum_handling(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
         """Test that ownership status enum is handled correctly for dive site relationships."""
@@ -1428,8 +1428,9 @@ class TestDiveSitesAuthorization:
                 )
                 assert remove_response.status_code == status.HTTP_200_OK
             else:
-                assert response.status_code == status.HTTP_403_FORBIDDEN
-                assert "Not enough permissions" in response.json()["detail"]
+                # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
+                assert response.status_code == status.HTTP_202_ACCEPTED
+                assert "submitted for moderation" in response.json()["message"]
 
         # Clean up - set back to approved for other tests
         test_diving_center.owner_id = test_user.id

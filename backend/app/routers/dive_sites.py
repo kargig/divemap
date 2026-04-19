@@ -2716,7 +2716,7 @@ async def add_diving_center_to_dive_site(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Add a diving center to a dive site (admin, moderator, or diving center owner)"""
+    """Add a diving center to a dive site (admin, moderator, diving center owner, or trusted contributor)"""
 
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -2734,13 +2734,28 @@ async def add_diving_center_to_dive_site(
             detail="Diving center not found"
         )
 
-    # Check if user has permission to manage this diving center
-    if not (current_user.is_admin or current_user.is_moderator or
-            (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions to manage this diving center"
+    # Check if user has permission to manage this diving center directly
+    can_manage_directly = (
+        current_user.is_admin or 
+        current_user.is_moderator or
+        (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved) or
+        is_trusted_contributor(db, current_user, dive_site)
+    )
+
+    if not can_manage_directly:
+        # Submit for moderation
+        update_data = center_assignment.model_dump()
+        update_data["diving_center_name"] = diving_center.name
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.center_association,
+            proposed_data=update_data
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Diving center association submitted for moderation."})
 
     # Check if association already exists
     existing_association = db.query(CenterDiveSite).filter(
@@ -2783,7 +2798,7 @@ async def remove_diving_center_from_dive_site(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Remove a diving center from a dive site (admin, moderator, or diving center owner)"""
+    """Remove a diving center from a dive site (admin, moderator, diving center owner, or trusted contributor)"""
 
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -2801,13 +2816,29 @@ async def remove_diving_center_from_dive_site(
             detail="Diving center not found"
         )
 
-    # Check if user has permission to manage this diving center
-    if not (current_user.is_admin or current_user.is_moderator or
-            (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions to manage this diving center"
+    # Check if user has permission to manage this diving center directly
+    can_manage_directly = (
+        current_user.is_admin or 
+        current_user.is_moderator or
+        (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved) or
+        is_trusted_contributor(db, current_user, dive_site)
+    )
+
+    if not can_manage_directly:
+        # Submit for moderation
+        edit_request = DiveSiteEditRequest(
+            dive_site_id=dive_site_id,
+            requested_by_id=current_user.id,
+            status=EditRequestStatus.pending,
+            edit_type=EditRequestType.center_removal,
+            proposed_data={
+                "diving_center_id": diving_center_id,
+                "diving_center_name": diving_center.name
+            }
         )
+        db.add(edit_request)
+        db.commit()
+        return JSONResponse(status_code=202, content={"message": "Diving center removal submitted for moderation."})
 
     # Find and delete the association
     association = db.query(CenterDiveSite).filter(

@@ -592,13 +592,20 @@ const EditDiveSite = () => {
   const addDivingCenterMutation = useMutation(
     centerData => api.post(`/api/v1/dive-sites/${id}/diving-centers`, centerData),
     {
-      onSuccess: () => {
+      onSuccess: response => {
         queryClient.invalidateQueries(['dive-site-diving-centers', id]);
         setNewDivingCenterId('');
         setNewDiveCost('');
         setNewDiveCurrency(DEFAULT_CURRENCY);
         setShowDivingCenterForm(false);
-        toast.success('Diving center added successfully');
+        if (response.status === 202) {
+          toast(response.data.message || 'Diving center association submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Diving center added successfully');
+        }
       },
       onError: error => {
         toast.error(getErrorMessage(error));
@@ -609,9 +616,16 @@ const EditDiveSite = () => {
   const removeDivingCenterMutation = useMutation(
     centerId => api.delete(`/api/v1/dive-sites/${id}/diving-centers/${centerId}`),
     {
-      onSuccess: () => {
+      onSuccess: response => {
         queryClient.invalidateQueries(['dive-site-diving-centers', id]);
-        toast.success('Diving center removed successfully');
+        if (response.status === 202) {
+          toast(response.data.message || 'Diving center removal submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Diving center removed successfully');
+        }
       },
       onError: error => {
         toast.error(getErrorMessage(error));
@@ -623,11 +637,18 @@ const EditDiveSite = () => {
   const addAliasMutation = useMutation(
     aliasData => api.post(`/api/v1/dive-sites/${id}/aliases`, aliasData),
     {
-      onSuccess: () => {
+      onSuccess: response => {
         queryClient.invalidateQueries(['dive-site-aliases', id]);
         setNewAlias({ alias: '', language: '' });
         setShowAliasForm(false);
-        toast.success('Alias added successfully');
+        if (response.status === 202) {
+          toast(response.data.message || 'Alias addition submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Alias added successfully');
+        }
       },
       onError: error => {
         toast.error(getErrorMessage(error));
@@ -638,10 +659,17 @@ const EditDiveSite = () => {
   const updateAliasMutation = useMutation(
     ({ aliasId, aliasData }) => api.put(`/api/v1/dive-sites/${id}/aliases/${aliasId}`, aliasData),
     {
-      onSuccess: () => {
+      onSuccess: response => {
         queryClient.invalidateQueries(['dive-site-aliases', id]);
         setEditingAlias(null);
-        toast.success('Alias updated successfully');
+        if (response.status === 202) {
+          toast(response.data.message || 'Alias update submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Alias updated successfully');
+        }
       },
       onError: error => {
         toast.error(getErrorMessage(error));
@@ -652,9 +680,16 @@ const EditDiveSite = () => {
   const deleteAliasMutation = useMutation(
     aliasId => api.delete(`/api/v1/dive-sites/${id}/aliases/${aliasId}`),
     {
-      onSuccess: () => {
+      onSuccess: response => {
         queryClient.invalidateQueries(['dive-site-aliases', id]);
-        toast.success('Alias deleted successfully');
+        if (response.status === 202) {
+          toast(response.data.message || 'Alias deletion submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Alias deleted successfully');
+        }
       },
       onError: error => {
         toast.error(getErrorMessage(error));
@@ -685,8 +720,15 @@ const EditDiveSite = () => {
   const deleteMediaMutation = useMutation(
     mediaId => api.delete(`/api/v1/dive-sites/${id}/media/${mediaId}`),
     {
-      onSuccess: () => {
-        toast.success('Media deleted successfully');
+      onSuccess: response => {
+        if (response.status === 202) {
+          toast(response.data.message || 'Media deletion submitted for moderation.', {
+            icon: 'ℹ️',
+            duration: 5000,
+          });
+        } else {
+          toast.success('Media deleted successfully');
+        }
         queryClient.invalidateQueries(['dive-site-media', id]);
       },
       onError: error => {
@@ -997,9 +1039,11 @@ const EditDiveSite = () => {
       for (const tagId of newTagIds) {
         if (!currentTagIds.includes(tagId)) {
           tagPromises.push(
-            api
-              .post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId })
-              .catch(error => console.error('Failed to add tag:', error))
+            api.post(`/api/v1/tags/dive-sites/${id}/tags`, { tag_id: tagId }).then(response => {
+              if (response.status === 202) {
+                isPendingModeration = true;
+              }
+            })
           );
         }
       }
@@ -1008,9 +1052,11 @@ const EditDiveSite = () => {
       for (const tagId of currentTagIds) {
         if (!newTagIds.includes(tagId)) {
           tagPromises.push(
-            api
-              .delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`)
-              .catch(error => console.error('Failed to remove tag:', error))
+            api.delete(`/api/v1/tags/dive-sites/${id}/tags/${tagId}`).then(response => {
+              if (response.status === 202) {
+                isPendingModeration = true;
+              }
+            })
           );
         }
       }
