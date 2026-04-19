@@ -123,29 +123,29 @@ class TestQueryOverpassAPI:
         
         result = query_overpass_api(37.7, 24.0, radius=1000)
         
-        # Should try fallback endpoint, then return None
+        # Should try 3 endpoints (2 reliable + 1 random busy), then return None
         assert result is None
-        assert mock_post.call_count == 2  # Tries both endpoints
+        assert mock_post.call_count == 3
 
     @patch('app.services.osm_coastline_service.requests.post')
     def test_query_overpass_api_fallback_endpoint(self, mock_post):
-        """Test fallback to second endpoint when first fails."""
-        # First endpoint returns error
-        mock_response1 = MagicMock()
-        mock_response1.status_code = 500
-        # Second endpoint succeeds
-        mock_response2 = MagicMock()
-        mock_response2.status_code = 200
-        mock_response2.text = '{"elements": [{"type": "way"}]}'
-        mock_response2.json.return_value = {"elements": [{"type": "way"}]}
+        """Test fallback through the dynamic endpoint list."""
+        # First 2 endpoints return error
+        mock_response1 = MagicMock(status_code=500)
+        mock_response2 = MagicMock(status_code=500)
+        # 3rd endpoint succeeds
+        mock_response3 = MagicMock()
+        mock_response3.status_code = 200
+        mock_response3.text = '{"elements": [{"type": "way"}]}'
+        mock_response3.json.return_value = {"elements": [{"type": "way"}]}
         
-        mock_post.side_effect = [mock_response1, mock_response2]
+        mock_post.side_effect = [mock_response1, mock_response2, mock_response3]
         
         result = query_overpass_api(37.7, 24.0, radius=1000)
         
         assert result is not None
         assert "elements" in result
-        assert mock_post.call_count == 2  # Tried both endpoints
+        assert mock_post.call_count == 3
 
     @patch('app.services.osm_coastline_service.requests.post')
     def test_query_overpass_api_non_json_response(self, mock_post):

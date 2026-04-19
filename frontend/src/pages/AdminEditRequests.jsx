@@ -1,5 +1,15 @@
 import { format } from 'date-fns';
-import { Check, X, Clock, MapPin, User, FileText, Image as ImageIcon, Tag, Building } from 'lucide-react';
+import {
+  Check,
+  X,
+  Clock,
+  MapPin,
+  User,
+  FileText,
+  Image as ImageIcon,
+  Tag,
+  Building,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';

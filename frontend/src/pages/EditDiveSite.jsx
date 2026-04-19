@@ -830,6 +830,10 @@ const EditDiveSite = () => {
         `/api/v1/dive-sites/${id}/detect-shore-direction`,
         {},
         {
+          params: {
+            latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+            longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+          },
           timeout: 30000, // 30 second timeout
         }
       );
