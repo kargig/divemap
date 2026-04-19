@@ -1,5 +1,15 @@
 import { format } from 'date-fns';
-import { Check, X, Clock, MapPin, User, FileText, Image as ImageIcon, Tag } from 'lucide-react';
+import {
+  Check,
+  X,
+  Clock,
+  MapPin,
+  User,
+  FileText,
+  Image as ImageIcon,
+  Tag,
+  Building,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -22,6 +32,10 @@ const getEditTypeLabel = type => {
       return 'Add Tag';
     case 'tag_removal':
       return 'Remove Tag';
+    case 'center_association':
+      return 'Link Diving Center';
+    case 'center_removal':
+      return 'Unlink Diving Center';
     default:
       return type;
   }
@@ -38,6 +52,9 @@ const getEditTypeIcon = type => {
     case 'tag_addition':
     case 'tag_removal':
       return <Tag className='w-4 h-4 mr-1' />;
+    case 'center_association':
+    case 'center_removal':
+      return <Building className='w-4 h-4 mr-1' />;
     default:
       return <FileText className='w-4 h-4 mr-1' />;
   }
@@ -498,6 +515,58 @@ const AdminEditRequests = () => {
                                   {req.edit_type === 'tag_addition' ? tagName : '-'}
                                 </td>
                               </tr>
+                            );
+                          }
+
+                          if (
+                            req.edit_type === 'center_association' ||
+                            req.edit_type === 'center_removal'
+                          ) {
+                            const dcId = req.proposed_data.diving_center_id;
+                            const dcName =
+                              req.proposed_data.diving_center_name || `Diving Center #${dcId}`;
+                            return (
+                              <>
+                                <tr
+                                  className={
+                                    req.edit_type === 'center_association'
+                                      ? 'bg-green-50/10'
+                                      : 'bg-red-50/10'
+                                  }
+                                >
+                                  <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                    <div className='flex items-center'>
+                                      Diving Center
+                                      <span
+                                        className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${req.edit_type === 'center_association' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                      >
+                                        {req.edit_type === 'center_association'
+                                          ? 'Linked'
+                                          : 'Unlinked'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className='px-4 py-2 text-sm text-red-600 bg-red-50/30 line-through'>
+                                    {req.edit_type === 'center_removal' ? dcName : '-'}
+                                  </td>
+                                  <td className='px-4 py-2 text-sm text-green-700 bg-green-50/30 font-medium'>
+                                    {req.edit_type === 'center_association' ? dcName : '-'}
+                                  </td>
+                                </tr>
+                                {req.edit_type === 'center_association' &&
+                                  req.proposed_data.dive_cost && (
+                                    <tr className='bg-green-50/10'>
+                                      <td className='px-4 py-2 text-sm font-medium text-gray-900 pl-8'>
+                                        └ Dive Cost
+                                      </td>
+                                      <td className='px-4 py-2 text-sm text-gray-400'>-</td>
+                                      <td className='px-4 py-2 text-sm text-green-700 font-medium'>
+                                        {req.proposed_data.dive_cost}{' '}
+                                        {req.proposed_data.currency || 'EUR'}
+                                      </td>
+                                    </tr>
+                                  )}
+                              </>
                             );
                           }
 

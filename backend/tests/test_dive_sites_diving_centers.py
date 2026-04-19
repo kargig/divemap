@@ -56,7 +56,7 @@ class TestDiveSitesDivingCenters:
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
     def test_add_diving_center_to_dive_site_not_admin(self, client, auth_headers, test_dive_site, test_diving_center):
-        """Test adding diving center to dive site as non-admin user."""
+        """Test adding diving center to dive site as non-admin user (should be accepted for moderation)."""
         center_assignment_data = {
             "diving_center_id": test_diving_center.id,
             "dive_site_id": test_dive_site.id,  # Add required field
@@ -66,7 +66,9 @@ class TestDiveSitesDivingCenters:
         response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
                              json=center_assignment_data, headers=auth_headers)
 
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        # Non-admin/non-trusted users now get 202 Accepted for moderation
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "submitted for moderation" in response.json()["message"]
 
     def test_add_diving_center_to_dive_site_not_found(self, client, admin_headers, test_diving_center):
         """Test adding diving center to non-existent dive site."""
@@ -137,7 +139,10 @@ class TestDiveSitesDivingCenters:
         db_session.add(assoc)
         db_session.commit()
         response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}", headers=auth_headers)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        
+        # Non-admin/non-trusted users now get 202 Accepted for moderation
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert "submitted for moderation" in response.json()["message"]
 
     def test_remove_diving_center_from_dive_site_not_found(self, client, admin_headers, test_dive_site):
         response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/9999", headers=admin_headers)

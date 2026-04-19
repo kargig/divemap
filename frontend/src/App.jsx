@@ -1,6 +1,7 @@
+import { X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Suspense, lazy } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
@@ -573,13 +574,33 @@ function App() {
               <Toaster
                 position='top-right'
                 toastOptions={{
-                  duration: 2000,
+                  duration: 3000, // Set to 3s for a balance of readability and speed
                   style: {
                     marginTop: '4rem', // Add top margin to appear below navbar
                     zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
                   },
                 }}
-              />
+              >
+                {t => (
+                  <ToastBar toast={t}>
+                    {({ icon, message }) => (
+                      <>
+                        {icon}
+                        {message}
+                        {t.type !== 'loading' && (
+                          <button
+                            onClick={() => toast.dismiss(t.id)}
+                            className='ml-2 hover:bg-black/5 rounded-full p-0.5 transition-colors focus:outline-none'
+                            aria-label='Close'
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </ToastBar>
+                )}
+              </Toaster>
             </div>
           </Router>
         </NotificationProvider>

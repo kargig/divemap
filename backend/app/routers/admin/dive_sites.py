@@ -171,6 +171,34 @@ async def approve_edit_request(request: Request, request_id: int, db: Session = 
                 DiveSiteTag.tag_id == tag_id
             ).delete()
 
+    elif edit_req.edit_type == EditRequestType.center_association:
+        from app.models import CenterDiveSite
+        # proposed_data was serialized from CenterDiveSiteCreate
+        dc_id = edit_req.proposed_data.get("diving_center_id")
+        if dc_id:
+            # Check if already exists to avoid duplicates
+            existing = db.query(CenterDiveSite).filter(
+                CenterDiveSite.dive_site_id == edit_req.dive_site_id,
+                CenterDiveSite.diving_center_id == dc_id
+            ).first()
+            if not existing:
+                association = CenterDiveSite(
+                    dive_site_id=edit_req.dive_site_id,
+                    diving_center_id=dc_id,
+                    dive_cost=edit_req.proposed_data.get("dive_cost"),
+                    currency=edit_req.proposed_data.get("currency", "EUR")
+                )
+                db.add(association)
+
+    elif edit_req.edit_type == EditRequestType.center_removal:
+        from app.models import CenterDiveSite
+        dc_id = edit_req.proposed_data.get("diving_center_id")
+        if dc_id:
+            db.query(CenterDiveSite).filter(
+                CenterDiveSite.dive_site_id == edit_req.dive_site_id,
+                CenterDiveSite.diving_center_id == dc_id
+            ).delete()
+
     edit_req.status = EditRequestStatus.approved
     from datetime import datetime, timezone
     edit_req.reviewed_at = datetime.now(timezone.utc)
