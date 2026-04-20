@@ -19,17 +19,17 @@ const Button = ({
 
   const variants = {
     primary:
-      'border border-transparent text-white bg-divemap-blue hover:opacity-90 focus:ring-divemap-sky shadow-sm transition-all',
+      'border border-transparent text-white hover:text-white bg-divemap-blue hover:opacity-90 focus:ring-divemap-sky shadow-sm transition-all',
     secondary:
-      'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-divemap-blue shadow-sm transition-all',
+      'border border-gray-300 text-gray-700 hover:text-gray-900 bg-white hover:bg-gray-50 focus:ring-divemap-blue shadow-sm transition-all',
     danger:
-      'border border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-sm transition-all',
+      'border border-transparent text-white hover:text-white bg-red-600 hover:bg-red-700 focus:ring-red-500 shadow-sm transition-all',
     warning:
-      'border border-transparent text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500 shadow-sm transition-all',
+      'border border-transparent text-white hover:text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500 shadow-sm transition-all',
     ghost:
       'text-gray-500 hover:text-gray-700 hover:bg-gray-100 shadow-none border-transparent transition-all',
     white:
-      'bg-white border border-divemap-blue text-divemap-blue hover:bg-blue-50 shadow-sm transition-all',
+      'bg-white border border-divemap-blue text-divemap-blue hover:text-divemap-blue hover:bg-blue-50 shadow-sm transition-all',
   };
 
   const sizes = {

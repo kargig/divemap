@@ -33,6 +33,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import TripCard from '../components/TripCard';
+import Button from '../components/ui/Button';
 import CurrencyIcon from '../components/ui/CurrencyIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
@@ -866,12 +867,9 @@ const DiveTrips = () => {
 
                   {filters.difficulty_code && <p>• Try a different difficulty level</p>}
                 </div>
-                <button
-                  onClick={clearFilters}
-                  className='mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
-                >
+                <Button onClick={clearFilters} variant='primary' className='mt-4'>
                   Clear All Filters
-                </button>
+                </Button>
               </div>
             )}
 
@@ -947,20 +945,24 @@ const DiveTrips = () => {
                       To view all dive trips and discover upcoming diving adventures, please log in
                       to your account.
                     </p>
-                    <div className='flex space-x-3'>
-                      <Link
+                    <div className='flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3'>
+                      <Button
                         to='/login'
-                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                        variant='primary'
+                        size='lg'
+                        icon={<LogIn className='h-4 w-4' />}
+                        className='w-full sm:w-auto'
                       >
-                        <LogIn className='h-4 w-4 mr-2' />
                         Login
-                      </Link>
-                      <Link
+                      </Button>
+                      <Button
                         to='/register'
-                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                        variant='secondary'
+                        size='lg'
+                        className='w-full sm:w-auto'
                       >
                         Register
-                      </Link>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -1028,20 +1030,24 @@ const DiveTrips = () => {
                       To view all dive trips and discover upcoming diving adventures, please log in
                       to your account.
                     </p>
-                    <div className='flex space-x-3'>
-                      <Link
+                    <div className='flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3'>
+                      <Button
                         to='/login'
-                        className='inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'
+                        variant='primary'
+                        size='lg'
+                        icon={<LogIn className='h-4 w-4' />}
+                        className='w-full sm:w-auto'
                       >
-                        <LogIn className='h-4 w-4 mr-2' />
                         Login
-                      </Link>
-                      <Link
+                      </Button>
+                      <Button
                         to='/register'
-                        className='inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors'
+                        variant='secondary'
+                        size='lg'
+                        className='w-full sm:w-auto'
                       >
                         Register
-                      </Link>
+                      </Button>
                     </div>
                   </div>
                 </div>

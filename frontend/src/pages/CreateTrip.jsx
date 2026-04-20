@@ -6,6 +6,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
 import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
@@ -198,12 +199,9 @@ const CreateTrip = () => {
         <div className='bg-white rounded-lg shadow-md p-6 text-center'>
           <h2 className='text-xl font-semibold text-gray-900 mb-4'>Access Denied</h2>
           <p className='text-gray-600 mb-4'>You must be logged in to create dive trips.</p>
-          <button
-            onClick={() => navigate('/login')}
-            className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-          >
+          <Button onClick={() => navigate('/login')} variant='primary' size='lg'>
             Go to Login
-          </button>
+          </Button>
         </div>
       </div>
     );

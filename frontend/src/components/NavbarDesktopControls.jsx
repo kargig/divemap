@@ -37,6 +37,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import NotificationBell from './NotificationBell';
+import Button from './ui/Button';
 import ChatDropdown from './UserChat/ChatDropdown';
 
 const NavbarDesktopControls = () => {
@@ -228,18 +229,17 @@ const NavbarDesktopControls = () => {
           </div>
         ) : (
           <div className='flex items-center space-x-4'>
-            <Link
+            <Button
               to='/login'
-              className='px-4 py-2 rounded-md bg-blue-700 hover:bg-blue-800 transition-colors'
+              variant='primary'
+              size='md'
+              className='bg-blue-700 hover:bg-blue-800 border !border-blue-400 hover:!border-blue-300'
             >
               Login
-            </Link>
-            <Link
-              to='/register'
-              className='px-4 py-2 rounded-md bg-white text-blue-600 hover:bg-gray-100 transition-colors'
-            >
+            </Button>
+            <Button to='/register' variant='white' size='md'>
               Register
-            </Link>
+            </Button>
           </div>
         )}
       </div>
