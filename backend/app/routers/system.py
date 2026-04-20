@@ -968,8 +968,9 @@ def storage_health_check():
         health_status = r2_storage.health_check()
         return health_status
     except Exception as e:
+        logger.error(f"Storage health check error: {str(e)}")
         return {
-            "error": str(e),
+            "error": "Storage health check failed",
             "r2_available": False,
             "local_storage_available": False,
             "bucket_accessible": False,

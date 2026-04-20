@@ -64,7 +64,9 @@ class R2StorageService:
         now = datetime.now()
         year = now.strftime("%Y")
         month = now.strftime("%m")
-        return f"user_{user_id}/dive_profiles/{year}/{month}/{filename}"
+        # Sanitize filename to prevent path injection
+        safe_filename = os.path.basename(filename)
+        return f"user_{user_id}/dive_profiles/{year}/{month}/{safe_filename}"
     
     def _get_photo_path(
         self, 
@@ -93,10 +95,13 @@ class R2StorageService:
         year = now.strftime("%Y")
         month = now.strftime("%m")
         
+        # Sanitize filename to prevent path injection
+        safe_filename = os.path.basename(filename)
+        
         if dive_id:
-            return f"user_{user_id}/photos/dive_{dive_id}/{year}/{month}/{filename}"
+            return f"user_{user_id}/photos/dive_{dive_id}/{year}/{month}/{safe_filename}"
         elif dive_site_id:
-            return f"user_{user_id}/photos/dive_site_{dive_site_id}/{year}/{month}/{filename}"
+            return f"user_{user_id}/photos/dive_site_{dive_site_id}/{year}/{month}/{safe_filename}"
         
         # This should never be reached due to the validation above, but added for type safety
         raise ValueError("Either dive_id or dive_site_id must be provided")
@@ -484,7 +489,7 @@ class R2StorageService:
                 # Local path: uploads/user_1/photos/dive_7/file.jpg
                 # We should stick to existing behavior to avoid breaking things.
                 
-                full_local_path = os.path.join(local_dir, filename)
+                full_local_path = os.path.join(local_dir, os.path.basename(filename))
                 self._ensure_local_directory(full_local_path)
                 with open(full_local_path, 'wb') as f:
                     f.write(content)
@@ -498,13 +503,16 @@ class R2StorageService:
     
     def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
         """Upload photo to local filesystem."""
+        # Sanitize filename
+        safe_filename = os.path.basename(filename)
+        
         if dive_id:
             local_path = os.path.join(
                 "uploads",
                 f"user_{user_id}",
                 "photos",
                 f"dive_{dive_id}",
-                filename
+                safe_filename
             )
         elif dive_site_id:
             local_path = os.path.join(
@@ -512,7 +520,7 @@ class R2StorageService:
                 f"user_{user_id}",
                 "photos",
                 f"dive_site_{dive_site_id}",
-                filename
+                safe_filename
             )
         else:
             raise ValueError("Either dive_id or dive_site_id must be provided")

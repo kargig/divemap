@@ -365,7 +365,7 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
                 logger.debug(f"[DB CACHE] Created new cache entry for key: {cache_key}")
 
             db.commit()
-            #logger.info(f"[DB CACHE STORE] Stored wind data in database cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+            #logger.info(f"[DB CACHE STORE] Stored wind data in database cache for key {cache_key} at {target_datetime}")
 
         except Exception as e:
             db.rollback()
@@ -607,11 +607,11 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
 
     # Check cache - first try exact hour match
     if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
-        #logger.info(f"[CACHE HIT] Serving wind data from cache for {latitude:.4f}, {longitude:.4f} at {target_datetime} (exact match)")
+        #logger.info(f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (exact match)")
         return _wind_cache[cache_key].get('data')
 
     # Log cache key for debugging (only at debug level to avoid spam)
-    logger.debug(f"[CACHE LOOKUP] Checking cache for key: {cache_key} (lat={latitude:.4f}, lon={longitude:.4f}, datetime={target_datetime})")
+    logger.debug(f"[CACHE LOOKUP] Checking cache for key: {cache_key} ")
 
     # OPTIMIZATION: If exact hour not found, check if ANY hour from the same date is cached
     # When Open-Meteo returns 24 hours, we cache all hours, so if ANY hour from that date is cached,
@@ -639,7 +639,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
 
                     # The exact hour should be in cache - check one more time (in case of race condition)
                     if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
-                        logger.info(f"[CACHE HIT] Serving wind data from cache for {latitude:.4f}, {longitude:.4f} at {target_datetime} (found via date lookup, originally cached for hour {hour:02d})")
+                        logger.info(f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (found via date lookup, originally cached for hour {hour:02d})")
                         return _wind_cache[cache_key].get('data')
                     else:
                         # This should not happen - if we cached hour {hour}, we should have cached all 24 hours
@@ -651,7 +651,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                             f"[CACHE INCONSISTENCY] Found cached data for {target_date} hour {hour:02d} "
                             f"but requested hour {target_datetime.hour:02d} (cache_key: {cache_key}) is not in cache. "
                             f"This suggests the 24-hour caching did not work correctly. "
-                            f"Available cache keys for this location ({rounded_lat}, {rounded_lon}): {matching_keys[:10]}"
+                            f"Available cache keys for this key {cache_key}: {matching_keys[:10]}"
                         )
                         # Fall through to make API call (which will cache all 24 hours again)
                         break
@@ -663,7 +663,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
     # Tier 2: Check database cache (if in-memory cache missed)
     db_cache_data = _get_from_database_cache(cache_key, latitude, longitude, target_datetime)
     if db_cache_data:
-        #logger.info(f"[DB CACHE HIT] Serving wind data from database cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+        #logger.info(f"[DB CACHE HIT] Serving wind data from database cache for key {cache_key} at {target_datetime}")
         # Also store in in-memory cache for faster subsequent access
         _wind_cache[cache_key] = {
             'data': db_cache_data,
@@ -673,7 +673,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         return db_cache_data
 
     # Cache miss - need to fetch from Open-Meteo API
-    logger.info(f"[CACHE MISS] Wind data not in cache (memory or database) for {latitude:.4f}, {longitude:.4f} at {target_datetime}. Fetching from Open-Meteo API.")
+    logger.info(f"[CACHE MISS] Wind data not in cache (memory or database) for key {cache_key} at {target_datetime}. Fetching from Open-Meteo API.")
 
     try:
         # OPTIMIZATION: Always use hourly forecast API (not "current") to get 24 hours of data
@@ -684,7 +684,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         # Use hourly forecast for all requests (returns 24 hours, enables bulk caching)
         start_date = target_datetime.strftime("%Y-%m-%d")
         end_date = target_datetime.strftime("%Y-%m-%d")
-        logger.info(f"[API TYPE] Using 'hourly' forecast API for {latitude:.4f}, {longitude:.4f} at {target_datetime} (time_diff: {time_diff:.0f}s) - will cache all 24 hours")
+        logger.info(f"[API TYPE] Using 'hourly' forecast API for key {cache_key} at {target_datetime} (time_diff: {time_diff:.0f}s) - will cache all 24 hours")
         params = {
             "latitude": latitude,
             "longitude": longitude,
@@ -695,11 +695,11 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             "timezone": "auto"
         }
 
-        logger.info(f"[API CALL] Fetching wind data from Open-Meteo API for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+        logger.info(f"[API CALL] Fetching wind data from Open-Meteo API for key {cache_key} at {target_datetime}")
         response = requests.get(OPEN_METEO_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
-        logger.info(f"[API SUCCESS] Successfully fetched wind data from Open-Meteo API for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+        logger.info(f"[API SUCCESS] Successfully fetched wind data from Open-Meteo API for key {cache_key} at {target_datetime}")
 
         # Fetch Marine Data (Waves, Swell, SST, Tides)
         marine_hourly = {}
@@ -718,7 +718,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 marine_data = marine_response.json()
                 if "hourly" in marine_data:
                     marine_hourly = marine_data["hourly"]
-                    logger.info(f"[MARINE API SUCCESS] Successfully fetched marine data for {latitude:.4f}, {longitude:.4f}")
+                    logger.info(f"[MARINE API SUCCESS] Successfully fetched marine data for key {cache_key}")
             else:
                 logger.warning(f"[MARINE API ERROR] Failed to fetch marine data: Status {marine_response.status_code}")
         except Exception as e:
@@ -743,7 +743,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                     hour_index = 0
                     logger.warning(f"Exact hour {target_time_str} not found in forecast, using {times[0]}")
                 else:
-                    logger.warning(f"No hourly data available for {latitude}, {longitude}")
+                    logger.warning(f"No hourly data available for key {cache_key}")
                     return None
 
             # Wind speed is already in m/s due to wind_speed_unit=ms parameter
@@ -820,7 +820,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                             logger.debug(f"Could not parse/cache hour {time_str}: {e}")
                             continue
 
-                logger.info(f"[CACHE STORE] Cached {len(times)} hours of forecast data for {latitude:.4f}, {longitude:.4f} on {forecast_date} (from Open-Meteo API response)")
+                logger.info(f"[CACHE STORE] Cached {len(times)} hours of forecast data for key {cache_key} on {forecast_date} (from Open-Meteo API response)")
 
                 # OPTIMIZATION: Store all 24 hours in database cache as well
                 # This enables persistent caching across server restarts
@@ -861,7 +861,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 if batch_entries:
                     _store_batch_in_database_cache(batch_entries)
         if not wind_data:
-            logger.warning(f"No wind data in Open-Meteo response for {latitude}, {longitude} at {target_datetime}")
+            logger.warning(f"No wind data in Open-Meteo response for key {cache_key} at {target_datetime}")
             return None
 
         # Cache the result (also cached above for forecast data, but ensure it's here for current data)
@@ -871,7 +871,7 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 "timestamp": datetime.now(),
                 "target_datetime": target_datetime  # Store for TTL calculation
             }
-            logger.info(f"[CACHE STORE] Stored wind data in in-memory cache for {latitude:.4f}, {longitude:.4f} at {target_datetime}")
+            logger.info(f"[CACHE STORE] Stored wind data in in-memory cache for key {cache_key} at {target_datetime}")
 
         # Also store in database cache (non-blocking, errors are logged but don't fail)
         _store_in_database_cache(cache_key, latitude, longitude, target_datetime, wind_data)
@@ -881,10 +881,10 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         return wind_data
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching wind data from Open-Meteo for {latitude}, {longitude} at {target_datetime}: {e}")
+        logger.error(f"Error fetching wind data from Open-Meteo for key {cache_key} at {target_datetime}: {e}")
         # Return cached data even if expired
         if cache_key in _wind_cache:
-            logger.info(f"[CACHE HIT - EXPIRED] Returning expired cached data for {latitude:.4f}, {longitude:.4f} at {target_datetime} (API call failed)")
+            logger.info(f"[CACHE HIT - EXPIRED] Returning expired cached data for key {cache_key} at {target_datetime} (API call failed)")
             return _wind_cache[cache_key].get('data')
         return None
     except Exception as e:

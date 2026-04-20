@@ -1419,15 +1419,18 @@ async def get_dive_sites(
                 if thumbnail.startswith('user_'):
                      r2_storage = get_r2_storage()
                      thumbnail = r2_storage.get_photo_url(thumbnail)
-                elif 'youtube.com' in thumbnail or 'youtu.be' in thumbnail:
-                    import re
-                    youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&\s]+)'
-                    match = re.search(youtube_regex, thumbnail)
-                    if match:
-                        video_id = match.group(1)
-                        thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
-                    if thumbnail_type != 'video':
-                        thumbnail_type = 'video'
+                else:
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(thumbnail)
+                    if parsed_url.netloc in ['youtube.com', 'www.youtube.com', 'youtu.be']:
+                        import re
+                        youtube_regex = r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^?&\s]+)'
+                        match = re.search(youtube_regex, thumbnail)
+                        if match:
+                            video_id = match.group(1)
+                            thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+                        if thumbnail_type != 'video':
+                            thumbnail_type = 'video'
 
         # Get tags and aliases from eagerly loaded relationships
         tags_dict = []

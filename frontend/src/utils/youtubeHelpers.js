@@ -26,21 +26,23 @@ export const extractYouTubeVideoId = url => {
   }
 
   const host = urlObj.hostname.replace(/^www\./, '');
+  let videoId = null;
 
   if (host === 'youtu.be') {
-    return urlObj.pathname.substring(1);
+    videoId = urlObj.pathname.substring(1);
+  } else if (host === 'youtube.com') {
+    if (urlObj.pathname === '/watch') {
+      videoId = urlObj.searchParams.get('v');
+    } else if (urlObj.pathname.startsWith('/embed/')) {
+      videoId = urlObj.pathname.split('/')[2];
+    } else if (urlObj.pathname.startsWith('/v/')) {
+      videoId = urlObj.pathname.split('/')[2];
+    }
   }
 
-  if (host === 'youtube.com') {
-    if (urlObj.pathname === '/watch') {
-      return urlObj.searchParams.get('v');
-    }
-    if (urlObj.pathname.startsWith('/embed/')) {
-      return urlObj.pathname.split('/')[2];
-    }
-    if (urlObj.pathname.startsWith('/v/')) {
-      return urlObj.pathname.split('/')[2];
-    }
+  // Sanitize videoId to prevent XSS (YouTube IDs are usually 11 chars, alphanumeric, plus - and _)
+  if (videoId && /^[a-zA-Z0-9_-]+$/.test(videoId)) {
+    return videoId;
   }
 
   return null;
