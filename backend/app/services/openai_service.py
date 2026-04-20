@@ -44,7 +44,7 @@ class OpenAIService:
         self.api_key = os.getenv(self.provider_config["api_key_env"])
 
         if not self.api_key or self.api_key == "foobar":
-            logger.warning(f"{self.provider_config['api_key_env']} not set or using placeholder. Chat features will fail.")
+            logger.warning(f"API key not set or using placeholder. Chat features will fail.")
             self.client = None
         else:
             self.client = openai.AsyncOpenAI(

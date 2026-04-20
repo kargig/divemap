@@ -117,7 +117,7 @@ class DiveSiteImporter:
         try:
             # Check environment variable first
             self.token = os.getenv("DIVEMAP_PAT")
-            
+
             if not self.token:
                 print("❌ DIVEMAP_PAT environment variable not set.")
                 print("Create a Personal Access Token in your Profile settings and export it:")
@@ -125,13 +125,13 @@ class DiveSiteImporter:
                 return False
 
             self.session.headers.update({"Authorization": f"Bearer {self.token}"})
-            
+
             # Verify the token works
             verify_url = f"{BACKEND_URL}/api/v1/auth/me"
             response = self.session.get(verify_url)
             response.raise_for_status()
             user_data = response.json()
-            
+
             print(f"✅ Successfully authenticated with PAT as {user_data.get('username')}")
             return True
         except Exception as e:
@@ -458,7 +458,6 @@ class DiveSiteImporter:
             return False
 
         print(f"   Name: {site_data['name']}")
-        print(f"   Coordinates: {site_data['latitude']}, {site_data['longitude']}")
         if site_data.get('description'):
             print(f"   Description: {site_data['description']}")
 
@@ -548,7 +547,6 @@ class DiveSiteImporter:
         if not self.force and not self.dry_run:
             print(f"\n📋 About to create dive site:")
             print(f"   Name: {site_data['name']}")
-            print(f"   Coordinates: {site_data['latitude']}, {site_data['longitude']}")
             if site_data.get('description'):
                 print(f"   Description: {site_data['description']}")
 

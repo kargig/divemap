@@ -330,7 +330,7 @@ class DiveSiteLocationUpdater:
                 self.rate_limit_encountered = True
                 print(f"   🚫 [{get_timestamp()}] RATE LIMIT HIT! Status: 429")
                 if retry_count >= self.max_retries:
-                    print(f"   ❌ Rate limit exceeded after {self.max_retries} retries for coordinates ({latitude}, {longitude})")
+                    print(f"   ❌ Rate limit exceeded after {self.max_retries} retries ")
                     return None
                 
                 retry_after = self._get_retry_after(response)
@@ -351,7 +351,7 @@ class DiveSiteLocationUpdater:
             return response_data
             
         except requests.exceptions.RequestException as e:
-            print(f"   [{get_timestamp()}] ❌ Reverse geocoding failed for coordinates ({latitude}, {longitude}): {e}")
+            print(f"   [{get_timestamp()}] ❌ Reverse geocoding failed : {e}")
             return None
         except Exception as e:
             print(f"   [{get_timestamp()}] ❌ Unexpected error during reverse geocoding: {e}")
@@ -479,7 +479,6 @@ class DiveSiteLocationUpdater:
         current_region = dive_site.get("region", "N/A")
         
         print(f"\n[{get_timestamp()}] 📍 Processing dive site: {name} (ID: {dive_site_id})")
-        print(f"   Coordinates: ({latitude}, {longitude})")
         print(f"   Current: country='{current_country}', region='{current_region}'")
         
         # Check if we should update this dive site

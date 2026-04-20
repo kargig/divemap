@@ -732,7 +732,6 @@ async def reverse_geocode(
             print(f"   URL: {url}")
             print(f"   Parameters: {params}")
             print(f"   Headers: {headers}")
-            print(f"   Coordinates: lat={latitude}, lon={longitude}")
 
         response.raise_for_status()
 
@@ -814,16 +813,12 @@ async def reverse_geocode(
         if debug:
             print("❌ OpenStreetMap API unavailable, using fallback location detection")
         fallback_result = get_fallback_location(latitude, longitude, debug)
-        if debug:
-            print(f"🔄 Fallback result: {fallback_result}")
         return fallback_result
     except requests.RequestException as e:
         # Fallback to basic location detection based on coordinates
         if debug:
             print(f"❌ OpenStreetMap API error: {e}, using fallback location detection")
         fallback_result = get_fallback_location(latitude, longitude, debug)
-        if debug:
-            print(f"🔄 Fallback result: {fallback_result}")
         return fallback_result
     except Exception as e:
         raise HTTPException(
@@ -836,7 +831,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     Fallback function to provide basic location information based on coordinates
     """
     if debug:
-        print(f"🔄 Using fallback location detection for coordinates: lat={latitude}, lon={longitude}")
+        print(f"🔄 Using fallback location detection ")
 
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
@@ -875,12 +870,9 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
         if debug:
             print(f"   Fallback region detection: {region}")
             print(f"   Fallback country detection: {country}")
-            print(f"   Fallback result: {fallback_result}")
 
         return fallback_result
     else:
-        if debug:
-            print(f"   ❌ Invalid coordinates: lat={latitude}, lon={longitude}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid coordinates provided"

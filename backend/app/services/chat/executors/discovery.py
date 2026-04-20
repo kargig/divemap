@@ -50,7 +50,7 @@ def execute_discovery(
                 n, s, e, w = bounds
                 latitude = (n + s) / 2.0
                 longitude = (e + w) / 2.0
-                logger.info(f"Resolved region '{location}' to bounds center ({latitude}, {longitude}).")
+                logger.info(f"Resolved region '{location}'.")
                 if not radius:
                     from app.geo_utils import calculate_distance
                     # Calculate distance from center to the NE corner

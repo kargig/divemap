@@ -126,7 +126,7 @@ class SubsurfaceDiveImporter:
         try:
             # Check environment variable first
             self.token = os.getenv("DIVEMAP_PAT")
-            
+
             if not self.token:
                 print("❌ DIVEMAP_PAT environment variable not set.")
                 print("Create a Personal Access Token in your Profile settings and export it:")
@@ -134,13 +134,13 @@ class SubsurfaceDiveImporter:
                 return False
 
             self.session.headers.update({"Authorization": f"Bearer {self.token}"})
-            
+
             # Verify the token works
             verify_url = f"{BACKEND_URL}/api/v1/auth/me"
             response = self.session.get(verify_url)
             response.raise_for_status()
             user_data = response.json()
-            
+
             print(f"✅ Successfully authenticated with PAT as {user_data.get('username')}")
 
             # Initialize parser with auth token
@@ -246,7 +246,6 @@ class SubsurfaceDiveImporter:
                                 print(f"         Name: {site_data['name']}")
                                 if site_data.get('description'):
                                     print(f"         Description: {site_data['description']}")
-                                print(f"         Coordinates: {site_data['latitude']}, {site_data['longitude']}")
 
                                 # Search for nearby dive sites
                                 nearby_sites = self.search_nearby_dive_sites(

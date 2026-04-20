@@ -634,7 +634,6 @@ Examples:
         print()
         print(f"[{get_timestamp()}] ═══ Progress: {i}/{len(sites_to_update)} ({progress_percent:.1f}%){time_str} ═══")
         print(f"[{get_timestamp()}] Processing: {site_name} (ID: {site_id})")
-        print(f"   Location: {lat}, {lng}")
 
         # Detect shore direction
         detection_result = api.detect_shore_direction(site_id)

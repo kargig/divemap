@@ -193,7 +193,7 @@ def import_dive_sites(dive_sites: List[Dict], db_session) -> None:
 
         db_session.commit()
         imported_count += 1
-        print(f"Imported: {site_data['name']} (lat: {site_data.get('latitude')}, lng: {site_data.get('longitude')})")
+        print(f"Imported: {site_data['name']}")
 
     print(f"\nImport completed:")
     print(f"  - Imported: {imported_count} dive sites")
