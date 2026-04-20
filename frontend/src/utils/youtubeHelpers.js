@@ -1,5 +1,6 @@
 /**
- * YouTube URL helper functions for extracting video IDs and generating embed URLs
+ * Video URL helper functions for extracting video IDs and generating embed URLs
+ * Supports YouTube and Vimeo with secure URL parsing.
  */
 
 /**
@@ -12,22 +13,34 @@ export const extractYouTubeVideoId = url => {
     return null;
   }
 
-  // Regular YouTube URLs: https://www.youtube.com/watch?v=VIDEO_ID
-  const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#\s]+)/);
-  if (watchMatch) {
-    return watchMatch[1];
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    // If it fails, try prepending https:// for cases like 'youtube.com/watch?v=...'
+    try {
+      urlObj = new URL(`https://${url}`);
+    } catch (e2) {
+      return null;
+    }
   }
 
-  // Embed URLs: https://www.youtube.com/embed/VIDEO_ID
-  const embedMatch = url.match(/youtube\.com\/embed\/([^&\n?#\s]+)/);
-  if (embedMatch) {
-    return embedMatch[1];
+  const host = urlObj.hostname.replace(/^www\./, '');
+
+  if (host === 'youtu.be') {
+    return urlObj.pathname.substring(1);
   }
 
-  // Short URLs: https://youtu.be/VIDEO_ID
-  const shortMatch = url.match(/youtu\.be\/([^&\n?#\s]+)/);
-  if (shortMatch) {
-    return shortMatch[1];
+  if (host === 'youtube.com') {
+    if (urlObj.pathname === '/watch') {
+      return urlObj.searchParams.get('v');
+    }
+    if (urlObj.pathname.startsWith('/embed/')) {
+      return urlObj.pathname.split('/')[2];
+    }
+    if (urlObj.pathname.startsWith('/v/')) {
+      return urlObj.pathname.split('/')[2];
+    }
   }
 
   return null;
@@ -75,7 +88,44 @@ export const getYouTubeThumbnailUrl = (videoId, quality = 'maxres') => {
  * @returns {boolean} - True if valid YouTube URL
  */
 export const isYouTubeUrl = url => {
-  return extractYouTubeVideoId(url) !== null;
+  if (!url || typeof url !== 'string') return false;
+
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    try {
+      urlObj = new URL(`https://${url}`);
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  const host = urlObj.hostname.replace(/^www\./, '');
+  return host === 'youtube.com' || host === 'youtu.be';
+};
+
+/**
+ * Check if URL is a valid Vimeo URL
+ * @param {string} url - URL to check
+ * @returns {boolean} - True if valid Vimeo URL
+ */
+export const isVimeoUrl = url => {
+  if (!url || typeof url !== 'string') return false;
+
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    try {
+      urlObj = new URL(`https://${url}`);
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  const host = urlObj.hostname.replace(/^www\./, '');
+  return host === 'vimeo.com' || host === 'player.vimeo.com';
 };
 
 /**

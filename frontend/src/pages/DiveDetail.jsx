@@ -77,6 +77,7 @@ import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
+import { isYouTubeUrl, isVimeoUrl } from '../utils/youtubeHelpers';
 
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
@@ -115,10 +116,7 @@ const DiveDetail = () => {
     const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
     const lowerUrl = url.toLowerCase();
     return (
-      videoExtensions.some(ext => lowerUrl.includes(ext)) ||
-      lowerUrl.includes('youtube.com') ||
-      lowerUrl.includes('youtu.be') ||
-      lowerUrl.includes('vimeo.com')
+      videoExtensions.some(ext => lowerUrl.includes(ext)) || isYouTubeUrl(url) || isVimeoUrl(url)
     );
   }, []);
 

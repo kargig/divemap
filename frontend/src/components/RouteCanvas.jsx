@@ -39,6 +39,7 @@ import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
   isYouTubeUrl,
+  getYouTubeEmbedUrl,
 } from '../utils/youtubeHelpers';
 
 import MapLayersPanel from './MapLayersPanel';
@@ -499,18 +500,13 @@ const MapInitializer = ({
           if (segment.properties.mediaUrl) {
             if (
               segment.properties.mediaType === 'youtube' ||
-              segment.properties.mediaUrl.includes('youtube') ||
-              segment.properties.mediaUrl.includes('youtu.be')
+              isYouTubeUrl(segment.properties.mediaUrl)
             ) {
               // Simple convert to embed if needed, or just link
               // For now, just a link for safety/simplicity in edit mode, or small preview?
               // Let's try to embed if possible
-              let embedUrl = segment.properties.mediaUrl;
-              if (embedUrl.includes('watch?v=')) {
-                embedUrl = embedUrl.replace('watch?v=', 'embed/');
-              } else if (embedUrl.includes('youtu.be/')) {
-                embedUrl = embedUrl.replace('youtu.be/', 'https://www.youtube.com/embed/');
-              }
+              const videoId = extractYouTubeVideoId(segment.properties.mediaUrl);
+              const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : segment.properties.mediaUrl;
               // We don't escape embedUrl here because we trust our YouTube conversion logic,
               // but DOMPurify will sanitize the iframe.
               popupContent += `<div class="mb-2 aspect-video"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
@@ -817,7 +813,7 @@ const MarkerModal = ({ isOpen, onClose, markerData, onSave, diveSiteId }) => {
       data.mediaUrl = externalUrl;
       data.mediaType = 'external'; // Generalized external type
       // Simple YouTube detection
-      if (externalUrl.includes('youtube.com') || externalUrl.includes('youtu.be')) {
+      if (isYouTubeUrl(externalUrl)) {
         data.mediaType = 'youtube';
       } else if (externalUrl.match(/\.(jpeg|jpg|gif|png)$/) != null) {
         data.mediaType = 'photo';

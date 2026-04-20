@@ -65,6 +65,7 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
+import { isYouTubeUrl, isVimeoUrl } from '../utils/youtubeHelpers';
 
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
@@ -101,12 +102,7 @@ const DiveSiteDetail = () => {
   // Helper to check if URL is video
   const isVideoUrl = useCallback(url => {
     if (!url) return false;
-    return (
-      url.includes('youtube.com') ||
-      url.includes('youtu.be') ||
-      url.includes('vimeo.com') ||
-      url.includes('.mp4')
-    );
+    return isYouTubeUrl(url) || isVimeoUrl(url) || url.includes('.mp4');
   }, []);
 
   const {
