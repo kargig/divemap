@@ -18,6 +18,84 @@ import api from '../api';
 import usePageTitle from '../hooks/usePageTitle';
 import { extractErrorMessage as getErrorMessage } from '../utils/apiErrors';
 
+/**
+ * A simple word-based diff implementation using Myers' algorithm (simplified)
+ * This identifies additions and deletions at the word level.
+ */
+const diffWords = (oldStr, newStr) => {
+  if (!oldStr) oldStr = '';
+  if (!newStr) newStr = '';
+
+  const oldWords = oldStr.split(/(\s+)/);
+  const newWords = newStr.split(/(\s+)/);
+
+  const matrix = Array(oldWords.length + 1)
+    .fill(0)
+    .map(() => Array(newWords.length + 1).fill(0));
+
+  for (let i = 1; i <= oldWords.length; i++) {
+    for (let j = 1; j <= newWords.length; j++) {
+      if (oldWords[i - 1] === newWords[j - 1]) {
+        matrix[i][j] = matrix[i - 1][j - 1] + 1;
+      } else {
+        matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
+      }
+    }
+  }
+
+  const result = [];
+  let i = oldWords.length;
+  let j = newWords.length;
+
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldWords[i - 1] === newWords[j - 1]) {
+      result.unshift({ value: oldWords[i - 1], type: 'equal' });
+      i--;
+      j--;
+    } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
+      result.unshift({ value: newWords[j - 1], type: 'add' });
+      j--;
+    } else if (i > 0 && (j === 0 || matrix[i][j - 1] < matrix[i - 1][j])) {
+      result.unshift({ value: oldWords[i - 1], type: 'delete' });
+      i--;
+    }
+  }
+
+  return result;
+};
+
+const DiffViewer = ({ oldText, newText }) => {
+  const diff = diffWords(oldText, newText);
+
+  return (
+    <div className='font-sans whitespace-pre-wrap break-words text-sm leading-relaxed p-2 rounded bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 max-h-60 overflow-y-auto text-gray-900 dark:text-gray-100'>
+      {diff.map((part, index) => {
+        if (part.type === 'add') {
+          return (
+            <span
+              key={index}
+              className='bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 px-0.5 rounded'
+            >
+              {part.value}
+            </span>
+          );
+        }
+        if (part.type === 'delete') {
+          return (
+            <span
+              key={index}
+              className='bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 line-through px-0.5 rounded'
+            >
+              {part.value}
+            </span>
+          );
+        }
+        return <span key={index}>{part.value}</span>;
+      })}
+    </div>
+  );
+};
+
 const getEditTypeLabel = type => {
   switch (type) {
     case 'site_data':
@@ -381,6 +459,27 @@ const AdminEditRequests = () => {
                                   </tr>
                                 );
                               }
+                              if (key === 'description') {
+                                return (
+                                  <tr key={key} className='bg-yellow-50/30'>
+                                    <td className='px-4 py-2 text-sm font-medium text-gray-900'>
+                                      <div className='flex items-center'>
+                                        description
+                                        <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800'>
+                                          Modified
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td colSpan={2} className='px-4 py-3'>
+                                      <DiffViewer
+                                        oldText={displayCurrent === 'undefined' ? '' : displayCurrent}
+                                        newText={displayNew}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              }
+
                               return (
                                 <tr key={key} className='bg-yellow-50/30'>
                                   <td className='px-4 py-2 text-sm font-medium text-gray-900'>
