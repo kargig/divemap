@@ -28,6 +28,7 @@ module.exports = [
         setTimeout: true,
         clearTimeout: true,
         fetch: true,
+        URL: true,
         URLSearchParams: true,
         navigator: true,
         process: true,

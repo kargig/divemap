@@ -40,6 +40,7 @@ import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
+import { isYouTubeUrl, extractYouTubeVideoId, getYouTubeEmbedUrl } from '../utils/youtubeHelpers';
 
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
@@ -250,17 +251,9 @@ const RouteLayer = ({ route, diveSite, showBearings = true }) => {
           if (comment || markerConfig.name || mediaUrl) {
             let mediaHtml = '';
             if (mediaUrl) {
-              if (
-                mediaType === 'youtube' ||
-                mediaUrl.includes('youtube') ||
-                mediaUrl.includes('youtu.be')
-              ) {
-                let embedUrl = mediaUrl;
-                if (embedUrl.includes('watch?v=')) {
-                  embedUrl = embedUrl.replace('watch?v=', 'embed/');
-                } else if (embedUrl.includes('youtu.be/')) {
-                  embedUrl = embedUrl.replace('youtu.be/', 'www.youtube.com/embed/');
-                }
+              if (mediaType === 'youtube' || isYouTubeUrl(mediaUrl)) {
+                const videoId = extractYouTubeVideoId(mediaUrl);
+                const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : mediaUrl;
                 mediaHtml = `<div class="mb-2 aspect-video"><iframe src="${embedUrl}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>`;
               } else if (mediaType === 'video') {
                 mediaHtml = `<div class="mb-2"><video src="${mediaUrl}" controls class="w-full rounded"></video></div>`;

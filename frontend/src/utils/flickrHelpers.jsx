@@ -9,10 +9,7 @@ export async function convertFlickrUrlToDirectImage(flickrUrl) {
   }
 
   // Check if it's a Flickr URL
-  const isFlickrShort = flickrUrl.includes('flic.kr/p/');
-  const isFlickrFull = flickrUrl.includes('flickr.com/photos/');
-
-  if (!isFlickrShort && !isFlickrFull) {
+  if (!isFlickrUrl(flickrUrl)) {
     return flickrUrl; // Not a Flickr URL, return as-is
   }
 
@@ -35,8 +32,18 @@ export async function convertFlickrUrlToDirectImage(flickrUrl) {
     }
 
     // Fallback: if HTML extraction fails, try data.url (though it's usually the page URL)
-    if (result.oembed_data?.url && result.oembed_data.url.includes('staticflickr.com')) {
-      return result.oembed_data.url;
+    if (result.oembed_data?.url) {
+      try {
+        const urlObj = new URL(result.oembed_data.url);
+        if (
+          urlObj.hostname === 'staticflickr.com' ||
+          urlObj.hostname.endsWith('.staticflickr.com')
+        ) {
+          return result.oembed_data.url;
+        }
+      } catch (e) {
+        // Not a valid URL
+      }
     }
 
     return flickrUrl; // Return original if we can't extract
@@ -53,5 +60,23 @@ export async function convertFlickrUrlToDirectImage(flickrUrl) {
  */
 export function isFlickrUrl(url) {
   if (!url || typeof url !== 'string') return false;
-  return url.includes('flic.kr/p/') || url.includes('flickr.com/photos/');
+
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    try {
+      urlObj = new URL(`https://${url}`);
+    } catch (e2) {
+      return false;
+    }
+  }
+
+  const host = urlObj.hostname.replace(/^www\./, '');
+  const isFlickrDomain = host === 'flickr.com' || host === 'flic.kr';
+
+  if (!isFlickrDomain) return false;
+
+  // Further check for valid paths
+  return urlObj.pathname.startsWith('/photos/') || urlObj.pathname.startsWith('/p/');
 }
