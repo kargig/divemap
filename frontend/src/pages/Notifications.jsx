@@ -93,23 +93,25 @@ const Notifications = () => {
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='w-full'>
         {/* Header */}
-        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6'>
+        <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-transparent dark:border-gray-700'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
             <div className='flex items-center space-x-3'>
-              <Bell className='h-6 w-6 text-blue-600' />
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>Notifications</h1>
+              <Bell className='h-6 w-6 text-blue-600 dark:text-blue-400' />
+              <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-white'>
+                Notifications
+              </h1>
             </div>
             <div className='flex items-center space-x-2 sm:space-x-3 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0'>
               <Link
                 to='/notifications/preferences'
-                className='flex items-center space-x-2 px-3 sm:px-4 py-2 text-blue-600 border border-blue-600 rounded-md hover:bg-blue-50 transition-colors whitespace-nowrap text-sm'
+                className='flex items-center space-x-2 px-3 sm:px-4 py-2 text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors whitespace-nowrap text-sm'
               >
                 <Settings className='h-4 w-4' />
                 <span>Preferences</span>
               </Link>
               <button
                 onClick={handleMarkAllRead}
-                className='flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap text-sm'
+                className='flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors whitespace-nowrap text-sm'
               >
                 <Check className='h-4 w-4' />
                 <span>Mark All Read</span>
@@ -120,7 +122,7 @@ const Notifications = () => {
           {/* Filters */}
           <div className='flex flex-wrap gap-3 sm:gap-4'>
             <div className='flex items-center space-x-2 flex-1 min-w-[120px]'>
-              <Filter className='h-4 w-4 text-gray-500 shrink-0' />
+              <Filter className='h-4 w-4 text-gray-500 dark:text-gray-400 shrink-0' />
               <select
                 id='filter-status'
                 name='filter-status'
@@ -129,7 +131,7 @@ const Notifications = () => {
                   setFilter(e.target.value);
                   setPage(1);
                 }}
-                className='border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white'
+                className='border border-gray-300 dark:border-gray-600 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
               >
                 <option value='all'>All</option>
                 <option value='unread'>Unread</option>
@@ -146,7 +148,7 @@ const Notifications = () => {
                   setCategoryFilter(e.target.value);
                   setPage(1);
                 }}
-                className='border border-gray-300 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white'
+                className='border border-gray-300 dark:border-gray-600 rounded-md px-2 sm:px-3 py-2 text-sm w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
               >
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
@@ -162,47 +164,49 @@ const Notifications = () => {
         <BuddyRequests />
 
         {/* Notifications List */}
-        <div className='bg-white rounded-lg shadow-md overflow-hidden'>
+        <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-transparent dark:border-gray-700'>
           {isLoading ? (
             <div className='p-4'>
               <LoadingSkeleton count={5} />
             </div>
           ) : notifications.length > 0 ? (
             <>
-              <div className='divide-y divide-gray-200'>
+              <div className='divide-y divide-gray-200 dark:divide-gray-700'>
                 {notifications.map(notification => (
                   <NotificationItem key={notification.id} notification={notification} />
                 ))}
               </div>
 
               {/* Pagination */}
-              <div className='px-4 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4'>
+              <div className='px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4'>
                 <div className='flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-start'>
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-sm'
+                    className='px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300'
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={notifications.length < pageSize}
-                    className='px-4 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 text-sm'
+                    className='px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-300'
                   >
                     Next
                   </button>
                 </div>
-                <span className='text-sm text-gray-600 order-first sm:order-none'>
+                <span className='text-sm text-gray-600 dark:text-gray-400 order-first sm:order-none'>
                   Page {page} {totalPages > 1 && `of ${totalPages}`}
                 </span>
               </div>
             </>
           ) : (
             <div className='p-12 text-center'>
-              <Bell className='h-16 w-16 mx-auto mb-4 text-gray-300' />
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>No notifications</h3>
-              <p className='text-gray-500'>
+              <Bell className='h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-600' />
+              <h3 className='text-lg font-medium text-gray-900 dark:text-white mb-2'>
+                No notifications
+              </h3>
+              <p className='text-gray-500 dark:text-gray-400'>
                 {filter === 'unread'
                   ? "You're all caught up! No unread notifications."
                   : 'You have no notifications yet.'}

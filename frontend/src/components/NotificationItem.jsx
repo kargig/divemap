@@ -82,8 +82,8 @@ const NotificationItem = ({ notification, onDelete }) => {
 
   return (
     <div
-      className={`p-4 border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-        isUnread ? 'bg-blue-50' : 'bg-white'
+      className={`p-4 border-b border-gray-200 dark:border-gray-700 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors ${
+        isUnread ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-900'
       }`}
     >
       <div className='flex items-start justify-between'>
@@ -97,17 +97,21 @@ const NotificationItem = ({ notification, onDelete }) => {
               <div className='h-2 w-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0' />
             )}
             <div className='flex-1'>
-              <h4 className='text-sm font-medium text-gray-900'>{notification.title}</h4>
-              <p className='text-sm text-gray-600 mt-1'>{notification.message}</p>
+              <h4 className='text-sm font-medium text-gray-900 dark:text-white'>
+                {notification.title}
+              </h4>
+              <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>
+                {notification.message}
+              </p>
               <div className='flex items-center mt-2 space-x-4'>
                 <span
-                  className='text-xs text-gray-400 cursor-help'
+                  className='text-xs text-gray-400 dark:text-gray-500 cursor-help'
                   title={formatExactDateTime(notification.created_at)}
                 >
                   {formatDate(notification.created_at)}
                 </span>
                 {notification.category && (
-                  <span className='text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded'>
+                  <span className='text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded'>
                     {notification.category.replace(/_/g, ' ')}
                   </span>
                 )}
@@ -120,7 +124,7 @@ const NotificationItem = ({ notification, onDelete }) => {
           {isUnread && (
             <button
               onClick={handleMarkRead}
-              className='p-1 text-gray-400 hover:text-green-600 transition-colors'
+              className='p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors'
               aria-label='Mark as read'
               title='Mark as read'
             >
@@ -129,7 +133,7 @@ const NotificationItem = ({ notification, onDelete }) => {
           )}
           <button
             onClick={handleDelete}
-            className='p-1 text-gray-400 hover:text-red-600 transition-colors'
+            className='p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors'
             aria-label='Delete notification'
             title='Delete notification'
           >

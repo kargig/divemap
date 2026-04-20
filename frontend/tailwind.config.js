@@ -17,6 +17,10 @@ module.exports = {
         'divemap-trench': '#001a2a', // Dark Trench Blue - Used for dark section backgrounds
         'divemap-surface': '#eaf4f9', // Bright Water Tint - Used for light CTA boxes
         
+        // --- Interactive Colors ---
+        'interactive-hover': 'rgba(219, 234, 254, 0.5)', // blue-100/50
+        'interactive-hover-dark': 'rgba(30, 58, 138, 0.4)', // blue-900/40
+        
         // --- Legacy Colors ---
         'dive-primary': '#2563eb', // blue-600
         'dive-success': '#15803d', // green-700

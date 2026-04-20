@@ -108,7 +108,7 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
             <button
               key={room.id}
               onClick={() => onSelectRoom(room.id)}
-              className={`w-full flex items-center p-4 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-left border-b border-gray-100 dark:border-gray-700 ${
+              className={`w-full flex items-center p-4 transition-colors hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark text-left border-b border-gray-100 dark:border-gray-700 ${
                 isActive ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-600' : ''
               }`}
             >

@@ -162,3 +162,8 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
 - **Performance:** Eliminate waterfalls (parallelize async), use `React.lazy` for heavy components, and animate wrapper `div`s (not SVGs).
 - **Architecture:** Avoid 'barrel files', place interaction logic in event handlers (not effects), and use functional state updates.
 - **State:** Use lazy initialization `useState(() => ...)` for expensive values (and localStorage!), and `useRef` for transient high-frequency updates.
+
+## UI Styling Standards
+- **Standardized Hover:** Use `hover:bg-interactive-hover` and `dark:hover:bg-interactive-hover-dark` for high-interaction lists (notifications, chat, buddy requests) to ensure brand-consistent visual feedback.
+- **Dark Mode:** Always provide dark mode alternatives using the `dark:` prefix. Use `dark:bg-gray-800` for cards and `dark:border-gray-700` for borders.
+- **Interactive States:** Mark-as-read checkmarks and similar action triggers should be always visible on unread/active items for better mobile accessibility.

@@ -1,0 +1,36 @@
+---
+description: UI styling and design standards for the Divemap project, including standardized hover colors and interactive elements
+globs: ["frontend/src/**/*.jsx", "frontend/src/**/*.css", "frontend/tailwind.config.js"]
+alwaysApply: true
+---
+
+# UI Styling & Design Standards
+
+## Color Palette Consistency
+Standardized interactive element colors are defined in `frontend/tailwind.config.js`. Use these semantic classes instead of generic grays for high-interaction lists (notifications, chat, buddy requests).
+
+### Interactive Hover Colors
+- **Light Mode:** `hover:bg-interactive-hover` (Equivalent to `blue-100/50`)
+- **Dark Mode:** `dark:hover:bg-interactive-hover-dark` (Equivalent to `blue-900/40`)
+
+Usage Example:
+```jsx
+<div className="p-4 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors">
+  {/* Content */}
+</div>
+```
+
+## Notification & Communication Lists
+- **Unread State:** Use `bg-blue-50/50` (light) and `dark:bg-blue-900/10` (dark) for unread items.
+- **Checkmarks:** Mark-as-read checkmarks should be always visible for unread items (not just on hover) to improve accessibility on mobile.
+- **Click Behavior:** Clicking a notification or chat item should automatically mark it as read while navigating to the target.
+
+## Dark Mode Standards
+- Always use the `dark:` prefix for all components.
+- Backgrounds: Use `dark:bg-gray-800` for cards/containers and `dark:bg-gray-900` for main page backgrounds.
+- Text: Use `dark:text-white` for headings and `dark:text-gray-300` or `dark:text-gray-400` for secondary text.
+- Borders: Use `dark:border-gray-700` for consistent separation.
+
+## Typography
+- Use the `font-display` class (Outfit font) for headings and titles.
+- Use the default sans font (DM Sans) for body text and long descriptions.

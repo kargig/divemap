@@ -71,7 +71,10 @@ const BuddyRequests = () => {
             {incomingRequests.map(req => {
               const sender = req.initiator_id === req.user_id ? req.user : req.friend;
               return (
-                <div key={req.id} className='p-4 flex items-center justify-between gap-4'>
+                <div
+                  key={req.id}
+                  className='p-4 flex items-center justify-between gap-4 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors'
+                >
                   <div className='flex items-center space-x-3 min-w-0'>
                     <Avatar src={sender?.avatar_url} username={sender?.username} size='md' />
                     <div className='min-w-0'>
@@ -118,7 +121,10 @@ const BuddyRequests = () => {
               // The target is the one who is NOT the initiator
               const target = req.user_id === req.initiator_id ? req.friend : req.user;
               return (
-                <div key={req.id} className='p-4 flex items-center justify-between gap-4'>
+                <div
+                  key={req.id}
+                  className='p-4 flex items-center justify-between gap-4 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors'
+                >
                   <div className='flex items-center space-x-3 min-w-0'>
                     <Avatar src={target?.avatar_url} username={target?.username} size='md' />
                     <div className='min-w-0'>

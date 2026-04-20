@@ -89,14 +89,21 @@ const NotificationBell = () => {
               recentNotifications.map(notification => (
                 <div
                   key={notification.id}
-                  className={`group relative p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                  className={`group relative p-3 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors ${
                     !notification.is_read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                   }`}
                 >
+                  {' '}
                   <div className='flex items-start justify-between'>
                     <Link
                       to={notification.link_url || '/notifications'}
-                      onClick={() => setShowDropdown(false)}
+                      onClick={() => {
+                        setShowDropdown(false);
+                        if (!notification.is_read) {
+                          markRead(notification.id);
+                          queryClient.invalidateQueries(['notifications', 'recent']);
+                        }
+                      }}
                       className='flex-1 min-w-0'
                     >
                       <div className='flex items-start'>
@@ -121,7 +128,7 @@ const NotificationBell = () => {
                     {!notification.is_read && (
                       <button
                         onClick={e => handleMarkRead(e, notification.id)}
-                        className='ml-2 p-1.5 text-gray-400 hover:text-green-600 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-600'
+                        className='ml-2 p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors flex-shrink-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-600'
                         aria-label='Mark as read'
                         title='Mark as read'
                       >

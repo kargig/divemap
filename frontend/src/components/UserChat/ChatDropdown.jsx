@@ -111,7 +111,7 @@ const ChatDropdown = () => {
                   <button
                     key={room.id}
                     onClick={() => handleRoomClick(room.id)}
-                    className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left ${
+                    className={`w-full flex items-center p-3 hover:bg-interactive-hover dark:hover:bg-interactive-hover-dark transition-colors text-left ${
                       room.unread_count > 0 ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
                     }`}
                   >
