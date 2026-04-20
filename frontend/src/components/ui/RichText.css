@@ -1,0 +1,22 @@
+/* Redundant styles removed in favor of @tailwindcss/typography 'prose' class */
+
+.rich-text {
+  @apply text-gray-700 dark:text-gray-300 leading-relaxed;
+}
+
+/* Ensure images and videos within markdown are responsive */
+.rich-text img,
+.rich-text video {
+  @apply max-w-full h-auto rounded-lg my-4;
+}
+
+/* Custom link styling if needed to override prose defaults */
+.rich-text a {
+  @apply text-blue-600 dark:text-blue-400 no-underline hover:underline;
+}
+
+/* Ensure consistent spacing for lists within the context of our app */
+.rich-text ul,
+.rich-text ol {
+  @apply my-4;
+}

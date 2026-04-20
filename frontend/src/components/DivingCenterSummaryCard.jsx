@@ -14,6 +14,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 import MaskedEmail from './MaskedEmail';
 import Button from './ui/Button';
+import RichText from './ui/RichText';
 
 const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
   const navigate = useNavigate();
@@ -141,9 +142,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
       <div className='grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 sm:pt-6 border-t border-gray-100'>
         <div className='col-span-2'>
           {center.description ? (
-            <p className='text-gray-700 leading-relaxed whitespace-pre-wrap'>
-              {decodeHtmlEntities(center.description)}
-            </p>
+            <RichText content={center.description} className='text-gray-700' />
           ) : (
             <p className='text-gray-400 italic'>No description available.</p>
           )}

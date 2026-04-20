@@ -8,6 +8,7 @@ import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpe
 
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
 import { DiveSiteSearchDropdown } from './ui/DiveSiteSearchDropdown';
+import MarkdownEditor from './ui/MarkdownEditor';
 import Modal from './ui/Modal';
 import Select from './ui/Select';
 
@@ -335,42 +336,35 @@ const TripFormModal = ({
       </div>
 
       <div>
-        <label htmlFor='trip-description' className='block text-sm font-medium text-gray-700 mb-1'>
-          Trip Description
-        </label>
-        <textarea
-          id='trip-description'
-          {...register('trip_description')}
-          className={`w-full p-2 border rounded-md ${
-            errors.trip_description ? 'border-red-500' : ''
-          }`}
-          rows='3'
+        <Controller
+          name='trip_description'
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <MarkdownEditor
+              label='Trip Description'
+              value={field.value}
+              onChange={field.onChange}
+              error={error?.message}
+              placeholder='Enter trip description'
+            />
+          )}
         />
-        {errors.trip_description && (
-          <p className='text-red-500 text-sm mt-1'>{getErrorMessage(errors.trip_description)}</p>
-        )}
       </div>
 
       <div>
-        <label
-          htmlFor='trip-special-requirements'
-          className='block text-sm font-medium text-gray-700 mb-1'
-        >
-          Special Requirements
-        </label>
-        <textarea
-          id='trip-special-requirements'
-          {...register('special_requirements')}
-          className={`w-full p-2 border rounded-md ${
-            errors.special_requirements ? 'border-red-500' : ''
-          }`}
-          rows='2'
+        <Controller
+          name='special_requirements'
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <MarkdownEditor
+              label='Special Requirements'
+              value={field.value}
+              onChange={field.onChange}
+              error={error?.message}
+              placeholder='Any special requirements or instructions'
+            />
+          )}
         />
-        {errors.special_requirements && (
-          <p className='text-red-500 text-sm mt-1'>
-            {getErrorMessage(errors.special_requirements)}
-          </p>
-        )}
       </div>
 
       {/* Dives Section */}
@@ -494,26 +488,21 @@ const TripFormModal = ({
                 )}
               </div>
 
-              <div>
-                <label
-                  htmlFor={`dive-description-${index}`}
-                  className='block text-sm font-medium text-gray-700 mb-1'
-                >
-                  Description
-                </label>
-                <textarea
-                  id={`dive-description-${index}`}
-                  {...register(`dives.${index}.dive_description`)}
-                  className={`w-full p-2 border rounded-md ${
-                    errors.dives?.[index]?.dive_description ? 'border-red-500' : ''
-                  }`}
-                  rows='2'
+              <div className='md:col-span-2'>
+                <Controller
+                  name={`dives.${index}.dive_description`}
+                  control={control}
+                  render={({ field, fieldState: { error } }) => (
+                    <MarkdownEditor
+                      label='Dive Description'
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={error?.message}
+                      placeholder='Describe this specific dive'
+                      minHeight='100px'
+                    />
+                  )}
                 />
-                {errors.dives?.[index]?.dive_description && (
-                  <p className='text-red-500 text-sm mt-1'>
-                    {getErrorMessage(errors.dives?.[index]?.dive_description)}
-                  </p>
-                )}
               </div>
             </div>
           </div>

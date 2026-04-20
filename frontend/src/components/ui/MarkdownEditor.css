@@ -1,0 +1,29 @@
+/* SimpleMDE / EasyMDE overrides */
+
+.markdown-editor-wrapper .editor-toolbar {
+  @apply bg-gray-50 border-gray-200;
+  border-top-left-radius: 0.375rem;
+  border-top-right-radius: 0.375rem;
+}
+
+.markdown-editor-wrapper .CodeMirror {
+  @apply border-gray-200 text-gray-900;
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+  font-family: inherit;
+}
+
+.markdown-editor-wrapper .editor-preview {
+  @apply bg-white text-gray-900;
+}
+
+/* Ensure toolbar doesn't overlap with sticky headers */
+.markdown-editor-wrapper .editor-toolbar {
+  z-index: 10 !important;
+}
+
+/* Fix for fullscreen mode in some layouts */
+.markdown-editor-wrapper .CodeMirror-fullscreen,
+.markdown-editor-wrapper .editor-toolbar.fullscreen {
+  z-index: 50 !important;
+}

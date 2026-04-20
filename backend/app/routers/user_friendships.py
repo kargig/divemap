@@ -51,7 +51,7 @@ async def send_friend_request(
                     category="system",
                     title="Buddy Request Accepted",
                     message=f"{current_user.username} accepted your buddy request.",
-                    link_url=f"/users/{current_user.username}",
+                    link_url="/buddies",
                     db=db
                 )
                 
@@ -73,7 +73,7 @@ async def send_friend_request(
                 user_id=req.friend_id,
                 title="New Buddy Request",
                 message=f"{current_user.username} sent you a buddy request.",
-                link_url=f"/users/{current_user.username}",
+                link_url="/buddies",
                 db=db
             )
             return existing
@@ -96,7 +96,7 @@ async def send_friend_request(
         category="system",
         title="New Buddy Request",
         message=f"{current_user.username} sent you a buddy request.",
-        link_url=f"/users/{current_user.username}",
+        link_url="/buddies",
         db=db
     )
     
@@ -155,7 +155,7 @@ async def accept_friend_request(
         user_id=friendship.initiator_id,
         title="Buddy Request Accepted",
         message=f"{current_user.username} accepted your buddy request.",
-        link_url=f"/users/{current_user.username}",
+        link_url="/buddies",
         db=db
     )
     

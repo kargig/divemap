@@ -7,6 +7,7 @@ import { formatDate, getStatusColorClasses, getDisplayStatus } from '../utils/tr
 import { generateTripName } from '../utils/tripNameGenerator';
 
 import CurrencyIcon from './ui/CurrencyIcon';
+import RichText from './ui/RichText';
 
 const TripHeader = ({ trip }) => {
   const navigate = useNavigate();
@@ -39,9 +40,13 @@ const TripHeader = ({ trip }) => {
                 </h1>
               </div>
             </div>
-            <p className='text-gray-600 text-sm sm:text-base lg:text-lg mb-4'>
-              {trip.trip_description || 'Experience an amazing diving adventure'}
-            </p>
+            <div className='text-gray-600 text-sm sm:text-base lg:text-lg mb-4'>
+              {trip.trip_description ? (
+                <RichText content={trip.trip_description} />
+              ) : (
+                'Experience an amazing diving adventure'
+              )}
+            </div>
 
             {/* Trip Meta Information */}
             <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>

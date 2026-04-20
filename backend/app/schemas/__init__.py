@@ -3,6 +3,7 @@ from typing import Optional, List, Union, Literal, Dict, Any
 from datetime import datetime, date, time, timezone
 import re
 import enum
+import nh3
 
 # Import auth schemas
 from .auth import PasswordResetRequest, PasswordResetConfirm
@@ -10,6 +11,17 @@ from .pats import PATCreate, PATResponse, PATCreateResponse
 
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
+
+def strip_html(v: Optional[str]) -> Optional[str]:
+    """
+    Strips ALL HTML tags from a string using nh3.
+    Since we only support Markdown on the frontend, we don't want any raw HTML
+    stored in our database to prevent XSS.
+    """
+    if v is None:
+        return v
+    # nh3.clean with tags=set() removes all HTML tags but keeps the text inside
+    return nh3.clean(v, tags=set())
 
 
 def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
@@ -219,6 +231,11 @@ class DiveSiteBase(BaseModel):
     region: Optional[str] = None  # Region/state/province name
     shore_direction: Optional[float] = Field(None, ge=0, le=360, description="Compass bearing (0-360 degrees) indicating which direction the shore/beach faces")
 
+    @field_validator('description', 'access_instructions', 'marine_life', 'safety_information', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
+
 class DiveSiteCreate(DiveSiteBase):
     moderation_needed: bool = Field(False, description="Bypass proximity check and submit for moderation")
 
@@ -238,6 +255,11 @@ class DiveSiteUpdate(BaseModel):
     shore_direction_confidence: Optional[str] = Field(None, description="Confidence level: 'high', 'medium', 'low'")
     shore_direction_method: Optional[str] = Field(None, description="Method used: 'osm_coastline', 'manual', 'ai', etc.")
     shore_direction_distance_m: Optional[float] = Field(None, ge=0, description="Distance to coastline in meters")
+
+    @field_validator('description', 'access_instructions', 'marine_life', 'safety_information', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
 
 # Dive Site Alias Schemas
 class DiveSiteAliasBase(BaseModel):
@@ -411,6 +433,11 @@ class DivingCenterBase(BaseModel):
     region: Optional[str] = Field(None, max_length=100)
     city: Optional[str] = Field(None, max_length=100)
 
+    @field_validator('description', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
+
 class DivingCenterCreate(DivingCenterBase):
     # Enforce description requirement on create to maintain data quality
     description: str = Field(..., min_length=1)
@@ -430,6 +457,11 @@ class DivingCenterUpdate(BaseModel):
     country: Optional[str] = Field(None, max_length=100)
     region: Optional[str] = Field(None, max_length=100)
     city: Optional[str] = Field(None, max_length=100)
+
+    @field_validator('description', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
 
 class DivingCenterResponse(DivingCenterBase):
     id: int
@@ -1044,12 +1076,22 @@ class ParsedDiveCreate(BaseModel):
     dive_duration: Optional[int] = Field(None, ge=1, le=1440)
     dive_description: Optional[str] = None
 
+    @field_validator('dive_description', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
+
 class ParsedDiveUpdate(BaseModel):
     dive_site_id: Optional[int] = None
     dive_number: Optional[int] = Field(None, ge=1)
     dive_time: Optional[time] = None
     dive_duration: Optional[int] = Field(None, ge=1, le=1440)
     dive_description: Optional[str] = None
+
+    @field_validator('dive_description', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
 
 class ParsedDiveTripResponse(BaseModel):
     id: int
@@ -1135,6 +1177,11 @@ class ParsedDiveTripCreate(BaseModel):
     trip_status: str = Field("scheduled", pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     dives: List[ParsedDiveCreate] = []
 
+    @field_validator('trip_description', 'special_requirements', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
+
 class ParsedDiveTripUpdate(BaseModel):
     diving_center_id: Optional[int] = None
     trip_date: Optional[date] = None
@@ -1149,6 +1196,11 @@ class ParsedDiveTripUpdate(BaseModel):
     special_requirements: Optional[str] = None
     trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     dives: Optional[List[ParsedDiveCreate]] = None
+
+    @field_validator('trip_description', 'special_requirements', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
 
 class SystemHealthResponse(BaseModel):
     status: str

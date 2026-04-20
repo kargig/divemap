@@ -1,7 +1,7 @@
 import { Collapse, Image as AntdImage } from 'antd';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import { z } from 'zod';
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
 import Button from '../components/ui/Button';
+import MarkdownEditor from '../components/ui/MarkdownEditor';
 import Modal from '../components/ui/Modal';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
@@ -554,19 +555,19 @@ const CreateDiveSite = () => {
             </div>
 
             <div>
-              <FormField name='description' label='Description'>
-                {({ register, name }) => (
-                  <textarea
-                    id='dive-site-description'
-                    {...register(name)}
-                    rows={3}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.description ? 'border-red-500' : 'border-gray-300'
-                    }`}
+              <Controller
+                name='description'
+                control={methods.control}
+                render={({ field, fieldState: { error } }) => (
+                  <MarkdownEditor
+                    label='Description'
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={error?.message}
                     placeholder='Enter dive site description'
                   />
                 )}
-              </FormField>
+              />
             </div>
 
             {/* Location Information */}
@@ -759,51 +760,51 @@ const CreateDiveSite = () => {
             </div>
 
             <div>
-              <FormField name='access_instructions' label='Access Instructions'>
-                {({ register, name }) => (
-                  <textarea
-                    id='access-instructions'
-                    {...register(name)}
-                    rows={3}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.access_instructions ? 'border-red-500' : 'border-gray-300'
-                    }`}
+              <Controller
+                name='access_instructions'
+                control={methods.control}
+                render={({ field, fieldState: { error } }) => (
+                  <MarkdownEditor
+                    label='Access Instructions'
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={error?.message}
                     placeholder='How to access this dive site'
                   />
                 )}
-              </FormField>
+              />
             </div>
 
             <div>
-              <FormField name='marine_life' label='Marine Life'>
-                {({ register, name }) => (
-                  <textarea
-                    id='marine-life'
-                    {...register(name)}
-                    rows={3}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.marine_life ? 'border-red-500' : 'border-gray-300'
-                    }`}
+              <Controller
+                name='marine_life'
+                control={methods.control}
+                render={({ field, fieldState: { error } }) => (
+                  <MarkdownEditor
+                    label='Marine Life'
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={error?.message}
                     placeholder='Marine life commonly found at this site'
                   />
                 )}
-              </FormField>
+              />
             </div>
 
             <div>
-              <FormField name='safety_information' label='Safety Information'>
-                {({ register, name }) => (
-                  <textarea
-                    id='safety-information'
-                    {...register(name)}
-                    rows={3}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.safety_information ? 'border-red-500' : 'border-gray-300'
-                    }`}
+              <Controller
+                name='safety_information'
+                control={methods.control}
+                render={({ field, fieldState: { error } }) => (
+                  <MarkdownEditor
+                    label='Safety Information'
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={error?.message}
                     placeholder='Important safety considerations'
                   />
                 )}
-              </FormField>
+              />
             </div>
 
             {/* Media */}

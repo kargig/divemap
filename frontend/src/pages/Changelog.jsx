@@ -345,7 +345,7 @@ const Changelog = () => {
       className={`mb-4 shadow-sm h-full ${isMobile ? 'text-sm' : ''}`}
       styles={{ header: { backgroundColor: `var(--ant-${section.color || 'blue'}-1)` } }}
     >
-      <ul className='list-disc pl-5 space-y-1 mb-0'>
+      <ul className='list-disc pl-5 space-y-1 mb-0 prose prose-sm dark:prose-invert max-w-none'>
         {section.items.map((item, idx) => (
           <li key={idx}>
             <Text className={isMobile ? 'text-xs' : ''}>{item}</Text>
