@@ -942,6 +942,10 @@ const Help = () => {
             size='large'
             type='line'
             className='bg-white rounded-xl shadow-sm p-6'
+            prose
+            prose-blue
+            dark:prose-invert
+            max-w-none
           />
         )}
 

@@ -1,10 +1,11 @@
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 
 import Button from '../components/ui/Button';
+import MarkdownEditor from '../components/ui/MarkdownEditor';
 import { UI_COLORS } from '../utils/colorPalette';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
@@ -301,19 +302,19 @@ const DivingCenterForm = ({
         </div>
 
         <div>
-          <FormField name='description' label='Description' required>
-            {({ register, name }) => (
-              <textarea
-                id='diving-center-description'
-                {...register(name)}
-                rows={3}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
+          <Controller
+            name='description'
+            control={methods.control}
+            render={({ field, fieldState: { error } }) => (
+              <MarkdownEditor
+                label='Description'
+                value={field.value}
+                onChange={field.onChange}
+                error={error?.message}
                 placeholder='Enter diving center description'
               />
             )}
-          </FormField>
+          />
         </div>
 
         {/* Contact Information */}

@@ -472,7 +472,9 @@ const AdminEditRequests = () => {
                                     </td>
                                     <td colSpan={2} className='px-4 py-3'>
                                       <DiffViewer
-                                        oldText={displayCurrent === 'undefined' ? '' : displayCurrent}
+                                        oldText={
+                                          displayCurrent === 'undefined' ? '' : displayCurrent
+                                        }
                                         newText={displayNew}
                                       />
                                     </td>

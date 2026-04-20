@@ -53,6 +53,7 @@ import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import StickyRateBar from '../components/StickyRateBar';
 import Button from '../components/ui/Button';
+import RichText from '../components/ui/RichText';
 import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
@@ -1048,11 +1049,7 @@ const DiveSiteDetail = () => {
 
               {/* Tab Content */}
               {activeContentTab === 'description' && diveSite.description && (
-                <div>
-                  <p className='text-gray-700 text-[13px] sm:text-base leading-relaxed'>
-                    {renderTextWithLinks(decodeHtmlEntities(diveSite.description))}
-                  </p>
-                </div>
+                <RichText content={diveSite.description} className='text-[13px] sm:text-base' />
               )}
 
               {activeContentTab === 'media' && media && media.length > 0 && (
@@ -1360,9 +1357,7 @@ const DiveSiteDetail = () => {
               <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Access Instructions
               </h2>
-              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
-                {decodeHtmlEntities(diveSite.access_instructions)}
-              </p>
+              <RichText content={diveSite.access_instructions} className='text-xs sm:text-base' />
             </div>
           )}
 
@@ -1372,9 +1367,7 @@ const DiveSiteDetail = () => {
               <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Safety Information
               </h2>
-              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
-                {decodeHtmlEntities(diveSite.safety_information)}
-              </p>
+              <RichText content={diveSite.safety_information} className='text-xs sm:text-base' />
             </div>
           )}
 
@@ -1384,9 +1377,7 @@ const DiveSiteDetail = () => {
               <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
                 Marine Life
               </h2>
-              <p className='text-gray-700 text-xs sm:text-base leading-relaxed'>
-                {decodeHtmlEntities(diveSite.marine_life)}
-              </p>
+              <RichText content={diveSite.marine_life} className='text-xs sm:text-base' />
             </div>
           )}
 

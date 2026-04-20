@@ -25,6 +25,7 @@ import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import TripHeader from '../components/TripHeader';
 import Button from '../components/ui/Button';
+import RichText from '../components/ui/RichText';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
 import { getDiveSites, getDiveSite } from '../services/diveSites';
@@ -76,15 +77,18 @@ const DiveSiteInfo = ({ dive, index }) => {
       </div>
       {dive.dive_site_id && diveSite && (
         <div className='text-sm text-gray-600'>
-          <p className='mb-2'>
-            {diveSite.description
-              ? renderTextWithLinks(decodeHtmlEntities(diveSite.description))
-              : 'No description available'}
-          </p>
+          <div className='mb-2'>
+            {diveSite.description ? (
+              <RichText content={diveSite.description} />
+            ) : (
+              'No description available'
+            )}
+          </div>
           {dive.dive_description && (
-            <p className='mb-2 text-gray-700'>
-              <strong>Dive Description:</strong> {decodeHtmlEntities(dive.dive_description)}
-            </p>
+            <div className='mb-2 text-gray-700'>
+              <strong>Dive Description:</strong>
+              <RichText content={dive.dive_description} className='mt-1' />
+            </div>
           )}
           {dive.dive_duration && (
             <p className='mb-2 text-gray-700'>
@@ -524,9 +528,7 @@ const TripDetail = () => {
               {trip.special_requirements && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
-                  <p className='text-gray-700 leading-relaxed'>
-                    {decodeHtmlEntities(trip.special_requirements)}
-                  </p>
+                  <RichText content={trip.special_requirements} className='text-gray-700' />
                 </div>
               )}
 
