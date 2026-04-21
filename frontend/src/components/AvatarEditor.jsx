@@ -140,7 +140,7 @@ const AvatarEditor = ({
                 ))}
               </div>
             ) : (
-              <div className='grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-96 overflow-y-auto pr-2'>
+              <div className='grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-96 overflow-y-auto pr-2'>
                 {libraryIcons.map(icon => (
                   <button
                     key={icon.path}
@@ -154,7 +154,8 @@ const AvatarEditor = ({
                     <img
                       src={icon.full_url}
                       alt='Library avatar'
-                      className='w-full h-full object-cover group-hover:scale-110 transition-transform'
+                      className='w-full h-full min-w-full min-h-full object-cover group-hover:scale-110 transition-transform'
+                      loading='lazy'
                     />
                     {currentAvatarUrl === icon.path && (
                       <div className='absolute inset-0 bg-blue-600/10 flex items-center justify-center'>
