@@ -151,13 +151,21 @@ export const AuthProvider = ({ children }) => {
 
       const data = await authService.login(username, password, finalTurnstileToken);
 
-      const { access_token, expires_in } = data;
+      const { access_token, expires_in, user: userData } = data;
 
       // Store access token
       localStorage.setItem('access_token', access_token);
 
       // Update token state
       setToken(access_token);
+
+      // Update user state if provided
+      if (userData) {
+        setUser(userData);
+        if (userData.id) {
+          localStorage.setItem('user_id', userData.id.toString());
+        }
+      }
 
       // Calculate expiry time
       const expiryTime = Date.now() + expires_in * 1000;
@@ -187,7 +195,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authService.googleLogin(googleToken);
 
-      const { access_token, expires_in } = data;
+      const { access_token, expires_in, user: userData } = data;
 
       localStorage.setItem('access_token', access_token);
       // Note: refresh_token is now set as an HTTP-only cookie by the backend
@@ -195,10 +203,20 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
+      // Update user state if provided
+      if (userData) {
+        setUser(userData);
+        if (userData.id) {
+          localStorage.setItem('user_id', userData.id.toString());
+        }
+      }
+
       // Schedule token renewal - DISABLED (using API interceptor instead)
       // scheduleTokenRenewal(expires_in);
 
-      await fetchUser();
+      if (!userData) {
+        await fetchUser();
+      }
       toast.success('Google login successful!');
       return true;
     } catch (error) {
@@ -217,7 +235,7 @@ export const AuthProvider = ({ children }) => {
 
       const data = await authService.register(username, email, password, finalTurnstileToken);
 
-      const { access_token, expires_in, message } = data;
+      const { access_token, expires_in, user: userData, message } = data;
 
       // If access_token is null, email verification is required
       if (!access_token) {
@@ -232,10 +250,20 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
+      // Update user state if provided
+      if (userData) {
+        setUser(userData);
+        if (userData.id) {
+          localStorage.setItem('user_id', userData.id.toString());
+        }
+      }
+
       // Schedule token renewal - DISABLED (using API interceptor instead)
       // scheduleTokenRenewal(expires_in);
 
-      await fetchUser();
+      if (!userData) {
+        await fetchUser();
+      }
       toast.success(message || 'Registration successful!');
       return true;
     } catch (error) {
@@ -250,7 +278,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authService.googleLogin(googleToken);
 
-      const { access_token, expires_in } = data;
+      const { access_token, expires_in, user: userData } = data;
 
       localStorage.setItem('access_token', access_token);
       // Note: refresh_token is now set as an HTTP-only cookie by the backend
@@ -258,10 +286,20 @@ export const AuthProvider = ({ children }) => {
       setToken(access_token);
       // Note: refreshToken state is no longer needed since it's in cookies
 
+      // Update user state if provided
+      if (userData) {
+        setUser(userData);
+        if (userData.id) {
+          localStorage.setItem('user_id', userData.id.toString());
+        }
+      }
+
       // Schedule token renewal - DISABLED (using API interceptor instead)
       // scheduleTokenRenewal(expires_in);
 
-      await fetchUser();
+      if (!userData) {
+        await fetchUser();
+      }
       toast.success('Google registration successful!');
       return true;
     } catch (error) {

@@ -30,7 +30,7 @@ from app.turnstile_service import TurnstileService
 from app.services.email_verification_service import email_verification_service
 from app.services.email_service import EmailService
 from app.services.notification_service import NotificationService
-from app.utils import get_client_ip
+from app.utils import get_client_ip, populate_avatar_full_url
 
 # Constants
 RESEND_VERIFICATION_RATE_LIMIT = 3  # requests per day
@@ -48,7 +48,8 @@ class GoogleLoginRequest(BaseModel):
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
-    return current_user
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
 
 @router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
 @skip_rate_limit_for_admin("10/minute")  # Allow admins higher rate limit
@@ -249,10 +250,12 @@ async def login(
             samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
         )
 
+    user_dict = UserResponse.model_validate(user).model_dump()
     return {
         "access_token": token_data["access_token"],
         "token_type": "bearer",
-        "expires_in": token_data["expires_in"]
+        "expires_in": token_data["expires_in"],
+        "user": populate_avatar_full_url(user, user_dict)
     }
 
 @router.post("/google-login", response_model=Token)
@@ -310,10 +313,12 @@ async def google_login(
                 samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
             )
 
+            user_dict = UserResponse.model_validate(user).model_dump()
             return {
                 "access_token": token_data["access_token"],
                 "token_type": "bearer",
-                "expires_in": token_data["expires_in"]
+                "expires_in": token_data["expires_in"],
+                "user": populate_avatar_full_url(user, user_dict)
             }
         else:
             raise HTTPException(
@@ -521,10 +526,16 @@ async def refresh_token(
             samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
         )
 
+        # Fetch user to return in response
+        username = refresh_token.split(":")[0]
+        user = db.query(User).filter(User.username == username).first()
+        user_dict = UserResponse.model_validate(user).model_dump() if user else None
+
         return {
             "access_token": token_data["access_token"],
             "token_type": "bearer",
-            "expires_in": token_data["expires_in"]
+            "expires_in": token_data["expires_in"],
+            "user": populate_avatar_full_url(user, user_dict) if user else None
         }
     except Exception as e:
         raise HTTPException(

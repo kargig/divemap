@@ -56,6 +56,15 @@ class UserUpdate(BaseModel):
     number_of_dives: Optional[int] = Field(None, ge=0)
     buddy_visibility: Optional[str] = Field(None, pattern=r"^(public|private)$", description="Control whether user can be added as buddy: 'public' or 'private'")
 
+class AvatarType(str, enum.Enum):
+    google = "google"
+    custom = "custom"
+    library = "library"
+
+class AvatarUpdate(BaseModel):
+    avatar_url: str
+    avatar_type: AvatarType
+
 class UserSocialLinkBase(BaseModel):
     platform: str
     url: str
@@ -137,6 +146,10 @@ class UserResponse(UserBase):
     is_admin: bool
     is_moderator: bool
     number_of_dives: int = 0
+    avatar_url: Optional[str] = None
+    avatar_type: Optional[AvatarType] = AvatarType.google
+    avatar_full_url: Optional[str] = None
+    google_avatar_url: Optional[str] = None
     buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime
@@ -159,6 +172,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
+    user: Optional[UserResponse] = None
 
 class RegistrationResponse(BaseModel):
     access_token: Optional[str]
@@ -793,6 +807,9 @@ class UserPublicProfileResponse(BaseModel):
     id: int
     username: str
     avatar_url: Optional[str] = None
+    avatar_type: Optional[AvatarType] = AvatarType.google
+    avatar_full_url: Optional[str] = None
+    google_avatar_url: Optional[str] = None
     is_admin: bool = False
     is_moderator: bool = False
     number_of_dives: int
@@ -812,6 +829,8 @@ class UserPublicInfo(BaseModel):
     username: str
     name: Optional[str] = None
     avatar_url: Optional[str] = None
+    avatar_type: Optional[AvatarType] = AvatarType.google
+    avatar_full_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -821,6 +840,8 @@ class UserSearchResponse(BaseModel):
     username: str
     name: Optional[str] = None
     avatar_url: Optional[str] = None
+    avatar_type: Optional[AvatarType] = AvatarType.google
+    avatar_full_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1698,6 +1719,8 @@ class LeaderboardUserEntry(BaseModel):
     user_id: int
     username: str
     avatar_url: Optional[str] = None
+    avatar_type: Optional[AvatarType] = AvatarType.google
+    avatar_full_url: Optional[str] = None
     count: int
     points: Optional[int] = None
     rank: int

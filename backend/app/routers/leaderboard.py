@@ -11,7 +11,8 @@ from app.models import (
     SiteRating, CenterRating, SiteComment, CenterComment,
     ParsedDiveTrip, DiveMedia, SiteMedia
 )
-from app.schemas import LeaderboardUserResponse, LeaderboardCenterResponse, LeaderboardUserEntry, LeaderboardCenterEntry
+from app.schemas import LeaderboardUserResponse, LeaderboardCenterResponse, LeaderboardUserEntry, LeaderboardCenterEntry, AvatarType
+from app.utils import populate_avatar_full_url
 
 router = APIRouter()
 
@@ -65,6 +66,8 @@ async def get_overall_leaderboard(
         User.id,
         User.username,
         User.avatar_url,
+        User.avatar_type,
+        User.google_avatar_url,
         total_points_expr
     ).outerjoin(dives_sub, User.id == dives_sub.c.user_id)\
      .outerjoin(sites_sub, User.id == sites_sub.c.user_id)\
@@ -82,16 +85,25 @@ async def get_overall_leaderboard(
 
     results = query.all()
     
-    entries = [
-        LeaderboardUserEntry(
+    entries = []
+    for i, row in enumerate(results):
+        entry = LeaderboardUserEntry(
             user_id=row.id,
             username=row.username,
             avatar_url=row.avatar_url,
+            avatar_type=row.avatar_type or AvatarType.google,
             count=row.total_points,
             points=row.total_points,
             rank=i + 1
-        ) for i, row in enumerate(results)
-    ]
+        )
+        # Populate avatar_full_url using the helper
+        # We pass a simple object with avatar_url and avatar_type
+        from collections import namedtuple
+        UserMock = namedtuple('UserMock', ['avatar_url', 'avatar_type', 'google_avatar_url'])
+        mock_user = UserMock(avatar_url=row.avatar_url, avatar_type=row.avatar_type, google_avatar_url=row.google_avatar_url)
+        entry_dict = entry.model_dump()
+        populated = populate_avatar_full_url(mock_user, entry_dict)
+        entries.append(LeaderboardUserEntry(**populated))
             
     return LeaderboardUserResponse(
         metric="overall",
@@ -113,16 +125,24 @@ async def get_category_leaderboard(
         c_sub = db.query(CenterRating.user_id, func.count(CenterRating.id).label("cnt")).group_by(CenterRating.user_id).subquery()
         total_count = (func.coalesce(s_sub.c.cnt, 0) + func.coalesce(c_sub.c.cnt, 0)).label("total_count")
         
-        results = db.query(User.id, User.username, User.avatar_url, total_count)\
+        results = db.query(User.id, User.username, User.avatar_url, User.avatar_type, User.google_avatar_url, total_count)\
             .outerjoin(s_sub, User.id == s_sub.c.user_id)\
             .outerjoin(c_sub, User.id == c_sub.c.user_id)\
             .filter(total_count > 0)\
             .order_by(desc("total_count"))\
             .limit(limit).all()
             
+        entries = []
+        for i, r in enumerate(results):
+            entry = LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, avatar_type=r.avatar_type or AvatarType.google, count=r.total_count, rank=i+1)
+            from collections import namedtuple
+            UserMock = namedtuple('UserMock', ['avatar_url', 'avatar_type', 'google_avatar_url'])
+            mock_user = UserMock(avatar_url=r.avatar_url, avatar_type=r.avatar_type, google_avatar_url=r.google_avatar_url)
+            entries.append(LeaderboardUserEntry(**populate_avatar_full_url(mock_user, entry.model_dump())))
+
         return LeaderboardUserResponse(
             metric=metric,
-            entries=[LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, count=r.total_count, rank=i+1) for i, r in enumerate(results)],
+            entries=entries,
             updated_at=datetime.now(timezone.utc)
         )
     elif metric == "comments":
@@ -130,16 +150,24 @@ async def get_category_leaderboard(
         c_sub = db.query(CenterComment.user_id, func.count(CenterComment.id).label("cnt")).group_by(CenterComment.user_id).subquery()
         total_count = (func.coalesce(s_sub.c.cnt, 0) + func.coalesce(c_sub.c.cnt, 0)).label("total_count")
         
-        results = db.query(User.id, User.username, User.avatar_url, total_count)\
+        results = db.query(User.id, User.username, User.avatar_url, User.avatar_type, User.google_avatar_url, total_count)\
             .outerjoin(s_sub, User.id == s_sub.c.user_id)\
             .outerjoin(c_sub, User.id == c_sub.c.user_id)\
             .filter(total_count > 0)\
             .order_by(desc("total_count"))\
             .limit(limit).all()
             
+        entries = []
+        for i, r in enumerate(results):
+            entry = LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, avatar_type=r.avatar_type or AvatarType.google, count=r.total_count, rank=i+1)
+            from collections import namedtuple
+            UserMock = namedtuple('UserMock', ['avatar_url', 'avatar_type', 'google_avatar_url'])
+            mock_user = UserMock(avatar_url=r.avatar_url, avatar_type=r.avatar_type, google_avatar_url=r.google_avatar_url)
+            entries.append(LeaderboardUserEntry(**populate_avatar_full_url(mock_user, entry.model_dump())))
+
         return LeaderboardUserResponse(
             metric=metric,
-            entries=[LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, count=r.total_count, rank=i+1) for i, r in enumerate(results)],
+            entries=entries,
             updated_at=datetime.now(timezone.utc)
         )
     
@@ -153,14 +181,22 @@ async def get_category_leaderboard(
     else:
         return LeaderboardUserResponse(metric=metric, entries=[], updated_at=datetime.now(timezone.utc))
 
-    results = db.query(User.id, User.username, User.avatar_url, subq.c.cnt)\
+    results = db.query(User.id, User.username, User.avatar_url, User.avatar_type, User.google_avatar_url, subq.c.cnt)\
         .join(subq, User.id == subq.c.user_id)\
         .order_by(desc("cnt"))\
         .limit(limit).all()
 
+    entries = []
+    for i, r in enumerate(results):
+        entry = LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, avatar_type=r.avatar_type or AvatarType.google, count=r.cnt, rank=i+1)
+        from collections import namedtuple
+        UserMock = namedtuple('UserMock', ['avatar_url', 'avatar_type', 'google_avatar_url'])
+        mock_user = UserMock(avatar_url=r.avatar_url, avatar_type=r.avatar_type, google_avatar_url=r.google_avatar_url)
+        entries.append(LeaderboardUserEntry(**populate_avatar_full_url(mock_user, entry.model_dump())))
+
     return LeaderboardUserResponse(
         metric=metric,
-        entries=[LeaderboardUserEntry(user_id=r.id, username=r.username, avatar_url=r.avatar_url, count=r.cnt, rank=i+1) for i, r in enumerate(results)],
+        entries=entries,
         updated_at=datetime.now(timezone.utc)
     )
 

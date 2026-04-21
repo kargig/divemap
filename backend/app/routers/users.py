@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import List, Optional
+import uuid
 
 from app.database import get_db
 from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken
@@ -10,11 +11,14 @@ from app.schemas import (
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
     ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
     UserSocialLinkCreate, UserSocialLinkResponse,
-    PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse
+    PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse,
+    AvatarUpdate, AvatarType
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
+from app.services.r2_storage_service import r2_storage
+from app.services.image_processing import image_processing
 from app.limiter import skip_rate_limit_for_admin
-from app.utils import utcnow
+from app.utils import utcnow, populate_avatar_full_url
 from sqlalchemy import func, extract, desc
 import secrets
 import base64
@@ -155,6 +159,15 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
         max_stages=max_stages
     )
 
+    if user.avatar_type == AvatarType.custom:
+        response_model_dict['avatar_full_url'] = r2_storage.get_photo_url(user.avatar_url)
+    elif user.avatar_type == AvatarType.library:
+        response_model_dict['avatar_full_url'] = r2_storage.get_library_avatar_url(user.avatar_url)
+    else: # google or fallback
+        response_model_dict['avatar_full_url'] = user.avatar_url
+        
+    return response_model_dict
+
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
@@ -263,7 +276,10 @@ async def list_all_users(
     import orjson
     from fastapi.responses import Response
     
-    user_list = [UserListResponse.model_validate(user).model_dump() for user in users]
+    user_list = []
+    for user in users:
+        dict_val = UserListResponse.model_validate(user).model_dump()
+        user_list.append(populate_avatar_full_url(user, dict_val))
 
     # Return response with pagination headers
     # orjson.dumps returns bytes, so we pass it directly to content
@@ -324,7 +340,8 @@ async def create_user(
         logger = logging.getLogger(__name__)
         logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
 
-    return db_user
+    response_dict = UserListResponse.model_validate(db_user).model_dump()
+    return populate_avatar_full_url(db_user, response_dict)
 
 @router.put("/admin/users/{user_id}", response_model=UserListResponse)
 async def update_user(
@@ -364,7 +381,8 @@ async def update_user(
     db.commit()
     db.refresh(db_user)
 
-    return db_user
+    response_dict = UserListResponse.model_validate(db_user).model_dump()
+    return populate_avatar_full_url(db_user, response_dict)
 
 @router.delete("/admin/users/{user_id}")
 async def delete_user(
@@ -486,7 +504,8 @@ async def update_current_user_profile(
     db.commit()
     db.refresh(current_user)
 
-    return current_user
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
 
 @router.post("/me/change-password")
 async def change_password(
@@ -624,15 +643,12 @@ async def search_users(
     
     users = query_filter.limit(limit).all()
     
-    return [
-        UserSearchResponse(
-            id=user.id,
-            username=user.username,
-            name=user.name,
-            avatar_url=user.avatar_url
-        )
-        for user in users
-    ]
+    result = []
+    for user in users:
+        dict_val = UserSearchResponse.model_validate(user).model_dump()
+        result.append(populate_avatar_full_url(user, dict_val))
+    
+    return result
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
 @skip_rate_limit_for_admin("60/minute")
@@ -904,10 +920,11 @@ async def get_user_public_profile(
     )
 
     # Create response object
-    response = UserPublicProfileResponse(
+    response_dict = UserPublicProfileResponse(
         id=user.id,
         username=user.username,
         avatar_url=user.avatar_url,
+        avatar_type=user.avatar_type or AvatarType.google,
         is_admin=user.is_admin,
         is_moderator=user.is_moderator,
         number_of_dives=user.number_of_dives,
@@ -917,9 +934,9 @@ async def get_user_public_profile(
         stats=stats,
         certification_stats=cert_stats,
         diving_stats=diving_stats
-    )
+    ).model_dump()
 
-    return response
+    return populate_avatar_full_url(user, response_dict)
 
 
 # API Key Management Endpoints (Admin Only)
@@ -1201,3 +1218,87 @@ async def delete_pat(
     db.commit()
     
     return {"message": "Token revoked successfully"}
+
+# Avatar Management Endpoints
+@router.post("/me/avatar/upload", response_model=UserResponse)
+async def upload_user_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upload a custom avatar to R2/Local storage"""
+    # 1. Read and process image
+    content = await file.read()
+    try:
+        processed_stream = image_processing.process_avatar(content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # 2. Upload to storage
+    filename = f"{uuid.uuid4()}.webp"
+    file_path = r2_storage.upload_avatar(current_user.id, filename, processed_stream.getvalue())
+    
+    # 3. Update user model
+    # Delete old custom avatar if exists (optional cleanup)
+    
+    current_user.avatar_url = file_path
+    current_user.avatar_type = AvatarType.custom
+    db.commit()
+    db.refresh(current_user)
+    
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
+
+@router.post("/me/avatar/library", response_model=UserResponse)
+async def set_library_avatar(
+    avatar_data: AvatarUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Set avatar from the library"""
+    if avatar_data.avatar_type != AvatarType.library:
+        raise HTTPException(status_code=400, detail="Invalid avatar type for this endpoint")
+    
+    # Basic security check: ensure it's a path we expect for library
+    if not avatar_data.avatar_url.startswith("library/avatars/"):
+        raise HTTPException(status_code=400, detail="Invalid library avatar path")
+        
+    current_user.avatar_url = avatar_data.avatar_url
+    current_user.avatar_type = AvatarType.library
+    db.commit()
+    db.refresh(current_user)
+    
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
+
+@router.delete("/me/avatar", response_model=UserResponse)
+async def remove_avatar(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Reset avatar to Google or None"""
+    if current_user.google_avatar_url:
+        current_user.avatar_url = current_user.google_avatar_url
+        current_user.avatar_type = AvatarType.google
+    else:
+        current_user.avatar_url = None
+        current_user.avatar_type = None
+        
+    db.commit()
+    db.refresh(current_user)
+    
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
+
+@router.get("/avatars/library", response_model=List[dict])
+async def get_library_avatars():
+    """List available library avatars with full URLs"""
+    keys = r2_storage.list_objects("library/avatars/")
+    result = []
+    for k in keys:
+        if k.endswith('.webp'):
+            result.append({
+                "path": k,
+                "full_url": r2_storage.get_library_avatar_url(k)
+            })
+    return result

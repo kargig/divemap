@@ -78,7 +78,7 @@ const LeaderboardPage = () => {
             <div className='flex flex-col items-center space-y-3 order-2 md:order-1 mt-8'>
               <div className='relative'>
                 <Avatar
-                  src={topThree[1].avatar_url}
+                  src={topThree[1].avatar_full_url || topThree[1].avatar_url}
                   alt={topThree[1].username}
                   size='xl'
                   className='border-4 border-gray-300'
@@ -109,7 +109,7 @@ const LeaderboardPage = () => {
                   <Trophy className='w-10 h-10 text-yellow-500 animate-bounce' />
                 </div>
                 <Avatar
-                  src={topThree[0].avatar_url}
+                  src={topThree[0].avatar_full_url || topThree[0].avatar_url}
                   alt={topThree[0].username}
                   size='2xl'
                   className='border-4 border-yellow-400 shadow-xl'
@@ -137,7 +137,7 @@ const LeaderboardPage = () => {
             <div className='flex flex-col items-center space-y-3 order-3 mt-8'>
               <div className='relative'>
                 <Avatar
-                  src={topThree[2].avatar_url}
+                  src={topThree[2].avatar_full_url || topThree[2].avatar_url}
                   alt={topThree[2].username}
                   size='xl'
                   className='border-4 border-amber-600/50'

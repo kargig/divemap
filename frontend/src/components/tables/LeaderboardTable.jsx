@@ -33,7 +33,7 @@ const LeaderboardTable = ({
       cell: info => {
         const row = info.row.original;
         const name = info.getValue();
-        const imgUrl = type === 'user' ? row.avatar_url : row.logo_url;
+        const imgUrl = type === 'user' ? row.avatar_full_url || row.avatar_url : row.logo_url;
         const linkTo = type === 'user' ? `/users/${name}` : `/diving-centers/${row.center_id}`;
 
         return (

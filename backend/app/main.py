@@ -355,6 +355,10 @@ app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 os.makedirs("llm_content", exist_ok=True)
 app.mount("/llm_content", StaticFiles(directory="llm_content"), name="llm_content")
 
+# Mount avatars directory
+os.makedirs("static/library/avatars", exist_ok=True)
+app.mount("/library", StaticFiles(directory="static/library"), name="library")
+
 # Lazy router loading for faster startup
 def load_admin_dive_sites_router():
     """Load admin dive sites router lazily when first accessed"""

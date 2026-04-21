@@ -624,3 +624,24 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+def populate_avatar_full_url(user, response_model_dict: dict) -> dict:
+    """Populate avatar_full_url based on avatar_type and avatar_url"""
+    from app.services.r2_storage_service import r2_storage
+    from app.schemas import AvatarType
+    
+    if not user.avatar_url:
+        response_model_dict['avatar_full_url'] = None
+        return response_model_dict
+
+    if user.avatar_type == AvatarType.custom:
+        response_model_dict['avatar_full_url'] = r2_storage.get_photo_url(user.avatar_url)
+    elif user.avatar_type == AvatarType.library:
+        response_model_dict['avatar_full_url'] = r2_storage.get_library_avatar_url(user.avatar_url)
+    else: # google or fallback
+        response_model_dict['avatar_full_url'] = user.avatar_url
+        
+    # Always include original google avatar if available
+    response_model_dict['google_avatar_url'] = user.google_avatar_url
+        
+    return response_model_dict
