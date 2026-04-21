@@ -168,6 +168,8 @@ class User(Base):
     enabled = Column(Boolean, default=True, nullable=False)  # New field for user activation
     number_of_dives = Column(Integer, default=0, nullable=False)  # Number of dives completed
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
+    avatar_type = Column(String(20), default='google', nullable=True)  # 'google', 'custom', 'library'
+    google_avatar_url = Column(String(500), nullable=True)  # Original Google avatar URL
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
     buddy_visibility = Column(String(20), default='public', nullable=False)  # Control whether user can be added as buddy ('public' or 'private')
     last_notification_check = Column(DateTime(timezone=True), nullable=True)  # Track when user last checked notifications

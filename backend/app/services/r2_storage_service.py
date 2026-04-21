@@ -393,6 +393,46 @@ class R2StorageService:
             logger.warning(f"R2 photo upload failed, falling back to local: {e}")
             return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
 
+    def upload_avatar(self, user_id: int, filename: str, content: bytes) -> str:
+        """
+        Upload user avatar to R2 or local storage.
+        
+        Args:
+            user_id: User ID for path organization
+            filename: Unique filename (UUID suggested)
+            content: File content as bytes
+            
+        Returns:
+            str: Path where file was stored
+        """
+        r2_path = f"avatars/user_{user_id}/{filename}"
+        
+        if not self.r2_available:
+            local_path = os.path.join(self.local_storage_base, r2_path)
+            self._ensure_local_directory(local_path)
+            with open(local_path, 'wb') as f:
+                f.write(content)
+            logger.info(f"Successfully uploaded avatar locally: {local_path}")
+            return local_path
+            
+        try:
+            self.s3_client.put_object(
+                Bucket=os.getenv('R2_BUCKET_NAME'),
+                Key=r2_path,
+                Body=content,
+                ContentType='image/webp' # We'll likely convert to webp in processing
+            )
+            logger.info(f"Successfully uploaded avatar to R2: {r2_path}")
+            return r2_path
+        except Exception as e:
+            logger.error(f"Failed to upload avatar to R2: {e}")
+            # Fallback to local
+            local_path = os.path.join(self.local_storage_base, r2_path)
+            self._ensure_local_directory(local_path)
+            with open(local_path, 'wb') as f:
+                f.write(content)
+            return local_path
+
     def upload_photo_set(
         self, 
         user_id: int, 
@@ -654,6 +694,69 @@ class R2StorageService:
             # Fallback: try public URL format (may fail if bucket is private)
             account_id = os.getenv('R2_ACCOUNT_ID')
             return f"https://pub-{account_id}.r2.dev/{bucket_name}/{photo_path}"
+
+    def list_objects(self, prefix: str) -> List[str]:
+        """List object keys with a given prefix."""
+        if not self.r2_available:
+            # Fallback to local filesystem listing for development
+            local_dir = os.path.join(self.local_storage_base, prefix)
+            if not os.path.exists(local_dir):
+                return []
+            return [f"{prefix}/{f}" for f in os.listdir(local_dir) if os.path.isfile(os.path.join(local_dir, f))]
+            
+        try:
+            response = self.s3_client.list_objects_v2(
+                Bucket=os.getenv('R2_BUCKET_NAME'),
+                Prefix=prefix
+            )
+            return [obj['Key'] for obj in response.get('Contents', [])]
+        except Exception as e:
+            logger.error(f"Failed to list R2 objects: {e}")
+            return []
+
+    def upload_file_direct(self, key: str, content: bytes, content_type: str = 'application/octet-stream') -> str:
+        """Upload file directly to a specific key."""
+        if not self.r2_available:
+            local_path = os.path.join(self.local_storage_base, key)
+            self._ensure_local_directory(local_path)
+            with open(local_path, 'wb') as f:
+                f.write(content)
+            return local_path
+            
+        try:
+            self.s3_client.put_object(
+                Bucket=os.getenv('R2_BUCKET_NAME'),
+                Key=key,
+                Body=content,
+                ContentType=content_type
+            )
+            return key
+        except Exception as e:
+            logger.error(f"Direct R2 upload failed: {e}")
+            raise e
+
+    def get_library_avatar_url(self, path: str) -> str:
+        """Get URL for a library avatar."""
+        if not self.r2_available:
+            return f"/{path}"
+            
+        custom_domain = os.getenv('R2_PUBLIC_DOMAIN')
+        if custom_domain:
+            return f"https://{custom_domain}/{path}"
+            
+        bucket_name = os.getenv('R2_BUCKET_NAME')
+        try:
+            # For private buckets without custom domain, use presigned URL
+            presigned_url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': bucket_name, 'Key': path},
+                ExpiresIn=3600 * 24 # Library icons can have long expiry (24h)
+            )
+            return presigned_url
+        except Exception as e:
+            logger.error(f"Failed to generate presigned URL for library avatar {path}: {e}")
+            account_id = os.getenv('R2_ACCOUNT_ID')
+            return f"https://pub-{account_id}.r2.dev/{bucket_name}/{path}"
 
 
 # Lazy-loaded global instance

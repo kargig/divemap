@@ -1,6 +1,10 @@
 import PropTypes from 'prop-types';
+import React, { useState } from 'react';
+
+import { resolveAvatarUrl } from '../utils/avatarHelpers';
 
 const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) => {
+  const [hasError, setHasError] = useState(false);
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',
@@ -11,7 +15,7 @@ const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) 
   };
 
   const baseClasses =
-    'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500';
+    'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500 flex-shrink-0';
   const sizeClass = sizeClasses[size] || sizeClasses.md;
 
   // Generate initials from alt text or fallback text
@@ -45,17 +49,13 @@ const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) 
     return colors[Math.abs(hash) % colors.length];
   };
 
-  if (src) {
+  if (src && !hasError) {
     return (
       <img
-        src={src}
+        src={resolveAvatarUrl(src)}
         alt={alt}
-        className={`${sizeClass} ${baseClasses} ${className}`}
-        onError={e => {
-          // If image fails to load, show fallback
-          e.target.style.display = 'none';
-          e.target.nextSibling.style.display = 'flex';
-        }}
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0 ${className}`}
+        onError={() => setHasError(true)}
       />
     );
   }

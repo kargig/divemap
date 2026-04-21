@@ -124,4 +124,52 @@ class ImageProcessingService:
             logger.error(f"Image processing failed for {filename}: {str(e)}")
             raise ValueError(f"Failed to process image: {str(e)}")
 
+    def process_avatar(self, file_bytes: bytes) -> io.BytesIO:
+        """
+        Process a user avatar:
+        1. Validate.
+        2. Crop to square.
+        3. Resize to 512x512.
+        4. Convert to WebP.
+        """
+        mime_type = magic.from_buffer(file_bytes, mime=True)
+        if not mime_type.startswith('image/'):
+            raise ValueError(f"Invalid file type: {mime_type}")
+
+        try:
+            img = Image.open(io.BytesIO(file_bytes))
+            img = ImageOps.exif_transpose(img)
+            
+            # Crop to square
+            width, height = img.size
+            if width > height:
+                left = (width - height) / 2
+                top = 0
+                right = (width + height) / 2
+                bottom = height
+            else:
+                left = 0
+                top = (height - width) / 2
+                right = width
+                bottom = (height + width) / 2
+            
+            img = img.crop((left, top, right, bottom))
+            
+            # Resize
+            img = img.resize((512, 512), Image.Resampling.LANCZOS)
+            
+            # Convert to WebP
+            output_stream = io.BytesIO()
+            if img.mode in ('RGBA', 'LA'):
+                img.save(output_stream, format='WEBP', quality=85, lossless=False)
+            else:
+                img.convert('RGB').save(output_stream, format='WEBP', quality=85)
+            
+            output_stream.seek(0)
+            return output_stream
+            
+        except Exception as e:
+            logger.error(f"Avatar processing failed: {str(e)}")
+            raise ValueError(f"Failed to process avatar: {str(e)}")
+
 image_processing = ImageProcessingService()

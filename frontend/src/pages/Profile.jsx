@@ -12,6 +12,7 @@ import {
   Edit,
   Trash2,
   X,
+  Camera,
   Building2,
   Key,
   Users,
@@ -36,13 +37,16 @@ import { useQuery, useMutation } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import api, { getUserPublicProfile } from '../api';
+import AvatarEditor from '../components/AvatarEditor';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
 import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDivingCenters } from '../services/divingCenters';
+import { getFullAvatarUrl } from '../utils/avatarHelpers';
 import {
   profileSchema,
   certificationSchema,
@@ -60,6 +64,7 @@ const Profile = () => {
   const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isAddingCertification, setIsAddingCertification] = useState(false);
   const [editingCertification, setEditingCertification] = useState(null);
@@ -630,6 +635,47 @@ const Profile = () => {
         {/* Profile Information */}
         <div className='lg:col-span-2'>
           <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            {/* Avatar Section */}
+            <div className='flex flex-col sm:flex-row items-center gap-6 pb-6 mb-6 border-b border-gray-100'>
+              <div className='relative group'>
+                <div className='h-24 w-24 sm:h-32 sm:w-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-50'>
+                  <img
+                    src={getFullAvatarUrl(user)}
+                    alt={user.username}
+                    className='h-full w-full object-cover'
+                  />
+                </div>
+                <button
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className='absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
+                >
+                  <Camera className='h-6 w-6' />
+                </button>
+              </div>
+              <div className='text-center sm:text-left flex-1'>
+                <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2'>
+                  <h1 className='text-2xl font-bold text-gray-900'>{user.username}</h1>
+                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                    {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'Diver'}
+                  </span>
+                </div>
+                <p className='text-gray-500 text-sm mb-4'>
+                  Member since {new Date(user.created_at).toLocaleDateString()}
+                </p>
+                <div className='flex flex-wrap justify-center sm:justify-start gap-2'>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setIsAvatarModalOpen(true)}
+                    className='flex items-center'
+                  >
+                    <Camera className='h-4 w-4 mr-2' />
+                    Change Photo
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             <div className='flex items-center justify-between mb-4 sm:mb-6'>
               <h2 className='text-lg sm:text-xl font-semibold text-gray-900 uppercase tracking-tight'>
                 Account Information
@@ -1652,6 +1698,16 @@ const Profile = () => {
           </form>
         </FormProvider>
       </Modal>
+
+      <AvatarEditor
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        currentAvatarUrl={user.avatar_url}
+        currentAvatarFullUrl={user.avatar_full_url}
+        currentType={user.avatar_type}
+        googleAvatarUrl={user.google_avatar_url}
+        onAvatarUpdated={updatedUser => updateUser(updatedUser)}
+      />
     </div>
   );
 };

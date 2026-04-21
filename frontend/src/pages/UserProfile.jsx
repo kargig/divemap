@@ -531,7 +531,7 @@ const UserProfile = () => {
         <div className='flex flex-col sm:flex-row items-center sm:items-start sm:space-x-6 w-full text-center sm:text-left gap-4'>
           <div className='shrink-0'>
             <Avatar
-              src={profile.avatar_url}
+              src={profile.avatar_full_url}
               alt={profile.username}
               size='xl'
               className='sm:w-32 sm:h-32'
