@@ -130,6 +130,41 @@ export const importSubsurfaceXML = async file => {
   return response.data;
 };
 
+/**
+ * Get CSV headers and sample data
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export const getCSVHeaders = async file => {
+  const response = await api.post(
+    '/api/v1/dives/import/csv-headers',
+    { file },
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Process CSV import with field mapping
+ * @param {Object} params
+ * @param {File} params.file
+ * @param {Object} params.mapping
+ * @returns {Promise<Object>}
+ */
+export const processCSVImport = async ({ file, mapping }) => {
+  const response = await api.post(
+    '/api/v1/dives/import/process-csv',
+    { file },
+    {
+      params: { mapping: JSON.stringify(mapping) },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }
+  );
+  return response.data;
+};
+
 export const confirmImportDives = async divesData => {
   const response = await api.post('/api/v1/dives/import/confirm', divesData);
   return response.data;

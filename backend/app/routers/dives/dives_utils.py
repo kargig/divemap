@@ -96,6 +96,23 @@ def calculate_similarity(str1: str, str2: str) -> float:
     # Return the highest similarity score
     return max(sequence_similarity, word_similarity, substring_similarity)
 
+def find_potential_matches(search_term, data_list, threshold=0.6):
+    """Generic fuzzy matcher for a list of objects with a 'name' attribute"""
+    matches = []
+    for item in data_list:
+        similarity = calculate_similarity(search_term, item.name)
+        if similarity >= threshold:
+            matches.append({
+                "id": item.id,
+                "name": item.name,
+                "similarity": similarity,
+                "original_name": search_term
+            })
+    
+    # Sort by similarity desc
+    matches.sort(key=lambda x: x['similarity'], reverse=True)
+    return matches
+
 def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
     """Find dive site by import ID with improved similarity matching"""
     try:
@@ -114,25 +131,6 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
             if site.name == import_site_id:
                 return {"id": site.id, "match_type": "exact_name"}
 
-        # Function to find matches
-        def find_potential_matches(search_term):
-            matches = []
-            threshold = 0.6  # Lower threshold to 60%
-            
-            for site in sites:
-                similarity = calculate_similarity(search_term, site.name)
-                if similarity >= threshold:
-                    matches.append({
-                        "id": site.id,
-                        "name": site.name,
-                        "similarity": similarity,
-                        "original_name": search_term
-                    })
-            
-            # Sort by similarity desc
-            matches.sort(key=lambda x: x['similarity'], reverse=True)
-            return matches
-
         # If we have a dive site name, try matching by name first
         if dive_site_name:
             # Check exact name match
@@ -141,7 +139,7 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
                     return {"id": site.id, "match_type": "exact_name"}
 
             # Try similarity matching with the dive site name
-            matches = find_potential_matches(dive_site_name)
+            matches = find_potential_matches(dive_site_name, sites)
             
             if matches:
                 best_match = matches[0]
@@ -154,7 +152,7 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
                 }
 
         # If no match found with dive site name, try similarity matching with import ID
-        matches = find_potential_matches(import_site_id)
+        matches = find_potential_matches(import_site_id, sites)
         
         if matches:
             best_match = matches[0]
@@ -171,4 +169,3 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
     except Exception as e:
         print(f"Error finding dive site: {e}")
         return None
-

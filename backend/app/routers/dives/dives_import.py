@@ -25,14 +25,21 @@ import re
 import tempfile
 import uuid
 import xml.etree.ElementTree as ET
+import nh3
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse, CSVHeaderResponse
 from app.models import DiveSite, DiveSiteAlias
 from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
-from .dives_utils import has_deco_profile, generate_dive_name, get_or_create_deco_tag, find_dive_site_by_import_id
+from .dives_utils import (
+    has_deco_profile,
+    generate_dive_name,
+    get_or_create_deco_tag,
+    find_dive_site_by_import_id,
+    find_potential_matches
+)
 from app.physics import GasMix, calculate_real_volume
 
 
@@ -79,6 +86,157 @@ def convert_difficulty_to_code(difficulty_input):
     
     # Default to intermediate (ADVANCED_OPEN_WATER) if unknown
     return 'ADVANCED_OPEN_WATER'
+
+def protect_csv_formula(value: str) -> Optional[str]:
+    """
+    Prevents CSV injection by escaping leading formula characters.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    if value.startswith(('=', '+', '-', '@')):
+        return f"'{value}"
+    return value
+
+def sanitize_csv_cell(value: str) -> Optional[str]:
+    """
+    Strips HTML and protects against CSV formula injection.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    
+    # Strip HTML tags
+    clean_val = nh3.clean(value, tags=set())
+    
+    # Protect against formula injection
+    return protect_csv_formula(clean_val)
+
+def parse_csv_depth(value: str) -> Optional[float]:
+    """
+    Intelligently parse depth from CSV, handling units (m, ft).
+    Always returns meters.
+    """
+    if not value:
+        return None
+    
+    try:
+        # Normalize: lower case, replace comma with dot
+        val_clean = value.lower().replace(',', '.')
+        
+        # Extract numeric part
+        numeric_match = re.search(r'(\d+\.?\d*)', val_clean)
+        if not numeric_match:
+            return None
+            
+        num = float(numeric_match.group(1))
+        
+        # Detect units
+        # If 'ft' exists and is not after 'm' (to avoid "25.5 m (84 ft)" confusion)
+        if 'ft' in val_clean and 'm' not in val_clean.split('ft')[0]:
+            return round(num * 0.3048, 2)
+        
+        return num
+    except (ValueError, TypeError):
+        return None
+
+def parse_csv_date_time(value: str) -> tuple[Optional[date], Optional[time]]:
+    """
+    Intelligently parse date and time from various CSV formats.
+    """
+    if not value:
+        return None, None
+        
+    from dateutil import parser
+    try:
+        # dateutil.parser is very robust. dayfirst=True is safer for international formats.
+        dt = parser.parse(value, dayfirst=True)
+        return (dt.date(), dt.time())
+    except (ValueError, TypeError, OverflowError):
+        return (None, None)
+
+def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str]]:
+    """
+    Intelligently resolve a string to either a Diving Center or a User (Buddy).
+    Returns (id, type) where type is 'center', 'buddy', or None.
+    """
+    if not value:
+        return None, None
+        
+    from app.models import DivingCenter, User
+    
+    # Clean value
+    search_val = value.strip()
+    if not search_val:
+        return None, None
+
+    # 1. Try Diving Center Exact match (case-insensitive)
+    try:
+        center = db.query(DivingCenter).filter(DivingCenter.name.ilike(search_val)).first()
+        if center:
+            return center.id, "center"
+    except Exception:
+        pass
+        
+    # 2. Try User (Buddy) match by username
+    try:
+        user = db.query(User).filter(User.username.ilike(search_val)).first()
+        if user:
+            return user.id, "buddy"
+    except Exception:
+        pass
+    
+    # 3. Try Diving Center Fuzzy match
+    try:
+        centers = db.query(DivingCenter).all()
+        matches = find_potential_matches(search_val, centers, threshold=0.6)
+        if matches:
+            return matches[0]['id'], "center"
+    except Exception:
+        pass
+
+    # 4. Try User Fuzzy match (only if no center matches)
+    try:
+        users = db.query(User).all()
+        from .dives_utils import calculate_similarity
+        for u in users:
+            similarity = calculate_similarity(search_val, u.username)
+            if similarity >= 0.8: # Higher threshold for users to avoid false buddies
+                return u.id, "buddy"
+    except Exception:
+        pass
+        
+    return None, None
+
+def find_existing_dive(db: Session, user_id: int, dive_date: str, dive_time: Optional[str] = None, duration: Optional[int] = None, max_depth: Optional[float] = None) -> Optional[Dive]:
+    """
+    Attempts to find an existing dive for a user to prevent duplicates.
+    Matches by date + time, or date + duration + depth if time is missing.
+    """
+    from datetime import datetime
+    
+    query = db.query(Dive).filter(Dive.user_id == user_id, Dive.dive_date == dive_date)
+    
+    if dive_time:
+        # Match by date and time
+        # Handle potential string vs time object comparison
+        existing = query.filter(Dive.dive_time == dive_time).first()
+        if existing:
+            return existing
+            
+    if duration is not None and max_depth is not None:
+        # Fallback: Match by date, duration, and depth (within 0.5m tolerance)
+        existing = query.filter(
+            Dive.duration == duration,
+            Dive.max_depth >= max_depth - 0.5,
+            Dive.max_depth <= max_depth + 0.5
+        ).first()
+        if existing:
+            return existing
+            
+    return None
 
 
 def parse_dive_information_text(dive_information):
@@ -339,6 +497,10 @@ async def import_subsurface_xml(
     try:
         # Read and parse XML file
         content = await file.read()
+        
+        # Parse XML
+        # Note: Standard xml.etree.ElementTree in modern Python (3.9+) is safe against
+        # basic XXE and entity expansion (billion laughs) by default.
         root = ET.fromstring(content.decode('utf-8'))
 
         # Extract dive sites
@@ -376,6 +538,19 @@ async def import_subsurface_xml(
         for dive_elem in dive_elements:
             dive_data = parse_dive_element(dive_elem, dive_sites, db)
             if dive_data:
+                # Check for existing duplicates
+                if dive_data.get("dive_date"):
+                    existing = find_existing_dive(
+                        db, current_user.id, 
+                        dive_data["dive_date"], 
+                        dive_data.get("dive_time"),
+                        dive_data.get("duration"),
+                        dive_data.get("max_depth")
+                    )
+                    if existing:
+                        dive_data["existing_dive_id"] = existing.id
+                        dive_data["skip"] = True # Default to skip if it exists
+                
                 parsed_dives.append(dive_data)
 
         if not parsed_dives:
@@ -414,6 +589,261 @@ async def import_subsurface_xml(
             detail=f"Error processing XML file: {str(e)}"
         )
 
+@router.post("/import/csv-headers", response_model=CSVHeaderResponse)
+async def get_csv_headers(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Parse CSV headers and provide a sample of the data.
+    Limits file size to 5MB and row count to 5000.
+    """
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a CSV file"
+        )
+
+    # Limit file size (5MB)
+    content = await file.read(5 * 1024 * 1024 + 1)
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File too large (max 5MB)"
+        )
+
+    import csv
+    import io
+
+    try:
+        # Handle BOM if present
+        text_content = content.decode('utf-8-sig')
+        stream = io.StringIO(text_content)
+        
+        # Try to detect delimiter if not default
+        sample = text_content[:1024]
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+        except csv.Error:
+            dialect = 'excel' # Fallback
+
+        reader = csv.DictReader(stream, dialect=dialect)
+        
+        headers = reader.fieldnames or []
+        sample_data = []
+        row_count = 0
+        
+        for row in reader:
+            if row_count < 3:
+                # Sanitize sample data for security
+                sample_data.append({k: sanitize_csv_cell(v) for k, v in row.items()})
+            row_count += 1
+            if row_count >= 5000:
+                break # Hard limit
+            
+        return {
+            "headers": headers,
+            "sample_data": sample_data,
+            "total_rows": row_count
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to parse CSV: {str(e)}"
+        )
+
+@router.post("/import/process-csv")
+async def process_csv_import(
+    file: UploadFile = File(...),
+    mapping: str = Query(..., description="JSON string of mapping {csv_column: divemap_field}"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Process CSV data using user-provided field mapping.
+    """
+    if not file.filename.lower().endswith('.csv'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a CSV file"
+        )
+
+    # Limit file size (5MB)
+    content = await file.read(5 * 1024 * 1024 + 1)
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File too large (max 5MB)"
+        )
+
+    import csv
+    import io
+    import orjson
+
+    try:
+        field_map = orjson.loads(mapping)
+    except Exception:
+        raise HTTPException(400, "Invalid mapping JSON")
+
+    try:
+        # Handle BOM if present
+        text_content = content.decode('utf-8-sig')
+        stream = io.StringIO(text_content)
+        
+        # Try to detect delimiter
+        sample = text_content[:1024]
+        try:
+            dialect = csv.Sniffer().sniff(sample)
+        except csv.Error:
+            dialect = 'excel'
+
+        reader = csv.DictReader(stream, dialect=dialect)
+
+        
+        parsed_dives = []
+        row_count = 0
+        
+        # Get all tags for auto-tagging
+        all_tags = db.query(AvailableTag).all()
+        tag_lookup = {t.name.lower(): t.id for t in all_tags}
+
+        for row in reader:
+            row_count += 1
+            if row_count > 5000:
+                break
+                
+            dive_data = {
+                "is_private": False,
+                "dive_information": "",
+                "tags": []
+            }
+            unmapped_info = []
+            auto_tags = []
+            
+            for csv_col, val in row.items():
+                if val is None:
+                    continue
+                
+                field = field_map.get(csv_col)
+                # Sanitize input
+                val = sanitize_csv_cell(val)
+                
+                if field == "max_depth":
+                    dive_data["max_depth"] = parse_csv_depth(val)
+                elif field == "average_depth":
+                    dive_data["average_depth"] = parse_csv_depth(val)
+                elif field == "duration" and val:
+                    # Simple integer extraction
+                    match = re.search(r'(\d+)', val)
+                    if match:
+                        dive_data["duration"] = int(match.group(1))
+                elif field == "dive_date":
+                    d, t = parse_csv_date_time(val)
+                    if d:
+                        dive_data["dive_date"] = d.strftime("%Y-%m-%d")
+                    if t:
+                        dive_data["dive_time"] = t.strftime("%H:%M:%S")
+                elif field == "dive_site_name":
+                    match = find_dive_site_by_import_id(val, db, val)
+                    if match:
+                        dive_data["dive_site_id"] = match["id"]
+                        if match.get("match_type") == "similarity":
+                            dive_data["proposed_sites"] = match.get("proposed_sites")
+                    else:
+                        dive_data["unmatched_dive_site"] = {"name": val}
+                elif field == "mixed_entity":
+                    if val and val.strip():
+                        eid, etype = resolve_entity(db, val)
+                        if etype == "center":
+                            dive_data["diving_center_id"] = eid
+                            # Fetch the center name for frontend display
+                            from app.models import DivingCenter
+                            center = db.query(DivingCenter).filter(DivingCenter.id == eid).first()
+                            if center:
+                                dive_data["diving_center_name"] = center.name
+                        elif etype == "buddy":
+                            dive_data["buddies"] = [eid]
+                        else:
+                            unmapped_info.append(f"Buddy/Center: {val}")
+                elif field == "notes":
+                    if val and val.strip():
+                        dive_data["dive_information"] += f"{val}\n"
+                elif field == "auto_tag":
+                    if val and val.strip():
+                        # Try to find a matching tag
+                        tag_id = tag_lookup.get(val.lower().strip())
+                        if tag_id:
+                            auto_tags.append(tag_id)
+                        else:
+                            unmapped_info.append(f"{csv_col}: {val}")
+                elif field == "ignore" or csv_col.lower() == "country":
+                    continue
+                else:
+                    # Skip empty values for unmapped columns
+                    if val and isinstance(val, str) and val.strip():
+                        unmapped_info.append(f"{csv_col}: {val}")
+            
+            # Combine auto tags
+            if auto_tags:
+                dive_data["tags"] = list(set(auto_tags))
+                
+            # Append unmapped info to notes
+            if unmapped_info:
+                if dive_data["dive_information"]:
+                    dive_data["dive_information"] += "\n"
+                dive_data["dive_information"] += "Imported Details:\n" + "\n".join(unmapped_info)
+            
+            # Final cleanup of notes
+            dive_data["dive_information"] = dive_data["dive_information"].strip() or None
+            
+            # Check for existing duplicates
+            if dive_data.get("dive_date"):
+                existing = find_existing_dive(
+                    db, current_user.id, 
+                    dive_data["dive_date"], 
+                    dive_data.get("dive_time"),
+                    dive_data.get("duration"),
+                    dive_data.get("max_depth")
+                )
+                if existing:
+                    dive_data["existing_dive_id"] = existing.id
+                    dive_data["skip"] = True # Default to skip if it exists
+            
+            parsed_dives.append(dive_data)
+
+        # Get all available dive sites for manual selection in frontend review
+        available_dive_sites = db.query(DiveSite).all()
+        dive_sites_for_selection = [
+            {
+                "id": site.id,
+                "name": site.name,
+                "country": site.country,
+                "region": site.region
+            }
+            for site in available_dive_sites
+        ]
+
+        # Get all available diving centers for manual selection
+        from app.models import DivingCenter
+        available_diving_centers = db.query(DivingCenter).all()
+        diving_centers_for_selection = [
+            {"id": dc.id, "name": dc.name, "country": dc.country}
+            for dc in available_diving_centers
+        ]
+
+        return {
+            "message": f"Successfully parsed {len(parsed_dives)} dives",
+            "dives": parsed_dives,
+            "available_dive_sites": dive_sites_for_selection,
+            "available_diving_centers": diving_centers_for_selection
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error processing CSV file: {str(e)}"
+        )
+
 
 @router.post("/import/confirm")
 async def confirm_import_dives(
@@ -440,7 +870,13 @@ async def confirm_import_dives(
                 errors.append(f"Dive {i+1}: Missing dive date")
                 continue
 
-            # Create dive
+            # Check if this is an update of an existing dive
+            existing_id = dive_data.get('id') or dive_data.get('existing_dive_id')
+            existing_dive = None
+            if existing_id:
+                existing_dive = db.query(Dive).filter(Dive.id == existing_id, Dive.user_id == current_user.id).first()
+
+            # Create/Update data
             dive_create = DiveCreate(
                 dive_site_id=dive_data.get('dive_site_id'),
                 diving_center_id=dive_data.get('diving_center_id'),
@@ -474,7 +910,7 @@ async def confirm_import_dives(
                 else:
                     dive_time = datetime.strptime(raw_dive_time, "%H:%M:%S").time()
 
-            # Create the dive
+            # Create/Update the dive
             dive_data_dict = dive_create.model_dump(exclude_unset=True)
             dive_data_dict['dive_date'] = dive_date  # Use parsed date object
             dive_data_dict['dive_time'] = dive_time  # Use parsed time object
@@ -487,31 +923,41 @@ async def confirm_import_dives(
                 if difficulty_id:
                     dive_data_dict['difficulty_id'] = difficulty_id
             
-            dive = Dive(
-                user_id=current_user.id,
-                **dive_data_dict
-            )
+            if existing_dive:
+                # Update existing dive
+                for key, value in dive_data_dict.items():
+                    setattr(existing_dive, key, value)
+                dive = existing_dive
+            else:
+                # Create new dive
+                dive = Dive(
+                    user_id=current_user.id,
+                    **dive_data_dict
+                )
+                db.add(dive)
 
             # Generate name using format: "divesite - date - original dive name from XML"
             # Store original name before generating new one
-            original_dive_name = dive.name  # This is the name from XML (e.g., "Dive #351")
-            
-            if dive.dive_site_id:
-                dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
-                if dive_site:
-                    # Use date object directly when available
-                    if isinstance(dive.dive_date, date):
-                        dive_date_obj = dive.dive_date
-                    else:
-                        dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
-                    # Generate name with format: "divesite - date - original name"
-                    dive.name = generate_dive_name(dive_site.name, dive_date_obj, original_dive_name)
-            else:
-                # If no dive site, use fallback format
-                if original_dive_name:
-                    dive.name = f"Dive - {dive.dive_date} - {original_dive_name}"
+            # For updates, we keep the existing name if already present
+            if not existing_dive or not existing_dive.name:
+                original_dive_name = dive.name  # This is the name from XML (e.g., "Dive #351")
+                
+                if dive.dive_site_id:
+                    dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+                    if dive_site:
+                        # Use date object directly when available
+                        if isinstance(dive.dive_date, date):
+                            dive_date_obj = dive.dive_date
+                        else:
+                            dive_date_obj = datetime.strptime(dive.dive_date, '%Y-%m-%d').date()
+                        # Generate name with format: "divesite - date - original name"
+                        dive.name = generate_dive_name(dive_site.name, dive_date_obj, original_dive_name)
                 else:
-                    dive.name = f"Dive - {dive.dive_date}"
+                    # If no dive site, use fallback format
+                    if original_dive_name:
+                        dive.name = f"Dive - {dive.dive_date} - {original_dive_name}"
+                    else:
+                        dive.name = f"Dive - {dive.dive_date}"
 
             db.add(dive)
             db.flush()  # Get the dive ID

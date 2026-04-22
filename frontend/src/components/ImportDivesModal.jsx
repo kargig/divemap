@@ -4,6 +4,7 @@ import {
   Calendar,
   Clock,
   MapPin,
+  Anchor,
   Eye,
   EyeOff,
   Check,
@@ -14,7 +15,12 @@ import { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient } from 'react-query';
 
-import { importSubsurfaceXML, confirmImportDives } from '../services/dives';
+import {
+  importSubsurfaceXML,
+  confirmImportDives,
+  getCSVHeaders,
+  processCSVImport,
+} from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { TANK_SIZES } from '../utils/diveConstants';
 
@@ -28,9 +34,14 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [parsedDives, setParsedDives] = useState([]);
   const [availableDiveSites, setAvailableDiveSites] = useState([]);
-  const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'review', 'importing'
+  const [availableDivingCenters, setAvailableDivingCenters] = useState([]);
+  const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'mapping', 'review', 'importing'
   const [isProcessing, setIsProcessing] = useState(false);
   const [diveSiteSearchStrings, setDiveSiteSearchStrings] = useState({});
+  const [csvHeaders, setCsvHeaders] = useState([]);
+  const [csvSampleData, setCsvSampleData] = useState([]);
+  const [csvTotalRows, setCsvTotalRows] = useState(0);
+  const [fieldMapping, setFieldMapping] = useState({});
 
   // Import mutation
   const importMutation = useMutation(importSubsurfaceXML, {
@@ -58,6 +69,94 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     },
     onError: error => {
       toast.error(extractErrorMessage(error) || 'Failed to parse XML file');
+      setIsProcessing(false);
+    },
+  });
+
+  // CSV Header fetch mutation
+  const csvHeadersMutation = useMutation(getCSVHeaders, {
+    onSuccess: data => {
+      setCsvHeaders(data.headers);
+      setCsvSampleData(data.sample_data);
+      setCsvTotalRows(data.total_rows);
+
+      // Try to auto-map headers
+      const initialMapping = {};
+      const mappingHeuristics = {
+        dive_site_name: ['site', 'location', 'place', 'dive site'],
+        dive_date: ['date', 'time', 'when', 'day'],
+        max_depth: ['depth', 'max depth', 'deepest'],
+        average_depth: ['avg depth', 'mean depth'],
+        duration: ['duration', 'time', 'min'],
+        mixed_entity: ['buddy', 'instructor', 'center', 'guide'],
+        notes: ['note', 'comment', 'description', 'info'],
+        auto_tag: ['activity', 'specialty', 'type', 'tags'],
+      };
+
+      // Check localStorage for previous mapping for these specific headers
+      const headerSignature = data.headers.slice().sort().join('|');
+      const savedMapping = localStorage.getItem(`csv_mapping_${headerSignature}`);
+
+      if (savedMapping) {
+        try {
+          setFieldMapping(JSON.parse(savedMapping));
+        } catch (e) {
+          console.error('Failed to parse saved mapping', e);
+        }
+      } else {
+        data.headers.forEach(header => {
+          const lowerHeader = header.toLowerCase();
+          for (const [field, keywords] of Object.entries(mappingHeuristics)) {
+            if (keywords.some(k => lowerHeader.includes(k))) {
+              initialMapping[header] = field;
+              break;
+            }
+          }
+        });
+        setFieldMapping(initialMapping);
+      }
+
+      setCurrentStep('mapping');
+      setIsProcessing(false);
+    },
+    onError: error => {
+      toast.error(extractErrorMessage(error) || 'Failed to parse CSV headers');
+      setIsProcessing(false);
+    },
+  });
+
+  // CSV Process mutation
+  const csvProcessMutation = useMutation(processCSVImport, {
+    onSuccess: data => {
+      const dives = data.dives.map(dive => ({ ...dive, is_private: false }));
+      setParsedDives(dives);
+      const sites = data.available_dive_sites || [];
+      setAvailableDiveSites(sites);
+      const centers = data.available_diving_centers || [];
+      setAvailableDivingCenters(centers);
+
+      // Pre-fill search strings
+      const initialSearchStrings = {};
+      dives.forEach((dive, index) => {
+        if (dive.dive_site_id) {
+          const site = sites.find(s => s.id === dive.dive_site_id);
+          if (site) {
+            initialSearchStrings[index] = site.name;
+          }
+        }
+      });
+      setDiveSiteSearchStrings(initialSearchStrings);
+
+      setCurrentStep('review');
+      setIsProcessing(false);
+      toast.success(data.message);
+
+      // Save mapping to localStorage
+      const headerSignature = csvHeaders.slice().sort().join('|');
+      localStorage.setItem(`csv_mapping_${headerSignature}`, JSON.stringify(fieldMapping));
+    },
+    onError: error => {
+      toast.error(extractErrorMessage(error) || 'Failed to process CSV file');
       setIsProcessing(false);
     },
   });
@@ -90,31 +189,31 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleFileSelect = event => {
     const files = Array.from(event.target.files);
-    const xmlFiles = files.filter(file => file.name.toLowerCase().endsWith('.xml'));
+    const validFiles = files.filter(file => {
+      const name = file.name.toLowerCase();
+      return name.endsWith('.xml') || name.endsWith('.csv');
+    });
 
-    if (xmlFiles.length !== files.length) {
-      toast.error('Only XML files are supported');
+    if (validFiles.length !== files.length) {
+      toast.error('Only XML and CSV files are supported');
     }
 
-    setSelectedFiles(xmlFiles);
+    setSelectedFiles(validFiles);
   };
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (selectedFiles.length === 0) {
-      toast.error('Please select at least one XML file');
+      toast.error('Please select a file to import');
       return;
     }
 
     setIsProcessing(true);
+    const file = selectedFiles[0];
 
-    try {
-      // Process each file
-      for (const file of selectedFiles) {
-        await importMutation.mutateAsync(file);
-      }
-    } catch (error) {
-      // Error is handled by mutation
-      setIsProcessing(false);
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      csvHeadersMutation.mutate(file);
+    } else {
+      importMutation.mutate(file);
     }
   };
 
@@ -171,6 +270,22 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     setParsedDives(prev =>
       prev.map((dive, i) => (i === index ? { ...dive, skip: !dive.skip } : dive))
     );
+  };
+
+  const handleMappingChange = (header, field) => {
+    setFieldMapping(prev => ({
+      ...prev,
+      [header]: field,
+    }));
+  };
+
+  const handleProcessCSV = () => {
+    if (!selectedFiles.length) return;
+    setIsProcessing(true);
+    csvProcessMutation.mutate({
+      file: selectedFiles[0],
+      mapping: fieldMapping,
+    });
   };
 
   const handleBackGasChange = (diveIndex, selectedIndex) => {
@@ -235,7 +350,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                   ? 'Air'
                   : `EAN${tank.gas.o2}`
                 : 'Air';
-              // Use original index as value, fallback to 0 if missing (shouldn't happen with new import)
               const val = tank.index !== undefined ? tank.index : 0;
               return (
                 <option key={val} value={val}>
@@ -257,7 +371,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with unresolved unmatched dive sites (excluding skipped dives)
     const unresolvedDives = parsedDives.filter(
       dive => !dive.skip && dive.unmatched_dive_site && !dive.dive_site_id
     );
@@ -268,7 +381,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with proposed dive sites but no selection (excluding skipped dives)
     const unresolvedProposedDives = parsedDives.filter(
       dive => !dive.skip && dive.proposed_dive_sites && !dive.dive_site_id
     );
@@ -279,7 +391,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Filter out dives with unmatched dive sites, proposed dive sites without selection, and skipped dives
     const filteredDives = parsedDives.filter(
       dive =>
         !dive.skip && !dive.unmatched_dive_site && !(dive.proposed_dive_sites && !dive.dive_site_id)
@@ -290,10 +401,21 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
-    // Clean up dive data - remove UI-only fields before sending to backend
     const divesToImport = filteredDives.map(dive => {
-      const { skip, unmatched_dive_site, proposed_dive_sites, available_dive_sites, ...cleanDive } =
-        dive;
+      const {
+        skip,
+        unmatched_dive_site,
+        proposed_dive_sites,
+        available_dive_sites,
+        diving_center_name,
+        existing_dive_id,
+        ...cleanDive
+      } = dive;
+
+      // Map existing_dive_id to 'id' for the backend to recognize it as an update
+      if (existing_dive_id) {
+        cleanDive.id = existing_dive_id;
+      }
       return cleanDive;
     });
 
@@ -303,7 +425,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       await confirmMutation.mutateAsync(divesToImport);
     } catch (error) {
-      // Error is handled by mutation
       setIsProcessing(false);
       setCurrentStep('review');
     }
@@ -346,34 +467,114 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
   };
 
+  const renderMappingStep = () => {
+    const fields = [
+      { id: 'dive_site_name', label: 'Dive Site Name' },
+      { id: 'dive_date', label: 'Date / Time' },
+      { id: 'max_depth', label: 'Max Depth' },
+      { id: 'average_depth', label: 'Average Depth' },
+      { id: 'duration', label: 'Duration (min)' },
+      { id: 'mixed_entity', label: 'Buddy / Center' },
+      { id: 'auto_tag', label: 'Auto-Tag (Activity/Specialty)' },
+      { id: 'notes', label: 'Notes / Information' },
+      { id: 'ignore', label: 'Ignore Column' },
+    ];
+
+    return (
+      <div className='space-y-6'>
+        <div className='bg-blue-50 p-4 rounded-lg flex items-start gap-3 border border-blue-100'>
+          <AlertCircle className='text-blue-500 mt-0.5' size={18} />
+          <div>
+            <p className='text-sm text-blue-800 font-medium'>Map your CSV columns</p>
+            <p className='text-xs text-blue-600 mt-1'>
+              We detected {csvHeaders.length} columns and {csvTotalRows} rows. Match the columns
+              below to our database fields.
+            </p>
+          </div>
+        </div>
+
+        <div className='overflow-x-auto border border-gray-200 rounded-lg'>
+          <table className='w-full text-left text-sm'>
+            <thead className='bg-gray-50 border-bottom border-gray-200'>
+              <tr>
+                <th className='px-4 py-3 font-semibold text-gray-700'>CSV Header</th>
+                <th className='px-4 py-3 font-semibold text-gray-700'>Sample Value</th>
+                <th className='px-4 py-3 font-semibold text-gray-700'>Map to Field</th>
+              </tr>
+            </thead>
+            <tbody className='divide-y divide-gray-200'>
+              {csvHeaders.map(header => (
+                <tr key={header} className='hover:bg-gray-50 transition-colors'>
+                  <td className='px-4 py-3 font-medium text-gray-900'>{header}</td>
+                  <td className='px-4 py-3 text-gray-500 italic truncate max-w-[200px]'>
+                    {csvSampleData[0]?.[header] || '-'}
+                  </td>
+                  <td className='px-4 py-3'>
+                    <select
+                      value={fieldMapping[header] || 'ignore'}
+                      onChange={e => handleMappingChange(header, e.target.value)}
+                      className={`w-full p-1.5 border rounded text-sm outline-none transition-colors ${
+                        fieldMapping[header] && fieldMapping[header] !== 'ignore'
+                          ? 'border-blue-300 bg-blue-50 text-blue-800'
+                          : 'border-gray-300 bg-white text-gray-600'
+                      }`}
+                    >
+                      {fields.map(f => (
+                        <option key={f.id} value={f.id}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className='flex justify-between items-center pt-4'>
+          <button
+            onClick={() => setCurrentStep('upload')}
+            className='px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium'
+          >
+            Back
+          </button>
+          <button
+            onClick={handleProcessCSV}
+            disabled={isProcessing}
+            className='px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all'
+          >
+            {isProcessing ? 'Processing...' : `Process ${csvTotalRows} Dives`}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title='Import Subsurface XML Dives'
+      title='Import Dives'
       className='max-w-4xl w-full max-h-[90vh] flex flex-col'
     >
-      <div className='overflow-y-auto min-h-0 flex-1'>
+      <div className='overflow-y-auto min-h-0 flex-1 p-1'>
         {currentStep === 'upload' && (
           <div className='space-y-6'>
             <div>
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>
-                Upload Subsurface XML Files
-              </h3>
+              <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
               <p className='text-gray-600 mb-4'>
-                Select one or more Subsurface XML files to import your dives. You&apos;ll be able to
-                review and adjust privacy settings before importing.
+                Select Subsurface XML or CSV (e.g. MySSI) files to import your dives.
               </p>
             </div>
 
-            {/* File Upload */}
             <div className='border-2 border-dashed border-gray-300 rounded-lg p-8 text-center'>
               <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
               <div className='space-y-2'>
                 <p className='text-sm text-gray-600'>
-                  Drag and drop XML files here, or click to browse
+                  Drag and drop XML or CSV files here, or click to browse
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -385,14 +586,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <input
                 ref={fileInputRef}
                 type='file'
-                multiple
-                accept='.xml'
+                accept='.xml,.csv'
                 onChange={handleFileSelect}
                 className='hidden'
               />
             </div>
 
-            {/* Selected Files */}
             {selectedFiles.length > 0 && (
               <div className='space-y-2'>
                 <h4 className='font-medium text-gray-900'>Selected Files:</h4>
@@ -410,7 +609,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
             )}
 
-            {/* Upload Button */}
             <div className='flex justify-end gap-3'>
               <button
                 onClick={handleClose}
@@ -439,6 +637,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
         )}
 
+        {currentStep === 'mapping' && renderMappingStep()}
+
         {currentStep === 'review' && (
           <div className='space-y-6'>
             <div>
@@ -448,7 +648,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               </p>
             </div>
 
-            {/* Dives List */}
             <div className='space-y-4'>
               {parsedDives.map((dive, index) => (
                 <div
@@ -459,9 +658,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                 >
                   <div className='flex items-start justify-between mb-3'>
                     <div className='flex-1'>
-                      <h4 className='font-medium text-gray-900'>
-                        {dive.name || `Dive ${index + 1}`}
-                      </h4>
+                      <div className='flex items-center gap-2'>
+                        <h4 className='font-medium text-gray-900'>
+                          {dive.name || `Dive ${index + 1}`}
+                        </h4>
+                        {dive.existing_dive_id && (
+                          <span className='px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 rounded-full border border-orange-200'>
+                            Existing
+                          </span>
+                        )}
+                      </div>
                       <div className='flex items-center gap-4 mt-1 text-sm text-gray-600'>
                         <div className='flex items-center gap-1'>
                           <Calendar size={14} />
@@ -482,42 +688,57 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
                     </div>
 
-                    {/* Privacy Toggle and Skip Button */}
-                    <div className='flex items-center gap-2'>
-                      <button
-                        onClick={() => handleSkipDive(index)}
-                        className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                          dive.skip
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {dive.skip ? 'Skipped' : 'Skip'}
-                      </button>
-                      <button
-                        onClick={() => handlePrivacyChange(index, !dive.is_private)}
-                        className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                          dive.is_private
-                            ? 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                      >
-                        {dive.is_private ? (
-                          <>
-                            <EyeOff size={14} />
-                            Private
-                          </>
-                        ) : (
-                          <>
-                            <Eye size={14} />
-                            Public
-                          </>
-                        )}
-                      </button>
+                    <div className='flex flex-col items-end gap-2'>
+                      {/* Action Segmented Control */}
+                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200'>
+                        <button
+                          onClick={() => dive.skip && handleSkipDive(index)}
+                          className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            !dive.skip
+                              ? 'bg-white text-blue-600 shadow-sm'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {dive.existing_dive_id ? 'Update' : 'Import'}
+                        </button>
+                        <button
+                          onClick={() => !dive.skip && handleSkipDive(index)}
+                          className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            dive.skip
+                              ? 'bg-white text-amber-600 shadow-sm'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          Skip
+                        </button>
+                      </div>
+
+                      {/* Privacy Segmented Control */}
+                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200'>
+                        <button
+                          onClick={() => dive.is_private && handlePrivacyChange(index, false)}
+                          className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            !dive.is_private
+                              ? 'bg-white text-green-600 shadow-sm'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <Eye size={12} /> Public
+                        </button>
+                        <button
+                          onClick={() => !dive.is_private && handlePrivacyChange(index, true)}
+                          className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                            dive.is_private
+                              ? 'bg-white text-purple-600 shadow-sm'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <EyeOff size={12} /> Private
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Dive Details */}
                   <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
                     {dive.max_depth && (
                       <div>
@@ -576,133 +797,149 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
                     )}
 
-                    {/* Dive Site Selection */}
-                    <div className='md:col-span-2'>
-                      <span className='font-medium text-gray-700'>Dive Site:</span>
-                      <div className='mt-1'>
-                        {dive.unmatched_dive_site ? (
-                          <div className='space-y-2'>
-                            <div className='flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md'>
-                              <AlertCircle size={16} className='text-yellow-600' />
-                              <span className='text-sm text-yellow-800'>
-                                <strong>{dive.unmatched_dive_site.name}</strong> not found in
-                                database
-                              </span>
-                            </div>
-                            <div className='flex flex-col gap-2'>
-                              <div className='flex items-center gap-2'>
-                                <div className='flex-1'>
-                                  <FuzzySearchInput
-                                    data={availableDiveSites}
-                                    searchValue={diveSiteSearchStrings[index] || ''}
-                                    onSearchChange={val => handleDiveSiteSearchChange(index, val)}
-                                    onSearchSelect={site => handleDiveSiteSelect(index, site)}
-                                    placeholder='Search for a dive site...'
-                                    minQueryLength={3}
-                                    configType='diveSites'
-                                  />
-                                </div>
-                                <button
-                                  onClick={() => window.open('/dive-sites/create', '_blank')}
-                                  className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
-                                >
-                                  Create New
-                                </button>
-                              </div>
-                            </div>
-                            <p className='text-xs text-gray-500'>
-                              Please select an existing dive site or create a new one, then
-                              re-import this dive.
-                            </p>
-                          </div>
-                        ) : dive.proposed_dive_sites ? (
-                          <div className='space-y-2'>
-                            <div className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'>
-                              <AlertCircle size={16} className='text-blue-600' />
-                              <span className='text-sm text-blue-800'>
-                                <strong>Proposed dive site match</strong> - Please confirm if this
-                                is the correct site
-                              </span>
-                            </div>
+                    <div className='md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-3 mt-1'>
+                      <div>
+                        <span className='font-medium text-gray-700 flex items-center gap-1 mb-1'>
+                          <MapPin size={14} className='text-blue-500' /> Dive Site:
+                        </span>
+                        <div className='mt-1'>
+                          {dive.unmatched_dive_site ? (
                             <div className='space-y-2'>
-                              {dive.proposed_dive_sites.map((proposedSite, siteIndex) => (
-                                <div
-                                  key={siteIndex}
-                                  className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'
-                                >
-                                  <input
-                                    type='radio'
-                                    id={`proposed-${index}-${siteIndex}`}
-                                    name={`proposed-site-${index}`}
-                                    value={proposedSite.id}
-                                    checked={dive.dive_site_id === proposedSite.id}
-                                    onChange={e => handleDiveSiteChange(index, e.target.value)}
-                                    className='text-blue-600 focus:ring-blue-500'
-                                  />
-                                  <label
-                                    htmlFor={`proposed-${index}-${siteIndex}`}
-                                    className='flex-1 text-sm text-blue-800'
+                              <div className='flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md'>
+                                <AlertCircle size={16} className='text-yellow-600' />
+                                <span className='text-sm text-yellow-800'>
+                                  <strong>{dive.unmatched_dive_site.name}</strong> not found in
+                                  database
+                                </span>
+                              </div>
+                              <div className='flex flex-col gap-2'>
+                                <div className='flex items-center gap-2'>
+                                  <div className='flex-1'>
+                                    <FuzzySearchInput
+                                      data={availableDiveSites}
+                                      searchValue={diveSiteSearchStrings[index] || ''}
+                                      onSearchChange={val => handleDiveSiteSearchChange(index, val)}
+                                      onSearchSelect={site => handleDiveSiteSelect(index, site)}
+                                      placeholder='Search for a dive site...'
+                                      minQueryLength={3}
+                                      configType='diveSites'
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => window.open('/dive-sites/create', '_blank')}
+                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
                                   >
-                                    <div className='flex flex-col'>
-                                      <div>
-                                        <span className='text-gray-600 text-xs'>Original: </span>
-                                        <span className='text-gray-800'>
-                                          {proposedSite.original_name}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className='text-blue-600 text-xs'>Proposed: </span>
-                                        <strong className='text-blue-800'>
-                                          {proposedSite.name}
-                                        </strong>
-                                        <span className='text-blue-600 ml-2'>
-                                          ({(proposedSite.similarity * 100).toFixed(0)}% match)
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </label>
+                                    Create New
+                                  </button>
                                 </div>
-                              ))}
-                            </div>
-                            <div className='flex flex-col gap-2'>
-                              <div className='flex items-center gap-2'>
-                                <div className='flex-1'>
-                                  <FuzzySearchInput
-                                    data={availableDiveSites}
-                                    searchValue={diveSiteSearchStrings[index] || ''}
-                                    onSearchChange={val => handleDiveSiteSearchChange(index, val)}
-                                    onSearchSelect={site => handleDiveSiteSelect(index, site)}
-                                    placeholder='Or search for a different site...'
-                                    minQueryLength={3}
-                                    configType='diveSites'
-                                  />
-                                </div>
-                                <button
-                                  onClick={() => window.open('/dive-sites/create', '_blank')}
-                                  className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
-                                >
-                                  Create New
-                                </button>
                               </div>
                             </div>
-                            <p className='text-xs text-gray-500'>
-                              Compare the original dive site name from your XML file with the
-                              proposed match. If the proposed site is correct, select it. Otherwise,
-                              choose a different site or create a new one. If you don&apos;t select
-                              any, this dive will be skipped.
-                            </p>
-                          </div>
-                        ) : dive.dive_site_id ? (
-                          <div className='flex items-center gap-2'>
-                            <MapPin size={14} className='text-green-600' />
-                            <span className='text-sm text-gray-600'>
-                              {availableDiveSites.find(site => site.id === dive.dive_site_id)
-                                ?.name || 'Unknown site'}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className='text-sm text-gray-500'>No dive site specified</span>
-                        )}
+                          ) : dive.proposed_dive_sites ? (
+                            <div className='space-y-2'>
+                              <div className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'>
+                                <AlertCircle size={16} className='text-blue-600' />
+                                <span className='text-sm text-blue-800'>
+                                  <strong>Proposed dive site match</strong> - Please confirm if this
+                                  is the correct site
+                                </span>
+                              </div>
+                              <div className='space-y-2'>
+                                {dive.proposed_dive_sites.map((proposedSite, siteIndex) => (
+                                  <div
+                                    key={siteIndex}
+                                    className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'
+                                  >
+                                    <input
+                                      type='radio'
+                                      id={`proposed-${index}-${siteIndex}`}
+                                      name={`proposed-site-${index}`}
+                                      value={proposedSite.id}
+                                      checked={dive.dive_site_id === proposedSite.id}
+                                      onChange={e => handleDiveSiteChange(index, e.target.value)}
+                                      className='text-blue-600 focus:ring-blue-500'
+                                    />
+                                    <label
+                                      htmlFor={`proposed-${index}-${siteIndex}`}
+                                      className='flex-1 text-sm text-blue-800'
+                                    >
+                                      <div className='flex flex-col'>
+                                        <div>
+                                          <span className='text-gray-600 text-xs'>Original: </span>
+                                          <span className='text-gray-800'>
+                                            {proposedSite.original_name}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className='text-blue-600 text-xs'>Proposed: </span>
+                                          <strong className='text-blue-800'>
+                                            {proposedSite.name}
+                                          </strong>
+                                          <span className='text-blue-600 ml-2'>
+                                            ({(proposedSite.similarity * 100).toFixed(0)}% match)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className='flex flex-col gap-2'>
+                                <div className='flex items-center gap-2'>
+                                  <div className='flex-1'>
+                                    <FuzzySearchInput
+                                      data={availableDiveSites}
+                                      searchValue={diveSiteSearchStrings[index] || ''}
+                                      onSearchChange={val => handleDiveSiteSearchChange(index, val)}
+                                      onSearchSelect={site => handleDiveSiteSelect(index, site)}
+                                      placeholder='Or search for a different site...'
+                                      minQueryLength={3}
+                                      configType='diveSites'
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => window.open('/dive-sites/create', '_blank')}
+                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                  >
+                                    Create New
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : dive.dive_site_id ? (
+                            <div className='flex items-center gap-2'>
+                              <MapPin size={14} className='text-green-600' />
+                              <span className='text-sm text-gray-600'>
+                                {availableDiveSites.find(site => site.id === dive.dive_site_id)
+                                  ?.name || 'Unknown site'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className='text-sm text-gray-500'>No dive site specified</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className='font-medium text-gray-700 flex items-center gap-1 mb-1'>
+                          <Anchor size={14} className='text-blue-500' /> Diving Center:
+                        </span>
+                        <div className='mt-1'>
+                          {dive.diving_center_id ? (
+                            <div className='flex items-center gap-2'>
+                              <Anchor size={14} className='text-green-600' />
+                              <span className='text-sm text-gray-600 font-medium'>
+                                {dive.diving_center_name ||
+                                  availableDivingCenters.find(c => c.id === dive.diving_center_id)
+                                    ?.name ||
+                                  'Matched Center'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className='text-xs text-gray-500 italic p-1 bg-gray-50 rounded border border-gray-100'>
+                              No matched center
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -710,7 +947,6 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               ))}
             </div>
 
-            {/* Action Buttons */}
             <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
               <button
                 onClick={() => setCurrentStep('upload')}
