@@ -21,7 +21,7 @@ const Combobox = ({
   searchTerm: externalSearchTerm,
   isLoading = false,
   renderItem,
-  popoverClassName = 'z-[100]',
+  popoverClassName = 'z-[10002]',
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [internalSearchTerm, setInternalSearchTerm] = useState('');

@@ -1037,6 +1037,11 @@ class DiveSearchParams(BaseModel):
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
+class CSVHeaderResponse(BaseModel):
+    headers: List[str]
+    sample_data: List[Dict[str, str]]
+    total_rows: int
+
 # Diving Center Ownership Schemas
 class BroadcastTripRequest(BaseModel):
     trip_id: int
