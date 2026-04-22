@@ -862,7 +862,7 @@ class DiveBase(BaseModel):
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     average_depth: Optional[float] = Field(None, ge=0, le=1000)  # Average depth in meters
     gas_bottles_used: Optional[str] = None
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
@@ -872,6 +872,13 @@ class DiveBase(BaseModel):
     dive_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD format
     dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")  # HH:MM:SS format
     duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+
+    @field_validator('suit_type', mode='before')
+    @classmethod
+    def normalize_suit_type(cls, v: Any) -> Optional[str]:
+        if v == "":
+            return None
+        return v
 
 class DiveCreate(DiveBase):
     buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
@@ -886,7 +893,7 @@ class DiveUpdate(BaseModel):
     max_depth: Optional[float] = Field(None, ge=0, le=1000)
     average_depth: Optional[float] = Field(None, ge=0, le=1000)
     gas_bottles_used: Optional[str] = None
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
@@ -898,6 +905,13 @@ class DiveUpdate(BaseModel):
     duration: Optional[int] = Field(None, ge=1, le=1440)
     tags: Optional[List[int]] = None  # List of tag IDs
     buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
+
+    @field_validator('suit_type', mode='before')
+    @classmethod
+    def normalize_suit_type(cls, v: Any) -> Optional[str]:
+        if v == "":
+            return None
+        return v
 
 class DiveResponse(DiveBase):
     id: int
@@ -1008,7 +1022,7 @@ class DiveSearchParams(BaseModel):
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
     )
     exclude_unspecified_difficulty: bool = False
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie)$")
+    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
     min_depth: Optional[float] = Field(None, ge=0, le=1000)
     max_depth: Optional[float] = Field(None, ge=0, le=1000)
     min_visibility: Optional[int] = Field(None, ge=1, le=10)
