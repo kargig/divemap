@@ -859,6 +859,11 @@ class DiveBase(BaseModel):
     name: Optional[str] = Field(None, max_length=255)  # Custom name/alias
     is_private: bool = False  # Privacy control - default public
     dive_information: Optional[str] = None
+
+    @field_validator('name', 'dive_information', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
     max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
     average_depth: Optional[float] = Field(None, ge=0, le=1000)  # Average depth in meters
     gas_bottles_used: Optional[str] = None
@@ -890,6 +895,11 @@ class DiveUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     is_private: Optional[bool] = None
     dive_information: Optional[str] = None
+
+    @field_validator('name', 'dive_information', mode='before')
+    @classmethod
+    def clean_html_fields(cls, v):
+        return strip_html(v)
     max_depth: Optional[float] = Field(None, ge=0, le=1000)
     average_depth: Optional[float] = Field(None, ge=0, le=1000)
     gas_bottles_used: Optional[str] = None

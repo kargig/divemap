@@ -153,11 +153,11 @@ def parse_csv_date_time(value: str) -> tuple[Optional[date], Optional[time]]:
     try:
         # dateutil.parser is very robust. dayfirst=True is safer for international formats.
         dt = parser.parse(value, dayfirst=True)
-        return dt.date(), dt.time()
+        return (dt.date(), dt.time())
     except (ValueError, TypeError, OverflowError):
-        return None, None
+        return (None, None)
 
-def resolve_entity(db: Session, value: str):
+def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str]]:
     """
     Intelligently resolve a string to either a Diving Center or a User (Buddy).
     Returns (id, type) where type is 'center', 'buddy', or None.
@@ -173,28 +173,40 @@ def resolve_entity(db: Session, value: str):
         return None, None
 
     # 1. Try Diving Center Exact match (case-insensitive)
-    center = db.query(DivingCenter).filter(DivingCenter.name.ilike(search_val)).first()
-    if center:
-        return center.id, "center"
+    try:
+        center = db.query(DivingCenter).filter(DivingCenter.name.ilike(search_val)).first()
+        if center:
+            return center.id, "center"
+    except Exception:
+        pass
         
     # 2. Try User (Buddy) match by username
-    user = db.query(User).filter(User.username.ilike(search_val)).first()
-    if user:
-        return user.id, "buddy"
+    try:
+        user = db.query(User).filter(User.username.ilike(search_val)).first()
+        if user:
+            return user.id, "buddy"
+    except Exception:
+        pass
     
     # 3. Try Diving Center Fuzzy match
-    centers = db.query(DivingCenter).all()
-    matches = find_potential_matches(search_val, centers, threshold=0.6)
-    if matches:
-        return matches[0]['id'], "center"
+    try:
+        centers = db.query(DivingCenter).all()
+        matches = find_potential_matches(search_val, centers, threshold=0.6)
+        if matches:
+            return matches[0]['id'], "center"
+    except Exception:
+        pass
 
     # 4. Try User Fuzzy match (only if no center matches)
-    users = db.query(User).all()
-    from .dives_utils import calculate_similarity
-    for u in users:
-        similarity = calculate_similarity(search_val, u.username)
-        if similarity >= 0.8: # Higher threshold for users to avoid false buddies
-            return u.id, "buddy"
+    try:
+        users = db.query(User).all()
+        from .dives_utils import calculate_similarity
+        for u in users:
+            similarity = calculate_similarity(search_val, u.username)
+            if similarity >= 0.8: # Higher threshold for users to avoid false buddies
+                return u.id, "buddy"
+    except Exception:
+        pass
         
     return None, None
 
@@ -225,13 +237,6 @@ def find_existing_dive(db: Session, user_id: int, dive_date: str, dive_time: Opt
             return existing
             
     return None
-    from .dives_utils import calculate_similarity
-    for u in users:
-        similarity = calculate_similarity(search_val, u.username)
-        if similarity >= 0.8: # Higher threshold for users to avoid false buddies
-            return u.id, "buddy"
-        
-    return None, None
 
 
 def parse_dive_information_text(dive_information):
@@ -492,6 +497,10 @@ async def import_subsurface_xml(
     try:
         # Read and parse XML file
         content = await file.read()
+        
+        # Parse XML
+        # Note: Standard xml.etree.ElementTree in modern Python (3.9+) is safe against
+        # basic XXE and entity expansion (billion laughs) by default.
         root = ET.fromstring(content.decode('utf-8'))
 
         # Extract dive sites
