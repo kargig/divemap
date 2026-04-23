@@ -21,7 +21,7 @@ import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import AdminChatHistoryTable from '../components/tables/AdminChatHistoryTable';
 import Modal from '../components/ui/Modal';
 import usePageTitle from '../hooks/usePageTitle';
-import { formatDate, formatTimeAgo } from '../utils/dateHelpers';
+import { formatDate, formatTimeAgo, formatTime } from '../utils/dateHelpers';
 
 const AdminChatHistory = () => {
   usePageTitle('Divemap - Admin - Chat History');
@@ -254,8 +254,7 @@ const AdminChatHistory = () => {
                       }`}
                     >
                       <div className='font-bold text-[10px] uppercase mb-1 opacity-70'>
-                        {msg.role === 'user' ? 'User' : 'Assistant'} •{' '}
-                        {new Date(msg.created_at).toLocaleTimeString()}
+                        {msg.role === 'user' ? 'User' : 'Assistant'} • {formatTime(msg.created_at)}
                       </div>
                       <div className='whitespace-pre-wrap'>{msg.content}</div>
 

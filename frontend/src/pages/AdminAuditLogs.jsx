@@ -27,6 +27,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 
 import api from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -156,9 +157,9 @@ const AdminAuditLogs = () => {
       key: 'timestamp',
       render: text => (
         <Space direction='vertical' size={0}>
-          <Text strong>{new Date(text).toLocaleDateString()}</Text>
+          <Text strong>{formatDate(text)}</Text>
           <Text type='secondary' style={{ fontSize: '12px' }}>
-            {new Date(text).toLocaleTimeString()}
+            {formatTime(text)}
           </Text>
         </Space>
       ),

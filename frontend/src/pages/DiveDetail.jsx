@@ -70,6 +70,7 @@ import {
 } from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { getRouteTypeColor } from '../utils/colorPalette';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -477,23 +478,6 @@ const DiveDetail = () => {
     if (window.confirm('Remove yourself from this dive?')) {
       removeBuddyMutation.mutate({ diveId: id, userId: user?.id });
     }
-  };
-
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = timeString => {
-    if (!timeString) return '';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false, // Use 24-hour format
-    });
   };
 
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers

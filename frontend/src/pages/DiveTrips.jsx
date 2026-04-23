@@ -42,6 +42,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getParsedTrips } from '../services/newsletters';
 import { formatCost } from '../utils/currency';
+import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -541,7 +542,7 @@ const DiveTrips = () => {
     setTimeout(() => setShowDateFilterMessage(false), 3000); // Hide after 3 seconds
   };
 
-  const formatDate = dateString => {
+  const formatTripDate = dateString => {
     const date = new Date(dateString);
     const options = {
       weekday: 'long',
@@ -549,44 +550,13 @@ const DiveTrips = () => {
       month: 'long',
       day: 'numeric',
     };
-    const formattedDate = date.toLocaleDateString(undefined, options);
-    const shortDate = date.toLocaleDateString(undefined, {
+    const formattedDate = formatDate(date, options);
+    const shortDate = formatDate(date, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
     return `${formattedDate} (${shortDate})`;
-  };
-
-  const formatDateHeader = dateString => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const isToday = date.toDateString() === today.toDateString();
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-    const options = {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    };
-    const formattedDate = date.toLocaleDateString(undefined, options);
-
-    let headerText = formattedDate;
-    if (isToday) {
-      headerText += ' (Today)';
-    } else if (isTomorrow) {
-      headerText += ' (Tomorrow)';
-    }
-
-    return headerText;
-  };
-
-  const formatTime = timeString => {
-    if (!timeString) return 'N/A';
-    return timeString.substring(0, 5); // Extract HH:MM from HH:MM:SS
   };
 
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers

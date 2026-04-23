@@ -28,6 +28,7 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDiveRoutes } from '../services/diveSites';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel } from '../utils/routeUtils';
@@ -386,7 +387,7 @@ const DiveRoutes = () => {
                         <span
                           className={`font-semibold text-gray-700 ${compactLayout ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'}`}
                         >
-                          {new Date(route.created_at).toLocaleDateString(undefined, {
+                          {formatDate(route.created_at, {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',

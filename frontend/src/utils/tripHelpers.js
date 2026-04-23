@@ -1,3 +1,5 @@
+import { formatDate as coreFormatDate } from './dateHelpers';
+
 export const getDifficultyColor = difficulty => {
   switch (difficulty?.toLowerCase()) {
     case 'beginner':
@@ -19,12 +21,7 @@ export const formatPrice = price => {
 };
 
 export const formatDate = dateString => {
-  if (!dateString) return 'Date TBD';
-  return new Date(dateString).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  return coreFormatDate(dateString);
 };
 
 export const getStatusColorClasses = (status, isSolid = false) => {

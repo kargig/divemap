@@ -36,6 +36,7 @@ import {
   updateParsedTrip,
 } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDisplayStatus } from '../utils/tripHelpers';
 
 const AdminNewsletters = () => {
@@ -338,19 +339,6 @@ const AdminNewsletters = () => {
       ensureDiveSiteAvailable(trip.dive_site_id);
     }
     setEditingTrip(trip);
-  };
-
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = timeString => {
-    if (!timeString) return 'N/A';
-    return timeString.substring(0, 5); // Extract HH:MM from HH:MM:SS
   };
 
   const formatCurrency = (price, currency = 'EUR') => {

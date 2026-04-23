@@ -19,6 +19,7 @@ import { useQuery } from 'react-query';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getRecentActivity } from '../services/admin';
+import { formatDate } from '../utils/dateHelpers';
 
 const AdminRecentActivity = () => {
   const { user } = useAuth();
@@ -111,7 +112,7 @@ const AdminRecentActivity = () => {
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+    return formatDate(date);
   };
 
   const filteredActivities =

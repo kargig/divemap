@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 
+import { formatDate } from '../../utils/dateHelpers';
 import Pagination from '../ui/Pagination';
 
 /**
@@ -275,9 +276,7 @@ const AdminUsersTable = ({
                     </div>
                     <div>
                       <span className='text-gray-500'>Created:</span>
-                      <span className='ml-2 text-gray-900'>
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </span>
+                      <span className='ml-2 text-gray-900'>{formatDate(user.created_at)}</span>
                     </div>
                   </div>
                 </div>

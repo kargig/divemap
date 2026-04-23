@@ -9,6 +9,7 @@ import AdminDivingCentersTable from '../components/tables/AdminDivingCentersTabl
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { useSetting, useUpdateSetting } from '../hooks/useSettings';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 
@@ -421,7 +422,7 @@ const AdminDivingCenters = () => {
             const date = new Date(createdAt);
             return (
               <span className='text-sm whitespace-nowrap' title={date.toLocaleString()}>
-                {date.toLocaleDateString()}
+                {formatDate(date)}
               </span>
             );
           } catch {

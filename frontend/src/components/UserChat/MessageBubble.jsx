@@ -6,7 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
-import { parseUTCDate } from '../../utils/dateHelpers';
+import { parseUTCDate, formatDate } from '../../utils/dateHelpers';
 import { slugify } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
@@ -201,7 +201,7 @@ const MessageBubble = ({
                           <div className='flex items-center space-x-1'>
                             <span className='text-blue-500 w-3 text-center'>📅</span>
                             <span className='truncate'>
-                              {new Date(tripData.date).toLocaleDateString(undefined, {
+                              {formatDate(tripData.date, {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric',

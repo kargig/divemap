@@ -9,6 +9,7 @@ import AdminDiveRoutesTable from '../components/tables/AdminDiveRoutesTable';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
@@ -341,7 +342,7 @@ const AdminDiveRoutes = () => {
             const date = new Date(createdAt);
             return (
               <span className='text-sm whitespace-nowrap' title={date.toLocaleString()}>
-                {date.toLocaleDateString()}
+                {formatDate(date)}
               </span>
             );
           } catch {
@@ -581,7 +582,7 @@ const AdminDiveRoutes = () => {
                   route.dive_site?.name || 'Unknown',
                   route.creator?.username || 'Unknown',
                   getRouteTypeLabel(route.route_type),
-                  route.created_at ? new Date(route.created_at).toLocaleDateString() : '',
+                  route.created_at ? formatDate(route.created_at) : '',
                 ]);
 
                 const csvContent = [

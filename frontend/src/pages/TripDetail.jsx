@@ -32,6 +32,7 @@ import { getDiveSites, getDiveSite } from '../services/diveSites';
 import { getDivingCenter, getDivingCenters, broadcastTrip } from '../services/divingCenters';
 import { getParsedTrip, updateParsedTrip, deleteParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
@@ -275,7 +276,7 @@ const TripDetail = () => {
     if (!trip) return '';
 
     const tripName = generateTripName(trip);
-    const date = new Date(trip.trip_date).toLocaleDateString(undefined, {
+    const date = formatDate(trip.trip_date, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

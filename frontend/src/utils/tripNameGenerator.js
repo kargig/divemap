@@ -1,3 +1,4 @@
+import { formatDate } from './dateHelpers';
 /**
  * Generate a trip name from diving center name and date
  * @param {Object} trip - Trip object with diving_center_name and trip_date
@@ -13,7 +14,7 @@ export const generateTripName = trip => {
 
   if (tripDate) {
     const date = new Date(tripDate);
-    const formattedDate = date.toLocaleDateString(undefined, {
+    const formattedDate = formatDate(date, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

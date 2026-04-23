@@ -53,6 +53,7 @@ import {
 import { getParsedTrips, deleteParsedTrip, updateParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -247,17 +248,6 @@ const DivingCenterDetail = () => {
       keepPreviousData: true, // Keep previous data while refetching
     }
   );
-
-  // Helper to format date
-  const formatDate = date => {
-    if (!date) return '';
-    const d = new Date(date);
-    return d.toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
 
   // Helper to format date for API (YYYY-MM-DD)
   const formatDateForAPI = date => {
@@ -1100,7 +1090,7 @@ const DivingCenterDetail = () => {
                         )}
                       </div>
                       <span className='text-sm text-gray-500 ml-2'>
-                        {new Date(comment.created_at).toLocaleDateString(undefined, {
+                        {formatDate(comment.created_at, {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',

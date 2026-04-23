@@ -47,6 +47,7 @@ import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { getDivingCenters } from '../services/divingCenters';
 import { getFullAvatarUrl } from '../utils/avatarHelpers';
+import { formatDate } from '../utils/dateHelpers';
 import {
   profileSchema,
   certificationSchema,
@@ -660,7 +661,7 @@ const Profile = () => {
                   </span>
                 </div>
                 <p className='text-gray-500 text-sm mb-4'>
-                  Member since {new Date(user.created_at).toLocaleDateString()}
+                  Member since {formatDate(user.created_at)}
                 </p>
                 <div className='flex flex-wrap justify-center sm:justify-start gap-2'>
                   <Button
@@ -906,7 +907,7 @@ const Profile = () => {
                       Member Since
                     </span>
                     <p className='text-gray-900 font-semibold text-sm'>
-                      {new Date(user.created_at).toLocaleDateString()}
+                      {formatDate(user.created_at)}
                     </p>
                   </div>
                 </div>

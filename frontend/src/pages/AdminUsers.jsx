@@ -25,6 +25,7 @@ import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { userAdminSchema, createResolver } from '../utils/formHelpers';
 
 const AdminUsers = () => {
@@ -619,7 +620,7 @@ const AdminUsers = () => {
                     <span className='text-sm font-medium text-green-700'>Verified</span>
                     {userItem.email_verified_at && (
                       <span className='text-xs text-gray-500'>
-                        {new Date(userItem.email_verified_at).toLocaleDateString()}
+                        {formatDate(userItem.email_verified_at)}
                       </span>
                     )}
                   </div>
@@ -656,11 +657,7 @@ const AdminUsers = () => {
         header: 'Created',
         cell: ({ row }) => {
           const userItem = row.original;
-          return (
-            <span className='text-sm text-gray-500'>
-              {new Date(userItem.created_at).toLocaleDateString()}
-            </span>
-          );
+          return <span className='text-sm text-gray-500'>{formatDate(userItem.created_at)}</span>;
         },
         enableSorting: true,
         size: 120,
@@ -674,11 +671,9 @@ const AdminUsers = () => {
           if (!userItem.last_accessed_at) return <span className='text-sm text-gray-400'>-</span>;
           return (
             <div className='flex flex-col'>
-              <span className='text-sm text-gray-700'>
-                {new Date(userItem.last_accessed_at).toLocaleDateString()}
-              </span>
+              <span className='text-sm text-gray-700'>{formatDate(userItem.last_accessed_at)}</span>
               <span className='text-xs text-gray-500'>
-                {new Date(userItem.last_accessed_at).toLocaleTimeString([], {
+                {formatTime(userItem.last_accessed_at, {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -1033,7 +1028,7 @@ const AdminUsers = () => {
                   userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
                   userItem.enabled ? 'Enabled' : 'Disabled',
                   userItem.email_verified ? 'Yes' : 'No',
-                  new Date(userItem.created_at).toLocaleDateString(),
+                  formatDate(userItem.created_at),
                   userItem.last_accessed_at
                     ? new Date(userItem.last_accessed_at).toLocaleString()
                     : '-',
@@ -1173,7 +1168,7 @@ const AdminUsers = () => {
                   userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
                   userItem.enabled ? 'Enabled' : 'Disabled',
                   userItem.email_verified ? 'Yes' : 'No',
-                  new Date(userItem.created_at).toLocaleDateString(),
+                  formatDate(userItem.created_at),
                   userItem.last_accessed_at
                     ? new Date(userItem.last_accessed_at).toLocaleString()
                     : '-',

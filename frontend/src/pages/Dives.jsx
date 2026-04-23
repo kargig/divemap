@@ -51,6 +51,7 @@ import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
@@ -845,23 +846,6 @@ const Dives = () => {
     }
   };
 
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = timeString => {
-    if (!timeString) return '';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false, // Use 24-hour format
-    });
-  };
-
   // getDifficultyColor function is now replaced by getDifficultyColorClasses from difficultyHelpers
 
   const getSuitTypeColor = type => {
@@ -1054,7 +1038,7 @@ const Dives = () => {
                         {/* Meta Byline - Single line on mobile */}
                         <div className='mt-0.5 text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
                           <Calendar className='w-3 h-3 text-gray-400' />
-                          {new Date(dive.dive_date).toLocaleDateString(undefined, {
+                          {formatDate(dive.dive_date, {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric',
@@ -1197,7 +1181,7 @@ const Dives = () => {
                       </h3>
                       <div className='text-xs text-gray-500 mt-1 flex items-center gap-1.5'>
                         <Calendar className='w-3 h-3' />
-                        {new Date(dive.dive_date).toLocaleDateString(undefined, {
+                        {formatDate(dive.dive_date, {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',

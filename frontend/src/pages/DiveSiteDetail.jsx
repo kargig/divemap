@@ -60,6 +60,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
+import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -560,9 +561,7 @@ const DiveSiteDetail = () => {
               <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
                 <div className='flex items-center gap-1'>
                   <span className='font-semibold text-gray-400 uppercase text-[9px]'>Date:</span>
-                  <span className='text-gray-700'>
-                    {new Date(dive.dive_date).toLocaleDateString()}
-                  </span>
+                  <span className='text-gray-700'>{formatDate(dive.dive_date)}</span>
                 </div>
 
                 {dive.user_username && (
@@ -875,7 +874,7 @@ const DiveSiteDetail = () => {
                   Added
                 </span>
                 <span className='text-xs sm:text-sm font-medium text-gray-900'>
-                  {new Date(diveSite.created_at).toLocaleDateString()}
+                  {formatDate(diveSite.created_at, { month: 'short' })}
                 </span>
               </div>
 
@@ -1457,7 +1456,7 @@ const DiveSiteDetail = () => {
                       )}
                     </div>
                     <span className='text-[10px] sm:text-xs text-gray-400'>
-                      {new Date(comment.created_at).toLocaleDateString()}
+                      {formatDate(comment.created_at)}
                     </span>
                   </div>
                   <p className='text-gray-700 text-[13px] sm:text-base leading-relaxed'>
