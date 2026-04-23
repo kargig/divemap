@@ -1041,6 +1041,12 @@ class DiveSearchParams(BaseModel):
     max_rating: Optional[int] = Field(None, ge=1, le=10)
     start_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+class GarminFITResponse(BaseModel):
+    message: str
+    dives: List[dict]
+    available_dive_sites: List[dict]
+    available_diving_centers: List[dict]
     tag_ids: Optional[List[int]] = None
     sort_by: Optional[str] = Field(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, view_count, created_at, updated_at)")
     sort_order: Optional[str] = Field("desc", description="Sort order (asc/desc)")

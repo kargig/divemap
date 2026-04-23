@@ -113,56 +113,68 @@ def find_potential_matches(search_term, data_list, threshold=0.6):
     matches.sort(key=lambda x: x['similarity'], reverse=True)
     return matches
 
-def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None):
-    """Find dive site by import ID with improved similarity matching"""
+def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None, sites=None):
+    """
+    Find dive site by import ID or Name.
+    If 'sites' list is provided, performs memory-only matching.
+    Otherwise, performs database lookups.
+    """
     try:
-        # First, try to get all dive sites to search through aliases
-        sites = db.query(DiveSite).all()
+        search_name = dive_site_name or import_site_id
+        if not search_name:
+            return None
 
-        # Check if any site has this import ID as an alias
-        for site in sites:
-            if hasattr(site, 'aliases') and site.aliases:
-                for alias in site.aliases:
-                    if alias.alias == import_site_id:
-                        return {"id": site.id, "match_type": "exact_alias"}
-
-        # If no exact alias match, check site names with exact match
-        for site in sites:
-            if site.name == import_site_id:
-                return {"id": site.id, "match_type": "exact_name"}
-
-        # If we have a dive site name, try matching by name first
-        if dive_site_name:
-            # Check exact name match
+        # If sites are pre-fetched, do a fast memory search
+        if sites:
+            # 1. Exact Match
             for site in sites:
-                if site.name == dive_site_name:
-                    return {"id": site.id, "match_type": "exact_name"}
-
-            # Try similarity matching with the dive site name
-            matches = find_potential_matches(dive_site_name, sites)
+                if site.name == search_name:
+                    return {"id": site.id, "name": site.name, "match_type": "exact_name"}
             
+            # 2. Fuzzy Match against all sites
+            matches = find_potential_matches(search_name, sites, threshold=0.6)
             if matches:
                 best_match = matches[0]
-                print(f"Found {len(matches)} similar dive sites for '{dive_site_name}'. Best: '{best_match['name']}' ({best_match['similarity']:.2f})")
                 return {
                     "id": best_match['id'],
+                    "name": best_match['name'],
                     "match_type": "similarity",
                     "similarity": best_match['similarity'],
-                    "proposed_sites": matches[:5]  # Return top 5 matches
+                    "proposed_sites": matches[:5]
                 }
+            return None
 
-        # If no match found with dive site name, try similarity matching with import ID
-        matches = find_potential_matches(import_site_id, sites)
-        
-        if matches:
-            best_match = matches[0]
-            print(f"Found {len(matches)} similar dive sites for '{import_site_id}'. Best: '{best_match['name']}' ({best_match['similarity']:.2f})")
-            return {
-                "id": best_match['id'],
-                "match_type": "similarity",
-                "similarity": best_match['similarity'],
-                "proposed_sites": matches[:5]  # Return top 5 matches
-            }
+        # Fallback to targeted DB queries if no pre-fetched sites provided
+        # 1. Exact Name Match
+        site = db.query(DiveSite).filter(DiveSite.name == search_name).first()
+        if site:
+            return {"id": site.id, "name": site.name, "match_type": "exact_name"}
+
+        # 2. Alias Match
+        alias = db.query(DiveSiteAlias).filter(DiveSiteAlias.alias == search_name).first()
+        if alias:
+            site = db.query(DiveSite).filter(DiveSite.id == alias.dive_site_id).first()
+            if site:
+                return {"id": site.id, "name": site.name, "match_type": "exact_alias"}
+
+        # 3. Targeted Fuzzy
+        first_word = search_name.split()[0] if ' ' in search_name else search_name
+        candidates = db.query(DiveSite).filter(
+            (DiveSite.name.like(f"{search_name[:3]}%")) |
+            (DiveSite.name.like(f"%{first_word}%"))
+        ).limit(100).all()
+
+        if candidates:
+            matches = find_potential_matches(search_name, candidates, threshold=0.6)
+            if matches:
+                best_match = matches[0]
+                return {
+                    "id": best_match['id'],
+                    "name": best_match['name'],
+                    "match_type": "similarity",
+                    "similarity": best_match['similarity'],
+                    "proposed_sites": matches[:5]
+                }
 
         return None
 
