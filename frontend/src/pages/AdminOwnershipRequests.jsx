@@ -24,6 +24,7 @@ import {
   getOwnershipRequests,
   revokeDivingCenterOwnership,
 } from '../services/divingCenters';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 
 // Extracted components to reduce complexity
 const LoadingSpinner = () => (
@@ -82,7 +83,7 @@ const MobileRequestCard = ({ request, onModalOpen }) => (
           </p>
           <div className='flex items-center gap-1.5 text-gray-700'>
             <Calendar size={12} className='text-gray-400' />
-            <span>{new Date(request.request_date).toLocaleDateString()}</span>
+            <span>{formatDate(request.request_date)}</span>
           </div>
         </div>
       </div>
@@ -211,9 +212,9 @@ const TimelineEvent = ({ request }) => {
 
       {/* Date (Left sidebar on desktop, above card on mobile) */}
       <div className='sm:absolute sm:left-0 sm:w-20 sm:text-right text-[10px] sm:text-xs text-gray-500 mt-0 sm:mt-1.5 mb-1.5 sm:mb-0'>
-        <div className='font-medium text-gray-700'>{displayDate.toLocaleDateString()}</div>
+        <div className='font-medium text-gray-700'>{formatDate(displayDate)}</div>
         <div className='text-[8px] sm:text-[10px] uppercase tracking-wider'>
-          {displayDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {formatTime(displayDate, { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
 

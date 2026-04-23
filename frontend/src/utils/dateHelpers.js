@@ -29,8 +29,12 @@ export const formatDate = (dateString, options = {}) => {
   if (!dateString) return 'Date TBD';
 
   // Use undefined for locale to respect browser settings
-  const { year = 'numeric', month = 'long', day = 'numeric', locale = undefined } = options;
+  const { year = 'numeric', month = 'short', day = 'numeric', locale = undefined } = options;
   const date = parseUTCDate(dateString);
+
+  if (isNaN(date.getTime())) {
+    return typeof dateString === 'string' ? dateString : 'Invalid Date';
+  }
 
   return date.toLocaleDateString(locale, {
     year,
@@ -48,9 +52,13 @@ export const formatDateShort = dateString => {
   if (!dateString) return 'Date TBD';
 
   const date = parseUTCDate(dateString);
+  if (isNaN(date.getTime())) {
+    return typeof dateString === 'string' ? dateString : 'Invalid Date';
+  }
+
   return date.toLocaleDateString(undefined, {
     day: 'numeric',
-    month: 'short',
+    month: 'numeric',
     year: 'numeric',
   });
 };
@@ -64,6 +72,10 @@ export const formatDateRelative = dateString => {
   if (!dateString) return 'Date TBD';
 
   const date = parseUTCDate(dateString);
+  if (isNaN(date.getTime())) {
+    return typeof dateString === 'string' ? dateString : 'Invalid Date';
+  }
+
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
@@ -121,24 +133,44 @@ export const formatTimeAgo = dateString => {
   if (diffDays < 7) return `${diffDays}d ago`;
 
   // For longer periods, show localized date
-  return date.toLocaleDateString();
+  return formatDate(dateString);
 };
 
 /**
- * Format a time string to a readable format
- * @param {string} timeString - The time to format (HH:MM:SS or HH:MM)
+ * Format a time string or Date object to a readable time format
+ * @param {string|Date} timeInput - The time string (HH:MM:SS) or Date object to format
+ * @param {Object} options - Formatting options
  * @returns {string} Formatted time string
  */
-export const formatTime = timeString => {
-  if (!timeString) return '';
+export const formatTime = (timeInput, options = {}) => {
+  if (!timeInput) return '';
 
-  // Handle both HH:MM:SS and HH:MM formats
-  const time = timeString.includes(':') ? timeString : `${timeString}:00`;
-  const [hours, minutes] = time.split(':');
+  const { hour = '2-digit', minute = '2-digit', hour12 = false, locale = undefined } = options;
 
-  return new Date(`2000-01-01T${hours}:${minutes}`).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  if (timeInput instanceof Date) {
+    return timeInput.toLocaleTimeString(locale, { hour, minute, hour12 });
+  }
+
+  if (typeof timeInput === 'string' && timeInput.includes('T')) {
+    // Looks like an ISO date string
+    return new Date(timeInput).toLocaleTimeString(locale, { hour, minute, hour12 });
+  }
+
+  if (typeof timeInput === 'string' && timeInput.includes(':')) {
+    // Handle both HH:MM:SS and HH:MM formats
+    const [hours, minutes] = timeInput.split(':');
+    return new Date(`2000-01-01T${hours}:${minutes}`).toLocaleTimeString(locale, {
+      hour,
+      minute,
+      hour12,
+    });
+  }
+
+  // Try parsing it as a full date if it's a timestamp
+  const parsed = new Date(timeInput);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toLocaleTimeString(locale, { hour, minute, hour12 });
+  }
+
+  return '';
 };

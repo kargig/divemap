@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import useClickOutside from '../hooks/useClickOutside';
 import { useNotifications } from '../hooks/useNotifications';
 import { getNotifications } from '../services/notifications';
+import { formatDate } from '../utils/dateHelpers';
 
 const NotificationBell = () => {
   const { unreadCount, markRead } = useNotifications();
@@ -117,7 +118,7 @@ const NotificationBell = () => {
                             {notification.message}
                           </p>
                           <p className='text-[10px] text-gray-400 mt-1 uppercase tracking-tight'>
-                            {new Date(notification.created_at).toLocaleDateString()}
+                            {formatDate(notification.created_at)}
                           </p>
                         </div>
                         {!notification.is_read && (

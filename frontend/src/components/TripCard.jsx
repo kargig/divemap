@@ -15,6 +15,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatCost } from '../utils/currency';
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
@@ -125,11 +126,6 @@ const TripCard = ({
     }
   };
 
-  const formatTime = timeString => {
-    if (!timeString) return '';
-    return timeString.substring(0, 5);
-  };
-
   const tripName = generateTripName(trip);
   const tripSlug = slugify(tripName);
   const tripUrl = `/dive-trips/${trip.id}/${tripSlug}`;
@@ -194,7 +190,7 @@ const TripCard = ({
                 </h3>
                 <p className='text-gray-600 text-xs'>
                   {trip.trip_date
-                    ? new Date(trip.trip_date).toLocaleDateString(undefined, {
+                    ? formatDate(trip.trip_date, {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
@@ -285,7 +281,7 @@ const TripCard = ({
               </div>
               <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_date
-                  ? new Date(trip.trip_date).toLocaleDateString(undefined, {
+                  ? formatDate(trip.trip_date, {
                       day: 'numeric',
                       month: 'short',
                     })
@@ -439,7 +435,7 @@ const TripCard = ({
                 <div className='flex items-center'>
                   <span className='font-medium text-gray-500 mr-1'>Added:</span>
                   <span className='whitespace-nowrap'>
-                    {new Date(trip.created_at).toLocaleDateString(undefined, {
+                    {formatDate(trip.created_at, {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
@@ -451,7 +447,7 @@ const TripCard = ({
                 <div className='flex items-center ml-2 sm:ml-3 pl-2 sm:pl-3 border-l border-gray-200'>
                   <span className='font-medium text-gray-500 mr-1'>Updated:</span>
                   <span className='whitespace-nowrap'>
-                    {new Date(trip.updated_at).toLocaleDateString(undefined, {
+                    {formatDate(trip.updated_at, {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',

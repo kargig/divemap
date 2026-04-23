@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 
 const AdminDiveSiteAliases = () => {
   const { diveSiteId } = useParams();
@@ -225,7 +226,7 @@ const AdminDiveSiteAliases = () => {
                       )}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {new Date(alias.created_at).toLocaleDateString()}
+                      {formatDate(alias.created_at)}
                     </td>
                     <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                       {editingAlias?.id === alias.id ? (

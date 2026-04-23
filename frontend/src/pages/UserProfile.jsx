@@ -55,6 +55,7 @@ import OrganizationLogo from '../components/OrganizationLogo';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 import { formatGases } from '../utils/textHelpers';
 
 const ActivityHeatmap = ({ data }) => {
@@ -368,14 +369,6 @@ const UserProfile = () => {
     (profile.number_of_dives || 0) +
     (profile.stats?.dives_created || 0) +
     (profile.stats?.buddy_dives_count || 0);
-
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const StatCard = ({ icon, value, label, link, color, isSmall = false }) => {
     const colorClasses = {

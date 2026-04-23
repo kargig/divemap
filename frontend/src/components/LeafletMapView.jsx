@@ -11,6 +11,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 
 import api from '../api';
+import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
 import {
@@ -420,7 +421,7 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
               </h3>
               <p class="text-xs sm:text-sm text-gray-600 max-w-[200px] sm:max-w-none mb-1">
                 <a href="/dive-trips/${marker.data.id}" class="text-blue-600 hover:text-blue-800 hover:underline">
-                  Trip #${marker.data.id} on ${new Date(marker.data.trip_date).toLocaleDateString()} - ${escape(marker.data.diving_center_name || 'Unknown Center')}
+                  Trip #${marker.data.id} on ${formatDate(marker.data.trip_date)} - ${escape(marker.data.diving_center_name || 'Unknown Center')}
                 </a>
               </p>
               ${

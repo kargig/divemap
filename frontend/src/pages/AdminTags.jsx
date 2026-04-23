@@ -7,6 +7,7 @@ import api from '../api';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminTags = () => {
@@ -280,7 +281,7 @@ const AdminTags = () => {
                     </span>
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                    {new Date(tag.created_at).toLocaleDateString()}
+                    {formatDate(tag.created_at)}
                   </td>
                   <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
                     <div className='flex space-x-2'>

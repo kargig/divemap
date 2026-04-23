@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 
 const Privacy = () => {
   // Set page title
@@ -31,7 +32,7 @@ const Privacy = () => {
               How we protect and handle your personal information and data on Divemap
             </p>
             <p className='text-sm text-gray-500 mt-2 dark:text-gray-500'>
-              Last updated: {new Date().toLocaleDateString()}
+              Last updated: {formatDate(new Date())}
             </p>
           </div>
 
@@ -450,8 +451,8 @@ const Privacy = () => {
           {/* Footer */}
           <div className='text-center text-sm text-gray-500 border-t pt-6 not-prose'>
             <p>
-              This Privacy Policy is effective as of {new Date().toLocaleDateString()} and applies
-              to all users of the Divemap platform.
+              This Privacy Policy is effective as of {formatDate(new Date())} and applies to all
+              users of the Divemap platform.
             </p>
           </div>
         </div>

@@ -31,6 +31,7 @@ import { Link } from 'react-router-dom';
 
 import api from '../api';
 import usePageTitle from '../hooks/usePageTitle';
+import { formatDate } from '../utils/dateHelpers';
 
 const { Text, Title, Paragraph } = Typography;
 
@@ -111,13 +112,13 @@ const PersonalAccessTokens = () => {
       title: 'Created At',
       dataIndex: 'created_at',
       key: 'created_at',
-      render: date => new Date(date).toLocaleDateString(),
+      render: date => formatDate(date),
     },
     {
       title: 'Expires At',
       dataIndex: 'expires_at',
       key: 'expires_at',
-      render: date => (date ? new Date(date).toLocaleDateString() : 'Never'),
+      render: date => (date ? formatDate(date) : 'Never'),
     },
     {
       title: 'Last Used',

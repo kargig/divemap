@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Link, useLocation } from 'react-router-dom';
 
+import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { slugify } from '../utils/slugify';
 
@@ -111,12 +112,12 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
           <div class="space-y-2 mb-3">
             <div class="flex items-center text-sm text-gray-600">
               <span class="mr-2">📅</span>
-              <span>${new Date(marker.dive_date).toLocaleDateString()}</span>
+              <span>${formatDate(marker.dive_date)}</span>
               ${
                 marker.dive_time
                   ? `
                 <span class="ml-2 mr-1">🕐</span>
-                <span>${new Date(`2000-01-01T${marker.dive_time}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>${formatTime(marker.dive_time, { hour: '2-digit', minute: '2-digit' })}</span>
               `
                   : ''
               }
@@ -370,19 +371,6 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
   // Handle map viewport changes
   const handleViewportChange = () => {
     // Intentionally no-op to avoid render loops with parent state
-  };
-
-  const formatDate = dateString => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const formatTime = timeString => {
-    if (!timeString) return '';
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false, // Use 24-hour format
-    });
   };
 
   return (

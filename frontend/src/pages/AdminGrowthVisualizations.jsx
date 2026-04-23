@@ -21,6 +21,7 @@ import {
 
 import usePageTitle from '../hooks/usePageTitle';
 import { getGrowthData } from '../services/admin';
+import { formatDate } from '../utils/dateHelpers';
 
 const AdminGrowthVisualizations = () => {
   usePageTitle('Divemap - Admin - Growth Visualizations');
@@ -48,15 +49,15 @@ const AdminGrowthVisualizations = () => {
     return `${sign}${num.toFixed(2)}%`;
   };
 
-  const formatDate = (dateString, includeYear = false) => {
+  const formatChartDate = (dateString, includeYear = false) => {
     const date = new Date(dateString);
     if (!includeYear) {
-      return date.toLocaleDateString(undefined, {
+      return formatDate(date, {
         month: 'short',
         day: 'numeric',
       });
     }
-    return date.toLocaleDateString();
+    return formatDate(date);
   };
 
   // Custom tooltip component (moved outside renderChart to prevent recreation)
@@ -146,7 +147,7 @@ const AdminGrowthVisualizations = () => {
               content={
                 <CustomTooltip
                   color={color}
-                  formatDateFunc={formatDate}
+                  formatDateFunc={formatChartDate}
                   formatNumberFunc={formatNumber}
                 />
               }

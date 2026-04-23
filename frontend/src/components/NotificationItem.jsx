@@ -2,6 +2,7 @@ import { X, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { useNotifications } from '../hooks/useNotifications';
+import { formatTimeAgo } from '../utils/dateHelpers';
 
 const NotificationItem = ({ notification, onDelete }) => {
   const { markRead, deleteNotification: deleteNotif } = useNotifications();
@@ -22,40 +23,6 @@ const NotificationItem = ({ notification, onDelete }) => {
     if (onDelete) {
       onDelete(notification.id);
     }
-  };
-
-  const formatDate = dateString => {
-    if (!dateString) return 'Unknown';
-
-    // JavaScript Date automatically parses UTC ISO strings (e.g., "2025-12-20T10:44:09.373Z")
-    // and converts them to the browser's local timezone for display
-    const date = new Date(dateString);
-
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      console.error('Invalid date string:', dateString);
-      return 'Invalid date';
-    }
-
-    // Get current time and calculate difference in milliseconds
-    // Both dates are converted to milliseconds since epoch, which is timezone-independent
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-
-    // Handle edge case: if date is in the future (shouldn't happen)
-    if (diffMs < 0) return 'Just now';
-
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    // For longer periods, show localized date (browser's timezone)
-    return date.toLocaleDateString();
   };
 
   const formatExactDateTime = dateString => {
@@ -108,7 +75,7 @@ const NotificationItem = ({ notification, onDelete }) => {
                   className='text-xs text-gray-400 dark:text-gray-500 cursor-help'
                   title={formatExactDateTime(notification.created_at)}
                 >
-                  {formatDate(notification.created_at)}
+                  {formatTimeAgo(notification.created_at)}
                 </span>
                 {notification.category && (
                   <span className='text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded'>

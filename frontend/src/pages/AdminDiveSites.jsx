@@ -32,6 +32,7 @@ import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
 import { approveDiveSite, rejectDiveSite } from '../services/diveSites';
+import { formatDate } from '../utils/dateHelpers';
 import {
   getDifficultyLabel,
   getDifficultyColorClasses,
@@ -595,7 +596,7 @@ const AdminDiveSites = () => {
             const date = new Date(createdAt);
             return (
               <span className='text-sm whitespace-nowrap' title={date.toLocaleString()}>
-                {date.toLocaleDateString()}
+                {formatDate(date)}
               </span>
             );
           } catch {

@@ -23,7 +23,7 @@ const RateLimitError = ({ retryAfter = 30, onRetry, className = '' }) => {
     }
   };
 
-  const formatTime = seconds => {
+  const formatCountdown = seconds => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -45,7 +45,7 @@ const RateLimitError = ({ retryAfter = 30, onRetry, className = '' }) => {
             <div className='flex items-center space-x-2'>
               <Clock className='h-5 w-5 text-orange-600' />
               <span className='text-orange-700 font-medium'>
-                {canRetry ? 'Ready to retry' : `Wait ${formatTime(timeRemaining)}`}
+                {canRetry ? 'Ready to retry' : `Wait ${formatCountdown(timeRemaining)}`}
               </span>
             </div>
 
