@@ -25,6 +25,7 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 # Parse arguments
 VERBOSE=false
 FORCE_REBUILD=false
+SHOW_COV=false
 TEST_PATHS=()
 
 for arg in "$@"; do
@@ -32,6 +33,8 @@ for arg in "$@"; do
         VERBOSE=true
     elif [ "$arg" == "--force-rebuild" ]; then
         FORCE_REBUILD=true
+    elif [ "$arg" == "--cov" ]; then
+        SHOW_COV=true
     else
         TEST_PATHS+=("$arg")
     fi
@@ -147,12 +150,17 @@ run_internal alembic upgrade head
 echo "Running tests..."
 EOF
 
+COV_FLAGS=""
+if [ "$SHOW_COV" = true ]; then
+    COV_FLAGS="--cov=app --cov-report=term-missing"
+fi
+
 if [ ${#TEST_PATHS[@]} -eq 0 ]; then
-    echo 'python -m pytest tests/ -o "log_cli=true" -o "log_cli_level=ERROR" -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short' >> container_test.sh
+    echo "python -m pytest tests/ -o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
 else
     echo -n "python -m pytest " >> container_test.sh
     for path in "${TEST_PATHS[@]}"; do echo -n "${path} " >> container_test.sh; done
-    echo '-o "log_cli=true" -o "log_cli_level=ERROR" -v --cov=app --cov-report=term-missing -x --maxfail=5 --tb=short' >> container_test.sh
+    echo "-o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
 fi
 chmod +x container_test.sh
 

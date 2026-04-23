@@ -2,7 +2,8 @@
 import pytest
 import json
 import orjson
-from app.routers.dives.dives_import import create_structured_gas_data, parse_cylinder
+from app.routers.dives.imports.gas_utils import create_structured_gas_data
+from app.routers.dives.imports.subsurface import parse_cylinder
 import xml.etree.ElementTree as ET
 
 class TestDiveImportUtils:

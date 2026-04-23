@@ -33,7 +33,7 @@ from .dives_shared import router, get_db, get_current_user, get_current_admin_us
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
 from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, DiveBuddy, get_difficulty_id_by_code
 from app.services.dive_profile_parser import DiveProfileParser
-from .dives_import import parse_dive_information_text
+from .imports.common import parse_dive_information_text
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 

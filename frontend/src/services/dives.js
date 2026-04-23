@@ -186,3 +186,20 @@ export const confirmImportDives = async divesData => {
   const response = await api.post('/api/v1/dives/import/confirm', divesData);
   return response.data;
 };
+
+/**
+ * Import dives from Suunto JSON file
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export const importSuuntoJSON = async file => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/api/v1/dives/import/suunto-json', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};

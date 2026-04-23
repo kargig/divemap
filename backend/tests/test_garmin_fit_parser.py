@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from datetime import datetime, date, time
-from app.routers.dives.dives_import import parse_garmin_fit_file, semicircles_to_degrees
+from app.routers.dives.imports.garmin import parse_garmin_fit_file
+from app.routers.dives.imports.common import semicircles_to_degrees
 
 def test_semicircles_to_degrees():
     # 180 / 2^31 * 1 = 8.381903171539307e-08
@@ -82,8 +83,8 @@ def test_parse_garmin_fit_basic():
         
         # Mock FIT_FRAME_DATA constant
         with patch('fitdecode.FIT_FRAME_DATA', 'data'), \
-             patch('app.routers.dives.dives_import.find_sites_by_coords') as mock_find_sites, \
-             patch('app.routers.dives.dives_import.find_existing_dive') as mock_find_existing:
+             patch('app.routers.dives.imports.garmin.find_sites_by_coords') as mock_find_sites, \
+             patch('app.routers.dives.imports.garmin.find_existing_dive') as mock_find_existing:
             
             mock_find_sites.return_value = []
             mock_find_existing.return_value = None

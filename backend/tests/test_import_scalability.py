@@ -3,7 +3,7 @@ import io
 import orjson
 from unittest.mock import MagicMock, patch
 from fastapi import UploadFile
-from app.routers.dives.dives_import import process_csv_import
+from app.routers.dives.imports.ssi_csv import process_csv_import
 
 @pytest.mark.asyncio
 async def test_csv_import_site_caching_scalability(db_session, test_user):
@@ -30,7 +30,7 @@ async def test_csv_import_site_caching_scalability(db_session, test_user):
     }
     
     # We mock find_dive_site_by_import_id and track how many times it's called
-    with patch('app.routers.dives.dives_import.find_dive_site_by_import_id') as mock_match:
+    with patch('app.routers.dives.imports.ssi_csv.find_dive_site_by_import_id') as mock_match:
         mock_match.return_value = {"id": 1, "name": "Blue Hole"}
         
         await process_csv_import(

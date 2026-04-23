@@ -227,7 +227,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_element_with_profile_data(self, client, auth_headers, test_dive_site):
         """Test parsing dive element with profile data."""
-        from app.routers.dives.dives_import import parse_dive_element
+        from app.routers.dives.imports.subsurface import parse_dive_element
         
         dive_xml = """<dive>
             <diveid>test_dive_123</diveid>
@@ -258,7 +258,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_element_without_profile_data(self, client, auth_headers, test_dive_site):
         """Test parsing dive element without profile data."""
-        from app.routers.dives.dives_import import parse_dive_element
+        from app.routers.dives.imports.subsurface import parse_dive_element
         
         dive_xml = """<dive>
             <diveid>test_dive_123</diveid>
@@ -281,7 +281,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_time_to_minutes_various_formats(self, client, auth_headers):
         """Test parsing various time formats."""
-        from app.routers.dives.dives_import import parse_time_to_minutes
+        from app.routers.dives.imports.subsurface import parse_time_to_minutes
         
         # Test MM:SS format
         assert parse_time_to_minutes("0:10 min") == 0.16666666666666666
@@ -300,7 +300,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_profile_samples_with_decompression(self, client, auth_headers):
         """Test parsing dive profile samples with decompression data."""
-        from app.routers.dives.dives_import import parse_dive_profile_samples
+        from app.routers.dives.imports.subsurface import parse_dive_profile_samples
         from xml.etree.ElementTree import fromstring
         
         divecomputer_xml = """<divecomputer model='Shearwater Perdix AI' deviceid='8a66df8d'>
@@ -333,7 +333,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_profile_samples_with_events(self, client, auth_headers):
         """Test parsing dive profile samples with events."""
-        from app.routers.dives.dives_import import parse_dive_profile_samples
+        from app.routers.dives.imports.subsurface import parse_dive_profile_samples
         from xml.etree.ElementTree import fromstring
         
         divecomputer_xml = """<divecomputer model='Shearwater Perdix AI' deviceid='8a66df8d'>
@@ -359,7 +359,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_profile_samples_empty(self, client, auth_headers):
         """Test parsing empty dive profile samples."""
-        from app.routers.dives.dives_import import parse_dive_profile_samples
+        from app.routers.dives.imports.subsurface import parse_dive_profile_samples
         from xml.etree.ElementTree import fromstring
         
         divecomputer_xml = """<divecomputer model='Shearwater Perdix AI' deviceid='8a66df8d'>
@@ -372,7 +372,7 @@ class TestDiveImportWithProfiles:
 
     def test_parse_dive_profile_samples_invalid_xml(self, client, auth_headers):
         """Test parsing invalid dive profile samples XML."""
-        from app.routers.dives.dives_import import parse_dive_profile_samples
+        from app.routers.dives.imports.subsurface import parse_dive_profile_samples
         from xml.etree.ElementTree import fromstring
         
         divecomputer_xml = """<divecomputer model='Shearwater Perdix AI' deviceid='8a66df8d'>
@@ -389,7 +389,7 @@ class TestDiveImportWithProfiles:
 
     def test_create_structured_gas_data_backgas_index(self):
         """Test backgas identification when first tank is smaller."""
-        from app.routers.dives.dives_import import create_structured_gas_data
+        from app.routers.dives.imports.gas_utils import create_structured_gas_data
         
         # Case 1: First tank smaller than second tank (0 < 1)
         cylinders = [
@@ -407,7 +407,7 @@ class TestDiveImportWithProfiles:
 
     def test_create_structured_gas_data_gaschange_at_zero(self):
         """Test backgas identification with gaschange event at time 0."""
-        from app.routers.dives.dives_import import create_structured_gas_data
+        from app.routers.dives.imports.gas_utils import create_structured_gas_data
         
         # Case 2: Gaschange at time 0 indicates cylinder 1 is backgas
         cylinders = [
@@ -431,7 +431,7 @@ class TestDiveImportWithProfiles:
 
     def test_create_structured_gas_data_default(self):
         """Test default backgas identification (first tank)."""
-        from app.routers.dives.dives_import import create_structured_gas_data
+        from app.routers.dives.imports.gas_utils import create_structured_gas_data
         
         # Case 3: Default (first tank is backgas if 0 >= 1)
         cylinders = [

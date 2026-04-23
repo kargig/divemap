@@ -1,5 +1,5 @@
 import pytest
-from app.routers.dives.dives_import import sanitize_csv_cell
+from app.routers.dives.imports.csv_utils import sanitize_csv_cell
 
 def test_formula_injection_protection():
     # Test common injection prefixes

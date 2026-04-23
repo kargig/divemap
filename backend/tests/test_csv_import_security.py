@@ -1,5 +1,5 @@
 import pytest
-from app.routers.dives.dives_import import protect_csv_formula, sanitize_csv_cell
+from app.routers.dives.imports.csv_utils import protect_csv_formula, sanitize_csv_cell
 
 def test_protect_csv_formula():
     assert protect_csv_formula("=SUM(1,2)") == "'=SUM(1,2)"
