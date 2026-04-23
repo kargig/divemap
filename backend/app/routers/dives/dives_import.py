@@ -913,9 +913,9 @@ async def import_subsurface_xml(
         # Pre-fetch data for performance
         all_centers = db.query(DivingCenter).all()
         user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
-        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+        all_sites = db.query(DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region).all()
 
-        # Build unique site match cache for XML (Memory-only matching)
+        # Build unique site match cache for XML (Memory-only matching against full list)
         xml_site_names = set()
         for site_info in dive_sites.values():
             if site_info.get('name'):
@@ -924,7 +924,7 @@ async def import_subsurface_xml(
         site_match_cache = {}
         for site_name in xml_site_names:
             site_match_cache[site_name] = find_dive_site_by_import_id(
-                site_name, db, site_name, sites=all_sites_min
+                site_name, db, site_name, sites=all_sites
             )
 
         for dive_elem in dive_elements:
@@ -953,18 +953,7 @@ async def import_subsurface_xml(
                 detail="No valid dives found in XML file"
             )
 
-        # Use pre-fetched data for manual selection in frontend review
-        # We fetch only the sites that were actually matched or proposed
-        all_candidate_ids = set()
-        for m in site_match_cache.values():
-            if not m: continue
-            all_candidate_ids.add(m['id'])
-            if 'proposed_sites' in m:
-                for p in m['proposed_sites']:
-                    all_candidate_ids.add(p['id'])
-        
-        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
-
+        # Use pre-fetched data for selection (Full database list)
         dive_sites_for_selection = [
             {
                 "id": site.id,
@@ -972,7 +961,7 @@ async def import_subsurface_xml(
                 "country": site.country,
                 "region": site.region
             }
-            for site in display_sites
+            for site in all_sites
         ]
 
         return {
@@ -1127,15 +1116,15 @@ async def process_csv_import(
         all_users = db.query(User).all()
         user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
         
-        # Optimization: Fetch ONLY Name and ID for ALL sites (~500KB for 10k sites)
-        # This allows full fuzzy matching in memory without hitting the DB in a loop.
-        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+        # Optimization: Fetch ONLY essential columns for ALL sites.
+        # This allows full fuzzy matching in memory against the entire database.
+        all_sites = db.query(DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region).all()
 
-        # 3. Targeted Fuzzy Matching for UNIQUE names (Memory-only)
+        # 3. Targeted Fuzzy Matching for UNIQUE names (Memory-only against full list)
         site_match_cache = {}
         for site_name in unique_site_names:
             site_match_cache[site_name] = find_dive_site_by_import_id(
-                site_name, db, site_name, sites=all_sites_min
+                site_name, db, site_name, sites=all_sites
             )
 
         tag_lookup = {t.name.lower(): t.id for t in all_tags}
@@ -1248,18 +1237,7 @@ async def process_csv_import(
             
             parsed_dives.append(dive_data)
 
-        # Use pre-fetched data for manual selection in frontend review
-        # We fetch the full objects only for the candidate sites to show details (Country/Region)
-        all_candidate_ids = set()
-        for m in site_match_cache.values():
-            if not m: continue
-            all_candidate_ids.add(m['id'])
-            if 'proposed_sites' in m:
-                for p in m['proposed_sites']:
-                    all_candidate_ids.add(p['id'])
-        
-        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
-
+        # Use pre-fetched data for selection (Full database list)
         dive_sites_for_selection = [
             {
                 "id": site.id,
@@ -1267,7 +1245,7 @@ async def process_csv_import(
                 "country": site.country,
                 "region": site.region
             }
-            for site in display_sites
+            for site in all_sites
         ]
 
         diving_centers_for_selection = [
@@ -1311,10 +1289,10 @@ async def import_garmin_fit(
         # Pre-fetch data for performance
         all_centers = db.query(DivingCenter).all()
         user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
-        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+        all_sites = db.query(DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region).all()
         
         # For Garmin FIT, site matching is primarily coordinate-based
-        parsed_dives = parse_garmin_fit_file(content, db, current_user.id, user_dives=user_dives, all_sites=all_sites_min)
+        parsed_dives = parse_garmin_fit_file(content, db, current_user.id, user_dives=user_dives, all_sites=all_sites)
 
         if not parsed_dives:
             raise HTTPException(
@@ -1322,18 +1300,7 @@ async def import_garmin_fit(
                 detail="No dive sessions found in FIT file"
             )
 
-        # Use pre-fetched data for manual selection in frontend review
-        # We fetch only the sites that were actually matched or proposed
-        all_candidate_ids = set()
-        for d in parsed_dives:
-            if d.get('dive_site_id'):
-                all_candidate_ids.add(d['dive_site_id'])
-            if 'proposed_sites' in d:
-                for p in d['proposed_sites']:
-                    all_candidate_ids.add(p['id'])
-        
-        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
-
+        # Use pre-fetched data for manual selection in frontend review (Full list)
         dive_sites_for_selection = [
             {
                 "id": site.id,
@@ -1341,7 +1308,7 @@ async def import_garmin_fit(
                 "country": site.country,
                 "region": site.region
             }
-            for site in display_sites
+            for site in all_sites
         ]
 
         diving_centers_for_selection = [
