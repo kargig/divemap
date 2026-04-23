@@ -20,6 +20,7 @@ import {
   confirmImportDives,
   getCSVHeaders,
   processCSVImport,
+  importGarminFIT,
 } from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { TANK_SIZES } from '../utils/diveConstants';
@@ -161,6 +162,38 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     },
   });
 
+  // Garmin FIT Import mutation
+  const garminMutation = useMutation(importGarminFIT, {
+    onSuccess: data => {
+      const dives = data.dives.map(dive => ({ ...dive, is_private: false }));
+      setParsedDives(dives);
+      const sites = data.available_dive_sites || [];
+      setAvailableDiveSites(sites);
+      const centers = data.available_diving_centers || [];
+      setAvailableDivingCenters(centers);
+
+      // Pre-fill search strings
+      const initialSearchStrings = {};
+      dives.forEach((dive, index) => {
+        if (dive.dive_site_id) {
+          const site = sites.find(s => s.id === dive.dive_site_id);
+          if (site) {
+            initialSearchStrings[index] = site.name;
+          }
+        }
+      });
+      setDiveSiteSearchStrings(initialSearchStrings);
+
+      setCurrentStep('review');
+      setIsProcessing(false);
+      toast.success(data.message);
+    },
+    onError: error => {
+      toast.error(extractErrorMessage(error) || 'Failed to process Garmin FIT file');
+      setIsProcessing(false);
+    },
+  });
+
   // Confirm import mutation
   const confirmMutation = useMutation(confirmImportDives, {
     onSuccess: data => {
@@ -191,11 +224,11 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     const files = Array.from(event.target.files);
     const validFiles = files.filter(file => {
       const name = file.name.toLowerCase();
-      return name.endsWith('.xml') || name.endsWith('.csv');
+      return name.endsWith('.xml') || name.endsWith('.csv') || name.endsWith('.fit');
     });
 
     if (validFiles.length !== files.length) {
-      toast.error('Only XML and CSV files are supported');
+      toast.error('Only XML, CSV and Garmin FIT files are supported');
     }
 
     setSelectedFiles(validFiles);
@@ -209,9 +242,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
 
     setIsProcessing(true);
     const file = selectedFiles[0];
+    const name = file.name.toLowerCase();
 
-    if (file.name.toLowerCase().endsWith('.csv')) {
+    if (name.endsWith('.csv')) {
       csvHeadersMutation.mutate(file);
+    } else if (name.endsWith('.fit')) {
+      garminMutation.mutate(file);
     } else {
       importMutation.mutate(file);
     }
@@ -412,6 +448,11 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         ...cleanDive
       } = dive;
 
+      // Keep profile_data for the backend to save/update
+      if (dive.profile_data) {
+        cleanDive.profile_data = dive.profile_data;
+      }
+
       // Map existing_dive_id to 'id' for the backend to recognize it as an update
       if (existing_dive_id) {
         cleanDive.id = existing_dive_id;
@@ -566,7 +607,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             <div>
               <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
               <p className='text-gray-600 mb-4'>
-                Select Subsurface XML or CSV (e.g. MySSI) files to import your dives.
+                Select Subsurface XML, CSV (e.g. MySSI) or Garmin FIT files to import your dives.
               </p>
             </div>
 
@@ -574,7 +615,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
               <div className='space-y-2'>
                 <p className='text-sm text-gray-600'>
-                  Drag and drop XML or CSV files here, or click to browse
+                  Drag and drop XML, CSV or FIT files here, or click to browse
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -586,7 +627,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <input
                 ref={fileInputRef}
                 type='file'
-                accept='.xml,.csv'
+                accept='.xml,.csv,.fit'
                 onChange={handleFileSelect}
                 className='hidden'
               />
@@ -665,6 +706,11 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                         {dive.existing_dive_id && (
                           <span className='px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 rounded-full border border-orange-200'>
                             Existing
+                          </span>
+                        )}
+                        {(dive.latitude || dive.unmatched_dive_site?.latitude) && (
+                          <span className='px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-full border border-blue-200'>
+                            GPS Included
                           </span>
                         )}
                       </div>
@@ -826,8 +872,19 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                     />
                                   </div>
                                   <button
-                                    onClick={() => window.open('/dive-sites/create', '_blank')}
+                                    onClick={() => {
+                                      const site = dive.unmatched_dive_site;
+                                      const url = site?.latitude
+                                        ? `/dive-sites/create?lat=${site.latitude}&lng=${site.longitude}`
+                                        : '/dive-sites/create';
+                                      window.open(url, '_blank');
+                                    }}
                                     className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                    title={
+                                      dive.unmatched_dive_site?.latitude
+                                        ? 'Create new site with GPS coordinates from file'
+                                        : 'Create new site'
+                                    }
                                   >
                                     Create New
                                   </button>
@@ -836,12 +893,19 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                             </div>
                           ) : dive.proposed_dive_sites ? (
                             <div className='space-y-2'>
-                              <div className='flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md'>
-                                <AlertCircle size={16} className='text-blue-600' />
-                                <span className='text-sm text-blue-800'>
-                                  <strong>Proposed dive site match</strong> - Please confirm if this
-                                  is the correct site
-                                </span>
+                              <div className='flex flex-col gap-1 p-2 bg-blue-50 border border-blue-200 rounded-md'>
+                                <div className='flex items-center gap-2'>
+                                  <AlertCircle size={16} className='text-blue-600' />
+                                  <span className='text-sm text-blue-800'>
+                                    <strong>Proposed dive site match</strong>
+                                  </span>
+                                </div>
+                                <div className='text-xs text-blue-700 ml-6'>
+                                  Original name in file:{' '}
+                                  <span className='font-mono font-semibold'>
+                                    "{dive.proposed_dive_sites[0]?.original_name || 'Unknown'}"
+                                  </span>
+                                </div>
                               </div>
                               <div className='space-y-2'>
                                 {dive.proposed_dive_sites.map((proposedSite, siteIndex) => (
@@ -875,7 +939,9 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                             {proposedSite.name}
                                           </strong>
                                           <span className='text-blue-600 ml-2'>
-                                            ({(proposedSite.similarity * 100).toFixed(0)}% match)
+                                            {proposedSite.distance !== undefined
+                                              ? `(${Math.round(proposedSite.distance)}m away)`
+                                              : `(${(proposedSite.similarity * 100).toFixed(0)}% match)`}
                                           </span>
                                         </div>
                                       </div>
@@ -897,8 +963,18 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                     />
                                   </div>
                                   <button
-                                    onClick={() => window.open('/dive-sites/create', '_blank')}
+                                    onClick={() => {
+                                      const url = dive.latitude
+                                        ? `/dive-sites/create?lat=${dive.latitude}&lng=${dive.longitude}`
+                                        : '/dive-sites/create';
+                                      window.open(url, '_blank');
+                                    }}
                                     className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                    title={
+                                      dive.latitude
+                                        ? 'Create new site with GPS coordinates from file'
+                                        : 'Create new site'
+                                    }
                                   >
                                     Create New
                                   </button>

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 
 import api from '../api';
@@ -33,6 +33,7 @@ const CreateDiveSite = () => {
   // Set page title
   usePageTitle('Divemap - Create Dive Site');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
@@ -68,6 +69,14 @@ const CreateDiveSite = () => {
   } = methods;
 
   const formData = watch();
+
+  // Pre-fill latitude and longitude from query parameters (e.g. from Garmin FIT import)
+  useEffect(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    if (lat) setValue('latitude', lat, { shouldValidate: true });
+    if (lng) setValue('longitude', lng, { shouldValidate: true });
+  }, [searchParams, setValue]);
 
   // Photo upload state
   const [photoMediaUrls, setPhotoMediaUrls] = useState([]);

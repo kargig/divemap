@@ -131,6 +131,23 @@ export const importSubsurfaceXML = async file => {
 };
 
 /**
+ * Import dives from Garmin FIT file
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export const importGarminFIT = async file => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/api/v1/dives/import/garmin-fit', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
  * Get CSV headers and sample data
  * @param {File} file
  * @returns {Promise<Object>}

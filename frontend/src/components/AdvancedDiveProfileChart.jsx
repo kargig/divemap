@@ -268,7 +268,15 @@ const AdvancedDiveProfileChart = ({
   const gasChangeEvents = useMemo(() => {
     if (!profileData?.events) return [];
     return profileData.events.filter(
-      event => event.name === 'gaschange' && event.type === '25' && event.time_minutes > 1.0
+      event => (event.name === 'gaschange' || event.type === '25') && event.time_minutes > 1.0
+    );
+  }, [profileData]);
+
+  // Process deco and other alerts
+  const decoAlertEvents = useMemo(() => {
+    if (!profileData?.events) return [];
+    return profileData.events.filter(
+      event => (event.type === 'alert' || event.type === 'info') && event.time_minutes > 1.0
     );
   }, [profileData]);
 
@@ -886,6 +894,21 @@ const AdvancedDiveProfileChart = ({
                     position: 'top',
                     fontSize: 10,
                     fill: '#F0E442',
+                  }}
+                />
+              ))}
+              {decoAlertEvents.map(event => (
+                <ReferenceLine
+                  key={`alert-${event.time_minutes}-${event.name}`}
+                  x={event.time_minutes}
+                  stroke={event.type === 'alert' ? '#D55E00' : '#0072B2'}
+                  strokeWidth={2}
+                  strokeDasharray='3 3'
+                  label={{
+                    value: event.name,
+                    position: 'insideTopRight',
+                    fontSize: 10,
+                    fill: event.type === 'alert' ? '#D55E00' : '#0072B2',
                   }}
                 />
               ))}

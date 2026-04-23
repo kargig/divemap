@@ -20,7 +20,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
 
     // Sort events by time
     const gasChanges = profileData.events
-      .filter(e => e.name === 'gaschange')
+      .filter(e => e.name === 'gaschange' || e.type === '25')
       .sort((a, b) => a.time_minutes - b.time_minutes);
 
     let currentCylinder = 0; // Default to cylinder 0

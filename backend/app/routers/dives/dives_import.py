@@ -17,8 +17,9 @@ The import functionality includes:
 
 from fastapi import Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date, time, datetime
+from typing import List, Optional, Dict, Any
+from collections import defaultdict
+from datetime import date, time, datetime, timedelta
 import orjson
 import os
 import re
@@ -26,10 +27,11 @@ import tempfile
 import uuid
 import xml.etree.ElementTree as ET
 import nh3
+import fitdecode
 
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse, CSVHeaderResponse
-from app.models import DiveSite, DiveSiteAlias
+from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse, CSVHeaderResponse, GarminFITResponse
+from app.models import DiveSite, DiveSiteAlias, DivingCenter
 from app.services.dive_profile_parser import DiveProfileParser
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
@@ -85,6 +87,299 @@ def convert_difficulty_to_code(difficulty_input):
         return label_mapping.get(difficulty_input.lower())
     
     # Default to intermediate (ADVANCED_OPEN_WATER) if unknown
+
+def semicircles_to_degrees(semicircles: Optional[int]) -> Optional[float]:
+    """
+    Convert Garmin semicircles to decimal degrees.
+    Formula: degrees = semicircles * (180 / 2^31)
+    """
+    if semicircles is None:
+        return None
+    return float(semicircles) * (180.0 / 2**31)
+
+def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, user_dives=None, all_sites=None):
+    """
+    Parse a Garmin FIT activity file and extract dive sessions and samples.
+    """
+    import io
+    parsed_dives = []
+    
+    # Pre-parse all messages to categorize them
+    messages = defaultdict(list)
+    
+    with fitdecode.FitReader(io.BytesIO(content)) as fit:
+        for frame in fit:
+            if frame.frame_type == fitdecode.FIT_FRAME_DATA:
+                messages[frame.name].append(frame)
+
+    for session_frame in messages['session']:
+        start_time = session_frame.get_value('start_time')
+        if not start_time:
+            continue
+            
+        duration_secs = session_frame.get_value('total_elapsed_time') or 0
+        end_time = start_time + timedelta(seconds=duration_secs)
+        
+        # Categorize records, summaries and settings for this specific session
+        session_records = [r for r in messages['record'] if r.get_value('timestamp') and start_time <= r.get_value('timestamp') <= end_time]
+        session_summaries = [s for s in messages['dive_summary'] if s.get_value('timestamp') and start_time <= s.get_value('timestamp') <= end_time]
+        session_settings = messages['dive_settings'][0] if messages['dive_settings'] else None
+        # dive_gas messages usually aren't timestamped per session in the same way, but often there's only one set
+        session_gases = messages['dive_gas']
+
+        # 1. Depth Metrics - Priority: dive_summary > session > calculated
+        max_d, avg_d = None, None
+        
+        if session_summaries:
+            s = session_summaries[0]
+            try:
+                max_d = s.get_value('max_depth')
+                avg_d = s.get_value('avg_depth')
+            except Exception: pass
+
+        if max_d is None:
+            try:
+                max_d = session_frame.get_value('max_depth')
+                avg_d = session_frame.get_value('avg_depth')
+            except Exception: pass
+        
+        if max_d is None and session_records:
+            depths = [r.get_value('depth') for r in session_records if r.get_value('depth') is not None]
+            if depths:
+                max_d = max(depths)
+                avg_d = sum(depths) / len(depths)
+        
+        dive_data = {
+            "max_depth": round(max_d, 2) if max_d is not None else 0.0,
+            "average_depth": round(avg_d, 2) if avg_d is not None else 0.0,
+            "duration": int(duration_secs / 60) if duration_secs else 0,
+            "dive_date": start_time.date().isoformat(),
+            "dive_time": start_time.time().isoformat(),
+            "is_private": False,
+            "tags": [],
+            "_raw_start_time": start_time.isoformat(),
+            "profile_data": {"samples": []}
+        }
+
+        # 1.1 Parse Gas Data (Garmin specific)
+        if session_gases:
+            # Garmin provides multiple dive_gas messages (diluents, bailouts, etc.)
+            # We filter for 'enabled' gases and unique mixes to avoid duplicates.
+            # We prioritize 'closed_circuit_diluent' as the back gas if multiple exist.
+            cylinders = []
+            
+            # Sort to put CCR diluents first (index 0)
+            sorted_gases = sorted(
+                session_gases, 
+                key=lambda g: 0 if g.get_value('mode') == 'closed_circuit_diluent' else 1
+            )
+            
+            seen_mixes = set()
+            for g in sorted_gases:
+                if g.get_value('status') != 'enabled':
+                    continue
+                    
+                o2 = g.get_value('oxygen_content') or 21
+                he = g.get_value('helium_content') or 0
+                mix = (o2, he)
+                
+                if mix not in seen_mixes:
+                    seen_mixes.add(mix)
+                    cylinders.append({
+                        "size": "12 l", # Assumption
+                        "o2": f"{o2}%",
+                        "he": f"{he}%",
+                        "start": "200 bar",
+                        "end": "50 bar"
+                    })
+            
+            if cylinders:
+                # Try to extract events for better gas identification (back gas vs stages)
+                # And also for profile display (gas switches, deco alerts)
+                events = []
+                
+                # Filter events for this session
+                session_events = [e for e in messages['event'] if e.get_value('timestamp') and start_time <= e.get_value('timestamp') <= end_time]
+                
+                for e in session_events:
+                    ts = e.get_value('timestamp')
+                    time_mins = (ts - start_time).total_seconds() / 60.0
+                    
+                    event_type = None
+                    try:
+                        event_type = e.get_value('event')
+                    except Exception:
+                        pass
+                        
+                    dive_alert = None
+                    try:
+                        dive_alert = e.get_value('dive_alert')
+                    except Exception:
+                        pass
+                    
+                    if event_type == 'dive_gas_switched':
+                        events.append({
+                            "type": "gaschange",
+                            "name": "gaschange",
+                            "time_minutes": time_mins,
+                            "cylinder": str(e.get_value('data') if e.has_field('data') else "0")
+                        })
+                    elif dive_alert in ['ndl_reached', 'approaching_first_deco_stop', 'deco_ceiling_broken']:
+                        events.append({
+                            "type": "alert",
+                            "name": dive_alert.replace('_', ' '),
+                            "time_minutes": time_mins
+                        })
+                    elif dive_alert in ['setpoint_switch_auto_high', 'setpoint_switch_auto_low']:
+                        events.append({
+                            "type": "info",
+                            "name": dive_alert.replace('_', ' '),
+                            "time_minutes": time_mins
+                        })
+
+                dive_data["gas_bottles_used"] = create_structured_gas_data(cylinders, events=events)
+                dive_data["profile_data"]["events"] = events # Store for profile chart
+        
+        # 2. GPS Coordinates
+        lat, lng = None, None
+        try:
+            lat = semicircles_to_degrees(session_frame.get_value('start_position_lat'))
+            lng = semicircles_to_degrees(session_frame.get_value('start_position_long'))
+        except Exception: pass
+        
+        if lat is None or lng is None:
+            for r in session_records:
+                try:
+                    r_lat = semicircles_to_degrees(r.get_value('position_lat'))
+                    r_lng = semicircles_to_degrees(r.get_value('position_long'))
+                    if r_lat and r_lng:
+                        lat, lng = r_lat, r_lng
+                        break
+                except Exception: continue
+
+        if lat is not None and lng is not None:
+            dive_data["latitude"] = lat
+            dive_data["longitude"] = lng
+            
+            # Match coordinates
+            # Note: find_sites_by_coords currently uses a targeted SQL query.
+            # This is efficient (hits a spatial index) so we keep it as-is for accuracy.
+            sites = find_sites_by_coords(db, lat, lng)
+            if sites:
+                best_match = sites[0]
+                dive_data["dive_site_id"] = best_match.id
+                if best_match.distance > 10:
+                    dive_data["proposed_sites"] = [{"id": s.id, "name": s.name, "distance": s.distance} for s in sites]
+            else:
+                dive_data["unmatched_dive_site"] = {"name": "Unknown Site (Garmin GPS)", "latitude": lat, "longitude": lng}
+        
+        # 3. Enhanced Metadata
+        info = []
+        # Device Info
+        if messages['device_info']:
+            d_info = messages['device_info'][0]
+            product = d_info.get_value('garmin_product') or d_info.get_value('product')
+            if product: info.append(f"Device: Garmin {product}")
+
+        # Dive Settings
+        if session_settings:
+            model = session_settings.get_value('model')
+            gf_low = session_settings.get_value('gf_low')
+            gf_high = session_settings.get_value('gf_high')
+            if model: info.append(f"Deco Model: {model} (GF {gf_low}/{gf_high})")
+            
+            water = session_settings.get_value('water_type')
+            if water: info.append(f"Water: {water}")
+
+        # Dive Summary Metrics
+        if session_summaries:
+            s = session_summaries[0]
+            cns_start = s.get_value('start_cns')
+            if cns_start is not None: info.append(f"Start CNS: {cns_start}%")
+            cns_end = s.get_value('end_cns')
+            if cns_end is not None: info.append(f"End CNS: {cns_end}%")
+            n2_start = s.get_value('start_n2')
+            if n2_start is not None: info.append(f"Start N2: {n2_start}%")
+            n2_end = s.get_value('end_n2')
+            if n2_end is not None: info.append(f"End N2: {n2_end}%")
+            o2_tox = s.get_value('o2_toxicity')
+            if o2_tox is not None: info.append(f"O2 Toxicity: {o2_tox} OTU")
+            surface_int = s.get_value('surface_interval')
+            if surface_int is not None: 
+                hrs = surface_int // 3600
+                mins = (surface_int % 3600) // 60
+                info.append(f"Surface Interval: {hrs}h {mins}m")
+            
+        # Session Metrics
+        try:
+            avg_temp = session_frame.get_value('avg_temperature')
+            if avg_temp is not None: info.append(f"Avg Water Temp: {avg_temp}°C")
+            
+            avg_hr = session_frame.get_value('avg_heart_rate')
+            if avg_hr is not None: info.append(f"Avg HR: {avg_hr} bpm")
+        except Exception: pass
+            
+        dive_data["dive_information"] = "\n".join(info) if info else None
+        
+        # 4. Profile samples
+        for r in session_records:
+            r_depth = r.get_value('depth')
+            r_ts = r.get_value('timestamp')
+            if r_depth is not None and r_ts:
+                time_offset = (r_ts - start_time).total_seconds()
+                temp = None
+                try: temp = r.get_value('temperature')
+                except Exception: pass
+                # Extract additional profile samples
+                sample = {
+                    "time_minutes": round(time_offset / 60.0, 2),
+                    "depth": round(r_depth, 2),
+                    "temperature": temp
+                }
+                
+                try:
+                    # CNS and N2
+                    cns = r.get_value('cns_load')
+                    if cns is not None: sample['cns_percent'] = cns # UI expects cns_percent
+                    
+                    n2 = r.get_value('n2_load')
+                    if n2 is not None: sample['n2_percent'] = n2
+                    
+                    # NDL
+                    ndl = r.get_value('ndl_time')
+                    if ndl is not None:
+                        sample['ndl_minutes'] = round(ndl / 60.0, 2)
+                    
+                    # Deco Stop Information
+                    stop_depth = r.get_value('next_stop_depth')
+                    if stop_depth is not None:
+                        sample['stopdepth'] = round(stop_depth, 2)
+                        sample['in_deco'] = stop_depth > 0
+                    
+                    stop_time = r.get_value('next_stop_time')
+                    if stop_time is not None:
+                        sample['stoptime_minutes'] = round(stop_time / 60.0, 2)
+                        
+                except Exception: pass
+                
+                dive_data["profile_data"]["samples"].append(sample)
+        
+        # Duplicate detection
+        existing = find_existing_dive(
+            db, current_user_id, 
+            dive_data["dive_date"], 
+            dive_data["dive_time"], 
+            dive_data["duration"], 
+            dive_data["max_depth"],
+            user_dives=user_dives
+        )
+        if existing:
+            dive_data["existing_dive_id"] = existing.id
+            dive_data["skip"] = True
+            
+        parsed_dives.append(dive_data)
+                        
+    return parsed_dives
     return 'ADVANCED_OPEN_WATER'
 
 def protect_csv_formula(value: str) -> Optional[str]:
@@ -157,7 +452,7 @@ def parse_csv_date_time(value: str) -> tuple[Optional[date], Optional[time]]:
     except (ValueError, TypeError, OverflowError):
         return (None, None)
 
-def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str]]:
+def resolve_entity(db: Session, value: str, centers=None, users=None) -> tuple[Optional[int], Optional[str]]:
     """
     Intelligently resolve a string to either a Diving Center or a User (Buddy).
     Returns (id, type) where type is 'center', 'buddy', or None.
@@ -173,24 +468,37 @@ def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str
         return None, None
 
     # 1. Try Diving Center Exact match (case-insensitive)
-    try:
-        center = db.query(DivingCenter).filter(DivingCenter.name.ilike(search_val)).first()
-        if center:
-            return center.id, "center"
-    except Exception:
-        pass
+    if centers is not None:
+        # Search in pre-fetched list
+        for c in centers:
+            if c.name.lower() == search_val.lower():
+                return c.id, "center"
+    else:
+        try:
+            center = db.query(DivingCenter).filter(DivingCenter.name.ilike(search_val)).first()
+            if center:
+                return center.id, "center"
+        except Exception:
+            pass
         
     # 2. Try User (Buddy) match by username
-    try:
-        user = db.query(User).filter(User.username.ilike(search_val)).first()
-        if user:
-            return user.id, "buddy"
-    except Exception:
-        pass
+    if users is not None:
+        # Search in pre-fetched list
+        for u in users:
+            if u.username.lower() == search_val.lower():
+                return u.id, "buddy"
+    else:
+        try:
+            user = db.query(User).filter(User.username.ilike(search_val)).first()
+            if user:
+                return user.id, "buddy"
+        except Exception:
+            pass
     
     # 3. Try Diving Center Fuzzy match
     try:
-        centers = db.query(DivingCenter).all()
+        if centers is None:
+            centers = db.query(DivingCenter).all()
         matches = find_potential_matches(search_val, centers, threshold=0.6)
         if matches:
             return matches[0]['id'], "center"
@@ -199,7 +507,8 @@ def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str
 
     # 4. Try User Fuzzy match (only if no center matches)
     try:
-        users = db.query(User).all()
+        if users is None:
+            users = db.query(User).all()
         from .dives_utils import calculate_similarity
         for u in users:
             similarity = calculate_similarity(search_val, u.username)
@@ -210,32 +519,94 @@ def resolve_entity(db: Session, value: str) -> tuple[Optional[int], Optional[str
         
     return None, None
 
-def find_existing_dive(db: Session, user_id: int, dive_date: str, dive_time: Optional[str] = None, duration: Optional[int] = None, max_depth: Optional[float] = None) -> Optional[Dive]:
+def find_existing_dive(db: Session, user_id: int, dive_date: str, dive_time: Optional[str] = None, duration: Optional[int] = None, max_depth: Optional[float] = None, user_dives=None) -> Optional[Dive]:
     """
     Attempts to find an existing dive for a user to prevent duplicates.
-    Matches by date + time, or date + duration + depth if time is missing.
+    Matches by date + time (+/- 0.5m depth), or date + duration + depth if time is missing.
     """
-    from datetime import datetime
+    from datetime import datetime, date, time
     
+    # Normalize inputs for comparison
+    target_date = dive_date
+    if isinstance(target_date, str):
+        try: target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+        except Exception: pass
+        
+    target_time_str = str(dive_time) if dive_time else None
+
+    if user_dives is not None:
+        # Search in pre-fetched list
+        for d in user_dives:
+            # Check date (mandatory)
+            d_date = d.dive_date
+            if isinstance(d_date, str):
+                try: d_date = datetime.strptime(d_date, "%Y-%m-%d").date()
+                except Exception: continue
+            
+            if d_date != target_date:
+                continue
+                
+            # Date matched, now check specificity
+            if target_time_str:
+                d_time = d.dive_time
+                if hasattr(d_time, 'strftime'): d_time = d_time.strftime("%H:%M:%S")
+                if str(d_time) == target_time_str:
+                    # Optional: check depth if provided for higher confidence
+                    if max_depth is not None and d.max_depth:
+                        if (max_depth - 0.5 <= float(d.max_depth) <= max_depth + 0.5):
+                            return d
+                    else:
+                        return d
+            
+            # Fallback to duration/depth if time is missing or didn't match
+            if duration is not None and max_depth is not None:
+                if d.duration == duration and d.max_depth and (max_depth - 0.5 <= float(d.max_depth) <= max_depth + 0.5):
+                    return d
+        return None
+
+    # Fallback to single query (kept for compatibility)
     query = db.query(Dive).filter(Dive.user_id == user_id, Dive.dive_date == dive_date)
     
     if dive_time:
-        # Match by date and time
-        # Handle potential string vs time object comparison
         existing = query.filter(Dive.dive_time == dive_time).first()
-        if existing:
-            return existing
+        if existing: return existing
             
     if duration is not None and max_depth is not None:
-        # Fallback: Match by date, duration, and depth (within 0.5m tolerance)
         existing = query.filter(
             Dive.duration == duration,
             Dive.max_depth >= max_depth - 0.5,
             Dive.max_depth <= max_depth + 0.5
         ).first()
-        if existing:
-            return existing
+        if existing: return existing
             
+    return None
+
+def find_sites_by_coords(db: Session, lat: float, lng: float, radius_m: int = 500):
+    """
+    Find dive sites within a given radius using MySQL spatial functions.
+    Returns sites sorted by distance.
+    """
+    from sqlalchemy import text
+    from app.models import DiveSite
+    
+    # Check if we are on SQLite (tests) or MySQL (prod)
+    # The existing project standards suggest ST_Distance_Sphere is for MySQL
+    sql = text("""
+        SELECT id, name, country, 
+               ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) as distance
+        FROM dive_sites
+        WHERE ST_Distance_Sphere(location, ST_SRID(POINT(:lng, :lat), 4326)) <= :radius
+        ORDER BY distance ASC
+        LIMIT 3
+    """)
+    
+    try:
+        result = db.execute(sql, {"lat": lat, "lng": lng, "radius": radius_m}).fetchall()
+        return result
+    except Exception as e:
+        # Fallback for SQLite or errors
+        print(f"Spatial query failed: {e}")
+        return []
     return None
 
 
@@ -453,9 +824,13 @@ def parse_cns_value(cns_str):
 def save_dive_profile_data(dive, profile_data, db):
     """Save dive profile data as JSON file and update dive record"""
     try:
-        # Generate unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"dive_{dive.id}_profile_{timestamp}.json"
+        # Reuse filename if it's already a JSON profile to update it instead of creating orphans
+        if dive.profile_xml_path and dive.profile_xml_path.endswith('.json'):
+            filename = dive.profile_xml_path
+        else:
+            # Generate unique filename for new profile
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"dive_{dive.id}_profile_{timestamp}.json"
         
         # Convert profile data to JSON bytes
         json_content = orjson.dumps(profile_data, option=orjson.OPT_INDENT_2)
@@ -535,8 +910,26 @@ async def import_subsurface_xml(
             # Try to find dives anywhere in the XML
             dive_elements = root.findall('.//dive')
         
+        # Pre-fetch data for performance
+        all_centers = db.query(DivingCenter).all()
+        user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
+        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+
+        # Build unique site match cache for XML (Memory-only matching)
+        xml_site_names = set()
+        for site_info in dive_sites.values():
+            if site_info.get('name'):
+                xml_site_names.add(site_info['name'])
+        
+        site_match_cache = {}
+        for site_name in xml_site_names:
+            site_match_cache[site_name] = find_dive_site_by_import_id(
+                site_name, db, site_name, sites=all_sites_min
+            )
+
         for dive_elem in dive_elements:
-            dive_data = parse_dive_element(dive_elem, dive_sites, db)
+            # Update parse_dive_element to use the cache
+            dive_data = parse_dive_element(dive_elem, dive_sites, db, site_match_cache=site_match_cache)
             if dive_data:
                 # Check for existing duplicates
                 if dive_data.get("dive_date"):
@@ -545,7 +938,8 @@ async def import_subsurface_xml(
                         dive_data["dive_date"], 
                         dive_data.get("dive_time"),
                         dive_data.get("duration"),
-                        dive_data.get("max_depth")
+                        dive_data.get("max_depth"),
+                        user_dives=user_dives
                     )
                     if existing:
                         dive_data["existing_dive_id"] = existing.id
@@ -559,8 +953,18 @@ async def import_subsurface_xml(
                 detail="No valid dives found in XML file"
             )
 
-        # Get all available dive sites for selection
-        available_dive_sites = db.query(DiveSite).all()
+        # Use pre-fetched data for manual selection in frontend review
+        # We fetch only the sites that were actually matched or proposed
+        all_candidate_ids = set()
+        for m in site_match_cache.values():
+            if not m: continue
+            all_candidate_ids.add(m['id'])
+            if 'proposed_sites' in m:
+                for p in m['proposed_sites']:
+                    all_candidate_ids.add(p['id'])
+        
+        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
+
         dive_sites_for_selection = [
             {
                 "id": site.id,
@@ -568,7 +972,7 @@ async def import_subsurface_xml(
                 "country": site.country,
                 "region": site.region
             }
-            for site in available_dive_sites
+            for site in display_sites
         ]
 
         return {
@@ -697,20 +1101,49 @@ async def process_csv_import(
         except csv.Error:
             dialect = 'excel'
 
+        # 1. Read CSV rows into memory first (limited to 5000)
+        rows = []
+        unique_site_names = set()
+        unique_entity_names = set()
+        
         reader = csv.DictReader(stream, dialect=dialect)
-
-        
-        parsed_dives = []
-        row_count = 0
-        
-        # Get all tags for auto-tagging
-        all_tags = db.query(AvailableTag).all()
-        tag_lookup = {t.name.lower(): t.id for t in all_tags}
-
         for row in reader:
-            row_count += 1
-            if row_count > 5000:
-                break
+            rows.append(row)
+            # Extract unique names for pre-fetching
+            for csv_col, val in row.items():
+                field = field_map.get(csv_col)
+                if val and val.strip():
+                    if field == "dive_site_name":
+                        unique_site_names.add(val.strip())
+                    elif field == "mixed_entity":
+                        unique_entity_names.add(val.strip())
+            if len(rows) >= 5000: break
+
+        parsed_dives = []
+        
+        # 2. Global Pre-fetching
+        all_tags = db.query(AvailableTag).all()
+        all_centers = db.query(DivingCenter).all()
+        all_users = db.query(User).all()
+        user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
+        
+        # Optimization: Fetch ONLY Name and ID for ALL sites (~500KB for 10k sites)
+        # This allows full fuzzy matching in memory without hitting the DB in a loop.
+        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+
+        # 3. Targeted Fuzzy Matching for UNIQUE names (Memory-only)
+        site_match_cache = {}
+        for site_name in unique_site_names:
+            site_match_cache[site_name] = find_dive_site_by_import_id(
+                site_name, db, site_name, sites=all_sites_min
+            )
+
+        tag_lookup = {t.name.lower(): t.id for t in all_tags}
+        
+        # Cache for entities
+        entity_match_cache = {}
+
+        for row in rows:
                 
             dive_data = {
                 "is_private": False,
@@ -744,21 +1177,24 @@ async def process_csv_import(
                     if t:
                         dive_data["dive_time"] = t.strftime("%H:%M:%S")
                 elif field == "dive_site_name":
-                    match = find_dive_site_by_import_id(val, db, val)
+                    match = site_match_cache.get(val) if val else None
                     if match:
                         dive_data["dive_site_id"] = match["id"]
                         if match.get("match_type") == "similarity":
                             dive_data["proposed_sites"] = match.get("proposed_sites")
                     else:
                         dive_data["unmatched_dive_site"] = {"name": val}
+
                 elif field == "mixed_entity":
                     if val and val.strip():
-                        eid, etype = resolve_entity(db, val)
+                        if val not in entity_match_cache:
+                            entity_match_cache[val] = resolve_entity(db, val, centers=all_centers, users=all_users)
+                        
+                        eid, etype = entity_match_cache[val]
                         if etype == "center":
                             dive_data["diving_center_id"] = eid
-                            # Fetch the center name for frontend display
-                            from app.models import DivingCenter
-                            center = db.query(DivingCenter).filter(DivingCenter.id == eid).first()
+                            # Find name in pre-fetched list
+                            center = next((c for c in all_centers if c.id == eid), None)
                             if center:
                                 dive_data["diving_center_name"] = center.name
                         elif etype == "buddy":
@@ -803,7 +1239,8 @@ async def process_csv_import(
                     dive_data["dive_date"], 
                     dive_data.get("dive_time"),
                     dive_data.get("duration"),
-                    dive_data.get("max_depth")
+                    dive_data.get("max_depth"),
+                    user_dives=user_dives
                 )
                 if existing:
                     dive_data["existing_dive_id"] = existing.id
@@ -811,8 +1248,18 @@ async def process_csv_import(
             
             parsed_dives.append(dive_data)
 
-        # Get all available dive sites for manual selection in frontend review
-        available_dive_sites = db.query(DiveSite).all()
+        # Use pre-fetched data for manual selection in frontend review
+        # We fetch the full objects only for the candidate sites to show details (Country/Region)
+        all_candidate_ids = set()
+        for m in site_match_cache.values():
+            if not m: continue
+            all_candidate_ids.add(m['id'])
+            if 'proposed_sites' in m:
+                for p in m['proposed_sites']:
+                    all_candidate_ids.add(p['id'])
+        
+        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
+
         dive_sites_for_selection = [
             {
                 "id": site.id,
@@ -820,15 +1267,12 @@ async def process_csv_import(
                 "country": site.country,
                 "region": site.region
             }
-            for site in available_dive_sites
+            for site in display_sites
         ]
 
-        # Get all available diving centers for manual selection
-        from app.models import DivingCenter
-        available_diving_centers = db.query(DivingCenter).all()
         diving_centers_for_selection = [
             {"id": dc.id, "name": dc.name, "country": dc.country}
-            for dc in available_diving_centers
+            for dc in all_centers
         ]
 
         return {
@@ -838,6 +1282,87 @@ async def process_csv_import(
             "available_diving_centers": diving_centers_for_selection
         }
 
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error processing CSV file: {str(e)}"
+        )
+
+
+@router.post("/import/garmin-fit", response_model=GarminFITResponse)
+async def import_garmin_fit(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Import dives from Garmin FIT file.
+    Automatically splits multi-session files and matches sites by GPS.
+    """
+    if not file.filename.lower().endswith('.fit'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be a .fit file"
+        )
+
+    try:
+        content = await file.read()
+        
+        # Pre-fetch data for performance
+        all_centers = db.query(DivingCenter).all()
+        user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
+        all_sites_min = db.query(DiveSite.id, DiveSite.name).all()
+        
+        # For Garmin FIT, site matching is primarily coordinate-based
+        parsed_dives = parse_garmin_fit_file(content, db, current_user.id, user_dives=user_dives, all_sites=all_sites_min)
+
+        if not parsed_dives:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No dive sessions found in FIT file"
+            )
+
+        # Use pre-fetched data for manual selection in frontend review
+        # We fetch only the sites that were actually matched or proposed
+        all_candidate_ids = set()
+        for d in parsed_dives:
+            if d.get('dive_site_id'):
+                all_candidate_ids.add(d['dive_site_id'])
+            if 'proposed_sites' in d:
+                for p in d['proposed_sites']:
+                    all_candidate_ids.add(p['id'])
+        
+        display_sites = db.query(DiveSite).filter(DiveSite.id.in_(list(all_candidate_ids))).all()
+
+        dive_sites_for_selection = [
+            {
+                "id": site.id,
+                "name": site.name,
+                "country": site.country,
+                "region": site.region
+            }
+            for site in display_sites
+        ]
+
+        diving_centers_for_selection = [
+            {"id": dc.id, "name": dc.name, "country": dc.country}
+            for dc in all_centers
+        ]
+
+        return {
+            "message": f"Successfully parsed {len(parsed_dives)} dives from FIT file",
+            "dives": parsed_dives,
+            "available_dive_sites": dive_sites_for_selection,
+            "available_diving_centers": diving_centers_for_selection
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error processing Garmin FIT file: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -974,9 +1499,29 @@ async def confirm_import_dives(
                         print(f"Warning: Failed to add deco tag for dive {dive.id}: {str(e)}")
 
             # Save dive profile data if available
+            # Note: dive_data refers to the individual item from dives_data input
             if 'profile_data' in dive_data and dive_data['profile_data']:
                 try:
-                    save_dive_profile_data(dive, dive_data['profile_data'], db)
+                    profile_data = dive_data['profile_data']
+                    # Ensure compatibility with frontend profile chart
+                    if 'samples' in profile_data and profile_data['samples']:
+                        samples = profile_data['samples']
+                        depths = [s.get('depth', 0) for s in samples]
+                        temps = [s.get('temperature') for s in samples if s.get('temperature') is not None]
+                        
+                        profile_data['calculated_max_depth'] = max(depths) if depths else 0
+                        profile_data['calculated_avg_depth'] = round(sum(depths) / len(depths), 2) if depths else 0
+                        profile_data['calculated_duration_minutes'] = dive.duration or 0
+                        profile_data['sample_count'] = len(samples)
+                        profile_data['temperature_range'] = {
+                            "min": min(temps) if temps else None,
+                            "max": max(temps) if temps else None
+                        }
+                        # Preserve events if they were extracted by the parser (Garmin)
+                        if 'events' not in profile_data:
+                            profile_data['events'] = [] # Required by chart
+                    
+                    save_dive_profile_data(dive, profile_data, db)
                 except Exception as e:
                     # Log error but don't fail the import
                     print(f"Warning: Failed to save profile data for dive {dive.id}: {str(e)}")
@@ -1015,7 +1560,7 @@ async def confirm_import_dives(
     }
 
 
-def parse_dive_element(dive_elem, dive_sites, db):
+def parse_dive_element(dive_elem, dive_sites, db, site_match_cache=None):
     """Parse individual dive element from XML"""
     try:
         # Extract basic dive information
@@ -1071,7 +1616,7 @@ def parse_dive_element(dive_elem, dive_sites, db):
             dive_number, rating, visibility, sac, otu, cns, tags,
             divesiteid, dive_date, dive_time, duration,
             buddy, suit, cylinders, weights, computer_data,
-            dive_sites, db, events=events
+            dive_sites, db, events=events, site_match_cache=site_match_cache
         )
 
         # Add profile data to the dive
@@ -1360,7 +1905,7 @@ def create_structured_gas_data(cylinders, events=None):
 def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, tags,
                              divesiteid, dive_date, dive_time, duration,
                              buddy, suit, cylinders, weights, computer_data,
-                             dive_sites, db, events=None):
+                             dive_sites, db, events=None, site_match_cache=None):
     """Convert Subsurface dive data to Divemap format"""
 
     # Parse date and time
@@ -1502,23 +2047,29 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
     proposed_dive_sites = None
     if divesiteid and divesiteid in dive_sites:
         site_data = dive_sites[divesiteid]
-        match_result = find_dive_site_by_import_id(divesiteid, db, site_data['name'])
+        site_name = site_data['name']
+        
+        # 1. Try cache first
+        match_result = None
+        if site_match_cache and site_name in site_match_cache:
+            match_result = site_match_cache[site_name]
+        else:
+            # 2. Fallback to targeted query
+            match_result = find_dive_site_by_import_id(divesiteid, db, site_name)
+            
         if match_result:
             if isinstance(match_result, dict):
                 dive_site_id = match_result['id']
-                if match_result['match_type'] == 'similarity':
-                    proposed_dive_sites = match_result['proposed_sites']
+                if match_result.get('match_type') == 'similarity':
+                    proposed_dive_sites = match_result.get('proposed_sites')
             else:
-                # Backward compatibility for old format
                 dive_site_id = match_result
         else:
-            # Store information about unmatched dive site
             unmatched_dive_site = {
                 'import_id': divesiteid,
-                'name': site_data['name'],
+                'name': site_name,
                 'gps': site_data.get('gps')
             }
-            print(f"Dive site not found: {site_data['name']} (ID: {divesiteid})")
 
     # Build Divemap dive data
     divemap_dive = {

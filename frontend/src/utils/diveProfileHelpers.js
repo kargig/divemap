@@ -114,7 +114,8 @@ export const processDiveProfileData = profileData => {
  * @returns {String} Human-readable description
  */
 const getEventDescription = event => {
-  switch (event.name) {
+  const eventName = event.name || (event.type === '25' ? 'gaschange' : '');
+  switch (eventName) {
     case 'gaschange':
       return `Gas change to ${event.o2 || 'unknown'}% O2`;
     case 'deco':
