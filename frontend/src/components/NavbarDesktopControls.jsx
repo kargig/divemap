@@ -149,6 +149,52 @@ const NavbarDesktopControls = () => {
           <span className='text-sm'>Community</span>
         </Link>
 
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'about',
+                label: 'About',
+                icon: <Info className='h-4 w-4' />,
+                onClick: () => navigate('/about'),
+              },
+              {
+                key: 'api-docs',
+                label: 'API',
+                icon: <Code className='h-4 w-4' />,
+                onClick: () => navigate('/api-docs'),
+              },
+              {
+                key: 'changelog',
+                label: 'Changelog',
+                icon: <FileText className='h-4 w-4' />,
+                onClick: () => navigate('/changelog'),
+              },
+              {
+                key: 'help',
+                label: 'Help',
+                icon: <HelpCircle className='h-4 w-4' />,
+                onClick: () => navigate('/help'),
+              },
+              {
+                key: 'privacy',
+                label: 'Privacy',
+                icon: <Shield className='h-4 w-4' />,
+                onClick: () => navigate('/privacy'),
+              },
+            ],
+          }}
+          trigger={['click']}
+          placement='bottomRight'
+        >
+          <button
+            className='flex items-center text-white hover:text-blue-200 transition-colors'
+            title='Info'
+          >
+            <Info className='h-6 w-6' />
+          </button>
+        </Dropdown>
+
         {user ? (
           <div className='flex items-center space-x-4'>
             <ChatDropdown />
@@ -164,52 +210,6 @@ const NavbarDesktopControls = () => {
                 <span className='text-sm'>Admin Panel</span>
               </button>
             )}
-
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'about',
-                    label: 'About',
-                    icon: <Info className='h-4 w-4' />,
-                    onClick: () => navigate('/about'),
-                  },
-                  {
-                    key: 'api-docs',
-                    label: 'API',
-                    icon: <Code className='h-4 w-4' />,
-                    onClick: () => navigate('/api-docs'),
-                  },
-                  {
-                    key: 'changelog',
-                    label: 'Changelog',
-                    icon: <FileText className='h-4 w-4' />,
-                    onClick: () => navigate('/changelog'),
-                  },
-                  {
-                    key: 'help',
-                    label: 'Help',
-                    icon: <HelpCircle className='h-4 w-4' />,
-                    onClick: () => navigate('/help'),
-                  },
-                  {
-                    key: 'privacy',
-                    label: 'Privacy',
-                    icon: <Shield className='h-4 w-4' />,
-                    onClick: () => navigate('/privacy'),
-                  },
-                ],
-              }}
-              trigger={['click']}
-              placement='bottomRight'
-            >
-              <button
-                className='flex items-center text-white hover:text-blue-200 transition-colors'
-                title='Info'
-              >
-                <Info className='h-6 w-6' />
-              </button>
-            </Dropdown>
 
             <Link
               to='/profile'
