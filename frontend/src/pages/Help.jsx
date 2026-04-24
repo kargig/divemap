@@ -571,7 +571,7 @@ const Help = () => {
       key: 'log',
       label: (
         <span>
-          <BookOutlined /> Log & Analyze
+          <BookOutlined /> Log & Import
         </span>
       ),
       children: (
@@ -590,15 +590,12 @@ const Help = () => {
                 description={
                   <ul className='list-disc pl-5 mb-0'>
                     <li>
-                      <strong>Dive Site:</strong> The fixed geographic location (The "Where").
-                    </li>
-                    <li>
-                      <strong>Dive:</strong> Your specific event log at that site (The "When" &
+                      <strong>Dive:</strong> Your specific event log at a site (The "When" &
                       "What").
                     </li>
                     <li>
-                      <strong>Dive Route:</strong> The specific path you navigated during the dive
-                      (The "How").
+                      <strong>Telemetry:</strong> High-frequency data from your dive computer
+                      (Depth, Temp, Gas).
                     </li>
                   </ul>
                 }
@@ -655,6 +652,231 @@ const Help = () => {
           <Divider />
 
           <Row gutter={[32, 32]}>
+            <Col xs={24}>
+              <Title level={3}>
+                <ImportOutlined /> Import Dives
+              </Title>
+              <Paragraph>
+                Migrating from another platform? Import your entire logbook in seconds.
+              </Paragraph>
+              <Tabs
+                defaultActiveKey='subsurface'
+                size='small'
+                className='bg-gray-50/50 rounded-lg p-2 border border-gray-100'
+                items={[
+                  {
+                    key: 'subsurface',
+                    label: 'Subsurface',
+                    children: (
+                      <div className='py-2 px-1'>
+                        <Paragraph className='text-xs text-gray-500 mb-4 italic'>
+                          The most comprehensive import method.
+                        </Paragraph>
+                        <Steps
+                          orientation='vertical'
+                          size='small'
+                          current={-1}
+                          items={[
+                            {
+                              title: 'Export XML',
+                              content: 'In Subsurface, go to File > Export > XML.',
+                            },
+                            {
+                              title: 'Upload',
+                              content: (
+                                <span>
+                                  Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
+                                </span>
+                              ),
+                            },
+                            {
+                              title: 'Review',
+                              content: "We'll match sites automatically. Confirm and save.",
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'myssi',
+                    label: 'MySSI',
+                    children: (
+                      <div className='py-2 px-1'>
+                        <Steps
+                          orientation='vertical'
+                          size='small'
+                          current={-1}
+                          items={[
+                            {
+                              title: 'Log in to MySSI',
+                              content: 'Navigate to Personal Data > Logbook & Sites > Logbook.',
+                            },
+                            {
+                              title: 'Find Export',
+                              content: (
+                                <div className='space-y-2 mt-1'>
+                                  <Text type='secondary'>
+                                    In Logbook – Overview, find the export options.
+                                  </Text>
+                                  <Image
+                                    src='/help-screenshots/myssi-export-step1.png'
+                                    className='rounded border shadow-sm'
+                                    placeholder={true}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              title: 'Export CSV',
+                              content: (
+                                <div className='space-y-2 mt-1'>
+                                  <Text type='secondary'>
+                                    Click the CSV button to download your logbook.
+                                  </Text>
+                                  <Image
+                                    src='/help-screenshots/myssi-export-step2.png'
+                                    className='rounded border shadow-sm'
+                                    placeholder={true}
+                                  />
+                                </div>
+                              ),
+                            },
+                            {
+                              title: 'Upload',
+                              content: (
+                                <span>
+                                  Import the CSV file in <Link to='/dives'>My Dives</Link> &gt;
+                                  Import Dives.
+                                </span>
+                              ),
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'garmin',
+                    label: 'Garmin',
+                    children: (
+                      <div className='py-2 px-1'>
+                        <Steps
+                          orientation='vertical'
+                          size='small'
+                          current={-1}
+                          items={[
+                            {
+                              title: 'Garmin Connect',
+                              content: 'Sign into Garmin Connect on a web browser.',
+                            },
+                            {
+                              title: 'Select Activity',
+                              content: 'Go to Activities > All Activities and click your dive.',
+                            },
+                            {
+                              title: 'Export Original',
+                              content: (
+                                <span>
+                                  Click the <strong>Settings (gear icon)</strong> &gt;{' '}
+                                  <strong>Export Original</strong> to get the .fit file.
+                                </span>
+                              ),
+                            },
+                            {
+                              title: 'Upload',
+                              content:
+                                'Upload the .fit file to Divemap to automatically see your profile.',
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'suunto',
+                    label: 'Suunto',
+                    children: (
+                      <div className='py-2 px-1'>
+                        <Steps
+                          orientation='vertical'
+                          size='small'
+                          current={-1}
+                          items={[
+                            {
+                              title: 'Export JSON',
+                              content:
+                                'Export your logbook from Suunto app or DM5 software in JSON format.',
+                            },
+                            {
+                              title: 'Upload',
+                              content: (
+                                <span>
+                                  Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
+                                </span>
+                              ),
+                            },
+                            {
+                              title: 'Review',
+                              content: 'Verify your telemetry and dive details before saving.',
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+            </Col>
+          </Row>
+        </Space>
+      ),
+    },
+    {
+      key: 'media_routes',
+      label: (
+        <span>
+          <CompassOutlined /> Sites & Media
+        </span>
+      ),
+      children: (
+        <Space orientation='vertical' size='large' className='w-full py-4'>
+          <Row gutter={[32, 32]}>
+            <Col xs={24} lg={10}>
+              <Title level={3}>Dive Sites</Title>
+              <Paragraph>
+                Dive sites are the backbone of Divemap. They represent the fixed geographic
+                locations where your adventures happen.
+              </Paragraph>
+              <Alert
+                message='Contribution'
+                type='success'
+                showIcon
+                description='Divemap is community-driven. You can contribute by adding new sites or reviewing existing ones.'
+              />
+              <Paragraph className='mt-4'>
+                <strong>Features:</strong>
+                <ul className='list-disc pl-5 space-y-1 mt-2'>
+                  <li>Detailed maps with depth contours (where available).</li>
+                  <li>Real-time weather and wind suitability.</li>
+                  <li>Community reviews and sightings.</li>
+                </ul>
+              </Paragraph>
+            </Col>
+            <Col xs={24} lg={14}>
+              <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
+                <Image
+                  src='/help-screenshots/dive-sites-map-view.png'
+                  alt='Dive Site Detailed Map View'
+                  fallback='https://placehold.co/800x500?text=Dive+Sites+Map'
+                />
+              </div>
+            </Col>
+          </Row>
+
+          <Divider />
+
+          <Row gutter={[32, 32]}>
             <Col xs={24} lg={14}>
               <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200'>
                 <Image
@@ -678,72 +900,48 @@ const Help = () => {
                   <strong>Reordering:</strong> Organize your memories exactly how you want them.
                 </li>
               </ul>
+              <Paragraph className='mt-4 text-xs text-gray-500'>
+                Photos are automatically associated with the dive site to help other divers know
+                what to expect.
+              </Paragraph>
             </Col>
           </Row>
 
           <Divider />
 
           <Row gutter={[32, 32]}>
-            <Col xs={24} md={12}>
-              <Title level={4}>
-                <ImportOutlined /> Import from Subsurface
-              </Title>
-              <Paragraph>
-                Migrating from Subsurface? You can import your entire logbook in seconds.
-              </Paragraph>
-              <Steps
-                orientation='vertical'
-                size='small'
-                current={1}
-                items={[
-                  {
-                    title: 'Export XML',
-                    content: 'In Subsurface, go to File > Export > XML.',
-                  },
-                  {
-                    title: 'Upload',
-                    content: (
-                      <span>
-                        Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
-                      </span>
-                    ),
-                  },
-                  {
-                    title: 'Review',
-                    content: "We'll match sites automatically. Confirm and save.",
-                  },
-                ]}
-              />{' '}
-            </Col>
-            <Col xs={24} md={12}>
-              <Title level={4}>
+            <Col xs={24}>
+              <Title level={3}>
                 <CompassOutlined /> Dive Routes
               </Title>
               <Paragraph>Visualize your underwater journey with multi-segment routes.</Paragraph>
 
-              <Space orientation='vertical' size='middle' className='w-full mb-4'>
-                <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
-                  <Image
-                    src='/help-screenshots/dive-route-details.png'
-                    alt='View Detailed Dive Route'
-                  />
-                  <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
-                    Explore routes with swim, walk, and scuba segments + points of interest.
+              <Row gutter={[24, 24]}>
+                <Col xs={24} md={12}>
+                  <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
+                    <Image
+                      src='/help-screenshots/dive-route-details.png'
+                      alt='View Detailed Dive Route'
+                    />
+                    <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
+                      Explore routes with swim, walk, and scuba segments + points of interest.
+                    </div>
                   </div>
-                </div>
-
-                <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
-                  <Image
-                    src='/help-screenshots/dive-route-drawing.png'
-                    alt='Dive Route Drawing Interface'
-                  />
-                  <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
-                    Intuitive drawing tools to map your own dives.
+                </Col>
+                <Col xs={24} md={12}>
+                  <div className='rounded-lg overflow-hidden border border-gray-100 shadow-sm'>
+                    <Image
+                      src='/help-screenshots/dive-route-drawing.png'
+                      alt='Dive Route Drawing Interface'
+                    />
+                    <div className='bg-gray-50 p-2 text-center text-xs text-gray-500 border-t'>
+                      Intuitive drawing tools to map your own dives.
+                    </div>
                   </div>
-                </div>
-              </Space>
+                </Col>
+              </Row>
 
-              <Paragraph type='secondary'>
+              <Paragraph type='secondary' className='mt-4'>
                 On any Dive Site page, click <strong>Draw Route</strong> to map your path, or browse
                 community routes to plan your next dive.
               </Paragraph>
@@ -759,9 +957,6 @@ const Help = () => {
                   </div>
                 ))}
               </div>
-              <Button type='primary' ghost href='/dive-sites' className='mt-2'>
-                Find a Site to Map
-              </Button>
             </Col>
           </Row>
         </Space>
