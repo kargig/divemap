@@ -1,7 +1,7 @@
 import pytest
 import os
 from sqlalchemy.orm import Session
-from app.routers.dives.dives_import import parse_garmin_fit_file
+from app.routers.dives.imports.garmin import parse_garmin_fit_file
 
 def test_parse_real_garmin_file_1(db_session: Session):
     """Test parsing the first real Garmin FIT file."""

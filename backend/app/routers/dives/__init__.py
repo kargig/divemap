@@ -21,7 +21,7 @@ from . import dives_crud
 from . import dives_admin
 from . import dives_media
 from . import dives_search
-from . import dives_import
+from . import imports
 from . import dives_profiles
 from . import dives_utils
 

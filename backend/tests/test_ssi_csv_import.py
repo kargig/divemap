@@ -2,7 +2,7 @@ import pytest
 import io
 import orjson
 from fastapi import UploadFile
-from app.routers.dives.dives_import import process_csv_import
+from app.routers.dives.imports.ssi_csv import process_csv_import
 from app.models import DivingCenter
 
 class TestSSICSVImport:

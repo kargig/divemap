@@ -21,6 +21,7 @@ import {
   getCSVHeaders,
   processCSVImport,
   importGarminFIT,
+  importSuuntoJSON,
 } from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatDate, formatTime } from '../utils/dateHelpers';
@@ -195,6 +196,38 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     },
   });
 
+  // Suunto JSON Import mutation
+  const suuntoMutation = useMutation(importSuuntoJSON, {
+    onSuccess: data => {
+      const dives = data.dives.map(dive => ({ ...dive, is_private: false }));
+      setParsedDives(dives);
+      const sites = data.available_dive_sites || [];
+      setAvailableDiveSites(sites);
+      const centers = data.available_diving_centers || [];
+      setAvailableDivingCenters(centers);
+
+      // Pre-fill search strings
+      const initialSearchStrings = {};
+      dives.forEach((dive, index) => {
+        if (dive.dive_site_id) {
+          const site = sites.find(s => s.id === dive.dive_site_id);
+          if (site) {
+            initialSearchStrings[index] = site.name;
+          }
+        }
+      });
+      setDiveSiteSearchStrings(initialSearchStrings);
+
+      setCurrentStep('review');
+      setIsProcessing(false);
+      toast.success(data.message);
+    },
+    onError: error => {
+      toast.error(extractErrorMessage(error) || 'Failed to process Suunto JSON file');
+      setIsProcessing(false);
+    },
+  });
+
   // Confirm import mutation
   const confirmMutation = useMutation(confirmImportDives, {
     onSuccess: data => {
@@ -225,11 +258,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     const files = Array.from(event.target.files);
     const validFiles = files.filter(file => {
       const name = file.name.toLowerCase();
-      return name.endsWith('.xml') || name.endsWith('.csv') || name.endsWith('.fit');
+      return (
+        name.endsWith('.xml') ||
+        name.endsWith('.csv') ||
+        name.endsWith('.fit') ||
+        name.endsWith('.json')
+      );
     });
 
     if (validFiles.length !== files.length) {
-      toast.error('Only XML, CSV and Garmin FIT files are supported');
+      toast.error('Only XML, CSV, Garmin FIT and Suunto JSON files are supported');
     }
 
     setSelectedFiles(validFiles);
@@ -249,6 +287,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       csvHeadersMutation.mutate(file);
     } else if (name.endsWith('.fit')) {
       garminMutation.mutate(file);
+    } else if (name.endsWith('.json')) {
+      suuntoMutation.mutate(file);
     } else {
       importMutation.mutate(file);
     }
@@ -590,7 +630,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             <div>
               <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
               <p className='text-gray-600 mb-4'>
-                Select Subsurface XML, CSV (e.g. MySSI) or Garmin FIT files to import your dives.
+                Select Subsurface XML, CSV (e.g. MySSI), Garmin FIT or Suunto JSON files to import
+                your dives.
               </p>
             </div>
 
@@ -598,7 +639,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
               <div className='space-y-2'>
                 <p className='text-sm text-gray-600'>
-                  Drag and drop XML, CSV or FIT files here, or click to browse
+                  Drag and drop XML, CSV, FIT or JSON files here, or click to browse
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -610,7 +651,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <input
                 ref={fileInputRef}
                 type='file'
-                accept='.xml,.csv,.fit'
+                accept='.xml,.csv,.fit,.json'
                 onChange={handleFileSelect}
                 className='hidden'
               />
