@@ -250,6 +250,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route path='/profile/pats' element={<Navigate to='/personal-access-tokens' replace />} />
             <Route
               path='/buddies'
               element={
@@ -267,6 +268,18 @@ function AppContent() {
               }
             />
             <Route path='/users/:username' element={<UserProfile />} />
+
+            {/* Backward compatibility routes */}
+            <Route
+              path='/profile/notifications'
+              element={<Navigate to='/notification-preferences' replace />}
+            />
+            <Route
+              path='/notifications/preferences'
+              element={<Navigate to='/notification-preferences' replace />}
+            />
+            <Route path='/check-email' element={<Navigate to='/check-your-email' replace />} />
+
             <Route path='/verify-email' element={<VerifyEmail />} />
             <Route path='/check-your-email' element={<CheckYourEmail />} />
             <Route path='/resubscribe' element={<Resubscribe />} />
@@ -336,6 +349,12 @@ function AppContent() {
             <Route path='/dive-routes' element={<DiveRoutes />} />
             <Route path='/dive-routes/:id' element={<RouteDetail />} />
             <Route path='/dive-routes/:id/:slug' element={<RouteDetail />} />
+            {/* Backward compatibility for old nested routes */}
+            <Route path='/dive-sites/:diveSiteId/route/:id' element={<RouteDetail />} />
+            <Route path='/dive-sites/:diveSiteId/route/:id/:slug' element={<RouteDetail />} />
+            <Route path='/dive-sites/:diveSiteId/dive-route' element={<ProtectedRoute><DiveRouteDrawing /></ProtectedRoute>} />
+            <Route path='/dive-sites/:diveSiteId/route/:id/edit' element={<Navigate to='/dive-routes/:id/draw' replace />} />
+            
             <Route
               path='/dive-routes/:id/draw'
               element={
@@ -376,6 +395,7 @@ function AppContent() {
               <Route path='dive-sites/:id/aliases' element={<AdminDiveSiteAliases />} />
             </Route>
 
+            <Route path='/dive-trips' element={<DiveTrips />} />
             <Route
               path='/dive-trips/create'
               element={
@@ -386,6 +406,11 @@ function AppContent() {
             />
             <Route path='/dive-trips/:id' element={<TripDetail />} />
             <Route path='/dive-trips/:id/:slug' element={<TripDetail />} />
+
+            {/* Map backward compatibility */}
+            <Route path='/map/dives' element={<Navigate to='/map' replace />} />
+            <Route path='/map/dive-sites' element={<Navigate to='/map' replace />} />
+            <Route path='/map/diving-centers' element={<Navigate to='/map' replace />} />
 
             <Route path='/index.html' element={<Navigate to='/' replace />} />
             <Route path='/index.htm' element={<Navigate to='/' replace />} />

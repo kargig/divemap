@@ -27,12 +27,10 @@ export function generateShareUrl(entityType, entityId, params = {}, baseUrl = nu
       path = `/dive-sites/${entityId}${slug}`;
       break;
     case 'route':
-      // Routes need dive_site_id from params
-      if (params.diveSiteId) {
-        path = `/dive-sites/${params.diveSiteId}/route/${entityId}${slug}`;
-      } else {
-        path = `/routes/${entityId}${slug}`;
-      }
+      path = `/dive-routes/${entityId}${slug}`;
+      break;
+    case 'diving-center':
+      path = `/diving-centers/${entityId}${slug}`;
       break;
     default:
       throw new Error(`Unknown entity type: ${entityType}`);
@@ -98,14 +96,13 @@ export function formatShareText(entityType, entityData, platform = 'generic') {
  * @returns {string} Twitter share URL
  */
 export function getTwitterShareUrl(url, title, description = '', entityType = '') {
-  const entityLabel =
-    entityType === 'dive'
-      ? 'dive'
-      : entityType === 'dive-site'
-        ? 'dive site'
-        : entityType === 'route'
-          ? 'dive route'
-          : '';
+  const entityLabels = {
+    dive: 'dive',
+    'dive-site': 'dive site',
+    route: 'dive route',
+    'diving-center': 'diving center',
+  };
+  const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
   const text = description
     ? `${prefix}${title}\n\n${description}`.substring(0, 240)
@@ -133,14 +130,13 @@ export function getFacebookShareUrl(url, title = '', entityType = '') {
   });
 
   if (title) {
-    const entityLabel =
-      entityType === 'dive'
-        ? 'dive'
-        : entityType === 'dive-site'
-          ? 'dive site'
-          : entityType === 'route'
-            ? 'dive route'
-            : '';
+    const entityLabels = {
+      dive: 'dive',
+      'dive-site': 'dive site',
+      route: 'dive route',
+      'diving-center': 'diving center',
+    };
+    const entityLabel = entityLabels[entityType] || '';
     const quote = entityLabel ? `Check out this ${entityLabel} on Divemap: ${title}` : title;
     params.append('quote', quote);
   }
@@ -157,14 +153,13 @@ export function getFacebookShareUrl(url, title = '', entityType = '') {
  * @returns {string} WhatsApp share URL
  */
 export function getWhatsAppShareUrl(url, title, description = '', entityType = '') {
-  const entityLabel =
-    entityType === 'dive'
-      ? 'dive'
-      : entityType === 'dive-site'
-        ? 'dive site'
-        : entityType === 'route'
-          ? 'dive route'
-          : '';
+  const entityLabels = {
+    dive: 'dive',
+    'dive-site': 'dive site',
+    route: 'dive route',
+    'diving-center': 'diving center',
+  };
+  const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
   const text = description
     ? `${prefix}${title} 🐠\n\n${description}\n\n${url}`
@@ -186,14 +181,13 @@ export function getWhatsAppShareUrl(url, title, description = '', entityType = '
  * @returns {string} Viber share URL
  */
 export function getViberShareUrl(url, title, description = '', entityType = '') {
-  const entityLabel =
-    entityType === 'dive'
-      ? 'dive'
-      : entityType === 'dive-site'
-        ? 'dive site'
-        : entityType === 'route'
-          ? 'dive route'
-          : '';
+  const entityLabels = {
+    dive: 'dive',
+    'dive-site': 'dive site',
+    route: 'dive route',
+    'diving-center': 'diving center',
+  };
+  const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
   const text = description
     ? `${prefix}${title} 🌊\n\n${description}\n\n${url}`
@@ -214,14 +208,13 @@ export function getViberShareUrl(url, title, description = '', entityType = '') 
  * @returns {string} Reddit share URL
  */
 export function getRedditShareUrl(url, title, entityType = '') {
-  const entityLabel =
-    entityType === 'dive'
-      ? 'dive'
-      : entityType === 'dive-site'
-        ? 'dive site'
-        : entityType === 'route'
-          ? 'dive route'
-          : '';
+  const entityLabels = {
+    dive: 'dive',
+    'dive-site': 'dive site',
+    route: 'dive route',
+    'diving-center': 'diving center',
+  };
+  const entityLabel = entityLabels[entityType] || '';
   const redditTitle = entityLabel ? `Check out this ${entityLabel} on Divemap: ${title}` : title;
 
   const params = new URLSearchParams({
@@ -241,14 +234,13 @@ export function getRedditShareUrl(url, title, entityType = '') {
  * @returns {string} Email share URL
  */
 export function getEmailShareUrl(url, title, description = '', entityType = '') {
-  const entityLabel =
-    entityType === 'dive'
-      ? 'dive'
-      : entityType === 'dive-site'
-        ? 'dive site'
-        : entityType === 'route'
-          ? 'dive route'
-          : '';
+  const entityLabels = {
+    dive: 'dive',
+    'dive-site': 'dive site',
+    route: 'dive route',
+    'diving-center': 'diving center',
+  };
+  const entityLabel = entityLabels[entityType] || '';
   const subjectText = entityLabel
     ? `Check out this ${entityLabel} on Divemap: ${title}`
     : `Check out this on Divemap: ${title}`;
@@ -425,6 +417,23 @@ export function generateShareContent(entityType, entityData) {
       url = generateShareUrl('route', entityData.id, {
         diveSiteId: entityData.dive_site_id,
         slug: slugify(entityData.name),
+      });
+      break;
+
+    case 'diving-center':
+      title = entityData.name || 'Diving Center';
+      description =
+        entityData.description ||
+        `Check out ${entityData.name || 'this diving center'} on Divemap!`;
+
+      // Add location if available
+      if (entityData.country || entityData.region) {
+        const location = [entityData.region, entityData.country].filter(Boolean).join(', ');
+        description += location ? `\n📍 ${location}` : '';
+      }
+
+      url = generateShareUrl('diving-center', entityData.id, {
+        slug: slugify(entityData.name || ''),
       });
       break;
 

@@ -79,7 +79,7 @@ const ShareButton = ({
 };
 
 ShareButton.propTypes = {
-  entityType: PropTypes.oneOf(['dive', 'dive-site', 'route']).isRequired,
+  entityType: PropTypes.oneOf(['dive', 'dive-site', 'route', 'diving-center']).isRequired,
   entityData: PropTypes.object.isRequired,
   additionalParams: PropTypes.object,
   className: PropTypes.string,

@@ -319,7 +319,7 @@ const DiveRoutes = () => {
                         className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
                       >
                         <Link
-                          to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
+                          to={`/dive-routes/${route.id}/${slugify(route.name)}`}
                           className='hover:text-blue-600 transition-colors'
                         >
                           {decodeHtmlEntities(route.name)}
@@ -397,7 +397,7 @@ const DiveRoutes = () => {
                     </div>
 
                     <Link
-                      to={`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`}
+                      to={`/dive-routes/${route.id}/${slugify(route.name)}`}
                       className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
                       title='View Route Details'
                     >

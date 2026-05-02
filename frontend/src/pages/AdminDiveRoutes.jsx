@@ -215,14 +215,14 @@ const AdminDiveRoutes = () => {
   // Action handlers
   const handleViewDiveRoute = useCallback(
     route => {
-      navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}/${slugify(route.name)}`);
+      navigate(`/dive-routes/${route.id}/${slugify(route.name)}`);
     },
     [navigate]
   );
 
   const handleEditDiveRoute = useCallback(
     route => {
-      navigate(`/dive-sites/${route.dive_site_id}/route/${route.id}/edit`);
+      navigate(`/dive-routes/${route.id}/draw`);
     },
     [navigate]
   );
