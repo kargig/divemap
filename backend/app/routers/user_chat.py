@@ -13,7 +13,8 @@ from app.auth import get_current_active_user
 from app.schemas.user_chat import (
     ChatRoomCreate, ChatRoomResponse, ChatRoomUpdate,
     ChatMessageCreate, ChatMessageResponse, ChatMessageUpdate,
-    ChatRoomArchiveUpdate
+    ChatRoomArchiveUpdate, RoomMessagesResponse, ChatMessageBaseResponse,
+    UserBasicInfo
 )
 from app.services.encryption_service import (
     generate_room_dek, encrypt_room_dek, decrypt_message, encrypt_message
@@ -562,29 +563,26 @@ async def edit_message(
         
     return response_msg
 
-@router.get("/rooms/{room_id}/messages", response_model=List[ChatMessageResponse])
+@router.get("/rooms/{room_id}/messages", response_model=RoomMessagesResponse)
 async def get_messages(
     room_id: str,
-    response: Response,
     after_updated_at: Optional[datetime] = None,
-    limit: int = Query(50, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
-    Fetch messages for a room. 
-    Optimized with a 304 Not Modified short-circuit using last_activity_at.
+    Get messages for a chat room with cursor-based pagination.
+    Returns normalized data: a list of messages and a dictionary of unique users.
     """
     room, member = get_room_or_404(db, room_id, current_user.id)
     
     # 1. Short-circuit: Check if room has activity since the cursor
     if after_updated_at:
-        # Ensure both are naive or both are aware for comparison
         cmp_activity = room.last_activity_at.replace(tzinfo=None) if room.last_activity_at.tzinfo else room.last_activity_at
         cmp_after = after_updated_at.replace(tzinfo=None) if after_updated_at.tzinfo else after_updated_at
         if cmp_activity <= cmp_after:
-            response.status_code = status.HTTP_304_NOT_MODIFIED
-            return []
+            return Response(status_code=status.HTTP_304_NOT_MODIFIED)
         
     # 2. Fetch messages
     query = db.query(UserChatMessage).options(
@@ -594,54 +592,54 @@ async def get_messages(
     )
     
     if member:
-        query = query.filter(UserChatMessage.created_at >= member.joined_at)  # Enforce history restriction for regular members
+        query = query.filter(UserChatMessage.created_at >= member.joined_at)
     
     if after_updated_at:
         query = query.filter(UserChatMessage.updated_at > after_updated_at)
         
     messages = query.order_by(UserChatMessage.created_at.asc()).limit(limit).all()
     
-    # 3. Decrypt and mask identity if B2C
-    result = []
-    avatar_memo = {} # Per-request cache
+    # 3. Decrypt and normalize
+    result_messages = []
+    users_dict = {}
     
-    # Pre-fetch manager ids for masking if it's a B2C room
     manager_ids = set()
     if room.diving_center_id:
-        managers = db.query(DivingCenterManager.user_id).filter(
-            DivingCenterManager.diving_center_id == room.diving_center_id
-        ).all()
+        managers = db.query(DivingCenterManager.user_id).filter(DivingCenterManager.diving_center_id == room.diving_center_id).all()
         manager_ids = {m[0] for m in managers}
         owner = db.query(DivingCenter.owner_id).filter(DivingCenter.id == room.diving_center_id).first()
         if owner and owner[0]:
             manager_ids.add(owner[0])
             
     for msg in messages:
-        resp_msg = ChatMessageResponse.model_validate(msg)
+        # Use Base schema to exclude 'sender' field from message list
+        resp_msg = ChatMessageBaseResponse.model_validate(msg)
         resp_msg.content = decrypt_message(msg.content, room.encrypted_dek)
         
-        # Identity Masking for Managers
-        if room.diving_center_id and msg.sender_id in manager_ids and resp_msg.sender:
-            dc = db.query(DivingCenter).filter(DivingCenter.id == room.diving_center_id).first()
-            if dc:
-                resp_msg.sender.username = dc.name
-                resp_msg.sender.avatar_url = dc.logo_url
-                # For masked center identity, we use logo_url as avatar_full_url too
-                resp_msg.sender.avatar_full_url = dc.logo_url
-        elif resp_msg.sender and msg.sender:
-            # Regular user: populate avatar full URL with memoization
-            if msg.sender_id not in avatar_memo:
+        # Populate users dictionary
+        if msg.sender_id and msg.sender_id not in users_dict:
+            # Identity Masking for Managers
+            if room.diving_center_id and msg.sender_id in manager_ids and msg.sender:
+                dc = db.query(DivingCenter).filter(DivingCenter.id == room.diving_center_id).first()
+                if dc:
+                    # Create masked user info
+                    users_dict[msg.sender_id] = UserBasicInfo(
+                        id=msg.sender_id,
+                        username=dc.name,
+                        avatar_url=dc.logo_url,
+                        avatar_full_url=dc.logo_url
+                    )
+            elif msg.sender:
+                # Regular user
                 temp_data = {}
                 populate_avatar_full_url(msg.sender, temp_data)
-                resp_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
-                resp_msg.sender.avatar_type = msg.sender.avatar_type or "google"
-                avatar_memo[msg.sender_id] = (resp_msg.sender.avatar_full_url, resp_msg.sender.avatar_type)
-            else:
-                resp_msg.sender.avatar_full_url, resp_msg.sender.avatar_type = avatar_memo[msg.sender_id]
+                user_info = UserBasicInfo.model_validate(msg.sender)
+                user_info.avatar_full_url = temp_data.get("avatar_full_url")
+                users_dict[msg.sender_id] = user_info
                 
-        result.append(resp_msg)
+        result_messages.append(resp_msg)
         
-    return result
+    return RoomMessagesResponse(messages=result_messages, users=users_dict)
 
 @router.put("/rooms/{room_id}/read", status_code=status.HTTP_200_OK)
 async def mark_room_read(
