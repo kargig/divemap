@@ -79,7 +79,7 @@ class ChatMessageCreate(BaseModel):
 class ChatMessageUpdate(BaseModel):
     content: constr(min_length=1, max_length=5000)
 
-class ChatMessageResponse(BaseModel):
+class ChatMessageBaseResponse(BaseModel):
     id: int
     room_id: str
     sender_id: Optional[int] = None
@@ -88,11 +88,13 @@ class ChatMessageResponse(BaseModel):
     is_edited: bool
     updated_at: datetime
     created_at: datetime
-    sender: Optional[UserBasicInfo] = None
     
     class Config:
         from_attributes = True
+
+class ChatMessageResponse(ChatMessageBaseResponse):
     sender: Optional[UserBasicInfo] = None
-    
-    class Config:
-        from_attributes = True
+
+class RoomMessagesResponse(BaseModel):
+    messages: List[ChatMessageBaseResponse]
+    users: Dict[int, UserBasicInfo]

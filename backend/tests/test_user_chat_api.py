@@ -145,7 +145,11 @@ def test_get_messages_short_circuit(client, auth_headers, test_user_other, mock_
     # 3. Fetch without cursor -> gets message
     get_res = client.get(f"/api/v1/user-chat/rooms/{room_id}/messages", headers=auth_headers)
     assert get_res.status_code == 200
-    assert len(get_res.json()) >= 1
+    data = get_res.json()
+    assert "messages" in data
+    assert "users" in data
+    assert isinstance(data["messages"], list)
+    assert len(data["messages"]) >= 1
     
     # 4. Fetch with cursor representing the future
     from datetime import datetime, timezone, timedelta
