@@ -635,7 +635,7 @@ const AdminOwnershipRequests = () => {
   ];
 
   return (
-    <div className='w-full max-w-full p-3 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='mb-4 sm:mb-8 hidden sm:block'>
         <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Ownership Requests</h1>
         <p className='text-gray-600 text-sm sm:text-base'>

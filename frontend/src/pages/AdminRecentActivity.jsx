@@ -131,7 +131,7 @@ const AdminRecentActivity = () => {
 
   if (isLoading) {
     return (
-      <div className='w-full max-w-full p-4 sm:p-6'>
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='flex items-center justify-center py-12'>
           <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
           <span className='ml-2 text-gray-600'>Loading recent activity...</span>
@@ -142,7 +142,7 @@ const AdminRecentActivity = () => {
 
   if (error) {
     return (
-      <div className='w-full max-w-full p-4 sm:p-6'>
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='text-center py-12'>
           <p className='text-red-600'>Error loading recent activity: {error.message}</p>
         </div>
@@ -151,7 +151,7 @@ const AdminRecentActivity = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       {/* Header */}
       <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
         <div>

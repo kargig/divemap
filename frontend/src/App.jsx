@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Suspense, lazy } from 'react';
 import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import ChatWidget from './components/Chat/ChatWidget';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
@@ -174,6 +174,261 @@ ProtectedTripCreationRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
+function AppContent() {
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
+
+  return (
+    <div className='min-h-screen bg-gray-50'>
+      <PWAUpdater />
+      <Navbar />
+      <SessionManager />
+      <main
+        className={`${isAdminPath ? 'w-full max-w-none px-0' : 'container mx-auto px-4 sm:px-6 lg:px-8'} py-4 sm:py-8 pt-16`}
+      >
+        <EmailVerificationBanner />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path='/' element={<Home />} />
+            <Route path='/about' element={<About />} />
+            <Route path='/resources/tags' element={<DivingTagsPage />} />
+            <Route path='/resources/diving-organizations' element={<DivingOrganizationsPage />} />
+            <Route path='/resources/tools' element={<Tools />} />
+            <Route path='/api-docs' element={<API />} />
+            <Route path='/changelog' element={<Changelog />} />
+            <Route path='/help' element={<Help />} />
+            <Route path='/privacy' element={<Privacy />} />
+            <Route path='/login' element={<Login />} />
+            <Route path='/forgot-password' element={<ForgotPassword />} />
+            <Route path='/reset-password' element={<ResetPassword />} />
+            <Route path='/register' element={<Register />} />
+            <Route
+              path='/messages'
+              element={
+                <ProtectedRoute>
+                  <Messages />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/ai-chat-history'
+              element={
+                <ProtectedRoute>
+                  <AIChatHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/ai-chat-history/:id'
+              element={
+                <ProtectedRoute>
+                  <AIChatHistoryDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/notifications'
+              element={
+                <ProtectedRoute>
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/notification-preferences'
+              element={
+                <ProtectedRoute>
+                  <NotificationPreferencesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/personal-access-tokens'
+              element={
+                <ProtectedRoute>
+                  <PersonalAccessTokens />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/buddies'
+              element={
+                <ProtectedRoute>
+                  <Buddies />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile'
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/profile/:username' element={<UserProfile />} />
+            <Route path='/verify-email' element={<VerifyEmail />} />
+            <Route path='/check-your-email' element={<CheckYourEmail />} />
+            <Route path='/resubscribe' element={<Resubscribe />} />
+            <Route path='/unsubscribe' element={<Unsubscribe />} />
+
+            <Route path='/dives' element={<Dives />} />
+            <Route
+              path='/dives/create'
+              element={
+                <ProtectedRoute>
+                  <CreateDive />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/dives/:id' element={<DiveDetail />} />
+            <Route path='/dives/:id/:slug' element={<DiveDetail />} />
+            <Route
+              path='/dives/:id/edit'
+              element={
+                <ProtectedRoute>
+                  <EditDive />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path='/dive-sites' element={<DiveSites />} />
+            <Route
+              path='/dive-sites/create'
+              element={
+                <ProtectedRoute>
+                  <CreateDiveSite />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
+            <Route path='/dive-sites/:id/:slug' element={<DiveSiteDetail />} />
+            <Route
+              path='/dive-sites/:id/edit'
+              element={
+                <ProtectedRoute>
+                  <EditDiveSite />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
+
+            <Route path='/diving-centers' element={<DivingCenters />} />
+            <Route
+              path='/diving-centers/create'
+              element={
+                <ProtectedRoute>
+                  <CreateDivingCenter />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
+            <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
+            <Route
+              path='/diving-centers/:id/edit'
+              element={
+                <ProtectedRoute>
+                  <EditDivingCenter />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path='/dive-routes' element={<DiveRoutes />} />
+            <Route path='/dive-routes/:id' element={<RouteDetail />} />
+            <Route path='/dive-routes/:id/:slug' element={<RouteDetail />} />
+            <Route
+              path='/dive-routes/:id/draw'
+              element={
+                <ProtectedRoute>
+                  <DiveRouteDrawing />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route path='/map' element={<IndependentMapView />} />
+            <Route path='/leaderboard' element={<Leaderboard />} />
+
+            {/* Admin Routes */}
+            <Route path='/admin' element={<AdminLayout />}>
+              <Route index element={<Admin />} />
+              <Route path='users' element={<AdminUsers />} />
+              <Route path='recent-activity' element={<AdminRecentActivity />} />
+              <Route path='audit-logs' element={<AdminAuditLogs />} />
+              <Route path='system-metrics' element={<AdminSystemMetrics />} />
+              <Route path='general-statistics' element={<AdminGeneralStatistics />} />
+              <Route path='growth-visualizations' element={<AdminGrowthVisualizations />} />
+              <Route path='dive-sites' element={<AdminDiveSites />} />
+              <Route path='dive-sites/edit-requests' element={<AdminEditRequests />} />
+              <Route path='diving-centers' element={<AdminDivingCenters />} />
+              <Route path='dives' element={<AdminDives />} />
+              <Route path='dive-routes' element={<AdminDiveRoutes />} />
+              <Route path='diving-organizations' element={<AdminDivingOrganizations />} />
+              <Route
+                path='diving-organizations/:id/certifications'
+                element={<AdminDivingOrganizationCertifications />}
+              />
+              <Route path='tags' element={<AdminTags />} />
+              <Route path='newsletters' element={<AdminNewsletters />} />
+              <Route path='chat-history' element={<AdminChatHistory />} />
+              <Route path='chat-feedback' element={<AdminChatFeedback />} />
+              <Route path='notification-preferences' element={<AdminNotificationPreferences />} />
+              <Route path='ownership-requests' element={<AdminOwnershipRequests />} />
+              <Route path='dive-sites/:id/aliases' element={<AdminDiveSiteAliases />} />
+            </Route>
+
+            <Route
+              path='/dive-trips/create'
+              element={
+                <ProtectedTripCreationRoute>
+                  <CreateTrip />
+                </ProtectedTripCreationRoute>
+              }
+            />
+            <Route path='/dive-trips/:id' element={<TripDetail />} />
+            <Route path='/dive-trips/:id/:slug' element={<TripDetail />} />
+
+            <Route path='/index.html' element={<Navigate to='/' replace />} />
+            <Route path='/index.htm' element={<Navigate to='/' replace />} />
+            <Route path='*' element={<NotFound />} />
+          </Routes>
+        </Suspense>
+        <ReportIssueButton />
+        <ChatWidget />
+      </main>
+      <Toaster
+        position='top-right'
+        toastOptions={{
+          duration: 3000, // Set to 3s for a balance of readability and speed
+          style: {
+            marginTop: '4rem', // Add top margin to appear below navbar
+            zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
+          },
+        }}
+      >
+        {t => (
+          <ToastBar toast={t}>
+            {({ icon, message }) => (
+              <>
+                {icon}
+                {message}
+                {t.type !== 'loading' && (
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    className='ml-2 hover:bg-black/5 rounded-full p-0.5 transition-colors focus:outline-none'
+                    aria-label='Close'
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
+    </div>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -181,427 +436,7 @@ function App() {
         <NotificationProvider>
           <Router>
             <ScrollToTop />
-            <div className='min-h-screen bg-gray-50'>
-              <PWAUpdater />
-              <Navbar />
-              <SessionManager />
-              <main className='container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 pt-16'>
-                <EmailVerificationBanner />
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    <Route path='/' element={<Home />} />
-                    <Route path='/about' element={<About />} />
-                    <Route path='/resources/tags' element={<DivingTagsPage />} />
-                    <Route
-                      path='/resources/diving-organizations'
-                      element={<DivingOrganizationsPage />}
-                    />
-                    <Route path='/resources/tools' element={<Tools />} />
-                    <Route path='/api-docs' element={<API />} />
-                    <Route path='/changelog' element={<Changelog />} />
-                    <Route path='/help' element={<Help />} />
-                    <Route path='/privacy' element={<Privacy />} />
-                    <Route path='/login' element={<Login />} />
-                    <Route path='/forgot-password' element={<ForgotPassword />} />
-                    <Route path='/reset-password' element={<ResetPassword />} />
-                    <Route path='/register' element={<Register />} />
-                    <Route
-                      path='/messages'
-                      element={
-                        <ProtectedRoute>
-                          <Messages />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/ai-chat-history'
-                      element={
-                        <ProtectedRoute>
-                          <AIChatHistory />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/ai-chat-history/:id'
-                      element={
-                        <ProtectedRoute>
-                          <AIChatHistoryDetail />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path='/verify-email' element={<VerifyEmail />} />
-                    <Route path='/check-email' element={<CheckYourEmail />} />
-                    <Route path='/unsubscribe' element={<Unsubscribe />} />
-                    <Route path='/resubscribe' element={<Resubscribe />} />
-                    <Route path='/users/:username' element={<UserProfile />} />
-                    <Route
-                      path='/buddies'
-                      element={
-                        <ProtectedRoute>
-                          <Buddies />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path='/dive-sites' element={<DiveSites />} />
-                    <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
-                    <Route path='/dive-sites/:id/:slug' element={<DiveSiteDetail />} />
-                    <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
-                    <Route path='/dive-routes' element={<DiveRoutes />} />
-                    <Route
-                      path='/dive-sites/:diveSiteId/dive-route'
-                      element={
-                        <ProtectedRoute>
-                          <DiveRouteDrawing />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/dive-sites/:diveSiteId/route/:routeId'
-                      element={<RouteDetail />}
-                    />
-                    <Route
-                      path='/dive-sites/:diveSiteId/route/:routeId/:slug'
-                      element={<RouteDetail />}
-                    />
-                    <Route
-                      path='/dive-sites/:diveSiteId/route/:routeId/edit'
-                      element={
-                        <ProtectedRoute>
-                          <DiveRouteDrawing />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/dive-sites/create'
-                      element={
-                        <ProtectedRoute>
-                          <CreateDiveSite />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/dive-sites/:id/edit'
-                      element={
-                        <ProtectedEditRoute>
-                          <EditDiveSite />
-                        </ProtectedEditRoute>
-                      }
-                    />
-                    <Route path='/diving-centers' element={<DivingCenters />} />
-                    <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
-                    <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
-                    <Route
-                      path='/diving-centers/create'
-                      element={
-                        <ProtectedRoute>
-                          <CreateDivingCenter />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/diving-centers/:id/edit'
-                      element={
-                        <ProtectedEditRoute>
-                          <EditDivingCenter />
-                        </ProtectedEditRoute>
-                      }
-                    />
-                    <Route
-                      path='/profile'
-                      element={
-                        <ProtectedRoute>
-                          <Profile />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/profile/pats'
-                      element={
-                        <ProtectedRoute>
-                          <PersonalAccessTokens />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/notifications'
-                      element={
-                        <ProtectedRoute>
-                          <Notifications />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/notifications/preferences'
-                      element={
-                        <ProtectedRoute>
-                          <NotificationPreferencesPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path='/profile/notifications'
-                      element={
-                        <ProtectedRoute>
-                          <Profile />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path='/leaderboard' element={<Leaderboard />} />
-                    <Route path='/dives' element={<Dives />} />
-                    <Route
-                      path='/dives/create'
-                      element={
-                        <ProtectedRoute>
-                          <CreateDive />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path='/dives/:id' element={<DiveDetail />} />
-                    <Route path='/dives/:id/:slug' element={<DiveDetail />} />
-                    <Route
-                      path='/dives/:id/edit'
-                      element={
-                        <ProtectedRoute>
-                          <EditDive />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    {/* Independent Map View Routes */}
-                    <Route path='/map' element={<IndependentMapView />} />
-                    <Route path='/map/dive-sites' element={<IndependentMapView />} />
-                    <Route path='/map/diving-centers' element={<IndependentMapView />} />
-                    <Route
-                      path='/map/dives'
-                      element={
-                        <ProtectedRoute>
-                          <IndependentMapView />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    {/* Admin Routes */}
-                    <Route path='/admin' element={<AdminLayout />}>
-                      <Route
-                        index
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <Admin />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='dive-sites'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDiveSites />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='dive-sites/edit-requests'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminEditRequests />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='dive-routes'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDiveRoutes />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='dive-sites/:diveSiteId/aliases'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDiveSiteAliases />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='diving-centers'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDivingCenters />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='diving-organizations'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDivingOrganizations />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='diving-organizations/:identifier/certifications'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDivingOrganizationCertifications />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='tags'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminTags />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='users'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminUsers />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='audit-logs'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminAuditLogs />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='notification-preferences'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminNotificationPreferences />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='chat-feedback'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminChatFeedback />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='chat-history'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminChatHistory />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='dives'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminDives />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='ownership-requests'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminOwnershipRequests />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='newsletters'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminNewsletters />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='system-metrics'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminSystemMetrics />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='general-statistics'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminGeneralStatistics />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='growth-visualizations'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminGrowthVisualizations />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path='recent-activity'
-                        element={
-                          <ProtectedRoute requireAdmin={true}>
-                            <AdminRecentActivity />
-                          </ProtectedRoute>
-                        }
-                      />
-                    </Route>
-                    <Route path='/dive-trips' element={<DiveTrips />} />
-                    <Route
-                      path='/dive-trips/create'
-                      element={
-                        <ProtectedTripCreationRoute>
-                          <CreateTrip />
-                        </ProtectedTripCreationRoute>
-                      }
-                    />
-                    <Route path='/dive-trips/:id' element={<TripDetail />} />
-                    <Route path='/dive-trips/:id/:slug' element={<TripDetail />} />
-
-                    <Route path='/index.html' element={<Navigate to='/' replace />} />
-                    <Route path='/index.htm' element={<Navigate to='/' replace />} />
-                    <Route path='*' element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-                <ReportIssueButton />
-                <ChatWidget />
-              </main>
-              <Toaster
-                position='top-right'
-                toastOptions={{
-                  duration: 3000, // Set to 3s for a balance of readability and speed
-                  style: {
-                    marginTop: '4rem', // Add top margin to appear below navbar
-                    zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
-                  },
-                }}
-              >
-                {t => (
-                  <ToastBar toast={t}>
-                    {({ icon, message }) => (
-                      <>
-                        {icon}
-                        {message}
-                        {t.type !== 'loading' && (
-                          <button
-                            onClick={() => toast.dismiss(t.id)}
-                            className='ml-2 hover:bg-black/5 rounded-full p-0.5 transition-colors focus:outline-none'
-                            aria-label='Close'
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </ToastBar>
-                )}
-              </Toaster>
-            </div>
+            <AppContent />
           </Router>
         </NotificationProvider>
       </AuthProvider>
