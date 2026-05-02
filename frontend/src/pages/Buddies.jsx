@@ -108,9 +108,14 @@ const Buddies = () => {
             ) : (
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                 {buddies.map(friendship => {
+                  // Safeguard against deleted users or malformed data
+                  if (!friendship.user || !friendship.friend) return null;
+
                   // Determine which user in the friendship is the buddy (not the current user)
                   const buddyUser =
                     friendship.user.id === currentUser.id ? friendship.friend : friendship.user;
+
+                  if (!buddyUser) return null;
 
                   return (
                     <div
@@ -122,7 +127,7 @@ const Buddies = () => {
                         className='flex items-center gap-3 flex-1 min-w-0 group'
                       >
                         <Avatar
-                          src={buddyUser.avatar_url}
+                          src={buddyUser.avatar_full_url || buddyUser.avatar_url}
                           alt={buddyUser.username}
                           size='md'
                           fallbackText={buddyUser.username}

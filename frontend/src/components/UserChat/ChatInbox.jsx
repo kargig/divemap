@@ -101,7 +101,11 @@ const ChatInbox = ({ rooms, activeRoomId, onSelectRoom, onNewChat, isLoading, bu
                 otherMembers[0]?.user?.username ||
                 otherMembers[0]?.username ||
                 (room.diving_center_id ? 'Business Chat' : 'Unknown User');
-              displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+              displayAvatar =
+                otherMembers[0]?.user?.avatar_full_url ||
+                otherMembers[0]?.user?.avatar_url ||
+                otherMembers[0]?.avatar_full_url ||
+                otherMembers[0]?.avatar_url;
             }
           }
           return (

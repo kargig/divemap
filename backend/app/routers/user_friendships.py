@@ -4,6 +4,7 @@ from sqlalchemy import or_, and_, func
 from typing import List
 
 from app.database import get_db
+from app.utils import populate_avatar_full_url
 from app.models import User, UserFriendship
 from app.auth import get_current_active_user
 from app.schemas.user_friendship import FriendshipResponse, FriendshipRequestCreate
@@ -42,6 +43,14 @@ async def send_friend_request(
                 existing.updated_at = func.now()
                 db.commit()
                 db.refresh(existing)
+
+                # Populate avatars for response
+                for user_obj in [existing.user, existing.friend]:
+                    if user_obj:
+                        temp_data = {}
+                        populate_avatar_full_url(user_obj, temp_data)
+                        user_obj.avatar_full_url = temp_data.get("avatar_full_url")
+                        user_obj.avatar_type = user_obj.avatar_type or "google"
                 
                 # Send notification to the original initiator
                 from app.services.notification_service import NotificationService
@@ -65,6 +74,14 @@ async def send_friend_request(
             existing.updated_at = func.now()
             db.commit()
             db.refresh(existing)
+
+            # Populate avatars for response
+            for user_obj in [existing.user, existing.friend]:
+                if user_obj:
+                    temp_data = {}
+                    populate_avatar_full_url(user_obj, temp_data)
+                    user_obj.avatar_full_url = temp_data.get("avatar_full_url")
+                    user_obj.avatar_type = user_obj.avatar_type or "google"
             
             # Send notification
             from app.services.notification_service import NotificationService
@@ -87,6 +104,14 @@ async def send_friend_request(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+
+    # Populate avatars for response
+    for user_obj in [new_request.user, new_request.friend]:
+        if user_obj:
+            temp_data = {}
+            populate_avatar_full_url(user_obj, temp_data)
+            user_obj.avatar_full_url = temp_data.get("avatar_full_url")
+            user_obj.avatar_type = user_obj.avatar_type or "google"
     
     # Send notification
     from app.services.notification_service import NotificationService
@@ -119,7 +144,22 @@ async def list_friends(
         ),
         UserFriendship.status == status_filter.upper()
     )
-    return query.all()
+    results = query.all()
+    
+    # Populate avatars for both user and friend
+    for friendship in results:
+        if friendship.user:
+            temp_data = {}
+            populate_avatar_full_url(friendship.user, temp_data)
+            friendship.user.avatar_full_url = temp_data.get("avatar_full_url")
+            friendship.user.avatar_type = friendship.user.avatar_type or "google"
+        if friendship.friend:
+            temp_data = {}
+            populate_avatar_full_url(friendship.friend, temp_data)
+            friendship.friend.avatar_full_url = temp_data.get("avatar_full_url")
+            friendship.friend.avatar_type = friendship.friend.avatar_type or "google"
+            
+    return results
 
 @router.put("/requests/{friendship_id}/accept", response_model=FriendshipResponse)
 async def accept_friend_request(
@@ -147,6 +187,14 @@ async def accept_friend_request(
     friendship.updated_at = func.now()
     db.commit()
     db.refresh(friendship)
+    
+    # Populate avatars for both user and friend
+    for user_obj in [friendship.user, friendship.friend]:
+        if user_obj:
+            temp_data = {}
+            populate_avatar_full_url(user_obj, temp_data)
+            user_obj.avatar_full_url = temp_data.get("avatar_full_url")
+            user_obj.avatar_type = user_obj.avatar_type or "google"
     
     # Send notification to the initiator
     from app.services.notification_service import NotificationService
@@ -181,6 +229,15 @@ async def reject_friend_request(
     friendship.updated_at = func.now()
     db.commit()
     db.refresh(friendship)
+
+    # Populate avatars for both user and friend
+    for user_obj in [friendship.user, friendship.friend]:
+        if user_obj:
+            temp_data = {}
+            populate_avatar_full_url(user_obj, temp_data)
+            user_obj.avatar_full_url = temp_data.get("avatar_full_url")
+            user_obj.avatar_type = user_obj.avatar_type or "google"
+
     return friendship
 
 @router.delete("/{friendship_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -131,7 +131,7 @@ const Home = () => {
           >
             <div className='relative'>
               <Avatar
-                src={user.avatar_url}
+                src={user.avatar_full_url || user.avatar_url}
                 alt={user.username}
                 size='lg'
                 fallbackText={user.username}

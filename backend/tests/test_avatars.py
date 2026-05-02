@@ -132,7 +132,7 @@ def test_populate_avatar_full_url_utility(db_session, test_user):
         assert result["avatar_full_url"] == "https://presigned-url.com"
         
         # Case 2: Library Avatar
-        test_user.avatar_url = "library/avatars/eel.webp"
+        test_user.avatar_url = "library/avatars/unique_eel.webp"
         test_user.avatar_type = "library"
         mock_storage.get_library_avatar_url.return_value = "https://library-url.com"
         

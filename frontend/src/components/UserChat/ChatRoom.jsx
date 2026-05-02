@@ -191,7 +191,11 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
       displayAvatar = room.diving_center.logo_url;
     } else {
       displayName = otherMembers[0]?.user?.username || 'Chat';
-      displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+      displayAvatar =
+        otherMembers[0]?.user?.avatar_full_url ||
+        otherMembers[0]?.user?.avatar_url ||
+        otherMembers[0]?.avatar_full_url ||
+        otherMembers[0]?.avatar_url;
     }
   }
   const maxReadAt = otherMembers.length

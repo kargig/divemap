@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 import { searchUsers } from '../api';
 
+import Avatar from './Avatar';
 import Combobox from './ui/Combobox';
 
 /**
@@ -80,17 +81,12 @@ const UserSearchInput = ({
     const { user } = option;
     return (
       <div className='flex items-center gap-3 w-full'>
-        {user.avatar_url ? (
-          <img
-            src={user.avatar_url}
-            alt={user.username}
-            className='w-8 h-8 rounded-full object-cover'
-          />
-        ) : (
-          <div className='w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center'>
-            <User size={16} className='text-gray-500' />
-          </div>
-        )}
+        <Avatar
+          src={user.avatar_full_url || user.avatar_url}
+          alt={user.username}
+          size='sm'
+          username={user.username}
+        />
         <div className='flex flex-col min-w-0'>
           <div className='text-sm font-medium text-gray-900 truncate'>{user.username}</div>
           {user.name && <div className='text-xs text-gray-500 truncate'>{user.name}</div>}
