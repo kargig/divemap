@@ -12,6 +12,9 @@ import {
   Server,
   Mail,
   UserCheck,
+  MessageSquare,
+  MessageCircle,
+  ShieldCheck,
 } from 'lucide-react';
 
 import usePageTitle from '../hooks/usePageTitle';
@@ -115,9 +118,105 @@ const Privacy = () => {
               <ul>
                 <li>Dive site reviews and ratings</li>
                 <li>Dive logs and trip reports</li>
+                <li>User-drawn dive routes and points of interest</li>
                 <li>Photos and media uploads</li>
                 <li>Comments and community contributions</li>
               </ul>
+            </div>
+          </section>
+
+          {/* AI Assistant */}
+          <section>
+            <h2 className='flex items-center not-prose text-2xl font-bold text-gray-900 dark:text-white mb-6'>
+              <MessageSquare className='h-6 w-6 text-blue-600 mr-3' />
+              AI Assistant and LLM Processing
+            </h2>
+            <p>
+              Divemap provides an AI-powered assistant to help you with diving-related queries. When
+              you interact with the assistant:
+            </p>
+            <ul>
+              <li>
+                <strong>Chat History:</strong> We store your conversation history locally on our
+                servers so that you can access and review your past questions and answers in your
+                account dashboard.
+              </li>
+              <li>
+                <strong>Third-Party Processing:</strong> Your prompts are processed by Large
+                Language Models (LLMs) provided by third parties, primarily <strong>OpenAI</strong>{' '}
+                and <strong>Deepseek</strong>. We do not share your username or identity with these
+                providers, but the content of your prompt is sent for processing.
+              </li>
+            </ul>
+            <p className='text-sm text-gray-500'>
+              For more information, please review the{' '}
+              <a
+                href='https://openai.com/policies/privacy-policy/'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-blue-600 underline'
+              >
+                OpenAI Privacy Policy
+              </a>{' '}
+              and the{' '}
+              <a
+                href='https://cdn.deepseek.com/policies/en-US/deepseek-privacy-policy.html'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-blue-600 underline'
+              >
+                Deepseek Privacy Policy
+              </a>
+              .
+            </p>
+          </section>
+
+          {/* Buddy Chat */}
+          <section>
+            <h2 className='flex items-center not-prose text-2xl font-bold text-gray-900 dark:text-white mb-6'>
+              <MessageCircle className='h-6 w-6 text-blue-600 mr-3' />
+              User-to-User Buddy Messaging
+            </h2>
+            <p>
+              Our internal messaging system allows you to communicate with your confirmed buddies.
+            </p>
+            <ul>
+              <li>
+                <strong>Encryption at Rest:</strong> All messages are stored centrally on our
+                database but are <strong>encrypted at rest</strong>. This ensures that even in the
+                unlikely event of a database leak, the message content remains unreadable.
+              </li>
+              <li>
+                <strong>Access Control:</strong> Divemap application administrators do not have
+                access to your private messages through the application interface. Access is
+                strictly restricted to system/database administrators for maintenance and security
+                purposes only.
+              </li>
+            </ul>
+          </section>
+
+          {/* Third-Party Auth */}
+          <section>
+            <h2 className='flex items-center not-prose text-2xl font-bold text-gray-900 dark:text-white mb-6'>
+              <ShieldCheck className='h-6 w-6 text-blue-600 mr-3' />
+              Authentication and Push Notifications
+            </h2>
+            <div>
+              <h3>Social Logins</h3>
+              <p>
+                If you choose to register or log in using <strong>Google</strong>, we receive
+                certain profile information from the provider, such as your name, email address, and
+                profile picture URL. We use this data only to create and manage your Divemap
+                account. We never receive or store your Google password.
+              </p>
+            </div>
+            <div>
+              <h3>Push Notifications</h3>
+              <p>
+                If you opt-in to browser or device notifications, we store a unique, anonymized
+                device token required to route messages to your device. You can revoke this
+                permission at any time through your browser or operating system settings.
+              </p>
             </div>
           </section>
 

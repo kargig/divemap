@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
 
+import Avatar from './Avatar';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
 
@@ -14,6 +15,7 @@ const AvatarEditor = ({
   currentAvatarUrl,
   currentAvatarFullUrl,
   currentType,
+  username,
   googleAvatarUrl,
   onAvatarUpdated,
 }) => {
@@ -90,7 +92,6 @@ const AvatarEditor = ({
     }
   };
 
-  const defaultAvatar = '/default-avatar.png';
   const hasGoogleAvatar = Boolean(googleAvatarUrl);
   // Show reset button if user has a custom/library avatar, OR if current avatar doesn't match google avatar
   const showResetButton =
@@ -99,10 +100,15 @@ const AvatarEditor = ({
     (hasGoogleAvatar && currentAvatarUrl !== googleAvatarUrl);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title='Change Profile Picture' maxWidth='max-w-2xl'>
-      <div className='p-1'>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title='Change Profile Picture'
+      className='w-[95vw] md:w-full max-w-2xl h-[85vh] md:h-[600px] flex flex-col'
+    >
+      <div className='p-1 flex-1 flex flex-col min-h-0'>
         {/* Tabs */}
-        <div className='flex border-b border-gray-200 mb-6'>
+        <div className='flex border-b border-gray-200 mb-6 shrink-0'>
           <button
             onClick={() => setActiveTab('gallery')}
             className={`px-4 py-2 font-medium text-sm transition-colors relative ${
@@ -129,8 +135,8 @@ const AvatarEditor = ({
 
         {/* Gallery Tab */}
         {activeTab === 'gallery' && (
-          <div>
-            <p className='text-sm text-gray-500 mb-4'>
+          <div className='flex-1 flex flex-col min-h-0'>
+            <p className='text-sm text-gray-500 mb-4 shrink-0'>
               Choose one of our scuba-themed animal avatars:
             </p>
             {isLibraryLoading ? (
@@ -140,32 +146,34 @@ const AvatarEditor = ({
                 ))}
               </div>
             ) : (
-              <div className='grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-h-96 overflow-y-auto pr-2'>
-                {libraryIcons.map(icon => (
-                  <button
-                    key={icon.path}
-                    onClick={() => selectLibraryMutation.mutate(icon.path)}
-                    className={`group relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                      currentAvatarUrl === icon.path
-                        ? 'border-blue-600 ring-2 ring-blue-100'
-                        : 'border-transparent hover:border-gray-300'
-                    }`}
-                  >
-                    <img
-                      src={icon.full_url}
-                      alt='Library avatar'
-                      className='w-full h-full min-w-full min-h-full object-cover group-hover:scale-110 transition-transform'
-                      loading='lazy'
-                    />
-                    {currentAvatarUrl === icon.path && (
-                      <div className='absolute inset-0 bg-blue-600/10 flex items-center justify-center'>
-                        <div className='bg-blue-600 text-white rounded-full p-1 shadow-lg'>
-                          <Check className='h-4 w-4' />
+              <div className='flex-1 overflow-y-auto pr-2 min-h-0'>
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                  {libraryIcons.map(icon => (
+                    <button
+                      key={icon.path}
+                      onClick={() => selectLibraryMutation.mutate(icon.path)}
+                      className={`group relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                        currentAvatarUrl === icon.path
+                          ? 'border-blue-600 ring-2 ring-blue-100'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src={icon.full_url}
+                        alt='Library avatar'
+                        className='w-full h-full min-w-full min-h-full object-cover group-hover:scale-110 transition-transform'
+                        loading='lazy'
+                      />
+                      {currentAvatarUrl === icon.path && (
+                        <div className='absolute inset-0 bg-blue-600/10 flex items-center justify-center'>
+                          <div className='bg-blue-600 text-white rounded-full p-1 shadow-lg'>
+                            <Check className='h-4 w-4' />
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </button>
-                ))}
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -173,13 +181,15 @@ const AvatarEditor = ({
 
         {/* Upload Tab */}
         {activeTab === 'upload' && (
-          <div className='flex flex-col items-center justify-center py-8'>
+          <div className='flex-1 flex flex-col items-center justify-center py-4'>
             <div className='relative mb-6'>
-              <div className='h-32 w-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-inner bg-gray-50'>
-                <img
-                  src={currentAvatarFullUrl || defaultAvatar}
-                  alt='Current avatar'
-                  className='h-full w-full object-cover'
+              <div className='h-32 w-32 rounded-full overflow-hidden border-4 border-gray-100 shadow-inner'>
+                <Avatar
+                  src={currentAvatarFullUrl}
+                  alt={username}
+                  size='xl'
+                  className='w-full h-full'
+                  username={username}
                 />
               </div>
               <label className='absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-blue-700 transition-colors'>

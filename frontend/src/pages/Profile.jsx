@@ -37,6 +37,7 @@ import { useQuery, useMutation } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import api, { getUserPublicProfile } from '../api';
+import Avatar from '../components/Avatar';
 import AvatarEditor from '../components/AvatarEditor';
 import { FormField } from '../components/forms/FormField';
 import MaskedEmail from '../components/MaskedEmail';
@@ -639,13 +640,13 @@ const Profile = () => {
             {/* Avatar Section */}
             <div className='flex flex-col sm:flex-row items-center gap-6 pb-6 mb-6 border-b border-gray-100'>
               <div className='relative group'>
-                <div className='h-24 w-24 sm:h-32 sm:w-32 rounded-full overflow-hidden border-4 border-white shadow-md bg-gray-50'>
-                  <img
-                    src={getFullAvatarUrl(user)}
-                    alt={user.username}
-                    className='h-full w-full object-cover'
-                  />
-                </div>
+                <Avatar
+                  src={getFullAvatarUrl(user)}
+                  alt={user.username}
+                  size='xl'
+                  className='w-24 h-24 sm:w-32 sm:h-32 border-4 border-white shadow-md'
+                  username={user.username}
+                />
                 <button
                   onClick={() => setIsAvatarModalOpen(true)}
                   className='absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity'
@@ -665,7 +666,7 @@ const Profile = () => {
                 </p>
                 <div className='flex flex-wrap justify-center sm:justify-start gap-2'>
                   <Button
-                    variant='outline'
+                    variant='white'
                     size='sm'
                     onClick={() => setIsAvatarModalOpen(true)}
                     className='flex items-center'
@@ -1706,6 +1707,7 @@ const Profile = () => {
         currentAvatarUrl={user.avatar_url}
         currentAvatarFullUrl={user.avatar_full_url}
         currentType={user.avatar_type}
+        username={user.username}
         googleAvatarUrl={user.google_avatar_url}
         onAvatarUpdated={updatedUser => updateUser(updatedUser)}
       />

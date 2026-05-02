@@ -6,14 +6,14 @@
  * @returns {string} - The full URL to the avatar image
  */
 export const getFullAvatarUrl = user => {
-  if (!user) return '/default-avatar.png';
+  if (!user) return null;
 
   // Use pre-resolved URL from backend if available
   if (user.avatar_full_url) return user.avatar_full_url;
 
   // Fallback for cases where full_url isn't yet populated or for legacy objects
   const path = user.avatar_url;
-  if (!path) return '/default-avatar.png';
+  if (!path) return null;
   if (path.startsWith('http')) return path;
 
   // If it's a relative path, it's likely from our storage
@@ -27,7 +27,7 @@ export const getFullAvatarUrl = user => {
  * @returns {string} - The resolved full URL
  */
 export const resolveAvatarUrl = src => {
-  if (!src) return '/default-avatar.png';
+  if (!src) return null;
   if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('/')) return src;
   return `/${src}`;
 };
