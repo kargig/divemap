@@ -266,7 +266,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/profile/:username' element={<UserProfile />} />
+            <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/verify-email' element={<VerifyEmail />} />
             <Route path='/check-your-email' element={<CheckYourEmail />} />
             <Route path='/resubscribe' element={<Resubscribe />} />
