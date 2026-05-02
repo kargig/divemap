@@ -101,7 +101,7 @@ const LeaderboardTable = ({
               {row.getVisibleCells().map((cell, index) => (
                 <td
                   key={cell.id}
-                  className={`px-4 py-3 whitespace-nowrap text-sm text-gray-900 ${index === 2 ? 'text-center' : ''}`}
+                  className={`px-2 py-3 whitespace-nowrap text-sm text-gray-900 ${index === 2 ? 'text-center' : ''}`}
                 >
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>

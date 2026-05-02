@@ -181,7 +181,7 @@ const AdminTags = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='flex justify-between items-center mb-6'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900'>Tag Management</h1>

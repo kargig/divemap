@@ -287,15 +287,10 @@ const AdminDivingCenters = () => {
         accessorKey: 'name',
         header: 'Name',
         enableSorting: true,
-        size: 250,
+        size: 200,
         cell: ({ row }) => (
-          <div className='max-w-[250px]'>
+          <div className='max-w-[200px]'>
             <div className='text-sm font-medium text-gray-900 break-words'>{row.original.name}</div>
-            {row.original.description && (
-              <div className='text-xs text-gray-500 break-words line-clamp-2 mt-1'>
-                {decodeHtmlEntities(row.original.description)}
-              </div>
-            )}
           </div>
         ),
       },
@@ -303,7 +298,7 @@ const AdminDivingCenters = () => {
         accessorKey: 'owner_username',
         header: 'Owner',
         enableSorting: false, // Backend doesn't support sorting by owner_username
-        size: 120,
+        size: 100,
         cell: ({ row }) => {
           const owner = row.original.owner_username;
           return owner ? (
@@ -317,7 +312,7 @@ const AdminDivingCenters = () => {
         accessorKey: 'country',
         header: 'Country',
         enableSorting: true,
-        size: 120,
+        size: 100,
         cell: ({ row }) => {
           const country = row.original.country;
           return <span className='text-sm whitespace-nowrap'>{country || 'N/A'}</span>;
@@ -327,7 +322,7 @@ const AdminDivingCenters = () => {
         accessorKey: 'region',
         header: 'Region',
         enableSorting: true,
-        size: 120,
+        size: 100,
         cell: ({ row }) => {
           const region = row.original.region;
           return <span className='text-sm whitespace-nowrap'>{region || 'N/A'}</span>;
@@ -337,7 +332,7 @@ const AdminDivingCenters = () => {
         accessorKey: 'city',
         header: 'City',
         enableSorting: true,
-        size: 120,
+        size: 100,
         cell: ({ row }) => {
           const city = row.original.city;
           return <span className='text-sm whitespace-nowrap'>{city || 'N/A'}</span>;
@@ -359,7 +354,7 @@ const AdminDivingCenters = () => {
         id: 'contact',
         header: 'Contact',
         enableSorting: false,
-        size: 180,
+        size: 150,
         cell: ({ row }) => (
           <div>
             <div className='text-sm text-gray-900'>{row.original.email || 'N/A'}</div>
@@ -402,7 +397,7 @@ const AdminDivingCenters = () => {
         accessorKey: 'average_rating',
         header: 'Rating',
         enableSorting: false, // Backend doesn't support sorting by average_rating
-        size: 100,
+        size: 80,
         cell: ({ row }) => {
           const rating = row.original.average_rating;
           return (
@@ -412,9 +407,9 @@ const AdminDivingCenters = () => {
       },
       {
         accessorKey: 'created_at',
-        header: 'Created At',
+        header: 'Created',
         enableSorting: true,
-        size: 140,
+        size: 100,
         cell: ({ row }) => {
           const createdAt = row.original.created_at;
           if (!createdAt) return <span className='text-sm text-gray-400'>N/A</span>;
@@ -476,7 +471,7 @@ const AdminDivingCenters = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
         <div className='flex-1 min-w-0'>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>

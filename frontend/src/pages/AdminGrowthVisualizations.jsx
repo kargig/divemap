@@ -197,7 +197,7 @@ const AdminGrowthVisualizations = () => {
 
   if (error) {
     return (
-      <div className='w-full max-w-full p-4 sm:p-6'>
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
         <div className='bg-red-50 border border-red-200 rounded-lg p-6 text-center'>
           <p className='text-red-600 mb-4'>Failed to load growth data</p>
           <button
@@ -212,7 +212,7 @@ const AdminGrowthVisualizations = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       {/* Header */}
       <div className='mb-8'>
         <div className='flex items-center justify-between'>

@@ -90,7 +90,7 @@ const AdminDiveRoutesTable = ({
                   {headerGroup.headers.map(header => (
                     <th
                       key={header.id}
-                      className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                      className='px-2 $1 $2text-xs $3 text-gray-500 uppercase tracking-wider'
                       style={{
                         width: header.getSize() ? `${header.getSize()}px` : undefined,
                         minWidth: header.getSize() ? `${header.getSize()}px` : undefined,
@@ -159,7 +159,7 @@ const AdminDiveRoutesTable = ({
                       return (
                         <td
                           key={cell.id}
-                          className={`px-4 py-3 text-sm text-gray-900 ${
+                          className={`px-2 py-3 text-sm text-gray-900 ${
                             shouldWrap ? '' : 'whitespace-nowrap'
                           }`}
                         >

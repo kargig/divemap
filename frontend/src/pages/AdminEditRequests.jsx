@@ -266,7 +266,7 @@ const AdminEditRequests = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold text-gray-900'>Pending Edit Requests</h1>
         <p className='text-gray-600 mt-2'>Review and moderate community dive site contributions.</p>

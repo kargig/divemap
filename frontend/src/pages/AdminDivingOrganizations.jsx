@@ -210,7 +210,7 @@ const AdminDivingOrganizations = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='mb-8'>
         <h1 className='text-3xl font-bold text-gray-900'>Diving Organizations Management</h1>
         <p className='text-gray-600 mt-2'>
@@ -256,7 +256,7 @@ const AdminDivingOrganizations = () => {
           <table className='min-w-full divide-y divide-gray-200'>
             <thead className='bg-gray-50'>
               <tr>
-                <th className='px-6 py-3 text-left'>
+                <th className='px-2 py-3 text-left'>
                   <input
                     type='checkbox'
                     checked={
@@ -267,22 +267,16 @@ const AdminDivingOrganizations = () => {
                     className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                   />
                 </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Organization
                 </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Acronym
                 </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Country
                 </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Founded
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Website
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                   Actions
                 </th>
               </tr>
@@ -306,7 +300,7 @@ const AdminDivingOrganizations = () => {
                     key={org.id}
                     className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
                   >
-                    <td className='px-6 py-4 whitespace-nowrap'>
+                    <td className='px-2 py-4 whitespace-nowrap'>
                       <input
                         type='checkbox'
                         checked={selectedItems.has(org.id)}
@@ -314,7 +308,7 @@ const AdminDivingOrganizations = () => {
                         className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                       />
                     </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
+                    <td className='px-2 py-4 whitespace-nowrap'>
                       <div className='flex items-center'>
                         <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 rounded-md border border-gray-100 overflow-hidden'>
                           {org.logo_url ? (
@@ -331,41 +325,18 @@ const AdminDivingOrganizations = () => {
                         </div>
                         <div className='ml-4'>
                           <div className='text-sm font-medium text-gray-900'>{org.name}</div>
-                          {org.description && (
-                            <div className='text-sm text-gray-500 truncate max-w-xs'>
-                              {decodeHtmlEntities(org.description)}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
+                    <td className='px-2 py-4 whitespace-nowrap'>
                       <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
                         {org.acronym}
                       </span>
                     </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                    <td className='px-2 py-4 whitespace-nowrap text-sm text-gray-900'>
                       {org.country || '-'}
                     </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {org.founded_year || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {org.website ? (
-                        <a
-                          href={org.website}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-blue-600 hover:text-blue-800 flex items-center gap-1'
-                        >
-                          <Globe className='h-4 w-4' />
-                          Visit
-                        </a>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                    <td className='px-2 py-4 whitespace-nowrap text-sm font-medium'>
                       <div className='flex items-center gap-2'>
                         <button
                           onClick={() =>

@@ -802,7 +802,7 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className='w-full max-w-full p-4 sm:p-6'>
+    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4'>
         <div>
           <PageTitle>User Management</PageTitle>

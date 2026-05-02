@@ -74,7 +74,7 @@ const AdminChatHistoryTable = ({
                   {headerGroup.headers.map(header => (
                     <th
                       key={header.id}
-                      className='px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider'
+                      className='px-2 $1 $2text-xs $3 text-gray-500 uppercase tracking-wider'
                       style={{
                         width: header.getSize() ? `${header.getSize()}px` : undefined,
                       }}
@@ -130,7 +130,7 @@ const AdminChatHistoryTable = ({
                     {row.getVisibleCells().map(cell => (
                       <td
                         key={cell.id}
-                        className='px-6 py-4 text-sm text-gray-900 dark:text-gray-100'
+                        className='px-2 $1 text-sm text-gray-900 dark:text-gray-100'
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
