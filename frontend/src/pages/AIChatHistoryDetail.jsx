@@ -1,4 +1,4 @@
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2, MessageSquare } from 'lucide-react';
 import React, { useEffect, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { Link, useParams } from 'react-router-dom';
@@ -47,18 +47,15 @@ const AIChatHistoryDetail = () => {
       <SEO title='Divemap Assistant Session' description='Chat session details' />
 
       <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col'>
-        <div className='mb-6 flex items-center justify-between'>
-          <div className='flex items-center space-x-4'>
-            <Link
-              to='/ai-chat-history'
-              className='p-2 text-gray-500 hover:bg-gray-200 rounded-full transition-colors'
-              title='Back to History'
-            >
-              <ChevronLeft size={24} />
-            </Link>
-            <h1 className='text-2xl font-bold text-gray-900'>Session Transcript</h1>
-          </div>
-        </div>
+        <PageHeader
+          title='Session Transcript'
+          titleIcon={MessageSquare}
+          breadcrumbItems={[
+            { label: 'Messages', to: '/messages' },
+            { label: 'Assistant History', to: '/ai-chat-history' },
+            { label: 'Transcript' },
+          ]}
+        />
 
         <div className='bg-white shadow rounded-lg flex-1 overflow-hidden flex flex-col mb-8'>
           <div className='flex-1 overflow-y-auto p-4 space-y-4'>

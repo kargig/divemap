@@ -3,7 +3,14 @@ import React, { useState } from 'react';
 
 import { resolveAvatarUrl } from '../utils/avatarHelpers';
 
-const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) => {
+const Avatar = ({
+  src,
+  alt,
+  size = 'md',
+  className = '',
+  fallbackText = null,
+  username = null,
+}) => {
   const [hasError, setHasError] = useState(false);
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
@@ -18,9 +25,9 @@ const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) 
     'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500 flex-shrink-0';
   const sizeClass = sizeClasses[size] || sizeClasses.md;
 
-  // Generate initials from alt text or fallback text
+  // Generate initials from available text props
   const getInitials = () => {
-    const text = fallbackText || alt || '';
+    const text = fallbackText || username || alt || '';
     return text
       .split(' ')
       .map(word => word.charAt(0))
@@ -41,7 +48,7 @@ const Avatar = ({ src, alt, size = 'md', className = '', fallbackText = null }) 
       'bg-red-500',
       'bg-teal-500',
     ];
-    const text = fallbackText || alt || '';
+    const text = fallbackText || username || alt || '';
     const hash = text.split('').reduce((a, b) => {
       a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
@@ -73,6 +80,7 @@ Avatar.propTypes = {
   size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg', 'xl', '2xl']),
   className: PropTypes.string,
   fallbackText: PropTypes.string,
+  username: PropTypes.string,
 };
 
 export default Avatar;

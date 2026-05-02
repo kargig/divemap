@@ -23,6 +23,8 @@ const Modal = ({
           className={`fixed inset-0 bg-black bg-opacity-50 z-[10000] transition-opacity ${overlayClassName}`}
         />
         <Dialog.Content
+          {...(!description ? { 'aria-describedby': undefined } : {})}
+          {...(!title ? { 'aria-labelledby': undefined } : {})}
           className={`fixed left-[50%] top-[50%] z-[10001] translate-x-[-50%] translate-y-[-50%] bg-white shadow-xl duration-200 p-6 sm:rounded-lg ${className}`}
           onPointerDownOutside={e => {
             if (preventOutsideClick) {
