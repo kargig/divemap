@@ -155,7 +155,7 @@ const NewChatModal = ({ isOpen, onClose, onRoomCreated }) => {
                   >
                     <div className='relative'>
                       <Avatar
-                        src={buddy.avatar_url}
+                        src={buddy.avatar_full_url || buddy.avatar_url}
                         alt={buddy.username}
                         size='md'
                         username={buddy.username}

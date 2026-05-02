@@ -7,6 +7,8 @@ class UserBasicInfo(BaseModel):
     id: int
     username: str
     avatar_url: Optional[str] = None
+    avatar_type: Optional[str] = "google"
+    avatar_full_url: Optional[str] = None
     
     class Config:
         from_attributes = True

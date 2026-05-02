@@ -2,7 +2,11 @@
 /* eslint-disable no-restricted-globals */
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
-import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching';
+import {
+  precacheAndRoute,
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+} from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 
@@ -33,12 +37,15 @@ try {
       new RegExp('^/api/'),
       new RegExp('^/docs'),
       new RegExp('^/redoc'),
-      new RegExp('^/openapi.json')
+      new RegExp('^/openapi.json'),
     ],
   });
   registerRoute(navigationRoute);
 } catch (error) {
-  console.warn('NavigationRoute setup failed (likely due to missing /index.html in precache in dev mode):', error);
+  console.warn(
+    'NavigationRoute setup failed (likely due to missing /index.html in precache in dev mode):',
+    error
+  );
 }
 
 // --- Runtime Caching ---

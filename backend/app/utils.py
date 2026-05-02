@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import orjson
+from cachetools import cached, TTLCache
 
 
 def is_diving_center_reviews_enabled(db: Session) -> bool:
@@ -625,23 +626,33 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
-def populate_avatar_full_url(user, response_model_dict: dict) -> dict:
-    """Populate avatar_full_url based on avatar_type and avatar_url"""
+# Cache presigned URLs for 55 minutes (3300s) to safely beat the 1-hour expiration
+@cached(cache=TTLCache(maxsize=1024, ttl=3300))
+def _get_cached_avatar_url(avatar_url: str, avatar_type: str) -> Optional[str]:
+    """Helper to generate and cache presigned avatar URLs based on the raw URL string."""
     from app.services.r2_storage_service import r2_storage
     from app.schemas import AvatarType
-    
+
+    if avatar_type == AvatarType.custom:
+        return r2_storage.get_photo_url(avatar_url)
+    elif avatar_type == AvatarType.library:
+        return r2_storage.get_library_avatar_url(avatar_url)
+    return avatar_url
+
+
+def populate_avatar_full_url(user, response_model_dict: dict) -> dict:
+    """Populate avatar_full_url based on avatar_type and avatar_url"""
     if not user.avatar_url:
         response_model_dict['avatar_full_url'] = None
         return response_model_dict
 
-    if user.avatar_type == AvatarType.custom:
-        response_model_dict['avatar_full_url'] = r2_storage.get_photo_url(user.avatar_url)
-    elif user.avatar_type == AvatarType.library:
-        response_model_dict['avatar_full_url'] = r2_storage.get_library_avatar_url(user.avatar_url)
-    else: # google or fallback
-        response_model_dict['avatar_full_url'] = user.avatar_url
-        
+    # Use the cached helper to avoid redundant cryptographic signing
+    # avatar_type is cast to string for hashability in lru_cache
+    avatar_type_str = user.avatar_type.value if hasattr(user.avatar_type, 'value') else str(user.avatar_type)
+    response_model_dict['avatar_full_url'] = _get_cached_avatar_url(user.avatar_url, avatar_type_str)
+
     # Always include original google avatar if available
     response_model_dict['google_avatar_url'] = user.google_avatar_url
-        
+
     return response_model_dict
+

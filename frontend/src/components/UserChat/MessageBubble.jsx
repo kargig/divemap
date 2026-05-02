@@ -103,7 +103,7 @@ const MessageBubble = ({
               </div>
             ) : (
               <Avatar
-                src={message.sender?.avatar_url}
+                src={message.sender?.avatar_full_url || message.sender?.avatar_url}
                 size='sm'
                 username={message.sender?.username}
               />
@@ -331,7 +331,7 @@ const MessageBubble = ({
         <div className='ml-2 mt-auto flex-shrink-0 w-8 h-8'>
           {showAvatar && (
             <Avatar
-              src={message.sender?.avatar_url}
+              src={message.sender?.avatar_full_url || message.sender?.avatar_url}
               size='sm'
               username={message.sender?.username}
             />

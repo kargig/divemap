@@ -7,6 +7,7 @@ import logging
 
 from fastapi import BackgroundTasks
 from app.database import get_db
+from app.utils import populate_avatar_full_url
 from app.models import User, UserChatRoom, UserChatRoomMember, UserChatMessage, DivingCenter, DivingCenterManager, BusinessChatStatus
 from app.auth import get_current_active_user
 from app.schemas.user_chat import (
@@ -206,6 +207,14 @@ async def create_chat_room(
         db.commit()
         db.refresh(new_room)
         
+        # Populate avatars for response
+        for m in new_room.members:
+            if m.user:
+                temp_data = {}
+                populate_avatar_full_url(m.user, temp_data)
+                m.user.avatar_full_url = temp_data.get("avatar_full_url")
+                m.user.avatar_type = m.user.avatar_type or "google"
+        
         # Inject auto-greeting
         if is_b2c:
             from app.models import DivingCenterChatSettings
@@ -327,6 +336,20 @@ async def list_chat_rooms(
                 room.unread_count = unread_count
                 # Override room.is_archived with the user-specific member value
                 room.is_archived = member_record.is_archived
+
+        # Populate avatars for all members in the room
+        # Memoization dictionary to avoid redundant processing within the same request
+        avatar_memo = {}
+        for m in room.members:
+            if m.user:
+                if m.user.id not in avatar_memo:
+                    temp_data = {}
+                    populate_avatar_full_url(m.user, temp_data)
+                    m.user.avatar_full_url = temp_data.get("avatar_full_url")
+                    m.user.avatar_type = m.user.avatar_type or "google"
+                    avatar_memo[m.user.id] = (m.user.avatar_full_url, m.user.avatar_type)
+                else:
+                    m.user.avatar_full_url, m.user.avatar_type = avatar_memo[m.user.id]
             
     return rooms
 
@@ -398,6 +421,15 @@ async def toggle_room_archive(
         
     db.commit()
     db.refresh(room)
+
+    # Populate avatars for response
+    for m in room.members:
+        if m.user:
+            temp_data = {}
+            populate_avatar_full_url(m.user, temp_data)
+            m.user.avatar_full_url = temp_data.get("avatar_full_url")
+            m.user.avatar_type = m.user.avatar_type or "google"
+
     return room
 
 @router.post("/rooms/{room_id}/messages", response_model=ChatMessageResponse, status_code=status.HTTP_201_CREATED)
@@ -479,6 +511,13 @@ async def send_message(
     # Decrypt content for the response
     response_msg = ChatMessageResponse.model_validate(new_message)
     response_msg.content = message_in.content
+    
+    if response_msg.sender and new_message.sender:
+        temp_data = {}
+        populate_avatar_full_url(new_message.sender, temp_data)
+        response_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
+        response_msg.sender.avatar_type = new_message.sender.avatar_type or "google"
+        
     return response_msg
 
 @router.put("/messages/{message_id}", response_model=ChatMessageResponse)
@@ -514,6 +553,13 @@ async def edit_message(
     # Return decrypted
     response_msg = ChatMessageResponse.model_validate(message)
     response_msg.content = message_in.content
+    
+    if response_msg.sender and message.sender:
+        temp_data = {}
+        populate_avatar_full_url(message.sender, temp_data)
+        response_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
+        response_msg.sender.avatar_type = message.sender.avatar_type or "google"
+        
     return response_msg
 
 @router.get("/rooms/{room_id}/messages", response_model=List[ChatMessageResponse])
@@ -557,6 +603,7 @@ async def get_messages(
     
     # 3. Decrypt and mask identity if B2C
     result = []
+    avatar_memo = {} # Per-request cache
     
     # Pre-fetch manager ids for masking if it's a B2C room
     manager_ids = set()
@@ -579,6 +626,18 @@ async def get_messages(
             if dc:
                 resp_msg.sender.username = dc.name
                 resp_msg.sender.avatar_url = dc.logo_url
+                # For masked center identity, we use logo_url as avatar_full_url too
+                resp_msg.sender.avatar_full_url = dc.logo_url
+        elif resp_msg.sender and msg.sender:
+            # Regular user: populate avatar full URL with memoization
+            if msg.sender_id not in avatar_memo:
+                temp_data = {}
+                populate_avatar_full_url(msg.sender, temp_data)
+                resp_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
+                resp_msg.sender.avatar_type = msg.sender.avatar_type or "google"
+                avatar_memo[msg.sender_id] = (resp_msg.sender.avatar_full_url, resp_msg.sender.avatar_type)
+            else:
+                resp_msg.sender.avatar_full_url, resp_msg.sender.avatar_type = avatar_memo[msg.sender_id]
                 
         result.append(resp_msg)
         
@@ -634,6 +693,15 @@ async def update_chat_room(
         
     db.commit()
     db.refresh(room)
+
+    # Populate avatars for response
+    for m in room.members:
+        if m.user:
+            temp_data = {}
+            populate_avatar_full_url(m.user, temp_data)
+            m.user.avatar_full_url = temp_data.get("avatar_full_url")
+            m.user.avatar_type = m.user.avatar_type or "google"
+
     return room
 
 @router.delete("/rooms/{room_id}/leave", status_code=status.HTTP_200_OK)

@@ -75,7 +75,11 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
       roomTypeLabel = room.is_broadcast ? 'Broadcast Channel' : 'Business Chat';
     } else {
       displayName = otherMembers[0]?.user?.username || 'Chat';
-      displayAvatar = otherMembers[0]?.user?.avatar_url || otherMembers[0]?.avatar_url;
+      displayAvatar =
+        otherMembers[0]?.user?.avatar_full_url ||
+        otherMembers[0]?.user?.avatar_url ||
+        otherMembers[0]?.avatar_full_url ||
+        otherMembers[0]?.avatar_url;
     }
   }
 
@@ -163,7 +167,7 @@ const RoomSettings = ({ room, currentUserId, onClose }) => {
               >
                 <div className='flex items-center gap-3 min-w-0'>
                   <Avatar
-                    src={member.user?.avatar_url}
+                    src={member.user?.avatar_full_url || member.user?.avatar_url}
                     alt={member.user?.username}
                     size='sm'
                     username={member.user?.username}
