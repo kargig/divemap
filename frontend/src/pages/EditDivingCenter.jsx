@@ -1,14 +1,21 @@
 import { ArrowLeft, Trash2, Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import Avatar from '../components/Avatar';
 import DivingCenterForm from '../components/DivingCenterForm';
 import Button from '../components/ui/Button';
+import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import { useAuth } from '../contexts/AuthContext';
 import usePageTitle from '../hooks/usePageTitle';
+import {
+  uploadCenterLogo,
+  addDivingCenterMedia,
+  deleteDivingCenterMedia,
+} from '../services/divingCenters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
 import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/currency';
@@ -109,6 +116,71 @@ const EditDivingCenter = () => {
   );
 
   // Update mutation - return response data (not Axios response)
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [centerMediaUrls, setCenterMediaUrls] = useState([]);
+
+  // Initialize media urls when divingCenter loads
+  useEffect(() => {
+    if (divingCenter?.media) {
+      const formattedMedia = divingCenter.media.map(m => ({
+        ...m,
+        uid: m.id.toString(),
+        temp_uid: m.id.toString(),
+        name: `media-${m.id}`,
+        status: 'done',
+        url: m.full_url || m.url,
+        thumbUrl: m.full_thumbnail_url || m.thumbnail_url || m.url,
+      }));
+      setCenterMediaUrls(formattedMedia);
+    }
+  }, [divingCenter]);
+
+  const logoMutation = useMutation(file => uploadCenterLogo(id, file), {
+    onSuccess: data => {
+      toast.success('Logo updated successfully');
+      // Optimistically update the cache with the new URL returned from the server
+      if (data && data.logo_full_url) {
+        queryClient.setQueryData(['diving-center', id], oldData => ({
+          ...oldData,
+          logo_full_url: data.logo_full_url,
+          logo_url: data.logo_url,
+        }));
+      }
+      queryClient.invalidateQueries(['diving-center', id]);
+      setLogoUploading(false);
+    },
+    onError: err => {
+      toast.error(extractErrorMessage(err, 'Failed to update logo'));
+      setLogoUploading(false);
+    },
+  });
+
+  const handleLogoChange = e => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Logo must be less than 5MB');
+        return;
+      }
+      setLogoUploading(true);
+      logoMutation.mutate(file);
+    }
+  };
+
+  const handleMediaRemove = async file => {
+    if (!file.uid || file.uid.startsWith('rc-upload')) return true; // Just a temp file
+
+    try {
+      await deleteDivingCenterMedia(id, file.uid);
+      queryClient.invalidateQueries(['diving-center', id]);
+      toast.success('Media removed successfully');
+      return true;
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Failed to remove media'));
+      return false;
+    }
+  };
+
   const updateMutation = useMutation(
     data => api.put(`/api/v1/diving-centers/${id}`, data).then(res => res.data),
     {
@@ -196,24 +268,60 @@ const EditDivingCenter = () => {
 
   // Handled inside DivingCenterForm
 
-  const handleSubmit = values => {
+  const unsavedR2PhotosRef = useRef([]);
+  const [savedPhotoUids, setSavedPhotoUids] = useState([]);
+  const handleSubmit = async values => {
     // values come validated from DivingCenterForm and include numeric lat/lng
     const submitData = {
       ...values,
     };
 
-    updateMutation.mutate(submitData, {
-      onSuccess: async updatedDivingCenter => {
-        // Ensure detail view refreshes with fresh data
-        queryClient.setQueryData(['diving-center', id], updatedDivingCenter);
-        await queryClient.invalidateQueries(['diving-center', id]);
-        await queryClient.invalidateQueries(['diving-centers']);
-        await queryClient.invalidateQueries(['admin-diving-centers']);
-        await new Promise(resolve => setTimeout(resolve, 100));
-        toast.success('Diving center updated successfully');
-        navigate(`/diving-centers/${id}`);
-      },
-    });
+    try {
+      // 1. Upload any buffered media first
+      const unsavedPhotos = unsavedR2PhotosRef.current;
+      if (unsavedPhotos.length > 0) {
+        toast.loading('Uploading photos...', { id: 'photo-upload' });
+        const uploadPromises = unsavedPhotos.map(async photo => {
+          if (photo.originFileObj) {
+            try {
+              const result = await addDivingCenterMedia(id, photo.originFileObj);
+              // Update local state to reflect it's been saved
+              setCenterMediaUrls(prev =>
+                prev.map(item =>
+                  item.temp_uid === photo.uid
+                    ? { ...item, id: result.id, uploaded: true, temp_uid: undefined }
+                    : item
+                )
+              );
+              setSavedPhotoUids(prev => [...prev, photo.uid]);
+            } catch (error) {
+              console.error('Failed to upload photo:', error);
+              toast.error(`Failed to upload ${photo.file_name}: ${extractErrorMessage(error)}`);
+            }
+          }
+        });
+        await Promise.all(uploadPromises);
+        toast.dismiss('photo-upload');
+        // Clear the buffered photos ref
+        unsavedR2PhotosRef.current = [];
+      }
+
+      // 2. Update the main form data
+      updateMutation.mutate(submitData, {
+        onSuccess: async updatedDivingCenter => {
+          // Ensure detail view refreshes with fresh data
+          queryClient.setQueryData(['diving-center', id], updatedDivingCenter);
+          await queryClient.invalidateQueries(['diving-center', id]);
+          await queryClient.invalidateQueries(['diving-centers']);
+          await queryClient.invalidateQueries(['admin-diving-centers']);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          toast.success('Diving center updated successfully');
+          navigate(`/diving-centers/${id}`);
+        },
+      });
+    } catch (error) {
+      console.error('Submit error:', error);
+    }
   };
 
   const handleAddGear = () => {
@@ -332,10 +440,43 @@ const EditDivingCenter = () => {
   return (
     <div className='min-h-screen bg-gray-50 py-8'>
       <div className='max-w-4xl mx-auto px-4'>
-        <div className='bg-white rounded-lg shadow-md p-6'>
+        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
           {/* Header */}
           <div className='flex items-center justify-between mb-6'>
             <h1 className='text-3xl font-bold text-gray-900'>Edit Diving Center</h1>
+          </div>
+
+          <div className='mb-6 pb-6 border-b border-gray-200'>
+            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Center Logo</h3>
+            <div className='flex items-center gap-6'>
+              <Avatar
+                src={divingCenter.logo_full_url || divingCenter.logo_url}
+                alt={divingCenter.name}
+                size='2xl'
+                fallbackText={divingCenter.name}
+                className='border-2 border-gray-100 shadow-sm'
+              />
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-2'>Update Logo</label>
+                <div className='flex items-center gap-3'>
+                  <input
+                    type='file'
+                    accept='image/*'
+                    onChange={handleLogoChange}
+                    className='hidden'
+                    id='logo-upload'
+                    disabled={logoUploading}
+                  />
+                  <label
+                    htmlFor='logo-upload'
+                    className={`cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${logoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {logoUploading ? 'Uploading...' : 'Choose new image'}
+                  </label>
+                  <p className='text-xs text-gray-500'>JPEG, PNG, WEBP up to 5MB</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <DivingCenterForm
@@ -344,6 +485,57 @@ const EditDivingCenter = () => {
             onCancel={() => navigate(`/diving-centers/${id}`)}
             onSubmit={handleSubmit}
           />
+
+          {/* Media Management */}
+          <div className='border-t pt-6'>
+            <div className='flex items-center justify-between mb-4'>
+              <h3 className='text-lg font-semibold text-gray-900'>Media Gallery</h3>
+            </div>
+
+            {/* Manage Existing Media */}
+            {divingCenter?.media && divingCenter.media.length > 0 && (
+              <div className='mb-6'>
+                <h4 className='text-md font-medium text-gray-800 mb-3'>Manage Existing Media</h4>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                  {divingCenter.media.map(item => (
+                    <div key={item.id} className='border rounded-lg p-4 bg-white relative'>
+                      <div className='flex items-center justify-between mb-2 absolute top-6 right-6 z-10 bg-white/80 p-1 rounded'>
+                        <button
+                          type='button'
+                          onClick={() => handleMediaRemove({ uid: item.id.toString() })}
+                          className='text-red-600 hover:text-red-800 bg-white p-1 rounded-full shadow-sm'
+                          title='Delete media'
+                        >
+                          <Trash2 className='w-5 h-5' />
+                        </button>
+                      </div>
+                      <div className='space-y-2'>
+                        <img
+                          src={item.full_thumbnail_url || item.thumbnail_url || item.url}
+                          alt={item.description || 'Media'}
+                          className='w-full object-cover h-48 rounded shadow-sm'
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Photo Upload */}
+            <div className='mb-3'>
+              <h4 className='text-md font-medium text-gray-800 mb-3'>Upload New Media</h4>
+              <UploadPhotosComponent
+                mediaUrls={centerMediaUrls}
+                setMediaUrls={setCenterMediaUrls}
+                onMediaRemove={handleMediaRemove}
+                savedPhotoUids={savedPhotoUids}
+                onUnsavedPhotosChange={unsavedPhotos => {
+                  unsavedR2PhotosRef.current = unsavedPhotos;
+                }}
+              />
+            </div>
+          </div>
 
           {/* Diving Organizations */}
           <div className='border-t pt-6'>

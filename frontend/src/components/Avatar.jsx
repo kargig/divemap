@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { resolveAvatarUrl } from '../utils/avatarHelpers';
 
@@ -12,6 +12,12 @@ const Avatar = ({
   username = null,
 }) => {
   const [hasError, setHasError] = useState(false);
+
+  // Reset error state if the src prop changes
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   const sizeClasses = {
     xs: 'w-6 h-6 text-xs',
     sm: 'w-8 h-8 text-sm',

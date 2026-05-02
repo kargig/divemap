@@ -11,6 +11,29 @@ export const getDivingCenter = async divingCenterId => {
   return response.data;
 };
 
+export const uploadCenterLogo = async (centerId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/diving-centers/${centerId}/logo`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const addDivingCenterMedia = async (centerId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post(`/api/v1/diving-centers/${centerId}/media`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const deleteDivingCenterMedia = async (centerId, mediaId) => {
+  const response = await api.delete(`/api/v1/diving-centers/${centerId}/media/${mediaId}`);
+  return response.data;
+};
+
 // Nearby diving centers (pre-populate by coordinates)
 export const getNearbyDivingCenters = async ({ lat, lng, radius_km = 100, limit = 25 }) => {
   const params = new URLSearchParams();

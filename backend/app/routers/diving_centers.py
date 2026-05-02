@@ -5,12 +5,15 @@ from sqlalchemy import func, and_, or_
 import difflib
 import orjson
 import requests
+import uuid
+from pathlib import Path
 
 from app.database import get_db
 from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
-from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember
+from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember, CenterMedia, DivingCenterManager, MediaType
+from app.utils import populate_center_media_urls
 from app.schemas import (
-    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse,
+    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse, CenterMediaResponse,
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
     CenterDiveSiteCreate, GearRentalCostCreate,
@@ -32,6 +35,29 @@ from app.services.notification_service import NotificationService
 import logging
 
 logger = logging.getLogger(__name__)
+
+from app.models import CenterMedia, DivingCenterManager, MediaType
+from app.services.r2_storage_service import r2_storage
+from app.services.image_processing import image_processing
+from fastapi import UploadFile, File
+
+def is_center_manager(db: Session, center_id: int, user: User) -> bool:
+    if user.is_admin:
+        return True
+    
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    if not center:
+        return False
+        
+    if center.owner_id == user.id and center.ownership_status == OwnershipStatus.approved:
+        return True
+        
+    manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == center_id,
+        DivingCenterManager.user_id == user.id
+    ).first()
+    
+    return manager is not None
 
 router = APIRouter()
 
@@ -985,6 +1011,8 @@ async def get_diving_centers(
                 "city": center.city,
                 "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
                 "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
+                "logo_url": center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
             }
         else:
             owner_username = None
@@ -1012,7 +1040,9 @@ async def get_diving_centers(
                 "comment_count": 0, # Placeholder for now, can be optimized later if needed
                 "owner_id": center.owner_id,
                 "ownership_status": center.ownership_status.value if center.ownership_status else None,
-                "owner_username": owner_username
+                "owner_username": owner_username,
+                "logo_url": center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
             }
 
             if current_user and current_user.is_admin:
@@ -1259,6 +1289,20 @@ async def get_diving_center(
     if current_user and current_user.is_admin:
         response_data["view_count"] = diving_center.view_count
 
+    # Populate logo and media full URLs
+    if diving_center.logo_url:
+        response_data["logo_full_url"] = r2_storage.get_photo_url(diving_center.logo_url)
+    else:
+        response_data["logo_full_url"] = None
+    
+    media_list = []
+    for m in diving_center.media:
+        m_dict = m.__dict__.copy()
+        populate_center_media_urls(m, m_dict)
+        media_list.append(m_dict)
+    
+    response_data["media"] = media_list
+
     return response_data
 
 @router.put("/{diving_center_id}", response_model=DivingCenterResponse)
@@ -1311,6 +1355,15 @@ async def update_diving_center(
             CenterRating.diving_center_id == diving_center.id
         ).scalar()
 
+    # Populate media and logo
+    logo_full_url = r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
+    
+    media_list = []
+    for m in diving_center.media:
+        m_dict = m.__dict__.copy()
+        populate_center_media_urls(m, m_dict)
+        media_list.append(m_dict)
+
     # Return the updated diving center using the response model
     return DivingCenterResponse(
         id=diving_center.id,
@@ -1328,8 +1381,155 @@ async def update_diving_center(
         created_at=diving_center.created_at,
         updated_at=diving_center.updated_at,
         average_rating=float(avg_rating) if avg_rating else None,
-        total_ratings=total_ratings
+        total_ratings=total_ratings,
+        logo_url=diving_center.logo_url,
+        logo_full_url=logo_full_url,
+        media=media_list
     )
+
+@router.post("/{center_id}/logo", response_model=dict)
+@skip_rate_limit_for_admin("30/minute")
+async def upload_center_logo(
+    request: Request,
+    center_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upload a logo for a diving center"""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
+        
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    
+    # 1. Protect against memory exhaustion (5MB limit)
+    if request.headers.get('content-length'):
+        if int(request.headers.get('content-length')) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Payload too large (Max 5MB)")
+
+    # 2. Process image (resize, crop to square, convert to webp)
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File size exceeds 5MB limit")
+        
+    try:
+        processed_stream = image_processing.process_avatar(content)
+        processed_content = processed_stream.read()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # Generate unique filename
+    unique_filename = f"{uuid.uuid4()}.webp"
+    
+    # Upload
+    url = r2_storage.upload_center_logo(processed_content, unique_filename, center_id, "image/webp")
+    
+    # Update DB
+    if center.logo_url and center.logo_url.startswith('centers/'):
+        try:
+            r2_storage.delete_photo(center.logo_url)
+        except Exception as e:
+            logger.warning(f"Failed to delete old logo {center.logo_url}: {e}")
+        
+    center.logo_url = url
+    db.commit()
+    
+    return {"message": "Logo updated", "logo_url": url, "logo_full_url": r2_storage.get_photo_url(url)}
+
+@router.post("/{center_id}/media", response_model=CenterMediaResponse)
+@skip_rate_limit_for_admin("30/minute")
+async def add_diving_center_media(
+    request: Request,
+    center_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Upload photo media for a diving center with thumbnail generation"""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
+        
+    # 1. Protect against memory exhaustion (15MB limit)
+    MAX_FILE_SIZE = 15 * 1024 * 1024
+    if request.headers.get('content-length'):
+        if int(request.headers.get('content-length')) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="Payload too large (Max 15MB)")
+            
+    # Read file and validate actual size
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File size exceeds 15MB limit")
+        
+    # 2. Process image into variants
+    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
+        file_ext = '.jpg'
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    
+    try:
+        image_streams = image_processing.process_image(content, file.filename or "unknown")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    # Upload to R2 using upload_photo_set
+    uploaded_paths = r2_storage.upload_photo_set(
+        user_id=current_user.id,
+        original_filename=unique_filename,
+        image_streams=image_streams,
+        diving_center_id=center_id
+    )
+    
+    # Save to Database
+    db_media = CenterMedia(
+        diving_center_id=center_id,
+        user_id=current_user.id,
+        media_type=MediaType.photo,
+        url=uploaded_paths.get("original"),
+        medium_url=uploaded_paths.get("medium"),
+        thumbnail_url=uploaded_paths.get("thumbnail")
+    )
+    db.add(db_media)
+    db.commit()
+    db.refresh(db_media)
+    
+    # Populate response with full URLs
+    resp_dict = db_media.__dict__.copy()
+    populate_center_media_urls(db_media, resp_dict)
+    
+    return resp_dict
+
+@router.delete("/{center_id}/media/{media_id}")
+@skip_rate_limit_for_admin("30/minute")
+async def delete_diving_center_media(
+    request: Request,
+    center_id: int,
+    media_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a media item and its variants from DB and R2"""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
+        
+    media = db.query(CenterMedia).filter(
+        and_(CenterMedia.id == media_id, CenterMedia.diving_center_id == center_id)
+    ).first()
+    
+    if not media:
+        raise HTTPException(status_code=404, detail="Media not found")
+        
+    # Delete from R2
+    for path in [media.url, media.medium_url, media.thumbnail_url]:
+        if path:
+            try:
+                r2_storage.delete_photo(path)
+            except Exception as e:
+                logger.warning(f"Failed to delete media file {path}: {e}")
+                
+    db.delete(media)
+    db.commit()
+    
+    return {"message": "Media deleted successfully"}
 
 @router.delete("/{diving_center_id}")
 async def delete_diving_center(
