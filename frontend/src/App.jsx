@@ -250,7 +250,10 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/profile/pats' element={<Navigate to='/personal-access-tokens' replace />} />
+            <Route
+              path='/profile/pats'
+              element={<Navigate to='/personal-access-tokens' replace />}
+            />
             <Route
               path='/buddies'
               element={
@@ -352,9 +355,19 @@ function AppContent() {
             {/* Backward compatibility for old nested routes */}
             <Route path='/dive-sites/:diveSiteId/route/:id' element={<RouteDetail />} />
             <Route path='/dive-sites/:diveSiteId/route/:id/:slug' element={<RouteDetail />} />
-            <Route path='/dive-sites/:diveSiteId/dive-route' element={<ProtectedRoute><DiveRouteDrawing /></ProtectedRoute>} />
-            <Route path='/dive-sites/:diveSiteId/route/:id/edit' element={<Navigate to='/dive-routes/:id/draw' replace />} />
-            
+            <Route
+              path='/dive-sites/:diveSiteId/dive-route'
+              element={
+                <ProtectedRoute>
+                  <DiveRouteDrawing />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/dive-sites/:diveSiteId/route/:id/edit'
+              element={<Navigate to='/dive-routes/:id/draw' replace />}
+            />
+
             <Route
               path='/dive-routes/:id/draw'
               element={

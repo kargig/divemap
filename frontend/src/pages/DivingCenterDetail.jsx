@@ -23,11 +23,19 @@ import {
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import Download from 'yet-another-react-lightbox/plugins/download';
+import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
+import Inline from 'yet-another-react-lightbox/plugins/inline';
+import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
+import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api, { createChatRoom } from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
+import Lightbox from '../components/Lightbox/Lightbox';
+import ReactImage from '../components/Lightbox/ReactImage';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
@@ -76,7 +84,20 @@ const DivingCenterDetail = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'overview';
+
+  const setActiveTab = tab => {
+    setSearchParams(
+      prev => {
+        prev.set('tab', tab);
+        return prev;
+      },
+      { replace: true }
+    );
+  };
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [ownershipReason, setOwnershipReason] = useState('');
   const [editingTrip, setEditingTrip] = useState(null);
@@ -792,6 +813,12 @@ const DivingCenterDetail = () => {
           >
             Upcoming Trips
           </button>
+          <button
+            onClick={() => setActiveTab('media')}
+            className={`${activeTab === 'media' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+          >
+            Media
+          </button>
           {shouldShowManage && (
             <button
               onClick={() => setActiveTab('manage')}
@@ -803,6 +830,30 @@ const DivingCenterDetail = () => {
         </nav>
       </div>
       {/* Tab Content */}
+      {activeTab === 'media' && center?.media && center.media.length > 0 && (
+        <div className='space-y-6'>
+          <div className='bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100'>
+            <Lightbox
+              open={isLightboxOpen}
+              close={() => setIsLightboxOpen(false)}
+              index={lightboxIndex}
+              on={{ view: ({ index }) => setLightboxIndex(index) }}
+              slides={center.media.map(m => ({
+                src: m.full_url || m.url,
+                thumbnail: m.full_thumbnail_url || m.thumbnail_url || m.url,
+              }))}
+              plugins={[Captions, Download, Slideshow, Fullscreen, Thumbnails]}
+              render={{ slide: ReactImage, thumbnail: ReactImage }}
+              thumbnails={{ position: 'bottom' }}
+            />
+          </div>
+        </div>
+      )}
+      {activeTab === 'media' && (!center?.media || center.media.length === 0) && (
+        <div className='bg-white rounded-lg shadow-sm p-8 text-center border border-gray-100'>
+          <p className='text-gray-500'>No media available for this diving center.</p>
+        </div>
+      )}
       {activeTab === 'overview' && (
         <div className='space-y-6'>
           {/* Ownership Status */}

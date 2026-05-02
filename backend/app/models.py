@@ -369,6 +369,8 @@ class DivingCenter(Base):
     owner = relationship("User", back_populates="diving_centers") # New relationship for owner
     dives = relationship("Dive", back_populates="diving_center", cascade="all, delete-orphan")
 
+    media = relationship("CenterMedia", back_populates="diving_center", cascade="all, delete-orphan")
+
 class DivingCenterManager(Base):
     """
     Managers allowed to access the business inbox for a diving center.
@@ -430,6 +432,23 @@ class CenterComment(Base):
     # Relationships
     diving_center = relationship("DivingCenter", back_populates="comments")
     user = relationship("User", back_populates="center_comments")
+
+class CenterMedia(Base):
+    __tablename__ = "center_media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    media_type = Column(Enum(MediaType), nullable=False)
+    url = Column(String(500), nullable=False)
+    description = Column(Text)
+    thumbnail_url = Column(String(500))
+    medium_url = Column(String(500))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    diving_center = relationship("DivingCenter", back_populates="media")
+    user = relationship("User")
 
 class CenterDiveSite(Base):
     __tablename__ = "center_dive_sites"

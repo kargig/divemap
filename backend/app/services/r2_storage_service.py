@@ -73,7 +73,8 @@ class R2StorageService:
         user_id: int, 
         filename: str, 
         dive_id: int | None = None, 
-        dive_site_id: int | None = None
+        dive_site_id: int | None = None,
+        diving_center_id: int | None = None
     ) -> str:
         """
         Generate photo-specific path for storage of photos uploaded by users for dives and dive sites.
@@ -83,12 +84,13 @@ class R2StorageService:
             filename: Name of the file to store
             dive_id: Optional dive ID for dive photos
             dive_site_id: Optional dive site ID for dive site photos
+            diving_center_id: Optional diving center ID for center photos
             
         Returns:
             str: Path where file should be stored
             
         Raises:
-            ValueError: If neither dive_id nor dive_site_id is provided
+            ValueError: If neither dive_id nor dive_site_id nor diving_center_id is provided
         """
         
         now = datetime.now()
@@ -102,9 +104,11 @@ class R2StorageService:
             return f"user_{user_id}/photos/dive_{dive_id}/{year}/{month}/{safe_filename}"
         elif dive_site_id:
             return f"user_{user_id}/photos/dive_site_{dive_site_id}/{year}/{month}/{safe_filename}"
+        elif diving_center_id:
+            return f"user_{user_id}/photos/diving_center_{diving_center_id}/{year}/{month}/{safe_filename}"
         
         # This should never be reached due to the validation above, but added for type safety
-        raise ValueError("Either dive_id or dive_site_id must be provided")
+        raise ValueError("Either dive_id, dive_site_id, or diving_center_id must be provided")
     
     def _ensure_local_directory(self, file_path: str) -> None:
         """Ensure local directory exists for file path."""
@@ -363,7 +367,7 @@ class R2StorageService:
         
         return status
     
-    def upload_photo(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
+    def upload_photo(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None, diving_center_id: int | None = None) -> str:
         """
         Upload photo to R2 with user/dive or dive_site-specific path.
         
@@ -373,14 +377,15 @@ class R2StorageService:
             content: File content as bytes
             dive_id: Optional dive ID for dive photos
             dive_site_id: Optional dive site ID for dive site photos
+            diving_center_id: Optional diving center ID for center photos
             
         Returns:
             str: Path where file was stored (R2 key or local path)
         """
         if not self.r2_available:
-            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
         
-        r2_path = self._get_photo_path(user_id, filename, dive_id=dive_id, dive_site_id=dive_site_id)
+        r2_path = self._get_photo_path(user_id, filename, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
         try:
             self.s3_client.put_object(
                 Bucket=os.getenv('R2_BUCKET_NAME'),
@@ -391,7 +396,7 @@ class R2StorageService:
             return r2_path
         except Exception as e:
             logger.warning(f"R2 photo upload failed, falling back to local: {e}")
-            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id)
+            return self._upload_photo_local(user_id, filename, content, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
 
     def upload_avatar(self, user_id: int, filename: str, content: bytes) -> str:
         """
@@ -439,7 +444,8 @@ class R2StorageService:
         original_filename: str, 
         image_streams: dict, 
         dive_id: int | None = None, 
-        dive_site_id: int | None = None
+        dive_site_id: int | None = None,
+        diving_center_id: int | None = None
     ) -> dict:
         """
         Upload a set of photo variants (original, medium, thumbnail) to R2/Local.
@@ -450,6 +456,7 @@ class R2StorageService:
             image_streams: Dict of {variant_name: BytesIO} from ImageProcessingService
             dive_id: Optional dive ID
             dive_site_id: Optional dive site ID
+            diving_center_id: Optional diving center ID
             
         Returns:
             Dict of {variant_name: path}
@@ -458,7 +465,7 @@ class R2StorageService:
         
         # Base logic to get the directory path
         # We use _get_photo_path but need to manipulate the filename part
-        base_path_full = self._get_photo_path(user_id, original_filename, dive_id=dive_id, dive_site_id=dive_site_id)
+        base_path_full = self._get_photo_path(user_id, original_filename, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
         directory = os.path.dirname(base_path_full)
         base_name = os.path.splitext(original_filename)[0]
         original_ext = os.path.splitext(original_filename)[1] # e.g. .jpg
@@ -516,6 +523,8 @@ class R2StorageService:
                     local_dir = os.path.join("uploads", f"user_{user_id}", "photos", f"dive_{dive_id}")
                 elif dive_site_id:
                     local_dir = os.path.join("uploads", f"user_{user_id}", "photos", f"dive_site_{dive_site_id}")
+                elif diving_center_id:
+                    local_dir = os.path.join("uploads", f"user_{user_id}", "photos", f"diving_center_{diving_center_id}")
                 else:
                     raise ValueError("No context provided")
                 
@@ -541,7 +550,14 @@ class R2StorageService:
 
         return results
     
-    def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None) -> str:
+    def upload_center_logo(self, file_content: bytes, filename: str, center_id: int, content_type: str) -> str:
+        """Upload a logo for a diving center"""
+        # Sanitize filename
+        safe_filename = os.path.basename(filename)
+        path = f"centers/{center_id}/logo_{safe_filename}"
+        return self.upload_file_direct(path, file_content, content_type)
+        
+    def _upload_photo_local(self, user_id: int, filename: str, content: bytes, dive_id: int | None = None, dive_site_id: int | None = None, diving_center_id: int | None = None) -> str:
         """Upload photo to local filesystem."""
         # Sanitize filename
         safe_filename = os.path.basename(filename)
@@ -562,8 +578,16 @@ class R2StorageService:
                 f"dive_site_{dive_site_id}",
                 safe_filename
             )
+        elif diving_center_id:
+            local_path = os.path.join(
+                "uploads",
+                f"user_{user_id}",
+                "photos",
+                f"diving_center_{diving_center_id}",
+                safe_filename
+            )
         else:
-            raise ValueError("Either dive_id or dive_site_id must be provided")
+            raise ValueError("Either dive_id, dive_site_id, or diving_center_id must be provided")
         
         self._ensure_local_directory(local_path)
         
@@ -652,7 +676,7 @@ class R2StorageService:
         Returns:
             str: URL to access the photo (presigned URL for R2, static URL for local)
         """
-        if not self.r2_available or not photo_path.startswith('user_'):
+        if not self.r2_available or not (photo_path.startswith('user_') or photo_path.startswith('centers/')):
             # For local storage, return a URL that uses the static file mount
             # The backend mounts /uploads as static files
             # photo_path is already relative like "uploads/user_1/dive_7/photo/file.jpg"

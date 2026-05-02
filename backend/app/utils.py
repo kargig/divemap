@@ -656,3 +656,18 @@ def populate_avatar_full_url(user, response_model_dict: dict) -> dict:
 
     return response_model_dict
 
+
+def populate_center_media_urls(media_obj, response_dict: dict) -> dict:
+    """
+    Populate full URLs for center media variants.
+    """
+    from app.services.r2_storage_service import r2_storage
+
+    response_dict['full_url'] = r2_storage.get_photo_url(media_obj.url)
+    if media_obj.thumbnail_url:
+        response_dict['full_thumbnail_url'] = r2_storage.get_photo_url(media_obj.thumbnail_url)
+    if media_obj.medium_url:
+        response_dict['full_medium_url'] = r2_storage.get_photo_url(media_obj.medium_url)
+
+    return response_dict
+

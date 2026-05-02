@@ -12,6 +12,7 @@ import {
 } from '../services/divingCenters';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
+import Avatar from './Avatar';
 import MaskedEmail from './MaskedEmail';
 import Button from './ui/Button';
 import RichText from './ui/RichText';
@@ -80,14 +81,16 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
             </button>
           )}
           <div className='min-w-0 flex-1'>
-            {center.logo_url && (
-              <img
-                src={center.logo_url}
-                alt={`${center.name} logo`}
-                className='w-16 h-16 object-cover rounded-lg border border-gray-200 mb-3'
+            <div className='flex items-center gap-4 mb-3'>
+              <Avatar
+                src={center.logo_full_url || center.logo_url}
+                alt={center.name}
+                size='lg'
+                fallbackText={center.name}
+                className='border border-gray-200'
               />
-            )}
-            <h1 className='text-3xl font-bold text-gray-900 mb-2 break-words'>{center.name}</h1>
+              <h1 className='text-3xl font-bold text-gray-900 break-words'>{center.name}</h1>
+            </div>
 
             {user && (
               <div className='flex flex-col sm:flex-row flex-wrap gap-2 mt-4 w-full'>

@@ -8,6 +8,7 @@ import nh3
 # Import auth schemas
 from .auth import PasswordResetRequest, PasswordResetConfirm
 from .pats import PATCreate, PATResponse, PATCreateResponse
+from .diving_centers import CenterMediaResponse
 
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
@@ -490,6 +491,8 @@ class DivingCenterResponse(DivingCenterBase):
     owner_username: Optional[str] = None
     is_manager: bool = False
     follower_count: int = 0
+    media: List[CenterMediaResponse] = []
+    logo_full_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

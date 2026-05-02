@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
+import Avatar from '../components/Avatar';
 import DivingCentersDesktopSearchBar from '../components/DivingCentersDesktopSearchBar';
 import DivingCentersResponsiveFilterBar from '../components/DivingCentersResponsiveFilterBar';
 import ErrorPage from '../components/ErrorPage';
@@ -473,7 +474,13 @@ const DivingCenters = () => {
                           <div className='flex-1 min-w-0 flex flex-col'>
                             {/* Title row */}
                             <div className='flex items-start justify-between gap-2'>
-                              <div className='flex-1 min-w-0 pr-2'>
+                              <div className='flex items-center gap-3 flex-1 min-w-0 pr-2'>
+                                <Avatar
+                                  src={center.logo_full_url || center.logo_url}
+                                  alt={center.name}
+                                  size='md'
+                                  fallbackText={center.name}
+                                />
                                 <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
                                   <Link
                                     to={`/diving-centers/${center.id}/${slugify(center.name)}`}
@@ -605,7 +612,13 @@ const DivingCenters = () => {
                           {/* Title and rating row */}
                           <div className='flex items-start justify-between mb-2'>
                             <div className='flex-1 pr-3 min-w-0'>
-                              <div className='flex items-start gap-2 mb-1'>
+                              <div className='flex items-center gap-3 mb-1'>
+                                <Avatar
+                                  src={center.logo_full_url || center.logo_url}
+                                  alt={center.name}
+                                  size='md'
+                                  fallbackText={center.name}
+                                />
                                 <h3
                                   className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                                 >
