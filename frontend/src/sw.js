@@ -12,6 +12,14 @@ precacheAndRoute(self.__WB_MANIFEST);
 // Cleanup old caches
 cleanupOutdatedCaches();
 
+// --- Handle Update Prompts ---
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // --- Runtime Caching ---
 
 // API Cache
