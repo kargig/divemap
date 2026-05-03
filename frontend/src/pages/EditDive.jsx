@@ -1434,7 +1434,7 @@ const EditDive = () => {
                         >
                           {buddy.avatar_url ? (
                             <img
-                              src={buddy.avatar_url}
+                              src={buddy.avatar_full_url || buddy.avatar_url}
                               alt={buddy.username}
                               className='w-6 h-6 rounded-full object-cover'
                             />

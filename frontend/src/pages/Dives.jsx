@@ -1121,7 +1121,7 @@ const Dives = () => {
                               >
                                 {buddy.avatar_url ? (
                                   <img
-                                    src={buddy.avatar_url}
+                                    src={buddy.avatar_full_url || buddy.avatar_url}
                                     className='w-full h-full object-cover'
                                     alt=''
                                   />
