@@ -10,6 +10,7 @@ const Avatar = ({
   className = '',
   fallbackText = null,
   username = null,
+  shape = 'circle',
 }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -27,8 +28,10 @@ const Avatar = ({
     '2xl': 'w-24 h-24 text-2xl',
   };
 
-  const baseClasses =
-    'rounded-full flex items-center justify-center font-semibold text-white bg-gray-500 flex-shrink-0';
+  const shapeClass =
+    shape === 'circle' ? 'rounded-full' : shape === 'square' ? 'rounded-none' : 'rounded-xl';
+
+  const baseClasses = `${shapeClass} flex items-center justify-center font-semibold text-white bg-gray-500 flex-shrink-0`;
   const sizeClass = sizeClasses[size] || sizeClasses.md;
 
   // Generate initials from available text props
@@ -67,7 +70,7 @@ const Avatar = ({
       <img
         src={resolveAvatarUrl(src)}
         alt={alt}
-        className={`${sizeClass} rounded-full object-cover flex-shrink-0 ${className}`}
+        className={`${sizeClass} ${shapeClass} object-cover flex-shrink-0 ${className}`}
         onError={() => setHasError(true)}
       />
     );
@@ -84,6 +87,7 @@ Avatar.propTypes = {
   src: PropTypes.string,
   alt: PropTypes.string,
   size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg', 'xl', '2xl']),
+  shape: PropTypes.oneOf(['circle', 'square', 'rounded']),
   className: PropTypes.string,
   fallbackText: PropTypes.string,
   username: PropTypes.string,

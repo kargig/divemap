@@ -247,7 +247,9 @@ async def create_dive(
             "phone": db_dive.diving_center.phone,
             "website": db_dive.diving_center.website,
             "latitude": float(db_dive.diving_center.latitude) if db_dive.diving_center.latitude else None,
-            "longitude": float(db_dive.diving_center.longitude) if db_dive.diving_center.longitude else None
+            "longitude": float(db_dive.diving_center.longitude) if db_dive.diving_center.longitude else None,
+            "logo_url": db_dive.diving_center.logo_url,
+            "logo_full_url": r2_storage.get_photo_url(db_dive.diving_center.logo_url) if db_dive.diving_center.logo_url else None
         } if db_dive.diving_center else None,
         "media": [],
         "tags": [{"id": t.tag.id, "name": t.tag.name} for t in db_dive.tags if t.tag],
@@ -874,7 +876,9 @@ def get_dives(
                 "phone": dive.diving_center.phone,
                 "website": dive.diving_center.website,
                 "latitude": float(dive.diving_center.latitude) if dive.diving_center.latitude else None,
-                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None
+                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None,
+                "logo_url": dive.diving_center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(dive.diving_center.logo_url) if getattr(dive.diving_center, 'logo_url', None) else None
             }
 
         # Get tags (already eagerly loaded via selectinload)
@@ -1026,7 +1030,9 @@ def get_dive(
                 "phone": diving_center.phone,
                 "website": diving_center.website,
                 "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None,
+                "logo_url": diving_center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
             }
 
     # Get tags for this dive
@@ -1466,7 +1472,9 @@ def update_dive(
                 "phone": diving_center.phone,
                 "website": diving_center.website,
                 "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None,
+                "logo_url": diving_center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
             }
 
     # Get tags for this dive

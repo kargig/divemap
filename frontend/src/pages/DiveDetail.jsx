@@ -649,6 +649,11 @@ const DiveDetail = () => {
                   >
                     <span className='leading-tight mt-1'>{dive.user_username}</span>
                   </RouterLink>
+                  {dive.created_at && (
+                    <span className='leading-tight mt-1 text-gray-400'>
+                      on {formatDate(dive.created_at)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
