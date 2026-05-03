@@ -453,6 +453,7 @@ const EditDivingCenter = () => {
                 src={divingCenter.logo_full_url || divingCenter.logo_url}
                 alt={divingCenter.name}
                 size='2xl'
+                shape='rounded'
                 fallbackText={divingCenter.name}
                 className='border-2 border-gray-100 shadow-sm'
               />
@@ -473,7 +474,11 @@ const EditDivingCenter = () => {
                   >
                     {logoUploading ? 'Uploading...' : 'Choose new image'}
                   </label>
-                  <p className='text-xs text-gray-500'>JPEG, PNG, WEBP up to 5MB</p>
+                  <p className='text-xs text-gray-500'>
+                    JPEG, PNG, WEBP up to 5MB.
+                    <br />
+                    Recommended: 512x512px (1:1 aspect ratio)
+                  </p>
                 </div>
               </div>
             </div>

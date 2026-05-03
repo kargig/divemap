@@ -6,6 +6,8 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import Avatar from './Avatar';
+
 const DiveSidebar = ({ dive, formatDate }) => {
   return (
     <div className='space-y-6'>
@@ -43,53 +45,27 @@ const DiveSidebar = ({ dive, formatDate }) => {
       {dive.diving_center && (
         <div className='bg-white rounded-lg shadow p-6'>
           <h2 className='text-xl font-semibold mb-4'>Diving Center</h2>
-          <div className='space-y-3'>
-            <div className='flex items-center gap-2'>
-              <MapPin size={15} className='text-gray-500' />
-              <span className='font-medium'>{dive.diving_center.name}</span>
-            </div>
-            {dive.diving_center.description && (
-              <p className='text-sm text-gray-600'>
-                {renderTextWithLinks(decodeHtmlEntities(dive.diving_center.description))}
-              </p>
-            )}
+          <div className='space-y-4'>
             <RouterLink
               to={`/diving-centers/${dive.diving_center.id}/${slugify(dive.diving_center.name)}`}
               state={{ from: window.location.pathname + window.location.search }}
-              className='text-blue-600 hover:text-blue-800 text-sm'
+              className='flex items-center gap-3 group'
             >
-              View diving center details →
+              <Avatar
+                src={dive.diving_center.logo_full_url || dive.diving_center.logo_url}
+                alt={dive.diving_center.name}
+                size='xl'
+                shape='rounded'
+                fallbackText={dive.diving_center.name}
+                className='border border-gray-100 shadow-sm transition-transform duration-200 group-hover:scale-105'
+              />
+              <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors'>
+                {dive.diving_center.name}
+              </span>
             </RouterLink>
           </div>
         </div>
       )}
-
-      {/* Statistics */}
-      <div className='bg-white rounded-lg shadow p-6'>
-        <h2 className='text-xl font-semibold mb-4 flex items-center gap-2'>
-          <Gauge className='h-5 w-5 text-gray-400' />
-          Statistics
-        </h2>
-        <div className='space-y-3'>
-          <div className='flex justify-between items-center'>
-            <div className='flex items-center gap-2'>
-              <Notebook size={15} className='text-gray-500' />
-              <span className='text-gray-600'>Total Dives</span>
-            </div>
-            <span className='font-medium'>{dive.user?.number_of_dives || 0}</span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-gray-600'>Dive Date</span>
-            <span className='font-medium'>{formatDate(dive.dive_date)}</span>
-          </div>
-          {dive.created_at && (
-            <div className='flex justify-between'>
-              <span className='text-gray-600'>Logged</span>
-              <span className='font-medium'>{formatDate(dive.created_at)}</span>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };

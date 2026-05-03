@@ -448,7 +448,9 @@ def get_all_dives_admin(
                 "phone": dive.diving_center.phone,
                 "website": dive.diving_center.website,
                 "latitude": float(dive.diving_center.latitude) if dive.diving_center.latitude else None,
-                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None
+                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None,
+                "logo_url": dive.diving_center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(dive.diving_center.logo_url) if getattr(dive.diving_center, 'logo_url', None) else None
             }
 
         # Get tags (already eagerly loaded)
@@ -670,7 +672,9 @@ def update_dive_admin(
                 "phone": diving_center.phone,
                 "website": diving_center.website,
                 "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                "longitude": float(diving_center.longitude) if diving_center.longitude else None
+                "longitude": float(diving_center.longitude) if diving_center.longitude else None,
+                "logo_url": diving_center.logo_url,
+                "logo_full_url": r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
             }
 
     # Get tags for this dive

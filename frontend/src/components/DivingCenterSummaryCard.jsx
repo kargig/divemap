@@ -85,9 +85,10 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
               <Avatar
                 src={center.logo_full_url || center.logo_url}
                 alt={center.name}
-                size='lg'
+                size='2xl'
+                shape='rounded'
                 fallbackText={center.name}
-                className='border border-gray-200'
+                className='border border-gray-200 shadow-sm'
               />
               <h1 className='text-3xl font-bold text-gray-900 break-words'>{center.name}</h1>
             </div>
