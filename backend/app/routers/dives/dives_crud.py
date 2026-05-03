@@ -12,6 +12,7 @@ This module contains core CRUD operations for dives:
 """
 
 from fastapi import Depends, HTTPException, status, Query, BackgroundTasks
+from app.utils import _get_cached_avatar_url
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_, desc, asc, distinct, func
 from typing import List, Optional
@@ -258,7 +259,11 @@ async def create_dive(
                 "id": buddy.id,
                 "username": buddy.username,
                 "name": buddy.name,
-                "avatar_url": buddy.avatar_url
+                "avatar_url": buddy.avatar_url,
+                "avatar_full_url": _get_cached_avatar_url(
+                    buddy.avatar_url,
+                    buddy.avatar_type.value if hasattr(buddy.avatar_type, 'value') else str(buddy.avatar_type)
+                ) if buddy.avatar_url else None
             }
             for buddy in db_dive.buddies
         ],
@@ -890,7 +895,11 @@ def get_dives(
                 "id": buddy.id,
                 "username": buddy.username,
                 "name": buddy.name,
-                "avatar_url": buddy.avatar_url
+                "avatar_url": buddy.avatar_url,
+                "avatar_full_url": _get_cached_avatar_url(
+                    buddy.avatar_url,
+                    buddy.avatar_type.value if hasattr(buddy.avatar_type, 'value') else str(buddy.avatar_type)
+                ) if buddy.avatar_url else None
             }
             for buddy in dive.buddies
         ]
@@ -1055,7 +1064,11 @@ def get_dive(
             "id": buddy.id,
             "username": buddy.username,
             "name": buddy.name,
-            "avatar_url": buddy.avatar_url
+            "avatar_url": buddy.avatar_url,
+            "avatar_full_url": _get_cached_avatar_url(
+                buddy.avatar_url,
+                buddy.avatar_type.value if hasattr(buddy.avatar_type, 'value') else str(buddy.avatar_type)
+            ) if buddy.avatar_url else None
         }
         for buddy in dive_buddies
     ]
@@ -1076,7 +1089,7 @@ def get_dive(
                 "route_type": selected_route.route_type,
                 "route_data": selected_route.route_data,
                 "created_by": selected_route.created_by,
-                "creator_username": selected_route.creator.username,
+                "creator_username": selected_route.creator.username if selected_route.creator else None,
                 "created_at": selected_route.created_at
             }
 
@@ -1497,7 +1510,11 @@ def update_dive(
             "id": buddy.id,
             "username": buddy.username,
             "name": buddy.name,
-            "avatar_url": buddy.avatar_url
+            "avatar_url": buddy.avatar_url,
+            "avatar_full_url": _get_cached_avatar_url(
+                buddy.avatar_url,
+                buddy.avatar_type.value if hasattr(buddy.avatar_type, 'value') else str(buddy.avatar_type)
+            ) if buddy.avatar_url else None
         }
         for buddy in dive_buddies
     ]
@@ -1515,7 +1532,7 @@ def update_dive(
                 "route_type": selected_route.route_type,
                 "route_data": selected_route.route_data,
                 "created_by": selected_route.created_by,
-                "creator_username": selected_route.creator.username,
+                "creator_username": selected_route.creator.username if selected_route.creator else None,
                 "created_at": selected_route.created_at
             }
 
