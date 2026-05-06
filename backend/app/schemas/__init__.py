@@ -803,8 +803,15 @@ class DivingStatsResponse(BaseModel):
     most_active_month: Optional[str] = None # e.g. "August 2024 (15 dives)"
     favorite_sites: List[FavoriteDiveSite] = []
     activity_heatmap: Dict[str, int] = {} # Date (YYYY-MM-DD) -> Dive Count
+    depth_density_heatmap: List[Dict[str, Any]] = [] # [{"max_bin": "...", "avg_bin": "...", "count": 1}]
     suit_preferences: Dict[str, int] = {} # SuitType -> Count
-    gear_preferences: Dict[str, int] = {} # GearType -> Count
+    gear_preferences: Dict[str, int] = {}
+    sac_vs_depth: List[Dict[str, Any]] = []
+    duration_vs_depth: List[Dict[str, Any]] = []
+    temp_vs_suit: List[Dict[str, Any]] = []
+    dives_per_year: List[Dict[str, int]] = [] # [{"year": "2024", "count": 20}]
+    sac_over_time: List[Dict[str, Any]] = [] # [{"date": "2024-05-06", "sac": 12.5}]
+    depth_over_time: List[Dict[str, Any]] = [] # [{"date": "2024-05-06", "max": 30, "avg": 15}]
 
 class UserPublicProfileResponse(BaseModel):
     id: int

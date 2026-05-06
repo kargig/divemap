@@ -794,6 +794,50 @@ async def get_user_public_profile(
         if date_obj
     }
 
+    # 4.5 Depth Density Heatmap (Max vs Avg Depth)
+    depths_query = db.query(
+        Dive.max_depth,
+        Dive.average_depth
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False,
+        Dive.max_depth.isnot(None),
+        Dive.average_depth.isnot(None)
+    ).all()
+
+    def get_max_bucket(depth):
+        if depth < 10: return "0-10"
+        if depth < 20: return "10-20"
+        if depth < 30: return "20-30"
+        if depth < 40: return "30-40"
+        if depth < 50: return "40-50"
+        if depth < 60: return "50-60"
+        if depth < 80: return "60-80"
+        return "80+"
+
+    def get_avg_bucket(depth):
+        if depth < 5: return "0-5"
+        if depth < 10: return "5-10"
+        if depth < 15: return "10-15"
+        if depth < 20: return "15-20"
+        if depth < 25: return "20-25"
+        if depth < 30: return "25-30"
+        return "30+"
+
+    heatmap_counts = {}
+    for max_d, avg_d in depths_query:
+        max_b = get_max_bucket(float(max_d))
+        avg_b = get_avg_bucket(float(avg_d))
+        
+        # Key by a string tuple representation for aggregation
+        key = f"{max_b}|{avg_b}"
+        heatmap_counts[key] = heatmap_counts.get(key, 0) + 1
+
+    depth_density_heatmap = [
+        {"max_bin": k.split('|')[0], "avg_bin": k.split('|')[1], "count": v}
+        for k, v in heatmap_counts.items()
+    ]
+
     # 5. Most Active Month (All time)
     year_expr = extract('year', Dive.dive_date)
     month_expr = extract('month', Dive.dive_date)
@@ -906,6 +950,112 @@ async def get_user_public_profile(
     # Remove empty categories
     gear_preferences = {k: v for k, v in gear_preferences.items() if v > 0}
     
+    # Advanced Analytics Data (SAC, Temp, Duration, Time-Series)
+    import json
+    import re
+    from app.physics import calculate_sac
+    
+    advanced_query = db.query(
+        Dive.max_depth,
+        Dive.duration,
+        Dive.suit_type,
+        Dive.dive_information,
+        Dive.gas_bottles_used,
+        Dive.average_depth,
+        Dive.dive_date
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False
+    ).order_by(Dive.dive_date.asc()).all()
+
+    sac_vs_depth = []
+    temp_vs_suit = []
+    
+    bubble_counts = {}
+    year_counts = {}
+    sac_monthly_acc = {}
+    depth_monthly_acc = {}
+
+    for d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
+        month_str = d_date.strftime("%Y-%m") if d_date else None
+        
+        if d_date:
+            year_str = str(d_date.year)
+            year_counts[year_str] = year_counts.get(year_str, 0) + 1
+
+        if d_max is not None and d_dur is not None:
+            rounded_dur = int(round(float(d_dur) / 5.0) * 5)
+            rounded_depth = int(round(float(d_max) / 5.0) * 5)
+            b_key = f"{rounded_dur}|{rounded_depth}"
+            bubble_counts[b_key] = bubble_counts.get(b_key, 0) + 1
+
+        extracted_sac = None
+        extracted_temp = None
+
+        if d_info:
+            temp_match = re.search(r"Water Temp:\s*([0-9.]+)", str(d_info))
+            if temp_match:
+                extracted_temp = float(temp_match.group(1))
+
+            sac_match = re.search(r"SAC:\s*([0-9.]+)", str(d_info))
+            if sac_match:
+                extracted_sac = float(sac_match.group(1))
+
+        if d_gas and d_dur and d_avg:
+            try:
+                if str(d_gas).startswith('{'):
+                    gas_data = json.loads(d_gas)
+                    if gas_data.get('mode') == 'structured':
+                        bg = gas_data.get('back_gas', {})
+                        t_vol = float(bg.get('tank', 0))
+                        p_start = float(bg.get('start_pressure', 0))
+                        p_end = float(bg.get('end_pressure', 0))
+                        
+                        if t_vol > 0 and p_start > p_end > 0:
+                            calculated_sac = calculate_sac(
+                                depth_meters=float(d_avg),
+                                duration_minutes=float(d_dur),
+                                tank_volume=t_vol,
+                                start_pressure=p_start,
+                                end_pressure=p_end
+                            )
+                            if calculated_sac > 0:
+                                extracted_sac = calculated_sac
+            except Exception:
+                pass 
+
+        if extracted_sac and d_max:
+            sac_val = round(extracted_sac, 2)
+            sac_vs_depth.append({"depth": float(d_max), "sac": sac_val})
+            if month_str:
+                sac_monthly_acc.setdefault(month_str, []).append(sac_val)
+
+        if extracted_temp and d_suit:
+            s_name = d_suit.value if hasattr(d_suit, 'value') else str(d_suit)
+            temp_vs_suit.append({"suit": s_name, "temp": extracted_temp})
+
+        if d_max and d_avg and month_str:
+            acc = depth_monthly_acc.setdefault(month_str, {"max": [], "avg": []})
+            acc["max"].append(float(d_max))
+            acc["avg"].append(float(d_avg))
+
+    duration_vs_depth = [
+        {"duration": int(k.split('|')[0]), "depth": int(k.split('|')[1]), "count": v}
+        for k, v in bubble_counts.items()
+    ]
+    dives_per_year = [
+        {"year": k, "count": v} 
+        for k, v in sorted(year_counts.items())
+    ]
+    sac_over_time = [
+        {"date": k, "sac": round(sum(v) / len(v), 2)} 
+        for k, v in sorted(sac_monthly_acc.items())
+    ]
+    depth_over_time = [
+        {"date": k, "max": round(sum(v["max"]) / len(v["max"]), 2), "avg": round(sum(v["avg"]) / len(v["avg"]), 2)} 
+        for k, v in sorted(depth_monthly_acc.items())
+    ]
+
     from app.schemas import FavoriteDiveSite # Ensure it's imported for selection if needed, although defined in schemas/__init__.py
     
     diving_stats = DivingStatsResponse(
@@ -915,8 +1065,15 @@ async def get_user_public_profile(
       most_active_month=most_active_month,
       favorite_sites=favorite_sites,
       activity_heatmap=activity_heatmap,
+      depth_density_heatmap=depth_density_heatmap,
       suit_preferences=suit_preferences,
-      gear_preferences=gear_preferences
+      gear_preferences=gear_preferences,
+      sac_vs_depth=sac_vs_depth,
+      duration_vs_depth=duration_vs_depth,
+      temp_vs_suit=temp_vs_suit,
+      dives_per_year=dives_per_year,
+      sac_over_time=sac_over_time,
+      depth_over_time=depth_over_time
     )
 
     # Create response object
