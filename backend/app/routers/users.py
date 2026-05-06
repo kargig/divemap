@@ -955,6 +955,7 @@ async def get_user_advanced_analytics(
     from app.physics import calculate_sac
     
     advanced_query = db.query(
+        Dive.id,
         Dive.max_depth,
         Dive.duration,
         Dive.suit_type,
@@ -966,6 +967,13 @@ async def get_user_advanced_analytics(
         Dive.user_id == user.id,
         Dive.is_private == False
     ).order_by(Dive.dive_date.asc()).all()
+
+    from app.models import DiveTag, AvailableTag
+    deco_tag_query = db.query(DiveTag.dive_id).join(AvailableTag).filter(
+        AvailableTag.name.in_(["deco", "technical"]),
+        DiveTag.dive_id.in_([row[0] for row in advanced_query] if advanced_query else [])
+    ).all()
+    deco_dive_ids = {row[0] for row in deco_tag_query}
 
     # Data structures
     sac_vs_depth = []
@@ -1046,7 +1054,7 @@ async def get_user_advanced_analytics(
         return f"{size_label}{' + Stage' if has_stage else ''}"
 
 
-    for d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
+    for d_id, d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
         date_str = d_date.strftime("%Y-%m-%d") if d_date else None
         month_str = d_date.strftime("%Y-%m") if d_date else None
         
@@ -1057,7 +1065,14 @@ async def get_user_advanced_analytics(
         if d_max is not None and d_dur is not None:
             rounded_dur = int(round(float(d_dur) / 5.0) * 5)
             rounded_depth = int(round(float(d_max) / 5.0) * 5)
-            b_key = f"{rounded_dur}|{rounded_depth}"
+            
+            is_deco = d_id in deco_dive_ids
+            config_label = parse_tank_config(d_gas)
+            if config_label and "Stage" in config_label:
+                is_deco = True
+                
+            dive_type = "technical" if is_deco else "recreational"
+            b_key = f"{rounded_dur}|{rounded_depth}|{dive_type}"
             bubble_counts[b_key] = bubble_counts.get(b_key, 0) + 1
 
         if d_max is not None and d_avg is not None:
@@ -1137,7 +1152,12 @@ async def get_user_advanced_analytics(
         for k, v in heatmap_counts.items()
     ]
     duration_vs_depth = [
-        {"duration": int(k.split('|')[0]), "depth": int(k.split('|')[1]), "count": v}
+        {
+            "duration": int(k.split('|')[0]), 
+            "depth": int(k.split('|')[1]), 
+            "type": k.split('|')[2],
+            "count": v
+        }
         for k, v in bubble_counts.items()
     ]
     dives_per_year = [

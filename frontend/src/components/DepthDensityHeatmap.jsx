@@ -79,7 +79,7 @@ const DepthDensityHeatmap = ({ data }) => {
                     return (
                       <div
                         key={`${maxBin}-${avgBin}`}
-                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help`}
+                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex items-center justify-center`}
                         title={
                           count > 0
                             ? `${count} dive(s): Max ${maxBin}m, Avg ${avgBin}m`
@@ -88,7 +88,13 @@ const DepthDensityHeatmap = ({ data }) => {
                               : '0 dives'
                         }
                       >
-                        {/* Optional: Simple CSS tooltip could go here if native title isn't enough */}
+                        {count > 0 && (
+                          <span
+                            className={`text-[10px] sm:text-xs font-medium ${count > maxCount * 0.4 ? 'text-white' : 'text-gray-700'}`}
+                          >
+                            {count}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -97,7 +103,9 @@ const DepthDensityHeatmap = ({ data }) => {
             </div>
 
             {/* X-Axis Legend */}
-            <div className='mt-4 text-center text-[10px] sm:text-xs text-gray-400'>Maximum Depth (m)</div>
+            <div className='mt-4 text-center text-[10px] sm:text-xs text-gray-400'>
+              Maximum Depth (m)
+            </div>
           </div>
 
           {/* Y-Axis Legend (Vertical) */}

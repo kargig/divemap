@@ -151,16 +151,19 @@ const AdvancedAnalytics = ({
       const data = payload[0].payload;
       return (
         <div className='bg-white p-3 border border-gray-100 shadow-lg rounded-md text-sm'>
-          {data.sac && (
+          {data.sac !== undefined && (
             <p>
-              <strong>Depth:</strong> {data.depth}m<br />
+              <strong>Max Depth:</strong> {data.depth}m<br />
               <strong>SAC:</strong> {data.sac} L/min
             </p>
           )}
-          {data.count && (
+          {data.count !== undefined && (
             <p>
-              <strong>Duration:</strong> {data.duration}m<br />
+              <strong>Duration:</strong> {data.duration} min
+              <br />
               <strong>Max Depth:</strong> {data.depth}m<br />
+              <strong>Type:</strong> {data.type}
+              <br />
               <strong>Dives:</strong> {data.count}
             </p>
           )}
@@ -216,11 +219,12 @@ const AdvancedAnalytics = ({
             Depth Distribution vs. Duration
           </h3>
           <p className='text-xs text-gray-500 mb-4'>
-            Bubble size represents the number of dives at that specific depth/time profile.
+            Bubble size represents the number of dives. Colors distinguish recreational profiles
+            from technical/deco dives.
           </p>
           <div className='h-64 w-full'>
             <ResponsiveContainer width='100%' height='100%'>
-              <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
+              <ScatterChart margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f3f4f6' />
                 <XAxis
                   type='number'
@@ -229,6 +233,13 @@ const AdvancedAnalytics = ({
                   unit='min'
                   tick={{ fontSize: 10 }}
                   stroke='#9ca3af'
+                  label={{
+                    value: 'Duration (minutes)',
+                    position: 'bottom',
+                    offset: 0,
+                    fontSize: 12,
+                    fill: '#6b7280',
+                  }}
                 />
                 <YAxis
                   type='number'
@@ -237,10 +248,34 @@ const AdvancedAnalytics = ({
                   unit='m'
                   tick={{ fontSize: 10 }}
                   stroke='#9ca3af'
+                  label={{
+                    value: 'Max Depth (meters)',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: 10,
+                    fontSize: 12,
+                    fill: '#6b7280',
+                  }}
                 />
                 <ZAxis type='number' dataKey='count' range={[40, 400]} name='Dives' />
                 <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name='Dives' data={durationData} fill='#0ea5e9' opacity={0.6} />
+                <Legend
+                  verticalAlign='top'
+                  height={36}
+                  wrapperStyle={{ fontSize: '12px' }}
+                  payload={[
+                    { value: 'Recreational', type: 'circle', id: 'rec', color: '#0ea5e9' },
+                    { value: 'Technical (Deco)', type: 'circle', id: 'tech', color: '#ef4444' },
+                  ]}
+                />
+                <Scatter name='Dives' data={durationData} opacity={0.6}>
+                  {durationData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.type === 'technical' ? '#ef4444' : '#0ea5e9'}
+                    />
+                  ))}
+                </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
           </div>
