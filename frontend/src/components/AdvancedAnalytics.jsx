@@ -15,7 +15,38 @@ import {
   Line,
   AreaChart,
   Area,
+  Cell,
 } from 'recharts';
+
+const getGearColor = gearName => {
+  if (!gearName) return '#9ca3af';
+
+  const coreColors = {
+    wet_suit: '#3b82f6',
+    dry_suit: '#8b5cf6',
+    semi_dry: '#0ea5e9',
+    shorty: '#10b981',
+    none: '#f59e0b',
+    Wetsuit: '#3b82f6',
+    Drysuit: '#8b5cf6',
+    'Semi-dry': '#0ea5e9',
+    Shorty: '#10b981',
+    'None / Rashguard': '#f59e0b',
+  };
+  if (coreColors[gearName]) return coreColors[gearName];
+
+  let hash = 0;
+  for (let i = 0; i < gearName.length; i++) {
+    hash = gearName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  // Use HSL to ensure a wide distribution of colors and avoid collisions
+  const h = Math.abs(hash) % 360;
+  const s = 60 + (Math.abs(hash) % 20); // 60-80% saturation
+  const l = 40 + (Math.abs(hash) % 20); // 40-60% lightness
+
+  return `hsl(${h}, ${s}%, ${l}%)`;
+};
 
 const AdvancedAnalytics = ({
   sacData,
@@ -24,6 +55,9 @@ const AdvancedAnalytics = ({
   yearlyData,
   sacTimeData,
   depthTimeData,
+  gasConfigData,
+  weightSuitData,
+  weightTimeData,
 }) => {
   const hasSacData = sacData && sacData.length > 0;
   const hasDurationData = durationData && durationData.length > 0;
@@ -31,12 +65,13 @@ const AdvancedAnalytics = ({
   const hasYearlyData = yearlyData && yearlyData.length > 0;
   const hasSacTimeData = sacTimeData && sacTimeData.length > 0;
   const hasDepthTimeData = depthTimeData && depthTimeData.length > 0;
+  const hasGasConfigData = gasConfigData && gasConfigData.length > 0;
+  const hasWeightSuitData = weightSuitData && weightSuitData.length > 0;
+  const hasWeightTimeData = weightTimeData && weightTimeData.length > 0;
 
-  // Process Temp vs Suit data for Stacked Bar Chart
   const processedTempData = useMemo(() => {
     if (!hasTempData) return [];
 
-    // 1. Group data into temperature buckets
     const getBucket = temp => {
       if (temp < 10) return '< 10°C';
       if (temp >= 30) return '30°C+';
@@ -73,11 +108,43 @@ const AdvancedAnalytics = ({
       grouped[bucket][suit] = (grouped[bucket][suit] || 0) + 1;
     });
 
-    // 2. Format for Recharts and sort by temperature bucket
     const result = bucketsOrder.filter(bucket => grouped[bucket]).map(bucket => grouped[bucket]);
 
     return { data: result, suits: Array.from(allSuits) };
   }, [tempData, hasTempData]);
+
+  // Convert dates to timestamps for continuous numerical XAxis
+  const weightTimeDataWithTimestamps = useMemo(() => {
+    if (!hasWeightTimeData) return [];
+    return weightTimeData.map(item => ({
+      ...item,
+      timestamp: new Date(item.date).getTime(),
+    }));
+  }, [weightTimeData, hasWeightTimeData]);
+
+  const gearLegendPayload = useMemo(() => {
+    if (!hasWeightTimeData) return [];
+    const gears = Array.from(new Set(weightTimeData.map(d => d.gear)));
+    return gears.map(gear => ({
+      value: gear,
+      type: 'circle',
+      id: gear,
+      color: getGearColor(gear),
+    }));
+  }, [weightTimeData, hasWeightTimeData]);
+
+  if (
+    !hasSacData &&
+    !hasDurationData &&
+    !hasTempData &&
+    !hasYearlyData &&
+    !hasSacTimeData &&
+    !hasDepthTimeData &&
+    !hasGasConfigData &&
+    !hasWeightSuitData &&
+    !hasWeightTimeData
+  )
+    return null;
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -102,30 +169,6 @@ const AdvancedAnalytics = ({
     }
     return null;
   };
-
-  const suitColors = {
-    Wetsuit: '#3b82f6', // blue-500
-    Drysuit: '#8b5cf6', // violet-500
-    'Semi-dry': '#0ea5e9', // sky-500
-    Shorty: '#10b981', // emerald-500
-    'None / Rashguard': '#f59e0b', // amber-500
-  };
-  const getSuitColor = (suit, index) => {
-    if (suitColors[suit]) return suitColors[suit];
-    // Fallback colors
-    const fallbacks = ['#6366f1', '#14b8a6', '#f43f5e', '#8b5cf6', '#d946ef'];
-    return fallbacks[index % fallbacks.length];
-  };
-
-  if (
-    !hasSacData &&
-    !hasDurationData &&
-    !hasTempData &&
-    !hasYearlyData &&
-    !hasSacTimeData &&
-    !hasDepthTimeData
-  )
-    return null;
 
   return (
     <div className='mt-8 space-y-8'>
@@ -231,8 +274,8 @@ const AdvancedAnalytics = ({
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px' }} iconType='circle' />
-                {processedTempData.suits.map((suit, index) => (
-                  <Bar key={suit} dataKey={suit} stackId='a' fill={getSuitColor(suit, index)} />
+                {processedTempData.suits.map(suit => (
+                  <Bar key={suit} dataKey={suit} stackId='a' fill={getGearColor(suit)} />
                 ))}
               </BarChart>
             </ResponsiveContainer>
@@ -279,7 +322,7 @@ const AdvancedAnalytics = ({
                   dataKey='date'
                   tick={{ fontSize: 10 }}
                   stroke='#9ca3af'
-                  tickFormatter={val => val.substring(0, 7)} // Show YYYY-MM
+                  tickFormatter={val => val.substring(0, 7)}
                 />
                 <YAxis unit='L' tick={{ fontSize: 10 }} stroke='#9ca3af' />
                 <Tooltip
@@ -356,6 +399,128 @@ const AdvancedAnalytics = ({
                   activeDot={{ r: 4 }}
                 />
               </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Gas Config Bar Chart */}
+      {hasGasConfigData && (
+        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+            Dives per Gas Tank Size Configuration
+          </h3>
+          <p className='text-xs text-gray-500 mb-4'>Frequency of specific tank setups.</p>
+          <div className='h-64 w-full'>
+            <ResponsiveContainer width='100%' height='100%'>
+              <BarChart data={gasConfigData} margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
+                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f3f4f6' />
+                <XAxis dataKey='config' tick={{ fontSize: 10 }} stroke='#9ca3af' />
+                <YAxis tick={{ fontSize: 10 }} stroke='#9ca3af' allowDecimals={false} />
+                <Tooltip
+                  cursor={{ fill: '#f3f4f6', opacity: 0.4 }}
+                  contentStyle={{
+                    borderRadius: '0.375rem',
+                    border: '1px solid #f3f4f6',
+                    fontSize: '14px',
+                  }}
+                />
+                <Bar name='Dives' dataKey='count' fill='#10b981' radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Weight vs Gear Bar Chart */}
+      {hasWeightSuitData && (
+        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+          <h3 className='text-md font-semibold text-gray-800 mb-1'>
+            Average Weight by Gear Configuration
+          </h3>
+          <p className='text-xs text-gray-500 mb-4'>
+            Average lead carried (Kg) based on exposure suit and tank setup.
+          </p>
+          <div className='h-64 w-full'>
+            <ResponsiveContainer width='100%' height='100%'>
+              <BarChart
+                data={weightSuitData}
+                margin={{ top: 10, right: 10, bottom: 10, left: -20 }}
+              >
+                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f3f4f6' />
+                <XAxis dataKey='gear' tick={{ fontSize: 10 }} stroke='#9ca3af' />
+                <YAxis unit='kg' tick={{ fontSize: 10 }} stroke='#9ca3af' />
+                <Tooltip
+                  cursor={{ fill: '#f3f4f6', opacity: 0.4 }}
+                  contentStyle={{
+                    borderRadius: '0.375rem',
+                    border: '1px solid #f3f4f6',
+                    fontSize: '14px',
+                  }}
+                />
+                <Bar name='Avg Weight (kg)' dataKey='weight' fill='#f59e0b' radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Weight Evolution Scatter Chart */}
+      {hasWeightTimeData && (
+        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+          <h3 className='text-md font-semibold text-gray-800 mb-1'>Weight Evolution Over Time</h3>
+          <p className='text-xs text-gray-500 mb-4'>
+            Historical weight changes mapped to gear configurations.
+          </p>
+          <div className='h-64 w-full'>
+            <ResponsiveContainer width='100%' height='100%'>
+              <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: -20 }}>
+                <CartesianGrid strokeDasharray='3 3' vertical={false} stroke='#f3f4f6' />
+                <XAxis
+                  dataKey='timestamp'
+                  type='number'
+                  domain={['dataMin', 'dataMax']}
+                  tick={{ fontSize: 10 }}
+                  stroke='#9ca3af'
+                  tickFormatter={val => {
+                    const date = new Date(val);
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                  }}
+                />
+                <YAxis
+                  dataKey='weight'
+                  type='number'
+                  unit='kg'
+                  tick={{ fontSize: 10 }}
+                  stroke='#9ca3af'
+                />
+                <Tooltip
+                  cursor={{ strokeDasharray: '3 3' }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      return (
+                        <div className='bg-white p-3 border border-gray-100 shadow-lg rounded-md text-sm'>
+                          <p>
+                            <strong>Date:</strong> {data.date}
+                            <br />
+                            <strong>Gear:</strong> {data.gear}
+                            <br />
+                            <strong>Weight:</strong> {data.weight} kg
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} payload={gearLegendPayload} />
+                <Scatter name='Weight' data={weightTimeDataWithTimestamps}>
+                  {weightTimeDataWithTimestamps.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getGearColor(entry.gear)} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
             </ResponsiveContainer>
           </div>
         </div>

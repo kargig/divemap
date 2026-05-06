@@ -262,6 +262,11 @@ export const getUserPublicProfile = async username => {
   return response.data;
 };
 
+export const getUserAdvancedAnalytics = async username => {
+  const response = await api.get(`/api/v1/users/${username}/analytics`);
+  return response.data;
+};
+
 // User search API function for buddy selection and filtering
 export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   const response = await api.get('/api/v1/users/search', {
