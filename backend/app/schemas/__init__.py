@@ -804,7 +804,19 @@ class DivingStatsResponse(BaseModel):
     favorite_sites: List[FavoriteDiveSite] = []
     activity_heatmap: Dict[str, int] = {} # Date (YYYY-MM-DD) -> Dive Count
     suit_preferences: Dict[str, int] = {} # SuitType -> Count
-    gear_preferences: Dict[str, int] = {} # GearType -> Count
+    gear_preferences: Dict[str, int] = {}
+
+class AdvancedAnalyticsResponse(BaseModel):
+    depth_density_heatmap: List[Dict[str, Any]] = []
+    sac_vs_depth: List[Dict[str, Any]] = []
+    duration_vs_depth: List[Dict[str, Any]] = []
+    temp_vs_suit: List[Dict[str, Any]] = []
+    dives_per_year: List[Dict[str, Any]] = []
+    sac_over_time: List[Dict[str, Any]] = []
+    depth_over_time: List[Dict[str, Any]] = []
+    dives_per_gas_config: List[Dict[str, Any]] = [] # [{"config": "Single 12L", "count": 10}]
+    weight_vs_gear: List[Dict[str, Any]] = [] # [{"gear": "Wetsuit + Single 12L", "weight": 4.5}]
+    weight_over_time: List[Dict[str, Any]] = [] # [{"date": "2024-05", "weight": 5.0, "gear": "Wetsuit + Single 12L"}]
 
 class UserPublicProfileResponse(BaseModel):
     id: int

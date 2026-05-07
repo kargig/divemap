@@ -32,6 +32,7 @@ import {
   Anchor,
   Shirt,
   TrendingUp,
+  ArrowUpRight,
   Wind,
   Droplets,
   Award,
@@ -1090,6 +1091,30 @@ const UserProfile = () => {
                   <div className='w-2.5 h-2.5 rounded-sm bg-blue-600' />
                   <span>More</span>
                 </div>
+                {/* Fancy Analytics Link */}
+                <Link to={`/users/${username}/analytics`} className='block mt-6 group'>
+                  <div className='relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-lg transition-all duration-300 transform group-hover:-translate-y-1 group-hover:shadow-xl border border-blue-500/30'>
+                    <div className='absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:bg-white/20 transition-all duration-500'></div>
+                    <div className='relative flex items-center justify-between z-10'>
+                      <div className='flex items-center gap-4'>
+                        <div className='p-3 bg-white/20 rounded-lg backdrop-blur-sm'>
+                          <TrendingUp className='w-8 h-8 text-white' />
+                        </div>
+                        <div>
+                          <h3 className='text-xl font-bold text-white mb-1 tracking-wide'>
+                            Advanced Analytics
+                          </h3>
+                          <p className='text-blue-100 text-sm font-medium'>
+                            Explore SAC rates, depth density, and thermal preferences
+                          </p>
+                        </div>
+                      </div>
+                      <div className='flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white group-hover:bg-white/20 group-hover:translate-x-1 transition-all duration-300'>
+                        <ArrowUpRight className='w-5 h-5' />
+                      </div>
+                    </div>
+                  </div>
+                </Link>{' '}
               </div>
             </div>
           )}
