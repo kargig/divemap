@@ -1,5 +1,5 @@
 import { Upload, Camera, Trash2, Check, LayoutGrid, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
@@ -20,6 +20,7 @@ const AvatarEditor = ({
   onAvatarUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState('gallery');
+  const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
   // Fetch library icons (returns {path, full_url}[])
@@ -210,24 +211,23 @@ const AvatarEditor = ({
                 JPG, PNG or WebP. Max size 2MB. Your photo will be cropped to a square.
               </p>
               <div className='flex flex-col gap-3'>
-                <label className='w-full'>
-                  <div className='cursor-pointer'>
-                    <Button
-                      variant='primary'
-                      className='w-full pointer-events-none'
-                      onClick={() => {}}
-                      isLoading={uploadMutation.isLoading}
-                    >
-                      Select File
-                    </Button>
-                    <input
-                      type='file'
-                      className='hidden'
-                      accept='image/*'
-                      onChange={handleFileUpload}
-                    />
-                  </div>
-                </label>
+                <div className='w-full'>
+                  <Button
+                    variant='primary'
+                    className='w-full'
+                    onClick={() => fileInputRef.current?.click()}
+                    isLoading={uploadMutation.isLoading}
+                  >
+                    Select File
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type='file'
+                    className='hidden'
+                    accept='image/*'
+                    onChange={handleFileUpload}
+                  />
+                </div>
 
                 {showResetButton && (
                   <Button

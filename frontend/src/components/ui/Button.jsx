@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Link } from 'react-router-dom';
@@ -7,6 +8,7 @@ const Button = ({
   onClick,
   to,
   variant = 'primary',
+  isLoading = false,
   size = 'md',
   className = '',
   icon,
@@ -30,6 +32,8 @@ const Button = ({
       'text-gray-500 hover:text-gray-700 hover:bg-gray-100 shadow-none border-transparent transition-all',
     white:
       'bg-white border border-divemap-blue text-divemap-blue hover:text-divemap-blue hover:bg-blue-50 shadow-sm transition-all',
+    'danger-outline':
+      'bg-white border border-red-600 text-red-600 hover:bg-red-50 focus:ring-red-500 shadow-sm transition-all',
   };
 
   const sizes = {
@@ -43,7 +47,7 @@ const Button = ({
     ${baseStyles}
     ${variants[variant] || variants.primary}
     ${sizes[size] || sizes.md}
-    ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+    ${disabled || isLoading ? 'opacity-50 cursor-not-allowed' : ''}
     ${className}
   `
     .trim()
@@ -51,7 +55,11 @@ const Button = ({
 
   const content = (
     <>
-      {icon && <span className={`flex-shrink-0 ${children ? 'mr-1.5' : ''} -ml-0.5`}>{icon}</span>}
+      {isLoading ? (
+        <Loader2 className={`animate-spin ${children ? 'mr-2' : ''} h-4 w-4`} />
+      ) : (
+        icon && <span className={`flex-shrink-0 ${children ? 'mr-1.5' : ''} -ml-0.5`}>{icon}</span>
+      )}
       {children}
     </>
   );
@@ -65,7 +73,13 @@ const Button = ({
   }
 
   return (
-    <button type={type} className={classes} onClick={onClick} disabled={disabled} {...props}>
+    <button
+      type={type}
+      className={classes}
+      onClick={onClick}
+      disabled={disabled || isLoading}
+      {...props}
+    >
       {content}
     </button>
   );
@@ -75,8 +89,17 @@ Button.propTypes = {
   children: PropTypes.node,
   onClick: PropTypes.func,
   to: PropTypes.string,
-  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'warning', 'ghost', 'white']),
+  variant: PropTypes.oneOf([
+    'primary',
+    'secondary',
+    'danger',
+    'warning',
+    'ghost',
+    'white',
+    'danger-outline',
+  ]),
   size: PropTypes.oneOf(['xs', 'sm', 'md', 'lg']),
+  isLoading: PropTypes.bool,
   className: PropTypes.string,
   icon: PropTypes.node,
   disabled: PropTypes.bool,

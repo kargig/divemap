@@ -676,7 +676,7 @@ class R2StorageService:
         Returns:
             str: URL to access the photo (presigned URL for R2, static URL for local)
         """
-        if not self.r2_available or not (photo_path.startswith('user_') or photo_path.startswith('centers/')):
+        if not self.r2_available or not (photo_path.startswith('user_') or photo_path.startswith('centers/') or photo_path.startswith('avatars/')):
             # For local storage, return a URL that uses the static file mount
             # The backend mounts /uploads as static files
             # photo_path is already relative like "uploads/user_1/dive_7/photo/file.jpg"
