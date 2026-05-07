@@ -300,7 +300,7 @@ def get_dives_count(
     max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    tag_ids: Optional[List[int]] = Query(None),  # Multiple tag IDs
     buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
     buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
     north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
@@ -447,18 +447,12 @@ def get_dives_count(
 
     # Apply tag filtering
     if tag_ids:
-        try:
-            tag_id_list = [int(tid.strip()) for tid in tag_ids.split(",") if tid.strip()]
-            if tag_id_list:
-                # Join with DiveTag and AvailableTag tables
-                query = query.join(DiveTag, Dive.id == DiveTag.dive_id)
-                query = query.join(AvailableTag, DiveTag.tag_id == AvailableTag.id)
-                query = query.filter(AvailableTag.id.in_(tag_id_list))
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid tag_ids format. Use comma-separated integers"
-            )
+        # tag_ids is already a List[int] from FastAPI Query
+        # Filter dives that have ALL of the specified tags
+        for tag_id in tag_ids:
+            from sqlalchemy.orm import aliased
+            DiveTagAlias = aliased(DiveTag)
+            query = query.join(DiveTagAlias, Dive.id == DiveTagAlias.dive_id).filter(DiveTagAlias.tag_id == tag_id)
 
     # Apply buddy filtering
     if buddy_username:
@@ -505,7 +499,7 @@ def get_dives(
     max_rating: Optional[float] = Query(None, ge=1, le=10),
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    tag_ids: Optional[List[int]] = Query(None),  # Multiple tag IDs
     buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
     buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
     sort_by: Optional[str] = Query(None, description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count."),
@@ -715,15 +709,13 @@ def get_dives(
             )
 
     if tag_ids:
-        try:
-            tag_id_list = [int(tid.strip()) for tid in tag_ids.split(",")]
-            # Filter dives that have any of the specified tags
-            query = query.join(DiveTag).filter(DiveTag.tag_id.in_(tag_id_list))
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid tag_ids format"
-            )
+        # tag_ids is already a List[int] from FastAPI Query
+        # Filter dives that have ALL of the specified tags
+        for tag_id in tag_ids:
+            # We need to alias DiveTag for each tag we're checking to ensure it has all of them
+            from sqlalchemy.orm import aliased
+            DiveTagAlias = aliased(DiveTag)
+            query = query.join(DiveTagAlias, Dive.id == DiveTagAlias.dive_id).filter(DiveTagAlias.tag_id == tag_id)
 
     # Apply buddy filtering
     if buddy_username:

@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Grid,
   ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from 'react';
@@ -593,8 +594,8 @@ const ResponsiveFilterBar = ({
         {/* Desktop: Expandable Filters Section */}
         {showFilters && (
           <div className='border-t border-gray-200 bg-gray-50'>
-            <div className='p-4'>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+            <div className='p-3 sm:p-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
                 {/* Difficulty Level Filter */}
                 <div>
                   <Select
@@ -627,7 +628,7 @@ const ResponsiveFilterBar = ({
                 {/* Min Rating Filter - Only show for dive-sites and dives, not dive-trips */}
                 {pageType !== 'dive-trips' && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    <label className='block text-sm font-medium text-gray-700 mb-1.5'>
                       Min Rating (≥)
                     </label>
                     <input
@@ -643,7 +644,7 @@ const ResponsiveFilterBar = ({
                           e.preventDefault();
                         }
                       }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                      className={`w-full px-3 py-1.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
                         filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
                           ? 'border-red-500 ring-1 ring-red-500'
                           : 'border-gray-300'
@@ -743,25 +744,25 @@ const ResponsiveFilterBar = ({
                 {pageType === 'dive-trips' && (
                   <>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label className='block text-sm font-medium text-gray-700 mb-1.5'>
                         Start Date
                       </label>
                       <input
                         type='date'
                         value={filters.start_date || ''}
                         onChange={e => onFilterChange('start_date', e.target.value)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                        className='w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                       />
                     </div>
                     <div>
-                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                      <label className='block text-sm font-medium text-gray-700 mb-1.5'>
                         End Date
                       </label>
                       <input
                         type='date'
                         value={filters.end_date || ''}
                         onChange={e => onFilterChange('end_date', e.target.value)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                        className='w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
                       />
                     </div>
                   </>
@@ -786,9 +787,9 @@ const ResponsiveFilterBar = ({
 
                 {/* Tags Filter */}
                 {filters.availableTags && filters.availableTags.length > 0 && (
-                  <div className='md:col-span-2 lg:col-span-3'>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tags</label>
-                    <div className='flex flex-wrap gap-2'>
+                  <div className='md:col-span-2 lg:col-span-4'>
+                    <label className='block text-sm font-medium text-gray-700 mb-1.5'>Tags</label>
+                    <div className='flex flex-wrap gap-1.5'>
                       {filters.availableTags.map(tag => (
                         <button
                           key={tag.id}
@@ -801,9 +802,9 @@ const ResponsiveFilterBar = ({
                               : [...currentTagIds, tagId];
                             onFilterChange('tag_ids', newTagIds);
                           }}
-                          className={`px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                          className={`px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 ${
                             (filters.tag_ids || []).includes(tag.id)
-                              ? `${getTagColor(tag.name)} border-2 border-current shadow-md`
+                              ? `${getTagColor(tag.name)} border-2 border-current shadow-sm`
                               : `${getTagColor(tag.name)} opacity-60 hover:opacity-100 border-2 border-transparent`
                           }`}
                         >
@@ -813,6 +814,23 @@ const ResponsiveFilterBar = ({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Desktop Action Bar */}
+              <div className='mt-4 flex justify-between items-center border-t border-gray-200 pt-3'>
+                <button
+                  onClick={onClearFilters}
+                  className='text-sm text-gray-500 hover:text-gray-800 transition-colors'
+                >
+                  Clear Filters
+                </button>
+                <button
+                  onClick={onToggleFilters}
+                  className='text-sm px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg flex items-center gap-1.5 transition-colors font-medium'
+                >
+                  <ChevronUp className='w-4 h-4' />
+                  Hide Filters
+                </button>
               </div>
             </div>
           </div>

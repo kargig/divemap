@@ -154,7 +154,18 @@ const Dives = () => {
   }, [location.search]); // Depend on location.search to detect URL changes
 
   // Quick filter state
-  const [quickFilter, setQuickFilter] = useState('');
+  const getInitialQuickFilters = () => {
+    const initialFilters = getInitialFilters();
+    const quick = [];
+    if (initialFilters.my_dives) quick.push('my_dives');
+    if (initialFilters.tag_ids?.includes(8)) quick.push('wrecks');
+    if (initialFilters.tag_ids?.includes(14)) quick.push('reefs');
+    if (initialFilters.tag_ids?.includes(4)) quick.push('boat_dive');
+    if (initialFilters.tag_ids?.includes(13)) quick.push('shore_dive');
+    return quick;
+  };
+
+  const [quickFilters, setQuickFilters] = useState(getInitialQuickFilters);
 
   // Initialize sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } = useSorting('dives');
@@ -713,88 +724,57 @@ const Dives = () => {
       tag_ids: [],
       my_dives: false,
     });
+    setQuickFilters([]);
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // Quick filter handler for dive types
   const handleQuickFilter = filterType => {
-    // Toggle the quick filter - if it's already active, deactivate it
-    if (quickFilter === filterType) {
-      setQuickFilter('');
-      // Clear the corresponding filter
-      switch (filterType) {
-        case 'my_dives':
-          setFilters(prev => ({ ...prev, my_dives: false }));
-          break;
-        case 'wrecks':
-        case 'reefs':
-        case 'boat_dive':
-        case 'shore_dive':
-          setFilters(prev => ({ ...prev, tag_ids: [] }));
-          break;
-        default:
-          break;
-      }
-    } else {
-      setQuickFilter(filterType);
-
-      // Apply the quick filter
-      switch (filterType) {
-        case 'my_dives': {
-          // Filter for user's own dives
-          setFilters(prev => ({
-            ...prev,
-            my_dives: true,
-            tag_ids: [], // Clear tag filters when switching to my dives
-          }));
-          break;
-        }
-        case 'wrecks': {
-          // Filter for wreck dives
-          setFilters(prev => ({
-            ...prev,
-            tag_ids: [8], // Wreck tag ID
-            my_dives: false, // Clear my dives filter
-          }));
-          break;
-        }
-        case 'reefs': {
-          // Filter for reef dives
-          setFilters(prev => ({
-            ...prev,
-            tag_ids: [14], // Reef tag ID
-            my_dives: false, // Clear my dives filter
-          }));
-          break;
-        }
-        case 'boat_dive': {
-          // Filter for boat dives
-          setFilters(prev => ({
-            ...prev,
-            tag_ids: [4], // Boat Dive tag ID
-            my_dives: false, // Clear my dives filter
-          }));
-          break;
-        }
-        case 'shore_dive': {
-          // Filter for shore dives
-          setFilters(prev => ({
-            ...prev,
-            tag_ids: [13], // Shore Dive tag ID
-            my_dives: false, // Clear my dives filter
-          }));
-          break;
-        }
-        case 'clear': {
-          // Clear quick filters
-          setQuickFilter('');
-          clearFilters();
-          break;
-        }
-        default:
-          break;
-      }
+    if (filterType === 'clear') {
+      setQuickFilters([]);
+      clearFilters();
+      return;
     }
+
+    // Toggle the filter in the quickFilters array
+    setQuickFilters(prev => {
+      if (prev.includes(filterType)) {
+        return prev.filter(f => f !== filterType);
+      } else {
+        return [...prev, filterType];
+      }
+    });
+
+    // Apply the quick filter changes to the actual filters state
+    const tagIdMap = {
+      wrecks: 8,
+      reefs: 14,
+      boat_dive: 4,
+      shore_dive: 13,
+    };
+
+    setFilters(prev => {
+      const newFilters = { ...prev };
+
+      if (filterType === 'my_dives') {
+        // Toggle my_dives boolean
+        newFilters.my_dives = !prev.my_dives;
+      } else if (tagIdMap[filterType]) {
+        // Toggle specific tag in the tag_ids array
+        const tagId = tagIdMap[filterType];
+        const currentTagIds = prev.tag_ids || [];
+
+        if (currentTagIds.includes(tagId)) {
+          // Remove tag if already selected
+          newFilters.tag_ids = currentTagIds.filter(id => id !== tagId);
+        } else {
+          // Add tag if not selected
+          newFilters.tag_ids = [...currentTagIds, tagId];
+        }
+      }
+
+      return newFilters;
+    });
 
     // Reset to first page when filters change
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -938,7 +918,7 @@ const Dives = () => {
         }}
         onFilterChange={handleFilterChange}
         onQuickFilter={handleQuickFilter}
-        quickFilter={quickFilter}
+        quickFilters={quickFilters}
         variant='inline'
         showQuickFilters={true}
         showAdvancedToggle={true}
