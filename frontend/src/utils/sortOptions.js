@@ -38,6 +38,13 @@ export const SORT_OPTIONS = {
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'desc' },
     { value: 'distance', label: 'Distance', defaultOrder: 'desc' },
   ],
+
+  'dive-routes': [
+    { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
+    { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
+    { value: 'name', label: 'Name', defaultOrder: 'asc' },
+    { value: 'view_count', label: 'Popularity', defaultOrder: 'desc' },
+  ],
 };
 
 // Admin-only sort options that are added for admin users

@@ -11,8 +11,8 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
   const [structuredData, setStructuredData] = useState({
     back_gas: {
       tank: 'al80',
-      start_pressure: 200,
-      end_pressure: 50,
+      start_pressure: '',
+      end_pressure: '',
       gas: { o2: 21, he: 0 },
     },
     stages: [],
@@ -114,8 +114,8 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
       }
 
       // 2. Extract Pressures
-      let startP = 200;
-      let endP = 50;
+      let startP = '';
+      let endP = '';
       const pressureMatch = line.match(
         /(\d+(?:\.\d+)?)\s*(?:bar)?\s*[→\->]\s*(\d+(?:\.\d+)?)\s*(?:bar)?/
       );
@@ -247,8 +247,8 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
         {
           id: Date.now(),
           tank: 'al40',
-          start_pressure: 200,
-          end_pressure: 50,
+          start_pressure: '',
+          end_pressure: '',
           gas: { o2: 50, he: 0 },
         },
       ],
@@ -350,8 +350,14 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
               <input
                 id='back-gas-start'
                 type='number'
+                placeholder='200'
                 value={structuredData.back_gas.start_pressure}
-                onChange={e => updateBackGas('start_pressure', parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  updateBackGas(
+                    'start_pressure',
+                    e.target.value === '' ? '' : parseInt(e.target.value) || 0
+                  )
+                }
                 className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                 aria-label='Back gas start pressure'
               />
@@ -366,8 +372,14 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
               <input
                 id='back-gas-end'
                 type='number'
+                placeholder='50'
                 value={structuredData.back_gas.end_pressure}
-                onChange={e => updateBackGas('end_pressure', parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  updateBackGas(
+                    'end_pressure',
+                    e.target.value === '' ? '' : parseInt(e.target.value) || 0
+                  )
+                }
                 className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                 aria-label='Back gas end pressure'
               />
@@ -447,9 +459,14 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                   <input
                     id={`stage-${idx}-start`}
                     type='number'
+                    placeholder='200'
                     value={stage.start_pressure}
                     onChange={e =>
-                      updateStage(idx, 'start_pressure', parseInt(e.target.value) || 0)
+                      updateStage(
+                        idx,
+                        'start_pressure',
+                        e.target.value === '' ? '' : parseInt(e.target.value) || 0
+                      )
                     }
                     className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                     aria-label={`Stage ${idx + 1} start pressure`}
@@ -465,8 +482,15 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
                   <input
                     id={`stage-${idx}-end`}
                     type='number'
+                    placeholder='50'
                     value={stage.end_pressure}
-                    onChange={e => updateStage(idx, 'end_pressure', parseInt(e.target.value) || 0)}
+                    onChange={e =>
+                      updateStage(
+                        idx,
+                        'end_pressure',
+                        e.target.value === '' ? '' : parseInt(e.target.value) || 0
+                      )
+                    }
                     className='w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border'
                     aria-label={`Stage ${idx + 1} end pressure`}
                   />
