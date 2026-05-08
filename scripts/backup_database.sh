@@ -14,10 +14,16 @@ BACKUP_DIR="$PROJECT_ROOT/database_backups"
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
 
-# Load environment variables from .env file if it exists
+# Load environment variables from .env or .dbenv file if they exist
 if [ -f "$PROJECT_ROOT/.env" ]; then
     # Source .env file, but only export variables we need
-    export $(grep -E '^MYSQL_(ROOT_PASSWORD|DATABASE|USER|PASSWORD)=' "$PROJECT_ROOT/.env" | xargs)
+    export $(grep -E '^(MYSQL_(ROOT_PASSWORD|DATABASE|USER|PASSWORD)|DB_(HOST|PORT))=' "$PROJECT_ROOT/.env" | xargs)
+fi
+
+# Load database environment variables from .dbenv (takes precedence for database settings)
+if [ -f "$PROJECT_ROOT/.dbenv" ]; then
+    echo "Loading credentials from .dbenv..."
+    export $(grep -v '^#' "$PROJECT_ROOT/.dbenv" | xargs)
 fi
 
 # Set defaults from docker-compose.yml if not set
@@ -30,9 +36,12 @@ MYSQL_PASSWORD=${MYSQL_PASSWORD:-divemap_password}
 DB_HOST=${DB_HOST:-localhost}
 DB_PORT=${DB_PORT:-3306}
 
+# Clean up DB_HOST for filename (e.g. replace dots with hyphens)
+SAFE_HOST=$(echo "$DB_HOST" | tr '.' '-')
+
 # Generate timestamp for filename (YYYYMMDD_HHMMSS)
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="$BACKUP_DIR/divemap_backup_${TIMESTAMP}.sql"
+BACKUP_FILE="$BACKUP_DIR/divemap_${SAFE_HOST}_backup_${TIMESTAMP}.sql"
 
 echo "Creating database backup..."
 echo "Database: $MYSQL_DATABASE"
