@@ -184,7 +184,7 @@ class User(Base):
     site_ratings = relationship("SiteRating", back_populates="user", cascade="all, delete-orphan")
     site_comments = relationship("SiteComment", back_populates="user", cascade="all,delete-orphan")
     center_ratings = relationship("CenterRating", back_populates="user", cascade="all, delete-orphan")
-    center_comments = relationship("CenterComment", back_populates="user", cascade="all, delete-orphan")
+    center_comments = relationship("CenterComment", back_populates="user", cascade="save-update, merge")
     certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
     dives = relationship("Dive", back_populates="user", cascade="all, delete-orphan")
     created_routes = relationship("DiveRoute", back_populates="creator", primaryjoin="User.id == DiveRoute.created_by", cascade="all, delete-orphan")

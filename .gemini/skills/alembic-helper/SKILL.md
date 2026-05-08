@@ -44,8 +44,43 @@ This skill provides a safe and consistent workflow for managing database migrati
     *   Read the generated file.
     *   Ensure it only contains intended changes.
     *   Remove any unintended `drop_table` or `drop_column` directives that might be artifacts of environment issues.
+    *   **Remove Spatial Index noise**: Alembic often generates false-positive `drop_index` commands for MySQL spatial columns. Remove them.
 
-### 2. Applying Migrations
+### 2. Dynamic Foreign Key Resolution (Avoiding `_ibfk_` Drift)
+
+**Goal**: Prevent migrations from crashing on fresh test databases due to auto-generated foreign key name drift (e.g., `_ibfk_2` in dev vs `_ibfk_1` in test).
+
+If your migration involves modifying or dropping a foreign key constraint:
+1.  **NEVER hardcode `_ibfk_` names.**
+2.  **When creating a FK**: Pass `None` as the constraint name so MySQL auto-generates it safely.
+    ```python
+    op.create_foreign_key(None, 'my_table', 'users', ['user_id'], ['id'], ondelete='CASCADE')
+    ```
+3.  **When dropping a FK**: Use SQLAlchemy's `Inspector` to dynamically look up the name of the constraint based on the column, rather than hardcoding it. Add these helper functions to the top of your migration file:
+
+    ```python
+    from sqlalchemy.engine.reflection import Inspector
+    import sqlalchemy as sa
+
+    def get_fk_name(table_name, column_name):
+        bind = op.get_bind()
+        inspector = sa.inspect(bind)
+        for fk in inspector.get_foreign_keys(table_name):
+            if column_name in fk['constrained_columns']:
+                return fk['name']
+        return None
+
+    def safe_drop_fk(table_name, column_name):
+        fk_name = get_fk_name(table_name, column_name)
+        if fk_name:
+            op.drop_constraint(fk_name, table_name, type_='foreignkey')
+    ```
+4.  Then in your `upgrade()` or `downgrade()`, simply call:
+    ```python
+    safe_drop_fk('my_table', 'user_id')
+    ```
+
+### 3. Applying Migrations
 
 **Goal**: Apply pending migrations to the database.
 
