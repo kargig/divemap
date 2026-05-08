@@ -529,6 +529,8 @@ async def list_routes(
         sort_column = DiveRoute.created_at
     elif sort_by == "updated_at":
         sort_column = DiveRoute.updated_at
+    elif sort_by == "view_count":
+        sort_column = DiveRoute.view_count
     else:
         sort_column = DiveRoute.created_at
     

@@ -33,6 +33,7 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
+import { getSortOptions } from '../utils/sortOptions';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 const DiveRoutes = () => {
@@ -193,10 +194,7 @@ const DiveRoutes = () => {
             onSearchSubmit={() => {}}
             sortBy={sortBy}
             sortOrder={sortOrder}
-            sortOptions={[
-              { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
-              { value: 'name', label: 'Name', defaultOrder: 'asc' },
-            ]}
+            sortOptions={getSortOptions('dive-routes')}
             onSortChange={handleSortChange}
             onReset={resetSorting}
             viewMode={viewMode}

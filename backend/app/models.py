@@ -137,7 +137,7 @@ class DiveSiteEditRequest(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
-    requested_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    requested_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     status = Column(Enum(EditRequestStatus), default=EditRequestStatus.pending, nullable=False, index=True)
     edit_type = Column(Enum(EditRequestType), default=EditRequestType.site_data, nullable=False)
     # Use JSON type, SQLAlchemy will map to JSON/JSONB depending on dialect
@@ -410,8 +410,8 @@ class CenterRating(Base):
     __tablename__ = "center_ratings"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     score = Column(Integer, nullable=False)  # 1-10
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -423,8 +423,8 @@ class CenterComment(Base):
     __tablename__ = "center_comments"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     comment_text = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -454,7 +454,7 @@ class CenterDiveSite(Base):
     __tablename__ = "center_dive_sites"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
     dive_cost = Column(DECIMAL(10, 2))
     currency = Column(String(3), default="EUR", nullable=False, index=True)
@@ -468,7 +468,7 @@ class GearRentalCost(Base):
     __tablename__ = "gear_rental_costs"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
     item_name = Column(String(100), nullable=False)
     cost = Column(DECIMAL(10, 2), nullable=False)
     currency = Column(String(3), default="EUR", nullable=False, index=True)
@@ -481,7 +481,7 @@ class ParsedDiveTrip(Base):
     __tablename__ = "parsed_dive_trips"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), index=True)
     trip_date = Column(Date, nullable=False, index=True)
     trip_time = Column(Time)
     trip_duration = Column(Integer)  # Total duration in minutes
@@ -516,7 +516,7 @@ class ParsedDive(Base):
     __tablename__ = "parsed_dives"
 
     id = Column(Integer, primary_key=True)
-    trip_id = Column(Integer, ForeignKey("parsed_dive_trips.id"), nullable=False, index=True)
+    trip_id = Column(Integer, ForeignKey("parsed_dive_trips.id", ondelete="CASCADE"), nullable=False, index=True)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="SET NULL"), index=True)
     dive_number = Column(Integer, nullable=False)  # 1 for first dive, 2 for second dive, etc.
     dive_time = Column(Time, nullable=True)  # Time for this specific dive
@@ -571,8 +571,8 @@ class DivingCenterOrganization(Base):
     __tablename__ = "diving_center_organizations"
 
     id = Column(Integer, primary_key=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
-    diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    diving_organization_id = Column(Integer, ForeignKey("diving_organizations.id", ondelete="CASCADE"), nullable=False, index=True)
     is_primary = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -584,8 +584,8 @@ class OwnershipRequest(Base):
     __tablename__ = "ownership_requests"
 
     id = Column(Integer, primary_key=True, index=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     request_status = Column(Enum(OwnershipStatus), nullable=False, index=True)  # claimed, approved, denied, revoked
     request_date = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     processed_date = Column(DateTime(timezone=True), nullable=True)
@@ -621,7 +621,7 @@ class Dive(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="SET NULL"), nullable=True)
-    diving_center_id = Column(Integer, ForeignKey("diving_centers.id"), nullable=True)  # Link to diving center
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="SET NULL"), nullable=True)  # Link to diving center
     name = Column(String(255), nullable=True)  # Custom name/alias provided by user
     is_private = Column(Boolean, default=False)  # Privacy control - default public
     dive_information = Column(Text)
@@ -629,7 +629,7 @@ class Dive(Base):
     average_depth = Column(DECIMAL(6, 3))  # Average depth in meters
     gas_bottles_used = Column(Text)
     suit_type = Column(Enum(SuitType), nullable=True)
-    difficulty_id = Column(Integer, ForeignKey("difficulty_levels.id"), nullable=True, index=True)
+    difficulty_id = Column(Integer, ForeignKey("difficulty_levels.id", ondelete="SET NULL"), nullable=True, index=True)
     visibility_rating = Column(Integer)  # 1-10 rating
     user_rating = Column(Integer)  # 1-10 rating
     dive_date = Column(Date, nullable=False)
@@ -641,7 +641,7 @@ class Dive(Base):
     profile_sample_count = Column(Integer, nullable=True)  # Number of sample points
     profile_max_depth = Column(DECIMAL(6, 3), nullable=True)  # Max depth from profile
     profile_duration_minutes = Column(Integer, nullable=True)  # Duration from profile
-    selected_route_id = Column(Integer, ForeignKey("dive_routes.id"), nullable=True, index=True)  # Selected dive route
+    selected_route_id = Column(Integer, ForeignKey("dive_routes.id", ondelete="SET NULL"), nullable=True, index=True)  # Selected dive route
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -659,7 +659,7 @@ class DiveMedia(Base):
     __tablename__ = "dive_media"
 
     id = Column(Integer, primary_key=True, index=True)
-    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False)
+    dive_id = Column(Integer, ForeignKey("dives.id", ondelete="CASCADE"), nullable=False)
     media_type = Column(Enum(MediaType), nullable=False)
     url = Column(String(500), nullable=False)
     description = Column(Text)
@@ -675,8 +675,8 @@ class DiveTag(Base):
     __tablename__ = "dive_tags"
 
     id = Column(Integer, primary_key=True, index=True)
-    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False)
-    tag_id = Column(Integer, ForeignKey("available_tags.id"), nullable=False)
+    dive_id = Column(Integer, ForeignKey("dives.id", ondelete="CASCADE"), nullable=False)
+    tag_id = Column(Integer, ForeignKey("available_tags.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -688,7 +688,7 @@ class DiveBuddy(Base):
     __tablename__ = "dive_buddies"
 
     id = Column(Integer, primary_key=True, index=True)
-    dive_id = Column(Integer, ForeignKey("dives.id"), nullable=False, index=True)
+    dive_id = Column(Integer, ForeignKey("dives.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -417,16 +417,19 @@ def create_structured_gas_data(cylinders, events=None):
         o2 = int(float(o2_str)) if o2_str else 21
         he = int(float(he_str)) if he_str else 0
         
-        start_p = int(float(start_str)) if start_str else 200
-        end_p = int(float(end_str)) if end_str else 50
+        start_p = int(float(start_str)) if start_str else None
+        end_p = int(float(end_str)) if end_str else None
         
         tank_obj = {
             "tank": tank_id,
-            "start_pressure": start_p,
-            "end_pressure": end_p,
             "gas": {"o2": o2, "he": he},
             "index": i
         }
+        
+        if start_p is not None:
+            tank_obj["start_pressure"] = start_p
+        if end_p is not None:
+            tank_obj["end_pressure"] = end_p
         
         if i == back_gas_index:
             structured["back_gas"] = tank_obj
