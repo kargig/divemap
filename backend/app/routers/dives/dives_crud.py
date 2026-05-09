@@ -24,7 +24,7 @@ from .dives_shared import router, get_db, get_current_user, get_current_user_opt
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, AddBuddiesRequest, ReplaceBuddiesRequest
 from app.models import DiveSite, DivingCenter, DiveSiteAlias, DifficultyLevel, get_difficulty_id_by_code
 from .dives_utils import generate_dive_name
-from .imports.common import parse_dive_information_text
+from app.services.dive_profile_parser import parse_dive_information_text
 from .dives_search import search_dives_with_fuzzy
 from app.utils import get_unified_fuzzy_trigger_conditions
 

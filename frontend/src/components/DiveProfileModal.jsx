@@ -15,6 +15,7 @@ const DiveProfileModal = ({
   showTemperature,
   screenSize,
   onDecoStatusChange,
+  diveId,
 }) => {
   const { viewport } = useResponsive();
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
@@ -73,6 +74,7 @@ const DiveProfileModal = ({
             screenSize={isMobileLandscape ? 'mobile' : screenSize}
             onDecoStatusChange={onDecoStatusChange}
             onClose={isMobileLandscape ? onClose : undefined}
+            diveId={diveId}
           />
         </Suspense>
       </div>
@@ -89,6 +91,7 @@ DiveProfileModal.propTypes = {
   showTemperature: PropTypes.bool,
   screenSize: PropTypes.string,
   onDecoStatusChange: PropTypes.func,
+  diveId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export default DiveProfileModal;

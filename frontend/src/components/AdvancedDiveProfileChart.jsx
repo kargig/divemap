@@ -234,6 +234,7 @@ const AdvancedDiveProfileChart = ({
   onMaximize,
   onClose,
   onUpload,
+  diveId,
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
@@ -389,6 +390,15 @@ const AdvancedDiveProfileChart = ({
       setHoveredPoint(null);
     }
   }, []);
+
+  const handleExportData = useCallback(
+    format => {
+      if (!diveId) return;
+      const exportUrl = `/api/v1/dives/${diveId}/export/${format}`;
+      window.open(exportUrl, '_blank');
+    },
+    [diveId]
+  );
 
   const handleExportPNG = useCallback(async () => {
     if (!chartRef.current) return;
@@ -764,18 +774,37 @@ const AdvancedDiveProfileChart = ({
                 <button className='p-2 text-gray-500 rounded border border-gray-300'>
                   <Download className='h-5 w-5' />
                 </button>
-                <div className='absolute right-0 top-full mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible z-10'>
+                <div className='absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible z-10 transition-all'>
                   <button
                     onClick={handleExportPNG}
-                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-t-lg'
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-t-lg flex items-center gap-2'
                   >
                     Export PNG
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-b-lg'
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2'
                   >
                     Export PDF
+                  </button>
+                  <div className='border-t border-gray-100'></div>
+                  <button
+                    onClick={() => handleExportData('xml')}
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2'
+                  >
+                    Export XML (Subsurface)
+                  </button>
+                  <button
+                    onClick={() => handleExportData('fit')}
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2'
+                  >
+                    Export FIT (Garmin)
+                  </button>
+                  <button
+                    onClick={() => handleExportData('json')}
+                    className='w-full px-3 py-2 text-left text-sm hover:bg-gray-100 rounded-b-lg flex items-center gap-2'
+                  >
+                    Export JSON (Suunto)
                   </button>
                 </div>
               </div>
@@ -987,6 +1016,7 @@ AdvancedDiveProfileChart.propTypes = {
   onMaximize: PropTypes.func,
   onClose: PropTypes.func,
   onUpload: PropTypes.func,
+  diveId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
 export default AdvancedDiveProfileChart;
