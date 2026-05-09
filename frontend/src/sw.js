@@ -38,6 +38,11 @@ try {
       new RegExp('^/docs'),
       new RegExp('^/redoc'),
       new RegExp('^/openapi.json'),
+      new RegExp('^/llms\\.txt$'),
+      new RegExp('^/sitemap\\.xml$'),
+      new RegExp('^/robots\\.txt$'),
+      new RegExp('\\.md$'),
+      new RegExp('^/\\.well-known/'),
     ],
   });
   registerRoute(navigationRoute);

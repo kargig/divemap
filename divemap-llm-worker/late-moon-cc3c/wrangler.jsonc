@@ -18,6 +18,10 @@
 			"zone_name": "divemap.gr"
 		},
 		{
+			"pattern": "divemap.gr/sitemap.xml",
+			"zone_name": "divemap.gr"
+		},
+		{
 			"pattern": "divemap.gr/dive-sites.md",
 			"zone_name": "divemap.gr"
 		},
