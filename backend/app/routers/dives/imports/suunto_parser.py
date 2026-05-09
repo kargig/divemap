@@ -345,6 +345,7 @@ def parse_suunto_json_file(json_content: bytes) -> Dict[str, Any]:
         "profile_data": {
             "samples": samples,
             "events": events,
+            "cylinders": cylinders,
             "calculated_max_depth": round(max_depth, 2),
             "calculated_avg_depth": avg_depth,
             "calculated_duration_minutes": duration_min,

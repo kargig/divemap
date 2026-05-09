@@ -47,3 +47,4 @@ rapidfuzz==3.14.3
 fastapi-cache2==0.2.1
 nh3==0.2.20
 fitdecode==0.11.0
+garmin-fit-sdk==21.158.0

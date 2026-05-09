@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime, time
 import os
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -207,20 +208,22 @@ class DiveProfileParser:
         temperature = divecomputer.find('temperature')
         if temperature is not None:
             dc_data['water_temperature'] = self._parse_temperature(temperature.get('water'))
+            dc_data['air_temperature'] = self._parse_temperature(temperature.get('air'))
         
         # Surface pressure
-        surface_pressure = divecomputer.find('surface pressure')
-        if surface_pressure is not None:
-            dc_data['surface_pressure'] = self._parse_pressure(surface_pressure.get('value'))
+        surface = divecomputer.find('surface')
+        if surface is not None:
+            dc_data['surface_pressure'] = self._parse_pressure(surface.get('pressure'))
         
         # Water salinity
-        water_salinity = divecomputer.find('water salinity')
-        if water_salinity is not None:
-            dc_data['water_salinity'] = self._parse_salinity(water_salinity.get('value'))
+        water = divecomputer.find('water')
+        if water is not None:
+            dc_data['water_salinity'] = self._parse_salinity(water.get('salinity'))
         
-        # Extra data
+        # Extra data (Subsurface format: <extradata key="..." value="..." />)
         extradata = divecomputer.findall('extradata')
-        dc_data['extra_data'] = {}
+        if 'extra_data' not in dc_data:
+            dc_data['extra_data'] = {}
         for data in extradata:
             key = data.get('key')
             value = data.get('value')
@@ -488,3 +491,55 @@ class DiveProfileParser:
             'calculated_duration_minutes': total_duration,
             'temperature_range': temp_range
         }
+
+def parse_dive_information_text(dive_information):
+    """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
+    if not dive_information:
+        return {}
+    
+    parsed_fields = {}
+    
+    # Parse buddy - handle multiline text
+    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if buddy_match:
+        parsed_fields['buddy'] = buddy_match.group(1).strip()
+    
+    # Parse SAC
+    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if sac_match:
+        parsed_fields['sac'] = sac_match.group(1).strip()
+    
+    # Parse OTU
+    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if otu_match:
+        parsed_fields['otu'] = otu_match.group(1).strip()
+    
+    # Parse CNS
+    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if cns_match:
+        parsed_fields['cns'] = cns_match.group(1).strip()
+    
+    # Parse Water Temp
+    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if water_temp_match:
+        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
+    
+    # Parse Deco Model
+    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights?:|$)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if deco_model_match:
+        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
+    
+    # Parse Computer
+    computer_match = re.search(r'Computer:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if computer_match:
+        parsed_fields['computer'] = computer_match.group(1).strip()
+
+    # Parse Weights (support both Weight and Weights)
+    weights_match = re.search(r'Weights?:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    if weights_match:
+        weights_value = weights_match.group(1).strip()
+        # Clean up weights value - remove extra "weight" text and trailing artifacts
+        weights_value = re.sub(r'\s*-\s*weights?$', '', weights_value, flags=re.IGNORECASE).strip()
+        parsed_fields['weights'] = weights_value
+    
+    return parsed_fields

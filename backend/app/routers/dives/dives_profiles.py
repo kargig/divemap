@@ -14,21 +14,108 @@ The profile functionality includes:
 - Bulk operations for profile cleanup
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import Depends, HTTPException, status, Query, UploadFile, File, Response
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import date, time, datetime
 import orjson
 import os
 import tempfile
 import uuid
 
-from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
+from .dives_shared import router, get_db, get_current_user, get_current_active_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
 from app.models import DiveSite, DiveSiteAlias
 from app.services.dive_profile_parser import DiveProfileParser
+from app.services.dive_export_service import DiveExportService
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
+
+
+@router.get("/{dive_id}/export/{format}", response_class=Response)
+def export_dive_profile(
+    dive_id: int,
+    format: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Export dive profile in specified format (xml, fit, json). Only authenticated active users can export."""
+    
+    dive = db.query(Dive).filter(Dive.id == dive_id).first()
+    if not dive:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found")
+    
+    # Access control for private dives
+    if dive.is_private:
+        if dive.user_id != current_user.id and not current_user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This dive is private"
+            )
+    
+    # Check if dive has profile data
+    if not dive.profile_xml_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No profile uploaded")
+    
+    try:
+        # Download profile from R2
+        profile_content = r2_storage.download_profile(dive.user_id, dive.profile_xml_path)
+        if not profile_content:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile file not found")
+        
+        # Parse profile to dict
+        parser = DiveProfileParser()
+        if dive.profile_xml_path.endswith('.json'):
+            profile_data = orjson.loads(profile_content)
+        else:
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+                temp_file.write(profile_content)
+                temp_path = temp_file.name
+            try:
+                profile_data = parser.parse_xml_file(temp_path)
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+        
+        # Initialize export service
+        export_service = DiveExportService()
+        
+        format = format.lower()
+        if format == 'xml':
+            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first() if dive.dive_site_id else None
+            # Fetch tags
+            tags = [t.tag.name for t in dive.tags]
+            content = export_service.export_to_subsurface_xml(dive, profile_data, dive_site, tags)
+            filename = f"dive_{dive_id}_{dive.dive_date}.xml"
+            return Response(
+                content=content,
+                media_type="application/xml",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        elif format == 'fit':
+            content = export_service.export_to_garmin_fit(dive, profile_data)
+            filename = f"dive_{dive_id}_{dive.dive_date}.fit"
+            return Response(
+                content=content,
+                media_type="application/x-fit",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        elif format == 'json':
+            content = export_service.export_to_suunto_json(dive, profile_data)
+            filename = f"dive_{dive_id}_{dive.dive_date}.json"
+            return Response(
+                content=content,
+                media_type="application/json",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unsupported format: {format}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_error(f"Error exporting profile for dive {dive_id}: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error exporting profile: {str(e)}")
 
 
 @router.get("/{dive_id}/profile")

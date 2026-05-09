@@ -954,6 +954,7 @@ const DiveDetail = () => {
                   error={profileError ? extractErrorMessage(profileError) : null}
                   showTemperature={true}
                   screenSize='desktop'
+                  diveId={id}
                   onDecoStatusChange={profileHasDeco => {
                     // If profile data is available, use it; otherwise keep tag-based detection
                     if (profileHasDeco !== undefined) {
@@ -1218,6 +1219,7 @@ const DiveDetail = () => {
         error={profileError?.response?.data?.detail || profileError?.message}
         showTemperature={true}
         screenSize='desktop'
+        diveId={id}
         onDecoStatusChange={profileHasDeco => {
           // If profile data is available, use it; otherwise keep tag-based detection
           if (profileHasDeco !== undefined) {

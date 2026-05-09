@@ -130,10 +130,33 @@ async def confirm_import_dives(
                 if has_deco_profile(dive_data['profile_data']):
                     try:
                         deco_tag = get_or_create_deco_tag(db)
-                        dive_tag = DiveTag(dive_id=dive.id, tag_id=deco_tag.id)
-                        db.add(dive_tag)
+                        if deco_tag.id not in [t.tag_id for t in dive.tags]:
+                            dive_tag = DiveTag(dive_id=dive.id, tag_id=deco_tag.id)
+                            db.add(dive_tag)
                     except Exception:
                         pass
+
+            # Import tags from dive_data
+            if 'tags' in dive_data and dive_data['tags']:
+                import_tags = dive_data['tags']
+                if isinstance(import_tags, str):
+                    import_tags = [t.strip() for t in import_tags.split(',') if t.strip()]
+                
+                for tag_name in import_tags:
+                    try:
+                        # Find or create tag
+                        tag = db.query(AvailableTag).filter(AvailableTag.name == tag_name).first()
+                        if not tag:
+                            tag = AvailableTag(name=tag_name, created_by=current_user.id if current_user else None)
+                            db.add(tag)
+                            db.flush()
+                        
+                        # Add tag to dive if not already present
+                        if tag.id not in [t.tag_id for t in dive.tags]:
+                            dive_tag = DiveTag(dive_id=dive.id, tag_id=tag.id)
+                            db.add(dive_tag)
+                    except Exception as e:
+                        print(f"Error importing tag '{tag_name}': {e}")
 
             # Save dive profile data if available
             if 'profile_data' in dive_data and dive_data['profile_data']:

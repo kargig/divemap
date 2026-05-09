@@ -52,6 +52,7 @@ FastAPI application handling business logic, API, and database.
   - `notification_service.py`: Dispatching Web Push and Email notifications.
   - `openai_service.py`: Integration with OpenAI for newsletter extraction and AI features.
   - `dive_profile_parser.py`: Complex parsing of dive computer log files.
+  - `dive_export_service.py`: Exporting dive profiles in Subsurface XML, Garmin FIT, and Suunto JSON formats.
   - `open_meteo_service.py`: Weather data integration.
   - `wind_recommendation_service.py`: Diving-specific wind impact logic.
   - `route_analytics_service.py`: Analysis of GPS dive routes.

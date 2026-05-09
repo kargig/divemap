@@ -152,6 +152,7 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
 
                 dive_data["gas_bottles_used"] = create_structured_gas_data(cylinders, events=events)
                 dive_data["profile_data"]["events"] = events
+                dive_data["profile_data"]["cylinders"] = cylinders
         
         # 2. GPS Coordinates
         lat, lng = None, None

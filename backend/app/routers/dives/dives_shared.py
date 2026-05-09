@@ -24,7 +24,7 @@ from app.schemas import (
     DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse,
     DiveTagCreate, DiveTagResponse, DiveSearchParams
 )
-from app.auth import get_current_user, get_current_user_optional, get_current_admin_user
+from app.auth import get_current_user, get_current_user_optional, get_current_admin_user, get_current_active_user
 from app.utils import (
     calculate_unified_phrase_aware_score,
     classify_match_type,

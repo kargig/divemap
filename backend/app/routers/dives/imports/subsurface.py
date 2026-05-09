@@ -76,7 +76,7 @@ def parse_cns_value(cns_str):
     except (ValueError, AttributeError):
         return None
 
-def parse_dive_profile_samples(computer_elem):
+def parse_dive_profile_samples(computer_elem, cylinders=None):
     # Handle both XML element and XML string
     if isinstance(computer_elem, str):
         try:
@@ -161,6 +161,7 @@ def parse_dive_profile_samples(computer_elem):
     profile_data = {
         'samples': samples,
         'events': events,
+        'cylinders': cylinders,
         'sample_count': len(samples),
         'calculated_max_depth': max(depths) if depths else 0,
         'calculated_avg_depth': sum(depths) / len(depths) if depths else 0,
@@ -423,7 +424,10 @@ def create_structured_gas_data(cylinders, events=None):
         tank_obj = {
             "tank": tank_id,
             "gas": {"o2": o2, "he": he},
-            "index": i
+            "index": i,
+            "description": cyl.get('description'),
+            "workpressure": cyl.get('workpressure'),
+            "depth": cyl.get('depth')
         }
         
         if start_p is not None:
@@ -625,7 +629,7 @@ def parse_dive_element(dive_elem, dive_sites, db, site_match_cache=None):
         profile_data = None
         divecomputer_elem = dive_elem.find('divecomputer')
         if divecomputer_elem is not None:
-            profile_data = parse_dive_profile_samples(divecomputer_elem)
+            profile_data = parse_dive_profile_samples(divecomputer_elem, cylinders=cylinders)
 
         events = profile_data.get('events') if profile_data else None
 

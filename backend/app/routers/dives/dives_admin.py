@@ -32,8 +32,7 @@ class ORJSONResponse(Response):
 from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
 from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, DiveBuddy, get_difficulty_id_by_code
-from app.services.dive_profile_parser import DiveProfileParser
-from .imports.common import parse_dive_information_text
+from app.services.dive_profile_parser import DiveProfileParser, parse_dive_information_text
 from .dives_validation import raise_validation_error
 from .dives_logging import log_dive_operation, log_error
 

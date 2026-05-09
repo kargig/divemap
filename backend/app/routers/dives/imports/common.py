@@ -8,54 +8,6 @@ from ..dives_shared import r2_storage
 from ..dives_utils import find_dive_site_by_import_id, find_potential_matches, calculate_similarity
 import re
 
-def parse_dive_information_text(dive_information):
-    """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
-    if not dive_information:
-        return {}
-    
-    parsed_fields = {}
-    
-    # Parse buddy - handle multiline text
-    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE)
-    if buddy_match:
-        parsed_fields['buddy'] = buddy_match.group(1).strip()
-    
-    # Parse SAC
-    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE)
-    if sac_match:
-        parsed_fields['sac'] = sac_match.group(1).strip()
-    
-    # Parse OTU
-    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE)
-    if otu_match:
-        parsed_fields['otu'] = otu_match.group(1).strip()
-    
-    # Parse CNS
-    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE)
-    if cns_match:
-        parsed_fields['cns'] = cns_match.group(1).strip()
-    
-    # Parse Water Temp
-    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE)
-    if water_temp_match:
-        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
-    
-    # Parse Deco Model
-    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights:|$)', dive_information, re.MULTILINE)
-    if deco_model_match:
-        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
-    
-    # Parse Weights
-    weights_match = re.search(r'Weights:\s*([^\n]+)', dive_information, re.MULTILINE)
-    if weights_match:
-        weights_value = weights_match.group(1).strip()
-        # Clean up weights value - remove extra "weight" text if present
-        if weights_value.endswith(' weight'):
-            weights_value = weights_value[:-7]  # Remove " weight" (7 characters)
-        parsed_fields['weights'] = weights_value
-    
-    return parsed_fields
-
 # Helper function to convert old difficulty labels to new codes
 def convert_difficulty_to_code(difficulty_input):
     """
