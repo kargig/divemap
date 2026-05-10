@@ -27,10 +27,10 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import AdminDiveSitesTable from '../components/tables/AdminDiveSitesTable';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { approveDiveSite, rejectDiveSite } from '../services/diveSites';
 import { formatDate } from '../utils/dateHelpers';
 import {
@@ -45,8 +45,6 @@ const AdminDiveSites = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Admin - Dive Sites');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // TanStack Table state
@@ -696,531 +694,540 @@ const AdminDiveSites = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
-        <div className='flex-1 min-w-0'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Sites Management</h1>
-          <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
-            Manage all dive sites in the system
-          </p>
-          {paginationInfo.totalCount !== undefined && (
-            <p className='text-xs sm:text-sm text-gray-500 mt-1'>
-              Total dive sites: {paginationInfo.totalCount}
+    <>
+      <SEO title='Divemap - Admin - Dive Sites' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
+          <div className='flex-1 min-w-0'>
+            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Sites Management</h1>
+            <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
+              Manage all dive sites in the system
             </p>
-          )}
-        </div>
-        <button
-          onClick={() => navigate('/dive-sites/create')}
-          className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
-        >
-          <Plus className='h-4 w-4 mr-2' />
-          <span className='hidden sm:inline'>Add Dive Site</span>
-          <span className='sm:hidden'>Add Site</span>
-        </button>
-      </div>
-
-      {/* Mass Delete Button */}
-      {Object.keys(rowSelection).length > 0 && (
-        <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center'>
-              <span className='text-red-800 font-medium'>
-                {Object.keys(rowSelection).length} item(s) selected
-              </span>
-            </div>
-            <div className='flex gap-2'>
-              <button
-                onClick={handleMassDelete}
-                disabled={massDeleteMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
-              >
-                <Archive className='h-4 w-4 mr-2' />
-                Archive Selected ({Object.keys(rowSelection).length})
-              </button>
-              <button
-                onClick={handleMassHardDelete}
-                disabled={massHardDeleteMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-              >
-                <Trash2 className='h-4 w-4 mr-2' />
-                Hard Delete Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
-        <div className='flex items-center justify-between mb-3 sm:mb-4'>
-          <h3 className='text-base sm:text-lg font-semibold'>Filters</h3>
-          <button
-            onClick={clearFilters}
-            className='text-xs sm:text-sm text-gray-600 hover:text-gray-800'
-          >
-            Clear Filters
-          </button>
-        </div>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4'>
-          <Select
-            id='difficulty-filter'
-            label='Difficulty'
-            value={filters.difficulty_code || 'all'}
-            onValueChange={value =>
-              handleFilterChange('difficulty_code', value === 'all' ? '' : value)
-            }
-            options={[
-              { value: 'all', label: 'All Difficulties' },
-              ...getDifficultyOptions()
-                .filter(option => option.value !== null)
-                .map(opt => ({ value: opt.value, label: opt.label })),
-            ]}
-          />
-          <div>
-            <label
-              htmlFor='country-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Country
-            </label>
-            <input
-              id='country-filter'
-              type='text'
-              placeholder='Search by country...'
-              value={filters.country}
-              onChange={e => handleFilterChange('country', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
-          <div>
-            <label htmlFor='region-filter' className='block text-sm font-medium text-gray-700 mb-1'>
-              Region
-            </label>
-            <input
-              id='region-filter'
-              type='text'
-              placeholder='Search by region...'
-              value={filters.region}
-              onChange={e => handleFilterChange('region', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='min-rating-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Min Rating
-            </label>
-            <input
-              id='min-rating-filter'
-              type='number'
-              min='0'
-              max='10'
-              step='1'
-              placeholder='0'
-              value={filters.min_rating}
-              onChange={e => handleFilterChange('min_rating', e.target.value)}
-              onKeyDown={e => {
-                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
-                  e.preventDefault();
-                }
-              }}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
-                  ? 'border-red-500 ring-1 ring-red-500'
-                  : 'border-gray-300'
-              }`}
-            />
-            {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
-              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+            {paginationInfo.totalCount !== undefined && (
+              <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                Total dive sites: {paginationInfo.totalCount}
+              </p>
             )}
           </div>
-          <div>
-            <label
-              htmlFor='max-rating-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Max Rating
-            </label>
-            <input
-              id='max-rating-filter'
-              type='number'
-              min='0'
-              max='10'
-              step='1'
-              placeholder='10'
-              value={filters.max_rating}
-              onChange={e => handleFilterChange('max_rating', e.target.value)}
-              onKeyDown={e => {
-                if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
-                  e.preventDefault();
-                }
-              }}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10)
-                  ? 'border-red-500 ring-1 ring-red-500'
-                  : 'border-gray-300'
-              }`}
-            />
-            {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
-              <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
-            )}
-          </div>
-          <div>
-            <label
-              htmlFor='dive-site-id-filter'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Dive Site ID
-            </label>
-            <input
-              id='dive-site-id-filter'
-              type='text'
-              placeholder='ID...'
-              value={filters.dive_site_id}
-              onChange={e => handleFilterChange('dive_site_id', e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
-          <Select
-            id='status-filter'
-            label='Status'
-            value={filters.status || 'all'}
-            onValueChange={value => handleFilterChange('status', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'rejected', label: 'Rejected' },
-            ]}
-          />
-        </div>
-        <div className='mt-4 flex items-center'>
-          <label className='flex items-center text-sm font-medium text-gray-700 cursor-pointer'>
-            <input
-              type='checkbox'
-              checked={filters.include_archived}
-              onChange={e => handleFilterChange('include_archived', e.target.checked)}
-              className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-            />
-            Include Archived (Soft Deleted) Sites
-          </label>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className='mb-4 sm:mb-6'>
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
-          <input
-            type='text'
-            placeholder='Search dive sites by name...'
-            value={searchInput}
-            onChange={e => {
-              const value = e.target.value;
-              setSearchInput(value); // Update input immediately for visual feedback
-              debouncedSearch(value); // Debounce the filter update
-            }}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-          />
-          {searchInput && (
-            <button
-              onClick={() => {
-                setSearchInput('');
-                setFilters(prev => ({ ...prev, name: '' }));
-                setPagination(prev => ({ ...prev, pageIndex: 0 }));
-              }}
-              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
-            >
-              <X className='h-4 w-4' />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Table Toolbar */}
-      <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
-        {/* Column Visibility Toggle */}
-        <div className='relative'>
           <button
-            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
-            onClick={e => {
-              e.stopPropagation();
-              const menu = document.getElementById('column-visibility-menu');
-              if (menu) {
-                menu.classList.toggle('hidden');
-              }
-            }}
+            onClick={() => navigate('/dive-sites/create')}
+            className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
           >
-            <Columns className='h-4 w-4' />
-            Columns
+            <Plus className='h-4 w-4 mr-2' />
+            <span className='hidden sm:inline'>Add Dive Site</span>
+            <span className='sm:hidden'>Add Site</span>
           </button>
-          <div
-            id='column-visibility-menu'
-            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-2'>
-              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
-                Toggle Columns
+        </div>
+
+        {/* Mass Delete Button */}
+        {Object.keys(rowSelection).length > 0 && (
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <span className='text-red-800 font-medium'>
+                  {Object.keys(rowSelection).length} item(s) selected
+                </span>
               </div>
-              {columns
-                .filter(col => {
-                  const colId = col.id || col.accessorKey;
-                  return colId !== 'select' && colId !== 'actions';
-                })
-                .map(column => {
-                  const columnId = column.id || column.accessorKey;
-                  const isVisible = columnVisibility[columnId] !== false;
-                  return (
-                    <label
-                      key={columnId}
-                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={isVisible}
-                        onChange={e => {
-                          setColumnVisibility(prev => ({
-                            ...prev,
-                            [columnId]: e.target.checked,
-                          }));
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-700'>
-                        {typeof column.header === 'string'
-                          ? column.header
-                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
+              <div className='flex gap-2'>
+                <button
+                  onClick={handleMassDelete}
+                  disabled={massDeleteMutation.isLoading}
+                  className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
+                >
+                  <Archive className='h-4 w-4 mr-2' />
+                  Archive Selected ({Object.keys(rowSelection).length})
+                </button>
+                <button
+                  onClick={handleMassHardDelete}
+                  disabled={massHardDeleteMutation.isLoading}
+                  className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+                >
+                  <Trash2 className='h-4 w-4 mr-2' />
+                  Hard Delete Selected
+                </button>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
+          <div className='flex items-center justify-between mb-3 sm:mb-4'>
+            <h3 className='text-base sm:text-lg font-semibold'>Filters</h3>
+            <button
+              onClick={clearFilters}
+              className='text-xs sm:text-sm text-gray-600 hover:text-gray-800'
+            >
+              Clear Filters
+            </button>
+          </div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4'>
+            <Select
+              id='difficulty-filter'
+              label='Difficulty'
+              value={filters.difficulty_code || 'all'}
+              onValueChange={value =>
+                handleFilterChange('difficulty_code', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'All Difficulties' },
+                ...getDifficultyOptions()
+                  .filter(option => option.value !== null)
+                  .map(opt => ({ value: opt.value, label: opt.label })),
+              ]}
+            />
+            <div>
+              <label
+                htmlFor='country-filter'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Country
+              </label>
+              <input
+                id='country-filter'
+                type='text'
+                placeholder='Search by country...'
+                value={filters.country}
+                onChange={e => handleFilterChange('country', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='region-filter'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Region
+              </label>
+              <input
+                id='region-filter'
+                type='text'
+                placeholder='Search by region...'
+                value={filters.region}
+                onChange={e => handleFilterChange('region', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='min-rating-filter'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Min Rating
+              </label>
+              <input
+                id='min-rating-filter'
+                type='number'
+                min='0'
+                max='10'
+                step='1'
+                placeholder='0'
+                value={filters.min_rating}
+                onChange={e => handleFilterChange('min_rating', e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                    e.preventDefault();
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                    ? 'border-red-500 ring-1 ring-red-500'
+                    : 'border-gray-300'
+                }`}
+              />
+              {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
+                <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor='max-rating-filter'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Max Rating
+              </label>
+              <input
+                id='max-rating-filter'
+                type='number'
+                min='0'
+                max='10'
+                step='1'
+                placeholder='10'
+                value={filters.max_rating}
+                onChange={e => handleFilterChange('max_rating', e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === '.' || e.key === 'e' || e.key === 'E' || e.key === ',') {
+                    e.preventDefault();
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10)
+                    ? 'border-red-500 ring-1 ring-red-500'
+                    : 'border-gray-300'
+                }`}
+              />
+              {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
+                <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor='dive-site-id-filter'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Dive Site ID
+              </label>
+              <input
+                id='dive-site-id-filter'
+                type='text'
+                placeholder='ID...'
+                value={filters.dive_site_id}
+                onChange={e => handleFilterChange('dive_site_id', e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <Select
+              id='status-filter'
+              label='Status'
+              value={filters.status || 'all'}
+              onValueChange={value => handleFilterChange('status', value === 'all' ? '' : value)}
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'approved', label: 'Approved' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'rejected', label: 'Rejected' },
+              ]}
+            />
+          </div>
+          <div className='mt-4 flex items-center'>
+            <label className='flex items-center text-sm font-medium text-gray-700 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={filters.include_archived}
+                onChange={e => handleFilterChange('include_archived', e.target.checked)}
+                className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+              />
+              Include Archived (Soft Deleted) Sites
+            </label>
           </div>
         </div>
 
-        {/* Export Buttons */}
-        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-          <button
-            onClick={async () => {
-              try {
-                toast.loading('Exporting current page...', { id: 'export-toast' });
-                // Export current page to CSV
-                const headers = [
-                  'ID',
-                  'Name',
-                  'Description',
-                  'Creator',
-                  'Difficulty',
-                  'Rating',
-                  'Views',
-                  'Country',
-                  'Region',
-                ];
-                const rows = (diveSites || []).map(site => [
-                  site.id,
-                  site.name || '',
-                  site.description ? decodeHtmlEntities(site.description) : '',
-                  site.created_by_username || 'Unknown',
-                  site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
-                  site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',
-                  site.view_count || 0,
-                  site.country || '',
-                  site.region || '',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `dive-sites-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(`Exported ${rows.length} dive sites to CSV`, { id: 'export-toast' });
-              } catch (error) {
-                toast.error('Failed to export CSV', { id: 'export-toast' });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span className='hidden sm:inline'>Export Page</span>
-            <span className='sm:hidden'>Export Page</span>
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                const totalCount = paginationInfo.totalCount || 0;
-                if (totalCount === 0) {
-                  toast.error('No dive sites to export');
-                  return;
-                }
-
-                if (
-                  !window.confirm(
-                    `This will export all ${totalCount.toLocaleString()} dive sites. This may take a moment. Continue?`
-                  )
-                ) {
-                  return;
-                }
-
-                toast.loading(`Exporting all ${totalCount.toLocaleString()} dive sites...`, {
-                  id: 'export-all-toast',
-                });
-
-                // Fetch all dive sites using page_size=1000 (max allowed)
-                const allDiveSites = [];
-                let currentPage = 1;
-                let hasMore = true;
-
-                while (hasMore) {
-                  const params = new URLSearchParams();
-                  params.append('page', currentPage.toString());
-                  params.append('page_size', '1000'); // Max page size
-
-                  // Add filters
-                  if (filters.name) params.append('name', filters.name);
-                  if (filters.difficulty_code)
-                    params.append('difficulty_code', filters.difficulty_code);
-                  if (filters.country) params.append('country', filters.country);
-                  if (filters.region) params.append('region', filters.region);
-                  if (filters.min_rating) params.append('min_rating', filters.min_rating);
-                  if (filters.max_rating) params.append('max_rating', filters.max_rating);
-                  if (filters.include_archived) params.append('include_archived', 'true');
-
-                  // Add sorting if any
-                  const sortParams = getSortParams();
-                  if (sortParams.sort_by) {
-                    params.append('sort_by', sortParams.sort_by);
-                    params.append('sort_order', sortParams.sort_order);
-                  }
-
-                  const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
-                  const responseData = response.data;
-                  const pageData = responseData?.items || responseData || [];
-
-                  if (pageData && pageData.length > 0) {
-                    allDiveSites.push(...pageData);
-                    currentPage++;
-
-                    // Check if there's more data
-                    const totalPages =
-                      responseData?.total_pages ||
-                      parseInt(
-                        response.headers['x-total-pages'] ||
-                          response.headers['X-Total-Pages'] ||
-                          '1'
-                      );
-                    hasMore = currentPage <= totalPages;
-                  } else {
-                    hasMore = false;
-                  }
-                }
-
-                // Export to CSV
-                const headers = [
-                  'ID',
-                  'Name',
-                  'Description',
-                  'Creator',
-                  'Difficulty',
-                  'Rating',
-                  'Views',
-                  'Country',
-                  'Region',
-                ];
-                const rows = allDiveSites.map(site => [
-                  site.id,
-                  site.name || '',
-                  site.description ? decodeHtmlEntities(site.description) : '',
-                  site.created_by_username || 'Unknown',
-                  site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
-                  site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',
-                  site.view_count || 0,
-                  site.country || '',
-                  site.region || '',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `dive-sites-all-${totalCount}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(
-                  `Exported all ${allDiveSites.length.toLocaleString()} dive sites to CSV`,
-                  { id: 'export-all-toast' }
-                );
-              } catch (error) {
-                console.error('Export error:', error);
-                toast.error('Failed to export all dive sites. Please try again.', {
-                  id: 'export-all-toast',
-                });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span>Export All</span>
-          </button>
+        {/* Search */}
+        <div className='mb-4 sm:mb-6'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+            <input
+              type='text'
+              placeholder='Search dive sites by name...'
+              value={searchInput}
+              onChange={e => {
+                const value = e.target.value;
+                setSearchInput(value); // Update input immediately for visual feedback
+                debouncedSearch(value); // Debounce the filter update
+              }}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setFilters(prev => ({ ...prev, name: '' }));
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* TanStack Table */}
-      <AdminDiveSitesTable
-        data={diveSites || []}
-        columns={columns}
-        pagination={{
-          ...pagination,
-          pageCount: paginationInfo.totalPages || 0,
-          totalCount: paginationInfo.totalCount || 0,
-        }}
-        onPaginationChange={handlePaginationChange}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        onView={handleViewDiveSite}
-        onEdit={handleEditDiveSite}
-        onDelete={handleDeleteDiveSite}
-        onRestore={handleRestoreDiveSite}
-        onHardDelete={handleHardDeleteDiveSite}
-        isLoading={isLoading}
-      />
-    </div>
+        {/* Table Toolbar */}
+        <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
+          {/* Column Visibility Toggle */}
+          <div className='relative'>
+            <button
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              onClick={e => {
+                e.stopPropagation();
+                const menu = document.getElementById('column-visibility-menu');
+                if (menu) {
+                  menu.classList.toggle('hidden');
+                }
+              }}
+            >
+              <Columns className='h-4 w-4' />
+              Columns
+            </button>
+            <div
+              id='column-visibility-menu'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              onClick={e => e.stopPropagation()}
+            >
+              <div className='p-2'>
+                <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
+                  Toggle Columns
+                </div>
+                {columns
+                  .filter(col => {
+                    const colId = col.id || col.accessorKey;
+                    return colId !== 'select' && colId !== 'actions';
+                  })
+                  .map(column => {
+                    const columnId = column.id || column.accessorKey;
+                    const isVisible = columnVisibility[columnId] !== false;
+                    return (
+                      <label
+                        key={columnId}
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                      >
+                        <input
+                          type='checkbox'
+                          checked={isVisible}
+                          onChange={e => {
+                            setColumnVisibility(prev => ({
+                              ...prev,
+                              [columnId]: e.target.checked,
+                            }));
+                          }}
+                          className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                        <span className='text-sm text-gray-700'>
+                          {typeof column.header === 'string'
+                            ? column.header
+                            : columnId.charAt(0).toUpperCase() +
+                              columnId.slice(1).replace(/_/g, ' ')}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+            <button
+              onClick={async () => {
+                try {
+                  toast.loading('Exporting current page...', { id: 'export-toast' });
+                  // Export current page to CSV
+                  const headers = [
+                    'ID',
+                    'Name',
+                    'Description',
+                    'Creator',
+                    'Difficulty',
+                    'Rating',
+                    'Views',
+                    'Country',
+                    'Region',
+                  ];
+                  const rows = (diveSites || []).map(site => [
+                    site.id,
+                    site.name || '',
+                    site.description ? decodeHtmlEntities(site.description) : '',
+                    site.created_by_username || 'Unknown',
+                    site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
+                    site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',
+                    site.view_count || 0,
+                    site.country || '',
+                    site.region || '',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `dive-sites-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(`Exported ${rows.length} dive sites to CSV`, {
+                    id: 'export-toast',
+                  });
+                } catch (error) {
+                  toast.error('Failed to export CSV', { id: 'export-toast' });
+                }
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span className='hidden sm:inline'>Export Page</span>
+              <span className='sm:hidden'>Export Page</span>
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const totalCount = paginationInfo.totalCount || 0;
+                  if (totalCount === 0) {
+                    toast.error('No dive sites to export');
+                    return;
+                  }
+
+                  if (
+                    !window.confirm(
+                      `This will export all ${totalCount.toLocaleString()} dive sites. This may take a moment. Continue?`
+                    )
+                  ) {
+                    return;
+                  }
+
+                  toast.loading(`Exporting all ${totalCount.toLocaleString()} dive sites...`, {
+                    id: 'export-all-toast',
+                  });
+
+                  // Fetch all dive sites using page_size=1000 (max allowed)
+                  const allDiveSites = [];
+                  let currentPage = 1;
+                  let hasMore = true;
+
+                  while (hasMore) {
+                    const params = new URLSearchParams();
+                    params.append('page', currentPage.toString());
+                    params.append('page_size', '1000'); // Max page size
+
+                    // Add filters
+                    if (filters.name) params.append('name', filters.name);
+                    if (filters.difficulty_code)
+                      params.append('difficulty_code', filters.difficulty_code);
+                    if (filters.country) params.append('country', filters.country);
+                    if (filters.region) params.append('region', filters.region);
+                    if (filters.min_rating) params.append('min_rating', filters.min_rating);
+                    if (filters.max_rating) params.append('max_rating', filters.max_rating);
+                    if (filters.include_archived) params.append('include_archived', 'true');
+
+                    // Add sorting if any
+                    const sortParams = getSortParams();
+                    if (sortParams.sort_by) {
+                      params.append('sort_by', sortParams.sort_by);
+                      params.append('sort_order', sortParams.sort_order);
+                    }
+
+                    const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
+                    const responseData = response.data;
+                    const pageData = responseData?.items || responseData || [];
+
+                    if (pageData && pageData.length > 0) {
+                      allDiveSites.push(...pageData);
+                      currentPage++;
+
+                      // Check if there's more data
+                      const totalPages =
+                        responseData?.total_pages ||
+                        parseInt(
+                          response.headers['x-total-pages'] ||
+                            response.headers['X-Total-Pages'] ||
+                            '1'
+                        );
+                      hasMore = currentPage <= totalPages;
+                    } else {
+                      hasMore = false;
+                    }
+                  }
+
+                  // Export to CSV
+                  const headers = [
+                    'ID',
+                    'Name',
+                    'Description',
+                    'Creator',
+                    'Difficulty',
+                    'Rating',
+                    'Views',
+                    'Country',
+                    'Region',
+                  ];
+                  const rows = allDiveSites.map(site => [
+                    site.id,
+                    site.name || '',
+                    site.description ? decodeHtmlEntities(site.description) : '',
+                    site.created_by_username || 'Unknown',
+                    site.difficulty_label || getDifficultyLabel(site.difficulty_code) || '',
+                    site.average_rating ? site.average_rating.toFixed(1) : 'No ratings',
+                    site.view_count || 0,
+                    site.country || '',
+                    site.region || '',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `dive-sites-all-${totalCount}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(
+                    `Exported all ${allDiveSites.length.toLocaleString()} dive sites to CSV`,
+                    { id: 'export-all-toast' }
+                  );
+                } catch (error) {
+                  console.error('Export error:', error);
+                  toast.error('Failed to export all dive sites. Please try again.', {
+                    id: 'export-all-toast',
+                  });
+                }
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span>Export All</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TanStack Table */}
+        <AdminDiveSitesTable
+          data={diveSites || []}
+          columns={columns}
+          pagination={{
+            ...pagination,
+            pageCount: paginationInfo.totalPages || 0,
+            totalCount: paginationInfo.totalCount || 0,
+          }}
+          onPaginationChange={handlePaginationChange}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          onView={handleViewDiveSite}
+          onEdit={handleEditDiveSite}
+          onDelete={handleDeleteDiveSite}
+          onRestore={handleRestoreDiveSite}
+          onHardDelete={handleHardDeleteDiveSite}
+          isLoading={isLoading}
+        />
+      </div>
+    </>
   );
 };
 

@@ -26,14 +26,13 @@ import { useQuery } from 'react-query';
 import { useSearchParams, Link } from 'react-router-dom';
 
 import api from '../api';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const AdminAuditLogs = () => {
-  usePageTitle('Divemap - Admin - Audit Logs');
   const [searchParams, setSearchParams] = useSearchParams();
   const { token } = theme.useToken();
 
@@ -222,148 +221,151 @@ const AdminAuditLogs = () => {
   ];
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
-        <div>
-          <Title level={2} style={{ margin: 0 }}>
-            <SafetyCertificateOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
-            Auth Audit Logs
-          </Title>
-          <Text type='secondary'>
-            Monitor security-sensitive authentication and authorization events.
-          </Text>
-        </div>
-        <Space className='mt-4 md:mt-0'>
-          <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
-            Refresh
-          </Button>
-          <Link to='/admin'>
-            <Button>Back to Dashboard</Button>
-          </Link>
-        </Space>
-      </div>
-
-      <Card
-        className='mb-6'
-        variant='borderless'
-        style={{ boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
-      >
-        <Space direction='vertical' size='middle' style={{ width: '100%' }}>
-          <div className='flex items-center justify-between'>
-            <Space>
-              <FilterOutlined style={{ color: token.colorTextSecondary }} />
-              <Text strong style={{ textTransform: 'uppercase', fontSize: '12px' }}>
-                Filters
-              </Text>
-            </Space>
-            {(filters.action ||
-              filters.username ||
-              filters.ipAddress ||
-              filters.success !== undefined ||
-              filters.excludeActions.length > 0) && (
-              <Button type='link' size='small' onClick={clearFilters}>
-                Clear All
-              </Button>
-            )}
-          </div>
-
-          <Row gutter={[16, 16]}>
-            <Col xs={24} md={8} lg={6}>
-              <Input
-                placeholder='Search Username'
-                prefix={<UserOutlined style={{ color: token.colorTextPlaceholder }} />}
-                value={filters.username}
-                onChange={e => handleFilterChange('username', e.target.value)}
-                allowClear
-              />
-            </Col>
-            <Col xs={24} md={8} lg={6}>
-              <Input
-                placeholder='Search IP Address'
-                prefix={<SearchOutlined style={{ color: token.colorTextPlaceholder }} />}
-                value={filters.ipAddress}
-                onChange={e => handleFilterChange('ipAddress', e.target.value)}
-                allowClear
-              />
-            </Col>
-            <Col xs={24} md={8} lg={6}>
-              <Select
-                placeholder='Event Type'
-                style={{ width: '100%' }}
-                value={filters.action}
-                onChange={value => handleFilterChange('action', value)}
-                allowClear
-              >
-                <Option value='login'>Login</Option>
-                <Option value='password_reset_request'>Reset Request</Option>
-                <Option value='password_reset_success'>Reset Success</Option>
-                <Option value='token_created'>Token Created</Option>
-                <Option value='token_refresh'>Token Refresh</Option>
-                <Option value='token_rotated'>Token Rotated</Option>
-              </Select>
-            </Col>
-            <Col xs={24} md={8} lg={6}>
-              <Select
-                placeholder='Status'
-                style={{ width: '100%' }}
-                value={filters.success}
-                onChange={value => handleFilterChange('success', value)}
-                allowClear
-              >
-                <Option value='true'>Success</Option>
-                <Option value='false'>Failure</Option>
-              </Select>
-            </Col>
-          </Row>
-
+    <>
+      <SEO title='Divemap - Admin - Audit Logs' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
           <div>
-            <Text
-              type='secondary'
-              style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}
-            >
-              HIDE NOISY EVENTS
+            <Title level={2} style={{ margin: 0 }}>
+              <SafetyCertificateOutlined style={{ marginRight: 8, color: token.colorPrimary }} />
+              Auth Audit Logs
+            </Title>
+            <Text type='secondary'>
+              Monitor security-sensitive authentication and authorization events.
             </Text>
-            <Space wrap>
-              {['token_created', 'token_refresh', 'token_rotated'].map(action => (
-                <Tag.CheckableTag
-                  key={action}
-                  checked={filters.excludeActions.includes(action)}
-                  onChange={checked => toggleExcludeAction(action, checked)}
-                  style={{
-                    border: `1px solid ${
-                      filters.excludeActions.includes(action) ? token.colorPrimary : '#d9d9d9'
-                    }`,
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                  }}
-                >
-                  {action.replace(/_/g, ' ')}
-                </Tag.CheckableTag>
-              ))}
-            </Space>
           </div>
-        </Space>
-      </Card>
+          <Space className='mt-4 md:mt-0'>
+            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isLoading}>
+              Refresh
+            </Button>
+            <Link to='/admin'>
+              <Button>Back to Dashboard</Button>
+            </Link>
+          </Space>
+        </div>
 
-      <Table
-        columns={columns}
-        dataSource={logs?.data}
-        rowKey='id'
-        pagination={{
-          ...pagination,
-          showSizeChanger: true,
-          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-        }}
-        loading={isLoading}
-        onChange={handleTableChange}
-        scroll={{ x: 'max-content' }}
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
-        }}
-      />
-    </div>
+        <Card
+          className='mb-6'
+          variant='borderless'
+          style={{ boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)' }}
+        >
+          <Space direction='vertical' size='middle' style={{ width: '100%' }}>
+            <div className='flex items-center justify-between'>
+              <Space>
+                <FilterOutlined style={{ color: token.colorTextSecondary }} />
+                <Text strong style={{ textTransform: 'uppercase', fontSize: '12px' }}>
+                  Filters
+                </Text>
+              </Space>
+              {(filters.action ||
+                filters.username ||
+                filters.ipAddress ||
+                filters.success !== undefined ||
+                filters.excludeActions.length > 0) && (
+                <Button type='link' size='small' onClick={clearFilters}>
+                  Clear All
+                </Button>
+              )}
+            </div>
+
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={8} lg={6}>
+                <Input
+                  placeholder='Search Username'
+                  prefix={<UserOutlined style={{ color: token.colorTextPlaceholder }} />}
+                  value={filters.username}
+                  onChange={e => handleFilterChange('username', e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col xs={24} md={8} lg={6}>
+                <Input
+                  placeholder='Search IP Address'
+                  prefix={<SearchOutlined style={{ color: token.colorTextPlaceholder }} />}
+                  value={filters.ipAddress}
+                  onChange={e => handleFilterChange('ipAddress', e.target.value)}
+                  allowClear
+                />
+              </Col>
+              <Col xs={24} md={8} lg={6}>
+                <Select
+                  placeholder='Event Type'
+                  style={{ width: '100%' }}
+                  value={filters.action}
+                  onChange={value => handleFilterChange('action', value)}
+                  allowClear
+                >
+                  <Option value='login'>Login</Option>
+                  <Option value='password_reset_request'>Reset Request</Option>
+                  <Option value='password_reset_success'>Reset Success</Option>
+                  <Option value='token_created'>Token Created</Option>
+                  <Option value='token_refresh'>Token Refresh</Option>
+                  <Option value='token_rotated'>Token Rotated</Option>
+                </Select>
+              </Col>
+              <Col xs={24} md={8} lg={6}>
+                <Select
+                  placeholder='Status'
+                  style={{ width: '100%' }}
+                  value={filters.success}
+                  onChange={value => handleFilterChange('success', value)}
+                  allowClear
+                >
+                  <Option value='true'>Success</Option>
+                  <Option value='false'>Failure</Option>
+                </Select>
+              </Col>
+            </Row>
+
+            <div>
+              <Text
+                type='secondary'
+                style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}
+              >
+                HIDE NOISY EVENTS
+              </Text>
+              <Space wrap>
+                {['token_created', 'token_refresh', 'token_rotated'].map(action => (
+                  <Tag.CheckableTag
+                    key={action}
+                    checked={filters.excludeActions.includes(action)}
+                    onChange={checked => toggleExcludeAction(action, checked)}
+                    style={{
+                      border: `1px solid ${
+                        filters.excludeActions.includes(action) ? token.colorPrimary : '#d9d9d9'
+                      }`,
+                      padding: '4px 12px',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    {action.replace(/_/g, ' ')}
+                  </Tag.CheckableTag>
+                ))}
+              </Space>
+            </div>
+          </Space>
+        </Card>
+
+        <Table
+          columns={columns}
+          dataSource={logs?.data}
+          rowKey='id'
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+          }}
+          loading={isLoading}
+          onChange={handleTableChange}
+          scroll={{ x: 'max-content' }}
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: '8px',
+            boxShadow: '0 1px 2px 0 rgba(0,0,0,0.05)',
+          }}
+        />
+      </div>
+    </>
   );
 };
 

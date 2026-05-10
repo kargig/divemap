@@ -18,9 +18,9 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import NewsletterUpload from '../components/NewsletterUpload';
+import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import Modal from '../components/ui/Modal';
-import usePageTitle from '../hooks/usePageTitle';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import {
@@ -40,8 +40,6 @@ import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDisplayStatus } from '../utils/tripHelpers';
 
 const AdminNewsletters = () => {
-  // Set page title
-  usePageTitle('Divemap - Admin - Newsletters');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Get active tab from URL, default to 'create'
@@ -352,495 +350,500 @@ const AdminNewsletters = () => {
   // Function to determine the display status based on trip date
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900'>Newsletter Management</h1>
-        <p className='text-gray-600 mt-2'>Upload and manage dive trip newsletters</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className='bg-white rounded-lg shadow-md mb-6'>
-        <div className='border-b border-gray-200'>
-          <nav className='flex space-x-8 px-6'>
-            <button
-              onClick={() => handleTabChange('create')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'create'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Create Newsletter
-            </button>
-            <button
-              onClick={() => handleTabChange('list')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'list'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              List Newsletters
-            </button>
-          </nav>
+    <>
+      <SEO title='Divemap - Admin - Newsletters' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>Newsletter Management</h1>
+          <p className='text-gray-600 mt-2'>Upload and manage dive trip newsletters</p>
         </div>
-      </div>
 
-      {/* Tab Content */}
-      {activeTab === 'create' && (
-        <NewsletterUpload
-          divingCenters={divingCenters}
-          onSuccess={() => {
-            queryClient.invalidateQueries('parsedTrips');
-            queryClient.invalidateQueries('newsletters');
-          }}
-        />
-      )}
-
-      {activeTab === 'list' && (
-        <div className='space-y-6'>
-          {/* Newsletters Section */}
-          <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
-            <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-xl font-semibold text-gray-900'>Newsletters</h2>
-              {selectedNewsletters.size > 0 && (
-                <button
-                  onClick={handleMassDeleteNewsletters}
-                  className='flex items-center px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm'
-                >
-                  <Trash2 className='h-4 w-4 mr-1' />
-                  Delete Selected ({selectedNewsletters.size})
-                </button>
-              )}
-            </div>
-
-            {newslettersLoading && (
-              <div className='text-center py-8'>
-                <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                <p className='text-gray-600 mt-2'>Loading newsletters...</p>
-              </div>
-            )}
-
-            {newslettersError && (
-              <div className='text-center py-8'>
-                <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-2' />
-                <p className='text-red-600'>Error loading newsletters</p>
-              </div>
-            )}
-
-            {newsletters && newsletters.length === 0 && (
-              <div className='text-center py-8'>
-                <FileText className='h-8 w-8 text-gray-400 mx-auto mb-2' />
-                <p className='text-gray-600'>No newsletters found</p>
-              </div>
-            )}
-
-            {newsletters && newsletters.length > 0 && (
-              <div className='space-y-4'>
-                {/* Select All */}
-                <div className='flex items-center space-x-2 p-2 bg-gray-50 rounded'>
-                  <input
-                    type='checkbox'
-                    checked={selectedNewsletters.size === newsletters.length}
-                    onChange={handleSelectAllNewsletters}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                  <span className='text-sm text-gray-700'>Select All</span>
-                </div>
-
-                {newsletters.map(newsletter => {
-                  // Get trips for this newsletter
-                  const newsletterTrips =
-                    trips?.filter(trip => trip.source_newsletter_id === newsletter.id) || [];
-
-                  // Extract unique diving center names
-                  const divingCenterNames = [
-                    ...new Set(
-                      newsletterTrips.map(trip => trip.diving_center_name).filter(name => name)
-                    ),
-                  ];
-
-                  // Extract and sort trip dates
-                  const tripDates = newsletterTrips
-                    .map(trip => trip.trip_date)
-                    .filter(date => date)
-                    .sort((a, b) => new Date(a) - new Date(b))
-                    .map(date => formatDate(date));
-
-                  return (
-                    <div key={newsletter.id} className='border rounded-lg p-4 hover:bg-gray-50'>
-                      <div className='flex items-center space-x-4'>
-                        <input
-                          type='checkbox'
-                          checked={selectedNewsletters.has(newsletter.id)}
-                          onChange={() => handleSelectNewsletter(newsletter.id)}
-                          className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                        />
-
-                        <div className='flex-1'>
-                          <div className='flex items-center justify-between'>
-                            <div>
-                              <h3 className='text-lg font-semibold text-gray-900'>
-                                Newsletter #{newsletter.id}
-                              </h3>
-                              <p className='text-sm text-gray-600'>
-                                Received: {formatDate(newsletter.received_at)}
-                              </p>
-                              <p className='text-sm text-gray-600'>
-                                Trips extracted: {newsletter.trips_count}
-                              </p>
-                              {divingCenterNames.length > 0 && (
-                                <p className='text-sm text-gray-700 font-medium mt-1'>
-                                  Diving Center: {divingCenterNames.join(', ')}
-                                </p>
-                              )}
-                              {tripDates.length > 0 && (
-                                <p className='text-sm text-gray-600 mt-1'>
-                                  Trip dates:{' '}
-                                  {tripDates.length <= 3
-                                    ? tripDates.join(', ')
-                                    : `${tripDates.slice(0, 3).join(', ')} and ${tripDates.length - 3} more`}
-                                </p>
-                              )}
-                            </div>
-
-                            <div className='flex items-center space-x-2'>
-                              <button
-                                onClick={() => handleReparseNewsletter(newsletter.id)}
-                                disabled={reparsingNewsletter === newsletter.id}
-                                className='p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded disabled:opacity-50'
-                                title='Re-parse newsletter'
-                              >
-                                <RefreshCw
-                                  className={`h-4 w-4 ${reparsingNewsletter === newsletter.id ? 'animate-spin' : ''}`}
-                                />
-                              </button>
-
-                              <button
-                                onClick={() => handleViewNewsletter(newsletter.id)}
-                                className='p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded'
-                                title='View raw newsletter text'
-                              >
-                                <Eye className='h-4 w-4' />
-                              </button>
-
-                              <button
-                                onClick={() => handleEditNewsletter(newsletter)}
-                                className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
-                                title='Edit newsletter text'
-                              >
-                                <Edit className='h-4 w-4' />
-                              </button>
-
-                              <button
-                                onClick={() => handleViewNewsletterTrips(newsletter.id)}
-                                className='p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded'
-                                title='View parsed dive trip information'
-                              >
-                                <FileText className='h-4 w-4' />
-                              </button>
-
-                              <button
-                                onClick={() => handleDeleteNewsletter(newsletter.id)}
-                                className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
-                                title='Delete newsletter + associated dive trips'
-                              >
-                                <Trash2 className='h-4 w-4' />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        {/* Tab Navigation */}
+        <div className='bg-white rounded-lg shadow-md mb-6'>
+          <div className='border-b border-gray-200'>
+            <nav className='flex space-x-8 px-6'>
+              <button
+                onClick={() => handleTabChange('create')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'create'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Create Newsletter
+              </button>
+              <button
+                onClick={() => handleTabChange('list')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'list'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                List Newsletters
+              </button>
+            </nav>
           </div>
         </div>
-      )}
 
-      {/* View Newsletter Trips Modal */}
-      <Modal
-        isOpen={!!viewingNewsletterTrips}
-        onClose={() => setViewingNewsletterTrips(null)}
-        title={`Parsed Dive Trips - Newsletter #${viewingNewsletterTrips}`}
-        className='max-w-6xl max-h-[90vh] overflow-y-auto'
-      >
-        {tripsLoading && (
-          <div className='text-center py-8'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-            <p className='text-gray-600 mt-2'>Loading trips...</p>
-          </div>
+        {/* Tab Content */}
+        {activeTab === 'create' && (
+          <NewsletterUpload
+            divingCenters={divingCenters}
+            onSuccess={() => {
+              queryClient.invalidateQueries('parsedTrips');
+              queryClient.invalidateQueries('newsletters');
+            }}
+          />
         )}
 
-        {tripsError && (
-          <div className='text-center py-8'>
-            <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-2' />
-            <p className='text-red-600'>Error loading trips</p>
-          </div>
-        )}
-
-        {(() => {
-          const newsletterTrips =
-            trips?.filter(trip => trip.source_newsletter_id === viewingNewsletterTrips) || [];
-
-          if (newsletterTrips.length === 0) {
-            return (
-              <div className='text-center py-8'>
-                <FileText className='h-8 w-8 text-gray-400 mx-auto mb-2' />
-                <p className='text-gray-600'>No trips found for this newsletter</p>
-              </div>
-            );
-          }
-
-          return (
-            <div className='space-y-4'>
+        {activeTab === 'list' && (
+          <div className='space-y-6'>
+            {/* Newsletters Section */}
+            <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
               <div className='flex justify-between items-center mb-4'>
-                <p className='text-sm text-gray-600'>
-                  Found {newsletterTrips.length} trip{newsletterTrips.length !== 1 ? 's' : ''}
-                </p>
-                <button
-                  onClick={() => setCreatingTrip(true)}
-                  className='flex items-center px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm'
-                >
-                  <Plus className='h-4 w-4 mr-1' />
-                  Add Trip
-                </button>
+                <h2 className='text-xl font-semibold text-gray-900'>Newsletters</h2>
+                {selectedNewsletters.size > 0 && (
+                  <button
+                    onClick={handleMassDeleteNewsletters}
+                    className='flex items-center px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm'
+                  >
+                    <Trash2 className='h-4 w-4 mr-1' />
+                    Delete Selected ({selectedNewsletters.size})
+                  </button>
+                )}
               </div>
 
-              {newsletterTrips.map(trip => (
-                <div key={trip.id} className='border rounded-lg p-4 hover:bg-gray-50'>
-                  <div className='flex justify-between items-start'>
-                    <div className='flex-1'>
-                      <div className='flex items-center space-x-4 mb-2'>
-                        <h4 className='text-lg font-semibold text-gray-900'>
-                          {trip.diving_center_name || 'Unknown Center'}
-                        </h4>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            getDisplayStatus(trip) === 'scheduled'
-                              ? 'bg-green-100 text-green-800'
-                              : getDisplayStatus(trip) === 'confirmed'
-                                ? 'bg-blue-100 text-blue-800'
-                                : getDisplayStatus(trip) === 'cancelled'
-                                  ? 'bg-red-100 text-red-800'
-                                  : getDisplayStatus(trip) === 'completed'
-                                    ? 'bg-gray-100 text-gray-800'
-                                    : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {getDisplayStatus(trip)}
-                        </span>
-                      </div>
+              {newslettersLoading && (
+                <div className='text-center py-8'>
+                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                  <p className='text-gray-600 mt-2'>Loading newsletters...</p>
+                </div>
+              )}
 
-                      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600'>
-                        <div className='flex items-center'>
-                          <Calendar className='h-4 w-4 mr-2' />
-                          <span>{formatDate(trip.trip_date)}</span>
-                        </div>
+              {newslettersError && (
+                <div className='text-center py-8'>
+                  <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-2' />
+                  <p className='text-red-600'>Error loading newsletters</p>
+                </div>
+              )}
 
-                        <div className='flex items-center'>
-                          <Clock className='h-4 w-4 mr-2' />
-                          <span>{formatTime(trip.trip_time)}</span>
-                        </div>
+              {newsletters && newsletters.length === 0 && (
+                <div className='text-center py-8'>
+                  <FileText className='h-8 w-8 text-gray-400 mx-auto mb-2' />
+                  <p className='text-gray-600'>No newsletters found</p>
+                </div>
+              )}
 
-                        {trip.trip_duration && (
-                          <div className='flex items-center'>
-                            <Clock className='h-4 w-4 mr-2' />
-                            <span>{trip.trip_duration} min</span>
-                          </div>
-                        )}
+              {newsletters && newsletters.length > 0 && (
+                <div className='space-y-4'>
+                  {/* Select All */}
+                  <div className='flex items-center space-x-2 p-2 bg-gray-50 rounded'>
+                    <input
+                      type='checkbox'
+                      checked={selectedNewsletters.size === newsletters.length}
+                      onChange={handleSelectAllNewsletters}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                    <span className='text-sm text-gray-700'>Select All</span>
+                  </div>
 
-                        {trip.trip_price && (
-                          <div className='flex items-center'>
-                            <Euro className='h-4 w-4 mr-2' />
-                            <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
-                          </div>
-                        )}
+                  {newsletters.map(newsletter => {
+                    // Get trips for this newsletter
+                    const newsletterTrips =
+                      trips?.filter(trip => trip.source_newsletter_id === newsletter.id) || [];
 
-                        {trip.group_size_limit && (
-                          <div className='flex items-center'>
-                            <Users className='h-4 w-4 mr-2' />
-                            <span>Max {trip.group_size_limit} people</span>
-                          </div>
-                        )}
-                      </div>
+                    // Extract unique diving center names
+                    const divingCenterNames = [
+                      ...new Set(
+                        newsletterTrips.map(trip => trip.diving_center_name).filter(name => name)
+                      ),
+                    ];
 
-                      {/* Display multiple dives */}
-                      {trip.dives && trip.dives.length > 0 && (
-                        <div className='mt-3'>
-                          <h5 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h5>
-                          <div className='space-y-2'>
-                            {trip.dives.map((dive, _index) => (
-                              <div
-                                key={dive.id}
-                                className='flex items-center space-x-3 p-2 bg-blue-50 rounded'
-                              >
-                                <div className='flex items-center'>
-                                  <MapPin className='h-4 w-4 mr-2 text-blue-600' />
-                                  <span className='text-sm font-medium text-gray-700'>
-                                    Dive {dive.dive_number}:
-                                  </span>
-                                </div>
-                                <div className='flex-1'>
-                                  <span className='text-sm text-gray-600'>
-                                    {dive.dive_site_name || 'No dive site specified'}
-                                  </span>
-                                  {dive.dive_time && (
-                                    <span className='text-sm text-gray-500 ml-2'>
-                                      at {formatTime(dive.dive_time)}
-                                    </span>
-                                  )}
-                                  {dive.dive_duration && (
-                                    <span className='text-sm text-gray-500 ml-2'>
-                                      ({dive.dive_duration} min)
-                                    </span>
-                                  )}
-                                </div>
-                                {dive.dive_description && (
-                                  <div className='text-xs text-gray-500 mt-1'>
-                                    {dive.dive_description}
-                                  </div>
+                    // Extract and sort trip dates
+                    const tripDates = newsletterTrips
+                      .map(trip => trip.trip_date)
+                      .filter(date => date)
+                      .sort((a, b) => new Date(a) - new Date(b))
+                      .map(date => formatDate(date));
+
+                    return (
+                      <div key={newsletter.id} className='border rounded-lg p-4 hover:bg-gray-50'>
+                        <div className='flex items-center space-x-4'>
+                          <input
+                            type='checkbox'
+                            checked={selectedNewsletters.has(newsletter.id)}
+                            onChange={() => handleSelectNewsletter(newsletter.id)}
+                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                          />
+
+                          <div className='flex-1'>
+                            <div className='flex items-center justify-between'>
+                              <div>
+                                <h3 className='text-lg font-semibold text-gray-900'>
+                                  Newsletter #{newsletter.id}
+                                </h3>
+                                <p className='text-sm text-gray-600'>
+                                  Received: {formatDate(newsletter.received_at)}
+                                </p>
+                                <p className='text-sm text-gray-600'>
+                                  Trips extracted: {newsletter.trips_count}
+                                </p>
+                                {divingCenterNames.length > 0 && (
+                                  <p className='text-sm text-gray-700 font-medium mt-1'>
+                                    Diving Center: {divingCenterNames.join(', ')}
+                                  </p>
+                                )}
+                                {tripDates.length > 0 && (
+                                  <p className='text-sm text-gray-600 mt-1'>
+                                    Trip dates:{' '}
+                                    {tripDates.length <= 3
+                                      ? tripDates.join(', ')
+                                      : `${tripDates.slice(0, 3).join(', ')} and ${tripDates.length - 3} more`}
+                                  </p>
                                 )}
                               </div>
-                            ))}
+
+                              <div className='flex items-center space-x-2'>
+                                <button
+                                  onClick={() => handleReparseNewsletter(newsletter.id)}
+                                  disabled={reparsingNewsletter === newsletter.id}
+                                  className='p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded disabled:opacity-50'
+                                  title='Re-parse newsletter'
+                                >
+                                  <RefreshCw
+                                    className={`h-4 w-4 ${reparsingNewsletter === newsletter.id ? 'animate-spin' : ''}`}
+                                  />
+                                </button>
+
+                                <button
+                                  onClick={() => handleViewNewsletter(newsletter.id)}
+                                  className='p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded'
+                                  title='View raw newsletter text'
+                                >
+                                  <Eye className='h-4 w-4' />
+                                </button>
+
+                                <button
+                                  onClick={() => handleEditNewsletter(newsletter)}
+                                  className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
+                                  title='Edit newsletter text'
+                                >
+                                  <Edit className='h-4 w-4' />
+                                </button>
+
+                                <button
+                                  onClick={() => handleViewNewsletterTrips(newsletter.id)}
+                                  className='p-2 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded'
+                                  title='View parsed dive trip information'
+                                >
+                                  <FileText className='h-4 w-4' />
+                                </button>
+
+                                <button
+                                  onClick={() => handleDeleteNewsletter(newsletter.id)}
+                                  className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
+                                  title='Delete newsletter + associated dive trips'
+                                >
+                                  <Trash2 className='h-4 w-4' />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      )}
-
-                      {/* Fallback for old single dive site display */}
-                      {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
-                        <div className='flex items-center mt-2'>
-                          <MapPin className='h-4 w-4 mr-2' />
-                          <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
-                        </div>
-                      )}
-
-                      {trip.trip_description && (
-                        <p className='text-gray-700 mt-2'>{trip.trip_description}</p>
-                      )}
-
-                      {trip.special_requirements && (
-                        <div className='mt-2 p-2 bg-yellow-50 rounded'>
-                          <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className='flex items-center space-x-2 ml-4'>
-                      <button
-                        onClick={() => handleEditTrip(trip)}
-                        className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
-                        title='Edit trip'
-                      >
-                        <Edit className='h-4 w-4' />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteTrip(trip.id)}
-                        className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
-                        title='Delete trip'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className='mt-2 text-xs text-gray-500'>
-                    <span>Extracted: {new Date(trip.extracted_at).toLocaleString()}</span>
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
-          );
-        })()}
-      </Modal>
-      {/* Modals - Outside tab content */}
-      {/* Edit Newsletter Modal */}
-      <Modal
-        isOpen={!!editingNewsletter}
-        onClose={() => setEditingNewsletter(null)}
-        title={editingNewsletter ? `Edit Newsletter #${editingNewsletter.id}` : 'Edit Newsletter'}
-        className='max-w-4xl max-h-[80vh] overflow-y-auto'
-      >
-        <textarea
-          value={editingNewsletter?.content || ''}
-          onChange={e => setEditingNewsletter({ ...editingNewsletter, content: e.target.value })}
-          className='w-full h-64 p-2 border rounded-md font-mono text-sm'
-          placeholder='Newsletter content...'
-        />
+          </div>
+        )}
 
-        <div className='flex justify-end space-x-2 mt-4'>
-          <button
-            onClick={() => setEditingNewsletter(null)}
-            className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => handleUpdateNewsletter(editingNewsletter.id, editingNewsletter.content)}
-            className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-          >
-            Save Changes
-          </button>
-        </div>
-      </Modal>
+        {/* View Newsletter Trips Modal */}
+        <Modal
+          isOpen={!!viewingNewsletterTrips}
+          onClose={() => setViewingNewsletterTrips(null)}
+          title={`Parsed Dive Trips - Newsletter #${viewingNewsletterTrips}`}
+          className='max-w-6xl max-h-[90vh] overflow-y-auto'
+        >
+          {tripsLoading && (
+            <div className='text-center py-8'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+              <p className='text-gray-600 mt-2'>Loading trips...</p>
+            </div>
+          )}
 
-      {/* View Newsletter Modal */}
-      <Modal
-        isOpen={!!viewingNewsletter}
-        onClose={() => setViewingNewsletter(null)}
-        title={viewingNewsletter ? `Newsletter #${viewingNewsletter.id}` : 'View Newsletter'}
-        className='max-w-4xl max-h-[80vh] overflow-y-auto'
-      >
-        <div className='mb-4 text-sm text-gray-600'>
-          <p>Received: {viewingNewsletter && formatDate(viewingNewsletter.received_at)}</p>
-          <p>Trips extracted: {viewingNewsletter?.trips_count}</p>
-        </div>
+          {tripsError && (
+            <div className='text-center py-8'>
+              <AlertCircle className='h-8 w-8 text-red-500 mx-auto mb-2' />
+              <p className='text-red-600'>Error loading trips</p>
+            </div>
+          )}
 
-        <pre className='w-full p-4 bg-gray-50 rounded-md font-mono text-sm overflow-x-auto'>
-          {viewingNewsletter?.content}
-        </pre>
+          {(() => {
+            const newsletterTrips =
+              trips?.filter(trip => trip.source_newsletter_id === viewingNewsletterTrips) || [];
 
-        <div className='flex justify-end mt-4'>
-          <button
-            onClick={() => setViewingNewsletter(null)}
-            className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
-          >
-            Close
-          </button>
-        </div>
-      </Modal>
+            if (newsletterTrips.length === 0) {
+              return (
+                <div className='text-center py-8'>
+                  <FileText className='h-8 w-8 text-gray-400 mx-auto mb-2' />
+                  <p className='text-gray-600'>No trips found for this newsletter</p>
+                </div>
+              );
+            }
 
-      {/* Create Trip Modal */}
-      {creatingTrip && (
-        <TripFormModal
-          trip={null}
-          onSubmit={handleCreateTrip}
-          onCancel={() => setCreatingTrip(false)}
-          title='Create New Dive Trip'
-          diveSites={diveSites}
-          divingCenters={divingCenters}
-          additionalDiveSites={additionalDiveSites}
-          isModal={true}
-        />
-      )}
+            return (
+              <div className='space-y-4'>
+                <div className='flex justify-between items-center mb-4'>
+                  <p className='text-sm text-gray-600'>
+                    Found {newsletterTrips.length} trip{newsletterTrips.length !== 1 ? 's' : ''}
+                  </p>
+                  <button
+                    onClick={() => setCreatingTrip(true)}
+                    className='flex items-center px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm'
+                  >
+                    <Plus className='h-4 w-4 mr-1' />
+                    Add Trip
+                  </button>
+                </div>
 
-      {/* Edit Trip Modal */}
-      {editingTrip && (
-        <TripFormModal
-          trip={editingTrip}
-          onSubmit={tripData => handleUpdateTrip(editingTrip.id, tripData)}
-          onCancel={() => setEditingTrip(null)}
-          title='Edit Dive Trip'
-          diveSites={diveSites}
-          divingCenters={divingCenters}
-          additionalDiveSites={additionalDiveSites}
-          isModal={true}
-        />
-      )}
-    </div>
+                {newsletterTrips.map(trip => (
+                  <div key={trip.id} className='border rounded-lg p-4 hover:bg-gray-50'>
+                    <div className='flex justify-between items-start'>
+                      <div className='flex-1'>
+                        <div className='flex items-center space-x-4 mb-2'>
+                          <h4 className='text-lg font-semibold text-gray-900'>
+                            {trip.diving_center_name || 'Unknown Center'}
+                          </h4>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              getDisplayStatus(trip) === 'scheduled'
+                                ? 'bg-green-100 text-green-800'
+                                : getDisplayStatus(trip) === 'confirmed'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : getDisplayStatus(trip) === 'cancelled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : getDisplayStatus(trip) === 'completed'
+                                      ? 'bg-gray-100 text-gray-800'
+                                      : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {getDisplayStatus(trip)}
+                          </span>
+                        </div>
+
+                        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600'>
+                          <div className='flex items-center'>
+                            <Calendar className='h-4 w-4 mr-2' />
+                            <span>{formatDate(trip.trip_date)}</span>
+                          </div>
+
+                          <div className='flex items-center'>
+                            <Clock className='h-4 w-4 mr-2' />
+                            <span>{formatTime(trip.trip_time)}</span>
+                          </div>
+
+                          {trip.trip_duration && (
+                            <div className='flex items-center'>
+                              <Clock className='h-4 w-4 mr-2' />
+                              <span>{trip.trip_duration} min</span>
+                            </div>
+                          )}
+
+                          {trip.trip_price && (
+                            <div className='flex items-center'>
+                              <Euro className='h-4 w-4 mr-2' />
+                              <span>{formatCurrency(trip.trip_price, trip.trip_currency)}</span>
+                            </div>
+                          )}
+
+                          {trip.group_size_limit && (
+                            <div className='flex items-center'>
+                              <Users className='h-4 w-4 mr-2' />
+                              <span>Max {trip.group_size_limit} people</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Display multiple dives */}
+                        {trip.dives && trip.dives.length > 0 && (
+                          <div className='mt-3'>
+                            <h5 className='text-sm font-medium text-gray-700 mb-2'>Dives:</h5>
+                            <div className='space-y-2'>
+                              {trip.dives.map((dive, _index) => (
+                                <div
+                                  key={dive.id}
+                                  className='flex items-center space-x-3 p-2 bg-blue-50 rounded'
+                                >
+                                  <div className='flex items-center'>
+                                    <MapPin className='h-4 w-4 mr-2 text-blue-600' />
+                                    <span className='text-sm font-medium text-gray-700'>
+                                      Dive {dive.dive_number}:
+                                    </span>
+                                  </div>
+                                  <div className='flex-1'>
+                                    <span className='text-sm text-gray-600'>
+                                      {dive.dive_site_name || 'No dive site specified'}
+                                    </span>
+                                    {dive.dive_time && (
+                                      <span className='text-sm text-gray-500 ml-2'>
+                                        at {formatTime(dive.dive_time)}
+                                      </span>
+                                    )}
+                                    {dive.dive_duration && (
+                                      <span className='text-sm text-gray-500 ml-2'>
+                                        ({dive.dive_duration} min)
+                                      </span>
+                                    )}
+                                  </div>
+                                  {dive.dive_description && (
+                                    <div className='text-xs text-gray-500 mt-1'>
+                                      {dive.dive_description}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Fallback for old single dive site display */}
+                        {(!trip.dives || trip.dives.length === 0) && trip.dive_site_name && (
+                          <div className='flex items-center mt-2'>
+                            <MapPin className='h-4 w-4 mr-2' />
+                            <span className='text-sm text-gray-600'>{trip.dive_site_name}</span>
+                          </div>
+                        )}
+
+                        {trip.trip_description && (
+                          <p className='text-gray-700 mt-2'>{trip.trip_description}</p>
+                        )}
+
+                        {trip.special_requirements && (
+                          <div className='mt-2 p-2 bg-yellow-50 rounded'>
+                            <p className='text-sm text-yellow-800'>{trip.special_requirements}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className='flex items-center space-x-2 ml-4'>
+                        <button
+                          onClick={() => handleEditTrip(trip)}
+                          className='p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded'
+                          title='Edit trip'
+                        >
+                          <Edit className='h-4 w-4' />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteTrip(trip.id)}
+                          className='p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded'
+                          title='Delete trip'
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className='mt-2 text-xs text-gray-500'>
+                      <span>Extracted: {new Date(trip.extracted_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </Modal>
+        {/* Modals - Outside tab content */}
+        {/* Edit Newsletter Modal */}
+        <Modal
+          isOpen={!!editingNewsletter}
+          onClose={() => setEditingNewsletter(null)}
+          title={editingNewsletter ? `Edit Newsletter #${editingNewsletter.id}` : 'Edit Newsletter'}
+          className='max-w-4xl max-h-[80vh] overflow-y-auto'
+        >
+          <textarea
+            value={editingNewsletter?.content || ''}
+            onChange={e => setEditingNewsletter({ ...editingNewsletter, content: e.target.value })}
+            className='w-full h-64 p-2 border rounded-md font-mono text-sm'
+            placeholder='Newsletter content...'
+          />
+
+          <div className='flex justify-end space-x-2 mt-4'>
+            <button
+              onClick={() => setEditingNewsletter(null)}
+              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() =>
+                handleUpdateNewsletter(editingNewsletter.id, editingNewsletter.content)
+              }
+              className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+            >
+              Save Changes
+            </button>
+          </div>
+        </Modal>
+
+        {/* View Newsletter Modal */}
+        <Modal
+          isOpen={!!viewingNewsletter}
+          onClose={() => setViewingNewsletter(null)}
+          title={viewingNewsletter ? `Newsletter #${viewingNewsletter.id}` : 'View Newsletter'}
+          className='max-w-4xl max-h-[80vh] overflow-y-auto'
+        >
+          <div className='mb-4 text-sm text-gray-600'>
+            <p>Received: {viewingNewsletter && formatDate(viewingNewsletter.received_at)}</p>
+            <p>Trips extracted: {viewingNewsletter?.trips_count}</p>
+          </div>
+
+          <pre className='w-full p-4 bg-gray-50 rounded-md font-mono text-sm overflow-x-auto'>
+            {viewingNewsletter?.content}
+          </pre>
+
+          <div className='flex justify-end mt-4'>
+            <button
+              onClick={() => setViewingNewsletter(null)}
+              className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
+            >
+              Close
+            </button>
+          </div>
+        </Modal>
+
+        {/* Create Trip Modal */}
+        {creatingTrip && (
+          <TripFormModal
+            trip={null}
+            onSubmit={handleCreateTrip}
+            onCancel={() => setCreatingTrip(false)}
+            title='Create New Dive Trip'
+            diveSites={diveSites}
+            divingCenters={divingCenters}
+            additionalDiveSites={additionalDiveSites}
+            isModal={true}
+          />
+        )}
+
+        {/* Edit Trip Modal */}
+        {editingTrip && (
+          <TripFormModal
+            trip={editingTrip}
+            onSubmit={tripData => handleUpdateTrip(editingTrip.id, tripData)}
+            onCancel={() => setEditingTrip(null)}
+            title='Edit Dive Trip'
+            diveSites={diveSites}
+            divingCenters={divingCenters}
+            additionalDiveSites={additionalDiveSites}
+            isModal={true}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

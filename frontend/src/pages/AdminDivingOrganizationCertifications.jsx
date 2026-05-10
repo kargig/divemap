@@ -5,18 +5,15 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 
 const AdminDivingOrganizationCertifications = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { identifier } = useParams();
   const navigate = useNavigate();
-
-  // Set page title
-  usePageTitle('Divemap - Admin - Organization Certifications');
 
   // Certification management state
   const [showCreateCertModal, setShowCreateCertModal] = useState(false);
@@ -171,464 +168,476 @@ const AdminDivingOrganizationCertifications = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='mb-8'>
-        <button
-          onClick={() => navigate('/admin/diving-organizations')}
-          className='flex items-center text-gray-600 hover:text-gray-900 mb-4'
-        >
-          <ArrowLeft className='h-4 w-4 mr-1' />
-          Back to Organizations
-        </button>
-        <div className='flex items-center gap-6'>
-          {organization?.logo_url && (
-            <div className='flex-shrink-0 h-16 w-32 flex items-center justify-center bg-white rounded-md border border-gray-200 overflow-hidden p-2 shadow-sm'>
-              <img
-                src={organization.logo_url}
-                alt={organization.name}
-                className='max-h-full max-w-full object-contain'
-              />
+    <>
+      <SEO
+        title='Divemap - Admin - Organization Certifications'
+        description='Divemap Admin Dashboard'
+      />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='mb-8'>
+          <button
+            onClick={() => navigate('/admin/diving-organizations')}
+            className='flex items-center text-gray-600 hover:text-gray-900 mb-4'
+          >
+            <ArrowLeft className='h-4 w-4 mr-1' />
+            Back to Organizations
+          </button>
+          <div className='flex items-center gap-6'>
+            {organization?.logo_url && (
+              <div className='flex-shrink-0 h-16 w-32 flex items-center justify-center bg-white rounded-md border border-gray-200 overflow-hidden p-2 shadow-sm'>
+                <img
+                  src={organization.logo_url}
+                  alt={organization.name}
+                  className='max-h-full max-w-full object-contain'
+                />
+              </div>
+            )}
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900'>
+                {organization?.name} Certifications
+              </h1>
+              <p className='text-gray-600 mt-2'>
+                Manage certification levels for {organization?.name} ({organization?.acronym})
+              </p>
             </div>
-          )}
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900'>
-              {organization?.name} Certifications
-            </h1>
-            <p className='text-gray-600 mt-2'>
-              Manage certification levels for {organization?.name} ({organization?.acronym})
-            </p>
           </div>
         </div>
-      </div>
 
-      {/* Search and Actions Bar */}
-      <div className='flex flex-col sm:flex-row gap-4 mb-6'>
-        <div className='flex-1 relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4' />
-          <input
-            type='text'
-            placeholder='Search certifications...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-          />
+        {/* Search and Actions Bar */}
+        <div className='flex flex-col sm:flex-row gap-4 mb-6'>
+          <div className='flex-1 relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4' />
+            <input
+              type='text'
+              placeholder='Search certifications...'
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            />
+          </div>
+          <div className='flex gap-2'>
+            <button
+              onClick={() => setShowCreateCertModal(true)}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+            >
+              <Plus className='h-4 w-4' />
+              Add Certification
+            </button>
+          </div>
         </div>
-        <div className='flex gap-2'>
-          <button
-            onClick={() => setShowCreateCertModal(true)}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-          >
-            <Plus className='h-4 w-4' />
-            Add Certification
-          </button>
-        </div>
-      </div>
 
-      {/* Certifications Table */}
-      <div className='bg-white rounded-lg shadow overflow-hidden'>
-        <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Name
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Category
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Max Depth
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Gases
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Tanks
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Deco Limit
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Prerequisites
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {isCertsLoading ? (
+        {/* Certifications Table */}
+        <div className='bg-white rounded-lg shadow overflow-hidden'>
+          <div className='overflow-x-auto'>
+            <table className='min-w-full divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
                 <tr>
-                  <td colSpan='7' className='px-6 py-4 text-center'>
-                    <Loader className='h-6 w-6 animate-spin mx-auto text-gray-400' />
-                  </td>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Name
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Category
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Max Depth
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Gases
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Tanks
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Deco Limit
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Prerequisites
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Actions
+                  </th>
                 </tr>
-              ) : filteredCertifications.length === 0 ? (
-                <tr>
-                  <td colSpan='7' className='px-6 py-4 text-center text-gray-500'>
-                    No certifications found
-                  </td>
-                </tr>
-              ) : (
-                filteredCertifications.map((cert, index) => (
-                  <tr
-                    key={cert.id}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
-                  >
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm font-medium text-gray-900'>{cert.name}</div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {cert.category || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {cert.max_depth || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {cert.gases || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {cert.tanks || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {cert.deco_time_limit || '-'}
-                    </td>
-                    <td
-                      className='px-6 py-4 text-sm text-gray-900 max-w-xs truncate'
-                      title={cert.prerequisites}
-                    >
-                      {cert.prerequisites || '-'}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                      <div className='flex items-center gap-2'>
-                        <button
-                          onClick={() => handleEditCert(cert)}
-                          className='text-blue-600 hover:text-blue-900 p-1 rounded'
-                        >
-                          <Edit className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCert(cert)}
-                          className='text-red-600 hover:text-red-900 p-1 rounded'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {isCertsLoading ? (
+                  <tr>
+                    <td colSpan='7' className='px-6 py-4 text-center'>
+                      <Loader className='h-6 w-6 animate-spin mx-auto text-gray-400' />
                     </td>
                   </tr>
-                ))
+                ) : filteredCertifications.length === 0 ? (
+                  <tr>
+                    <td colSpan='7' className='px-6 py-4 text-center text-gray-500'>
+                      No certifications found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCertifications.map((cert, index) => (
+                    <tr
+                      key={cert.id}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                    >
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='text-sm font-medium text-gray-900'>{cert.name}</div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {cert.category || '-'}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {cert.max_depth || '-'}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {cert.gases || '-'}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {cert.tanks || '-'}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {cert.deco_time_limit || '-'}
+                      </td>
+                      <td
+                        className='px-6 py-4 text-sm text-gray-900 max-w-xs truncate'
+                        title={cert.prerequisites}
+                      >
+                        {cert.prerequisites || '-'}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                        <div className='flex items-center gap-2'>
+                          <button
+                            onClick={() => handleEditCert(cert)}
+                            className='text-blue-600 hover:text-blue-900 p-1 rounded'
+                          >
+                            <Edit className='h-4 w-4' />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCert(cert)}
+                            className='text-red-600 hover:text-red-900 p-1 rounded'
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Create Certification Modal */}
+        <Modal
+          isOpen={showCreateCertModal}
+          onClose={() => {
+            setShowCreateCertModal(false);
+            resetCertForm();
+          }}
+          title='Create New Certification'
+          className='max-w-2xl max-h-[90vh] overflow-y-auto'
+        >
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label htmlFor='cert-name' className='block text-sm font-medium text-gray-700 mb-1'>
+                  Name *
+                </label>
+                <input
+                  id='cert-name'
+                  type='text'
+                  value={certForm.name}
+                  onChange={e => setCertForm({ ...certForm, name: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Open Water Diver'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='cert-category'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Category
+                </label>
+                <input
+                  id='cert-category'
+                  type='text'
+                  value={certForm.category}
+                  onChange={e => setCertForm({ ...certForm, category: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Recreational, Technical, etc.'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='cert-max-depth'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Max Depth
+                </label>
+                <input
+                  id='cert-max-depth'
+                  type='text'
+                  value={certForm.max_depth}
+                  onChange={e => setCertForm({ ...certForm, max_depth: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='18m (60ft)'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='cert-gases'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Gases
+                </label>
+                <input
+                  id='cert-gases'
+                  type='text'
+                  value={certForm.gases}
+                  onChange={e => setCertForm({ ...certForm, gases: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Air, Nitrox, Trimix'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='cert-tanks'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Tanks
+                </label>
+                <input
+                  id='cert-tanks'
+                  type='text'
+                  value={certForm.tanks}
+                  onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Single, Double, Sidemount'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='cert-deco-time-limit'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Deco Time Limit
+                </label>
+                <input
+                  id='cert-deco-time-limit'
+                  type='text'
+                  value={certForm.deco_time_limit}
+                  onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='15 minutes, Unlimited'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor='cert-prerequisites'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Prerequisites
+              </label>
+              <textarea
+                id='cert-prerequisites'
+                value={certForm.prerequisites}
+                onChange={e => setCertForm({ ...certForm, prerequisites: e.target.value })}
+                rows='3'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='Prerequisites for this certification...'
+              />
+            </div>
+          </div>
+
+          <div className='flex justify-end gap-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowCreateCertModal(false);
+                resetCertForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateCert}
+              disabled={!certForm.name || createCertMutation.isLoading}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {createCertMutation.isLoading ? (
+                <Loader className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
               )}
-            </tbody>
-          </table>
-        </div>
+              Create Certification
+            </button>
+          </div>
+        </Modal>
+
+        {/* Edit Certification Modal */}
+        <Modal
+          isOpen={showEditCertModal && !!editingCert}
+          onClose={() => setShowEditCertModal(false)}
+          title='Edit Certification'
+          className='max-w-2xl max-h-[90vh] overflow-y-auto'
+        >
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='edit-cert-name'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Name *
+                </label>
+                <input
+                  id='edit-cert-name'
+                  type='text'
+                  value={certForm.name}
+                  onChange={e => setCertForm({ ...certForm, name: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Open Water Diver'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='edit-cert-category'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Category
+                </label>
+                <input
+                  id='edit-cert-category'
+                  type='text'
+                  value={certForm.category}
+                  onChange={e => setCertForm({ ...certForm, category: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Recreational, Technical, etc.'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='edit-cert-max-depth'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Max Depth
+                </label>
+                <input
+                  id='edit-cert-max-depth'
+                  type='text'
+                  value={certForm.max_depth}
+                  onChange={e => setCertForm({ ...certForm, max_depth: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='18m (60ft)'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='edit-cert-gases'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Gases
+                </label>
+                <input
+                  id='edit-cert-gases'
+                  type='text'
+                  value={certForm.gases}
+                  onChange={e => setCertForm({ ...certForm, gases: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Air, Nitrox, Trimix'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='edit-cert-tanks'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Tanks
+                </label>
+                <input
+                  id='edit-cert-tanks'
+                  type='text'
+                  value={certForm.tanks}
+                  onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Single, Double, Sidemount'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='edit-cert-deco-time-limit'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Deco Time Limit
+                </label>
+                <input
+                  id='edit-cert-deco-time-limit'
+                  type='text'
+                  value={certForm.deco_time_limit}
+                  onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='15 minutes, Unlimited'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor='edit-cert-prerequisites'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Prerequisites
+              </label>
+              <textarea
+                id='edit-cert-prerequisites'
+                value={certForm.prerequisites}
+                onChange={e => setCertForm({ ...certForm, prerequisites: e.target.value })}
+                rows='3'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='Prerequisites for this certification...'
+              />
+            </div>
+          </div>
+
+          <div className='flex justify-end gap-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowEditCertModal(false);
+                resetCertForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdateCert}
+              disabled={!certForm.name || updateCertMutation.isLoading}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {updateCertMutation.isLoading ? (
+                <Loader className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
+              )}
+              Update Certification
+            </button>
+          </div>
+        </Modal>
       </div>
-
-      {/* Create Certification Modal */}
-      <Modal
-        isOpen={showCreateCertModal}
-        onClose={() => {
-          setShowCreateCertModal(false);
-          resetCertForm();
-        }}
-        title='Create New Certification'
-        className='max-w-2xl max-h-[90vh] overflow-y-auto'
-      >
-        <div className='space-y-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label htmlFor='cert-name' className='block text-sm font-medium text-gray-700 mb-1'>
-                Name *
-              </label>
-              <input
-                id='cert-name'
-                type='text'
-                value={certForm.name}
-                onChange={e => setCertForm({ ...certForm, name: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Open Water Diver'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='cert-category'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Category
-              </label>
-              <input
-                id='cert-category'
-                type='text'
-                value={certForm.category}
-                onChange={e => setCertForm({ ...certForm, category: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Recreational, Technical, etc.'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='cert-max-depth'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Max Depth
-              </label>
-              <input
-                id='cert-max-depth'
-                type='text'
-                value={certForm.max_depth}
-                onChange={e => setCertForm({ ...certForm, max_depth: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='18m (60ft)'
-              />
-            </div>
-            <div>
-              <label htmlFor='cert-gases' className='block text-sm font-medium text-gray-700 mb-1'>
-                Gases
-              </label>
-              <input
-                id='cert-gases'
-                type='text'
-                value={certForm.gases}
-                onChange={e => setCertForm({ ...certForm, gases: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Air, Nitrox, Trimix'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label htmlFor='cert-tanks' className='block text-sm font-medium text-gray-700 mb-1'>
-                Tanks
-              </label>
-              <input
-                id='cert-tanks'
-                type='text'
-                value={certForm.tanks}
-                onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Single, Double, Sidemount'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='cert-deco-time-limit'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Deco Time Limit
-              </label>
-              <input
-                id='cert-deco-time-limit'
-                type='text'
-                value={certForm.deco_time_limit}
-                onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='15 minutes, Unlimited'
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor='cert-prerequisites'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Prerequisites
-            </label>
-            <textarea
-              id='cert-prerequisites'
-              value={certForm.prerequisites}
-              onChange={e => setCertForm({ ...certForm, prerequisites: e.target.value })}
-              rows='3'
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='Prerequisites for this certification...'
-            />
-          </div>
-        </div>
-
-        <div className='flex justify-end gap-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowCreateCertModal(false);
-              resetCertForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateCert}
-            disabled={!certForm.name || createCertMutation.isLoading}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {createCertMutation.isLoading ? (
-              <Loader className='h-4 w-4 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4' />
-            )}
-            Create Certification
-          </button>
-        </div>
-      </Modal>
-
-      {/* Edit Certification Modal */}
-      <Modal
-        isOpen={showEditCertModal && !!editingCert}
-        onClose={() => setShowEditCertModal(false)}
-        title='Edit Certification'
-        className='max-w-2xl max-h-[90vh] overflow-y-auto'
-      >
-        <div className='space-y-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='edit-cert-name'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Name *
-              </label>
-              <input
-                id='edit-cert-name'
-                type='text'
-                value={certForm.name}
-                onChange={e => setCertForm({ ...certForm, name: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Open Water Diver'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='edit-cert-category'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Category
-              </label>
-              <input
-                id='edit-cert-category'
-                type='text'
-                value={certForm.category}
-                onChange={e => setCertForm({ ...certForm, category: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Recreational, Technical, etc.'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='edit-cert-max-depth'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Max Depth
-              </label>
-              <input
-                id='edit-cert-max-depth'
-                type='text'
-                value={certForm.max_depth}
-                onChange={e => setCertForm({ ...certForm, max_depth: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='18m (60ft)'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='edit-cert-gases'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Gases
-              </label>
-              <input
-                id='edit-cert-gases'
-                type='text'
-                value={certForm.gases}
-                onChange={e => setCertForm({ ...certForm, gases: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Air, Nitrox, Trimix'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='edit-cert-tanks'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Tanks
-              </label>
-              <input
-                id='edit-cert-tanks'
-                type='text'
-                value={certForm.tanks}
-                onChange={e => setCertForm({ ...certForm, tanks: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Single, Double, Sidemount'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='edit-cert-deco-time-limit'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Deco Time Limit
-              </label>
-              <input
-                id='edit-cert-deco-time-limit'
-                type='text'
-                value={certForm.deco_time_limit}
-                onChange={e => setCertForm({ ...certForm, deco_time_limit: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='15 minutes, Unlimited'
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor='edit-cert-prerequisites'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Prerequisites
-            </label>
-            <textarea
-              id='edit-cert-prerequisites'
-              value={certForm.prerequisites}
-              onChange={e => setCertForm({ ...certForm, prerequisites: e.target.value })}
-              rows='3'
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='Prerequisites for this certification...'
-            />
-          </div>
-        </div>
-
-        <div className='flex justify-end gap-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowEditCertModal(false);
-              resetCertForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateCert}
-            disabled={!certForm.name || updateCertMutation.isLoading}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {updateCertMutation.isLoading ? (
-              <Loader className='h-4 w-4 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4' />
-            )}
-            Update Certification
-          </button>
-        </div>
-      </Modal>
-    </div>
+    </>
   );
 };
 
