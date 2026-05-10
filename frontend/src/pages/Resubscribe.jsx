@@ -4,10 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const Resubscribe = () => {
-  usePageTitle('Divemap - Re-subscribe');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading'); // loading, success, error
@@ -78,7 +77,12 @@ const Resubscribe = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Resubscribe to Divemap | Divemap'
+        description='Resubscribe to Divemap email notifications.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -166,6 +170,7 @@ const Resubscribe = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

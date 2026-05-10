@@ -9,8 +9,8 @@ import api, { healthCheck } from '../api';
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
+import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDateForError } from '../utils/dateFormatting';
 import { createResolver } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
@@ -36,9 +36,6 @@ const getSafeRedirect = path => {
 };
 
 const Login = () => {
-  // Set page title
-  usePageTitle('Divemap - Login');
-
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -205,7 +202,12 @@ const Login = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Login to Divemap | Your Scuba Logbook'
+        description='Log in to Divemap to track your scuba dives, manage your certifications, and connect with diving buddies.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-6 sm:space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -389,6 +391,7 @@ const Login = () => {
         </FormProvider>
       </div>
     </div>
+    </>
   );
 };
 

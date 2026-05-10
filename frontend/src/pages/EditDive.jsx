@@ -15,7 +15,7 @@ import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import {
   getDive,
   updateDive,
@@ -37,8 +37,6 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const EditDive = () => {
-  // Set page title
-  usePageTitle('Divemap - Edit Dive');
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -821,7 +819,12 @@ const EditDive = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <>
+      <SEO 
+        title='Edit Dive Log | Divemap'
+        description='Update your logged scuba dive. Edit details, add media, or modify marine life sightings.'
+      />
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='flex items-center gap-4 mb-6'>
         <button
           onClick={() => navigate(`/dives/${id}`)}
@@ -1534,6 +1537,7 @@ const EditDive = () => {
         </form>
       </FormProvider>
     </div>
+    </>
   );
 };
 

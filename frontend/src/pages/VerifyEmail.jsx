@@ -4,11 +4,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { formatDateForError } from '../utils/dateFormatting';
 
 const VerifyEmail = () => {
-  usePageTitle('Divemap - Verify Email');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState('verifying'); // verifying, success, error
@@ -124,7 +123,12 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Verify Your Email | Divemap'
+        description='Verify your email address for your Divemap account.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -253,6 +257,7 @@ const VerifyEmail = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

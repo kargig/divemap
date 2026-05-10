@@ -13,7 +13,7 @@ import RouteSelection from '../components/RouteSelection';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { createDive, addDiveMedia, uploadPhotoToR2Only } from '../services/dives';
 import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
@@ -26,8 +26,6 @@ import { createDiveSchema, createResolver, getErrorMessage } from '../utils/form
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDive = () => {
-  // Set page title
-  usePageTitle('Divemap - Create Dive');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -499,7 +497,12 @@ const CreateDive = () => {
   };
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <>
+      <SEO 
+        title='Log a New Dive | Divemap'
+        description='Record your scuba diving experiences, track your bottom time, gas consumption, and share marine life sightings with the Divemap community.'
+      />
+      <div className='max-w-4xl mx-auto'>
       <div className='flex items-center gap-4 mb-6'>
         <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800'>
           <ArrowLeft size={24} />
@@ -1163,6 +1166,7 @@ const CreateDive = () => {
         </form>
       </FormProvider>
     </div>
+    </>
   );
 };
 

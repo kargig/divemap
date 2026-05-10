@@ -38,8 +38,8 @@ import { FormField } from '../components/forms/FormField';
 import MarkdownEditor from '../components/ui/MarkdownEditor';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
+import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import {
   addDiveSiteMedia,
   updateDiveSiteMedia,
@@ -158,8 +158,6 @@ const SortableMediaItem = ({
 const EMPTY_ARRAY = [];
 
 const EditDiveSite = () => {
-  // Set page title
-  usePageTitle('Divemap - Edit Dive Site');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1272,7 +1270,12 @@ const EditDiveSite = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
+    <>
+      <SEO 
+        title='Edit Dive Site | Divemap'
+        description='Update details, add new media, or modify the description of an existing dive site.'
+      />
+      <div className='min-h-screen bg-gray-50 py-8'>
       <div className='max-w-4xl mx-auto px-4'>
         <div className='bg-white rounded-lg shadow-md p-6'>
           {/* Header */}
@@ -2296,6 +2299,7 @@ const EditDiveSite = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -4,10 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const Unsubscribe = () => {
-  usePageTitle('Divemap - Unsubscribe');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading'); // loading, success, error
@@ -100,7 +99,12 @@ const Unsubscribe = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Unsubscribe from Divemap | Divemap'
+        description='Unsubscribe from Divemap email notifications.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -190,6 +194,7 @@ const Unsubscribe = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

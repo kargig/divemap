@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -16,8 +16,6 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 const getErrorMessage = error => extractErrorMessage(error, 'Failed to create diving center');
 
 const CreateDivingCenter = () => {
-  // Set page title
-  usePageTitle('Divemap - Create Diving Center');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -194,7 +192,12 @@ const CreateDivingCenter = () => {
   };
 
   return (
-    <div className='max-w-4xl mx-auto p-6'>
+    <>
+      <SEO 
+        title='Register a Diving Center | Divemap'
+        description='Add your scuba diving center, school, or shop to the Divemap directory. Connect with divers and manage your online presence.'
+      />
+      <div className='max-w-4xl mx-auto p-6'>
       {/* Back navigation is provided by DivingCenterForm; remove duplicate here */}
 
       <div className='bg-white rounded-lg shadow-md p-6'>
@@ -316,6 +319,7 @@ const CreateDivingCenter = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -15,7 +15,7 @@ import Modal from '../components/ui/Modal';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { addDiveSiteMedia, uploadDiveSitePhotoToR2Only } from '../services/diveSites';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -30,8 +30,6 @@ import {
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDiveSite = () => {
-  // Set page title
-  usePageTitle('Divemap - Create Dive Site');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -505,7 +503,12 @@ const CreateDiveSite = () => {
   };
 
   return (
-    <div className='max-w-4xl mx-auto p-6'>
+    <>
+      <SEO 
+        title='Submit a New Dive Site | Divemap'
+        description='Add a new scuba dive site to the Divemap global registry. Provide GPS coordinates, depth profiles, marine life details, and safety information.'
+      />
+      <div className='max-w-4xl mx-auto p-6'>
       <div className='flex items-center mb-6'>
         <button
           onClick={handleCancel}
@@ -1082,7 +1085,7 @@ const CreateDiveSite = () => {
 
           <div className='flex flex-col space-y-3 mt-6 pt-4 border-t border-gray-200'>
             <div className='flex justify-end space-x-3'>
-              <Button type='button' variant='outline' onClick={() => setShowDuplicateModal(false)}>
+              <Button type='button' variant='secondary' onClick={() => setShowDuplicateModal(false)}>
                 Cancel & Discard
               </Button>
             </div>
@@ -1100,6 +1103,7 @@ const CreateDiveSite = () => {
         </div>
       </Modal>
     </div>
+    </>
   );
 };
 

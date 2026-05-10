@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { forgotPassword } from '../services/auth';
 import { createResolver } from '../utils/formHelpers';
 
@@ -15,7 +15,6 @@ const forgotPasswordSchema = z.object({
 });
 
 const ForgotPassword = () => {
-  usePageTitle('Divemap - Forgot Password');
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -50,7 +49,12 @@ const ForgotPassword = () => {
 
   if (isSuccess) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <>
+        <SEO 
+          title='Reset Password Link Sent | Divemap'
+          description='Instructions to reset your Divemap password have been sent to your email.'
+        />
+        <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full text-center space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
@@ -69,11 +73,17 @@ const ForgotPassword = () => {
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Forgot Password | Divemap'
+        description='Request a password reset link for your Divemap account.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -120,6 +130,7 @@ const ForgotPassword = () => {
         </FormProvider>
       </div>
     </div>
+    </>
   );
 };
 

@@ -9,8 +9,8 @@ import api, { healthCheck } from '../api';
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
 import Turnstile from '../components/Turnstile';
+import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
@@ -29,9 +29,6 @@ const registerSchema = z
   });
 
 const Register = () => {
-  // Set page title
-  usePageTitle('Divemap - Register');
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -196,7 +193,12 @@ const Register = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Create a Divemap Account | Join the Diving Community'
+        description='Register for Divemap to start logging your scuba dives, discovering new dive sites, and planning trips with other divers.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -399,6 +401,7 @@ const Register = () => {
         </FormProvider>
       </div>
     </div>
+    </>
   );
 };
 

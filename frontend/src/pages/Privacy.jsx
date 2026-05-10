@@ -17,14 +17,17 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { formatDate } from '../utils/dateHelpers';
 
 const Privacy = () => {
-  // Set page title
-  usePageTitle('Divemap - Privacy Policy');
   return (
-    <div className='max-w-4xl mx-auto'>
+    <>
+      <SEO 
+        title='Privacy Policy | Divemap'
+        description='Read the Divemap Privacy Policy to understand how we collect, use, and protect your personal data, dive logs, and location information.'
+      />
+      <div className='max-w-4xl mx-auto'>
       <div className='bg-white rounded-lg shadow-lg p-8'>
         <div className='prose prose-blue dark:prose-invert max-w-none'>
           <div className='text-center mb-8 not-prose'>
@@ -557,6 +560,7 @@ const Privacy = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

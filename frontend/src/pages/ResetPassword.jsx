@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { verifyResetToken, resetPassword } from '../services/auth';
 import { commonSchemas, createResolver } from '../utils/formHelpers';
 
@@ -22,7 +22,6 @@ const resetPasswordSchema = z
   });
 
 const ResetPassword = () => {
-  usePageTitle('Divemap - Reset Password');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -82,18 +81,23 @@ const ResetPassword = () => {
 
   if (verifying) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+      <>
+        <SEO title='Verifying | Divemap' description='Verifying password reset token.' />
+        <div className='min-h-screen flex items-center justify-center bg-gray-50'>
         <div className='text-center'>
           <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
           <p className='mt-4 text-gray-600'>Verifying link...</p>
         </div>
       </div>
+      </>
     );
   }
 
   if (!validToken || !token) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <>
+        <SEO title='Invalid Link | Divemap' description='Password reset link is invalid or expired.' />
+        <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
         <div className='max-w-md w-full text-center space-y-8'>
           <div>
             <div className='mx-auto flex items-center justify-center'>
@@ -111,11 +115,17 @@ const ResetPassword = () => {
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Choose New Password | Divemap'
+        description='Create a new secure password for your Divemap account.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='mx-auto flex items-center justify-center'>
@@ -193,6 +203,7 @@ const ResetPassword = () => {
         </FormProvider>
       </div>
     </div>
+    </>
   );
 };
 

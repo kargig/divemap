@@ -8,14 +8,13 @@ import NewsletterUpload from '../components/NewsletterUpload';
 import TripFormModal from '../components/TripFormModal';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { getDivingCenters, broadcastTrip } from '../services/divingCenters';
 import { createParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
 
 const CreateTrip = () => {
-  usePageTitle('Divemap - Create Dive Trip');
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -227,7 +226,12 @@ const CreateTrip = () => {
   }
 
   return (
-    <div className='max-w-6xl mx-auto py-8'>
+    <>
+      <SEO 
+        title='Publish a Dive Trip | Divemap'
+        description='Create and publish a new scuba diving trip or excursion to the Divemap community.'
+      />
+      <div className='max-w-6xl mx-auto py-8'>
       {/* Back Button */}
       <button
         onClick={() => {
@@ -313,6 +317,7 @@ const CreateTrip = () => {
         />
       )}
     </div>
+    </>
   );
 };
 

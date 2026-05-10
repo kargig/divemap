@@ -5,11 +5,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import Logo from '../components/Logo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { formatDateForError } from '../utils/dateFormatting';
 
 const CheckYourEmail = () => {
-  usePageTitle('Divemap - Check Your Email');
   const location = useLocation();
   const navigate = useNavigate();
   const [resending, setResending] = useState(false);
@@ -58,7 +57,12 @@ const CheckYourEmail = () => {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <>
+      <SEO 
+        title='Check Your Email | Divemap'
+        description='Please check your email to verify your Divemap account and complete registration.'
+      />
+      <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-md w-full space-y-8'>
         <div>
           <div className='flex justify-center'>
@@ -131,6 +135,7 @@ const CheckYourEmail = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

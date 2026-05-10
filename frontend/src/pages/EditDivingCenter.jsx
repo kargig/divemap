@@ -10,7 +10,7 @@ import DivingCenterForm from '../components/DivingCenterForm';
 import Button from '../components/ui/Button';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import {
   uploadCenterLogo,
   addDivingCenterMedia,
@@ -23,8 +23,6 @@ import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/curre
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const EditDivingCenter = () => {
-  // Set page title
-  usePageTitle('Divemap - Edit Diving Center');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -438,7 +436,12 @@ const EditDivingCenter = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
+    <>
+      <SEO 
+        title='Edit Diving Center | Divemap'
+        description='Update the details, pricing, and media for your diving center or scuba school.'
+      />
+      <div className='min-h-screen bg-gray-50 py-8'>
       <div className='max-w-4xl mx-auto px-4'>
         <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
           {/* Header */}
@@ -820,6 +823,7 @@ const EditDivingCenter = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
