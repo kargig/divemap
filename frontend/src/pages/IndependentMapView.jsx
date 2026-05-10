@@ -30,15 +30,13 @@ import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
 import WindOverlayToggle from '../components/WindOverlayToggle';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
 
 const LeafletMapView = lazy(() => import('../components/LeafletMapView'));
 
 const IndependentMapView = () => {
-  // Set page title
-  usePageTitle('Divemap - Map View');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();
@@ -919,8 +917,13 @@ const IndependentMapView = () => {
   }
 
   return (
-    <div
-      className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
+    <>
+      <SEO 
+        title='Global Interactive Dive Map | Divemap'
+        description='Explore scuba dive sites and diving centers globally on our interactive map. Filter by difficulty, view marine conditions, and plan your next dive trip.'
+      />
+      <div
+        className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
     >
       {/* Content wrapper with max-width */}
       <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto'>
@@ -1451,6 +1454,7 @@ const IndependentMapView = () => {
         </Modal>
       </div>
     </div>
+    </>
   );
 };
 

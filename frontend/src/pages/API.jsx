@@ -1,10 +1,8 @@
 import { ExternalLink, Code, Database, Shield, Zap, BookOpen } from 'lucide-react';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const API = () => {
-  // Set page title
-  usePageTitle('Divemap - API');
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const tokenResponseExample = '{"access_token": "your_token_here"}';
   const createDiveSiteData = '{"name": "Coral Reef", "latitude": 25.7617, "longitude": -80.1918}';
@@ -12,7 +10,12 @@ const API = () => {
     '{"name": "Updated Coral Reef", "description": "Beautiful coral formations"}';
 
   return (
-    <div className='max-w-4xl mx-auto'>
+    <>
+      <SEO 
+        title='API Documentation | Divemap'
+        description='Learn how to integrate with the Divemap REST API. Access interactive documentation, endpoints for dive sites, and authentication guidelines.'
+      />
+      <div className='max-w-4xl mx-auto'>
       <div className='bg-white rounded-lg shadow-md p-8'>
         <div className='text-center mb-8'>
           <Code className='h-16 w-16 text-blue-600 mx-auto mb-4' />
@@ -279,6 +282,7 @@ const API = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

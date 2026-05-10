@@ -41,7 +41,7 @@ import { Collapse, Steps as MobileSteps } from 'antd-mobile';
 import React, { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const { Title, Paragraph, Text } = Typography;
 const { Step } = Steps;
@@ -78,7 +78,6 @@ const LayersOutlined = props => (
 );
 
 const Help = () => {
-  usePageTitle('Divemap - Help & User Guide');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'start';
   const screens = useBreakpoint();
@@ -984,7 +983,7 @@ const Help = () => {
             <Col xs={24} lg={10}>
               <Title level={3}>Planning Suite</Title>
               <Paragraph>
-                Access our <Link to='/resources/tools'>Technical Diving Calculators</Link> for
+                Access our <Link to='/resources/tools/mod'>Technical Diving Calculators</Link> for
                 mission-critical planning.
               </Paragraph>
               <Alert
@@ -999,22 +998,22 @@ const Help = () => {
                   {
                     name: 'MOD / Best Mix',
                     desc: 'Calculate Maximum Operating Depth and find the optimal gas mix.',
-                    link: '/resources/tools',
+                    link: '/resources/tools/mod',
                   },
                   {
                     name: 'Min Gas (Rock Bottom)',
                     desc: 'Calculate emergency reserve gas needs for safe ascent.',
-                    link: '/resources/tools',
+                    link: '/resources/tools/min-gas',
                   },
                   {
                     name: 'SAC Rate',
                     desc: 'Track and calculate your Surface Air Consumption rate.',
-                    link: '/resources/tools',
+                    link: '/resources/tools/sac',
                   },
                   {
                     name: 'Weight Calculator',
                     desc: 'Estimate required weight based on exposure protection and tank type.',
-                    link: '/resources/tools',
+                    link: '/resources/tools/weight',
                   },
                 ].map((item, idx) => (
                   <Col span={24} key={idx}>
@@ -1108,7 +1107,12 @@ const Help = () => {
   ];
 
   return (
-    <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
+    <>
+      <SEO 
+        title='Help Center & User Guide | Divemap'
+        description='Learn how to use Divemap. Read guides on finding dive sites, logging dives, using the interactive map, and tracking your scuba certifications.'
+      />
+      <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
       <div className='max-w-6xl mx-auto px-2 sm:px-4'>
         <div className='text-center mb-10'>
           <Title level={1} className='mb-2'>
@@ -1136,11 +1140,7 @@ const Help = () => {
             items={items}
             size='large'
             type='line'
-            className='bg-white rounded-xl shadow-sm p-6'
-            prose
-            prose-blue
-            dark:prose-invert
-            max-w-none
+            className='bg-white rounded-xl shadow-sm p-6 prose prose-blue dark:prose-invert max-w-none'
           />
         )}
 
@@ -1169,6 +1169,7 @@ const Help = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

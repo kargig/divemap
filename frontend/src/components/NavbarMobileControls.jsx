@@ -200,7 +200,7 @@ const NavbarMobileControls = () => {
                     </List.Item>
                     <List.Item
                       prefix={<Calculator className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/resources/tools')}
+                      onClick={() => handleNavigate('/resources/tools/mod')}
                       className='text-white'
                       arrow={false}
                     >

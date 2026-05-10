@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { getTagsWithCounts } from '../services/tags';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getTagColor } from '../utils/tagHelpers';
 
 const DivingTagsPage = () => {
-  usePageTitle('Divemap - Diving Tags');
   const [searchTerm, setSearchTerm] = useState('');
 
   const { data: tags, isLoading } = useQuery('public-tags', getTagsWithCounts, {
@@ -23,7 +22,12 @@ const DivingTagsPage = () => {
   );
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <>
+      <SEO 
+        title='Diving Tags & Categories | Divemap'
+        description='Explore the diving tags and categories used on Divemap to find dive sites that match your interests, like Wreck, Cave, Deep, and Reef diving.'
+      />
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
         <div className='p-6 border-b border-gray-200'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
@@ -121,6 +125,7 @@ const DivingTagsPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

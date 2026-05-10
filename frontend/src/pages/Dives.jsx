@@ -45,8 +45,8 @@ import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
-import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
@@ -73,8 +73,7 @@ const Dives = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Dives');
+  // Removed usePageTitle hook; title is now managed by SEO component
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
@@ -845,7 +844,12 @@ const Dives = () => {
   // Error handling is now done within the content area to preserve hero section
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <>
+      <SEO 
+        title='Recent Public Dive Logs | Divemap'
+        description='Browse recently logged scuba dives from the community. See water conditions, visibility, bottom time, and user ratings for dive sites around the world.'
+      />
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <PageHeader
         title='Dive Log'
         titleIcon={Notebook}
@@ -1284,6 +1288,7 @@ const Dives = () => {
         />
       )}
     </div>
+    </>
   );
 };
 

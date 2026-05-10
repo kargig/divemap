@@ -15,7 +15,7 @@ import { useQuery } from 'react-query';
 import { useSearchParams } from 'react-router-dom';
 
 import OrganizationLogo from '../components/OrganizationLogo';
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { getDivingOrganizationLevels, getDivingOrganizations } from '../services/organizations';
 
 const CertificationLevelsList = ({ organizationId, identifier, highlightCourse }) => {
@@ -324,7 +324,6 @@ OrganizationCard.propTypes = {
 };
 
 const DivingOrganizationsPage = () => {
-  usePageTitle('Divemap - Diving Organizations');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams] = useSearchParams();
   const orgParam = searchParams.get('org');
@@ -347,7 +346,12 @@ const DivingOrganizationsPage = () => {
   });
 
   return (
-    <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <>
+      <SEO 
+        title='Diving Organizations & Certification Agencies | Divemap'
+        description='Directory of recognized scuba certification agencies such as PADI, SSI, CMAS, and GUE. Explore certification levels and diving courses.'
+      />
+      <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
         <div className='p-6 border-b border-gray-200'>
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
@@ -413,6 +417,7 @@ const DivingOrganizationsPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

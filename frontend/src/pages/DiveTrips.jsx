@@ -36,8 +36,8 @@ import TripCard from '../components/TripCard';
 import Button from '../components/ui/Button';
 import CurrencyIcon from '../components/ui/CurrencyIcon';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
-import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getParsedTrips } from '../services/newsletters';
@@ -343,9 +343,7 @@ const DiveTrips = () => {
     }
   );
 
-  // Set dynamic page title
-  const pageTitle = 'Divemap - Dive Trips';
-  usePageTitle(pageTitle);
+  // Removed usePageTitle hook; title is now managed by SEO component
 
   const trips = tripsResponse?.items || [];
   const paginationData = tripsResponse?.total !== undefined ? tripsResponse : null;
@@ -577,6 +575,10 @@ const DiveTrips = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      <SEO 
+        title='Upcoming Scuba Dive Trips & Excursions | Divemap'
+        description='Find planned scuba diving trips, boat excursions, and guided tours from diving centers. Compare prices, schedules, and destinations.'
+      />
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader

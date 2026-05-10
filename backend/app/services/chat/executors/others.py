@@ -691,7 +691,7 @@ def execute_other_intents(
             pp_o2 = params.get('pp_o2_max', 1.4)
             mod = calculate_mod(GasMix(o2=params['o2'], he=params.get('he', 0.0) or 0.0), pp_o2)
             calc_results['mod'] = f"{mod:.1f} meters (at {pp_o2} ppO2)"
-            specific_tool = "/resources/tools?tab=mod"
+            specific_tool = "/resources/tools/mod"
 
         if all(params.get(k) is not None for k in ['start_pressure', 'end_pressure', 'tank_volume', 'depth', 'duration']):
             gas = GasMix(o2=params.get('o2', 21.0) or 21.0, he=params.get('he', 0.0) or 0.0)
@@ -700,12 +700,12 @@ def execute_other_intents(
                 params['start_pressure'], params['end_pressure'], gas
             )
             calc_results['sac_rate'] = f"{sac:.2f} L/min"
-            specific_tool = "/resources/tools?tab=sac"
+            specific_tool = "/resources/tools/sac"
 
         if params.get('depth') is not None and params.get('pp_o2_max') is not None:
             best_mix = calculate_best_mix(params['depth'], params['pp_o2_max'])
             calc_results['best_mix'] = f"{best_mix.o2:.1f}% O2"
-            specific_tool = "/resources/tools?tab=best-mix"
+            specific_tool = "/resources/tools/best-mix"
 
         if params.get('depth') is not None and (params.get('o2') is not None or params.get('he') is not None):
             gas = GasMix(o2=params.get('o2', 21.0) or 21.0, he=params.get('he', 0.0) or 0.0)
@@ -718,7 +718,7 @@ def execute_other_intents(
         if all(params.get(k) is not None for k in ['depth', 'duration', 'sac_rate', 'tank_volume']):
             min_gas = calculate_min_gas(params['depth'], params['duration'], params['sac_rate'], params['tank_volume'])
             calc_results['min_gas_reserve'] = f"{min_gas:.1f} bar"
-            specific_tool = "/resources/tools?tab=min-gas"
+            specific_tool = "/resources/tools/min-gas"
 
         results.append(calc_results)
         results.append({

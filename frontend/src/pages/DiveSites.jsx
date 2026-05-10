@@ -41,9 +41,9 @@ import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
-import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
@@ -63,8 +63,7 @@ const DiveSites = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Dive Sites');
+  // Removed usePageTitle hook; title is now managed by SEO component
 
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
@@ -679,6 +678,10 @@ const DiveSites = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      <SEO 
+        title='Explore Top Scuba Dive Sites Worldwide | Divemap'
+        description='Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.'
+      />
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader

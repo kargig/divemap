@@ -32,8 +32,8 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
-import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -59,8 +59,7 @@ const DivingCenters = () => {
   const { data: disableReviewsSetting } = useSetting('disable_diving_center_reviews');
   const reviewsEnabled = !disableReviewsSetting?.value;
 
-  // Set page title
-  usePageTitle('Divemap - Diving Centers');
+  // Removed usePageTitle hook; title is now managed by SEO component
 
   // Sorting state
   const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
@@ -341,7 +340,12 @@ const DivingCenters = () => {
   ];
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <>
+      <SEO 
+        title='Find Scuba Diving Centers & Schools Near You | Divemap'
+        description='Directory of professional diving centers, scuba schools, and dive shops globally. Compare ratings, find contact information, and locate your next dive operator.'
+      />
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       <PageHeader
         title='Diving Centers'
         titleIcon={Building}
@@ -739,6 +743,7 @@ const DivingCenters = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

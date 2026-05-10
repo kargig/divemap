@@ -14,13 +14,12 @@ import { Typography, Card, Tag, Button, Row, Col, Divider, Space, Grid } from 'a
 import { Collapse } from 'antd-mobile';
 import React from 'react';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const { Title, Paragraph, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const Changelog = () => {
-  usePageTitle('Divemap - Changelog');
   const screens = useBreakpoint();
 
   const getIcon = type => {
@@ -380,7 +379,12 @@ const Changelog = () => {
   );
 
   return (
-    <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
+    <>
+      <SEO 
+        title='Changelog & Updates | Divemap'
+        description='Keep track of the latest features, improvements, and bug fixes to the Divemap platform.'
+      />
+      <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
       <div className='max-w-5xl mx-auto px-4'>
         {/* Header */}
         <div className='text-center mb-12'>
@@ -486,6 +490,7 @@ const Changelog = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
