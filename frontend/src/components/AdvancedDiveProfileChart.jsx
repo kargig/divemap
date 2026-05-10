@@ -11,9 +11,11 @@ import {
   Contrast,
   Upload,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   ComposedChart,
   Line,
@@ -26,6 +28,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 
+import api from '../api';
 import { useResponsive } from '../hooks/useResponsive';
 
 /**
@@ -392,10 +395,43 @@ const AdvancedDiveProfileChart = ({
   }, []);
 
   const handleExportData = useCallback(
-    format => {
+    async format => {
       if (!diveId) return;
-      const exportUrl = `/api/v1/dives/${diveId}/export/${format}`;
-      window.open(exportUrl, '_blank');
+
+      const toastId = toast.loading(`Exporting dive to ${format.toUpperCase()}...`);
+      try {
+        const response = await api.get(`/api/v1/dives/${diveId}/export/${format}`, {
+          responseType: 'blob',
+        });
+
+        // Create download link
+        const url = window.URL.createObjectURL(new window.Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Try to get filename from content-disposition if possible, or use default
+        const contentDisposition = response.headers['content-disposition'];
+        let fileName = `dive_${diveId}_export.${format}`;
+        if (contentDisposition) {
+          const fileNameMatch = contentDisposition.match(/filename=(.+)/);
+          if (fileNameMatch && fileNameMatch.length > 1) {
+            fileName = fileNameMatch[1].replace(/["']/g, '');
+          }
+        }
+
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast.success(`${format.toUpperCase()} export complete!`, { id: toastId });
+      } catch (error) {
+        console.error('Export failed:', error);
+        toast.error(`Failed to export dive: ${error.response?.data?.detail || error.message}`, {
+          id: toastId,
+        });
+      }
     },
     [diveId]
   );
