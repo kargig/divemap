@@ -59,8 +59,6 @@ const DivingCenters = () => {
   const { data: disableReviewsSetting } = useSetting('disable_diving_center_reviews');
   const reviewsEnabled = !disableReviewsSetting?.value;
 
-  // Removed usePageTitle hook; title is now managed by SEO component
-
   // Sorting state
   const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
   const [sortOrder, setSortOrder] = useState(searchParams.get('sort_order') || 'asc');

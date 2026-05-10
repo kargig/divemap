@@ -63,8 +63,6 @@ const DiveSites = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Removed usePageTitle hook; title is now managed by SEO component
-
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
     // Use React Router's searchParams consistently

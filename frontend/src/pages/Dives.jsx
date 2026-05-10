@@ -73,8 +73,6 @@ const Dives = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Removed usePageTitle hook; title is now managed by SEO component
-
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
     const mode = searchParams.get('view') || 'list';

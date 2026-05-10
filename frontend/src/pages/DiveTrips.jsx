@@ -343,8 +343,6 @@ const DiveTrips = () => {
     }
   );
 
-  // Removed usePageTitle hook; title is now managed by SEO component
-
   const trips = tripsResponse?.items || [];
   const paginationData = tripsResponse?.total !== undefined ? tripsResponse : null;
 
