@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 
 import NewsletterUpload from '../components/NewsletterUpload';
+import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
-import SEO from '../components/SEO';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { getDivingCenters, broadcastTrip } from '../services/divingCenters';
 import { createParsedTrip } from '../services/newsletters';
@@ -227,78 +227,14 @@ const CreateTrip = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Publish a Dive Trip | Divemap'
         description='Create and publish a new scuba diving trip or excursion to the Divemap community.'
       />
       <div className='max-w-6xl mx-auto py-8'>
-      {/* Back Button */}
-      <button
-        onClick={() => {
-          const from = location.state?.from;
-          if (from) {
-            navigate(from);
-          } else {
-            navigate('/dive-trips');
-          }
-        }}
-        className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
-      >
-        <ArrowLeft className='w-4 h-4' />
-        <span>Back to Trips</span>
-      </button>
-
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900'>Create Dive Trip</h1>
-        <p className='text-gray-600 mt-2'>Upload newsletter or create a dive trip manually</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className='bg-white rounded-lg shadow-md mb-6'>
-        <div className='border-b border-gray-200'>
-          <nav className='flex space-x-8 px-6'>
-            <button
-              onClick={() => handleTabChange('newsletter')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === 'newsletter'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <UploadIcon className='w-4 h-4' />
-              <span>Upload/Paste Newsletter</span>
-            </button>
-            <button
-              onClick={() => handleTabChange('form')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === 'form'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <FileEdit className='w-4 h-4' />
-              <span>Create Trip Form</span>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'newsletter' && (
-        <NewsletterUpload
-          divingCenters={divingCenters}
-          onSuccess={() => {
-            // Optionally navigate or show success message
-            queryClient.invalidateQueries('parsedTrips');
-          }}
-        />
-      )}
-
-      {activeTab === 'form' && (
-        <TripFormModal
-          trip={null}
-          onSubmit={handleCreateTrip}
-          onCancel={() => {
+        {/* Back Button */}
+        <button
+          onClick={() => {
             const from = location.state?.from;
             if (from) {
               navigate(from);
@@ -306,17 +242,81 @@ const CreateTrip = () => {
               navigate('/dive-trips');
             }
           }}
-          title='Create New Dive Trip'
-          diveSites={diveSites}
-          divingCenters={divingCenters}
-          additionalDiveSites={additionalDiveSites}
-          isModal={false}
-          divingCenterId={
-            searchParams.get('center_id') ? parseInt(searchParams.get('center_id')) : null
-          }
-        />
-      )}
-    </div>
+          className='flex items-center space-x-2 text-blue-600 hover:text-blue-800 mb-6 transition-colors'
+        >
+          <ArrowLeft className='w-4 h-4' />
+          <span>Back to Trips</span>
+        </button>
+
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>Create Dive Trip</h1>
+          <p className='text-gray-600 mt-2'>Upload newsletter or create a dive trip manually</p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className='bg-white rounded-lg shadow-md mb-6'>
+          <div className='border-b border-gray-200'>
+            <nav className='flex space-x-8 px-6'>
+              <button
+                onClick={() => handleTabChange('newsletter')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeTab === 'newsletter'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <UploadIcon className='w-4 h-4' />
+                <span>Upload/Paste Newsletter</span>
+              </button>
+              <button
+                onClick={() => handleTabChange('form')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  activeTab === 'form'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FileEdit className='w-4 h-4' />
+                <span>Create Trip Form</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'newsletter' && (
+          <NewsletterUpload
+            divingCenters={divingCenters}
+            onSuccess={() => {
+              // Optionally navigate or show success message
+              queryClient.invalidateQueries('parsedTrips');
+            }}
+          />
+        )}
+
+        {activeTab === 'form' && (
+          <TripFormModal
+            trip={null}
+            onSubmit={handleCreateTrip}
+            onCancel={() => {
+              const from = location.state?.from;
+              if (from) {
+                navigate(from);
+              } else {
+                navigate('/dive-trips');
+              }
+            }}
+            title='Create New Dive Trip'
+            diveSites={diveSites}
+            divingCenters={divingCenters}
+            additionalDiveSites={additionalDiveSites}
+            isModal={false}
+            divingCenterId={
+              searchParams.get('center_id') ? parseInt(searchParams.get('center_id')) : null
+            }
+          />
+        )}
+      </div>
     </>
   );
 };

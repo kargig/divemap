@@ -1108,67 +1108,67 @@ const Help = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Help Center & User Guide | Divemap'
         description='Learn how to use Divemap. Read guides on finding dive sites, logging dives, using the interactive map, and tracking your scuba certifications.'
       />
       <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
-      <div className='max-w-6xl mx-auto px-2 sm:px-4'>
-        <div className='text-center mb-10'>
-          <Title level={1} className='mb-2'>
-            Help & Documentation
-          </Title>
-          <Paragraph className='text-lg text-gray-500 max-w-2xl mx-auto'>
-            Master the Divemap platform. Comprehensive guides for all features and tools.
-          </Paragraph>
-        </div>
-
-        {screens.xs ? (
-          <div className='bg-white rounded-xl shadow-sm overflow-hidden'>
-            <Collapse accordion defaultActiveKey={activeTab} onChange={handleTabChange}>
-              {items.map(item => (
-                <Collapse.Panel title={item.label} key={item.key}>
-                  <div className='p-4'>{item.children}</div>
-                </Collapse.Panel>
-              ))}
-            </Collapse>
+        <div className='max-w-6xl mx-auto px-2 sm:px-4'>
+          <div className='text-center mb-10'>
+            <Title level={1} className='mb-2'>
+              Help & Documentation
+            </Title>
+            <Paragraph className='text-lg text-gray-500 max-w-2xl mx-auto'>
+              Master the Divemap platform. Comprehensive guides for all features and tools.
+            </Paragraph>
           </div>
-        ) : (
-          <Tabs
-            activeKey={activeTab}
-            onChange={handleTabChange}
-            items={items}
-            size='large'
-            type='line'
-            className='bg-white rounded-xl shadow-sm p-6 prose prose-blue dark:prose-invert max-w-none'
-          />
-        )}
 
-        <Divider />
-        <div className='text-center'>
-          <Space
-            orientation={screens.xs ? 'vertical' : 'horizontal'}
-            separator={!screens.xs && <Divider orientation='vertical' />}
-            size={screens.xs ? 'small' : 'middle'}
-          >
-            <Button type='link' href='/changelog' icon={<RocketOutlined />}>
-              View Latest Updates
-            </Button>
-            <Button
-              type='link'
-              href='https://github.com/kargig/divemap'
-              target='_blank'
-              icon={<GithubOutlined />}
+          {screens.xs ? (
+            <div className='bg-white rounded-xl shadow-sm overflow-hidden'>
+              <Collapse accordion defaultActiveKey={activeTab} onChange={handleTabChange}>
+                {items.map(item => (
+                  <Collapse.Panel title={item.label} key={item.key}>
+                    <div className='p-4'>{item.children}</div>
+                  </Collapse.Panel>
+                ))}
+              </Collapse>
+            </div>
+          ) : (
+            <Tabs
+              activeKey={activeTab}
+              onChange={handleTabChange}
+              items={items}
+              size='large'
+              type='line'
+              className='bg-white rounded-xl shadow-sm p-6 prose prose-blue dark:prose-invert max-w-none'
+            />
+          )}
+
+          <Divider />
+          <div className='text-center'>
+            <Space
+              orientation={screens.xs ? 'vertical' : 'horizontal'}
+              separator={!screens.xs && <Divider orientation='vertical' />}
+              size={screens.xs ? 'small' : 'middle'}
             >
-              Project on GitHub
-            </Button>
-          </Space>
-          <Paragraph type='secondary' className='mt-4 text-xs'>
-            Divemap is an open-source project. Last updated: January 22, 2026.
-          </Paragraph>
+              <Button type='link' href='/changelog' icon={<RocketOutlined />}>
+                View Latest Updates
+              </Button>
+              <Button
+                type='link'
+                href='https://github.com/kargig/divemap'
+                target='_blank'
+                icon={<GithubOutlined />}
+              >
+                Project on GitHub
+              </Button>
+            </Space>
+            <Paragraph type='secondary' className='mt-4 text-xs'>
+              Divemap is an open-source project. Last updated: January 22, 2026.
+            </Paragraph>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

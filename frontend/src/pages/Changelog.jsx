@@ -380,116 +380,117 @@ const Changelog = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Changelog & Updates | Divemap'
         description='Keep track of the latest features, improvements, and bug fixes to the Divemap platform.'
       />
       <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
-      <div className='max-w-5xl mx-auto px-4'>
-        {/* Header */}
-        <div className='text-center mb-12'>
-          <FileTextOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
-          <Title level={1} style={{ marginTop: '16px', marginBottom: '8px' }}>
-            Changelog
-          </Title>
-          <Paragraph
-            type='secondary'
-            style={{ fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}
-          >
-            Track all recent changes, improvements, and bug fixes to the Divemap application.
-          </Paragraph>
-        </div>
-
-        {screens.xs ? (
-          /* Mobile View: Accordion style */
-          <div className='mobile-changelog-container'>
-            <Collapse accordion defaultActiveKey={releases[0].date}>
-              {releases.map(release => (
-                <Collapse.Panel
-                  key={release.date}
-                  title={
-                    <div className='flex flex-col py-1'>
-                      <span className='font-bold text-gray-800'>{release.date}</span>
-                      <span className='text-xs text-gray-500'>{release.title}</span>
-                    </div>
-                  }
-                >
-                  <div className='py-2'>{renderReleaseContent(release, true)}</div>
-                </Collapse.Panel>
-              ))}
-            </Collapse>
+        <div className='max-w-5xl mx-auto px-4'>
+          {/* Header */}
+          <div className='text-center mb-12'>
+            <FileTextOutlined style={{ fontSize: '48px', color: '#1890ff' }} />
+            <Title level={1} style={{ marginTop: '16px', marginBottom: '8px' }}>
+              Changelog
+            </Title>
+            <Paragraph
+              type='secondary'
+              style={{ fontSize: '18px', maxWidth: '600px', margin: '0 auto' }}
+            >
+              Track all recent changes, improvements, and bug fixes to the Divemap application.
+            </Paragraph>
           </div>
-        ) : (
-          /* Desktop View: Custom Vertical Feed */
-          <div className='desktop-changelog-feed relative pl-8'>
-            {/* Continuous vertical line background */}
-            <div className='absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block' />
 
-            {releases.map((release, idx) => (
-              <div key={idx} className='mb-16 relative md:pl-12'>
-                {/* Date Marker */}
-                <div className='hidden md:flex absolute left-[25.5px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm z-10 items-center justify-center' />
+          {screens.xs ? (
+            /* Mobile View: Accordion style */
+            <div className='mobile-changelog-container'>
+              <Collapse accordion defaultActiveKey={releases[0].date}>
+                {releases.map(release => (
+                  <Collapse.Panel
+                    key={release.date}
+                    title={
+                      <div className='flex flex-col py-1'>
+                        <span className='font-bold text-gray-800'>{release.date}</span>
+                        <span className='text-xs text-gray-500'>{release.title}</span>
+                      </div>
+                    }
+                  >
+                    <div className='py-2'>{renderReleaseContent(release, true)}</div>
+                  </Collapse.Panel>
+                ))}
+              </Collapse>
+            </div>
+          ) : (
+            /* Desktop View: Custom Vertical Feed */
+            <div className='desktop-changelog-feed relative pl-8'>
+              {/* Continuous vertical line background */}
+              <div className='absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200 hidden md:block' />
 
-                <div className='mb-6'>
-                  <Space align='center' className='mb-1'>
-                    {release.tag && <Tag color='blue'>{release.tag}</Tag>}
-                    <Title level={3} className='!mb-0'>
-                      {release.date}
-                    </Title>
-                  </Space>
-                  <Text type='secondary' className='text-lg block'>
-                    {release.title}
-                  </Text>
+              {releases.map((release, idx) => (
+                <div key={idx} className='mb-16 relative md:pl-12'>
+                  {/* Date Marker */}
+                  <div className='hidden md:flex absolute left-[25.5px] top-1.5 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm z-10 items-center justify-center' />
+
+                  <div className='mb-6'>
+                    <Space align='center' className='mb-1'>
+                      {release.tag && <Tag color='blue'>{release.tag}</Tag>}
+                      <Title level={3} className='!mb-0'>
+                        {release.date}
+                      </Title>
+                    </Space>
+                    <Text type='secondary' className='text-lg block'>
+                      {release.title}
+                    </Text>
+                  </div>
+
+                  {renderReleaseContent(release, false)}
                 </div>
+              ))}
+            </div>
+          )}
 
-                {renderReleaseContent(release, false)}
-              </div>
-            ))}
-          </div>
-        )}
+          <Divider />
 
-        <Divider />
-
-        <div className='text-center mt-12'>
-          <Card className='bg-gray-50 border-none shadow-none'>
-            <Space direction='vertical' size='large'>
-              <GithubOutlined style={{ fontSize: '32px' }} />
-              <Title level={3}>View Complete Changelog</Title>
-              <Paragraph>
-                For detailed information about all changes, visit our complete changelog on GitHub.
-              </Paragraph>
-              <Button
-                type='primary'
-                icon={<GithubOutlined />}
-                size='large'
-                href='https://github.com/kargig/divemap/blob/main/docs/maintenance/changelog.md'
-                target='_blank'
-              >
-                View on GitHub
-              </Button>
-              <Space
-                orientation={screens.xs ? 'vertical' : 'horizontal'}
-                separator={!screens.xs && <Divider orientation='vertical' />}
-                size={screens.xs ? 'small' : 'middle'}
-              >
-                <Space>
-                  <GlobalOutlined /> User Experience
+          <div className='text-center mt-12'>
+            <Card className='bg-gray-50 border-none shadow-none'>
+              <Space direction='vertical' size='large'>
+                <GithubOutlined style={{ fontSize: '32px' }} />
+                <Title level={3}>View Complete Changelog</Title>
+                <Paragraph>
+                  For detailed information about all changes, visit our complete changelog on
+                  GitHub.
+                </Paragraph>
+                <Button
+                  type='primary'
+                  icon={<GithubOutlined />}
+                  size='large'
+                  href='https://github.com/kargig/divemap/blob/main/docs/maintenance/changelog.md'
+                  target='_blank'
+                >
+                  View on GitHub
+                </Button>
+                <Space
+                  orientation={screens.xs ? 'vertical' : 'horizontal'}
+                  separator={!screens.xs && <Divider orientation='vertical' />}
+                  size={screens.xs ? 'small' : 'middle'}
+                >
+                  <Space>
+                    <GlobalOutlined /> User Experience
+                  </Space>
+                  <Space>
+                    <ToolOutlined /> Technical Improvements
+                  </Space>
+                  <Space>
+                    <SafetyCertificateOutlined /> Security & Stability
+                  </Space>
                 </Space>
-                <Space>
-                  <ToolOutlined /> Technical Improvements
-                </Space>
-                <Space>
-                  <SafetyCertificateOutlined /> Security & Stability
-                </Space>
+                <Paragraph type='secondary' style={{ marginTop: '16px' }}>
+                  Last updated: April 17, 2026
+                </Paragraph>
               </Space>
-              <Paragraph type='secondary' style={{ marginTop: '16px' }}>
-                Last updated: April 17, 2026
-              </Paragraph>
-            </Space>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 };

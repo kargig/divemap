@@ -32,11 +32,11 @@ import FuzzySearchInput from '../components/FuzzySearchInput';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import SEO from '../components/SEO';
 import TripCard from '../components/TripCard';
 import Button from '../components/ui/Button';
 import CurrencyIcon from '../components/ui/CurrencyIcon';
 import { useAuth } from '../contexts/AuthContext';
-import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
@@ -575,7 +575,7 @@ const DiveTrips = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      <SEO 
+      <SEO
         title='Upcoming Scuba Dive Trips & Excursions | Divemap'
         description='Find planned scuba diving trips, boat excursions, and guided tours from diving centers. Compare prices, schedules, and destinations.'
       />

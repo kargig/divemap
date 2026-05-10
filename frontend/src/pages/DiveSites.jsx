@@ -39,9 +39,9 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import SEO from '../components/SEO';
 import Pagination from '../components/ui/Pagination';
 import { useAuth } from '../contexts/AuthContext';
-import SEO from '../components/SEO';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
@@ -678,7 +678,7 @@ const DiveSites = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      <SEO 
+      <SEO
         title='Explore Top Scuba Dive Sites Worldwide | Divemap'
         description='Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.'
       />

@@ -50,86 +50,86 @@ const ForgotPassword = () => {
   if (isSuccess) {
     return (
       <>
-        <SEO 
+        <SEO
           title='Reset Password Link Sent | Divemap'
           description='Instructions to reset your Divemap password have been sent to your email.'
         />
         <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-        <div className='max-w-md w-full text-center space-y-8'>
-          <div>
-            <div className='mx-auto flex items-center justify-center'>
-              <Logo size='large' showText={false} />
+          <div className='max-w-md w-full text-center space-y-8'>
+            <div>
+              <div className='mx-auto flex items-center justify-center'>
+                <Logo size='large' showText={false} />
+              </div>
+              <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>Check your email</h2>
+              <p className='mt-2 text-sm text-gray-600'>
+                If an account exists with that email or username, we've sent instructions to reset
+                your password.
+              </p>
             </div>
-            <h2 className='mt-6 text-3xl font-extrabold text-gray-900'>Check your email</h2>
-            <p className='mt-2 text-sm text-gray-600'>
-              If an account exists with that email or username, we've sent instructions to reset
-              your password.
-            </p>
-          </div>
-          <div className='mt-4'>
-            <Link to='/login' className='text-blue-600 hover:text-blue-500 font-medium'>
-              Back to Sign In
-            </Link>
+            <div className='mt-4'>
+              <Link to='/login' className='text-blue-600 hover:text-blue-500 font-medium'>
+                Back to Sign In
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
       </>
     );
   }
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Forgot Password | Divemap'
         description='Request a password reset link for your Divemap account.'
       />
       <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-      <div className='max-w-md w-full space-y-8'>
-        <div>
-          <div className='mx-auto flex items-center justify-center'>
-            <Logo size='large' showText={false} />
+        <div className='max-w-md w-full space-y-8'>
+          <div>
+            <div className='mx-auto flex items-center justify-center'>
+              <Logo size='large' showText={false} />
+            </div>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+              Reset your password
+            </h2>
+            <p className='mt-2 text-center text-sm text-gray-600'>
+              Enter your email address or username and we'll send you a link to reset your password.
+            </p>
           </div>
-          <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
-            Reset your password
-          </h2>
-          <p className='mt-2 text-center text-sm text-gray-600'>
-            Enter your email address or username and we'll send you a link to reset your password.
-          </p>
+
+          <FormProvider {...methods}>
+            <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
+              <FormField name='emailOrUsername' label='Email or Username'>
+                {({ register, name }) => (
+                  <input
+                    id={name}
+                    type='text'
+                    className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                    placeholder='Enter email or username'
+                    {...register(name)}
+                  />
+                )}
+              </FormField>
+
+              <div>
+                <button
+                  type='submit'
+                  disabled={loading}
+                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
+                >
+                  {loading ? 'Sending...' : 'Send Reset Link'}
+                </button>
+              </div>
+
+              <div className='text-center'>
+                <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
+                  Back to Sign In
+                </Link>
+              </div>
+            </form>
+          </FormProvider>
         </div>
-
-        <FormProvider {...methods}>
-          <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
-            <FormField name='emailOrUsername' label='Email or Username'>
-              {({ register, name }) => (
-                <input
-                  id={name}
-                  type='text'
-                  className='appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
-                  placeholder='Enter email or username'
-                  {...register(name)}
-                />
-              )}
-            </FormField>
-
-            <div>
-              <button
-                type='submit'
-                disabled={loading}
-                className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
-              >
-                {loading ? 'Sending...' : 'Send Reset Link'}
-              </button>
-            </div>
-
-            <div className='text-center'>
-              <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
-                Back to Sign In
-              </Link>
-            </div>
-          </form>
-        </FormProvider>
       </div>
-    </div>
     </>
   );
 };

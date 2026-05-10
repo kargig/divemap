@@ -2,7 +2,6 @@ import { Calculator, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 
-import SEO from '../components/SEO';
 import BestMixCalculator from '../components/calculators/BestMixCalculator';
 import GasFillPriceCalculator from '../components/calculators/GasFillPriceCalculator';
 import GasPlanningCalculator from '../components/calculators/GasPlanningCalculator';
@@ -11,6 +10,7 @@ import MinGasCalculator from '../components/calculators/MinGasCalculator';
 import ModCalculator from '../components/calculators/ModCalculator';
 import SacRateCalculator from '../components/calculators/SacRateCalculator';
 import WeightCalculator from '../components/calculators/WeightCalculator';
+import SEO from '../components/SEO';
 import Select from '../components/ui/Select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
 import TankBuoyancy from '../utils/TankBuoyancy';
@@ -33,12 +33,9 @@ const Tools = () => {
 
   // Validate toolId, default to 'mod' if invalid
   const isValidTool = TOOL_TABS.some(t => t.value === toolId);
-  
-  if (!isValidTool) {
-    return <Navigate to="/resources/tools/mod" replace />;
-  }
+  const defaultTab = isValidTool ? toolId : 'mod';
 
-  const [activeTab, setActiveTab] = useState(toolId);
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   // Sync state when URL changes (e.g. back button)
   useEffect(() => {
@@ -46,6 +43,10 @@ const Tools = () => {
       setActiveTab(toolId);
     }
   }, [toolId, isValidTool]);
+
+  if (!isValidTool) {
+    return <Navigate to='/resources/tools/mod' replace />;
+  }
 
   const handleTabChange = value => {
     setActiveTab(value);
@@ -56,7 +57,7 @@ const Tools = () => {
 
   return (
     <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-      <SEO 
+      <SEO
         title={`${activeToolLabel} | Divemap Diving Tools`}
         description={`Use our ${activeToolLabel} to plan your scuba dives safely. Divemap offers a suite of advanced diving calculators for gas planning, MOD, best mix, and tank buoyancy.`}
       />

@@ -347,76 +347,76 @@ const DivingOrganizationsPage = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Diving Organizations & Certification Agencies | Divemap'
         description='Directory of recognized scuba certification agencies such as PADI, SSI, CMAS, and GUE. Explore certification levels and diving courses.'
       />
       <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
-      <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
-        <div className='p-6 border-b border-gray-200'>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <div>
-              <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-                <Award className='h-8 w-8 mr-3 text-blue-600' />
-                Diving Organizations
-              </h1>
-              <p className='mt-1 text-gray-600'>
-                Browse recognized diving organizations and their certification levels.
-              </p>
-            </div>
-            <div className='relative w-full md:w-64'>
-              <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                <Search className='h-5 w-5 text-gray-400' />
-              </div>
-              <input
-                type='text'
-                className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
-                placeholder='Search organizations...'
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className='flex justify-center items-center h-64'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-          </div>
-        ) : (
-          <div className='bg-gray-50 p-6'>
-            {filteredOrgs?.length > 0 ? (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6'>
-                {filteredOrgs.map(org => {
-                  const isTargetOrg =
-                    orgParam &&
-                    (org.acronym?.toLowerCase() === orgParam.toLowerCase() ||
-                      org.name.toLowerCase().includes(orgParam.toLowerCase()));
-                  return (
-                    <OrganizationCard
-                      key={org.id}
-                      org={org}
-                      initialDrawerOpen={isTargetOrg}
-                      highlightCourse={isTargetOrg ? courseParam : null}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
-                <NotebookText className='mx-auto h-12 w-12 text-gray-400' />
-                <h3 className='mt-2 text-sm font-medium text-gray-900'>No organizations found</h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  {searchTerm
-                    ? `No organizations matching "${searchTerm}"`
-                    : 'There are no diving organizations in the system yet.'}
+        <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
+          <div className='p-6 border-b border-gray-200'>
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+              <div>
+                <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
+                  <Award className='h-8 w-8 mr-3 text-blue-600' />
+                  Diving Organizations
+                </h1>
+                <p className='mt-1 text-gray-600'>
+                  Browse recognized diving organizations and their certification levels.
                 </p>
               </div>
-            )}
+              <div className='relative w-full md:w-64'>
+                <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                  <Search className='h-5 w-5 text-gray-400' />
+                </div>
+                <input
+                  type='text'
+                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
+                  placeholder='Search organizations...'
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
-        )}
+
+          {isLoading ? (
+            <div className='flex justify-center items-center h-64'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+            </div>
+          ) : (
+            <div className='bg-gray-50 p-6'>
+              {filteredOrgs?.length > 0 ? (
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6'>
+                  {filteredOrgs.map(org => {
+                    const isTargetOrg =
+                      orgParam &&
+                      (org.acronym?.toLowerCase() === orgParam.toLowerCase() ||
+                        org.name.toLowerCase().includes(orgParam.toLowerCase()));
+                    return (
+                      <OrganizationCard
+                        key={org.id}
+                        org={org}
+                        initialDrawerOpen={isTargetOrg}
+                        highlightCourse={isTargetOrg ? courseParam : null}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
+                  <NotebookText className='mx-auto h-12 w-12 text-gray-400' />
+                  <h3 className='mt-2 text-sm font-medium text-gray-900'>No organizations found</h3>
+                  <p className='mt-1 text-sm text-gray-500'>
+                    {searchTerm
+                      ? `No organizations matching "${searchTerm}"`
+                      : 'There are no diving organizations in the system yet.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </>
   );
 };

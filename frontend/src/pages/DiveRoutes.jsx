@@ -155,7 +155,7 @@ const DiveRoutes = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
-      <SEO 
+      <SEO
         title='Underwater Dive Routes & Maps | Divemap'
         description='Explore user-created underwater navigation routes for popular dive sites. Discover headings, distances, POIs, and detailed dive plans.'
       />

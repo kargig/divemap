@@ -28,7 +28,7 @@ import SEO from '../components/SEO';
 const About = () => {
   return (
     <div className='max-w-5xl mx-auto'>
-      <SEO 
+      <SEO
         title='About Divemap | Platform Mission and Open Source Code'
         description='Learn about Divemap, an open-source platform for discovering scuba dive sites, logging dives, and connecting with the diving community.'
       />

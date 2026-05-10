@@ -8,8 +8,8 @@ import { z } from 'zod';
 import api, { healthCheck } from '../api';
 import { FormField } from '../components/forms/FormField';
 import Logo from '../components/Logo';
-import Turnstile from '../components/Turnstile';
 import SEO from '../components/SEO';
+import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
@@ -194,213 +194,213 @@ const Register = () => {
 
   return (
     <>
-      <SEO 
+      <SEO
         title='Create a Divemap Account | Join the Diving Community'
         description='Register for Divemap to start logging your scuba dives, discovering new dive sites, and planning trips with other divers.'
       />
       <div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-      <div className='max-w-md w-full space-y-8'>
-        <div>
-          <div className='mx-auto flex items-center justify-center'>
-            <Logo size='large' showText={false} />
+        <div className='max-w-md w-full space-y-8'>
+          <div>
+            <div className='mx-auto flex items-center justify-center'>
+              <Logo size='large' showText={false} />
+            </div>
+            <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
+              Create your account
+            </h2>
+            <p className='mt-2 text-center text-sm text-gray-600'>
+              Or{' '}
+              <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
+                sign in to your existing account
+              </Link>
+            </p>
           </div>
-          <h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
-            Create your account
-          </h2>
-          <p className='mt-2 text-center text-sm text-gray-600'>
-            Or{' '}
-            <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
-              sign in to your existing account
-            </Link>
-          </p>
-        </div>
-        <FormProvider {...methods}>
-          <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
-            <div className='space-y-4'>
-              <FormField name='username' label='Username'>
-                {({ register, name }) => (
-                  <input
-                    id={name}
-                    type='text'
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                      errors.username ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder='Enter your username'
-                    {...register(name)}
-                  />
-                )}
-              </FormField>
-
-              <FormField name='email' label='Email'>
-                {({ register, name }) => (
-                  <input
-                    id={name}
-                    type='email'
-                    className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder='Enter your email'
-                    {...register(name)}
-                  />
-                )}
-              </FormField>
-
-              <FormField name='password' label='Password'>
-                {({ register, name }) => (
-                  <div className='relative'>
+          <FormProvider {...methods}>
+            <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
+              <div className='space-y-4'>
+                <FormField name='username' label='Username'>
+                  {({ register, name }) => (
                     <input
                       id={name}
-                      type={showPassword ? 'text' : 'password'}
-                      className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
+                      type='text'
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        errors.username ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder='Enter your password'
+                      placeholder='Enter your username'
                       {...register(name)}
                     />
-                    <button
-                      type='button'
-                      className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className='h-5 w-5 text-gray-400' />
-                      ) : (
-                        <Eye className='h-5 w-5 text-gray-400' />
-                      )}
-                    </button>
-                  </div>
-                )}
-              </FormField>
+                  )}
+                </FormField>
 
-              <FormField name='confirmPassword' label='Confirm Password'>
-                {({ register, name }) => (
-                  <div className='relative'>
+                <FormField name='email' label='Email'>
+                  {({ register, name }) => (
                     <input
                       id={name}
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                      type='email'
+                      className={`mt-1 appearance-none relative block w-full px-3 py-2 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                        errors.email ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      placeholder='Confirm your password'
+                      placeholder='Enter your email'
                       {...register(name)}
                     />
-                    <button
-                      type='button'
-                      className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className='h-5 w-5 text-gray-400' />
-                      ) : (
-                        <Eye className='h-5 w-5 text-gray-400' />
-                      )}
-                    </button>
-                  </div>
-                )}
-              </FormField>
-            </div>
+                  )}
+                </FormField>
 
-            {/* Turnstile Widget */}
-            {turnstileConfig.isEnabled && turnstileConfig.siteKey && (
-              <div className='space-y-2'>
-                <Turnstile
-                  siteKey={turnstileConfig.siteKey}
-                  onVerify={handleTurnstileVerify}
-                  onExpire={handleTurnstileExpire}
-                  onError={handleTurnstileError}
-                  theme='light'
-                  size='normal'
-                  className='flex justify-center'
-                />
-                {turnstileError && (
-                  <p className='text-sm text-red-600 text-center'>
-                    Verification failed. Please try again.
-                  </p>
-                )}
+                <FormField name='password' label='Password'>
+                  {({ register, name }) => (
+                    <div className='relative'>
+                      <input
+                        id={name}
+                        type={showPassword ? 'text' : 'password'}
+                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                          errors.password ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder='Enter your password'
+                        {...register(name)}
+                      />
+                      <button
+                        type='button'
+                        className='absolute inset-y-0 right-0 pr-3 flex items-center'
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className='h-5 w-5 text-gray-400' />
+                        ) : (
+                          <Eye className='h-5 w-5 text-gray-400' />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </FormField>
+
+                <FormField name='confirmPassword' label='Confirm Password'>
+                  {({ register, name }) => (
+                    <div className='relative'>
+                      <input
+                        id={name}
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        className={`mt-1 appearance-none relative block w-full px-3 py-2 pr-10 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                          errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder='Confirm your password'
+                        {...register(name)}
+                      />
+                      <button
+                        type='button'
+                        className='absolute inset-y-0 right-0 pr-3 flex items-center'
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className='h-5 w-5 text-gray-400' />
+                        ) : (
+                          <Eye className='h-5 w-5 text-gray-400' />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </FormField>
               </div>
-            )}
 
-            <div>
-              <button
-                type='submit'
-                disabled={loading || !isBackendReady}
-                className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {loading
-                  ? 'Creating account...'
-                  : !isBackendReady
-                    ? 'Connecting to server...'
-                    : 'Create account'}
-              </button>
-            </div>
-
-            {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
-              import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
-                <>
-                  <div className='relative'>
-                    <div className='absolute inset-0 flex items-center'>
-                      <div className='w-full border-t border-gray-300' />
-                    </div>
-                    <div className='relative flex justify-center text-sm'>
-                      <span className='px-2 bg-gray-50 text-gray-500'>Or continue with</span>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`transition-opacity duration-200 ${
-                      !isBackendReady ? 'opacity-50 pointer-events-none' : ''
-                    }`}
-                  >
-                    <div id='google-signup-button' className='w-full flex justify-center'></div>
-                    {googleLoading && (
-                      <div className='mt-2 text-center text-sm text-gray-600'>
-                        Creating account with Google... (Account will be immediately active)
-                      </div>
-                    )}
-                  </div>
-                </>
+              {/* Turnstile Widget */}
+              {turnstileConfig.isEnabled && turnstileConfig.siteKey && (
+                <div className='space-y-2'>
+                  <Turnstile
+                    siteKey={turnstileConfig.siteKey}
+                    onVerify={handleTurnstileVerify}
+                    onExpire={handleTurnstileExpire}
+                    onError={handleTurnstileError}
+                    theme='light'
+                    size='normal'
+                    className='flex justify-center'
+                  />
+                  {turnstileError && (
+                    <p className='text-sm text-red-600 text-center'>
+                      Verification failed. Please try again.
+                    </p>
+                  )}
+                </div>
               )}
 
-            <div className='bg-blue-50 border border-blue-200 rounded-md p-4'>
-              <div className='flex'>
-                <div className='flex-shrink-0'>
-                  <svg className='h-5 w-5 text-blue-400' viewBox='0 0 20 20' fill='currentColor'>
-                    <path
-                      fillRule='evenodd'
-                      d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
-                      clipRule='evenodd'
-                    />
-                  </svg>
-                </div>
-                <div className='ml-3'>
-                  <h3 className='text-sm font-medium text-blue-800'>Account Activation</h3>
-                  <div className='mt-2 text-sm text-blue-700'>
-                    <p className='mb-2'>
-                      <strong>Google Sign-In:</strong> Your account will be automatically activated
-                      and ready to use immediately.
-                    </p>
-                    <p>
-                      <strong>Username/Password:</strong> New accounts require admin approval before
-                      you can access all features. You&apos;ll be notified once your account is
-                      approved.
-                    </p>
+              <div>
+                <button
+                  type='submit'
+                  disabled={loading || !isBackendReady}
+                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  {loading
+                    ? 'Creating account...'
+                    : !isBackendReady
+                      ? 'Connecting to server...'
+                      : 'Create account'}
+                </button>
+              </div>
+
+              {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
+                import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
+                  <>
+                    <div className='relative'>
+                      <div className='absolute inset-0 flex items-center'>
+                        <div className='w-full border-t border-gray-300' />
+                      </div>
+                      <div className='relative flex justify-center text-sm'>
+                        <span className='px-2 bg-gray-50 text-gray-500'>Or continue with</span>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`transition-opacity duration-200 ${
+                        !isBackendReady ? 'opacity-50 pointer-events-none' : ''
+                      }`}
+                    >
+                      <div id='google-signup-button' className='w-full flex justify-center'></div>
+                      {googleLoading && (
+                        <div className='mt-2 text-center text-sm text-gray-600'>
+                          Creating account with Google... (Account will be immediately active)
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+              <div className='bg-blue-50 border border-blue-200 rounded-md p-4'>
+                <div className='flex'>
+                  <div className='flex-shrink-0'>
+                    <svg className='h-5 w-5 text-blue-400' viewBox='0 0 20 20' fill='currentColor'>
+                      <path
+                        fillRule='evenodd'
+                        d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+                        clipRule='evenodd'
+                      />
+                    </svg>
+                  </div>
+                  <div className='ml-3'>
+                    <h3 className='text-sm font-medium text-blue-800'>Account Activation</h3>
+                    <div className='mt-2 text-sm text-blue-700'>
+                      <p className='mb-2'>
+                        <strong>Google Sign-In:</strong> Your account will be automatically
+                        activated and ready to use immediately.
+                      </p>
+                      <p>
+                        <strong>Username/Password:</strong> New accounts require admin approval
+                        before you can access all features. You&apos;ll be notified once your
+                        account is approved.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className='text-center'>
-              <p className='text-sm text-gray-600'>
-                Already have an account?{' '}
-                <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
-                  Sign in here
-                </Link>
-              </p>
-            </div>
-          </form>
-        </FormProvider>
+              <div className='text-center'>
+                <p className='text-sm text-gray-600'>
+                  Already have an account?{' '}
+                  <Link to='/login' className='font-medium text-blue-600 hover:text-blue-500'>
+                    Sign in here
+                  </Link>
+                </p>
+              </div>
+            </form>
+          </FormProvider>
+        </div>
       </div>
-    </div>
     </>
   );
 };

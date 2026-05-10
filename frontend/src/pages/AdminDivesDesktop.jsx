@@ -715,7 +715,7 @@ const AdminDivesDesktop = () => {
                 // eslint-disable-next-line no-undef
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
+
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 link.setAttribute(
@@ -829,7 +829,7 @@ const AdminDivesDesktop = () => {
                 // eslint-disable-next-line no-undef
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
+
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 link.setAttribute(
