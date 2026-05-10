@@ -14,7 +14,7 @@ if current_dir not in sys.path:
 
 from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip
+from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
 
 # R2 Configuration
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
@@ -140,7 +140,7 @@ def download_from_r2(client):
 
 def generate_content(db: Session, r2_client=None):
     # Data gathering
-    sites = db.query(DiveSite).all()
+    sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
     centers = db.query(DivingCenter).all()
     dives = db.query(Dive).filter(Dive.is_private == False).all()
@@ -261,9 +261,25 @@ def generate_content(db: Session, r2_client=None):
     sitemap_entries = []
 
     # Static pages
-    static_paths = ["/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips", "/api-docs", "/help", "/privacy"]
+    static_paths = [
+        "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips", 
+        "/dive-routes", "/map", "/leaderboard", "/changelog",
+        "/resources/tags", "/resources/diving-organizations", "/resources/tools",
+        "/api-docs", "/help", "/privacy", "/register", "/login"
+    ]
     for path in static_paths:
         sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}{path}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>")
+
+    # Users - Only include public, enabled users
+    users = db.query(User).filter(User.enabled == True, User.buddy_visibility == 'public').all()
+    for user in users:
+        # User profile
+        url = f"{BASE_URL}/users/{user.username}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+        
+        # User analytics
+        url_analytics = f"{BASE_URL}/users/{user.username}/analytics"
+        sitemap_entries.append(f"  <url>\n    <loc>{url_analytics}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
     # Dive Sites
     for site in sites:
@@ -287,6 +303,13 @@ def generate_content(db: Session, r2_client=None):
         url = f"{BASE_URL}/dives/{dive.id}/{slug}" if slug else f"{BASE_URL}/dives/{dive.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
+    # Dive Routes
+    for route in routes:
+        lastmod = route.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(route, 'updated_at') and route.updated_at else now
+        slug = slugify(route.name)
+        url = f"{BASE_URL}/dive-routes/{route.id}/{slug}" if slug else f"{BASE_URL}/dive-routes/{route.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+
     # Dive Trips
     trips = db.query(ParsedDiveTrip).all()
     for trip in trips:
@@ -295,6 +318,14 @@ def generate_content(db: Session, r2_client=None):
         slug = slugify(trip_name)
         url = f"{BASE_URL}/dive-trips/{trip.id}/{slug}" if slug else f"{BASE_URL}/dive-trips/{trip.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
+
+    # Diving Organizations
+    orgs = db.query(DivingOrganization).all()
+    for org in orgs:
+        lastmod = org.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(org, 'updated_at') and org.updated_at else now
+        slug = slugify(org.name)
+        url = f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}" if slug else f"{BASE_URL}/resources/diving-organizations/{org.id}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
     sitemap_xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
