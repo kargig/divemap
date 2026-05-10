@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
@@ -46,7 +46,7 @@ export const DiveSiteListCard = ({
                 className={`font-semibold text-gray-900 leading-tight ${compactLayout ? 'text-sm sm:text-lg' : 'text-base sm:text-xl'}`}
               >
                 <Link
-                  to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+                  to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
                   className='hover:text-blue-600 transition-colors'
                 >
                   {site.name}
@@ -152,7 +152,7 @@ export const DiveSiteListCard = ({
             </div>
 
             <Link
-              to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+              to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
               className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
               title='View Details'
             >
@@ -223,7 +223,7 @@ export const DiveSiteGridCard = ({
         {/* Title */}
         <h3 className='font-semibold text-gray-900 leading-snug mb-2 line-clamp-1'>
           <Link
-            to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+            to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
             className='hover:text-blue-600 transition-colors'
           >
             {site.name}
@@ -270,7 +270,7 @@ export const DiveSiteGridCard = ({
           </div>
 
           <Link
-            to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+            to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
             className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 group'
           >
             Explore

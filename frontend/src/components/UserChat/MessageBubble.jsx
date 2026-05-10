@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { parseUTCDate, formatDate } from '../../utils/dateHelpers';
-import { slugify } from '../../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
 import CurrencyIcon from '../ui/CurrencyIcon';
@@ -171,7 +171,7 @@ const MessageBubble = ({
                               const siteName = isString ? site : site.name;
                               const siteLink = isString
                                 ? null
-                                : `/dive-sites/${site.id}/${slugify(site.name)}`;
+                                : `/dive-sites/${site.id}/${getDiveSiteSlug(site)}`;
 
                               return (
                                 <React.Fragment key={index}>

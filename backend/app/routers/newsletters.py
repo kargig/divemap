@@ -2241,6 +2241,8 @@ async def get_parsed_trip(
         special_requirements=trip.special_requirements,
         trip_status=trip.trip_status.value,
         diving_center_name=trip.diving_center.name if trip.diving_center else None,
+        diving_center_country=trip.diving_center.country if trip.diving_center else None,
+        diving_center_region=trip.diving_center.region if trip.diving_center else None,
         latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
         longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
         # Restrict raw newsletter content access (Finding 4: Medium)
@@ -2265,6 +2267,8 @@ async def get_parsed_trip(
                 dive_duration=dive.dive_duration,
                 dive_description=dive.dive_description,
                 dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                dive_site_country=dive.dive_site.country if dive.dive_site else None,
+                dive_site_region=dive.dive_site.region if dive.dive_site else None,
                 created_at=dive.created_at,
                 updated_at=dive.updated_at
             )

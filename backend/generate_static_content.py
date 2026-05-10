@@ -43,6 +43,47 @@ def slugify(text):
     text = text.strip('-')
     return text
 
+def generate_clean_slug(parts):
+    """Generates a clean, deduplicated slug, removing administrative boilerplate."""
+    raw = " ".join([str(p) for p in parts if p])
+    slug = slugify(raw)
+    
+    # Remove common verbose administrative boilerplate
+    boilerplates = [
+        "regional-unit-of-", "municipality-of-", "region-of-", 
+        "prefecture-of-", "province-of-", "department-of-",
+        "-and-the-lesser-cyclades"
+    ]
+    for b in boilerplates:
+        slug = slug.replace(b, "")
+        
+    # Deduplicate words to prevent "naxos-south-aegean-naxos"
+    words = slug.split('-')
+    seen = set()
+    deduped = []
+    for w in words:
+        if w and w not in seen:
+            seen.add(w)
+            deduped.append(w)
+            
+    return "-".join(deduped)
+
+def get_dive_site_slug(site):
+    """Generates an SEO-friendly slug for a dive site including geographical hierarchy."""
+    if not site:
+        return ""
+    parts = [site.country, site.region, site.name]
+    return generate_clean_slug(parts)
+
+def get_diving_center_slug(center):
+    """Generates an SEO-friendly slug for a diving center including geographical hierarchy."""
+    if not center:
+        return ""
+    # Prefer city over region to keep the slug concise. Fallback to region if city is missing.
+    local_area = center.city if center.city else center.region
+    parts = [center.country, local_area, center.name]
+    return generate_clean_slug(parts)
+
 def generate_trip_name(trip):
     """Generate trip name for slug creation."""
     center_name = trip.diving_center.name if trip.diving_center else "Unknown Center"
@@ -284,14 +325,14 @@ def generate_content(db: Session, r2_client=None):
     # Dive Sites
     for site in sites:
         lastmod = site.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(site, 'updated_at') and site.updated_at else now
-        slug = slugify(site.name)
+        slug = get_dive_site_slug(site)
         url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 
     # Diving Centers
     for center in centers:
         lastmod = center.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(center, 'updated_at') and center.updated_at else now
-        slug = slugify(center.name)
+        slug = get_diving_center_slug(center)
         url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
 

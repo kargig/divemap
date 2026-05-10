@@ -1129,6 +1129,8 @@ class ParsedDiveResponse(BaseModel):
     dive_duration: Optional[int] = None
     dive_description: Optional[str] = None
     dive_site_name: Optional[str] = None
+    dive_site_country: Optional[str] = None
+    dive_site_region: Optional[str] = None
     dive_site_average_rating: Optional[float] = None
     dive_site_tags: Optional[List[dict]] = None
     max_depth: Optional[float] = None
@@ -1181,6 +1183,8 @@ class ParsedDiveTripResponse(BaseModel):
     trip_status: str = "scheduled"
     view_count: int = 0
     diving_center_name: Optional[str] = None
+    diving_center_country: Optional[str] = None
+    diving_center_region: Optional[str] = None
     max_depth: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None

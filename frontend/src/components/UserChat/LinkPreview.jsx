@@ -5,7 +5,7 @@ import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
 import { getDiveSite } from '../../services/diveSites';
-import { slugify } from '../../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../../utils/slugify';
 
 const LinkPreview = ({ url }) => {
   // Extract dive site id from URL
@@ -40,7 +40,7 @@ const LinkPreview = ({ url }) => {
 
   return (
     <Link
-      to={`/dive-sites/${diveSiteId}/${slugify(diveSite.name)}`}
+      to={`/dive-sites/${diveSiteId}/${getDiveSiteSlug(diveSite)}`}
       className='block mt-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors no-underline'
     >
       <div className='flex items-start'>

@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 import { formatCost } from '../utils/currency';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify';
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
@@ -56,11 +56,12 @@ const TripCard = ({
   };
 
   // Helper to render the site name link/span
-  const renderSiteName = (diveSiteId, diveSiteName) => {
+  const renderSiteName = (diveSiteId, diveSiteName, country, region) => {
     if (diveSiteId) {
+      const slug = getDiveSiteSlug({ name: diveSiteName, country, region });
       return (
         <Link
-          to={`/dive-sites/${diveSiteId}/${slugify(diveSiteName)}`}
+          to={`/dive-sites/${diveSiteId}/${slug}`}
           state={{ from: window.location.pathname + window.location.search }}
           className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors truncate !min-h-0'
         >
@@ -230,7 +231,11 @@ const TripCard = ({
             <Building className='w-3.5 h-3.5 text-gray-400 shrink-0' />
             {trip.diving_center_id && trip.diving_center_name ? (
               <Link
-                to={`/diving-centers/${trip.diving_center_id}/${slugify(trip.diving_center_name)}`}
+                to={`/diving-centers/${trip.diving_center_id}/${getDivingCenterSlug({
+                  name: trip.diving_center_name,
+                  country: trip.diving_center_country,
+                  region: trip.diving_center_region,
+                })}`}
                 className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate'
               >
                 {trip.diving_center_name}
@@ -364,7 +369,12 @@ const TripCard = ({
             <div className='flex gap-2 p-1.5 sm:p-2 bg-green-50/30 rounded-md border border-green-100/50 overflow-hidden'>
               <div className='flex gap-1.5 flex-1 min-w-0'>
                 <MapPin className='w-3.5 h-3.5 text-green-600 shrink-0' />
-                {renderSiteName(trip.dive_site_id, trip.dive_site_name)}
+                {renderSiteName(
+                  trip.dive_site_id,
+                  trip.dive_site_name,
+                  trip.dive_site_country,
+                  trip.dive_site_region
+                )}
               </div>
               {renderRatingBadge(
                 trip.dive_site_id,
@@ -396,7 +406,12 @@ const TripCard = ({
                     </div>
                     <div className='flex gap-1.5 items-center min-w-0'>
                       <MapPin className='w-3.5 h-3.5 text-blue-400 shrink-0' />
-                      {renderSiteName(dive.dive_site_id, dive.dive_site_name)}
+                      {renderSiteName(
+                        dive.dive_site_id,
+                        dive.dive_site_name,
+                        dive.dive_site_country,
+                        dive.dive_site_region
+                      )}
                     </div>
                     {/* Tags inline on desktop */}
                     {!isGrid && site?.tags?.length > 0 && (

@@ -3,7 +3,7 @@ import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import Avatar from './Avatar';
@@ -30,7 +30,7 @@ const DiveSidebar = ({ dive, formatDate }) => {
             )}
             {!dive.dive_site.deleted_at && (
               <RouterLink
-                to={`/dive-sites/${dive.dive_site.id}/${slugify(dive.dive_site.name)}`}
+                to={`/dive-sites/${dive.dive_site.id}/${getDiveSiteSlug(dive.dive_site)}`}
                 state={{ from: window.location.pathname + window.location.search }}
                 className='text-blue-600 hover:text-blue-800 text-sm'
               >
@@ -47,7 +47,7 @@ const DiveSidebar = ({ dive, formatDate }) => {
           <h2 className='text-xl font-semibold mb-4'>Diving Center</h2>
           <div className='space-y-4'>
             <RouterLink
-              to={`/diving-centers/${dive.diving_center.id}/${slugify(dive.diving_center.name)}`}
+              to={`/diving-centers/${dive.diving_center.id}/${getDivingCenterSlug(dive.diving_center)}`}
               state={{ from: window.location.pathname + window.location.search }}
               className='flex items-center gap-3 group'
             >

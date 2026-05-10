@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../utils/slugify';
 
 import WeatherConditionsCard from './MarineConditionsCard';
 
@@ -143,7 +143,9 @@ const DiveSiteSidebar = ({
                       nearbyDiveSites.slice(0, 6).map(site => (
                         <button
                           key={site.id}
-                          onClick={() => navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)}
+                          onClick={() =>
+                            navigate(`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`)
+                          }
                           className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
                         >
                           <MapPin className='w-3.5 h-3.5 mr-2 flex-shrink-0 text-blue-500' />

@@ -15,7 +15,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getSmartRouteColor, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../utils/slugify';
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -504,7 +504,7 @@ const DiveSiteMap = () => {
                       : 'N/A'}
                   </div>
                   <a
-                    href={`/dive-sites/${m.data.id}/${slugify(m.data.name)}`}
+                    href={`/dive-sites/${m.data.id}/${getDiveSiteSlug(m.data)}`}
                     className='block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm'
                     style={{ color: 'white !important' }}
                   >

@@ -37,7 +37,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
-import { slugify } from '../utils/slugify';
+import { slugify, getDivingCenterSlug } from '../utils/slugify';
 
 // Lazy load the map component
 const DivingCentersMap = lazy(() => import('../components/DivingCentersMap'));
@@ -483,7 +483,7 @@ const DivingCenters = () => {
                                 />
                                 <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
                                   <Link
-                                    to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                                    to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                                     state={{
                                       from: window.location.pathname + window.location.search,
                                     }}
@@ -583,7 +583,7 @@ const DivingCenters = () => {
                               </a>
                             )}
                             <Link
-                              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                              to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                               className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
                               title='View Details'
                             >
@@ -623,7 +623,7 @@ const DivingCenters = () => {
                                   className={`font-bold text-gray-900 line-clamp-2 flex-1 min-w-0 ${compactLayout ? 'text-sm' : 'text-lg'}`}
                                 >
                                   <Link
-                                    to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                                    to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                                     className='hover:text-blue-600 transition-colors'
                                   >
                                     {center.name}
@@ -691,7 +691,7 @@ const DivingCenters = () => {
                             </div>
 
                             <Link
-                              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                              to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
                               className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
                             >
                               Explore

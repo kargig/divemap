@@ -64,7 +64,7 @@ import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
-import { slugify } from '../utils/slugify';
+import { slugify, getDivingCenterSlug } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 import NotFound from './NotFound';
@@ -187,7 +187,7 @@ const DivingCenterDetail = () => {
   // Redirect to canonical URL with slug
   useEffect(() => {
     if (center && center.name) {
-      const expectedSlug = slugify(center.name);
+      const expectedSlug = getDivingCenterSlug(center);
       if (!slug || slug !== expectedSlug) {
         navigate(`/diving-centers/${id}/${expectedSlug}${location.search}`, { replace: true });
       }

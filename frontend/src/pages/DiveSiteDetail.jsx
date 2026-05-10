@@ -64,7 +64,7 @@ import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { isYouTubeUrl, isVimeoUrl } from '../utils/youtubeHelpers';
@@ -159,7 +159,7 @@ const DiveSiteDetail = () => {
   // Redirect to canonical URL with slug
   useEffect(() => {
     if (diveSite && diveSite.name) {
-      const expectedSlug = slugify(diveSite.name);
+      const expectedSlug = getDiveSiteSlug(diveSite);
       if (!slug || slug !== expectedSlug) {
         navigate(`/dive-sites/${id}/${expectedSlug}${location.search}`, { replace: true });
       }
@@ -1286,7 +1286,7 @@ const DiveSiteDetail = () => {
                             <button
                               key={site.id}
                               onClick={() =>
-                                navigate(`/dive-sites/${site.id}/${slugify(site.name)}`)
+                                navigate(`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`)
                               }
                               className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
                             >
