@@ -34,6 +34,7 @@ import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { getSafeExternalUrl } from '../utils/textHelpers';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const EditDive = () => {
@@ -1290,7 +1291,7 @@ const EditDive = () => {
                                       <div className='space-y-2'>
                                         {item.media_type === 'photo' ? (
                                           <AntdImage
-                                            src={getImageUrl(item.url)}
+                                            src={getImageUrl(getSafeExternalUrl(item.url))}
                                             alt={item.description || 'Media'}
                                             className='w-full'
                                             preview={{
@@ -1299,7 +1300,7 @@ const EditDive = () => {
                                           />
                                         ) : (
                                           <YouTubePreview
-                                            url={item.url}
+                                            url={getSafeExternalUrl(item.url)}
                                             description={item.description}
                                             className='w-full'
                                             openInNewTab={true}
@@ -1311,7 +1312,7 @@ const EditDive = () => {
                                             title={item.url}
                                           >
                                             <a
-                                              href={item.url}
+                                              href={getSafeExternalUrl(item.url)}
                                               target='_blank'
                                               rel='noopener noreferrer'
                                               className='hover:text-blue-600 transition-colors'
@@ -1358,7 +1359,7 @@ const EditDive = () => {
                                       <div className='space-y-2'>
                                         {item.type === 'photo' ? (
                                           <AntdImage
-                                            src={getImageUrl(item.url)}
+                                            src={getImageUrl(getSafeExternalUrl(item.url))}
                                             alt={item.description || 'Media'}
                                             className='w-full'
                                             preview={{
@@ -1367,7 +1368,7 @@ const EditDive = () => {
                                           />
                                         ) : (
                                           <YouTubePreview
-                                            url={item.url}
+                                            url={getSafeExternalUrl(item.url)}
                                             description={item.description}
                                             className='w-full'
                                             openInNewTab={true}
@@ -1379,7 +1380,7 @@ const EditDive = () => {
                                             title={item.url}
                                           >
                                             <a
-                                              href={item.url}
+                                              href={getSafeExternalUrl(item.url)}
                                               target='_blank'
                                               rel='noopener noreferrer'
                                               className='hover:text-blue-600 transition-colors'

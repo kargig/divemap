@@ -17,6 +17,37 @@ export const isValidUrl = urlString => {
     return false;
   }
 };
+/**
+ * Safely parses and sanitizes an external URL to prevent DOM XSS.
+ * Validates the protocol is http/https and attempts to auto-correct missing protocols.
+ * @param {string} url - The URL string to sanitize
+ * @returns {string} The safe URL, or '' if unsafe/invalid
+ */
+export const getSafeExternalUrl = url => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+
+  try {
+    // Standard parse attempt
+    const parsed = new window.URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (e) {
+    // If it fails, it might be missing a protocol (e.g., 'youtube.com/watch')
+    // Attempt auto-correction for better UX
+    try {
+      const withProtocol = `https://${trimmed}`;
+      const parsed = new window.URL(withProtocol);
+      if (parsed.protocol === 'https:') {
+        return parsed.toString();
+      }
+    } catch (e2) {
+      return '';
+    }
+  }
+  return '';
+};
 
 /**
  * Converts URLs in text to clickable links

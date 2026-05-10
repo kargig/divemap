@@ -27,6 +27,7 @@ import {
   createResolver,
   getErrorMessage,
 } from '../utils/formHelpers';
+import { getSafeExternalUrl } from '../utils/textHelpers';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDiveSite = () => {
@@ -964,7 +965,7 @@ const CreateDiveSite = () => {
                                         <div className='space-y-2'>
                                           {item.type === 'photo' ? (
                                             <AntdImage
-                                              src={getImageUrl(item.url)}
+                                              src={getImageUrl(getSafeExternalUrl(item.url))}
                                               alt={item.description || 'Media'}
                                               className='w-full'
                                               preview={{
@@ -973,7 +974,7 @@ const CreateDiveSite = () => {
                                             />
                                           ) : (
                                             <YouTubePreview
-                                              url={item.url}
+                                              url={getSafeExternalUrl(item.url)}
                                               description={item.description}
                                               className='w-full'
                                               openInNewTab={true}
@@ -985,7 +986,7 @@ const CreateDiveSite = () => {
                                               title={item.url}
                                             >
                                               <a
-                                                href={item.url}
+                                                href={getSafeExternalUrl(item.url)}
                                                 target='_blank'
                                                 rel='noopener noreferrer'
                                                 className='hover:text-blue-600 transition-colors'

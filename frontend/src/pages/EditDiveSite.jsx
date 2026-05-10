@@ -14,7 +14,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Collapse, Image } from 'antd';
+import { Collapse, Image as AntdImage } from 'antd';
 import {
   ArrowLeft,
   Save,
@@ -54,6 +54,7 @@ import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { getSafeExternalUrl } from '../utils/textHelpers';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const SortableMediaItem = ({
@@ -108,8 +109,8 @@ const SortableMediaItem = ({
       </div>
       <div className='space-y-2'>
         {item.media_type === 'photo' ? (
-          <Image
-            src={getImageUrl(item.url)}
+          <AntdImage
+            src={getImageUrl(getSafeExternalUrl(item.url))}
             alt={item.description || 'Media'}
             className='w-full object-cover h-48 rounded'
             preview={{
@@ -118,7 +119,7 @@ const SortableMediaItem = ({
           />
         ) : (
           <YouTubePreview
-            url={item.url}
+            url={getSafeExternalUrl(item.url)}
             description={item.description}
             className='w-full'
             openInNewTab={true}
@@ -127,7 +128,7 @@ const SortableMediaItem = ({
         {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
           <div className='text-xs text-gray-500 truncate mt-1 px-1' title={item.url}>
             <a
-              href={item.url}
+              href={getSafeExternalUrl(item.url)}
               target='_blank'
               rel='noopener noreferrer'
               className='hover:text-blue-600 transition-colors'
