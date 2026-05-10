@@ -180,6 +180,8 @@ def download_from_r2(client):
     return success
 
 def generate_content(db: Session, r2_client=None):
+    BASE_URL = "https://divemap.gr"
+    
     # Data gathering
     sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
@@ -197,15 +199,18 @@ def generate_content(db: Session, r2_client=None):
 
         content_sites.append(f"## {site.name}{location_str}\n\n")
 
-        # Standardized Metadata Block
-        if site.latitude is not None and site.longitude is not None:
-            content_sites.append(f"**Coordinates**: {float(site.latitude):.6f}, {float(site.longitude):.6f}\n")
+        # Canonical URL
+        slug = get_dive_site_slug(site)
+        url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
+        content_sites.append(f"**Link**: {url}\n")
 
-        # Stats Line
-        stats = []
-        if site.max_depth: stats.append(f"**Max Depth**: {site.max_depth}m")
-        if site.difficulty: stats.append(f"**Difficulty**: {site.difficulty.label}")
-        if stats: content_sites.append(" | ".join(stats) + "\n")
+        # Standardized Metadata Block (Bulleted for LLM readability)
+        if site.latitude is not None and site.longitude is not None:
+            content_sites.append(f"- **Coordinates**: {float(site.latitude):.6f}, {float(site.longitude):.6f}\n")
+        if site.max_depth: 
+            content_sites.append(f"- **Max Depth**: {site.max_depth}m\n")
+        if site.difficulty: 
+            content_sites.append(f"- **Difficulty**: {site.difficulty.label}\n")
 
         # Description & Details
         if site.description:
@@ -226,9 +231,17 @@ def generate_content(db: Session, r2_client=None):
     content_routes = ["# Dive Routes\n\n> Specific underwater navigation paths and routes for dive sites.\n\n"]
     for route in routes:
         content_routes.append(f"## {route.name}\n\n")
-        if route.dive_site: content_routes.append(f"**Dive Site**: {route.dive_site.name}\n\n")
-        content_routes.append(f"**Type**: {route.route_type.name if route.route_type else 'Unknown'}\n\n")
-        if route.description: content_routes.append(f"{route.description}\n\n")
+        
+        slug = slugify(route.name)
+        url = f"{BASE_URL}/dive-routes/{route.id}/{slug}" if slug else f"{BASE_URL}/dive-routes/{route.id}"
+        content_routes.append(f"**Link**: {url}\n")
+        
+        if route.dive_site: 
+            content_routes.append(f"- **Dive Site**: {route.dive_site.name}\n")
+        content_routes.append(f"- **Type**: {route.route_type.name if route.route_type else 'Unknown'}\n\n")
+        
+        if route.description: 
+            content_routes.append(f"{route.description}\n\n")
         content_routes.append("---\n\n")
 
     # 3. Diving Centers
@@ -243,8 +256,15 @@ def generate_content(db: Session, r2_client=None):
 
         content_centers.append(f"## {center.name}{location_str}\n\n")
 
-        if center.address: content_centers.append(f"**Address**: {center.address}\n")
-        if center.website: content_centers.append(f"**Website**: {center.website}\n")
+        # Canonical URL
+        slug = get_diving_center_slug(center)
+        url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
+        content_centers.append(f"**Link**: {url}\n")
+
+        if center.address: 
+            content_centers.append(f"- **Address**: {center.address}\n")
+        if center.website: 
+            content_centers.append(f"- **Website**: {center.website}\n")
 
         if center.description:
             content_centers.append(f"\n{center.description}\n")
@@ -296,7 +316,6 @@ def generate_content(db: Session, r2_client=None):
     ]
 
     # 6. sitemap.xml
-    BASE_URL = "https://divemap.gr"
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     sitemap_entries = []
