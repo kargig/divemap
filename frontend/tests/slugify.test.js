@@ -23,6 +23,11 @@ describe('slugify utility', () => {
       expect(generateCleanSlug(['Greece', 'Naxos and the lesser cyclades', 'Nima Dive Center']))
         .toBe('greece-naxos-nima-dive-center');
     });
+
+    test('removes municipal-unit boilerplate', () => {
+      expect(generateCleanSlug(['Greece', 'Anavissos Municipal Unit', 'Aqualized']))
+        .toBe('greece-anavissos-aqualized');
+    });
   });
 
   describe('getDiveSiteSlug', () => {

@@ -21,6 +21,9 @@ def test_generate_clean_slug():
     
     # Test complex boilerplate removal (Naxos)
     assert generate_clean_slug(["Greece", "Naxos and the lesser cyclades", "Nima Dive Center"]) == "greece-naxos-nima-dive-center"
+
+    # Test municipal unit removal
+    assert generate_clean_slug(["Greece", "Anavissos Municipal Unit", "Aqualized"]) == "greece-anavissos-aqualized"
     
     # Test ignoring empty parts
     assert generate_clean_slug(["Greece", None, "", "Bay"]) == "greece-bay"

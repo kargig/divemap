@@ -35,6 +35,7 @@ export const generateCleanSlug = parts => {
     'province-of-',
     'department-of-',
     '-and-the-lesser-cyclades',
+    'municipal-unit',
   ];
 
   boilerplates.forEach(b => {

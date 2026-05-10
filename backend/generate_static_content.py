@@ -52,7 +52,7 @@ def generate_clean_slug(parts):
     boilerplates = [
         "regional-unit-of-", "municipality-of-", "region-of-", 
         "prefecture-of-", "province-of-", "department-of-",
-        "-and-the-lesser-cyclades"
+        "-and-the-lesser-cyclades", "municipal-unit"
     ]
     for b in boilerplates:
         slug = slug.replace(b, "")
