@@ -312,7 +312,26 @@ def generate_content(db: Session, r2_client=None):
         "## Documentation & Resources\n",
         "- [API Documentation](/docs): OpenAPI specification and interactive API documentation.\n",
         "- [About Divemap](/about): Project mission, team, and contact information.\n",
-        "- [GitHub Repository](https://github.com/kargig/divemap): Source code, issue tracker, and contribution guidelines.\n"
+        "- [Help Center](/help): Guides and FAQs for using the Divemap platform.\n",
+        "- [Privacy Policy](/privacy): Data handling and user privacy guidelines.\n",
+        "- [Changelog](/changelog): Recent updates and feature releases.\n",
+        "- [GitHub Repository](https://github.com/kargig/divemap): Source code, issue tracker, and contribution guidelines.\n\n",
+        
+        "## Platform Features\n",
+        "- [Leaderboard](/leaderboard): Ranking of active divers based on logged dives.\n",
+        "- [Interactive Map](/map): Global map view of all registered dive sites and centers.\n",
+        "- [Diving Organizations](/resources/diving-organizations): Directory of recognized scuba certification agencies.\n\n",
+        
+        "## Diving Tools & Calculators\n",
+        "- [MOD Calculator](/resources/tools/mod): Maximum Operating Depth calculator for nitrox/trimix.\n",
+        "- [Best Mix Calculator](/resources/tools/best-mix): Determine the optimal gas mix for a target depth.\n",
+        "- [SAC Rate Calculator](/resources/tools/sac): Surface Air Consumption rate calculator.\n",
+        "- [Gas Planning](/resources/tools/gas-planning): Advanced gas consumption and turn pressure planning.\n",
+        "- [Min Gas (Rock Bottom)](/resources/tools/min-gas): Calculate emergency reserve gas requirements.\n",
+        "- [ICD Check](/resources/tools/icd): Isobaric Counter Diffusion safety check for trimix.\n",
+        "- [Gas Fill Price](/resources/tools/gas-fill): Cost estimation for nitrox and trimix fills.\n",
+        "- [Tank Buoyancy](/resources/tools/buoyancy): Calculate tank weight characteristics in water.\n",
+        "- [Weight Calculator](/resources/tools/weight): Estimate required lead based on exposure protection.\n"
     ]
 
     # 6. sitemap.xml
@@ -324,7 +343,10 @@ def generate_content(db: Session, r2_client=None):
     static_paths = [
         "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips", 
         "/dive-routes", "/map", "/leaderboard", "/changelog",
-        "/resources/tags", "/resources/diving-organizations", "/resources/tools",
+        "/resources/tags", "/resources/diving-organizations", 
+        "/resources/tools/mod", "/resources/tools/best-mix", "/resources/tools/sac", 
+        "/resources/tools/gas-planning", "/resources/tools/min-gas", "/resources/tools/icd", 
+        "/resources/tools/gas-fill", "/resources/tools/buoyancy", "/resources/tools/weight",
         "/api-docs", "/help", "/privacy", "/register", "/login"
     ]
     for path in static_paths:

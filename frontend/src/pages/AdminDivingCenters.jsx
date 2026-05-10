@@ -5,9 +5,9 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import AdminDivingCentersTable from '../components/tables/AdminDivingCentersTable';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { useSetting, useUpdateSetting } from '../hooks/useSettings';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -18,8 +18,6 @@ const AdminDivingCenters = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Admin - Diving Centers');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // TanStack Table state
@@ -471,411 +469,415 @@ const AdminDivingCenters = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
-        <div className='flex-1 min-w-0'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
-            Diving Centers Management
-          </h1>
-          <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
-            Manage all diving centers in the system
-          </p>
-          {paginationInfo.totalCount !== undefined && (
-            <p className='text-xs sm:text-sm text-gray-500 mt-1'>
-              Total diving centers: {paginationInfo.totalCount}
+    <>
+      <SEO title='Divemap - Admin - Diving Centers' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
+          <div className='flex-1 min-w-0'>
+            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>
+              Diving Centers Management
+            </h1>
+            <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
+              Manage all diving centers in the system
             </p>
-          )}
-        </div>
-        <button
-          onClick={() => navigate('/diving-centers/create')}
-          className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
-        >
-          <Plus className='h-4 w-4 mr-2' />
-          <span className='hidden sm:inline'>Add Diving Center</span>
-          <span className='sm:hidden'>Add Center</span>
-        </button>
-      </div>
-
-      {/* Settings Section */}
-      <div className='mb-4 sm:mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center space-x-3'>
-            <div className='flex items-center'>
-              <input
-                type='checkbox'
-                id='reviews-toggle'
-                checked={!reviewsEnabled}
-                onChange={handleToggleReviews}
-                disabled={isLoadingSetting || isUpdatingSetting}
-                className='w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-              />
-              <label
-                htmlFor='reviews-toggle'
-                className='ml-3 text-sm font-medium text-gray-900 cursor-pointer'
-              >
-                Disable Diving Center Reviews
-              </label>
-            </div>
-            {(isLoadingSetting || isUpdatingSetting) && (
-              <div className='flex items-center text-sm text-gray-500'>
-                <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2'></div>
-                {isUpdatingSetting ? 'Updating...' : 'Loading...'}
-              </div>
+            {paginationInfo.totalCount !== undefined && (
+              <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                Total diving centers: {paginationInfo.totalCount}
+              </p>
             )}
           </div>
-          <div className='text-sm text-gray-600'>
-            {reviewsEnabled
-              ? 'Reviews and ratings are currently enabled'
-              : 'Reviews and ratings are currently disabled'}
-          </div>
+          <button
+            onClick={() => navigate('/diving-centers/create')}
+            className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
+          >
+            <Plus className='h-4 w-4 mr-2' />
+            <span className='hidden sm:inline'>Add Diving Center</span>
+            <span className='sm:hidden'>Add Center</span>
+          </button>
         </div>
-        <p className='mt-2 text-xs text-gray-500'>
-          When disabled, users will not be able to submit or view ratings and comments for diving
-          centers.
-        </p>
-      </div>
 
-      {/* Mass Delete Button */}
-      {Object.keys(rowSelection).length > 0 && (
-        <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+        {/* Settings Section */}
+        <div className='mb-4 sm:mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
           <div className='flex items-center justify-between'>
-            <div className='flex items-center'>
-              <span className='text-red-800 font-medium'>
-                {Object.keys(rowSelection).length} item(s) selected
-              </span>
-            </div>
-            <button
-              onClick={handleMassDelete}
-              disabled={massDeleteMutation.isLoading}
-              className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete Selected ({Object.keys(rowSelection).length})
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Search */}
-      <div className='mb-4 sm:mb-6'>
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
-          <input
-            type='text'
-            placeholder='Search diving centers by name...'
-            value={searchInput}
-            onChange={e => {
-              const value = e.target.value;
-              setSearchInput(value); // Update input immediately for visual feedback
-              debouncedSearch(value); // Debounce the filter update
-            }}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-          />
-          {searchInput && (
-            <button
-              onClick={() => {
-                setSearchInput('');
-                setFilters(prev => ({ ...prev, name: '' }));
-                setPagination(prev => ({ ...prev, pageIndex: 0 }));
-              }}
-              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
-            >
-              <X className='h-4 w-4' />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Table Toolbar */}
-      <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
-        {/* Column Visibility Toggle */}
-        <div className='relative'>
-          <button
-            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
-            onClick={e => {
-              e.stopPropagation();
-              const menu = document.getElementById('column-visibility-menu');
-              if (menu) {
-                menu.classList.toggle('hidden');
-              }
-            }}
-          >
-            <Columns className='h-4 w-4' />
-            Columns
-          </button>
-          <div
-            id='column-visibility-menu'
-            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-2'>
-              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
-                Toggle Columns
+            <div className='flex items-center space-x-3'>
+              <div className='flex items-center'>
+                <input
+                  type='checkbox'
+                  id='reviews-toggle'
+                  checked={!reviewsEnabled}
+                  onChange={handleToggleReviews}
+                  disabled={isLoadingSetting || isUpdatingSetting}
+                  className='w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                />
+                <label
+                  htmlFor='reviews-toggle'
+                  className='ml-3 text-sm font-medium text-gray-900 cursor-pointer'
+                >
+                  Disable Diving Center Reviews
+                </label>
               </div>
-              {columns
-                .filter(col => {
-                  const colId = col.id || col.accessorKey;
-                  return colId !== 'select' && colId !== 'actions';
-                })
-                .map(column => {
-                  const columnId = column.id || column.accessorKey;
-                  const isVisible = columnVisibility[columnId] !== false;
-                  return (
-                    <label
-                      key={columnId}
-                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={isVisible}
-                        onChange={e => {
-                          setColumnVisibility(prev => ({
-                            ...prev,
-                            [columnId]: e.target.checked,
-                          }));
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-700'>
-                        {typeof column.header === 'string'
-                          ? column.header
-                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
+              {(isLoadingSetting || isUpdatingSetting) && (
+                <div className='flex items-center text-sm text-gray-500'>
+                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2'></div>
+                  {isUpdatingSetting ? 'Updating...' : 'Loading...'}
+                </div>
+              )}
             </div>
+            <div className='text-sm text-gray-600'>
+              {reviewsEnabled
+                ? 'Reviews and ratings are currently enabled'
+                : 'Reviews and ratings are currently disabled'}
+            </div>
+          </div>
+          <p className='mt-2 text-xs text-gray-500'>
+            When disabled, users will not be able to submit or view ratings and comments for diving
+            centers.
+          </p>
+        </div>
+
+        {/* Mass Delete Button */}
+        {Object.keys(rowSelection).length > 0 && (
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <span className='text-red-800 font-medium'>
+                  {Object.keys(rowSelection).length} item(s) selected
+                </span>
+              </div>
+              <button
+                onClick={handleMassDelete}
+                disabled={massDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+              >
+                <Trash2 className='h-4 w-4 mr-2' />
+                Delete Selected ({Object.keys(rowSelection).length})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Search */}
+        <div className='mb-4 sm:mb-6'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+            <input
+              type='text'
+              placeholder='Search diving centers by name...'
+              value={searchInput}
+              onChange={e => {
+                const value = e.target.value;
+                setSearchInput(value); // Update input immediately for visual feedback
+                debouncedSearch(value); // Debounce the filter update
+              }}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setFilters(prev => ({ ...prev, name: '' }));
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Export Buttons */}
-        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-          <button
-            onClick={async () => {
-              try {
-                toast.loading('Exporting current page...', { id: 'export-toast' });
-                const headers = [
-                  'ID',
-                  'Name',
-                  'Description',
-                  'Email',
-                  'Phone',
-                  'Website',
-                  'Location',
-                  'Rating',
-                  'Views',
-                  'Country',
-                  'Region',
-                  'City',
-                ];
-                const rows = (divingCenters || []).map(center => [
-                  center.id,
-                  center.name || '',
-                  center.description ? decodeHtmlEntities(center.description) : '',
-                  center.email || '',
-                  center.phone || '',
-                  center.website || '',
-                  center.latitude && center.longitude
-                    ? `${center.latitude}, ${center.longitude}`
-                    : '',
-                  center.average_rating ? center.average_rating.toFixed(1) : 'No ratings',
-                  center.view_count || 0,
-                  center.country || '',
-                  center.region || '',
-                  center.city || '',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `diving-centers-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(`Exported ${rows.length} diving centers to CSV`, {
-                  id: 'export-toast',
-                });
-              } catch (error) {
-                toast.error('Failed to export CSV', { id: 'export-toast' });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span className='hidden sm:inline'>Export Page</span>
-            <span className='sm:hidden'>Export Page</span>
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                const totalCount = paginationInfo.totalCount || 0;
-                if (totalCount === 0) {
-                  toast.error('No diving centers to export');
-                  return;
+        {/* Table Toolbar */}
+        <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
+          {/* Column Visibility Toggle */}
+          <div className='relative'>
+            <button
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              onClick={e => {
+                e.stopPropagation();
+                const menu = document.getElementById('column-visibility-menu');
+                if (menu) {
+                  menu.classList.toggle('hidden');
                 }
+              }}
+            >
+              <Columns className='h-4 w-4' />
+              Columns
+            </button>
+            <div
+              id='column-visibility-menu'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              onClick={e => e.stopPropagation()}
+            >
+              <div className='p-2'>
+                <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
+                  Toggle Columns
+                </div>
+                {columns
+                  .filter(col => {
+                    const colId = col.id || col.accessorKey;
+                    return colId !== 'select' && colId !== 'actions';
+                  })
+                  .map(column => {
+                    const columnId = column.id || column.accessorKey;
+                    const isVisible = columnVisibility[columnId] !== false;
+                    return (
+                      <label
+                        key={columnId}
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                      >
+                        <input
+                          type='checkbox'
+                          checked={isVisible}
+                          onChange={e => {
+                            setColumnVisibility(prev => ({
+                              ...prev,
+                              [columnId]: e.target.checked,
+                            }));
+                          }}
+                          className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                        <span className='text-sm text-gray-700'>
+                          {typeof column.header === 'string'
+                            ? column.header
+                            : columnId.charAt(0).toUpperCase() +
+                              columnId.slice(1).replace(/_/g, ' ')}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
 
-                if (
-                  !window.confirm(
-                    `This will export all ${totalCount.toLocaleString()} diving centers. This may take a moment. Continue?`
-                  )
-                ) {
-                  return;
+          {/* Export Buttons */}
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+            <button
+              onClick={async () => {
+                try {
+                  toast.loading('Exporting current page...', { id: 'export-toast' });
+                  const headers = [
+                    'ID',
+                    'Name',
+                    'Description',
+                    'Email',
+                    'Phone',
+                    'Website',
+                    'Location',
+                    'Rating',
+                    'Views',
+                    'Country',
+                    'Region',
+                    'City',
+                  ];
+                  const rows = (divingCenters || []).map(center => [
+                    center.id,
+                    center.name || '',
+                    center.description ? decodeHtmlEntities(center.description) : '',
+                    center.email || '',
+                    center.phone || '',
+                    center.website || '',
+                    center.latitude && center.longitude
+                      ? `${center.latitude}, ${center.longitude}`
+                      : '',
+                    center.average_rating ? center.average_rating.toFixed(1) : 'No ratings',
+                    center.view_count || 0,
+                    center.country || '',
+                    center.region || '',
+                    center.city || '',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `diving-centers-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(`Exported ${rows.length} diving centers to CSV`, {
+                    id: 'export-toast',
+                  });
+                } catch (error) {
+                  toast.error('Failed to export CSV', { id: 'export-toast' });
                 }
-
-                toast.loading(`Exporting all ${totalCount.toLocaleString()} diving centers...`, {
-                  id: 'export-all-toast',
-                });
-
-                // Fetch all diving centers using page_size=1000 (max allowed)
-                const allDivingCenters = [];
-                let currentPage = 1;
-                let hasMore = true;
-
-                while (hasMore) {
-                  const params = new URLSearchParams();
-                  params.append('page', currentPage.toString());
-                  params.append('page_size', '1000'); // Max page size
-
-                  // Add filters
-                  if (filters.name) params.append('name', filters.name);
-
-                  // Add sorting if any
-                  const sortParams = getSortParams();
-                  if (sortParams.sort_by) {
-                    params.append('sort_by', sortParams.sort_by);
-                    params.append('sort_order', sortParams.sort_order);
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span className='hidden sm:inline'>Export Page</span>
+              <span className='sm:hidden'>Export Page</span>
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const totalCount = paginationInfo.totalCount || 0;
+                  if (totalCount === 0) {
+                    toast.error('No diving centers to export');
+                    return;
                   }
 
-                  const response = await api.get(`/api/v1/diving-centers/?${params.toString()}`);
-                  const responseData = response.data;
-                  const pageData = responseData?.items || responseData || [];
-
-                  if (pageData && pageData.length > 0) {
-                    allDivingCenters.push(...pageData);
-                    currentPage++;
-
-                    // Check if there's more data
-                    const totalPages =
-                      responseData?.total_pages ||
-                      parseInt(
-                        response.headers['x-total-pages'] ||
-                          response.headers['X-Total-Pages'] ||
-                          '1'
-                      );
-                    hasMore = currentPage <= totalPages;
-                  } else {
-                    hasMore = false;
+                  if (
+                    !window.confirm(
+                      `This will export all ${totalCount.toLocaleString()} diving centers. This may take a moment. Continue?`
+                    )
+                  ) {
+                    return;
                   }
+
+                  toast.loading(`Exporting all ${totalCount.toLocaleString()} diving centers...`, {
+                    id: 'export-all-toast',
+                  });
+
+                  // Fetch all diving centers using page_size=1000 (max allowed)
+                  const allDivingCenters = [];
+                  let currentPage = 1;
+                  let hasMore = true;
+
+                  while (hasMore) {
+                    const params = new URLSearchParams();
+                    params.append('page', currentPage.toString());
+                    params.append('page_size', '1000'); // Max page size
+
+                    // Add filters
+                    if (filters.name) params.append('name', filters.name);
+
+                    // Add sorting if any
+                    const sortParams = getSortParams();
+                    if (sortParams.sort_by) {
+                      params.append('sort_by', sortParams.sort_by);
+                      params.append('sort_order', sortParams.sort_order);
+                    }
+
+                    const response = await api.get(`/api/v1/diving-centers/?${params.toString()}`);
+                    const responseData = response.data;
+                    const pageData = responseData?.items || responseData || [];
+
+                    if (pageData && pageData.length > 0) {
+                      allDivingCenters.push(...pageData);
+                      currentPage++;
+
+                      // Check if there's more data
+                      const totalPages =
+                        responseData?.total_pages ||
+                        parseInt(
+                          response.headers['x-total-pages'] ||
+                            response.headers['X-Total-Pages'] ||
+                            '1'
+                        );
+                      hasMore = currentPage <= totalPages;
+                    } else {
+                      hasMore = false;
+                    }
+                  }
+
+                  // Export to CSV
+                  const headers = [
+                    'ID',
+                    'Name',
+                    'Description',
+                    'Email',
+                    'Phone',
+                    'Website',
+                    'Location',
+                    'Rating',
+                    'Views',
+                    'Country',
+                    'Region',
+                    'City',
+                  ];
+                  const rows = allDivingCenters.map(center => [
+                    center.id,
+                    center.name || '',
+                    center.description ? decodeHtmlEntities(center.description) : '',
+                    center.email || '',
+                    center.phone || '',
+                    center.website || '',
+                    center.latitude && center.longitude
+                      ? `${center.latitude}, ${center.longitude}`
+                      : '',
+                    center.average_rating ? center.average_rating.toFixed(1) : 'No ratings',
+                    center.view_count || 0,
+                    center.country || '',
+                    center.region || '',
+                    center.city || '',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `diving-centers-all-${totalCount}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(
+                    `Exported all ${allDivingCenters.length.toLocaleString()} diving centers to CSV`,
+                    { id: 'export-all-toast' }
+                  );
+                } catch (error) {
+                  console.error('Export error:', error);
+                  toast.error('Failed to export all diving centers. Please try again.', {
+                    id: 'export-all-toast',
+                  });
                 }
-
-                // Export to CSV
-                const headers = [
-                  'ID',
-                  'Name',
-                  'Description',
-                  'Email',
-                  'Phone',
-                  'Website',
-                  'Location',
-                  'Rating',
-                  'Views',
-                  'Country',
-                  'Region',
-                  'City',
-                ];
-                const rows = allDivingCenters.map(center => [
-                  center.id,
-                  center.name || '',
-                  center.description ? decodeHtmlEntities(center.description) : '',
-                  center.email || '',
-                  center.phone || '',
-                  center.website || '',
-                  center.latitude && center.longitude
-                    ? `${center.latitude}, ${center.longitude}`
-                    : '',
-                  center.average_rating ? center.average_rating.toFixed(1) : 'No ratings',
-                  center.view_count || 0,
-                  center.country || '',
-                  center.region || '',
-                  center.city || '',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `diving-centers-all-${totalCount}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(
-                  `Exported all ${allDivingCenters.length.toLocaleString()} diving centers to CSV`,
-                  { id: 'export-all-toast' }
-                );
-              } catch (error) {
-                console.error('Export error:', error);
-                toast.error('Failed to export all diving centers. Please try again.', {
-                  id: 'export-all-toast',
-                });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span>Export All</span>
-          </button>
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span>Export All</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* TanStack Table */}
-      <AdminDivingCentersTable
-        data={divingCenters || []}
-        columns={columns}
-        pagination={{
-          ...pagination,
-          pageCount: paginationInfo.totalPages || 0,
-          totalCount: paginationInfo.totalCount || 0,
-        }}
-        onPaginationChange={handlePaginationChange}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        onView={handleViewDivingCenter}
-        onEdit={handleEditDivingCenter}
-        onDelete={handleDeleteDivingCenter}
-        isLoading={isLoading}
-      />
-    </div>
+        {/* TanStack Table */}
+        <AdminDivingCentersTable
+          data={divingCenters || []}
+          columns={columns}
+          pagination={{
+            ...pagination,
+            pageCount: paginationInfo.totalPages || 0,
+            totalCount: paginationInfo.totalCount || 0,
+          }}
+          onPaginationChange={handlePaginationChange}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          onView={handleViewDivingCenter}
+          onEdit={handleEditDivingCenter}
+          onDelete={handleDeleteDivingCenter}
+          isLoading={isLoading}
+        />
+      </div>
+    </>
   );
 };
 

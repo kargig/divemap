@@ -14,7 +14,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Collapse, Image } from 'antd';
+import { Collapse, Image as AntdImage } from 'antd';
 import {
   ArrowLeft,
   Save,
@@ -35,11 +35,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
+import SEO from '../components/SEO';
 import MarkdownEditor from '../components/ui/MarkdownEditor';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import {
   addDiveSiteMedia,
   updateDiveSiteMedia,
@@ -54,6 +54,7 @@ import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { diveSiteSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { getSafeExternalUrl } from '../utils/textHelpers';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const SortableMediaItem = ({
@@ -108,8 +109,8 @@ const SortableMediaItem = ({
       </div>
       <div className='space-y-2'>
         {item.media_type === 'photo' ? (
-          <Image
-            src={getImageUrl(item.url)}
+          <AntdImage
+            src={getImageUrl(getSafeExternalUrl(item.url))}
             alt={item.description || 'Media'}
             className='w-full object-cover h-48 rounded'
             preview={{
@@ -118,7 +119,7 @@ const SortableMediaItem = ({
           />
         ) : (
           <YouTubePreview
-            url={item.url}
+            url={getSafeExternalUrl(item.url)}
             description={item.description}
             className='w-full'
             openInNewTab={true}
@@ -127,7 +128,7 @@ const SortableMediaItem = ({
         {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
           <div className='text-xs text-gray-500 truncate mt-1 px-1' title={item.url}>
             <a
-              href={item.url}
+              href={getSafeExternalUrl(item.url)}
               target='_blank'
               rel='noopener noreferrer'
               className='hover:text-blue-600 transition-colors'
@@ -158,8 +159,6 @@ const SortableMediaItem = ({
 const EMPTY_ARRAY = [];
 
 const EditDiveSite = () => {
-  // Set page title
-  usePageTitle('Divemap - Edit Dive Site');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1272,109 +1271,354 @@ const EditDiveSite = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
-      <div className='max-w-4xl mx-auto px-4'>
-        <div className='bg-white rounded-lg shadow-md p-6'>
-          {/* Header */}
-          <div className='flex items-center justify-between mb-6'>
-            <div className='flex items-center space-x-4'>
-              <button
-                onClick={() => navigate(`/dive-sites/${id}`)}
-                className='flex items-center text-gray-600 hover:text-gray-900'
-              >
-                <ArrowLeft className='w-5 h-5 mr-2' />
-                Back to Dive Site
-              </button>
+    <>
+      <SEO
+        title='Edit Dive Site | Divemap'
+        description='Update details, add new media, or modify the description of an existing dive site.'
+      />
+      <div className='min-h-screen bg-gray-50 py-8'>
+        <div className='max-w-4xl mx-auto px-4'>
+          <div className='bg-white rounded-lg shadow-md p-6'>
+            {/* Header */}
+            <div className='flex items-center justify-between mb-6'>
+              <div className='flex items-center space-x-4'>
+                <button
+                  onClick={() => navigate(`/dive-sites/${id}`)}
+                  className='flex items-center text-gray-600 hover:text-gray-900'
+                >
+                  <ArrowLeft className='w-5 h-5 mr-2' />
+                  Back to Dive Site
+                </button>
+              </div>
+              <h1 className='text-3xl font-bold text-gray-900'>Edit Dive Site</h1>
             </div>
-            <h1 className='text-3xl font-bold text-gray-900'>Edit Dive Site</h1>
-          </div>
 
-          {/* Main Dive Site Form */}
-          <FormProvider {...methods}>
-            <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-              {/* Basic Information */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            {/* Main Dive Site Form */}
+            <FormProvider {...methods}>
+              <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
+                {/* Basic Information */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  <div>
+                    <FormField name='name' label='Name' required>
+                      {({ register, name }) => (
+                        <input
+                          id='dive-site-name'
+                          type='text'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.name ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
+
+                  <div>
+                    <FormField name='difficulty_code' label='Difficulty Level'>
+                      {({ register, name }) => (
+                        <select
+                          id='difficulty-level'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          {getDifficultyOptions().map(option => (
+                            <option
+                              key={option.value === null ? 'null' : option.value}
+                              value={option.value === null ? '' : option.value}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </FormField>
+                  </div>
+                </div>
+
+                {/* Add Alias Section */}
+                <div className='border-t pt-6 mb-6'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
+                    <button
+                      type='button'
+                      onClick={() => setShowAliasForm(!showAliasForm)}
+                      className='flex items-center px-4 py-2 text-white rounded-md'
+                      style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                      }
+                    >
+                      <Plus className='w-4 h-4 mr-2' />
+                      Add Alias
+                    </button>
+                  </div>
+
+                  {/* Add Alias Form */}
+                  {showAliasForm && (
+                    <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                      <div className='space-y-4'>
+                        <div>
+                          <label
+                            htmlFor='new_alias_name'
+                            className='block text-sm font-medium text-gray-700 mb-1'
+                          >
+                            Alias Name *
+                          </label>
+                          <input
+                            id='new_alias_name'
+                            type='text'
+                            value={newAlias.alias}
+                            onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
+                            required
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                        </div>
+                        <div className='flex space-x-2'>
+                          <button
+                            type='button'
+                            onClick={handleAddAlias}
+                            disabled={addAliasMutation.isLoading}
+                            className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                            style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                            onMouseEnter={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = '#007a5c')
+                            }
+                            onMouseLeave={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                            }
+                          >
+                            {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setShowAliasForm(false)}
+                            className='px-4 py-2 text-white rounded-md'
+                            style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                            onMouseLeave={e =>
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                            }
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Aliases List */}
+                  <div className='space-y-2'>
+                    {Array.isArray(aliases) && aliases.length > 0 ? (
+                      aliases.map(alias => (
+                        <div
+                          key={alias.id}
+                          className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
+                        >
+                          {editingAlias?.id === alias.id ? (
+                            <div className='flex-1 flex items-center space-x-2'>
+                              <input
+                                type='text'
+                                value={editingAlias.alias}
+                                onChange={e =>
+                                  setEditingAlias({ ...editingAlias, alias: e.target.value })
+                                }
+                                className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                              />
+                              <button
+                                type='button'
+                                onClick={handleUpdateAlias}
+                                disabled={updateAliasMutation.isLoading}
+                                className='text-green-600 hover:text-green-800 disabled:opacity-50'
+                                title='Save changes'
+                              >
+                                <Save className='w-4 h-4' />
+                              </button>
+                              <button
+                                type='button'
+                                onClick={handleCancelEdit}
+                                className='text-gray-600 hover:text-gray-800'
+                                title='Cancel edit'
+                              >
+                                <X className='w-4 h-4' />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className='flex items-center space-x-2'>
+                                <span className='font-medium'>{alias.alias}</span>
+                              </div>
+                              <div className='flex space-x-2'>
+                                <button
+                                  onClick={() => handleEditAlias(alias)}
+                                  className='text-blue-600 hover:text-blue-800'
+                                  title='Edit alias'
+                                >
+                                  <Edit className='w-4 h-4' />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteAlias(alias)}
+                                  className='text-red-600 hover:text-red-800'
+                                  title='Delete alias'
+                                >
+                                  <Trash2 className='w-4 h-4' />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
+                    )}
+                  </div>
+                </div>
+
                 <div>
-                  <FormField name='name' label='Name' required>
-                    {({ register, name }) => (
-                      <input
-                        id='dive-site-name'
-                        type='text'
-                        {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.name ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                  <Controller
+                    name='description'
+                    control={methods.control}
+                    render={({ field, fieldState: { error } }) => (
+                      <MarkdownEditor
+                        label='Description'
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={error?.message}
+                        placeholder='Enter dive site description'
                       />
                     )}
-                  </FormField>
+                  />
                 </div>
 
-                <div>
-                  <FormField name='difficulty_code' label='Difficulty Level'>
-                    {({ register, name }) => (
-                      <select
-                        id='difficulty-level'
-                        {...register(name)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      >
-                        {getDifficultyOptions().map(option => (
-                          <option
-                            key={option.value === null ? 'null' : option.value}
-                            value={option.value === null ? '' : option.value}
-                          >
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </FormField>
-                </div>
-              </div>
+                {/* Location */}
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                  <div>
+                    <FormField name='latitude' label='Latitude' required>
+                      {({ register, name }) => (
+                        <input
+                          id='latitude'
+                          type='text'
+                          inputMode='decimal'
+                          {...register(name, {
+                            onChange: e => {
+                              const value = e.target.value;
+                              if (value.includes(',')) {
+                                const [lat, lng] = value.split(',').map(s => s.trim());
+                                if (
+                                  lat &&
+                                  !isNaN(parseFloat(lat)) &&
+                                  lng &&
+                                  !isNaN(parseFloat(lng))
+                                ) {
+                                  setValue('latitude', lat);
+                                  setValue('longitude', lng);
+                                  trigger(['latitude', 'longitude']);
+                                }
+                              }
+                            },
+                          })}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.latitude ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
 
-              {/* Add Alias Section */}
-              <div className='border-t pt-6 mb-6'>
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-semibold text-gray-900'>Aliases</h3>
+                  <div>
+                    <FormField name='longitude' label='Longitude' required>
+                      {({ register, name }) => (
+                        <input
+                          id='longitude'
+                          type='text'
+                          inputMode='decimal'
+                          {...register(name)}
+                          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.longitude ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                        />
+                      )}
+                    </FormField>
+                  </div>
+                </div>
+
+                {/* Country and Region Information */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                  <div>
+                    <FormField name='country' label='Country'>
+                      {({ register, name }) => (
+                        <input
+                          id='country'
+                          type='text'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          placeholder='e.g., Australia'
+                        />
+                      )}
+                    </FormField>
+                  </div>
+
+                  <div>
+                    <FormField name='region' label='Region'>
+                      {({ register, name }) => (
+                        <input
+                          id='region'
+                          type='text'
+                          {...register(name)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          placeholder='e.g., Queensland'
+                        />
+                      )}
+                    </FormField>
+                  </div>
+                </div>
+
+                {/* Location Suggestion Button */}
+                <div className='flex justify-center'>
                   <button
                     type='button'
-                    onClick={() => setShowAliasForm(!showAliasForm)}
-                    className='flex items-center px-4 py-2 text-white rounded-md'
+                    onClick={suggestLocation}
+                    disabled={!formData.latitude || !formData.longitude}
+                    className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                     style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                    onMouseEnter={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = '#007a5c')
+                    }
+                    onMouseLeave={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                    }
                   >
-                    <Plus className='w-4 h-4 mr-2' />
-                    Add Alias
+                    🗺️ Suggest Country & Region from Coordinates
                   </button>
                 </div>
 
-                {/* Add Alias Form */}
-                {showAliasForm && (
-                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                    <div className='space-y-4'>
-                      <div>
-                        <label
-                          htmlFor='new_alias_name'
-                          className='block text-sm font-medium text-gray-700 mb-1'
-                        >
-                          Alias Name *
-                        </label>
+                {/* Shore Direction Information */}
+                <div>
+                  <FormField name='shore_direction' label='Shore Direction (degrees)'>
+                    {({ register, name }) => (
+                      <div className='flex gap-2'>
                         <input
-                          id='new_alias_name'
-                          type='text'
-                          value={newAlias.alias}
-                          onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
-                          required
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          id='shore_direction'
+                          type='number'
+                          step='0.01'
+                          min='0'
+                          max='360'
+                          {...register(name)}
+                          className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            errors.shore_direction ? 'border-red-500' : 'border-gray-300'
+                          }`}
+                          placeholder='Enter shore direction in degrees (0-360)'
                         />
-                      </div>
-                      <div className='flex space-x-2'>
                         <button
                           type='button'
-                          onClick={handleAddAlias}
-                          disabled={addAliasMutation.isLoading}
-                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                          onClick={detectShoreDirection}
+                          disabled={!formData.latitude || !formData.longitude}
+                          className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
+                          style={{ backgroundColor: UI_COLORS.success }}
                           onMouseEnter={e =>
                             !e.currentTarget.disabled &&
                             (e.currentTarget.style.backgroundColor = '#007a5c')
@@ -1384,233 +1628,626 @@ const EditDiveSite = () => {
                             (e.currentTarget.style.backgroundColor = UI_COLORS.success)
                           }
                         >
-                          {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+                          🔍 Re-detect from Coordinates
                         </button>
-                        <button
-                          type='button'
-                          onClick={() => setShowAliasForm(false)}
-                          className='px-4 py-2 text-white rounded-md'
-                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                          onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                          }
-                        >
-                          Cancel
-                        </button>
+                      </div>
+                    )}
+                  </FormField>
+                  <p className='mt-1 text-xs text-gray-500'>
+                    Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
+                    West.
+                  </p>
+                  {formData.shore_direction_confidence && (
+                    <div className='mt-2 text-xs text-gray-600'>
+                      <span className='font-medium'>Confidence:</span>{' '}
+                      {formData.shore_direction_confidence}
+                      {formData.shore_direction_method && (
+                        <>
+                          {' • '}
+                          <span className='font-medium'>Method:</span>{' '}
+                          {formData.shore_direction_method}
+                        </>
+                      )}
+                      {formData.shore_direction_distance_m && (
+                        <>
+                          {' • '}
+                          <span className='font-medium'>Distance:</span>{' '}
+                          {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Information */}
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
+
+                <div>
+                  <FormField name='max_depth' label='Maximum Depth (meters)'>
+                    {({ register, name }) => (
+                      <input
+                        id='max_depth'
+                        type='number'
+                        min='0'
+                        max='1000'
+                        step='any'
+                        {...register(name)}
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.max_depth ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        placeholder='e.g., 25.5'
+                      />
+                    )}
+                  </FormField>
+                </div>
+
+                <div>
+                  <Controller
+                    name='access_instructions'
+                    control={methods.control}
+                    render={({ field, fieldState: { error } }) => (
+                      <MarkdownEditor
+                        label='Access Instructions'
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={error?.message}
+                        placeholder='How to access this dive site'
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <Controller
+                    name='marine_life'
+                    control={methods.control}
+                    render={({ field, fieldState: { error } }) => (
+                      <MarkdownEditor
+                        label='Marine Life'
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={error?.message}
+                        placeholder='Describe the marine life you might encounter...'
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <Controller
+                    name='safety_information'
+                    control={methods.control}
+                    render={({ field, fieldState: { error } }) => (
+                      <MarkdownEditor
+                        label='Safety Information'
+                        value={field.value}
+                        onChange={field.onChange}
+                        error={error?.message}
+                        placeholder='Important safety considerations...'
+                      />
+                    )}
+                  />
+                </div>
+
+                {/* Media Management */}
+                <div className='border-t pt-6'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
+                  </div>
+                  {/* Photo Upload */}
+                  <div className='mb-3'>
+                    <UploadPhotosComponent
+                      mediaUrls={photoMediaUrls}
+                      setMediaUrls={setPhotoMediaUrls}
+                      onUnsavedPhotosChange={unsavedPhotos => {
+                        unsavedR2PhotosRef.current = unsavedPhotos;
+                      }}
+                      onMediaRemove={handleMediaRemove}
+                      savedPhotoUids={savedPhotoUids}
+                    />
+                  </div>
+
+                  {/* Add External Links */}
+                  <div className='mb-3'>
+                    <Collapse
+                      activeKey={addLinksCollapseOpen ? ['1'] : []}
+                      onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
+                      items={[
+                        {
+                          key: '1',
+                          label: 'Add External Links (Photo / Video)',
+                          children: (
+                            <div className='space-y-4'>
+                              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                  <label
+                                    htmlFor='media_type'
+                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                  >
+                                    Media Type
+                                  </label>
+                                  <select
+                                    id='media_type'
+                                    value={newMedia.media_type}
+                                    onChange={e =>
+                                      setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
+                                    }
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  >
+                                    <option value='photo'>Photo</option>
+                                    <option value='video'>Video</option>
+                                  </select>
+                                </div>
+                                <div className='md:col-span-2'>
+                                  <label
+                                    htmlFor='media_url'
+                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                  >
+                                    URL
+                                  </label>
+                                  <input
+                                    id='media_url'
+                                    type='url'
+                                    value={newMedia.url}
+                                    onChange={e =>
+                                      setNewMedia(prev => ({ ...prev, url: e.target.value }))
+                                    }
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    placeholder='https://example.com/image.jpg'
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label
+                                  htmlFor='media_description'
+                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                >
+                                  Description
+                                </label>
+                                <input
+                                  id='media_description'
+                                  type='text'
+                                  value={newMedia.description}
+                                  onChange={e =>
+                                    setNewMedia(prev => ({ ...prev, description: e.target.value }))
+                                  }
+                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                />
+                              </div>
+                              <div className='flex space-x-2'>
+                                <button
+                                  type='button'
+                                  onClick={handleAddMedia}
+                                  className='px-4 py-2 text-white rounded-md'
+                                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                                  onMouseEnter={e =>
+                                    (e.currentTarget.style.backgroundColor = '#007a5c')
+                                  }
+                                  onMouseLeave={e =>
+                                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                                  }
+                                >
+                                  Add Media
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setNewMedia({ url: '', description: '', media_type: 'photo' });
+                                  }}
+                                  className='px-4 py-2 text-white rounded-md'
+                                  style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                                  onMouseEnter={e =>
+                                    (e.currentTarget.style.backgroundColor = '#1f2937')
+                                  }
+                                  onMouseLeave={e =>
+                                    (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                                  }
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                  {/* Media List */}
+                  {mediaLoading && (
+                    <div className='col-span-full text-center py-4'>
+                      <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                      <p className='text-gray-600 mt-2'>Loading media...</p>
+                    </div>
+                  )}
+                  {mediaError && (
+                    <div className='col-span-full text-center py-4'>
+                      <p className='text-red-600'>Failed to load media</p>
+                    </div>
+                  )}
+                  {!mediaLoading && !mediaError && mediaItems.length === 0 && (
+                    <div className='col-span-full text-center py-4'>
+                      <p className='text-gray-500'>No media added yet.</p>
+                    </div>
+                  )}
+                  {!mediaLoading && !mediaError && mediaItems.length > 0 && (
+                    <div className='mb-3'>
+                      <Collapse
+                        items={[
+                          {
+                            key: '1',
+                            label: 'Manage Media',
+                            children: (
+                              <DndContext
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                              >
+                                <SortableContext
+                                  items={mediaItems.map(item => item.uniqueId)}
+                                  strategy={rectSortingStrategy}
+                                >
+                                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                                    {mediaItems.map(item => (
+                                      <SortableMediaItem
+                                        key={item.uniqueId}
+                                        item={item}
+                                        mediaDescriptions={mediaDescriptions}
+                                        setMediaDescriptions={setMediaDescriptions}
+                                        handleDeleteMedia={handleDeleteMedia}
+                                        getImageUrl={getImageUrl}
+                                      />
+                                    ))}
+                                  </div>
+                                </SortableContext>
+                              </DndContext>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags Management */}
+                <div className='border-t pt-6'>
+                  <div className='flex items-center justify-between mb-4'>
+                    <h3 className='text-lg font-semibold text-gray-900'>Tags</h3>
+                    <button
+                      type='button'
+                      onClick={() => setShowTagForm(!showTagForm)}
+                      className='flex items-center px-4 py-2 text-white rounded-md'
+                      style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                      onMouseLeave={e =>
+                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                      }
+                    >
+                      <Tag className='w-4 h-4 mr-2' />
+                      Add Tag
+                    </button>
+                  </div>
+
+                  {/* Add Tag Form */}
+                  {showTagForm && (
+                    <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                      <div className='space-y-4'>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                          <div>
+                            <label
+                              htmlFor='new_tag_name'
+                              className='block text-sm font-medium text-gray-700 mb-1'
+                            >
+                              Tag Name *
+                            </label>
+                            <input
+                              id='new_tag_name'
+                              type='text'
+                              value={newTagName}
+                              onChange={e => setNewTagName(e.target.value)}
+                              required
+                              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            />
+                          </div>
+                          <div>
+                            <label
+                              htmlFor='new_tag_description'
+                              className='block text-sm font-medium text-gray-700 mb-1'
+                            >
+                              Description
+                            </label>
+                            <input
+                              id='new_tag_description'
+                              type='text'
+                              value={newTagDescription}
+                              onChange={e => setNewTagDescription(e.target.value)}
+                              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                            />
+                          </div>
+                        </div>
+                        <div className='flex space-x-2'>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              createTagMutation.mutate({
+                                name: newTagName,
+                                description: newTagDescription,
+                              });
+                            }}
+                            disabled={createTagMutation.isLoading}
+                            className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                            style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                            onMouseEnter={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = '#007a5c')
+                            }
+                            onMouseLeave={e =>
+                              !e.currentTarget.disabled &&
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                            }
+                          >
+                            {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setShowTagForm(false)}
+                            className='px-4 py-2 text-white rounded-md'
+                            style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                            onMouseLeave={e =>
+                              (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                            }
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Aliases List */}
-                <div className='space-y-2'>
-                  {Array.isArray(aliases) && aliases.length > 0 ? (
-                    aliases.map(alias => (
-                      <div
-                        key={alias.id}
-                        className='flex items-center justify-between p-3 bg-gray-50 rounded-md'
-                      >
-                        {editingAlias?.id === alias.id ? (
-                          <div className='flex-1 flex items-center space-x-2'>
+                  {/* Available Tags */}
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <h4 className='text-md font-semibold text-gray-800'>Select Tags</h4>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                      {Array.isArray(availableTags) &&
+                        availableTags.map(tag => (
+                          <label
+                            key={tag.id}
+                            className='flex items-center space-x-2 cursor-pointer'
+                          >
                             <input
-                              type='text'
-                              value={editingAlias.alias}
-                              onChange={e =>
-                                setEditingAlias({ ...editingAlias, alias: e.target.value })
-                              }
-                              className='flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                              type='checkbox'
+                              checked={selectedTags.includes(tag.id)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setSelectedTags(prev => [...prev, tag.id]);
+                                } else {
+                                  setSelectedTags(prev => prev.filter(id => id !== tag.id));
+                                }
+                              }}
+                              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                             />
-                            <button
-                              type='button'
-                              onClick={handleUpdateAlias}
-                              disabled={updateAliasMutation.isLoading}
-                              className='text-green-600 hover:text-green-800 disabled:opacity-50'
-                              title='Save changes'
+                            <span className='text-sm font-medium text-gray-700'>{tag.name}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Selected Tags Summary */}
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                    <h4 className='text-md font-semibold text-gray-800'>
+                      Selected Tags ({selectedTags.length})
+                    </h4>
+                    <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                      {selectedTags.length > 0 ? (
+                        selectedTags.map(tagId => {
+                          const tag = availableTags.find(t => t.id === tagId);
+                          return tag ? (
+                            <span
+                              key={tagId}
+                              className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium'
                             >
-                              <Save className='w-4 h-4' />
-                            </button>
-                            <button
-                              type='button'
-                              onClick={handleCancelEdit}
-                              className='text-gray-600 hover:text-gray-800'
-                              title='Cancel edit'
-                            >
-                              <X className='w-4 h-4' />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className='flex items-center space-x-2'>
-                              <span className='font-medium'>{alias.alias}</span>
-                            </div>
-                            <div className='flex space-x-2'>
-                              <button
-                                onClick={() => handleEditAlias(alias)}
-                                className='text-blue-600 hover:text-blue-800'
-                                title='Edit alias'
-                              >
-                                <Edit className='w-4 h-4' />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteAlias(alias)}
-                                className='text-red-600 hover:text-red-800'
-                                title='Delete alias'
-                              >
-                                <Trash2 className='w-4 h-4' />
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className='text-gray-500 text-sm'>No aliases found for this dive site.</p>
-                  )}
+                              {tag.name}
+                            </span>
+                          ) : null;
+                        })
+                      ) : (
+                        <p className='text-gray-500 text-sm'>No tags selected</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Controller
-                  name='description'
-                  control={methods.control}
-                  render={({ field, fieldState: { error } }) => (
-                    <MarkdownEditor
-                      label='Description'
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={error?.message}
-                      placeholder='Enter dive site description'
-                    />
-                  )}
-                />
-              </div>
-
-              {/* Location */}
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-                <div>
-                  <FormField name='latitude' label='Latitude' required>
-                    {({ register, name }) => (
-                      <input
-                        id='latitude'
-                        type='text'
-                        inputMode='decimal'
-                        {...register(name, {
-                          onChange: e => {
-                            const value = e.target.value;
-                            if (value.includes(',')) {
-                              const [lat, lng] = value.split(',').map(s => s.trim());
-                              if (
-                                lat &&
-                                !isNaN(parseFloat(lat)) &&
-                                lng &&
-                                !isNaN(parseFloat(lng))
-                              ) {
-                                setValue('latitude', lat);
-                                setValue('longitude', lng);
-                                trigger(['latitude', 'longitude']);
-                              }
-                            }
-                          },
-                        })}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.latitude ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
+                {/* Submit Button */}
+                <div className='flex justify-end space-x-4 pt-6 border-t'>
+                  <button
+                    type='button'
+                    onClick={() => navigate(`/dive-sites/${id}`)}
+                    className='px-6 py-2 text-white rounded-md'
+                    style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={updateMutation.isLoading || !!submitStatus}
+                    className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
+                    style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
+                    onMouseEnter={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = '#005a8a')
+                    }
+                    onMouseLeave={e =>
+                      !e.currentTarget.disabled &&
+                      (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
+                    }
+                  >
+                    {updateMutation.isLoading || submitStatus ? (
+                      <>
+                        <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
+                        {submitStatus || 'Saving...'}
+                      </>
+                    ) : (
+                      <>
+                        <Save className='w-4 h-4 mr-2' />
+                        Save Changes
+                      </>
                     )}
-                  </FormField>
+                  </button>{' '}
                 </div>
+              </form>
+            </FormProvider>
 
-                <div>
-                  <FormField name='longitude' label='Longitude' required>
-                    {({ register, name }) => (
-                      <input
-                        id='longitude'
-                        type='text'
-                        inputMode='decimal'
-                        {...register(name)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.longitude ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                    )}
-                  </FormField>
-                </div>
-              </div>
-
-              {/* Country and Region Information */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div>
-                  <FormField name='country' label='Country'>
-                    {({ register, name }) => (
-                      <input
-                        id='country'
-                        type='text'
-                        {...register(name)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        placeholder='e.g., Australia'
-                      />
-                    )}
-                  </FormField>
-                </div>
-
-                <div>
-                  <FormField name='region' label='Region'>
-                    {({ register, name }) => (
-                      <input
-                        id='region'
-                        type='text'
-                        {...register(name)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        placeholder='e.g., Queensland'
-                      />
-                    )}
-                  </FormField>
-                </div>
-              </div>
-
-              {/* Location Suggestion Button */}
-              <div className='flex justify-center'>
+            {/* Diving Centers Management - Outside Main Form */}
+            <div className='border-t pt-6 mt-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-semibold text-gray-900'>Diving Centers</h3>
                 <button
                   type='button'
-                  onClick={suggestLocation}
-                  disabled={!formData.latitude || !formData.longitude}
-                  className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                  onMouseEnter={e =>
-                    !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
-                  }
-                  onMouseLeave={e =>
-                    !e.currentTarget.disabled &&
-                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                  }
+                  onClick={handleToggleDivingCenterForm}
+                  className='flex items-center px-4 py-2 text-white rounded-md'
+                  style={{ backgroundColor: UI_COLORS.success }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
                 >
-                  🗺️ Suggest Country & Region from Coordinates
+                  <Building className='w-4 h-4 mr-2' />
+                  Add Diving Center
                 </button>
               </div>
 
-              {/* Shore Direction Information */}
-              <div>
-                <FormField name='shore_direction' label='Shore Direction (degrees)'>
-                  {({ register, name }) => (
-                    <div className='flex gap-2'>
-                      <input
-                        id='shore_direction'
-                        type='number'
-                        step='0.01'
-                        min='0'
-                        max='360'
-                        {...register(name)}
-                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          errors.shore_direction ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder='Enter shore direction in degrees (0-360)'
-                      />
+              {/* Add Diving Center Form */}
+              {showDivingCenterForm && (
+                <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                  <div className='space-y-4'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                      <div>
+                        <label
+                          htmlFor='diving_center_search'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Diving Center *
+                        </label>
+                        <input
+                          id='diving_center_search'
+                          type='text'
+                          value={divingCenterQuery}
+                          onChange={e => handleSearchCenters(e.target.value)}
+                          onFocus={() => setIsDivingCenterDropdownOpen(true)}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') setIsDivingCenterDropdownOpen(false);
+                          }}
+                          placeholder='Type to search...'
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        />
+                        {isDivingCenterDropdownOpen && (
+                          <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
+                            {divingCenterLoading && (
+                              <div className='p-2 text-sm text-gray-500'>Loading...</div>
+                            )}
+                            {divingCenterError && (
+                              <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
+                            )}
+                            {!divingCenterLoading && !divingCenterError && (
+                              <ul>
+                                {(divingCenterOptions || []).map(option => (
+                                  <li key={option.id}>
+                                    <button
+                                      type='button'
+                                      className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
+                                        String(newDivingCenterId) === String(option.id)
+                                          ? 'bg-gray-50'
+                                          : ''
+                                      }`}
+                                      onClick={() => {
+                                        setNewDivingCenterId(String(option.id));
+                                        setDivingCenterQuery(option.name);
+                                        setIsDivingCenterDropdownOpen(false);
+                                      }}
+                                    >
+                                      <div className='flex items-center justify-between'>
+                                        <span className='text-sm text-gray-800'>{option.name}</span>
+                                        {typeof option.distance_km === 'number' && (
+                                          <span className='text-xs text-gray-500'>
+                                            {option.distance_km} km
+                                          </span>
+                                        )}
+                                      </div>
+                                      {(option.city || option.region || option.country) && (
+                                        <div className='text-xs text-gray-500'>
+                                          {[option.city, option.region, option.country]
+                                            .filter(Boolean)
+                                            .join(', ')}
+                                        </div>
+                                      )}
+                                    </button>
+                                  </li>
+                                ))}
+                                {Array.isArray(divingCenterOptions) &&
+                                  divingCenterOptions.length === 0 && (
+                                    <li className='px-3 py-2 text-sm text-gray-500'>
+                                      {formData.latitude && formData.longitude
+                                        ? 'No centers within 100 km. Start typing to search all centers.'
+                                        : 'Enter coordinates and start typing to search centers.'}
+                                    </li>
+                                  )}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='new_dive_cost'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Dive Cost
+                        </label>
+                        <input
+                          id='new_dive_cost'
+                          type='number'
+                          value={newDiveCost}
+                          onChange={e => setNewDiveCost(e.target.value)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='new_dive_currency'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Currency
+                        </label>
+                        <select
+                          id='new_dive_currency'
+                          value={newDiveCurrency}
+                          onChange={e => setNewDiveCurrency(e.target.value)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          {getCurrencyOptions().map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className='flex space-x-2'>
                       <button
                         type='button'
-                        onClick={detectShoreDirection}
-                        disabled={!formData.latitude || !formData.longitude}
-                        className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
+                        onClick={() => {
+                          if (!newDivingCenterId) {
+                            toast.error('Please select a diving center');
+                            return;
+                          }
+                          addDivingCenterMutation.mutate({
+                            diving_center_id: parseInt(newDivingCenterId),
+                            dive_cost: newDiveCost ? parseFloat(newDiveCost) : null,
+                            currency: newDiveCurrency,
+                          });
+                        }}
+                        disabled={addDivingCenterMutation.isLoading}
+                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
                         style={{ backgroundColor: UI_COLORS.success }}
                         onMouseEnter={e =>
                           !e.currentTarget.disabled &&
@@ -1621,681 +2258,58 @@ const EditDiveSite = () => {
                           (e.currentTarget.style.backgroundColor = UI_COLORS.success)
                         }
                       >
-                        🔍 Re-detect from Coordinates
+                        {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
                       </button>
-                    </div>
-                  )}
-                </FormField>
-                <p className='mt-1 text-xs text-gray-500'>
-                  Shore direction in degrees (0-360). 0° = North, 90° = East, 180° = South, 270° =
-                  West.
-                </p>
-                {formData.shore_direction_confidence && (
-                  <div className='mt-2 text-xs text-gray-600'>
-                    <span className='font-medium'>Confidence:</span>{' '}
-                    {formData.shore_direction_confidence}
-                    {formData.shore_direction_method && (
-                      <>
-                        {' • '}
-                        <span className='font-medium'>Method:</span>{' '}
-                        {formData.shore_direction_method}
-                      </>
-                    )}
-                    {formData.shore_direction_distance_m && (
-                      <>
-                        {' • '}
-                        <span className='font-medium'>Distance:</span>{' '}
-                        {parseFloat(formData.shore_direction_distance_m).toFixed(1)}m
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Information */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'></div>
-
-              <div>
-                <FormField name='max_depth' label='Maximum Depth (meters)'>
-                  {({ register, name }) => (
-                    <input
-                      id='max_depth'
-                      type='number'
-                      min='0'
-                      max='1000'
-                      step='any'
-                      {...register(name)}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.max_depth ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder='e.g., 25.5'
-                    />
-                  )}
-                </FormField>
-              </div>
-
-              <div>
-                <Controller
-                  name='access_instructions'
-                  control={methods.control}
-                  render={({ field, fieldState: { error } }) => (
-                    <MarkdownEditor
-                      label='Access Instructions'
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={error?.message}
-                      placeholder='How to access this dive site'
-                    />
-                  )}
-                />
-              </div>
-
-              <div>
-                <Controller
-                  name='marine_life'
-                  control={methods.control}
-                  render={({ field, fieldState: { error } }) => (
-                    <MarkdownEditor
-                      label='Marine Life'
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={error?.message}
-                      placeholder='Describe the marine life you might encounter...'
-                    />
-                  )}
-                />
-              </div>
-
-              <div>
-                <Controller
-                  name='safety_information'
-                  control={methods.control}
-                  render={({ field, fieldState: { error } }) => (
-                    <MarkdownEditor
-                      label='Safety Information'
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={error?.message}
-                      placeholder='Important safety considerations...'
-                    />
-                  )}
-                />
-              </div>
-
-              {/* Media Management */}
-              <div className='border-t pt-6'>
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-semibold text-gray-900'>Media</h3>
-                </div>
-                {/* Photo Upload */}
-                <div className='mb-3'>
-                  <UploadPhotosComponent
-                    mediaUrls={photoMediaUrls}
-                    setMediaUrls={setPhotoMediaUrls}
-                    onUnsavedPhotosChange={unsavedPhotos => {
-                      unsavedR2PhotosRef.current = unsavedPhotos;
-                    }}
-                    onMediaRemove={handleMediaRemove}
-                    savedPhotoUids={savedPhotoUids}
-                  />
-                </div>
-
-                {/* Add External Links */}
-                <div className='mb-3'>
-                  <Collapse
-                    activeKey={addLinksCollapseOpen ? ['1'] : []}
-                    onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
-                    items={[
-                      {
-                        key: '1',
-                        label: 'Add External Links (Photo / Video)',
-                        children: (
-                          <div className='space-y-4'>
-                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                              <div>
-                                <label
-                                  htmlFor='media_type'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
-                                >
-                                  Media Type
-                                </label>
-                                <select
-                                  id='media_type'
-                                  value={newMedia.media_type}
-                                  onChange={e =>
-                                    setNewMedia(prev => ({ ...prev, media_type: e.target.value }))
-                                  }
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                >
-                                  <option value='photo'>Photo</option>
-                                  <option value='video'>Video</option>
-                                </select>
-                              </div>
-                              <div className='md:col-span-2'>
-                                <label
-                                  htmlFor='media_url'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
-                                >
-                                  URL
-                                </label>
-                                <input
-                                  id='media_url'
-                                  type='url'
-                                  value={newMedia.url}
-                                  onChange={e =>
-                                    setNewMedia(prev => ({ ...prev, url: e.target.value }))
-                                  }
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                  placeholder='https://example.com/image.jpg'
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor='media_description'
-                                className='block text-sm font-medium text-gray-700 mb-1'
-                              >
-                                Description
-                              </label>
-                              <input
-                                id='media_description'
-                                type='text'
-                                value={newMedia.description}
-                                onChange={e =>
-                                  setNewMedia(prev => ({ ...prev, description: e.target.value }))
-                                }
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                              />
-                            </div>
-                            <div className='flex space-x-2'>
-                              <button
-                                type='button'
-                                onClick={handleAddMedia}
-                                className='px-4 py-2 text-white rounded-md'
-                                style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                                onMouseEnter={e =>
-                                  (e.currentTarget.style.backgroundColor = '#007a5c')
-                                }
-                                onMouseLeave={e =>
-                                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                                }
-                              >
-                                Add Media
-                              </button>
-                              <button
-                                type='button'
-                                onClick={() => {
-                                  setNewMedia({ url: '', description: '', media_type: 'photo' });
-                                }}
-                                className='px-4 py-2 text-white rounded-md'
-                                style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                                onMouseEnter={e =>
-                                  (e.currentTarget.style.backgroundColor = '#1f2937')
-                                }
-                                onMouseLeave={e =>
-                                  (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                                }
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
-                </div>
-                {/* Media List */}
-                {mediaLoading && (
-                  <div className='col-span-full text-center py-4'>
-                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                    <p className='text-gray-600 mt-2'>Loading media...</p>
-                  </div>
-                )}
-                {mediaError && (
-                  <div className='col-span-full text-center py-4'>
-                    <p className='text-red-600'>Failed to load media</p>
-                  </div>
-                )}
-                {!mediaLoading && !mediaError && mediaItems.length === 0 && (
-                  <div className='col-span-full text-center py-4'>
-                    <p className='text-gray-500'>No media added yet.</p>
-                  </div>
-                )}
-                {!mediaLoading && !mediaError && mediaItems.length > 0 && (
-                  <div className='mb-3'>
-                    <Collapse
-                      items={[
-                        {
-                          key: '1',
-                          label: 'Manage Media',
-                          children: (
-                            <DndContext
-                              sensors={sensors}
-                              collisionDetection={closestCenter}
-                              onDragEnd={handleDragEnd}
-                            >
-                              <SortableContext
-                                items={mediaItems.map(item => item.uniqueId)}
-                                strategy={rectSortingStrategy}
-                              >
-                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                                  {mediaItems.map(item => (
-                                    <SortableMediaItem
-                                      key={item.uniqueId}
-                                      item={item}
-                                      mediaDescriptions={mediaDescriptions}
-                                      setMediaDescriptions={setMediaDescriptions}
-                                      handleDeleteMedia={handleDeleteMedia}
-                                      getImageUrl={getImageUrl}
-                                    />
-                                  ))}
-                                </div>
-                              </SortableContext>
-                            </DndContext>
-                          ),
-                        },
-                      ]}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Tags Management */}
-              <div className='border-t pt-6'>
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-semibold text-gray-900'>Tags</h3>
-                  <button
-                    type='button'
-                    onClick={() => setShowTagForm(!showTagForm)}
-                    className='flex items-center px-4 py-2 text-white rounded-md'
-                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-                  >
-                    <Tag className='w-4 h-4 mr-2' />
-                    Add Tag
-                  </button>
-                </div>
-
-                {/* Add Tag Form */}
-                {showTagForm && (
-                  <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                    <div className='space-y-4'>
-                      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                        <div>
-                          <label
-                            htmlFor='new_tag_name'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Tag Name *
-                          </label>
-                          <input
-                            id='new_tag_name'
-                            type='text'
-                            value={newTagName}
-                            onChange={e => setNewTagName(e.target.value)}
-                            required
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          />
-                        </div>
-                        <div>
-                          <label
-                            htmlFor='new_tag_description'
-                            className='block text-sm font-medium text-gray-700 mb-1'
-                          >
-                            Description
-                          </label>
-                          <input
-                            id='new_tag_description'
-                            type='text'
-                            value={newTagDescription}
-                            onChange={e => setNewTagDescription(e.target.value)}
-                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                          />
-                        </div>
-                      </div>
-                      <div className='flex space-x-2'>
-                        <button
-                          type='button'
-                          onClick={() => {
-                            createTagMutation.mutate({
-                              name: newTagName,
-                              description: newTagDescription,
-                            });
-                          }}
-                          disabled={createTagMutation.isLoading}
-                          className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                          style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                          onMouseEnter={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = '#007a5c')
-                          }
-                          onMouseLeave={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                          }
-                        >
-                          {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => setShowTagForm(false)}
-                          className='px-4 py-2 text-white rounded-md'
-                          style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                          onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                          }
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Available Tags */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <h4 className='text-md font-semibold text-gray-800'>Select Tags</h4>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                    {Array.isArray(availableTags) &&
-                      availableTags.map(tag => (
-                        <label key={tag.id} className='flex items-center space-x-2 cursor-pointer'>
-                          <input
-                            type='checkbox'
-                            checked={selectedTags.includes(tag.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setSelectedTags(prev => [...prev, tag.id]);
-                              } else {
-                                setSelectedTags(prev => prev.filter(id => id !== tag.id));
-                              }
-                            }}
-                            className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                          />
-                          <span className='text-sm font-medium text-gray-700'>{tag.name}</span>
-                        </label>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Selected Tags Summary */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <h4 className='text-md font-semibold text-gray-800'>
-                    Selected Tags ({selectedTags.length})
-                  </h4>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                    {selectedTags.length > 0 ? (
-                      selectedTags.map(tagId => {
-                        const tag = availableTags.find(t => t.id === tagId);
-                        return tag ? (
-                          <span
-                            key={tagId}
-                            className='px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium'
-                          >
-                            {tag.name}
-                          </span>
-                        ) : null;
-                      })
-                    ) : (
-                      <p className='text-gray-500 text-sm'>No tags selected</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className='flex justify-end space-x-4 pt-6 border-t'>
-                <button
-                  type='button'
-                  onClick={() => navigate(`/dive-sites/${id}`)}
-                  className='px-6 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type='submit'
-                  disabled={updateMutation.isLoading || !!submitStatus}
-                  className='flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                  style={{ backgroundColor: UI_COLORS.primary, color: 'white' }}
-                  onMouseEnter={e =>
-                    !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#005a8a')
-                  }
-                  onMouseLeave={e =>
-                    !e.currentTarget.disabled &&
-                    (e.currentTarget.style.backgroundColor = UI_COLORS.primary)
-                  }
-                >
-                  {updateMutation.isLoading || submitStatus ? (
-                    <>
-                      <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
-                      {submitStatus || 'Saving...'}
-                    </>
-                  ) : (
-                    <>
-                      <Save className='w-4 h-4 mr-2' />
-                      Save Changes
-                    </>
-                  )}
-                </button>{' '}
-              </div>
-            </form>
-          </FormProvider>
-
-          {/* Diving Centers Management - Outside Main Form */}
-          <div className='border-t pt-6 mt-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Diving Centers</h3>
-              <button
-                type='button'
-                onClick={handleToggleDivingCenterForm}
-                className='flex items-center px-4 py-2 text-white rounded-md'
-                style={{ backgroundColor: UI_COLORS.success }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-              >
-                <Building className='w-4 h-4 mr-2' />
-                Add Diving Center
-              </button>
-            </div>
-
-            {/* Add Diving Center Form */}
-            {showDivingCenterForm && (
-              <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                <div className='space-y-4'>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <div>
-                      <label
-                        htmlFor='diving_center_search'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Diving Center *
-                      </label>
-                      <input
-                        id='diving_center_search'
-                        type='text'
-                        value={divingCenterQuery}
-                        onChange={e => handleSearchCenters(e.target.value)}
-                        onFocus={() => setIsDivingCenterDropdownOpen(true)}
-                        onKeyDown={e => {
-                          if (e.key === 'Escape') setIsDivingCenterDropdownOpen(false);
-                        }}
-                        placeholder='Type to search...'
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      />
-                      {isDivingCenterDropdownOpen && (
-                        <div className='mt-2 max-h-56 overflow-auto border border-gray-200 rounded-md'>
-                          {divingCenterLoading && (
-                            <div className='p-2 text-sm text-gray-500'>Loading...</div>
-                          )}
-                          {divingCenterError && (
-                            <div className='p-2 text-sm text-red-600'>{divingCenterError}</div>
-                          )}
-                          {!divingCenterLoading && !divingCenterError && (
-                            <ul>
-                              {(divingCenterOptions || []).map(option => (
-                                <li key={option.id}>
-                                  <button
-                                    type='button'
-                                    className={`w-full text-left px-3 py-2 hover:bg-gray-100 ${
-                                      String(newDivingCenterId) === String(option.id)
-                                        ? 'bg-gray-50'
-                                        : ''
-                                    }`}
-                                    onClick={() => {
-                                      setNewDivingCenterId(String(option.id));
-                                      setDivingCenterQuery(option.name);
-                                      setIsDivingCenterDropdownOpen(false);
-                                    }}
-                                  >
-                                    <div className='flex items-center justify-between'>
-                                      <span className='text-sm text-gray-800'>{option.name}</span>
-                                      {typeof option.distance_km === 'number' && (
-                                        <span className='text-xs text-gray-500'>
-                                          {option.distance_km} km
-                                        </span>
-                                      )}
-                                    </div>
-                                    {(option.city || option.region || option.country) && (
-                                      <div className='text-xs text-gray-500'>
-                                        {[option.city, option.region, option.country]
-                                          .filter(Boolean)
-                                          .join(', ')}
-                                      </div>
-                                    )}
-                                  </button>
-                                </li>
-                              ))}
-                              {Array.isArray(divingCenterOptions) &&
-                                divingCenterOptions.length === 0 && (
-                                  <li className='px-3 py-2 text-sm text-gray-500'>
-                                    {formData.latitude && formData.longitude
-                                      ? 'No centers within 100 km. Start typing to search all centers.'
-                                      : 'Enter coordinates and start typing to search centers.'}
-                                  </li>
-                                )}
-                            </ul>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <label
-                        htmlFor='new_dive_cost'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Dive Cost
-                      </label>
-                      <input
-                        id='new_dive_cost'
-                        type='number'
-                        value={newDiveCost}
-                        onChange={e => setNewDiveCost(e.target.value)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor='new_dive_currency'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Currency
-                      </label>
-                      <select
-                        id='new_dive_currency'
-                        value={newDiveCurrency}
-                        onChange={e => setNewDiveCurrency(e.target.value)}
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      >
-                        {getCurrencyOptions().map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className='flex space-x-2'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        if (!newDivingCenterId) {
-                          toast.error('Please select a diving center');
-                          return;
-                        }
-                        addDivingCenterMutation.mutate({
-                          diving_center_id: parseInt(newDivingCenterId),
-                          dive_cost: newDiveCost ? parseFloat(newDiveCost) : null,
-                          currency: newDiveCurrency,
-                        });
-                      }}
-                      disabled={addDivingCenterMutation.isLoading}
-                      className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                      style={{ backgroundColor: UI_COLORS.success }}
-                      onMouseEnter={e =>
-                        !e.currentTarget.disabled &&
-                        (e.currentTarget.style.backgroundColor = '#007a5c')
-                      }
-                      onMouseLeave={e =>
-                        !e.currentTarget.disabled &&
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                      }
-                    >
-                      {addDivingCenterMutation.isLoading ? 'Adding...' : 'Add Diving Center'}
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setShowDivingCenterForm(false)}
-                      className='px-4 py-2 text-white rounded-md'
-                      style={{ backgroundColor: UI_COLORS.neutral }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                      onMouseLeave={e =>
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                      }
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Associated Diving Centers */}
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-              <h4 className='text-md font-semibold text-gray-800'>Associated Diving Centers</h4>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
-                {Array.isArray(associatedDivingCenters) &&
-                  associatedDivingCenters.map(center => (
-                    <span
-                      key={center.id}
-                      className='px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center justify-between'
-                    >
-                      {center.name}
-                      {center.dive_cost &&
-                        ` (${formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)})`}
                       <button
-                        onClick={() => removeDivingCenterMutation.mutate(center.id)}
-                        className='ml-2 text-purple-600 hover:text-purple-800'
-                        title='Remove diving center'
+                        type='button'
+                        onClick={() => setShowDivingCenterForm(false)}
+                        className='px-4 py-2 text-white rounded-md'
+                        style={{ backgroundColor: UI_COLORS.neutral }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                        }
                       >
-                        <X className='w-3 h-3' />
+                        Cancel
                       </button>
-                    </span>
-                  ))}
-                {(!Array.isArray(associatedDivingCenters) ||
-                  associatedDivingCenters.length === 0) && (
-                  <p className='text-gray-500 text-sm'>No diving centers associated</p>
-                )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Associated Diving Centers */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <h4 className='text-md font-semibold text-gray-800'>Associated Diving Centers</h4>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                  {Array.isArray(associatedDivingCenters) &&
+                    associatedDivingCenters.map(center => (
+                      <span
+                        key={center.id}
+                        className='px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium flex items-center justify-between'
+                      >
+                        {center.name}
+                        {center.dive_cost &&
+                          ` (${formatCost(center.dive_cost, center.currency || DEFAULT_CURRENCY)})`}
+                        <button
+                          onClick={() => removeDivingCenterMutation.mutate(center.id)}
+                          className='ml-2 text-purple-600 hover:text-purple-800'
+                          title='Remove diving center'
+                        >
+                          <X className='w-3 h-3' />
+                        </button>
+                      </span>
+                    ))}
+                  {(!Array.isArray(associatedDivingCenters) ||
+                    associatedDivingCenters.length === 0) && (
+                    <p className='text-gray-500 text-sm'>No diving centers associated</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

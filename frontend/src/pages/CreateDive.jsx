@@ -10,10 +10,10 @@ import DivingCenterSearchableDropdown from '../components/DivingCenterSearchable
 import { FormField } from '../components/forms/FormField';
 import GasTanksInput from '../components/forms/GasTanksInput';
 import RouteSelection from '../components/RouteSelection';
+import SEO from '../components/SEO';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
-import usePageTitle from '../hooks/usePageTitle';
 import { createDive, addDiveMedia, uploadPhotoToR2Only } from '../services/dives';
 import { getDiveSites } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
@@ -23,11 +23,10 @@ import { UI_COLORS } from '../utils/colorPalette';
 import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { convertFlickrUrlToDirectImage, isFlickrUrl } from '../utils/flickrHelpers';
 import { createDiveSchema, createResolver, getErrorMessage } from '../utils/formHelpers';
+import { getSafeExternalUrl } from '../utils/textHelpers';
 import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDive = () => {
-  // Set page title
-  usePageTitle('Divemap - Create Dive');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -499,670 +498,680 @@ const CreateDive = () => {
   };
 
   return (
-    <div className='max-w-4xl mx-auto'>
-      <div className='flex items-center gap-4 mb-6'>
-        <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800'>
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className='text-3xl font-bold text-gray-900'>Log New Dive</h1>
-      </div>
+    <>
+      <SEO
+        title='Log a New Dive | Divemap'
+        description='Record your scuba diving experiences, track your bottom time, gas consumption, and share marine life sightings with the Divemap community.'
+      />
+      <div className='max-w-4xl mx-auto'>
+        <div className='flex items-center gap-4 mb-6'>
+          <button onClick={() => navigate('/dives')} className='text-gray-600 hover:text-gray-800'>
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className='text-3xl font-bold text-gray-900'>Log New Dive</h1>
+        </div>
 
-      <FormProvider {...methods}>
-        <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-            {/* Basic Information */}
-            <div className='md:col-span-2'>
-              <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
-            </div>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} className='bg-white rounded-lg shadow p-6'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              {/* Basic Information */}
+              <div className='md:col-span-2'>
+                <h2 className='text-xl font-semibold mb-4'>Basic Information</h2>
+              </div>
 
-            <div className='relative' ref={diveSiteDropdownRef}>
-              <label
-                htmlFor='dive-site-search'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                Dive Site (Optional)
-              </label>
-              <div className='relative'>
-                <input
-                  id='dive-site-search'
-                  type='text'
-                  value={diveSiteSearch}
-                  onChange={e => handleDiveSiteSearchChange(e.target.value)}
-                  onFocus={() => setIsDiveSiteDropdownOpen(true)}
-                  onKeyDown={handleDiveSiteKeyDown}
-                  placeholder='Search for a dive site...'
-                  className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_site_id')}`}
-                />
-                <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <ChevronDown
-                    size={16}
-                    className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+              <div className='relative' ref={diveSiteDropdownRef}>
+                <label
+                  htmlFor='dive-site-search'
+                  className='block text-sm font-medium text-gray-700 mb-2'
+                >
+                  Dive Site (Optional)
+                </label>
+                <div className='relative'>
+                  <input
+                    id='dive-site-search'
+                    type='text'
+                    value={diveSiteSearch}
+                    onChange={e => handleDiveSiteSearchChange(e.target.value)}
+                    onFocus={() => setIsDiveSiteDropdownOpen(true)}
+                    onKeyDown={handleDiveSiteKeyDown}
+                    placeholder='Search for a dive site...'
+                    className={`w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_site_id')}`}
                   />
+                  <div className='absolute inset-y-0 right-0 flex items-center pr-3'>
+                    <ChevronDown
+                      size={16}
+                      className={`text-gray-400 transition-transform ${isDiveSiteDropdownOpen ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Dropdown */}
+                {isDiveSiteDropdownOpen && (
+                  <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
+                    {diveSiteSearchLoading ? (
+                      <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
+                    ) : diveSiteSearchError ? (
+                      <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
+                    ) : filteredDiveSites.length > 0 ? (
+                      filteredDiveSites.map(site => (
+                        <div
+                          key={site.id}
+                          onClick={() => handleDiveSiteSelect(site.id, site.name)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleDiveSiteSelect(site.id, site.name);
+                            }
+                          }}
+                          role='button'
+                          tabIndex={0}
+                          className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
+                        >
+                          <div className='font-medium text-gray-900'>{site.name}</div>
+                          {site.country && (
+                            <div className='text-sm text-gray-500'>{site.country}</div>
+                          )}
+                        </div>
+                      ))
+                    ) : diveSiteSearch ? (
+                      <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
+                    ) : (
+                      <div className='px-3 py-2 text-gray-500 text-sm'>
+                        Start typing to search dive sites
+                      </div>
+                    )}
+                  </div>
+                )}
+                {errors.dive_site_id && (
+                  <p className='mt-1 text-sm text-red-600'>
+                    {getErrorMessage(errors.dive_site_id)}
+                  </p>
+                )}
+              </div>
+
+              <DivingCenterSearchableDropdown
+                divingCenters={divingCenters}
+                selectedId={watch('diving_center_id')}
+                onSelect={id =>
+                  setValue('diving_center_id', id ? id.toString() : '', { shouldValidate: true })
+                }
+                error={errors.diving_center_id ? getErrorMessage(errors.diving_center_id) : null}
+                label='Diving Center (Optional)'
+                id='diving-center-search'
+              />
+
+              {/* Route Selection */}
+              <div>
+                <RouteSelection
+                  diveSiteId={diveSiteId}
+                  selectedRouteId={watch('selected_route_id')}
+                  onRouteSelect={handleRouteSelect}
+                />
+                {errors.selected_route_id && (
+                  <p className='mt-1 text-sm text-red-600'>
+                    {getErrorMessage(errors.selected_route_id)}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <FormField name='name' label='Dive Name (Optional)'>
+                  {({ register, name }) => (
+                    <input
+                      id='dive-name'
+                      type='text'
+                      {...register(name)}
+                      placeholder='Custom dive name or leave empty for automatic naming'
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='is_private' label='Privacy Setting'>
+                  {({ register, name }) => (
+                    <select
+                      id='privacy-setting'
+                      {...register(name, {
+                        setValueAs: value => value === 'true' || value === true,
+                      })}
+                      defaultValue='false'
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    >
+                      <option value='false'>Public (visible to everyone)</option>
+                      <option value='true'>Private (visible only to you)</option>
+                    </select>
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='dive_date' label='Dive Date' required>
+                  {({ register, name }) => (
+                    <input
+                      id='dive-date'
+                      type='date'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='dive_time' label='Dive Time (Optional)'>
+                  {({ register, name }) => (
+                    <input
+                      id='dive-time'
+                      type='time'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='duration' label='Duration (minutes)'>
+                  {({ register, name }) => (
+                    <input
+                      id='dive-duration'
+                      type='number'
+                      min='1'
+                      max='1440'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
+                      placeholder='60'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              {/* Dive Details */}
+              <div className='md:col-span-2'>
+                <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
+              </div>
+
+              <div>
+                <FormField name='max_depth' label='Max Depth (meters)'>
+                  {({ register, name }) => (
+                    <input
+                      id='max-depth'
+                      type='number'
+                      min='0'
+                      max='1000'
+                      step='any'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
+                      placeholder='18.5'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='average_depth' label='Average Depth (meters)'>
+                  {({ register, name }) => (
+                    <input
+                      id='average-depth'
+                      type='number'
+                      min='0'
+                      max='1000'
+                      step='any'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
+                      placeholder='12.0'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='difficulty_code' label='Difficulty Level'>
+                  {({ register, name }) => (
+                    <select
+                      id='difficulty-level'
+                      {...register(name)}
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    >
+                      {getDifficultyOptions().map(option => (
+                        <option
+                          key={option.value === null ? 'null' : option.value}
+                          value={option.value === null ? '' : option.value}
+                        >
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='suit_type' label='Suit Type'>
+                  {({ register, name }) => (
+                    <select
+                      id='suit-type'
+                      {...register(name)}
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                    >
+                      <option value=''>Select suit type</option>
+                      <option value='wet_suit'>Wet Suit</option>
+                      <option value='dry_suit'>Dry Suit</option>
+                      <option value='shortie'>Shortie</option>
+                    </select>
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                  {({ register, name }) => (
+                    <input
+                      id='visibility-rating'
+                      type='number'
+                      min='1'
+                      max='10'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
+                      placeholder='8'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div>
+                <FormField name='user_rating' label='Your Rating (1-10)'>
+                  {({ register, name }) => (
+                    <input
+                      id='user-rating'
+                      type='number'
+                      min='1'
+                      max='10'
+                      {...register(name)}
+                      className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
+                      placeholder='9'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              <div className='md:col-span-2'>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Gas Bottles Used
+                </label>
+                <Controller
+                  name='gas_bottles_used'
+                  control={methods.control}
+                  render={({ field: { value, onChange }, fieldState: { error } }) => (
+                    <GasTanksInput value={value} onChange={onChange} error={error?.message} />
+                  )}
+                />
+              </div>
+
+              <div className='md:col-span-2'>
+                <FormField name='dive_information' label='Dive Information'>
+                  {({ register, name }) => (
+                    <textarea
+                      id='dive-information'
+                      {...register(name)}
+                      className='w-full border border-gray-300 rounded-md px-3 py-2'
+                      rows='4'
+                      placeholder='Describe your dive experience, what you saw, conditions, etc.'
+                    />
+                  )}
+                </FormField>
+              </div>
+
+              {/* Media */}
+              <div className='md:col-span-2'>
+                <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                <div className='space-y-4'>
+                  {/* Photo Upload - Only show for public dives */}
+                  {!watch('is_private') && (
+                    <UploadPhotosComponent
+                      mediaUrls={mediaUrls.filter(m => m.type === 'photo')}
+                      setMediaUrls={updater => {
+                        if (typeof updater === 'function') {
+                          setMediaUrls(prev => {
+                            const nonPhotos = prev.filter(m => m.type !== 'photo');
+                            const photos = updater(prev.filter(m => m.type === 'photo'));
+                            return [...nonPhotos, ...photos];
+                          });
+                        } else {
+                          const nonPhotos = mediaUrls.filter(m => m.type !== 'photo');
+                          setMediaUrls([...nonPhotos, ...updater]);
+                        }
+                      }}
+                      onUnsavedPhotosChange={unsavedPhotos => {
+                        unsavedR2PhotosRef.current = unsavedPhotos;
+                      }}
+                    />
+                  )}
+                  {watch('is_private') && (
+                    <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                      <p className='text-sm text-gray-600'>
+                        Photo uploads are only available for public dives. Photos are visible on the
+                        dive site.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Add External Links */}
+                  <div className='mb-3'>
+                    <Collapse
+                      activeKey={addLinksCollapseOpen ? ['1'] : []}
+                      onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
+                      items={[
+                        {
+                          key: '1',
+                          label: 'Add External Links (Photo / Video)',
+                          children: (
+                            <div className='space-y-4'>
+                              {/* Form for adding media */}
+                              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                                <div>
+                                  <label
+                                    htmlFor='media_type'
+                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                  >
+                                    Media Type
+                                  </label>
+                                  <select
+                                    id='media_type'
+                                    value={newMediaType}
+                                    onChange={e => setNewMediaType(e.target.value)}
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                  >
+                                    <option value='photo'>Photo</option>
+                                    <option value='video'>Video</option>
+                                  </select>
+                                </div>
+                                <div className='md:col-span-2'>
+                                  <label
+                                    htmlFor='media_url'
+                                    className='block text-sm font-medium text-gray-700 mb-1'
+                                  >
+                                    URL
+                                  </label>
+                                  <input
+                                    id='media_url'
+                                    type='url'
+                                    value={newMediaUrl}
+                                    onChange={e => setNewMediaUrl(e.target.value)}
+                                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                    placeholder='https://example.com/image.jpg'
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label
+                                  htmlFor='media_description'
+                                  className='block text-sm font-medium text-gray-700 mb-1'
+                                >
+                                  Description
+                                </label>
+                                <input
+                                  id='media_description'
+                                  type='text'
+                                  value={newMediaDescription}
+                                  onChange={e => setNewMediaDescription(e.target.value)}
+                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                                />
+                              </div>
+                              <div className='flex space-x-2'>
+                                <button
+                                  type='button'
+                                  onClick={handleUrlAdd}
+                                  className='px-4 py-2 text-white rounded-md'
+                                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
+                                  onMouseEnter={e =>
+                                    (e.currentTarget.style.backgroundColor = '#007a5c')
+                                  }
+                                  onMouseLeave={e =>
+                                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                                  }
+                                >
+                                  Add Media
+                                </button>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setNewMediaUrl('');
+                                    setNewMediaDescription('');
+                                    setNewMediaType('photo');
+                                  }}
+                                  className='px-4 py-2 text-white rounded-md'
+                                  style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
+                                  onMouseEnter={e =>
+                                    (e.currentTarget.style.backgroundColor = '#1f2937')
+                                  }
+                                  onMouseLeave={e =>
+                                    (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                                  }
+                                >
+                                  Clear
+                                </button>
+                              </div>
+
+                              {/* Show pending media */}
+                              {pendingMedia.length > 0 && (
+                                <div className='mt-4 pt-4 border-t border-gray-200'>
+                                  <h4 className='text-sm font-medium text-gray-700 mb-3'>
+                                    Pending Media
+                                  </h4>
+                                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                                    {pendingMedia.map(item => (
+                                      <div
+                                        key={item.id}
+                                        className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
+                                      >
+                                        <div className='flex items-center justify-between mb-2'>
+                                          <span className='text-sm font-medium text-gray-700 capitalize'>
+                                            {item.type}{' '}
+                                            <span className='text-xs text-yellow-700'>
+                                              (Pending)
+                                            </span>
+                                          </span>
+                                          <button
+                                            onClick={() => handleMediaRemove(item)}
+                                            className='text-red-600 hover:text-red-800'
+                                            title='Remove media'
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+                                        <div className='space-y-2'>
+                                          {item.type === 'photo' ? (
+                                            <AntdImage
+                                              src={getImageUrl(getSafeExternalUrl(item.url))}
+                                              alt={item.description || 'Media'}
+                                              className='w-full'
+                                              preview={{
+                                                mask: 'Preview',
+                                              }}
+                                            />
+                                          ) : (
+                                            <YouTubePreview
+                                              url={getSafeExternalUrl(item.url)}
+                                              description={item.description}
+                                              className='w-full'
+                                              openInNewTab={true}
+                                            />
+                                          )}
+                                          {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
+                                            <div
+                                              className='text-xs text-gray-500 truncate mt-1 px-1'
+                                              title={item.url}
+                                            >
+                                              <a
+                                                href={getSafeExternalUrl(item.url)}
+                                                target='_blank'
+                                                rel='noopener noreferrer'
+                                                className='hover:text-blue-600 transition-colors'
+                                                onClick={e => e.stopPropagation()}
+                                              >
+                                                {item.url}
+                                              </a>
+                                            </div>
+                                          )}
+                                          <input
+                                            type='text'
+                                            value={mediaDescriptions[item.id] || ''}
+                                            onChange={e => {
+                                              setMediaDescriptions(prev => ({
+                                                ...prev,
+                                                [item.id]: e.target.value,
+                                              }));
+                                            }}
+                                            placeholder='Add description...'
+                                            className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                                          />
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Dropdown */}
-              {isDiveSiteDropdownOpen && (
-                <div className='absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto'>
-                  {diveSiteSearchLoading ? (
-                    <div className='px-3 py-2 text-gray-500 text-sm'>Searching...</div>
-                  ) : diveSiteSearchError ? (
-                    <div className='px-3 py-2 text-red-500 text-sm'>{diveSiteSearchError}</div>
-                  ) : filteredDiveSites.length > 0 ? (
-                    filteredDiveSites.map(site => (
-                      <div
-                        key={site.id}
-                        onClick={() => handleDiveSiteSelect(site.id, site.name)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handleDiveSiteSelect(site.id, site.name);
-                          }
-                        }}
-                        role='button'
-                        tabIndex={0}
-                        className='px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0'
-                      >
-                        <div className='font-medium text-gray-900'>{site.name}</div>
-                        {site.country && (
-                          <div className='text-sm text-gray-500'>{site.country}</div>
-                        )}
+              {/* Buddies */}
+              <div className='md:col-span-2'>
+                <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
+                <div className='space-y-4'>
+                  <UserSearchInput
+                    onSelect={handleBuddySelect}
+                    excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
+                    placeholder='Search for users to add as buddies...'
+                    label='Add Dive Buddies (Optional)'
+                  />
+
+                  {/* Selected Buddies */}
+                  {selectedBuddies.length > 0 && (
+                    <div className='mt-4'>
+                      <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        Selected Buddies
+                      </label>
+                      <div className='flex flex-wrap gap-2'>
+                        {selectedBuddies.map(buddy => (
+                          <div
+                            key={buddy.id}
+                            className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
+                          >
+                            {buddy.avatar_url ? (
+                              <img
+                                src={buddy.avatar_full_url || buddy.avatar_url}
+                                alt={buddy.username}
+                                className='w-6 h-6 rounded-full object-cover'
+                              />
+                            ) : (
+                              <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
+                                <span className='text-xs font-medium text-blue-800'>
+                                  {buddy.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                            <span className='text-sm font-medium'>{buddy.username}</span>
+                            {buddy.name && (
+                              <span className='text-xs text-blue-600'>({buddy.name})</span>
+                            )}
+                            <button
+                              type='button'
+                              onClick={() => handleBuddyRemove(buddy.id)}
+                              className='ml-1 text-blue-600 hover:text-blue-800'
+                              aria-label={`Remove ${buddy.username}`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))
-                  ) : diveSiteSearch ? (
-                    <div className='px-3 py-2 text-gray-500 text-sm'>No dive sites found</div>
-                  ) : (
-                    <div className='px-3 py-2 text-gray-500 text-sm'>
-                      Start typing to search dive sites
                     </div>
                   )}
                 </div>
-              )}
-              {errors.dive_site_id && (
-                <p className='mt-1 text-sm text-red-600'>{getErrorMessage(errors.dive_site_id)}</p>
-              )}
-            </div>
+              </div>
 
-            <DivingCenterSearchableDropdown
-              divingCenters={divingCenters}
-              selectedId={watch('diving_center_id')}
-              onSelect={id =>
-                setValue('diving_center_id', id ? id.toString() : '', { shouldValidate: true })
-              }
-              error={errors.diving_center_id ? getErrorMessage(errors.diving_center_id) : null}
-              label='Diving Center (Optional)'
-              id='diving-center-search'
-            />
-
-            {/* Route Selection */}
-            <div>
-              <RouteSelection
-                diveSiteId={diveSiteId}
-                selectedRouteId={watch('selected_route_id')}
-                onRouteSelect={handleRouteSelect}
-              />
-              {errors.selected_route_id && (
-                <p className='mt-1 text-sm text-red-600'>
-                  {getErrorMessage(errors.selected_route_id)}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <FormField name='name' label='Dive Name (Optional)'>
-                {({ register, name }) => (
-                  <input
-                    id='dive-name'
-                    type='text'
-                    {...register(name)}
-                    placeholder='Custom dive name or leave empty for automatic naming'
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='is_private' label='Privacy Setting'>
-                {({ register, name }) => (
-                  <select
-                    id='privacy-setting'
-                    {...register(name, {
-                      setValueAs: value => value === 'true' || value === true,
-                    })}
-                    defaultValue='false'
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                  >
-                    <option value='false'>Public (visible to everyone)</option>
-                    <option value='true'>Private (visible only to you)</option>
-                  </select>
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='dive_date' label='Dive Date' required>
-                {({ register, name }) => (
-                  <input
-                    id='dive-date'
-                    type='date'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_date')}`}
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='dive_time' label='Dive Time (Optional)'>
-                {({ register, name }) => (
-                  <input
-                    id='dive-time'
-                    type='time'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('dive_time')}`}
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='duration' label='Duration (minutes)'>
-                {({ register, name }) => (
-                  <input
-                    id='dive-duration'
-                    type='number'
-                    min='1'
-                    max='1440'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('duration')}`}
-                    placeholder='60'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            {/* Dive Details */}
-            <div className='md:col-span-2'>
-              <h2 className='text-xl font-semibold mb-4'>Dive Details</h2>
-            </div>
-
-            <div>
-              <FormField name='max_depth' label='Max Depth (meters)'>
-                {({ register, name }) => (
-                  <input
-                    id='max-depth'
-                    type='number'
-                    min='0'
-                    max='1000'
-                    step='any'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('max_depth')}`}
-                    placeholder='18.5'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='average_depth' label='Average Depth (meters)'>
-                {({ register, name }) => (
-                  <input
-                    id='average-depth'
-                    type='number'
-                    min='0'
-                    max='1000'
-                    step='any'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('average_depth')}`}
-                    placeholder='12.0'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='difficulty_code' label='Difficulty Level'>
-                {({ register, name }) => (
-                  <select
-                    id='difficulty-level'
-                    {...register(name)}
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                  >
-                    {getDifficultyOptions().map(option => (
-                      <option
-                        key={option.value === null ? 'null' : option.value}
-                        value={option.value === null ? '' : option.value}
+              {/* Tags */}
+              <div className='md:col-span-2'>
+                <h2 className='text-xl font-semibold mb-4'>Tags</h2>
+                <div className='space-y-4'>
+                  <div className='flex flex-wrap gap-2'>
+                    {availableTags.map(tag => (
+                      <button
+                        key={tag.id}
+                        type='button'
+                        onClick={() => handleTagToggle(tag.id)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedTags.includes(tag.id)
+                            ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+                        }`}
                       >
-                        {option.label}
-                      </option>
+                        {tag.name}
+                      </button>
                     ))}
-                  </select>
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='suit_type' label='Suit Type'>
-                {({ register, name }) => (
-                  <select
-                    id='suit-type'
-                    {...register(name)}
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                  >
-                    <option value=''>Select suit type</option>
-                    <option value='wet_suit'>Wet Suit</option>
-                    <option value='dry_suit'>Dry Suit</option>
-                    <option value='shortie'>Shortie</option>
-                  </select>
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
-                {({ register, name }) => (
-                  <input
-                    id='visibility-rating'
-                    type='number'
-                    min='1'
-                    max='10'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
-                    placeholder='8'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div>
-              <FormField name='user_rating' label='Your Rating (1-10)'>
-                {({ register, name }) => (
-                  <input
-                    id='user-rating'
-                    type='number'
-                    min='1'
-                    max='10'
-                    {...register(name)}
-                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
-                    placeholder='9'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            <div className='md:col-span-2'>
-              <label className='block text-sm font-medium text-gray-700 mb-1'>
-                Gas Bottles Used
-              </label>
-              <Controller
-                name='gas_bottles_used'
-                control={methods.control}
-                render={({ field: { value, onChange }, fieldState: { error } }) => (
-                  <GasTanksInput value={value} onChange={onChange} error={error?.message} />
-                )}
-              />
-            </div>
-
-            <div className='md:col-span-2'>
-              <FormField name='dive_information' label='Dive Information'>
-                {({ register, name }) => (
-                  <textarea
-                    id='dive-information'
-                    {...register(name)}
-                    className='w-full border border-gray-300 rounded-md px-3 py-2'
-                    rows='4'
-                    placeholder='Describe your dive experience, what you saw, conditions, etc.'
-                  />
-                )}
-              </FormField>
-            </div>
-
-            {/* Media */}
-            <div className='md:col-span-2'>
-              <h2 className='text-xl font-semibold mb-4'>Media</h2>
-              <div className='space-y-4'>
-                {/* Photo Upload - Only show for public dives */}
-                {!watch('is_private') && (
-                  <UploadPhotosComponent
-                    mediaUrls={mediaUrls.filter(m => m.type === 'photo')}
-                    setMediaUrls={updater => {
-                      if (typeof updater === 'function') {
-                        setMediaUrls(prev => {
-                          const nonPhotos = prev.filter(m => m.type !== 'photo');
-                          const photos = updater(prev.filter(m => m.type === 'photo'));
-                          return [...nonPhotos, ...photos];
-                        });
-                      } else {
-                        const nonPhotos = mediaUrls.filter(m => m.type !== 'photo');
-                        setMediaUrls([...nonPhotos, ...updater]);
-                      }
-                    }}
-                    onUnsavedPhotosChange={unsavedPhotos => {
-                      unsavedR2PhotosRef.current = unsavedPhotos;
-                    }}
-                  />
-                )}
-                {watch('is_private') && (
-                  <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                    <p className='text-sm text-gray-600'>
-                      Photo uploads are only available for public dives. Photos are visible on the
-                      dive site.
-                    </p>
                   </div>
-                )}
 
-                {/* Add External Links */}
-                <div className='mb-3'>
-                  <Collapse
-                    activeKey={addLinksCollapseOpen ? ['1'] : []}
-                    onChange={keys => setAddLinksCollapseOpen(keys.includes('1'))}
-                    items={[
-                      {
-                        key: '1',
-                        label: 'Add External Links (Photo / Video)',
-                        children: (
-                          <div className='space-y-4'>
-                            {/* Form for adding media */}
-                            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                              <div>
-                                <label
-                                  htmlFor='media_type'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
-                                >
-                                  Media Type
-                                </label>
-                                <select
-                                  id='media_type'
-                                  value={newMediaType}
-                                  onChange={e => setNewMediaType(e.target.value)}
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                >
-                                  <option value='photo'>Photo</option>
-                                  <option value='video'>Video</option>
-                                </select>
-                              </div>
-                              <div className='md:col-span-2'>
-                                <label
-                                  htmlFor='media_url'
-                                  className='block text-sm font-medium text-gray-700 mb-1'
-                                >
-                                  URL
-                                </label>
-                                <input
-                                  id='media_url'
-                                  type='url'
-                                  value={newMediaUrl}
-                                  onChange={e => setNewMediaUrl(e.target.value)}
-                                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                                  placeholder='https://example.com/image.jpg'
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label
-                                htmlFor='media_description'
-                                className='block text-sm font-medium text-gray-700 mb-1'
-                              >
-                                Description
-                              </label>
-                              <input
-                                id='media_description'
-                                type='text'
-                                value={newMediaDescription}
-                                onChange={e => setNewMediaDescription(e.target.value)}
-                                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                              />
-                            </div>
-                            <div className='flex space-x-2'>
-                              <button
-                                type='button'
-                                onClick={handleUrlAdd}
-                                className='px-4 py-2 text-white rounded-md'
-                                style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                                onMouseEnter={e =>
-                                  (e.currentTarget.style.backgroundColor = '#007a5c')
-                                }
-                                onMouseLeave={e =>
-                                  (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                                }
-                              >
-                                Add Media
-                              </button>
-                              <button
-                                type='button'
-                                onClick={() => {
-                                  setNewMediaUrl('');
-                                  setNewMediaDescription('');
-                                  setNewMediaType('photo');
-                                }}
-                                className='px-4 py-2 text-white rounded-md'
-                                style={{ backgroundColor: UI_COLORS.neutral, color: 'white' }}
-                                onMouseEnter={e =>
-                                  (e.currentTarget.style.backgroundColor = '#1f2937')
-                                }
-                                onMouseLeave={e =>
-                                  (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                                }
-                              >
-                                Clear
-                              </button>
-                            </div>
-
-                            {/* Show pending media */}
-                            {pendingMedia.length > 0 && (
-                              <div className='mt-4 pt-4 border-t border-gray-200'>
-                                <h4 className='text-sm font-medium text-gray-700 mb-3'>
-                                  Pending Media
-                                </h4>
-                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                                  {pendingMedia.map(item => (
-                                    <div
-                                      key={item.id}
-                                      className='border rounded-lg p-4 border-yellow-400 bg-yellow-50'
-                                    >
-                                      <div className='flex items-center justify-between mb-2'>
-                                        <span className='text-sm font-medium text-gray-700 capitalize'>
-                                          {item.type}{' '}
-                                          <span className='text-xs text-yellow-700'>(Pending)</span>
-                                        </span>
-                                        <button
-                                          onClick={() => handleMediaRemove(item)}
-                                          className='text-red-600 hover:text-red-800'
-                                          title='Remove media'
-                                        >
-                                          <X size={16} />
-                                        </button>
-                                      </div>
-                                      <div className='space-y-2'>
-                                        {item.type === 'photo' ? (
-                                          <AntdImage
-                                            src={getImageUrl(item.url)}
-                                            alt={item.description || 'Media'}
-                                            className='w-full'
-                                            preview={{
-                                              mask: 'Preview',
-                                            }}
-                                          />
-                                        ) : (
-                                          <YouTubePreview
-                                            url={item.url}
-                                            description={item.description}
-                                            className='w-full'
-                                            openInNewTab={true}
-                                          />
-                                        )}
-                                        {(isFlickrUrl(item.url) || isYouTubeUrl(item.url)) && (
-                                          <div
-                                            className='text-xs text-gray-500 truncate mt-1 px-1'
-                                            title={item.url}
-                                          >
-                                            <a
-                                              href={item.url}
-                                              target='_blank'
-                                              rel='noopener noreferrer'
-                                              className='hover:text-blue-600 transition-colors'
-                                              onClick={e => e.stopPropagation()}
-                                            >
-                                              {item.url}
-                                            </a>
-                                          </div>
-                                        )}
-                                        <input
-                                          type='text'
-                                          value={mediaDescriptions[item.id] || ''}
-                                          onChange={e => {
-                                            setMediaDescriptions(prev => ({
-                                              ...prev,
-                                              [item.id]: e.target.value,
-                                            }));
-                                          }}
-                                          placeholder='Add description...'
-                                          className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                                        />
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ),
-                      },
-                    ]}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Buddies */}
-            <div className='md:col-span-2'>
-              <h2 className='text-xl font-semibold mb-4'>Buddies</h2>
-              <div className='space-y-4'>
-                <UserSearchInput
-                  onSelect={handleBuddySelect}
-                  excludeUserIds={selectedBuddies.map(buddy => buddy.id)}
-                  placeholder='Search for users to add as buddies...'
-                  label='Add Dive Buddies (Optional)'
-                />
-
-                {/* Selected Buddies */}
-                {selectedBuddies.length > 0 && (
-                  <div className='mt-4'>
-                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                      Selected Buddies
-                    </label>
-                    <div className='flex flex-wrap gap-2'>
-                      {selectedBuddies.map(buddy => (
-                        <div
-                          key={buddy.id}
-                          className='flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-800 rounded-full border border-blue-300'
-                        >
-                          {buddy.avatar_url ? (
-                            <img
-                              src={buddy.avatar_full_url || buddy.avatar_url}
-                              alt={buddy.username}
-                              className='w-6 h-6 rounded-full object-cover'
-                            />
-                          ) : (
-                            <div className='w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center'>
-                              <span className='text-xs font-medium text-blue-800'>
-                                {buddy.username.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                          )}
-                          <span className='text-sm font-medium'>{buddy.username}</span>
-                          {buddy.name && (
-                            <span className='text-xs text-blue-600'>({buddy.name})</span>
-                          )}
-                          <button
-                            type='button'
-                            onClick={() => handleBuddyRemove(buddy.id)}
-                            className='ml-1 text-blue-600 hover:text-blue-800'
-                            aria-label={`Remove ${buddy.username}`}
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Tags */}
-            <div className='md:col-span-2'>
-              <h2 className='text-xl font-semibold mb-4'>Tags</h2>
-              <div className='space-y-4'>
-                <div className='flex flex-wrap gap-2'>
-                  {availableTags.map(tag => (
+                  <div className='flex gap-2'>
+                    <input
+                      type='text'
+                      value={newTag}
+                      onChange={e => setNewTag(e.target.value)}
+                      placeholder='Add new tag...'
+                      className='flex-1 border border-gray-300 rounded-md px-3 py-2'
+                    />
                     <button
-                      key={tag.id}
                       type='button'
-                      onClick={() => handleTagToggle(tag.id)}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                        selectedTags.includes(tag.id)
-                          ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                          : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                      }`}
+                      onClick={handleAddNewTag}
+                      className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
                     >
-                      {tag.name}
+                      <Plus size={16} />
+                      Add
                     </button>
-                  ))}
-                </div>
-
-                <div className='flex gap-2'>
-                  <input
-                    type='text'
-                    value={newTag}
-                    onChange={e => setNewTag(e.target.value)}
-                    placeholder='Add new tag...'
-                    className='flex-1 border border-gray-300 rounded-md px-3 py-2'
-                  />
-                  <button
-                    type='button'
-                    onClick={handleAddNewTag}
-                    className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2'
-                  >
-                    <Plus size={16} />
-                    Add
-                  </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <div className='mt-8 flex justify-end gap-4'>
-            <button
-              type='button'
-              onClick={() => navigate('/dives')}
-              className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
-            >
-              Cancel
-            </button>
-            <button
-              type='submit'
-              disabled={createDiveMutation.isLoading || !!submitStatus}
-              className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
-            >
-              {createDiveMutation.isLoading || submitStatus ? (
-                <>
-                  <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                  {submitStatus || 'Saving...'}
-                </>
-              ) : (
-                <>
-                  <Save size={16} />
-                  Log Dive
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </FormProvider>
-    </div>
+            {/* Submit Button */}
+            <div className='mt-8 flex justify-end gap-4'>
+              <button
+                type='button'
+                onClick={() => navigate('/dives')}
+                className='px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50'
+              >
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={createDiveMutation.isLoading || !!submitStatus}
+                className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
+              >
+                {createDiveMutation.isLoading || submitStatus ? (
+                  <>
+                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
+                    {submitStatus || 'Saving...'}
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} />
+                    Log Dive
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </FormProvider>
+      </div>
+    </>
   );
 };
 

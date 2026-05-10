@@ -194,7 +194,11 @@ function AppContent() {
             <Route path='/about' element={<About />} />
             <Route path='/resources/tags' element={<DivingTagsPage />} />
             <Route path='/resources/diving-organizations' element={<DivingOrganizationsPage />} />
-            <Route path='/resources/tools' element={<Tools />} />
+            <Route
+              path='/resources/tools'
+              element={<Navigate to='/resources/tools/mod' replace />}
+            />
+            <Route path='/resources/tools/:toolId' element={<Tools />} />
             <Route path='/api-docs' element={<API />} />
             <Route path='/changelog' element={<Changelog />} />
             <Route path='/help' element={<Help />} />

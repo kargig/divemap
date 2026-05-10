@@ -20,11 +20,11 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
 import PageTitle from '../components/PageTitle';
+import SEO from '../components/SEO';
 import AdminUsersTable from '../components/tables/AdminUsersTable';
 import Modal from '../components/ui/Modal';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 import { userAdminSchema, createResolver } from '../utils/formHelpers';
 
@@ -32,8 +32,6 @@ const AdminUsers = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Admin - Users');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // TanStack Table state (server-side pagination and sorting)
@@ -802,576 +800,586 @@ const AdminUsers = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4'>
-        <div>
-          <PageTitle>User Management</PageTitle>
-          <p className='text-gray-600 mt-2'>Manage all users in the system</p>
-        </div>
-        <button
-          onClick={openCreateModal}
-          className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto justify-center'
-        >
-          <Plus className='h-4 w-4 mr-2' />
-          Create User
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className='mb-4 sm:mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200'>
-        <div className='flex items-center justify-between mb-3'>
-          <h2 className='text-sm font-semibold text-gray-700'>Filters</h2>
+    <>
+      <SEO title='Divemap - Admin - Users' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4'>
+          <div>
+            <PageTitle>User Management</PageTitle>
+            <p className='text-gray-600 mt-2'>Manage all users in the system</p>
+          </div>
           <button
-            onClick={clearFilters}
-            className='text-xs text-blue-600 hover:text-blue-800 font-medium'
+            onClick={openCreateModal}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-full sm:w-auto justify-center'
           >
-            Clear All
+            <Plus className='h-4 w-4 mr-2' />
+            Create User
           </button>
         </div>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
-          <Select
-            id='role-filter'
-            label='Admin Role'
-            value={filters.is_admin || 'all'}
-            onValueChange={value => handleFilterChange('is_admin', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'Any' },
-              { value: 'true', label: 'Admin' },
-              { value: 'false', label: 'Non-Admin' },
-            ]}
-          />
-          <Select
-            id='moderator-filter'
-            label='Moderator Role'
-            value={filters.is_moderator || 'all'}
-            onValueChange={value =>
-              handleFilterChange('is_moderator', value === 'all' ? '' : value)
-            }
-            options={[
-              { value: 'all', label: 'Any' },
-              { value: 'true', label: 'Moderator' },
-              { value: 'false', label: 'Non-Moderator' },
-            ]}
-          />
-          <Select
-            id='status-filter'
-            label='Status'
-            value={filters.enabled || 'all'}
-            onValueChange={value => handleFilterChange('enabled', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'Any' },
-              { value: 'true', label: 'Enabled' },
-              { value: 'false', label: 'Disabled' },
-            ]}
-          />
-          <Select
-            id='email-verified-filter'
-            label='Email Verified'
-            value={filters.email_verified || 'all'}
-            onValueChange={value =>
-              handleFilterChange('email_verified', value === 'all' ? '' : value)
-            }
-            options={[
-              { value: 'all', label: 'Any' },
-              { value: 'true', label: 'Verified' },
-              { value: 'false', label: 'Not Verified' },
-            ]}
-          />
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className='mb-4 sm:mb-6'>
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
-          <input
-            type='text'
-            placeholder='Search users by username or email...'
-            value={searchInput}
-            onChange={e => {
-              const value = e.target.value;
-              setSearchInput(value); // Update input immediately for visual feedback
-              debouncedSearch(value); // Debounce the filter update
-            }}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-          />
-          {searchInput && (
+        {/* Filters */}
+        <div className='mb-4 sm:mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200'>
+          <div className='flex items-center justify-between mb-3'>
+            <h2 className='text-sm font-semibold text-gray-700'>Filters</h2>
             <button
-              onClick={() => {
-                setSearchInput('');
-                setFilters(prev => ({ ...prev, search: '' }));
-                const newPagination = { ...pagination, pageIndex: 0 };
-                updateURL(newPagination);
-                setPagination(newPagination);
-              }}
-              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              onClick={clearFilters}
+              className='text-xs text-blue-600 hover:text-blue-800 font-medium'
             >
-              <X className='h-4 w-4' />
+              Clear All
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Mass Delete Button */}
-      {Object.keys(rowSelection).length > 0 && (
-        <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center'>
-              <span className='text-red-800 font-medium'>
-                {Object.keys(rowSelection).length} item(s) selected
-              </span>
-            </div>
-            <div className='flex gap-2'>
-              <button
-                onClick={handleMassDelete}
-                disabled={massDeleteMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
-              >
-                <Archive className='h-4 w-4 mr-2' />
-                Archive Selected ({Object.keys(rowSelection).length})
-              </button>
-              <button
-                onClick={handleMassHardDelete}
-                disabled={massHardDeleteMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-              >
-                <Trash2 className='h-4 w-4 mr-2' />
-                Hard Delete Selected
-              </button>
-            </div>
+          </div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4'>
+            <Select
+              id='role-filter'
+              label='Admin Role'
+              value={filters.is_admin || 'all'}
+              onValueChange={value => handleFilterChange('is_admin', value === 'all' ? '' : value)}
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'true', label: 'Admin' },
+                { value: 'false', label: 'Non-Admin' },
+              ]}
+            />
+            <Select
+              id='moderator-filter'
+              label='Moderator Role'
+              value={filters.is_moderator || 'all'}
+              onValueChange={value =>
+                handleFilterChange('is_moderator', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'true', label: 'Moderator' },
+                { value: 'false', label: 'Non-Moderator' },
+              ]}
+            />
+            <Select
+              id='status-filter'
+              label='Status'
+              value={filters.enabled || 'all'}
+              onValueChange={value => handleFilterChange('enabled', value === 'all' ? '' : value)}
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'true', label: 'Enabled' },
+                { value: 'false', label: 'Disabled' },
+              ]}
+            />
+            <Select
+              id='email-verified-filter'
+              label='Email Verified'
+              value={filters.email_verified || 'all'}
+              onValueChange={value =>
+                handleFilterChange('email_verified', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'true', label: 'Verified' },
+                { value: 'false', label: 'Not Verified' },
+              ]}
+            />
           </div>
         </div>
-      )}
 
-      {/* Table Toolbar */}
-      <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
-        {/* Column Visibility Toggle */}
-        <div className='relative'>
-          <button
-            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
-            onClick={e => {
-              e.stopPropagation();
-              const menu = document.getElementById('column-visibility-menu');
-              if (menu) {
-                menu.classList.toggle('hidden');
-              }
-            }}
-          >
-            <Columns className='h-4 w-4' />
-            Columns
-          </button>
-          <div
-            id='column-visibility-menu'
-            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-2'>
-              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
-                Toggle Columns
+        {/* Search */}
+        <div className='mb-4 sm:mb-6'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+            <input
+              type='text'
+              placeholder='Search users by username or email...'
+              value={searchInput}
+              onChange={e => {
+                const value = e.target.value;
+                setSearchInput(value); // Update input immediately for visual feedback
+                debouncedSearch(value); // Debounce the filter update
+              }}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setFilters(prev => ({ ...prev, search: '' }));
+                  const newPagination = { ...pagination, pageIndex: 0 };
+                  updateURL(newPagination);
+                  setPagination(newPagination);
+                }}
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Mass Delete Button */}
+        {Object.keys(rowSelection).length > 0 && (
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <span className='text-red-800 font-medium'>
+                  {Object.keys(rowSelection).length} item(s) selected
+                </span>
               </div>
-              {columns
-                .filter(col => {
-                  const colId = col.id || col.accessorKey;
-                  return colId !== 'select' && colId !== 'actions';
-                })
-                .map(column => {
-                  const columnId = column.id || column.accessorKey;
-                  const isVisible = columnVisibility[columnId] !== false;
-                  return (
-                    <label
-                      key={columnId}
-                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={isVisible}
-                        onChange={e => {
-                          setColumnVisibility(prev => ({
-                            ...prev,
-                            [columnId]: e.target.checked,
-                          }));
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-700'>
-                        {typeof column.header === 'string'
-                          ? column.header
-                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
+              <div className='flex gap-2'>
+                <button
+                  onClick={handleMassDelete}
+                  disabled={massDeleteMutation.isLoading}
+                  className='flex items-center px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50'
+                >
+                  <Archive className='h-4 w-4 mr-2' />
+                  Archive Selected ({Object.keys(rowSelection).length})
+                </button>
+                <button
+                  onClick={handleMassHardDelete}
+                  disabled={massHardDeleteMutation.isLoading}
+                  className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+                >
+                  <Trash2 className='h-4 w-4 mr-2' />
+                  Hard Delete Selected
+                </button>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Table Toolbar */}
+        <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
+          {/* Column Visibility Toggle */}
+          <div className='relative'>
+            <button
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              onClick={e => {
+                e.stopPropagation();
+                const menu = document.getElementById('column-visibility-menu');
+                if (menu) {
+                  menu.classList.toggle('hidden');
+                }
+              }}
+            >
+              <Columns className='h-4 w-4' />
+              Columns
+            </button>
+            <div
+              id='column-visibility-menu'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              onClick={e => e.stopPropagation()}
+            >
+              <div className='p-2'>
+                <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
+                  Toggle Columns
+                </div>
+                {columns
+                  .filter(col => {
+                    const colId = col.id || col.accessorKey;
+                    return colId !== 'select' && colId !== 'actions';
+                  })
+                  .map(column => {
+                    const columnId = column.id || column.accessorKey;
+                    const isVisible = columnVisibility[columnId] !== false;
+                    return (
+                      <label
+                        key={columnId}
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                      >
+                        <input
+                          type='checkbox'
+                          checked={isVisible}
+                          onChange={e => {
+                            setColumnVisibility(prev => ({
+                              ...prev,
+                              [columnId]: e.target.checked,
+                            }));
+                          }}
+                          className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                        <span className='text-sm text-gray-700'>
+                          {typeof column.header === 'string'
+                            ? column.header
+                            : columnId.charAt(0).toUpperCase() +
+                              columnId.slice(1).replace(/_/g, ' ')}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+            <button
+              onClick={async () => {
+                try {
+                  toast.loading('Exporting current page...', { id: 'export-toast' });
+                  const headers = [
+                    'ID',
+                    'Username',
+                    'Email',
+                    'Role',
+                    'Status',
+                    'Email Verified',
+                    'Created',
+                    'Last Active',
+                  ];
+                  const rows = (users || []).map(userItem => [
+                    userItem.id,
+                    userItem.username || '',
+                    userItem.email || '',
+                    userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
+                    userItem.enabled ? 'Enabled' : 'Disabled',
+                    userItem.email_verified ? 'Yes' : 'No',
+                    formatDate(userItem.created_at),
+                    userItem.last_accessed_at
+                      ? new Date(userItem.last_accessed_at).toLocaleString()
+                      : '-',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `users-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(`Exported ${rows.length} users to CSV`, { id: 'export-toast' });
+                } catch (error) {
+                  toast.error('Failed to export CSV', { id: 'export-toast' });
+                }
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span className='hidden sm:inline'>Export Page</span>
+              <span className='sm:hidden'>Export Page</span>
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const count = paginationInfo.totalCount || 0;
+                  if (count === 0) {
+                    toast.error('No users to export');
+                    return;
+                  }
+
+                  const hasFilters =
+                    filters.search ||
+                    filters.is_admin !== '' ||
+                    filters.is_moderator !== '' ||
+                    filters.enabled !== '' ||
+                    filters.email_verified !== '';
+                  if (
+                    !window.confirm(
+                      `This will export all ${count.toLocaleString()} users${hasFilters ? ' (with current filters applied)' : ''}. This may take a moment. Continue?`
+                    )
+                  ) {
+                    return;
+                  }
+
+                  toast.loading(`Exporting all ${count.toLocaleString()} users...`, {
+                    id: 'export-all-toast',
+                  });
+
+                  // Fetch all users
+                  const allUsers = [];
+                  let currentPage = 1;
+                  let hasMore = true;
+
+                  while (hasMore) {
+                    const params = new URLSearchParams();
+                    params.append('page', currentPage.toString());
+                    params.append('page_size', '1000'); // Max page size
+
+                    // Add sorting if any
+                    const sortParams = getSortParams();
+                    if (sortParams.sort_by) {
+                      params.append('sort_by', sortParams.sort_by);
+                      params.append('sort_order', sortParams.sort_order);
+                    }
+
+                    // Add search
+                    if (filters.search) params.append('search', filters.search);
+
+                    // Add filters
+                    if (filters.is_admin !== '') {
+                      params.append('is_admin', filters.is_admin === 'true' ? 'true' : 'false');
+                    }
+                    if (filters.is_moderator !== '') {
+                      params.append(
+                        'is_moderator',
+                        filters.is_moderator === 'true' ? 'true' : 'false'
+                      );
+                    }
+                    if (filters.enabled !== '') {
+                      params.append('enabled', filters.enabled === 'true' ? 'true' : 'false');
+                    }
+                    if (filters.email_verified !== '') {
+                      params.append(
+                        'email_verified',
+                        filters.email_verified === 'true' ? 'true' : 'false'
+                      );
+                    }
+
+                    const response = await api.get(
+                      `/api/v1/users/admin/users?${params.toString()}`
+                    );
+                    const pageData = response.data;
+
+                    if (pageData && pageData.length > 0) {
+                      allUsers.push(...pageData);
+                      currentPage++;
+
+                      // Check if there's more data
+                      const totalPages = parseInt(
+                        response.headers['x-total-pages'] ||
+                          response.headers['X-Total-Pages'] ||
+                          '1'
+                      );
+                      hasMore = currentPage <= totalPages;
+                    } else {
+                      hasMore = false;
+                    }
+                  }
+
+                  // Export to CSV
+                  const headers = [
+                    'ID',
+                    'Username',
+                    'Email',
+                    'Role',
+                    'Status',
+                    'Email Verified',
+                    'Created',
+                    'Last Active',
+                  ];
+                  const rows = allUsers.map(userItem => [
+                    userItem.id,
+                    userItem.username || '',
+                    userItem.email || '',
+                    userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
+                    userItem.enabled ? 'Enabled' : 'Disabled',
+                    userItem.email_verified ? 'Yes' : 'No',
+                    formatDate(userItem.created_at),
+                    userItem.last_accessed_at
+                      ? new Date(userItem.last_accessed_at).toLocaleString()
+                      : '-',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  // eslint-disable-next-line no-undef
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+
+                  const url = URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `users-all-${count}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(`Exported all ${allUsers.length.toLocaleString()} users to CSV`, {
+                    id: 'export-all-toast',
+                  });
+                } catch (error) {
+                  console.error('Export error:', error);
+                  toast.error('Failed to export all users. Please try again.', {
+                    id: 'export-all-toast',
+                  });
+                }
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span>Export All</span>
+            </button>
           </div>
         </div>
 
-        {/* Export Buttons */}
-        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-          <button
-            onClick={async () => {
-              try {
-                toast.loading('Exporting current page...', { id: 'export-toast' });
-                const headers = [
-                  'ID',
-                  'Username',
-                  'Email',
-                  'Role',
-                  'Status',
-                  'Email Verified',
-                  'Created',
-                  'Last Active',
-                ];
-                const rows = (users || []).map(userItem => [
-                  userItem.id,
-                  userItem.username || '',
-                  userItem.email || '',
-                  userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
-                  userItem.enabled ? 'Enabled' : 'Disabled',
-                  userItem.email_verified ? 'Yes' : 'No',
-                  formatDate(userItem.created_at),
-                  userItem.last_accessed_at
-                    ? new Date(userItem.last_accessed_at).toLocaleString()
-                    : '-',
-                ]);
+        {/* Users Table */}
+        <AdminUsersTable
+          data={users || []}
+          columns={columns}
+          pagination={paginationWithCount}
+          onPaginationChange={handlePaginationChange}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          onEdit={handleEditUser}
+          onDelete={handleDeleteUser}
+          onRestore={handleRestoreUser}
+          onHardDelete={handleHardDeleteUser}
+          isLoading={isLoading}
+          currentUserId={user?.id}
+        />
 
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
+        {/* Create/Edit User Modal */}
+        <Modal
+          isOpen={showCreateUserModal || showEditUserModal}
+          onClose={handleCloseModals}
+          title={showCreateUserModal ? 'Create New User' : 'Edit User'}
+          className='max-w-md'
+        >
+          <FormProvider {...methods}>
+            <form onSubmit={handleSubmit(onProfileSubmit)} className='space-y-4'>
+              <FormField name='username' label='Username *'>
+                {({ register, name }) => (
+                  <input
+                    id={name}
+                    type='text'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.username ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='Enter username'
+                  />
+                )}
+              </FormField>
 
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `users-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(`Exported ${rows.length} users to CSV`, { id: 'export-toast' });
-              } catch (error) {
-                toast.error('Failed to export CSV', { id: 'export-toast' });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span className='hidden sm:inline'>Export Page</span>
-            <span className='sm:hidden'>Export Page</span>
-          </button>
-          <button
-            onClick={async () => {
-              try {
-                const count = paginationInfo.totalCount || 0;
-                if (count === 0) {
-                  toast.error('No users to export');
-                  return;
+              <FormField name='email' label='Email *'>
+                {({ register, name }) => (
+                  <input
+                    id={name}
+                    type='email'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder='Enter email'
+                  />
+                )}
+              </FormField>
+
+              <FormField
+                name='password'
+                label={
+                  showCreateUserModal ? 'Password *' : 'Password (leave blank to keep current)'
                 }
+              >
+                {({ register, name }) => (
+                  <input
+                    id={name}
+                    type='password'
+                    {...register(name)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.password ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder={
+                      showCreateUserModal ? 'Enter password' : 'Enter new password (optional)'
+                    }
+                  />
+                )}
+              </FormField>
 
-                const hasFilters =
-                  filters.search ||
-                  filters.is_admin !== '' ||
-                  filters.is_moderator !== '' ||
-                  filters.enabled !== '' ||
-                  filters.email_verified !== '';
-                if (
-                  !window.confirm(
-                    `This will export all ${count.toLocaleString()} users${hasFilters ? ' (with current filters applied)' : ''}. This may take a moment. Continue?`
-                  )
-                ) {
-                  return;
-                }
+              <div className='space-y-2 pt-2'>
+                <FormField name='is_admin'>
+                  {({ register, name }) => (
+                    <label htmlFor={name} className='flex items-center cursor-pointer'>
+                      <input
+                        id={name}
+                        type='checkbox'
+                        {...register(name)}
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      />
+                      <span className='ml-2 text-sm text-gray-700'>Admin privileges</span>
+                    </label>
+                  )}
+                </FormField>
 
-                toast.loading(`Exporting all ${count.toLocaleString()} users...`, {
-                  id: 'export-all-toast',
-                });
+                <FormField name='is_moderator'>
+                  {({ register, name }) => (
+                    <label htmlFor={name} className='flex items-center cursor-pointer'>
+                      <input
+                        id={name}
+                        type='checkbox'
+                        {...register(name)}
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      />
+                      <span className='ml-2 text-sm text-gray-700'>Moderator privileges</span>
+                    </label>
+                  )}
+                </FormField>
 
-                // Fetch all users
-                const allUsers = [];
-                let currentPage = 1;
-                let hasMore = true;
+                <FormField name='enabled'>
+                  {({ register, name }) => (
+                    <label htmlFor={name} className='flex items-center cursor-pointer'>
+                      <input
+                        id={name}
+                        type='checkbox'
+                        {...register(name)}
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      />
+                      <span className='ml-2 text-sm text-gray-700'>Account enabled</span>
+                    </label>
+                  )}
+                </FormField>
 
-                while (hasMore) {
-                  const params = new URLSearchParams();
-                  params.append('page', currentPage.toString());
-                  params.append('page_size', '1000'); // Max page size
+                <FormField name='email_verified'>
+                  {({ register, name }) => (
+                    <label htmlFor={name} className='flex items-center cursor-pointer'>
+                      <input
+                        id={name}
+                        type='checkbox'
+                        {...register(name)}
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      />
+                      <span className='ml-2 text-sm text-gray-700'>Email verified</span>
+                    </label>
+                  )}
+                </FormField>
+              </div>
 
-                  // Add sorting if any
-                  const sortParams = getSortParams();
-                  if (sortParams.sort_by) {
-                    params.append('sort_by', sortParams.sort_by);
-                    params.append('sort_order', sortParams.sort_order);
-                  }
-
-                  // Add search
-                  if (filters.search) params.append('search', filters.search);
-
-                  // Add filters
-                  if (filters.is_admin !== '') {
-                    params.append('is_admin', filters.is_admin === 'true' ? 'true' : 'false');
-                  }
-                  if (filters.is_moderator !== '') {
-                    params.append(
-                      'is_moderator',
-                      filters.is_moderator === 'true' ? 'true' : 'false'
-                    );
-                  }
-                  if (filters.enabled !== '') {
-                    params.append('enabled', filters.enabled === 'true' ? 'true' : 'false');
-                  }
-                  if (filters.email_verified !== '') {
-                    params.append(
-                      'email_verified',
-                      filters.email_verified === 'true' ? 'true' : 'false'
-                    );
-                  }
-
-                  const response = await api.get(`/api/v1/users/admin/users?${params.toString()}`);
-                  const pageData = response.data;
-
-                  if (pageData && pageData.length > 0) {
-                    allUsers.push(...pageData);
-                    currentPage++;
-
-                    // Check if there's more data
-                    const totalPages = parseInt(
-                      response.headers['x-total-pages'] || response.headers['X-Total-Pages'] || '1'
-                    );
-                    hasMore = currentPage <= totalPages;
-                  } else {
-                    hasMore = false;
-                  }
-                }
-
-                // Export to CSV
-                const headers = [
-                  'ID',
-                  'Username',
-                  'Email',
-                  'Role',
-                  'Status',
-                  'Email Verified',
-                  'Created',
-                  'Last Active',
-                ];
-                const rows = allUsers.map(userItem => [
-                  userItem.id,
-                  userItem.username || '',
-                  userItem.email || '',
-                  userItem.is_admin ? 'Admin' : userItem.is_moderator ? 'Moderator' : 'User',
-                  userItem.enabled ? 'Enabled' : 'Disabled',
-                  userItem.email_verified ? 'Yes' : 'No',
-                  formatDate(userItem.created_at),
-                  userItem.last_accessed_at
-                    ? new Date(userItem.last_accessed_at).toLocaleString()
-                    : '-',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                // eslint-disable-next-line no-undef
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                // eslint-disable-next-line no-undef
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `users-all-${count}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(`Exported all ${allUsers.length.toLocaleString()} users to CSV`, {
-                  id: 'export-all-toast',
-                });
-              } catch (error) {
-                console.error('Export error:', error);
-                toast.error('Failed to export all users. Please try again.', {
-                  id: 'export-all-toast',
-                });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span>Export All</span>
-          </button>
-        </div>
+              <div className='flex justify-end space-x-3 mt-6 pt-2 border-t'>
+                <button
+                  type='button'
+                  onClick={handleCloseModals}
+                  className='px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  disabled={createUserMutation.isLoading || updateUserMutation.isLoading}
+                  className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm'
+                >
+                  {createUserMutation.isLoading || updateUserMutation.isLoading ? (
+                    <Loader className='h-4 w-4 mr-2 animate-spin' />
+                  ) : (
+                    <Save className='h-4 w-4 mr-2' />
+                  )}
+                  {showCreateUserModal ? 'Create User' : 'Update User'}
+                </button>
+              </div>
+            </form>
+          </FormProvider>
+        </Modal>
       </div>
-
-      {/* Users Table */}
-      <AdminUsersTable
-        data={users || []}
-        columns={columns}
-        pagination={paginationWithCount}
-        onPaginationChange={handlePaginationChange}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        onEdit={handleEditUser}
-        onDelete={handleDeleteUser}
-        onRestore={handleRestoreUser}
-        onHardDelete={handleHardDeleteUser}
-        isLoading={isLoading}
-        currentUserId={user?.id}
-      />
-
-      {/* Create/Edit User Modal */}
-      <Modal
-        isOpen={showCreateUserModal || showEditUserModal}
-        onClose={handleCloseModals}
-        title={showCreateUserModal ? 'Create New User' : 'Edit User'}
-        className='max-w-md'
-      >
-        <FormProvider {...methods}>
-          <form onSubmit={handleSubmit(onProfileSubmit)} className='space-y-4'>
-            <FormField name='username' label='Username *'>
-              {({ register, name }) => (
-                <input
-                  id={name}
-                  type='text'
-                  {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.username ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder='Enter username'
-                />
-              )}
-            </FormField>
-
-            <FormField name='email' label='Email *'>
-              {({ register, name }) => (
-                <input
-                  id={name}
-                  type='email'
-                  {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.email ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder='Enter email'
-                />
-              )}
-            </FormField>
-
-            <FormField
-              name='password'
-              label={showCreateUserModal ? 'Password *' : 'Password (leave blank to keep current)'}
-            >
-              {({ register, name }) => (
-                <input
-                  id={name}
-                  type='password'
-                  {...register(name)}
-                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder={
-                    showCreateUserModal ? 'Enter password' : 'Enter new password (optional)'
-                  }
-                />
-              )}
-            </FormField>
-
-            <div className='space-y-2 pt-2'>
-              <FormField name='is_admin'>
-                {({ register, name }) => (
-                  <label htmlFor={name} className='flex items-center cursor-pointer'>
-                    <input
-                      id={name}
-                      type='checkbox'
-                      {...register(name)}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-                    />
-                    <span className='ml-2 text-sm text-gray-700'>Admin privileges</span>
-                  </label>
-                )}
-              </FormField>
-
-              <FormField name='is_moderator'>
-                {({ register, name }) => (
-                  <label htmlFor={name} className='flex items-center cursor-pointer'>
-                    <input
-                      id={name}
-                      type='checkbox'
-                      {...register(name)}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-                    />
-                    <span className='ml-2 text-sm text-gray-700'>Moderator privileges</span>
-                  </label>
-                )}
-              </FormField>
-
-              <FormField name='enabled'>
-                {({ register, name }) => (
-                  <label htmlFor={name} className='flex items-center cursor-pointer'>
-                    <input
-                      id={name}
-                      type='checkbox'
-                      {...register(name)}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-                    />
-                    <span className='ml-2 text-sm text-gray-700'>Account enabled</span>
-                  </label>
-                )}
-              </FormField>
-
-              <FormField name='email_verified'>
-                {({ register, name }) => (
-                  <label htmlFor={name} className='flex items-center cursor-pointer'>
-                    <input
-                      id={name}
-                      type='checkbox'
-                      {...register(name)}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
-                    />
-                    <span className='ml-2 text-sm text-gray-700'>Email verified</span>
-                  </label>
-                )}
-              </FormField>
-            </div>
-
-            <div className='flex justify-end space-x-3 mt-6 pt-2 border-t'>
-              <button
-                type='button'
-                onClick={handleCloseModals}
-                className='px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
-              >
-                Cancel
-              </button>
-              <button
-                type='submit'
-                disabled={createUserMutation.isLoading || updateUserMutation.isLoading}
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-all shadow-sm'
-              >
-                {createUserMutation.isLoading || updateUserMutation.isLoading ? (
-                  <Loader className='h-4 w-4 mr-2 animate-spin' />
-                ) : (
-                  <Save className='h-4 w-4 mr-2' />
-                )}
-                {showCreateUserModal ? 'Create User' : 'Update User'}
-              </button>
-            </div>
-          </form>
-        </FormProvider>
-      </Modal>
-    </div>
+    </>
   );
 };
 

@@ -16,8 +16,8 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from 'react-query';
 
+import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { getRecentActivity } from '../services/admin';
 import { formatDate } from '../utils/dateHelpers';
 
@@ -26,9 +26,6 @@ const AdminRecentActivity = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [timeFilter, setTimeFilter] = useState(24);
   const [activityFilter, setActivityFilter] = useState('all');
-
-  // Set page title
-  usePageTitle('Divemap - Admin - Recent Activity');
 
   // Fetch recent activity data
   const {
@@ -151,163 +148,168 @@ const AdminRecentActivity = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      {/* Header */}
-      <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 mb-2'>Recent Activity</h1>
-          <p className='text-gray-600'>Monitor user actions and system changes in real-time</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          className='mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-        >
-          <RefreshCw className='h-4 w-4 mr-2' />
-          Refresh
-        </button>
-      </div>
-
-      {/* Activity Statistics */}
-      <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8'>
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Total Activities</p>
-              <p className='text-2xl font-bold text-gray-900'>{activityStats.total}</p>
-            </div>
-            <Activity className='h-8 w-8 text-blue-600' />
-          </div>
-        </div>
-
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>New Users</p>
-              <p className='text-2xl font-bold text-gray-900'>{activityStats.user_registrations}</p>
-            </div>
-            <Users className='h-8 w-8 text-green-600' />
-          </div>
-        </div>
-
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Content Created</p>
-              <p className='text-2xl font-bold text-gray-900'>{activityStats.content_creation}</p>
-            </div>
-            <FileText className='h-8 w-8 text-purple-600' />
-          </div>
-        </div>
-
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Content Updated</p>
-              <p className='text-2xl font-bold text-gray-900'>{activityStats.content_update}</p>
-            </div>
-            <Edit className='h-8 w-8 text-yellow-600' />
-          </div>
-        </div>
-
-        <div className='bg-white p-6 rounded-lg border shadow-sm'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <p className='text-sm font-medium text-gray-600'>Engagement</p>
-              <p className='text-2xl font-bold text-gray-900'>{activityStats.engagement}</p>
-            </div>
-            <MessageSquare className='h-8 w-8 text-orange-600' />
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className='bg-white p-6 rounded-lg border shadow-sm mb-8'>
-        <h2 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
-          <Filter className='h-5 w-5 mr-2' />
-          Filters
-        </h2>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+    <>
+      <SEO title='Divemap - Admin - Recent Activity' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        {/* Header */}
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between mb-8'>
           <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Time Range</label>
-            <select
-              value={timeFilter}
-              onChange={e => setTimeFilter(Number(e.target.value))}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value={1}>Last Hour</option>
-              <option value={6}>Last 6 Hours</option>
-              <option value={24}>Last 24 Hours</option>
-              <option value={168}>Last Week</option>
-              <option value={720}>Last Month</option>
-            </select>
+            <h1 className='text-3xl font-bold text-gray-900 mb-2'>Recent Activity</h1>
+            <p className='text-gray-600'>Monitor user actions and system changes in real-time</p>
           </div>
-          <div>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>Activity Type</label>
-            <select
-              value={activityFilter}
-              onChange={e => setActivityFilter(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            >
-              <option value='all'>All Activities</option>
-              <option value='user_registration'>User Registrations</option>
-              <option value='content_creation'>Content Creation</option>
-              <option value='content_update'>Content Updates</option>
-              <option value='engagement'>Engagement</option>
-            </select>
+          <button
+            onClick={handleRefresh}
+            className='mt-4 md:mt-0 flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+          >
+            <RefreshCw className='h-4 w-4 mr-2' />
+            Refresh
+          </button>
+        </div>
+
+        {/* Activity Statistics */}
+        <div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8'>
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Total Activities</p>
+                <p className='text-2xl font-bold text-gray-900'>{activityStats.total}</p>
+              </div>
+              <Activity className='h-8 w-8 text-blue-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>New Users</p>
+                <p className='text-2xl font-bold text-gray-900'>
+                  {activityStats.user_registrations}
+                </p>
+              </div>
+              <Users className='h-8 w-8 text-green-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Content Created</p>
+                <p className='text-2xl font-bold text-gray-900'>{activityStats.content_creation}</p>
+              </div>
+              <FileText className='h-8 w-8 text-purple-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Content Updated</p>
+                <p className='text-2xl font-bold text-gray-900'>{activityStats.content_update}</p>
+              </div>
+              <Edit className='h-8 w-8 text-yellow-600' />
+            </div>
+          </div>
+
+          <div className='bg-white p-6 rounded-lg border shadow-sm'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <p className='text-sm font-medium text-gray-600'>Engagement</p>
+                <p className='text-2xl font-bold text-gray-900'>{activityStats.engagement}</p>
+              </div>
+              <MessageSquare className='h-8 w-8 text-orange-600' />
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Activity List */}
-      <div className='bg-white rounded-lg border shadow-sm'>
-        <div className='px-6 py-4 border-b border-gray-200'>
-          <h2 className='text-lg font-semibold text-gray-900 flex items-center'>
-            <Clock className='h-5 w-5 mr-2' />
-            Recent Activities ({filteredActivities.length})
+        {/* Filters */}
+        <div className='bg-white p-6 rounded-lg border shadow-sm mb-8'>
+          <h2 className='text-lg font-semibold text-gray-900 mb-4 flex items-center'>
+            <Filter className='h-5 w-5 mr-2' />
+            Filters
           </h2>
-        </div>
-        <div className='divide-y divide-gray-200'>
-          {filteredActivities.length === 0 ? (
-            <div className='px-6 py-12 text-center'>
-              <Activity className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-              <p className='text-gray-500'>No activities found for the selected filters</p>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Time Range</label>
+              <select
+                value={timeFilter}
+                onChange={e => setTimeFilter(Number(e.target.value))}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value={1}>Last Hour</option>
+                <option value={6}>Last 6 Hours</option>
+                <option value={24}>Last 24 Hours</option>
+                <option value={168}>Last Week</option>
+                <option value={720}>Last Month</option>
+              </select>
             </div>
-          ) : (
-            filteredActivities.map((activity, index) => (
-              <div key={index} className='px-6 py-4 hover:bg-gray-50 transition-colors'>
-                <div className='flex items-start space-x-4'>
-                  <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className='flex-1 min-w-0'>
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <p className='text-sm font-medium text-gray-900'>{activity.action}</p>
-                        <p className='text-sm text-gray-600'>{activity.details}</p>
-                        {activity.username && (
-                          <p className='text-xs text-gray-500'>by {activity.username}</p>
-                        )}
-                      </div>
-                      <div className='flex items-center space-x-2'>
-                        {getStatusIcon(activity.status)}
-                        <span className='text-xs text-gray-500'>
-                          {formatTimestamp(activity.timestamp)}
-                        </span>
+            <div>
+              <label className='block text-sm font-medium text-gray-700 mb-2'>Activity Type</label>
+              <select
+                value={activityFilter}
+                onChange={e => setActivityFilter(e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              >
+                <option value='all'>All Activities</option>
+                <option value='user_registration'>User Registrations</option>
+                <option value='content_creation'>Content Creation</option>
+                <option value='content_update'>Content Updates</option>
+                <option value='engagement'>Engagement</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity List */}
+        <div className='bg-white rounded-lg border shadow-sm'>
+          <div className='px-6 py-4 border-b border-gray-200'>
+            <h2 className='text-lg font-semibold text-gray-900 flex items-center'>
+              <Clock className='h-5 w-5 mr-2' />
+              Recent Activities ({filteredActivities.length})
+            </h2>
+          </div>
+          <div className='divide-y divide-gray-200'>
+            {filteredActivities.length === 0 ? (
+              <div className='px-6 py-12 text-center'>
+                <Activity className='h-12 w-12 text-gray-400 mx-auto mb-4' />
+                <p className='text-gray-500'>No activities found for the selected filters</p>
+              </div>
+            ) : (
+              filteredActivities.map((activity, index) => (
+                <div key={index} className='px-6 py-4 hover:bg-gray-50 transition-colors'>
+                  <div className='flex items-start space-x-4'>
+                    <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
+                      {getActivityIcon(activity.type)}
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <div className='flex items-center justify-between'>
+                        <div>
+                          <p className='text-sm font-medium text-gray-900'>{activity.action}</p>
+                          <p className='text-sm text-gray-600'>{activity.details}</p>
+                          {activity.username && (
+                            <p className='text-xs text-gray-500'>by {activity.username}</p>
+                          )}
+                        </div>
+                        <div className='flex items-center space-x-2'>
+                          {getStatusIcon(activity.status)}
+                          <span className='text-xs text-gray-500'>
+                            {formatTimestamp(activity.timestamp)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Last Updated */}
+        <div className='mt-6 text-center'>
+          <p className='text-sm text-gray-500'>Last updated: {new Date().toLocaleString()}</p>
         </div>
       </div>
-
-      {/* Last Updated */}
-      <div className='mt-6 text-center'>
-        <p className='text-sm text-gray-500'>Last updated: {new Date().toLocaleString()}</p>
-      </div>
-    </div>
+    </>
   );
 };
 

@@ -18,13 +18,12 @@ import { Link } from 'react-router-dom';
 import { getAdminChatSessions, getAdminChatSessionDetail, deleteAdminChatSession } from '../api';
 import AgentExecutionTimeline from '../components/Admin/AgentExecutionTimeline';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
+import SEO from '../components/SEO';
 import AdminChatHistoryTable from '../components/tables/AdminChatHistoryTable';
 import Modal from '../components/ui/Modal';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDate, formatTimeAgo, formatTime } from '../utils/dateHelpers';
 
 const AdminChatHistory = () => {
-  usePageTitle('Divemap - Admin - Chat History');
   const queryClient = useQueryClient();
 
   const [selectedSessionId, setSelectedSessionId] = useState(null);
@@ -169,147 +168,151 @@ const AdminChatHistory = () => {
   );
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>
-            <History className='text-blue-600' />
-            Chat Session History
-          </h1>
-          <p className='text-gray-600 dark:text-gray-400 mt-2'>
-            Browse and review full chat transcripts between users and the AI assistant.
-          </p>
+    <>
+      <SEO title='Divemap - Admin - Chat History' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3'>
+              <History className='text-blue-600' />
+              Chat Session History
+            </h1>
+            <p className='text-gray-600 dark:text-gray-400 mt-2'>
+              Browse and review full chat transcripts between users and the AI assistant.
+            </p>
+          </div>
+          <Link
+            to='/admin/chat-feedback'
+            className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm'
+          >
+            <ChatbotIcon size={16} />
+            View Feedback
+            <ArrowRight size={16} className='text-gray-400' />
+          </Link>
         </div>
-        <Link
-          to='/admin/chat-feedback'
-          className='flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm'
-        >
-          <ChatbotIcon size={16} />
-          View Feedback
-          <ArrowRight size={16} className='text-gray-400' />
-        </Link>
-      </div>
 
-      {/* Filters */}
-      <div className='bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex items-center gap-4'>
-        <div className='relative flex-1 max-w-xs'>
-          <Search className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' size={18} />
-          <input
-            type='text'
-            placeholder='Filter by Username...'
-            value={usernameFilter}
-            onChange={e => {
-              setUsernameFilter(e.target.value);
-              setPagination(prev => ({ ...prev, pageIndex: 0 }));
-            }}
-            className='w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm pl-10 pr-3 py-2'
-          />
+        {/* Filters */}
+        <div className='bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6 flex items-center gap-4'>
+          <div className='relative flex-1 max-w-xs'>
+            <Search className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' size={18} />
+            <input
+              type='text'
+              placeholder='Filter by Username...'
+              value={usernameFilter}
+              onChange={e => {
+                setUsernameFilter(e.target.value);
+                setPagination(prev => ({ ...prev, pageIndex: 0 }));
+              }}
+              className='w-full bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg text-sm pl-10 pr-3 py-2'
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Sessions Table */}
-      <AdminChatHistoryTable
-        data={sessions || []}
-        columns={columns}
-        pagination={{
-          ...pagination,
-          pageCount: -1,
-        }}
-        onPaginationChange={setPagination}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        isLoading={sessionsLoading}
-      />
+        {/* Sessions Table */}
+        <AdminChatHistoryTable
+          data={sessions || []}
+          columns={columns}
+          pagination={{
+            ...pagination,
+            pageCount: -1,
+          }}
+          onPaginationChange={setPagination}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          isLoading={sessionsLoading}
+        />
 
-      {/* Transcript Modal */}
-      {selectedSessionId && (
-        <Modal
-          isOpen={!!selectedSessionId}
-          onClose={() => setSelectedSessionId(null)}
-          title='Chat Transcript'
-          className='max-w-4xl max-h-[90vh] flex flex-col'
-        >
-          {detailLoading ? (
-            <div className='p-12 text-center text-gray-500'>Loading transcript...</div>
-          ) : (
-            <div className='flex flex-col h-full overflow-hidden'>
-              <div className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg'>
-                <div className='mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs'>
-                  <span className='font-bold'>User:</span>{' '}
-                  {sessionDetail?.user?.username || `ID: ${sessionDetail?.user_id}`}
-                  <span className='mx-2 text-gray-300'>|</span>
-                  <span className='font-bold'>Started:</span>{' '}
-                  {new Date(sessionDetail?.created_at).toLocaleString()}
-                </div>
-                {sessionDetail?.messages.map(msg => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
-                        msg.role === 'user'
-                          ? 'bg-blue-600 text-white rounded-br-none'
-                          : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-none'
-                      }`}
-                    >
-                      <div className='font-bold text-[10px] uppercase mb-1 opacity-70'>
-                        {msg.role === 'user' ? 'User' : 'Assistant'} • {formatTime(msg.created_at)}
-                      </div>
-                      <div className='whitespace-pre-wrap'>{msg.content}</div>
-
-                      {msg.tokens_total > 0 && (
-                        <div className='mt-2 pt-2 border-t border-white/20 dark:border-gray-700 text-[10px] font-mono opacity-70'>
-                          <div className='flex gap-3'>
-                            <span>Tokens: {msg.tokens_total}</span>
-                            <span>
-                              (In: {msg.tokens_input || 0}, Out: {msg.tokens_output || 0}
-                              {msg.tokens_cached ? `, Cache: ${msg.tokens_cached}` : ''})
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {msg.debug_data && (
-                        <div className='mt-2 pt-2 border-t border-gray-100 dark:border-gray-700'>
-                          {msg.debug_data.intermediate_steps ? (
-                            <div className='space-y-2'>
-                              <div className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
-                                Agent Execution History
-                              </div>
-                              <AgentExecutionTimeline steps={msg.debug_data.intermediate_steps} />
-                            </div>
-                          ) : (
-                            <details>
-                              <summary className='text-[10px] cursor-pointer hover:opacity-100 opacity-60'>
-                                Legacy Debug Info
-                              </summary>
-                              <pre className='text-[10px] mt-1 font-mono p-2 bg-black/10 dark:bg-black/40 rounded overflow-x-auto text-gray-700 dark:text-gray-300'>
-                                {JSON.stringify(msg.debug_data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                      )}
-                    </div>
+        {/* Transcript Modal */}
+        {selectedSessionId && (
+          <Modal
+            isOpen={!!selectedSessionId}
+            onClose={() => setSelectedSessionId(null)}
+            title='Chat Transcript'
+            className='max-w-4xl max-h-[90vh] flex flex-col'
+          >
+            {detailLoading ? (
+              <div className='p-12 text-center text-gray-500'>Loading transcript...</div>
+            ) : (
+              <div className='flex flex-col h-full overflow-hidden'>
+                <div className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg'>
+                  <div className='mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs'>
+                    <span className='font-bold'>User:</span>{' '}
+                    {sessionDetail?.user?.username || `ID: ${sessionDetail?.user_id}`}
+                    <span className='mx-2 text-gray-300'>|</span>
+                    <span className='font-bold'>Started:</span>{' '}
+                    {new Date(sessionDetail?.created_at).toLocaleString()}
                   </div>
-                ))}
-              </div>
+                  {sessionDetail?.messages.map(msg => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+                          msg.role === 'user'
+                            ? 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-700 rounded-bl-none'
+                        }`}
+                      >
+                        <div className='font-bold text-[10px] uppercase mb-1 opacity-70'>
+                          {msg.role === 'user' ? 'User' : 'Assistant'} •{' '}
+                          {formatTime(msg.created_at)}
+                        </div>
+                        <div className='whitespace-pre-wrap'>{msg.content}</div>
 
-              <div className='pt-4 flex justify-between items-center text-xs text-gray-400'>
-                <span>Session ID: {selectedSessionId}</span>
-                <button
-                  onClick={() => setSelectedSessionId(null)}
-                  className='px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors'
-                >
-                  Close
-                </button>
+                        {msg.tokens_total > 0 && (
+                          <div className='mt-2 pt-2 border-t border-white/20 dark:border-gray-700 text-[10px] font-mono opacity-70'>
+                            <div className='flex gap-3'>
+                              <span>Tokens: {msg.tokens_total}</span>
+                              <span>
+                                (In: {msg.tokens_input || 0}, Out: {msg.tokens_output || 0}
+                                {msg.tokens_cached ? `, Cache: ${msg.tokens_cached}` : ''})
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {msg.debug_data && (
+                          <div className='mt-2 pt-2 border-t border-gray-100 dark:border-gray-700'>
+                            {msg.debug_data.intermediate_steps ? (
+                              <div className='space-y-2'>
+                                <div className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
+                                  Agent Execution History
+                                </div>
+                                <AgentExecutionTimeline steps={msg.debug_data.intermediate_steps} />
+                              </div>
+                            ) : (
+                              <details>
+                                <summary className='text-[10px] cursor-pointer hover:opacity-100 opacity-60'>
+                                  Legacy Debug Info
+                                </summary>
+                                <pre className='text-[10px] mt-1 font-mono p-2 bg-black/10 dark:bg-black/40 rounded overflow-x-auto text-gray-700 dark:text-gray-300'>
+                                  {JSON.stringify(msg.debug_data, null, 2)}
+                                </pre>
+                              </details>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className='pt-4 flex justify-between items-center text-xs text-gray-400'>
+                  <span>Session ID: {selectedSessionId}</span>
+                  <button
+                    onClick={() => setSelectedSessionId(null)}
+                    className='px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors'
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </Modal>
-      )}
-    </div>
+            )}
+          </Modal>
+        )}
+      </div>
+    </>
   );
 };
 

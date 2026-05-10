@@ -5,18 +5,15 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminDivingOrganizations = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-
-  // Set page title
-  usePageTitle('Divemap - Admin - Diving Organizations');
 
   // Organization management state
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
@@ -210,469 +207,483 @@ const AdminDivingOrganizations = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-gray-900'>Diving Organizations Management</h1>
-        <p className='text-gray-600 mt-2'>
-          Manage diving certification organizations and their details
-        </p>
-      </div>
-
-      {/* Search and Actions Bar */}
-      <div className='flex flex-col sm:flex-row gap-4 mb-6'>
-        <div className='flex-1 relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4' />
-          <input
-            type='text'
-            placeholder='Search organizations...'
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-          />
+    <>
+      <SEO title='Divemap - Admin - Diving Organizations' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>Diving Organizations Management</h1>
+          <p className='text-gray-600 mt-2'>
+            Manage diving certification organizations and their details
+          </p>
         </div>
-        <div className='flex gap-2'>
-          <button
-            onClick={() => setShowCreateOrgModal(true)}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-          >
-            <Plus className='h-4 w-4' />
-            Add Organization
-          </button>
-          {selectedItems.size > 0 && (
+
+        {/* Search and Actions Bar */}
+        <div className='flex flex-col sm:flex-row gap-4 mb-6'>
+          <div className='flex-1 relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4' />
+            <input
+              type='text'
+              placeholder='Search organizations...'
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            />
+          </div>
+          <div className='flex gap-2'>
             <button
-              onClick={handleMassDelete}
-              className='flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+              onClick={() => setShowCreateOrgModal(true)}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
             >
-              <Trash2 className='h-4 w-4' />
-              Delete Selected ({selectedItems.size})
+              <Plus className='h-4 w-4' />
+              Add Organization
             </button>
-          )}
+            {selectedItems.size > 0 && (
+              <button
+                onClick={handleMassDelete}
+                className='flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors'
+              >
+                <Trash2 className='h-4 w-4' />
+                Delete Selected ({selectedItems.size})
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Organizations Table */}
-      <div className='bg-white rounded-lg shadow overflow-hidden'>
-        <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th className='px-2 py-3 text-left'>
-                  <input
-                    type='checkbox'
-                    checked={
-                      selectedItems.size === (organizations?.length || 0) &&
-                      organizations?.length > 0
-                    }
-                    onChange={e => handleSelectAll(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                </th>
-                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Organization
-                </th>
-                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Acronym
-                </th>
-                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Country
-                </th>
-                <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {isLoading ? (
+        {/* Organizations Table */}
+        <div className='bg-white rounded-lg shadow overflow-hidden'>
+          <div className='overflow-x-auto'>
+            <table className='min-w-full divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
                 <tr>
-                  <td colSpan='7' className='px-6 py-4 text-center'>
-                    <Loader className='h-6 w-6 animate-spin mx-auto text-gray-400' />
-                  </td>
+                  <th className='px-2 py-3 text-left'>
+                    <input
+                      type='checkbox'
+                      checked={
+                        selectedItems.size === (organizations?.length || 0) &&
+                        organizations?.length > 0
+                      }
+                      onChange={e => handleSelectAll(e.target.checked)}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                    />
+                  </th>
+                  <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Organization
+                  </th>
+                  <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Acronym
+                  </th>
+                  <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Country
+                  </th>
+                  <th className='px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Actions
+                  </th>
                 </tr>
-              ) : filteredOrganizations.length === 0 ? (
-                <tr>
-                  <td colSpan='7' className='px-6 py-4 text-center text-gray-500'>
-                    No organizations found
-                  </td>
-                </tr>
-              ) : (
-                filteredOrganizations.map((org, index) => (
-                  <tr
-                    key={org.id}
-                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
-                  >
-                    <td className='px-2 py-4 whitespace-nowrap'>
-                      <input
-                        type='checkbox'
-                        checked={selectedItems.has(org.id)}
-                        onChange={e => handleSelectItem(org.id, e.target.checked)}
-                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                    </td>
-                    <td className='px-2 py-4 whitespace-nowrap'>
-                      <div className='flex items-center'>
-                        <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 rounded-md border border-gray-100 overflow-hidden'>
-                          {org.logo_url ? (
-                            <img
-                              className='max-h-full max-w-full object-contain p-1'
-                              src={org.logo_url}
-                              alt={org.name}
-                            />
-                          ) : (
-                            <div className='flex items-center justify-center'>
-                              <span className='text-gray-400 font-bold text-lg'>{org.acronym}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className='ml-4'>
-                          <div className='text-sm font-medium text-gray-900'>{org.name}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-2 py-4 whitespace-nowrap'>
-                      <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
-                        {org.acronym}
-                      </span>
-                    </td>
-                    <td className='px-2 py-4 whitespace-nowrap text-sm text-gray-900'>
-                      {org.country || '-'}
-                    </td>
-                    <td className='px-2 py-4 whitespace-nowrap text-sm font-medium'>
-                      <div className='flex items-center gap-2'>
-                        <button
-                          onClick={() =>
-                            navigate(
-                              `/admin/diving-organizations/${encodeURIComponent(org.acronym)}/certifications`
-                            )
-                          }
-                          className='text-indigo-600 hover:text-indigo-900 p-1 rounded'
-                          title='Manage Certifications'
-                        >
-                          <Award className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={() => handleEditOrg(org)}
-                          className='text-blue-600 hover:text-blue-900 p-1 rounded'
-                        >
-                          <Edit className='h-4 w-4' />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOrg(org)}
-                          className='text-red-600 hover:text-red-900 p-1 rounded'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan='7' className='px-6 py-4 text-center'>
+                      <Loader className='h-6 w-6 animate-spin mx-auto text-gray-400' />
                     </td>
                   </tr>
-                ))
+                ) : filteredOrganizations.length === 0 ? (
+                  <tr>
+                    <td colSpan='7' className='px-6 py-4 text-center text-gray-500'>
+                      No organizations found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredOrganizations.map((org, index) => (
+                    <tr
+                      key={org.id}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                    >
+                      <td className='px-2 py-4 whitespace-nowrap'>
+                        <input
+                          type='checkbox'
+                          checked={selectedItems.has(org.id)}
+                          onChange={e => handleSelectItem(org.id, e.target.checked)}
+                          className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                      </td>
+                      <td className='px-2 py-4 whitespace-nowrap'>
+                        <div className='flex items-center'>
+                          <div className='flex-shrink-0 h-14 w-24 flex items-center justify-center bg-gray-50 rounded-md border border-gray-100 overflow-hidden'>
+                            {org.logo_url ? (
+                              <img
+                                className='max-h-full max-w-full object-contain p-1'
+                                src={org.logo_url}
+                                alt={org.name}
+                              />
+                            ) : (
+                              <div className='flex items-center justify-center'>
+                                <span className='text-gray-400 font-bold text-lg'>
+                                  {org.acronym}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className='ml-4'>
+                            <div className='text-sm font-medium text-gray-900'>{org.name}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className='px-2 py-4 whitespace-nowrap'>
+                        <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                          {org.acronym}
+                        </span>
+                      </td>
+                      <td className='px-2 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {org.country || '-'}
+                      </td>
+                      <td className='px-2 py-4 whitespace-nowrap text-sm font-medium'>
+                        <div className='flex items-center gap-2'>
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `/admin/diving-organizations/${encodeURIComponent(org.acronym)}/certifications`
+                              )
+                            }
+                            className='text-indigo-600 hover:text-indigo-900 p-1 rounded'
+                            title='Manage Certifications'
+                          >
+                            <Award className='h-4 w-4' />
+                          </button>
+                          <button
+                            onClick={() => handleEditOrg(org)}
+                            className='text-blue-600 hover:text-blue-900 p-1 rounded'
+                          >
+                            <Edit className='h-4 w-4' />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrg(org)}
+                            className='text-red-600 hover:text-red-900 p-1 rounded'
+                          >
+                            <Trash2 className='h-4 w-4' />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Create Organization Modal */}
+        <Modal
+          isOpen={showCreateOrgModal}
+          onClose={() => {
+            setShowCreateOrgModal(false);
+            resetOrgForm();
+          }}
+          title='Create New Organization'
+          className='max-w-2xl max-h-[90vh] overflow-y-auto'
+        >
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label htmlFor='org-name' className='block text-sm font-medium text-gray-700 mb-1'>
+                  Name *
+                </label>
+                <input
+                  id='org-name'
+                  type='text'
+                  value={orgForm.name}
+                  onChange={e => setOrgForm({ ...orgForm, name: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Organization name'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='org-acronym'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Acronym *
+                </label>
+                <input
+                  id='org-acronym'
+                  type='text'
+                  value={orgForm.acronym}
+                  onChange={e => setOrgForm({ ...orgForm, acronym: e.target.value.toUpperCase() })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='PADI, SSI, etc.'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='org-country'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Country
+                </label>
+                <input
+                  id='org-country'
+                  type='text'
+                  value={orgForm.country}
+                  onChange={e => setOrgForm({ ...orgForm, country: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='United States'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='org-founded-year'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Founded Year
+                </label>
+                <input
+                  id='org-founded-year'
+                  type='number'
+                  value={orgForm.founded_year}
+                  onChange={e => setOrgForm({ ...orgForm, founded_year: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='1966'
+                  min='1800'
+                  max='2100'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor='org-website' className='block text-sm font-medium text-gray-700 mb-1'>
+                Website
+              </label>
+              <input
+                id='org-website'
+                type='url'
+                value={orgForm.website}
+                onChange={e => setOrgForm({ ...orgForm, website: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='https://www.example.com'
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor='org-logo-url'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Logo URL
+              </label>
+              <input
+                id='org-logo-url'
+                type='url'
+                value={orgForm.logo_url}
+                onChange={e => setOrgForm({ ...orgForm, logo_url: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='https://example.com/logo.png'
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor='org-description'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Description
+              </label>
+              <textarea
+                id='org-description'
+                value={orgForm.description}
+                onChange={e => setOrgForm({ ...orgForm, description: e.target.value })}
+                rows='3'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='Brief description of the organization...'
+              />
+            </div>
+          </div>
+
+          <div className='flex justify-end gap-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowCreateOrgModal(false);
+                resetOrgForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateOrg}
+              disabled={!orgForm.name || !orgForm.acronym || createOrgMutation.isLoading}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {createOrgMutation.isLoading ? (
+                <Loader className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
               )}
-            </tbody>
-          </table>
-        </div>
+              Create Organization
+            </button>
+          </div>
+        </Modal>
+
+        {/* Edit Organization Modal */}
+        <Modal
+          isOpen={showEditOrgModal && !!editingOrg}
+          onClose={() => setShowEditOrgModal(false)}
+          title='Edit Organization'
+          className='max-w-2xl max-h-[90vh] overflow-y-auto'
+        >
+          <div className='space-y-4'>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='edit-org-name'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Name *
+                </label>
+                <input
+                  id='edit-org-name'
+                  type='text'
+                  value={orgForm.name}
+                  onChange={e => setOrgForm({ ...orgForm, name: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='Organization name'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='edit-org-acronym'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Acronym *
+                </label>
+                <input
+                  id='edit-org-acronym'
+                  type='text'
+                  value={orgForm.acronym}
+                  onChange={e => setOrgForm({ ...orgForm, acronym: e.target.value.toUpperCase() })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='PADI, SSI, etc.'
+                />
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div>
+                <label
+                  htmlFor='edit-org-country'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Country
+                </label>
+                <input
+                  id='edit-org-country'
+                  type='text'
+                  value={orgForm.country}
+                  onChange={e => setOrgForm({ ...orgForm, country: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='United States'
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor='edit-org-founded-year'
+                  className='block text-sm font-medium text-gray-700 mb-1'
+                >
+                  Founded Year
+                </label>
+                <input
+                  id='edit-org-founded-year'
+                  type='number'
+                  value={orgForm.founded_year}
+                  onChange={e => setOrgForm({ ...orgForm, founded_year: e.target.value })}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                  placeholder='1966'
+                  min='1800'
+                  max='2100'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor='edit-org-website'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Website
+              </label>
+              <input
+                id='edit-org-website'
+                type='url'
+                value={orgForm.website}
+                onChange={e => setOrgForm({ ...orgForm, website: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='https://www.example.com'
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor='edit-org-logo-url'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Logo URL
+              </label>
+              <input
+                id='edit-org-logo-url'
+                type='url'
+                value={orgForm.logo_url}
+                onChange={e => setOrgForm({ ...orgForm, logo_url: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='https://example.com/logo.png'
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor='edit-org-description'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Description
+              </label>
+              <textarea
+                id='edit-org-description'
+                value={orgForm.description}
+                onChange={e => setOrgForm({ ...orgForm, description: e.target.value })}
+                rows='3'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
+                placeholder='Brief description of the organization...'
+              />
+            </div>
+          </div>
+
+          <div className='flex justify-end gap-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowEditOrgModal(false);
+                resetOrgForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdateOrg}
+              disabled={!orgForm.name || !orgForm.acronym || updateOrgMutation.isLoading}
+              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {updateOrgMutation.isLoading ? (
+                <Loader className='h-4 w-4 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4' />
+              )}
+              Update Organization
+            </button>
+          </div>
+        </Modal>
       </div>
-
-      {/* Create Organization Modal */}
-      <Modal
-        isOpen={showCreateOrgModal}
-        onClose={() => {
-          setShowCreateOrgModal(false);
-          resetOrgForm();
-        }}
-        title='Create New Organization'
-        className='max-w-2xl max-h-[90vh] overflow-y-auto'
-      >
-        <div className='space-y-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label htmlFor='org-name' className='block text-sm font-medium text-gray-700 mb-1'>
-                Name *
-              </label>
-              <input
-                id='org-name'
-                type='text'
-                value={orgForm.name}
-                onChange={e => setOrgForm({ ...orgForm, name: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Organization name'
-              />
-            </div>
-            <div>
-              <label htmlFor='org-acronym' className='block text-sm font-medium text-gray-700 mb-1'>
-                Acronym *
-              </label>
-              <input
-                id='org-acronym'
-                type='text'
-                value={orgForm.acronym}
-                onChange={e => setOrgForm({ ...orgForm, acronym: e.target.value.toUpperCase() })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='PADI, SSI, etc.'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label htmlFor='org-country' className='block text-sm font-medium text-gray-700 mb-1'>
-                Country
-              </label>
-              <input
-                id='org-country'
-                type='text'
-                value={orgForm.country}
-                onChange={e => setOrgForm({ ...orgForm, country: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='United States'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='org-founded-year'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Founded Year
-              </label>
-              <input
-                id='org-founded-year'
-                type='number'
-                value={orgForm.founded_year}
-                onChange={e => setOrgForm({ ...orgForm, founded_year: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='1966'
-                min='1800'
-                max='2100'
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor='org-website' className='block text-sm font-medium text-gray-700 mb-1'>
-              Website
-            </label>
-            <input
-              id='org-website'
-              type='url'
-              value={orgForm.website}
-              onChange={e => setOrgForm({ ...orgForm, website: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='https://www.example.com'
-            />
-          </div>
-
-          <div>
-            <label htmlFor='org-logo-url' className='block text-sm font-medium text-gray-700 mb-1'>
-              Logo URL
-            </label>
-            <input
-              id='org-logo-url'
-              type='url'
-              value={orgForm.logo_url}
-              onChange={e => setOrgForm({ ...orgForm, logo_url: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='https://example.com/logo.png'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='org-description'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Description
-            </label>
-            <textarea
-              id='org-description'
-              value={orgForm.description}
-              onChange={e => setOrgForm({ ...orgForm, description: e.target.value })}
-              rows='3'
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='Brief description of the organization...'
-            />
-          </div>
-        </div>
-
-        <div className='flex justify-end gap-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowCreateOrgModal(false);
-              resetOrgForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateOrg}
-            disabled={!orgForm.name || !orgForm.acronym || createOrgMutation.isLoading}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {createOrgMutation.isLoading ? (
-              <Loader className='h-4 w-4 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4' />
-            )}
-            Create Organization
-          </button>
-        </div>
-      </Modal>
-
-      {/* Edit Organization Modal */}
-      <Modal
-        isOpen={showEditOrgModal && !!editingOrg}
-        onClose={() => setShowEditOrgModal(false)}
-        title='Edit Organization'
-        className='max-w-2xl max-h-[90vh] overflow-y-auto'
-      >
-        <div className='space-y-4'>
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='edit-org-name'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Name *
-              </label>
-              <input
-                id='edit-org-name'
-                type='text'
-                value={orgForm.name}
-                onChange={e => setOrgForm({ ...orgForm, name: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='Organization name'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='edit-org-acronym'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Acronym *
-              </label>
-              <input
-                id='edit-org-acronym'
-                type='text'
-                value={orgForm.acronym}
-                onChange={e => setOrgForm({ ...orgForm, acronym: e.target.value.toUpperCase() })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='PADI, SSI, etc.'
-              />
-            </div>
-          </div>
-
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label
-                htmlFor='edit-org-country'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Country
-              </label>
-              <input
-                id='edit-org-country'
-                type='text'
-                value={orgForm.country}
-                onChange={e => setOrgForm({ ...orgForm, country: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='United States'
-              />
-            </div>
-            <div>
-              <label
-                htmlFor='edit-org-founded-year'
-                className='block text-sm font-medium text-gray-700 mb-1'
-              >
-                Founded Year
-              </label>
-              <input
-                id='edit-org-founded-year'
-                type='number'
-                value={orgForm.founded_year}
-                onChange={e => setOrgForm({ ...orgForm, founded_year: e.target.value })}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-                placeholder='1966'
-                min='1800'
-                max='2100'
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor='edit-org-website'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Website
-            </label>
-            <input
-              id='edit-org-website'
-              type='url'
-              value={orgForm.website}
-              onChange={e => setOrgForm({ ...orgForm, website: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='https://www.example.com'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='edit-org-logo-url'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Logo URL
-            </label>
-            <input
-              id='edit-org-logo-url'
-              type='url'
-              value={orgForm.logo_url}
-              onChange={e => setOrgForm({ ...orgForm, logo_url: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='https://example.com/logo.png'
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor='edit-org-description'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Description
-            </label>
-            <textarea
-              id='edit-org-description'
-              value={orgForm.description}
-              onChange={e => setOrgForm({ ...orgForm, description: e.target.value })}
-              rows='3'
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500'
-              placeholder='Brief description of the organization...'
-            />
-          </div>
-        </div>
-
-        <div className='flex justify-end gap-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowEditOrgModal(false);
-              resetOrgForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateOrg}
-            disabled={!orgForm.name || !orgForm.acronym || updateOrgMutation.isLoading}
-            className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {updateOrgMutation.isLoading ? (
-              <Loader className='h-4 w-4 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4' />
-            )}
-            Update Organization
-          </button>
-        </div>
-      </Modal>
-    </div>
+    </>
   );
 };
 

@@ -1,5 +1,5 @@
 /* eslint-disable no-undef */
-/* eslint-disable no-restricted-globals */
+
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import {

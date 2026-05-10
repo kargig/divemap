@@ -3,13 +3,12 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { getTagsWithCounts } from '../services/tags';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getTagColor } from '../utils/tagHelpers';
 
 const DivingTagsPage = () => {
-  usePageTitle('Divemap - Diving Tags');
   const [searchTerm, setSearchTerm] = useState('');
 
   const { data: tags, isLoading } = useQuery('public-tags', getTagsWithCounts, {
@@ -23,104 +22,110 @@ const DivingTagsPage = () => {
   );
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
-      <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
-        <div className='p-6 border-b border-gray-200'>
-          <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
-            <div>
-              <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-                <Tags className='h-8 w-8 mr-3 text-blue-600' />
-                Diving Tags
-              </h1>
-              <p className='mt-1 text-gray-600'>
-                Explore the tags used to categorize dive sites and experiences.
-              </p>
-            </div>
-            <div className='relative w-full md:w-64'>
-              <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                <Search className='h-5 w-5 text-gray-400' />
-              </div>
-              <input
-                type='text'
-                className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
-                placeholder='Search tags...'
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {isLoading ? (
-          <div className='flex justify-center items-center h-64'>
-            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
-          </div>
-        ) : (
-          <div className='bg-gray-50 p-6'>
-            {filteredTags?.length > 0 ? (
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                {filteredTags.map(tag => (
-                  <div
-                    key={tag.id}
-                    className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-5 border border-gray-100'
-                  >
-                    <div className='flex items-start justify-between'>
-                      <div className='flex items-center'>
-                        <span
-                          className={`inline-flex items-center justify-center h-8 w-8 rounded-full mr-3 ${getTagColor(
-                            tag.name
-                          )}`}
-                        >
-                          <Hash className='h-4 w-4' />
-                        </span>
-                        <h3 className='text-lg font-medium text-gray-900'>{tag.name}</h3>
-                      </div>
-                      <div className='flex flex-col items-end gap-1'>
-                        <Link
-                          to={`/dive-sites?tag_ids=${tag.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
-                            tag.name
-                          )} transition-transform hover:scale-105 active:scale-95`}
-                          title={`View ${tag.dive_site_count} dive sites tagged with ${tag.name}`}
-                        >
-                          <MapPin className='h-3 w-3 mr-1' />
-                          {tag.dive_site_count} {tag.dive_site_count === 1 ? 'site' : 'sites'}
-                        </Link>
-                        <Link
-                          to={`/dives?tag_ids=${tag.id}`}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
-                            tag.name
-                          )} opacity-80 transition-transform hover:scale-105 active:scale-95`}
-                          title={`View ${tag.dive_count} dive logs tagged with ${tag.name}`}
-                        >
-                          <Notebook className='h-3 w-3 mr-1' />
-                          {tag.dive_count} {tag.dive_count === 1 ? 'log' : 'logs'}
-                        </Link>
-                      </div>
-                    </div>
-                    {tag.description && (
-                      <p className='mt-3 text-sm text-gray-500 line-clamp-3'>
-                        {decodeHtmlEntities(tag.description)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
-                <Tags className='mx-auto h-12 w-12 text-gray-400' />
-                <h3 className='mt-2 text-sm font-medium text-gray-900'>No tags found</h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  {searchTerm
-                    ? `No tags matching "${searchTerm}"`
-                    : 'There are no tags in the system yet.'}
+    <>
+      <SEO
+        title='Diving Tags & Categories | Divemap'
+        description='Explore the diving tags and categories used on Divemap to find dive sites that match your interests, like Wreck, Cave, Deep, and Reef diving.'
+      />
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+        <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
+          <div className='p-6 border-b border-gray-200'>
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+              <div>
+                <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
+                  <Tags className='h-8 w-8 mr-3 text-blue-600' />
+                  Diving Tags
+                </h1>
+                <p className='mt-1 text-gray-600'>
+                  Explore the tags used to categorize dive sites and experiences.
                 </p>
               </div>
-            )}
+              <div className='relative w-full md:w-64'>
+                <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                  <Search className='h-5 w-5 text-gray-400' />
+                </div>
+                <input
+                  type='text'
+                  className='block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out'
+                  placeholder='Search tags...'
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
-        )}
+
+          {isLoading ? (
+            <div className='flex justify-center items-center h-64'>
+              <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
+            </div>
+          ) : (
+            <div className='bg-gray-50 p-6'>
+              {filteredTags?.length > 0 ? (
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                  {filteredTags.map(tag => (
+                    <div
+                      key={tag.id}
+                      className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-5 border border-gray-100'
+                    >
+                      <div className='flex items-start justify-between'>
+                        <div className='flex items-center'>
+                          <span
+                            className={`inline-flex items-center justify-center h-8 w-8 rounded-full mr-3 ${getTagColor(
+                              tag.name
+                            )}`}
+                          >
+                            <Hash className='h-4 w-4' />
+                          </span>
+                          <h3 className='text-lg font-medium text-gray-900'>{tag.name}</h3>
+                        </div>
+                        <div className='flex flex-col items-end gap-1'>
+                          <Link
+                            to={`/dive-sites?tag_ids=${tag.id}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
+                              tag.name
+                            )} transition-transform hover:scale-105 active:scale-95`}
+                            title={`View ${tag.dive_site_count} dive sites tagged with ${tag.name}`}
+                          >
+                            <MapPin className='h-3 w-3 mr-1' />
+                            {tag.dive_site_count} {tag.dive_site_count === 1 ? 'site' : 'sites'}
+                          </Link>
+                          <Link
+                            to={`/dives?tag_ids=${tag.id}`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
+                              tag.name
+                            )} opacity-80 transition-transform hover:scale-105 active:scale-95`}
+                            title={`View ${tag.dive_count} dive logs tagged with ${tag.name}`}
+                          >
+                            <Notebook className='h-3 w-3 mr-1' />
+                            {tag.dive_count} {tag.dive_count === 1 ? 'log' : 'logs'}
+                          </Link>
+                        </div>
+                      </div>
+                      {tag.description && (
+                        <p className='mt-3 text-sm text-gray-500 line-clamp-3'>
+                          {decodeHtmlEntities(tag.description)}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className='text-center py-12 bg-white rounded-lg border border-dashed border-gray-300'>
+                  <Tags className='mx-auto h-12 w-12 text-gray-400' />
+                  <h3 className='mt-2 text-sm font-medium text-gray-900'>No tags found</h3>
+                  <p className='mt-1 text-sm text-gray-500'>
+                    {searchTerm
+                      ? `No tags matching "${searchTerm}"`
+                      : 'There are no tags in the system yet.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import AdminDiveRoutesTable from '../components/tables/AdminDiveRoutesTable';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getRouteTypeLabel } from '../utils/routeUtils';
@@ -19,8 +19,6 @@ const AdminDiveRoutes = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Set page title
-  usePageTitle('Divemap - Admin - Dive Routes');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // TanStack Table state
@@ -396,250 +394,258 @@ const AdminDiveRoutes = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
-        <div className='flex-1 min-w-0'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Routes Management</h1>
-          <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
-            Manage all dive routes in the system
-          </p>
-          {paginationInfo.totalCount !== undefined && (
-            <p className='text-xs sm:text-sm text-gray-500 mt-1'>
-              Total dive routes: {paginationInfo.totalCount}
+    <>
+      <SEO title='Divemap - Admin - Dive Routes' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6'>
+          <div className='flex-1 min-w-0'>
+            <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dive Routes Management</h1>
+            <p className='text-sm sm:text-base text-gray-600 mt-1 sm:mt-2'>
+              Manage all dive routes in the system
             </p>
-          )}
-        </div>
-        <button
-          onClick={() => navigate('/admin/dive-sites')}
-          className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
-        >
-          <Search className='h-4 w-4 mr-2' />
-          <span className='hidden sm:inline'>Find Site to Add Route</span>
-          <span className='sm:hidden'>Find Site</span>
-        </button>
-      </div>
-
-      {/* Mass Delete Button */}
-      {Object.keys(rowSelection).length > 0 && (
-        <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center'>
-              <span className='text-red-800 font-medium'>
-                {Object.keys(rowSelection).length} item(s) selected
-              </span>
-            </div>
-            <button
-              onClick={handleMassDelete}
-              disabled={massDeleteMutation.isLoading}
-              className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete Selected ({Object.keys(rowSelection).length})
-            </button>
+            {paginationInfo.totalCount !== undefined && (
+              <p className='text-xs sm:text-sm text-gray-500 mt-1'>
+                Total dive routes: {paginationInfo.totalCount}
+              </p>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
-        <div className='flex items-center justify-between mb-3 sm:mb-4'>
-          <h3 className='text-base sm:text-lg font-semibold'>Filters</h3>
           <button
-            onClick={clearFilters}
-            className='text-xs sm:text-sm text-gray-600 hover:text-gray-800'
+            onClick={() => navigate('/admin/dive-sites')}
+            className='flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm sm:text-base w-full sm:w-auto'
           >
-            Clear Filters
+            <Search className='h-4 w-4 mr-2' />
+            <span className='hidden sm:inline'>Find Site to Add Route</span>
+            <span className='sm:hidden'>Find Site</span>
           </button>
         </div>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
-          <Select
-            id='route-type-filter'
-            label='Route Type'
-            value={filters.route_type || 'all'}
-            onValueChange={value => handleFilterChange('route_type', value === 'all' ? '' : value)}
-            options={[
-              { value: 'all', label: 'All Types' },
-              { value: 'scuba', label: 'Scuba' },
-              { value: 'swim', label: 'Snorkel / Swim' },
-              { value: 'walk', label: 'Walk' },
-            ]}
-          />
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className='mb-4 sm:mb-6'>
-        <div className='relative'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
-          <input
-            type='text'
-            placeholder='Search dive routes by name or description...'
-            value={searchInput}
-            onChange={e => {
-              const value = e.target.value;
-              setSearchInput(value);
-              debouncedSearch(value);
-            }}
-            className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-          />
-          {searchInput && (
-            <button
-              onClick={() => {
-                setSearchInput('');
-                setFilters(prev => ({ ...prev, name: '' }));
-                setPagination(prev => ({ ...prev, pageIndex: 0 }));
-              }}
-              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
-            >
-              <X className='h-4 w-4' />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Table Toolbar */}
-      <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
-        {/* Column Visibility Toggle */}
-        <div className='relative'>
-          <button
-            className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
-            onClick={e => {
-              e.stopPropagation();
-              const menu = document.getElementById('column-visibility-menu');
-              if (menu) {
-                menu.classList.toggle('hidden');
-              }
-            }}
-          >
-            <Columns className='h-4 w-4' />
-            Columns
-          </button>
-          <div
-            id='column-visibility-menu'
-            className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
-            onClick={e => e.stopPropagation()}
-          >
-            <div className='p-2'>
-              <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
-                Toggle Columns
+        {/* Mass Delete Button */}
+        {Object.keys(rowSelection).length > 0 && (
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <span className='text-red-800 font-medium'>
+                  {Object.keys(rowSelection).length} item(s) selected
+                </span>
               </div>
-              {columns
-                .filter(col => {
-                  const colId = col.id || col.accessorKey;
-                  return colId !== 'select' && colId !== 'actions';
-                })
-                .map(column => {
-                  const columnId = column.id || column.accessorKey;
-                  const isVisible = columnVisibility[columnId] !== false;
-                  return (
-                    <label
-                      key={columnId}
-                      className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
-                    >
-                      <input
-                        type='checkbox'
-                        checked={isVisible}
-                        onChange={e => {
-                          setColumnVisibility(prev => ({
-                            ...prev,
-                            [columnId]: e.target.checked,
-                          }));
-                        }}
-                        className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                      />
-                      <span className='text-sm text-gray-700'>
-                        {typeof column.header === 'string'
-                          ? column.header
-                          : columnId.charAt(0).toUpperCase() + columnId.slice(1).replace(/_/g, ' ')}
-                      </span>
-                    </label>
-                  );
-                })}
+              <button
+                onClick={handleMassDelete}
+                disabled={massDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+              >
+                <Trash2 className='h-4 w-4 mr-2' />
+                Delete Selected ({Object.keys(rowSelection).length})
+              </button>
             </div>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className='mb-4 sm:mb-6 bg-gray-50 p-3 sm:p-4 rounded-lg'>
+          <div className='flex items-center justify-between mb-3 sm:mb-4'>
+            <h3 className='text-base sm:text-lg font-semibold'>Filters</h3>
+            <button
+              onClick={clearFilters}
+              className='text-xs sm:text-sm text-gray-600 hover:text-gray-800'
+            >
+              Clear Filters
+            </button>
+          </div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'>
+            <Select
+              id='route-type-filter'
+              label='Route Type'
+              value={filters.route_type || 'all'}
+              onValueChange={value =>
+                handleFilterChange('route_type', value === 'all' ? '' : value)
+              }
+              options={[
+                { value: 'all', label: 'All Types' },
+                { value: 'scuba', label: 'Scuba' },
+                { value: 'swim', label: 'Snorkel / Swim' },
+                { value: 'walk', label: 'Walk' },
+              ]}
+            />
           </div>
         </div>
 
-        {/* Export Buttons */}
-        <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-          <button
-            onClick={async () => {
-              try {
-                toast.loading('Exporting current page...', { id: 'export-toast' });
-                // Export current page to CSV
-                const headers = [
-                  'ID',
-                  'Name',
-                  'Description',
-                  'Dive Site',
-                  'Creator',
-                  'Type',
-                  'Created At',
-                ];
-                const rows = (diveRoutes?.routes || []).map(route => [
-                  route.id,
-                  route.name || '',
-                  route.description ? decodeHtmlEntities(route.description) : '',
-                  route.dive_site?.name || 'Unknown',
-                  route.creator?.username || 'Unknown',
-                  getRouteTypeLabel(route.route_type),
-                  route.created_at ? formatDate(route.created_at) : '',
-                ]);
-
-                const csvContent = [
-                  headers.join(','),
-                  ...rows.map(row =>
-                    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-                  ),
-                ].join('\n');
-
-                const blob = new window.Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = window.URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute(
-                  'download',
-                  `dive-routes-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
-                );
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                toast.success(`Exported ${rows.length} dive routes to CSV`, { id: 'export-toast' });
-              } catch (error) {
-                toast.error('Failed to export CSV', { id: 'export-toast' });
-              }
-            }}
-            className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
-          >
-            <Download className='h-4 w-4' />
-            <span className='hidden sm:inline'>Export Page</span>
-            <span className='sm:hidden'>Export Page</span>
-          </button>
+        {/* Search */}
+        <div className='mb-4 sm:mb-6'>
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5' />
+            <input
+              type='text'
+              placeholder='Search dive routes by name or description...'
+              value={searchInput}
+              onChange={e => {
+                const value = e.target.value;
+                setSearchInput(value);
+                debouncedSearch(value);
+              }}
+              className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+            />
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setFilters(prev => ({ ...prev, name: '' }));
+                  setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}
+                className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* TanStack Table */}
-      <AdminDiveRoutesTable
-        data={diveRoutes?.routes || []}
-        columns={columns}
-        pagination={{
-          ...pagination,
-          pageCount: paginationInfo.totalPages || 0,
-          totalCount: paginationInfo.totalCount || 0,
-        }}
-        onPaginationChange={handlePaginationChange}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        columnVisibility={columnVisibility}
-        onColumnVisibilityChange={setColumnVisibility}
-        onView={handleViewDiveRoute}
-        onEdit={handleEditDiveRoute}
-        onDelete={handleDeleteDiveRoute}
-        isLoading={isLoading}
-      />
-    </div>
+        {/* Table Toolbar */}
+        <div className='mb-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3'>
+          {/* Column Visibility Toggle */}
+          <div className='relative'>
+            <button
+              className='flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700 w-full sm:w-auto'
+              onClick={e => {
+                e.stopPropagation();
+                const menu = document.getElementById('column-visibility-menu');
+                if (menu) {
+                  menu.classList.toggle('hidden');
+                }
+              }}
+            >
+              <Columns className='h-4 w-4' />
+              Columns
+            </button>
+            <div
+              id='column-visibility-menu'
+              className='hidden absolute left-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50'
+              onClick={e => e.stopPropagation()}
+            >
+              <div className='p-2'>
+                <div className='text-xs font-semibold text-gray-500 uppercase mb-2 px-2'>
+                  Toggle Columns
+                </div>
+                {columns
+                  .filter(col => {
+                    const colId = col.id || col.accessorKey;
+                    return colId !== 'select' && colId !== 'actions';
+                  })
+                  .map(column => {
+                    const columnId = column.id || column.accessorKey;
+                    const isVisible = columnVisibility[columnId] !== false;
+                    return (
+                      <label
+                        key={columnId}
+                        className='flex items-center px-2 py-1.5 hover:bg-gray-50 cursor-pointer rounded'
+                      >
+                        <input
+                          type='checkbox'
+                          checked={isVisible}
+                          onChange={e => {
+                            setColumnVisibility(prev => ({
+                              ...prev,
+                              [columnId]: e.target.checked,
+                            }));
+                          }}
+                          className='mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        />
+                        <span className='text-sm text-gray-700'>
+                          {typeof column.header === 'string'
+                            ? column.header
+                            : columnId.charAt(0).toUpperCase() +
+                              columnId.slice(1).replace(/_/g, ' ')}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+            <button
+              onClick={async () => {
+                try {
+                  toast.loading('Exporting current page...', { id: 'export-toast' });
+                  // Export current page to CSV
+                  const headers = [
+                    'ID',
+                    'Name',
+                    'Description',
+                    'Dive Site',
+                    'Creator',
+                    'Type',
+                    'Created At',
+                  ];
+                  const rows = (diveRoutes?.routes || []).map(route => [
+                    route.id,
+                    route.name || '',
+                    route.description ? decodeHtmlEntities(route.description) : '',
+                    route.dive_site?.name || 'Unknown',
+                    route.creator?.username || 'Unknown',
+                    getRouteTypeLabel(route.route_type),
+                    route.created_at ? formatDate(route.created_at) : '',
+                  ]);
+
+                  const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row =>
+                      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+                    ),
+                  ].join('\n');
+
+                  const blob = new window.Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const link = document.createElement('a');
+                  const url = window.URL.createObjectURL(blob);
+                  link.setAttribute('href', url);
+                  link.setAttribute(
+                    'download',
+                    `dive-routes-page-${pagination.pageIndex + 1}-${new Date().toISOString().split('T')[0]}.csv`
+                  );
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  toast.success(`Exported ${rows.length} dive routes to CSV`, {
+                    id: 'export-toast',
+                  });
+                } catch (error) {
+                  toast.error('Failed to export CSV', { id: 'export-toast' });
+                }
+              }}
+              className='flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium w-full sm:w-auto'
+            >
+              <Download className='h-4 w-4' />
+              <span className='hidden sm:inline'>Export Page</span>
+              <span className='sm:hidden'>Export Page</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TanStack Table */}
+        <AdminDiveRoutesTable
+          data={diveRoutes?.routes || []}
+          columns={columns}
+          pagination={{
+            ...pagination,
+            pageCount: paginationInfo.totalPages || 0,
+            totalCount: paginationInfo.totalCount || 0,
+          }}
+          onPaginationChange={handlePaginationChange}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          onView={handleViewDiveRoute}
+          onEdit={handleEditDiveRoute}
+          onDelete={handleDeleteDiveRoute}
+          isLoading={isLoading}
+        />
+      </div>
+    </>
   );
 };
 

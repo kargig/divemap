@@ -23,6 +23,7 @@ import ErrorPage from '../components/ErrorPage';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import PageHeader from '../components/PageHeader';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
+import SEO from '../components/SEO';
 import Pagination from '../components/ui/Pagination';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
@@ -154,6 +155,10 @@ const DiveRoutes = () => {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      <SEO
+        title='Underwater Dive Routes & Maps | Divemap'
+        description='Explore user-created underwater navigation routes for popular dive sites. Discover headings, distances, POIs, and detailed dive plans.'
+      />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader
           title='Dive Routes'

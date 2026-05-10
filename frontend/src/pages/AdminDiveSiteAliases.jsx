@@ -5,8 +5,8 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDate } from '../utils/dateHelpers';
 
 const AdminDiveSiteAliases = () => {
@@ -14,9 +14,6 @@ const AdminDiveSiteAliases = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-
-  // Set page title
-  usePageTitle('Divemap - Admin - Dive Site Aliases');
 
   const [editingAlias, setEditingAlias] = useState(null);
   const [newAlias, setNewAlias] = useState({ alias: '' });
@@ -136,154 +133,157 @@ const AdminDiveSiteAliases = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center gap-4 mb-4'>
-          <button
-            onClick={() => navigate('/admin/dive-sites')}
-            className='flex items-center gap-2 text-gray-600 hover:text-gray-800'
-          >
-            <ArrowLeft className='h-4 w-4' />
-            Back to Dive Sites
-          </button>
-        </div>
-        <h1 className='text-3xl font-bold text-gray-900'>
-          Manage Aliases for &quot;{diveSite.name}&quot;
-        </h1>
-        <p className='text-gray-600 mt-2'>
-          Add, edit, or remove aliases for this dive site. Aliases help with newsletter parsing and
-          multilingual support.
-        </p>
-      </div>
-
-      {/* Add New Alias */}
-      <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-        <h2 className='text-xl font-semibold text-gray-900 mb-4'>Add New Alias</h2>
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-          <div>
-            <label htmlFor='alias-name' className='block text-sm font-medium text-gray-700 mb-1'>
-              Alias Name *
-            </label>
-            <input
-              id='alias-name'
-              type='text'
-              value={newAlias.alias}
-              onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
-              placeholder='Enter alias name'
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-            />
-          </div>
-          <div className='flex items-end'>
+    <>
+      <SEO title='Divemap - Admin - Dive Site Aliases' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        {/* Header */}
+        <div className='mb-8'>
+          <div className='flex items-center gap-4 mb-4'>
             <button
-              onClick={handleAddAlias}
-              disabled={addAliasMutation.isLoading}
-              className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+              onClick={() => navigate('/admin/dive-sites')}
+              className='flex items-center gap-2 text-gray-600 hover:text-gray-800'
             >
-              <Plus className='h-4 w-4' />
-              {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+              <ArrowLeft className='h-4 w-4' />
+              Back to Dive Sites
             </button>
           </div>
+          <h1 className='text-3xl font-bold text-gray-900'>
+            Manage Aliases for &quot;{diveSite.name}&quot;
+          </h1>
+          <p className='text-gray-600 mt-2'>
+            Add, edit, or remove aliases for this dive site. Aliases help with newsletter parsing
+            and multilingual support.
+          </p>
         </div>
-      </div>
 
-      {/* Aliases Table */}
-      <div className='bg-white rounded-lg shadow-md'>
-        <div className='px-6 py-4 border-b border-gray-200'>
-          <h2 className='text-xl font-semibold text-gray-900'>Existing Aliases</h2>
+        {/* Add New Alias */}
+        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+          <h2 className='text-xl font-semibold text-gray-900 mb-4'>Add New Alias</h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div>
+              <label htmlFor='alias-name' className='block text-sm font-medium text-gray-700 mb-1'>
+                Alias Name *
+              </label>
+              <input
+                id='alias-name'
+                type='text'
+                value={newAlias.alias}
+                onChange={e => setNewAlias({ ...newAlias, alias: e.target.value })}
+                placeholder='Enter alias name'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+              />
+            </div>
+            <div className='flex items-end'>
+              <button
+                onClick={handleAddAlias}
+                disabled={addAliasMutation.isLoading}
+                className='flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
+              >
+                <Plus className='h-4 w-4' />
+                {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
+              </button>
+            </div>
+          </div>
         </div>
-        <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Alias Name
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Created
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {aliases && aliases.length > 0 ? (
-                aliases.map(alias => (
-                  <tr key={alias.id} className='hover:bg-gray-50'>
-                    <td className='px-6 py-4'>
-                      {editingAlias?.id === alias.id ? (
-                        <input
-                          type='text'
-                          value={editingAlias.alias}
-                          onChange={e =>
-                            setEditingAlias({ ...editingAlias, alias: e.target.value })
-                          }
-                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        />
-                      ) : (
-                        <span className='text-sm font-medium text-gray-900'>{alias.alias}</span>
-                      )}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                      {formatDate(alias.created_at)}
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                      {editingAlias?.id === alias.id ? (
-                        <div className='flex space-x-2'>
-                          <button
-                            onClick={() =>
-                              handleUpdateAlias(alias.id, {
-                                alias: editingAlias.alias,
-                              })
+
+        {/* Aliases Table */}
+        <div className='bg-white rounded-lg shadow-md'>
+          <div className='px-6 py-4 border-b border-gray-200'>
+            <h2 className='text-xl font-semibold text-gray-900'>Existing Aliases</h2>
+          </div>
+          <div className='overflow-x-auto'>
+            <table className='min-w-full divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
+                <tr>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Alias Name
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Created
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {aliases && aliases.length > 0 ? (
+                  aliases.map(alias => (
+                    <tr key={alias.id} className='hover:bg-gray-50'>
+                      <td className='px-6 py-4'>
+                        {editingAlias?.id === alias.id ? (
+                          <input
+                            type='text'
+                            value={editingAlias.alias}
+                            onChange={e =>
+                              setEditingAlias({ ...editingAlias, alias: e.target.value })
                             }
-                            disabled={updateAliasMutation.isLoading}
-                            className='text-green-600 hover:text-green-900 disabled:opacity-50'
-                            title='Save changes'
-                          >
-                            <Save className='h-4 w-4' />
-                          </button>
-                          <button
-                            onClick={handleCancelEdit}
-                            className='text-gray-600 hover:text-gray-900'
-                            title='Cancel edit'
-                          >
-                            <X className='h-4 w-4' />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className='flex space-x-2'>
-                          <button
-                            onClick={() => handleEditAlias(alias)}
-                            className='text-blue-600 hover:text-blue-900'
-                            title='Edit alias'
-                          >
-                            <Edit className='h-4 w-4' />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteAlias(alias)}
-                            className='text-red-600 hover:text-red-900'
-                            title='Delete alias'
-                          >
-                            <Trash2 className='h-4 w-4' />
-                          </button>
-                        </div>
-                      )}
+                            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          />
+                        ) : (
+                          <span className='text-sm font-medium text-gray-900'>{alias.alias}</span>
+                        )}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                        {formatDate(alias.created_at)}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                        {editingAlias?.id === alias.id ? (
+                          <div className='flex space-x-2'>
+                            <button
+                              onClick={() =>
+                                handleUpdateAlias(alias.id, {
+                                  alias: editingAlias.alias,
+                                })
+                              }
+                              disabled={updateAliasMutation.isLoading}
+                              className='text-green-600 hover:text-green-900 disabled:opacity-50'
+                              title='Save changes'
+                            >
+                              <Save className='h-4 w-4' />
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className='text-gray-600 hover:text-gray-900'
+                              title='Cancel edit'
+                            >
+                              <X className='h-4 w-4' />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className='flex space-x-2'>
+                            <button
+                              onClick={() => handleEditAlias(alias)}
+                              className='text-blue-600 hover:text-blue-900'
+                              title='Edit alias'
+                            >
+                              <Edit className='h-4 w-4' />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAlias(alias)}
+                              className='text-red-600 hover:text-red-900'
+                              title='Delete alias'
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={3} className='px-6 py-4 text-center text-sm text-gray-500'>
+                      No aliases found for this dive site.
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3} className='px-6 py-4 text-center text-sm text-gray-500'>
-                    No aliases found for this dive site.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

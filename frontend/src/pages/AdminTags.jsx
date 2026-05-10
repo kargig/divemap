@@ -4,18 +4,15 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import api from '../api';
+import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminTags = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-
-  // Set page title
-  usePageTitle('Divemap - Admin - Tags');
 
   // Tag management state
   const [showCreateTagModal, setShowCreateTagModal] = useState(false);
@@ -181,281 +178,287 @@ const AdminTags = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      <div className='flex justify-between items-center mb-6'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900'>Tag Management</h1>
-          <p className='text-gray-600 mt-2'>Manage all tags in the system</p>
-        </div>
-        <button
-          onClick={() => setShowCreateTagModal(true)}
-          className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-        >
-          <Plus className='h-4 w-4 mr-2' />
-          Add Tag
-        </button>
-      </div>
-
-      {/* Mass Delete Button */}
-      {selectedItems.size > 0 && (
-        <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center'>
-              <span className='text-red-800 font-medium'>
-                {selectedItems.size} item(s) selected
-              </span>
-            </div>
-            <button
-              onClick={handleMassDelete}
-              disabled={massDeleteMutation.isLoading}
-              className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
-            >
-              <Trash2 className='h-4 w-4 mr-2' />
-              Delete Selected ({selectedItems.size})
-            </button>
+    <>
+      <SEO title='Divemap - Admin - Tags' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        <div className='flex justify-between items-center mb-6'>
+          <div>
+            <h1 className='text-3xl font-bold text-gray-900'>Tag Management</h1>
+            <p className='text-gray-600 mt-2'>Manage all tags in the system</p>
           </div>
+          <button
+            onClick={() => setShowCreateTagModal(true)}
+            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+          >
+            <Plus className='h-4 w-4 mr-2' />
+            Add Tag
+          </button>
         </div>
-      )}
 
-      {/* Tags List */}
-      <div className='bg-white rounded-lg shadow-md'>
-        <div className='overflow-x-auto'>
-          <table className='min-w-full divide-y divide-gray-200'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  <input
-                    type='checkbox'
-                    checked={
-                      selectedItems.size ===
-                        (tags?.filter(tag => tag.dive_site_count === 0).length || 0) &&
-                      (tags?.filter(tag => tag.dive_site_count === 0).length || 0) > 0
-                    }
-                    onChange={e => handleSelectAll(e.target.checked)}
-                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
-                  />
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Tag Name
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Description
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Dive Sites Count
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Created At
-                </th>
-                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='bg-white divide-y divide-gray-200'>
-              {tags?.map((tag, index) => (
-                <tr
-                  key={tag.id}
-                  className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
-                >
-                  <td className='px-6 py-4 whitespace-nowrap'>
+        {/* Mass Delete Button */}
+        {selectedItems.size > 0 && (
+          <div className='mb-4 p-4 bg-red-50 border border-red-200 rounded-lg'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center'>
+                <span className='text-red-800 font-medium'>
+                  {selectedItems.size} item(s) selected
+                </span>
+              </div>
+              <button
+                onClick={handleMassDelete}
+                disabled={massDeleteMutation.isLoading}
+                className='flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50'
+              >
+                <Trash2 className='h-4 w-4 mr-2' />
+                Delete Selected ({selectedItems.size})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Tags List */}
+        <div className='bg-white rounded-lg shadow-md'>
+          <div className='overflow-x-auto'>
+            <table className='min-w-full divide-y divide-gray-200'>
+              <thead className='bg-gray-50'>
+                <tr>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                     <input
                       type='checkbox'
-                      checked={selectedItems.has(tag.id)}
-                      onChange={e => handleSelectItem(tag.id, e.target.checked)}
-                      disabled={tag.dive_site_count > 0}
-                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50'
+                      checked={
+                        selectedItems.size ===
+                          (tags?.filter(tag => tag.dive_site_count === 0).length || 0) &&
+                        (tags?.filter(tag => tag.dive_site_count === 0).length || 0) > 0
+                      }
+                      onChange={e => handleSelectAll(e.target.checked)}
+                      className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
                     />
-                  </td>
-                  <td className='px-6 py-4 whitespace-nowrap'>
-                    <div className='text-sm font-medium text-gray-900'>{tag.name}</div>
-                  </td>
-                  <td className='px-6 py-4 whitespace-nowrap'>
-                    <div className='text-sm text-gray-500'>
-                      {tag.description ? decodeHtmlEntities(tag.description) : 'No description'}
-                    </div>
-                  </td>
-                  <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                    <span className='px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'>
-                      {tag.dive_site_count} sites
-                    </span>
-                  </td>
-                  <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
-                    {formatDate(tag.created_at)}
-                  </td>
-                  <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                    <div className='flex space-x-2'>
-                      <button
-                        onClick={() => handleEditTag(tag)}
-                        className='text-blue-600 hover:text-blue-900'
-                        title='Edit tag'
-                      >
-                        <Edit className='h-4 w-4' />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTag(tag)}
-                        className='text-red-600 hover:text-red-900'
-                        disabled={tag.dive_site_count > 0}
-                        title={
-                          tag.dive_site_count > 0
-                            ? 'Cannot delete tag that is associated with dive sites'
-                            : 'Delete tag'
-                        }
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
-                    </div>
-                  </td>
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Tag Name
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Description
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Dive Sites Count
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Created At
+                  </th>
+                  <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className='bg-white divide-y divide-gray-200'>
+                {tags?.map((tag, index) => (
+                  <tr
+                    key={tag.id}
+                    className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`}
+                  >
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <input
+                        type='checkbox'
+                        checked={selectedItems.has(tag.id)}
+                        onChange={e => handleSelectItem(tag.id, e.target.checked)}
+                        disabled={tag.dive_site_count > 0}
+                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:opacity-50'
+                      />
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='text-sm font-medium text-gray-900'>{tag.name}</div>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap'>
+                      <div className='text-sm text-gray-500'>
+                        {tag.description ? decodeHtmlEntities(tag.description) : 'No description'}
+                      </div>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                      <span className='px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium'>
+                        {tag.dive_site_count} sites
+                      </span>
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>
+                      {formatDate(tag.created_at)}
+                    </td>
+                    <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                      <div className='flex space-x-2'>
+                        <button
+                          onClick={() => handleEditTag(tag)}
+                          className='text-blue-600 hover:text-blue-900'
+                          title='Edit tag'
+                        >
+                          <Edit className='h-4 w-4' />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTag(tag)}
+                          className='text-red-600 hover:text-red-900'
+                          disabled={tag.dive_site_count > 0}
+                          title={
+                            tag.dive_site_count > 0
+                              ? 'Cannot delete tag that is associated with dive sites'
+                              : 'Delete tag'
+                          }
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {tags?.length === 0 && (
+          <div className='text-center py-12'>
+            <p className='text-gray-500'>No tags found.</p>
+          </div>
+        )}
+
+        {/* Create Tag Modal */}
+        <Modal
+          isOpen={showCreateTagModal}
+          onClose={() => {
+            setShowCreateTagModal(false);
+            resetTagForm();
+          }}
+          title='Create New Tag'
+          className='max-w-md'
+        >
+          <div className='space-y-4'>
+            <div>
+              <label
+                htmlFor='create-tag-name'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Tag Name *
+              </label>
+              <input
+                id='create-tag-name'
+                type='text'
+                value={tagForm.name}
+                onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter tag name'
+                maxLength={100}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='create-tag-description'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Description
+              </label>
+              <textarea
+                id='create-tag-description'
+                value={tagForm.description}
+                onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter tag description (optional)'
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className='flex justify-end space-x-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowCreateTagModal(false);
+                resetTagForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateTag}
+              disabled={createTagMutation.isLoading}
+              className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {createTagMutation.isLoading ? (
+                <Loader className='h-4 w-4 mr-2 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4 mr-2' />
+              )}
+              Create Tag
+            </button>
+          </div>
+        </Modal>
+
+        {/* Edit Tag Modal */}
+        <Modal
+          isOpen={showEditTagModal && !!editingTag}
+          onClose={() => {
+            setShowEditTagModal(false);
+            resetTagForm();
+          }}
+          title='Edit Tag'
+          className='max-w-md'
+        >
+          <div className='space-y-4'>
+            <div>
+              <label
+                htmlFor='edit-tag-name'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Tag Name *
+              </label>
+              <input
+                id='edit-tag-name'
+                type='text'
+                value={tagForm.name}
+                onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter tag name'
+                maxLength={100}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor='edit-tag-description'
+                className='block text-sm font-medium text-gray-700 mb-1'
+              >
+                Description
+              </label>
+              <textarea
+                id='edit-tag-description'
+                value={tagForm.description}
+                onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Enter tag description (optional)'
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className='flex justify-end space-x-3 mt-6'>
+            <button
+              onClick={() => {
+                setShowEditTagModal(false);
+                resetTagForm();
+              }}
+              className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdateTag}
+              disabled={updateTagMutation.isLoading}
+              className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
+            >
+              {updateTagMutation.isLoading ? (
+                <Loader className='h-4 w-4 mr-2 animate-spin' />
+              ) : (
+                <Save className='h-4 w-4 mr-2' />
+              )}
+              Update Tag
+            </button>
+          </div>
+        </Modal>
       </div>
-
-      {tags?.length === 0 && (
-        <div className='text-center py-12'>
-          <p className='text-gray-500'>No tags found.</p>
-        </div>
-      )}
-
-      {/* Create Tag Modal */}
-      <Modal
-        isOpen={showCreateTagModal}
-        onClose={() => {
-          setShowCreateTagModal(false);
-          resetTagForm();
-        }}
-        title='Create New Tag'
-        className='max-w-md'
-      >
-        <div className='space-y-4'>
-          <div>
-            <label
-              htmlFor='create-tag-name'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Tag Name *
-            </label>
-            <input
-              id='create-tag-name'
-              type='text'
-              value={tagForm.name}
-              onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter tag name'
-              maxLength={100}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='create-tag-description'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Description
-            </label>
-            <textarea
-              id='create-tag-description'
-              value={tagForm.description}
-              onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter tag description (optional)'
-              rows={3}
-            />
-          </div>
-        </div>
-        <div className='flex justify-end space-x-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowCreateTagModal(false);
-              resetTagForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreateTag}
-            disabled={createTagMutation.isLoading}
-            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {createTagMutation.isLoading ? (
-              <Loader className='h-4 w-4 mr-2 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4 mr-2' />
-            )}
-            Create Tag
-          </button>
-        </div>
-      </Modal>
-
-      {/* Edit Tag Modal */}
-      <Modal
-        isOpen={showEditTagModal && !!editingTag}
-        onClose={() => {
-          setShowEditTagModal(false);
-          resetTagForm();
-        }}
-        title='Edit Tag'
-        className='max-w-md'
-      >
-        <div className='space-y-4'>
-          <div>
-            <label htmlFor='edit-tag-name' className='block text-sm font-medium text-gray-700 mb-1'>
-              Tag Name *
-            </label>
-            <input
-              id='edit-tag-name'
-              type='text'
-              value={tagForm.name}
-              onChange={e => setTagForm({ ...tagForm, name: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter tag name'
-              maxLength={100}
-            />
-          </div>
-          <div>
-            <label
-              htmlFor='edit-tag-description'
-              className='block text-sm font-medium text-gray-700 mb-1'
-            >
-              Description
-            </label>
-            <textarea
-              id='edit-tag-description'
-              value={tagForm.description}
-              onChange={e => setTagForm({ ...tagForm, description: e.target.value })}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-              placeholder='Enter tag description (optional)'
-              rows={3}
-            />
-          </div>
-        </div>
-        <div className='flex justify-end space-x-3 mt-6'>
-          <button
-            onClick={() => {
-              setShowEditTagModal(false);
-              resetTagForm();
-            }}
-            className='px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpdateTag}
-            disabled={updateTagMutation.isLoading}
-            className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50'
-          >
-            {updateTagMutation.isLoading ? (
-              <Loader className='h-4 w-4 mr-2 animate-spin' />
-            ) : (
-              <Save className='h-4 w-4 mr-2' />
-            )}
-            Update Tag
-          </button>
-        </div>
-      </Modal>
-    </div>
+    </>
   );
 };
 

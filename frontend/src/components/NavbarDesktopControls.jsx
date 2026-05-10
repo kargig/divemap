@@ -115,7 +115,7 @@ const NavbarDesktopControls = () => {
                 key: 'tools',
                 label: 'Tools',
                 icon: <Calculator className='h-4 w-4' />,
-                onClick: () => navigate('/resources/tools'),
+                onClick: () => navigate('/resources/tools/mod'),
               },
               {
                 key: 'diving-organizations',

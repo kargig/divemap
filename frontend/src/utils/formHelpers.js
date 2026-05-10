@@ -84,7 +84,6 @@ export const commonSchemas = {
         if (!val || val.trim() === '') return true; // Optional - empty is valid
         // First check if it's a valid URL format
         try {
-          // eslint-disable-next-line no-undef
           const url = new URL(val);
           // Only allow http:// and https:// protocols
           return url.protocol === 'http:' || url.protocol === 'https:';

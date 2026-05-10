@@ -26,19 +26,17 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import ErrorPage from '../components/ErrorPage';
 import MapLayersPanel from '../components/MapLayersPanel';
+import SEO from '../components/SEO';
 import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
 import WindOverlayToggle from '../components/WindOverlayToggle';
-import usePageTitle from '../hooks/usePageTitle';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
 
 const LeafletMapView = lazy(() => import('../components/LeafletMapView'));
 
 const IndependentMapView = () => {
-  // Set page title
-  usePageTitle('Divemap - Map View');
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();
@@ -919,193 +917,202 @@ const IndependentMapView = () => {
   }
 
   return (
-    <div
-      className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
-    >
-      {/* Content wrapper with max-width */}
-      <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto'>
-        {/* Header */}
-        <div
-          className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
-        >
-          <div className='px-2 py-2'>
-            {/* Top row - Title and back button */}
-            <div className='flex items-center justify-between mb-2'>
-              <div className='flex items-center space-x-2'>
-                <button
-                  onClick={() => navigate(-1)}
-                  className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
-                >
-                  <Map className='w-4 h-4' />
-                </button>
-                <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
-              </div>
-              {/* Wrench button - Mobile controls toggle */}
-              {isMobile ? (
-                <MobileButton
-                  color={showMobileControls ? 'primary' : 'default'}
-                  fill={showMobileControls ? 'solid' : 'outline'}
-                  size='small'
-                  onClick={() => setShowMobileControls(!showMobileControls)}
-                >
-                  <Wrench className='w-4 h-4' />
-                </MobileButton>
-              ) : (
-                <Button
-                  type={showMobileControls ? 'primary' : 'default'}
-                  icon={<Wrench className='w-4 h-4' />}
-                  onClick={() => setShowMobileControls(!showMobileControls)}
-                >
-                  {showMobileControls ? 'Hide Controls' : 'Show Map Controls'}
-                </Button>
-              )}
-            </div>
-
-            {/* Bottom row - Description and dropdown */}
-            <div className='flex items-center justify-between mt-2'>
-              <p className='text-xs text-gray-600 hidden sm:block'>
-                Explore dive sites, centers, and dives
-              </p>
-              <div className='flex items-center gap-3 ml-auto sm:ml-0'>
-                <div className='flex items-center gap-1.5'>
-                  <Info className='w-3.5 h-3.5 text-blue-500' />
-                  <span className='text-xs font-medium text-gray-700'>Show on map:</span>
-                </div>
-                {/* Entity type selector */}
-                {isMobile ? (
-                  <Popover.Menu
-                    actions={[
-                      { text: 'Dives', key: 'dives' },
-                      { text: 'Dive Sites', key: 'dive-sites' },
-                      { text: 'Diving Centers', key: 'diving-centers' },
-                      { text: 'Dive Trips', key: 'dive-trips' },
-                    ]}
-                    onAction={node => handleEntityTypeChange(node.key)}
-                    placement='bottomRight'
-                    trigger='click'
+    <>
+      <SEO
+        title='Global Interactive Dive Map | Divemap'
+        description='Explore scuba dive sites and diving centers globally on our interactive map. Filter by difficulty, view marine conditions, and plan your next dive trip.'
+      />
+      <div
+        className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
+      >
+        {/* Content wrapper with max-width */}
+        <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto'>
+          {/* Header */}
+          <div
+            className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
+          >
+            <div className='px-2 py-2'>
+              {/* Top row - Title and back button */}
+              <div className='flex items-center justify-between mb-2'>
+                <div className='flex items-center space-x-2'>
+                  <button
+                    onClick={() => navigate(-1)}
+                    className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
                   >
-                    <MobileButton size='small' className='min-w-[120px]'>
-                      {selectedEntityType
-                        .split('-')
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(' ')}
-                    </MobileButton>
-                  </Popover.Menu>
+                    <Map className='w-4 h-4' />
+                  </button>
+                  <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
+                </div>
+                {/* Wrench button - Mobile controls toggle */}
+                {isMobile ? (
+                  <MobileButton
+                    color={showMobileControls ? 'primary' : 'default'}
+                    fill={showMobileControls ? 'solid' : 'outline'}
+                    size='small'
+                    onClick={() => setShowMobileControls(!showMobileControls)}
+                  >
+                    <Wrench className='w-4 h-4' />
+                  </MobileButton>
                 ) : (
-                  <Select
-                    value={selectedEntityType}
-                    onChange={handleEntityTypeChange}
-                    style={{ width: 160 }}
-                    options={[
-                      { value: 'dives', label: 'Dives' },
-                      { value: 'dive-sites', label: 'Dive Sites' },
-                      { value: 'diving-centers', label: 'Diving Centers' },
-                      { value: 'dive-trips', label: 'Dive Trips' },
-                    ]}
-                  />
+                  <Button
+                    type={showMobileControls ? 'primary' : 'default'}
+                    icon={<Wrench className='w-4 h-4' />}
+                    onClick={() => setShowMobileControls(!showMobileControls)}
+                  >
+                    {showMobileControls ? 'Hide Controls' : 'Show Map Controls'}
+                  </Button>
                 )}
               </div>
-            </div>
 
-            {/* Wind Feature Promotion Banner */}
-            {!windOverlayEnabled && !windBannerDismissed && selectedEntityType === 'dive-sites' && (
-              <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg shadow-sm'>
-                <div className='flex items-start justify-between gap-3'>
-                  <div className='flex items-start gap-3 flex-1'>
-                    <div className='flex-shrink-0 mt-0.5'>
-                      <Wind className='w-5 h-5 text-blue-600' />
-                    </div>
-                    <div className='flex-1 min-w-0'>
-                      <h3 className='text-sm font-semibold text-gray-900 mb-1'>
-                        New: Real-Time Wind Conditions
-                      </h3>
-                      <p className='text-xs text-gray-700 mb-2'>
-                        View live wind speed, direction, and forecasts on the map. Plan your dives
-                        based on current and future weather conditions with interactive wind arrows
-                        and dive site suitability indicators. View a location on Zoom level 10+ and
-                        activate wind overlay to see the wind conditions.
-                      </p>
+              {/* Bottom row - Description and dropdown */}
+              <div className='flex items-center justify-between mt-2'>
+                <p className='text-xs text-gray-600 hidden sm:block'>
+                  Explore dive sites, centers, and dives
+                </p>
+                <div className='flex items-center gap-3 ml-auto sm:ml-0'>
+                  <div className='flex items-center gap-1.5'>
+                    <Info className='w-3.5 h-3.5 text-blue-500' />
+                    <span className='text-xs font-medium text-gray-700'>Show on map:</span>
+                  </div>
+                  {/* Entity type selector */}
+                  {isMobile ? (
+                    <Popover.Menu
+                      actions={[
+                        { text: 'Dives', key: 'dives' },
+                        { text: 'Dive Sites', key: 'dive-sites' },
+                        { text: 'Diving Centers', key: 'diving-centers' },
+                        { text: 'Dive Trips', key: 'dive-trips' },
+                      ]}
+                      onAction={node => handleEntityTypeChange(node.key)}
+                      placement='bottomRight'
+                      trigger='click'
+                    >
+                      <MobileButton size='small' className='min-w-[120px]'>
+                        {selectedEntityType
+                          .split('-')
+                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                          .join(' ')}
+                      </MobileButton>
+                    </Popover.Menu>
+                  ) : (
+                    <Select
+                      value={selectedEntityType}
+                      onChange={handleEntityTypeChange}
+                      style={{ width: 160 }}
+                      options={[
+                        { value: 'dives', label: 'Dives' },
+                        { value: 'dive-sites', label: 'Dive Sites' },
+                        { value: 'diving-centers', label: 'Diving Centers' },
+                        { value: 'dive-trips', label: 'Dive Trips' },
+                      ]}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Wind Feature Promotion Banner */}
+              {!windOverlayEnabled &&
+                !windBannerDismissed &&
+                selectedEntityType === 'dive-sites' && (
+                  <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg shadow-sm'>
+                    <div className='flex items-start justify-between gap-3'>
+                      <div className='flex items-start gap-3 flex-1'>
+                        <div className='flex-shrink-0 mt-0.5'>
+                          <Wind className='w-5 h-5 text-blue-600' />
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <h3 className='text-sm font-semibold text-gray-900 mb-1'>
+                            New: Real-Time Wind Conditions
+                          </h3>
+                          <p className='text-xs text-gray-700 mb-2'>
+                            View live wind speed, direction, and forecasts on the map. Plan your
+                            dives based on current and future weather conditions with interactive
+                            wind arrows and dive site suitability indicators. View a location on
+                            Zoom level 10+ and activate wind overlay to see the wind conditions.
+                          </p>
+                          <button
+                            onClick={handleEnableWindFeature}
+                            className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm'
+                          >
+                            <Wind className='w-4 h-4' />
+                            Try Wind Overlay
+                          </button>
+                        </div>
+                      </div>
                       <button
-                        onClick={handleEnableWindFeature}
-                        className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm'
+                        onClick={() => {
+                          // Permanently dismiss the banner
+                          setWindBannerDismissed(true);
+                          localStorage.setItem('windBannerDismissed', 'true');
+                        }}
+                        className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
+                        aria-label='Dismiss'
                       >
-                        <Wind className='w-4 h-4' />
-                        Try Wind Overlay
+                        <X className='w-4 h-4' />
                       </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      // Permanently dismiss the banner
-                      setWindBannerDismissed(true);
-                      localStorage.setItem('windBannerDismissed', 'true');
-                    }}
-                    className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
-                    aria-label='Dismiss'
-                  >
-                    <X className='w-4 h-4' />
-                  </button>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* Collapsible Controls Section */}
-            {showMobileControls && (
-              <div className='mt-4 pt-4 border-t border-gray-200'>
-                <div className='flex items-center'>
-                  <div className='flex items-center flex-nowrap space-x-0.5 sm:space-x-2 max-w-full overflow-x-auto pb-1 no-scrollbar'>
-                    {/* Performance indicator - Hidden on mobile */}
-                    {performanceMetrics.dataPoints > 0 && (
-                      <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
-                        <span>{performanceMetrics.dataPoints} points</span>
-                        <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                      </div>
-                    )}
+              {/* Collapsible Controls Section */}
+              {showMobileControls && (
+                <div className='mt-4 pt-4 border-t border-gray-200'>
+                  <div className='flex items-center'>
+                    <div className='flex items-center flex-nowrap space-x-0.5 sm:space-x-2 max-w-full overflow-x-auto pb-1 no-scrollbar'>
+                      {/* Performance indicator - Hidden on mobile */}
+                      {performanceMetrics.dataPoints > 0 && (
+                        <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
+                          <span>{performanceMetrics.dataPoints} points</span>
+                          <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                        </div>
+                      )}
 
-                    {/* Filter button - Smaller on mobile */}
-                    <button
-                      onClick={() => setShowFilters(!showFilters)}
-                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
-                        showFilters
-                          ? 'bg-blue-100 text-blue-600'
-                          : hasActiveFilters()
-                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                      {/* Filter button - Smaller on mobile */}
+                      <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors ${
+                          showFilters
+                            ? 'bg-blue-100 text-blue-600'
+                            : hasActiveFilters()
+                              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                              : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
+                      >
+                        <Filter className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                      </button>
+
+                      {/* Layers button - Smaller on mobile */}
+                      <button
+                        onClick={() => {
+                          setShowLayers(!showLayers);
+                        }}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors ${
+                          showLayers
+                            ? 'bg-blue-100 text-blue-600'
                             : 'hover:bg-gray-100 text-gray-600'
-                      }`}
-                      title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
-                    >
-                      <Filter className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                    </button>
+                        }`}
+                        title='Map layers'
+                      >
+                        <Layers className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                      </button>
 
-                    {/* Layers button - Smaller on mobile */}
-                    <button
-                      onClick={() => {
-                        setShowLayers(!showLayers);
-                      }}
-                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
-                        showLayers ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100 text-gray-600'
-                      }`}
-                      title='Map layers'
-                    >
-                      <Layers className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                    </button>
-
-                    {/* Wind Overlay Toggle - only show for dive sites */}
-                    {selectedEntityType === 'dive-sites' && (
-                      <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden scale-[0.85] sm:scale-100 origin-left'>
-                        <WindOverlayToggle
-                          isOverlayEnabled={windOverlayEnabled}
-                          onToggle={handleWindOverlayToggle}
-                          zoomLevel={currentZoom}
-                          isLoading={isWindLoading}
-                          disabled={false}
-                          className='!rounded-none !border-none !shadow-none !p-1 sm:!p-2'
-                        />
-                        <div className='w-px h-5 bg-gray-200 my-auto'></div>
-                        <button
-                          onClick={() => setWindAnimationEnabled(!windAnimationEnabled)}
-                          disabled={!windOverlayEnabled || currentZoom < 13}
-                          className={`
+                      {/* Wind Overlay Toggle - only show for dive sites */}
+                      {selectedEntityType === 'dive-sites' && (
+                        <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden scale-[0.85] sm:scale-100 origin-left'>
+                          <WindOverlayToggle
+                            isOverlayEnabled={windOverlayEnabled}
+                            onToggle={handleWindOverlayToggle}
+                            zoomLevel={currentZoom}
+                            isLoading={isWindLoading}
+                            disabled={false}
+                            className='!rounded-none !border-none !shadow-none !p-1 sm:!p-2'
+                          />
+                          <div className='w-px h-5 bg-gray-200 my-auto'></div>
+                          <button
+                            onClick={() => setWindAnimationEnabled(!windAnimationEnabled)}
+                            disabled={!windOverlayEnabled || currentZoom < 13}
+                            className={`
                             p-1 sm:p-2 transition-colors
                             ${
                               !windOverlayEnabled || currentZoom < 13
@@ -1115,342 +1122,343 @@ const IndependentMapView = () => {
                                   : 'bg-white text-gray-600 hover:bg-gray-100'
                             }
                           `}
-                          title={
-                            !windOverlayEnabled
-                              ? 'Enable wind overlay first'
-                              : currentZoom < 13
-                                ? 'Zoom in to level 13+ to enable animation'
-                                : windAnimationEnabled
-                                  ? 'Disable wind animation'
-                                  : 'Enable wind animation'
-                          }
-                        >
-                          <Waves className='w-3.5 h-3.5' />
-                        </button>
-                      </div>
-                    )}
+                            title={
+                              !windOverlayEnabled
+                                ? 'Enable wind overlay first'
+                                : currentZoom < 13
+                                  ? 'Zoom in to level 13+ to enable animation'
+                                  : windAnimationEnabled
+                                    ? 'Disable wind animation'
+                                    : 'Enable wind animation'
+                            }
+                          >
+                            <Waves className='w-3.5 h-3.5' />
+                          </button>
+                        </div>
+                      )}
 
-                    {/* Geolocation button - Smaller on mobile */}
-                    <button
-                      onClick={handleGeolocationRequest}
-                      disabled={geolocationStatus === 'requesting'}
-                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
-                        geolocationStatus === 'granted'
-                          ? 'bg-green-100 text-green-600'
-                          : geolocationStatus === 'denied' || geolocationStatus === 'error'
-                            ? 'bg-red-100 text-red-600'
+                      {/* Geolocation button - Smaller on mobile */}
+                      <button
+                        onClick={handleGeolocationRequest}
+                        disabled={geolocationStatus === 'requesting'}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors ${
+                          geolocationStatus === 'granted'
+                            ? 'bg-green-100 text-green-600'
+                            : geolocationStatus === 'denied' || geolocationStatus === 'error'
+                              ? 'bg-red-100 text-red-600'
+                              : 'hover:bg-gray-100 text-gray-600'
+                        } ${geolocationStatus === 'requesting' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title={
+                          geolocationStatus === 'granted'
+                            ? 'Location found - Click to refresh'
+                            : geolocationStatus === 'denied'
+                              ? 'Location denied - Click to try again'
+                              : geolocationStatus === 'error'
+                                ? 'Location failed/timed out - Click to try again'
+                                : 'Find my location'
+                        }
+                      >
+                        {geolocationStatus === 'requesting' ? (
+                          <div className='animate-spin'>
+                            <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                          </div>
+                        ) : (
+                          <MapPin className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                        )}
+                      </button>
+
+                      {/* Reset zoom button - Smaller on mobile */}
+                      <button
+                        onClick={handleResetZoom}
+                        className='p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                        title={
+                          geolocationStatus === 'granted'
+                            ? 'Reset to your location'
+                            : 'Reset to show all points'
+                        }
+                      >
+                        <RotateCcw className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                      </button>
+
+                      {/* Share button - Smaller on mobile */}
+                      <button
+                        onClick={handleShareClick}
+                        disabled={isGeneratingLink}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        title='Share current map view'
+                      >
+                        {isGeneratingLink ? (
+                          <div className='animate-spin'>
+                            <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                          </div>
+                        ) : (
+                          <Share2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                        )}
+                      </button>
+
+                      {/* Fullscreen button - Smaller on mobile */}
+                      <button
+                        onClick={toggleFullscreen}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors ${
+                          isFullscreen
+                            ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
                             : 'hover:bg-gray-100 text-gray-600'
-                      } ${geolocationStatus === 'requesting' ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title={
-                        geolocationStatus === 'granted'
-                          ? 'Location found - Click to refresh'
-                          : geolocationStatus === 'denied'
-                            ? 'Location denied - Click to try again'
-                            : geolocationStatus === 'error'
-                              ? 'Location failed/timed out - Click to try again'
-                              : 'Find my location'
-                      }
-                    >
-                      {geolocationStatus === 'requesting' ? (
-                        <div className='animate-spin'>
-                          <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                        </div>
-                      ) : (
-                        <MapPin className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                      )}
-                    </button>
-
-                    {/* Reset zoom button - Smaller on mobile */}
-                    <button
-                      onClick={handleResetZoom}
-                      className='p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
-                      title={
-                        geolocationStatus === 'granted'
-                          ? 'Reset to your location'
-                          : 'Reset to show all points'
-                      }
-                    >
-                      <RotateCcw className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                    </button>
-
-                    {/* Share button - Smaller on mobile */}
-                    <button
-                      onClick={handleShareClick}
-                      disabled={isGeneratingLink}
-                      className={`p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      title='Share current map view'
-                    >
-                      {isGeneratingLink ? (
-                        <div className='animate-spin'>
-                          <Loader2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                        </div>
-                      ) : (
-                        <Share2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                      )}
-                    </button>
-
-                    {/* Fullscreen button - Smaller on mobile */}
-                    <button
-                      onClick={toggleFullscreen}
-                      className={`p-1 sm:p-2 rounded-lg transition-colors ${
-                        isFullscreen
-                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
-                          : 'hover:bg-gray-100 text-gray-600'
-                      }`}
-                      title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                    >
-                      {isFullscreen ? (
-                        <X className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                      ) : (
-                        <Maximize2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
-                      )}
-                    </button>
+                        }`}
+                        title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                      >
+                        {isFullscreen ? (
+                          <X className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                        ) : (
+                          <Maximize2 className='w-3.5 h-3.5 sm:w-5 sm:h-5' />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Geolocation status message */}
-        {geolocationStatus !== 'idle' && showGeolocationNotification && (
-          <div
-            className={`${
-              isMobile
-                ? 'bg-blue-50 border-b border-blue-200 px-1.5 py-1'
-                : 'bg-blue-50 border-b border-blue-200 px-4 py-2'
-            }`}
-          >
-            <div className='flex items-center justify-between'>
-              <div
-                className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'} flex-1 min-w-0`}
-              >
-                {geolocationStatus === 'requesting' && (
-                  <>
-                    <div className='animate-spin flex-shrink-0'>
-                      <Loader2
-                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-blue-600`}
-                      />
-                    </div>
-                    <span
-                      className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800`}
-                    >
-                      Finding your location...
-                    </span>
-                  </>
-                )}
-                {geolocationStatus === 'granted' && (
-                  <>
-                    <MapPin
-                      className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-green-600 flex-shrink-0`}
-                    />
-                    <span
-                      className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-green-800`}
-                    >
-                      Location found! Map centered on your area.
-                    </span>
-                  </>
-                )}
-                {geolocationStatus === 'denied' && (
-                  <>
-                    <MapPin
-                      className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
-                    />
-                    <span
-                      className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
-                    >
-                      Location access denied. Using default view.
-                    </span>
-                  </>
-                )}
-                {geolocationStatus === 'error' && (
-                  <>
-                    <MapPin
-                      className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
-                    />
-                    <span
-                      className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
-                    >
-                      Location error occurred. Using default view.
-                    </span>
-                  </>
-                )}
-              </div>
-              <div
-                className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'} flex-shrink-0`}
-              >
-                {(geolocationStatus === 'denied' || geolocationStatus === 'error') && (
-                  <>
-                    <button
-                      onClick={handleGeolocationRequest}
-                      className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-blue-600 hover:text-blue-800 underline`}
-                    >
-                      Try again
-                    </button>
-                    <button
-                      onClick={handleDismissNotification}
-                      className={`${isMobile ? 'p-0' : 'p-0.5'} hover:bg-red-100 rounded transition-colors`}
-                      aria-label='Dismiss notification'
-                    >
-                      <X className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600`} />
-                    </button>
-                  </>
-                )}
-              </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Main content */}
-        <div className={`flex-1 flex ${isMobile ? 'relative' : 'flex-row'} min-h-0`}>
-          {/* Filters sidebar */}
-          {showFilters && (
+          {/* Geolocation status message */}
+          {geolocationStatus !== 'idle' && showGeolocationNotification && (
             <div
-              className={`bg-white border-r border-gray-200 overflow-y-auto ${
-                isMobile ? 'fixed top-16 bottom-0 left-0 w-80 z-40' : 'w-80'
+              className={`${
+                isMobile
+                  ? 'bg-blue-50 border-b border-blue-200 px-1.5 py-1'
+                  : 'bg-blue-50 border-b border-blue-200 px-4 py-2'
               }`}
             >
-              <UnifiedMapFilters
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                selectedEntityType={selectedEntityType}
-                onClose={() => setShowFilters(false)}
-                divingCenters={mapData?.diving_centers || []}
-              />
+              <div className='flex items-center justify-between'>
+                <div
+                  className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'} flex-1 min-w-0`}
+                >
+                  {geolocationStatus === 'requesting' && (
+                    <>
+                      <div className='animate-spin flex-shrink-0'>
+                        <Loader2
+                          className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-blue-600`}
+                        />
+                      </div>
+                      <span
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800`}
+                      >
+                        Finding your location...
+                      </span>
+                    </>
+                  )}
+                  {geolocationStatus === 'granted' && (
+                    <>
+                      <MapPin
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-green-600 flex-shrink-0`}
+                      />
+                      <span
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-green-800`}
+                      >
+                        Location found! Map centered on your area.
+                      </span>
+                    </>
+                  )}
+                  {geolocationStatus === 'denied' && (
+                    <>
+                      <MapPin
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                      />
+                      <span
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                      >
+                        Location access denied. Using default view.
+                      </span>
+                    </>
+                  )}
+                  {geolocationStatus === 'error' && (
+                    <>
+                      <MapPin
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                      />
+                      <span
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                      >
+                        Location error occurred. Using default view.
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div
+                  className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'} flex-shrink-0`}
+                >
+                  {(geolocationStatus === 'denied' || geolocationStatus === 'error') && (
+                    <>
+                      <button
+                        onClick={handleGeolocationRequest}
+                        className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-blue-600 hover:text-blue-800 underline`}
+                      >
+                        Try again
+                      </button>
+                      <button
+                        onClick={handleDismissNotification}
+                        className={`${isMobile ? 'p-0' : 'p-0.5'} hover:bg-red-100 rounded transition-colors`}
+                        aria-label='Dismiss notification'
+                      >
+                        <X className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600`} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Map area */}
-          <div
-            className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container bg-gray-50 flex items-center justify-center`}
-          >
-            <Suspense
-              fallback={
-                <div className='flex flex-col items-center gap-4 text-blue-600'>
-                  <div className='w-12 h-12 border-4 border-current border-t-transparent rounded-full animate-spin'></div>
-                  <span className='font-medium'>Loading Map Application...</span>
-                </div>
-              }
-            >
-              <LeafletMapView
-                data={mapData}
-                selectedEntityType={selectedEntityType}
-                viewport={viewport}
-                onViewportChange={handleViewportChange}
-                popupInfo={popupInfo}
-                setPopupInfo={setPopupInfo}
-                popupPosition={popupPosition}
-                setPopupPosition={setPopupPosition}
-                isLoading={isLoading}
-                error={error}
-                selectedLayer={selectedLayer}
-                onLayerChange={handleLayerChange}
-                onMapInstance={setMapInstance}
-                resetTrigger={resetTrigger}
-                windOverlayEnabled={windOverlayEnabled}
-                setWindOverlayEnabled={setWindOverlayEnabled}
-                windAnimationEnabled={windAnimationEnabled}
-                setWindAnimationEnabled={setWindAnimationEnabled}
-                windDateTime={windDateTime}
-                setWindDateTime={setWindDateTime}
-                onWindFetchingChange={setIsWindFetching}
-                showWindLegend={showWindLegend}
-                setShowWindLegend={setShowWindLegend}
-              />
-            </Suspense>
-
-            {/* Layers panel */}
-            <MapLayersPanel
-              isOpen={showLayers}
-              onClose={() => setShowLayers(false)}
-              selectedLayer={selectedLayer}
-              onLayerChange={handleLayerChange}
-            />
-
-            {/* Wind DateTime Picker - floating on top of map (hidden when legend is open) */}
-            {selectedEntityType === 'dive-sites' &&
-              windOverlayEnabled &&
-              currentZoom >= 10 &&
-              showWindSlider &&
-              !showWindLegend && (
-                <div style={{ zIndex: 30 }}>
-                  <WindDateTimePicker
-                    value={windDateTime}
-                    onChange={setWindDateTime}
-                    disabled={!windOverlayEnabled}
-                    isFetchingWind={isWindFetching}
-                    onClose={() => setShowWindSlider(false)}
-                    onPrefetch={prefetchWindHours}
-                  />
-                </div>
-              )}
-
-            {/* Button to re-open wind slider when it's hidden */}
-            {selectedEntityType === 'dive-sites' &&
-              windOverlayEnabled &&
-              currentZoom >= 10 &&
-              !showWindSlider && (
-                <button
-                  onClick={() => setShowWindSlider(true)}
-                  className='absolute top-4 left-1/2 transform -translate-x-1/2 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
-                  title='Show wind date/time slider'
-                >
-                  <Wind className='w-3.5 h-3.5' />
-                  Show Time Slider
-                </button>
-              )}
-
-            {/* Wind Overlay Legend is now handled in LeafletMapView component */}
-          </div>
-        </div>
-
-        {/* Share Modal */}
-        <Modal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          title='Share Map View'
-          className='max-w-md w-full mx-4'
-        >
-          <div className='mb-4'>
-            <p className='text-sm text-gray-600 mb-2'>
-              Copy this URL to share the current map view with others:
-            </p>
-            <div className='flex items-center space-x-2'>
-              <input
-                type='text'
-                value={shareUrl}
-                readOnly
-                className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50'
-              />
-              <button
-                onClick={handleCopyToClipboard}
-                className={`px-3 py-2 text-sm rounded-lg transition-colors ${
-                  copySuccess
-                    ? 'bg-green-100 text-green-600'
-                    : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+          {/* Main content */}
+          <div className={`flex-1 flex ${isMobile ? 'relative' : 'flex-row'} min-h-0`}>
+            {/* Filters sidebar */}
+            {showFilters && (
+              <div
+                className={`bg-white border-r border-gray-200 overflow-y-auto ${
+                  isMobile ? 'fixed top-16 bottom-0 left-0 w-80 z-40' : 'w-80'
                 }`}
               >
-                {copySuccess ? (
-                  <>
-                    <Check className='w-4 h-4 inline mr-1' />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className='w-4 h-4 inline mr-1' />
-                    Copy
-                  </>
+                <UnifiedMapFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  selectedEntityType={selectedEntityType}
+                  onClose={() => setShowFilters(false)}
+                  divingCenters={mapData?.diving_centers || []}
+                />
+              </div>
+            )}
+
+            {/* Map area */}
+            <div
+              className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container bg-gray-50 flex items-center justify-center`}
+            >
+              <Suspense
+                fallback={
+                  <div className='flex flex-col items-center gap-4 text-blue-600'>
+                    <div className='w-12 h-12 border-4 border-current border-t-transparent rounded-full animate-spin'></div>
+                    <span className='font-medium'>Loading Map Application...</span>
+                  </div>
+                }
+              >
+                <LeafletMapView
+                  data={mapData}
+                  selectedEntityType={selectedEntityType}
+                  viewport={viewport}
+                  onViewportChange={handleViewportChange}
+                  popupInfo={popupInfo}
+                  setPopupInfo={setPopupInfo}
+                  popupPosition={popupPosition}
+                  setPopupPosition={setPopupPosition}
+                  isLoading={isLoading}
+                  error={error}
+                  selectedLayer={selectedLayer}
+                  onLayerChange={handleLayerChange}
+                  onMapInstance={setMapInstance}
+                  resetTrigger={resetTrigger}
+                  windOverlayEnabled={windOverlayEnabled}
+                  setWindOverlayEnabled={setWindOverlayEnabled}
+                  windAnimationEnabled={windAnimationEnabled}
+                  setWindAnimationEnabled={setWindAnimationEnabled}
+                  windDateTime={windDateTime}
+                  setWindDateTime={setWindDateTime}
+                  onWindFetchingChange={setIsWindFetching}
+                  showWindLegend={showWindLegend}
+                  setShowWindLegend={setShowWindLegend}
+                />
+              </Suspense>
+
+              {/* Layers panel */}
+              <MapLayersPanel
+                isOpen={showLayers}
+                onClose={() => setShowLayers(false)}
+                selectedLayer={selectedLayer}
+                onLayerChange={handleLayerChange}
+              />
+
+              {/* Wind DateTime Picker - floating on top of map (hidden when legend is open) */}
+              {selectedEntityType === 'dive-sites' &&
+                windOverlayEnabled &&
+                currentZoom >= 10 &&
+                showWindSlider &&
+                !showWindLegend && (
+                  <div style={{ zIndex: 30 }}>
+                    <WindDateTimePicker
+                      value={windDateTime}
+                      onChange={setWindDateTime}
+                      disabled={!windOverlayEnabled}
+                      isFetchingWind={isWindFetching}
+                      onClose={() => setShowWindSlider(false)}
+                      onPrefetch={prefetchWindHours}
+                    />
+                  </div>
                 )}
-              </button>
+
+              {/* Button to re-open wind slider when it's hidden */}
+              {selectedEntityType === 'dive-sites' &&
+                windOverlayEnabled &&
+                currentZoom >= 10 &&
+                !showWindSlider && (
+                  <button
+                    onClick={() => setShowWindSlider(true)}
+                    className='absolute top-4 left-1/2 transform -translate-x-1/2 z-40 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg transition-colors flex items-center gap-2'
+                    title='Show wind date/time slider'
+                  >
+                    <Wind className='w-3.5 h-3.5' />
+                    Show Time Slider
+                  </button>
+                )}
+
+              {/* Wind Overlay Legend is now handled in LeafletMapView component */}
             </div>
           </div>
 
-          <div className='text-xs text-gray-500'>
-            This URL includes your current view, filters, and entity type selection.
-          </div>
-        </Modal>
+          {/* Share Modal */}
+          <Modal
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            title='Share Map View'
+            className='max-w-md w-full mx-4'
+          >
+            <div className='mb-4'>
+              <p className='text-sm text-gray-600 mb-2'>
+                Copy this URL to share the current map view with others:
+              </p>
+              <div className='flex items-center space-x-2'>
+                <input
+                  type='text'
+                  value={shareUrl}
+                  readOnly
+                  className='flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50'
+                />
+                <button
+                  onClick={handleCopyToClipboard}
+                  className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                    copySuccess
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                  }`}
+                >
+                  {copySuccess ? (
+                    <>
+                      <Check className='w-4 h-4 inline mr-1' />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className='w-4 h-4 inline mr-1' />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className='text-xs text-gray-500'>
+              This URL includes your current view, filters, and entity type selection.
+            </div>
+          </Modal>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -19,12 +19,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 import { getGrowthData } from '../services/admin';
 import { formatDate } from '../utils/dateHelpers';
 
 const AdminGrowthVisualizations = () => {
-  usePageTitle('Divemap - Admin - Growth Visualizations');
   const [period, setPeriod] = useState('3months');
 
   const {
@@ -212,89 +211,92 @@ const AdminGrowthVisualizations = () => {
   }
 
   return (
-    <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
-      {/* Header */}
-      <div className='mb-8'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Growth Visualizations</h1>
-            <p className='text-gray-600 mt-1'>Track content growth over time</p>
-          </div>
-          <div className='flex items-center space-x-4'>
-            <div className='flex items-center space-x-2'>
-              <Calendar className='h-5 w-5 text-gray-500' />
-              <select
-                value={period}
-                onChange={e => setPeriod(e.target.value)}
-                className='border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
-              >
-                <option value='week'>Last Week</option>
-                <option value='month'>Last Month</option>
-                <option value='3months'>Last 3 Months</option>
-                <option value='6months'>Last 6 Months</option>
-                <option value='year'>Last Year</option>
-              </select>
+    <>
+      <SEO title='Divemap - Admin - Growth Visualizations' description='Divemap Admin Dashboard' />
+      <div className='w-full max-w-full py-4 sm:py-6 pr-4 sm:pr-6 pl-2 sm:pl-4'>
+        {/* Header */}
+        <div className='mb-8'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900'>Growth Visualizations</h1>
+              <p className='text-gray-600 mt-1'>Track content growth over time</p>
             </div>
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
-            >
-              {isFetching ? (
-                <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-              ) : (
-                <RefreshCw className='h-4 w-4 mr-2' />
-              )}
-              <span>Refresh</span>
-            </button>
+            <div className='flex items-center space-x-4'>
+              <div className='flex items-center space-x-2'>
+                <Calendar className='h-5 w-5 text-gray-500' />
+                <select
+                  value={period}
+                  onChange={e => setPeriod(e.target.value)}
+                  className='border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'
+                >
+                  <option value='week'>Last Week</option>
+                  <option value='month'>Last Month</option>
+                  <option value='3months'>Last 3 Months</option>
+                  <option value='6months'>Last 6 Months</option>
+                  <option value='year'>Last Year</option>
+                </select>
+              </div>
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center'
+              >
+                {isFetching ? (
+                  <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                ) : (
+                  <RefreshCw className='h-4 w-4 mr-2' />
+                )}
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className='flex justify-center items-center py-12'>
+            <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
+            <span className='ml-2 text-gray-600'>Loading growth data...</span>
+          </div>
+        )}
+
+        {/* Growth Charts */}
+        {growthData && !isLoading && growthData.growth_data && (
+          <>
+            {growthData.growth_data.dive_sites &&
+              renderChart(
+                growthData.growth_data.dive_sites,
+                'Dive Sites',
+                CHART_COLORS.dive_sites,
+                'dive_sites'
+              )}
+            {growthData.growth_data.diving_centers &&
+              renderChart(
+                growthData.growth_data.diving_centers,
+                'Diving Centers',
+                CHART_COLORS.diving_centers,
+                'diving_centers'
+              )}
+            {growthData.growth_data.dives &&
+              renderChart(growthData.growth_data.dives, 'Dives', CHART_COLORS.dives, 'dives')}
+            {growthData.growth_data.dive_routes &&
+              renderChart(
+                growthData.growth_data.dive_routes,
+                'Dive Routes',
+                CHART_COLORS.dive_routes,
+                'dive_routes'
+              )}
+            {growthData.growth_data.dive_trips &&
+              renderChart(
+                growthData.growth_data.dive_trips,
+                'Dive Trips',
+                CHART_COLORS.dive_trips,
+                'dive_trips'
+              )}
+          </>
+        )}
       </div>
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className='flex justify-center items-center py-12'>
-          <Loader2 className='h-8 w-8 animate-spin text-blue-600' />
-          <span className='ml-2 text-gray-600'>Loading growth data...</span>
-        </div>
-      )}
-
-      {/* Growth Charts */}
-      {growthData && !isLoading && growthData.growth_data && (
-        <>
-          {growthData.growth_data.dive_sites &&
-            renderChart(
-              growthData.growth_data.dive_sites,
-              'Dive Sites',
-              CHART_COLORS.dive_sites,
-              'dive_sites'
-            )}
-          {growthData.growth_data.diving_centers &&
-            renderChart(
-              growthData.growth_data.diving_centers,
-              'Diving Centers',
-              CHART_COLORS.diving_centers,
-              'diving_centers'
-            )}
-          {growthData.growth_data.dives &&
-            renderChart(growthData.growth_data.dives, 'Dives', CHART_COLORS.dives, 'dives')}
-          {growthData.growth_data.dive_routes &&
-            renderChart(
-              growthData.growth_data.dive_routes,
-              'Dive Routes',
-              CHART_COLORS.dive_routes,
-              'dive_routes'
-            )}
-          {growthData.growth_data.dive_trips &&
-            renderChart(
-              growthData.growth_data.dive_trips,
-              'Dive Trips',
-              CHART_COLORS.dive_trips,
-              'dive_trips'
-            )}
-        </>
-      )}
-    </div>
+    </>
   );
 };
 

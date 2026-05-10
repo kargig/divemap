@@ -23,14 +23,15 @@ import {
   Cpu,
 } from 'lucide-react';
 
-import usePageTitle from '../hooks/usePageTitle';
+import SEO from '../components/SEO';
 
 const About = () => {
-  // Set page title
-  usePageTitle('Divemap - About');
-
   return (
     <div className='max-w-5xl mx-auto'>
+      <SEO
+        title='About Divemap | Platform Mission and Open Source Code'
+        description='Learn about Divemap, an open-source platform for discovering scuba dive sites, logging dives, and connecting with the diving community.'
+      />
       <div className='bg-white rounded-lg shadow-lg p-8'>
         {/* Hero Section */}
         <div className='text-center mb-10'>

@@ -6,21 +6,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import api from '../api';
 import RouteCanvas from '../components/RouteCanvas';
+import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const DiveRouteDrawing = () => {
-  const { diveSiteId, routeId } = useParams();
+  const { siteId: diveSiteId, routeId: editRouteId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const editRouteId = routeId;
   const isEditing = !!editRouteId;
-
-  usePageTitle(isEditing ? 'Edit Dive Route' : 'Draw Dive Route');
 
   const [routeName, setRouteName] = useState('');
   const [routeDescription, setRouteDescription] = useState('');
@@ -346,119 +343,127 @@ const DiveRouteDrawing = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col'>
-      {/* Header */}
-      <div className='bg-white shadow-sm border-b z-20 relative'>
-        <div className='container mx-auto px-4 py-3'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-4'>
-              <button
-                onClick={handleCancel}
-                className='flex items-center text-gray-600 hover:text-gray-800 transition-colors'
-              >
-                <ArrowLeft className='w-5 h-5 mr-2' />
-                Back to Dive Site
-              </button>
-              <div className='h-6 w-px bg-gray-300'></div>
-              <h1 className='text-lg font-semibold text-gray-800'>
-                {isEditing ? 'Edit Route' : 'Draw Route'} for {diveSite.name}
-              </h1>
-            </div>
+    <>
+      <SEO
+        title={isEditing ? 'Edit Dive Route | Divemap' : 'Draw Dive Route | Divemap'}
+        description='Create and edit underwater navigation routes for dive sites on Divemap.'
+      />
+      <div className='min-h-screen bg-gray-50 flex flex-col'>
+        {/* Header */}
+        <div className='bg-white shadow-sm border-b z-20 relative'>
+          <div className='container mx-auto px-4 py-3'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center space-x-4'>
+                <button
+                  onClick={handleCancel}
+                  className='flex items-center text-gray-600 hover:text-gray-800 transition-colors'
+                >
+                  <ArrowLeft className='w-5 h-5 mr-2' />
+                  Back to Dive Site
+                </button>
+                <div className='h-6 w-px bg-gray-300'></div>
+                <h1 className='text-lg font-semibold text-gray-800'>
+                  {isEditing ? 'Edit Route' : 'Draw Route'} for {diveSite.name}
+                </h1>
+              </div>
 
-            <div className='flex items-center space-x-3'>
-              <div className='text-sm text-gray-500'>
-                Use the drawing tools on the map to create your route
+              <div className='flex items-center space-x-3'>
+                <div className='text-sm text-gray-500'>
+                  Use the drawing tools on the map to create your route
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Form */}
-      <div className='bg-white border-b z-10 relative'>
-        <div className='px-4 py-3'>
-          <div className='max-w-6xl mx-auto flex flex-col gap-3'>
-            {/* Row 1: Route Name, Type, Status, Buttons */}
-            <div className='flex gap-3 items-end'>
-              <div className='pointer-events-auto flex-1'>
-                <label className='block text-xs font-medium text-gray-700 mb-1'>Route Name *</label>
-                <input
-                  type='text'
-                  value={routeName}
-                  onChange={e => setRouteName(e.target.value)}
-                  placeholder='Enter route name...'
-                  className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
-                  required
-                />
-              </div>
+        {/* Form */}
+        <div className='bg-white border-b z-10 relative'>
+          <div className='px-4 py-3'>
+            <div className='max-w-6xl mx-auto flex flex-col gap-3'>
+              {/* Row 1: Route Name, Type, Status, Buttons */}
+              <div className='flex gap-3 items-end'>
+                <div className='pointer-events-auto flex-1'>
+                  <label className='block text-xs font-medium text-gray-700 mb-1'>
+                    Route Name *
+                  </label>
+                  <input
+                    type='text'
+                    value={routeName}
+                    onChange={e => setRouteName(e.target.value)}
+                    placeholder='Enter route name...'
+                    className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500'
+                    required
+                  />
+                </div>
 
-              {/* Route Status Indicator */}
-              <div className='w-32'>
-                <div className='px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600 flex items-center justify-center h-[34px]'>
-                  {routeData ? (
-                    <span className='text-green-600'>✓ Ready</span>
-                  ) : (
-                    <span className='text-orange-600'>⚠ Draw first</span>
-                  )}
+                {/* Route Status Indicator */}
+                <div className='w-32'>
+                  <div className='px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600 flex items-center justify-center h-[34px]'>
+                    {routeData ? (
+                      <span className='text-green-600'>✓ Ready</span>
+                    ) : (
+                      <span className='text-orange-600'>⚠ Draw first</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className='flex gap-2'>
+                  <Button onClick={handleCancel} variant='secondary' size='sm'>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => handleSave(routeData)}
+                    disabled={isSaving || !routeName.trim() || !routeData}
+                    variant='primary'
+                    size='sm'
+                    icon={
+                      isSaving ? (
+                        <Loader2 className='w-3 h-3 animate-spin' />
+                      ) : (
+                        <Save className='w-3 h-3' />
+                      )
+                    }
+                  >
+                    {isSaving ? 'Saving...' : 'Save'}
+                  </Button>
                 </div>
               </div>
 
-              <div className='flex gap-2'>
-                <Button onClick={handleCancel} variant='secondary' size='sm'>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleSave(routeData)}
-                  disabled={isSaving || !routeName.trim() || !routeData}
-                  variant='primary'
-                  size='sm'
-                  icon={
-                    isSaving ? (
-                      <Loader2 className='w-3 h-3 animate-spin' />
-                    ) : (
-                      <Save className='w-3 h-3' />
-                    )
-                  }
-                >
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
+              {/* Row 2: Description */}
+              <div className='w-full'>
+                <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
+                <textarea
+                  value={routeDescription}
+                  onChange={e => setRouteDescription(e.target.value)}
+                  placeholder='Optional description...'
+                  rows={3}
+                  className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y'
+                />
               </div>
-            </div>
-
-            {/* Row 2: Description */}
-            <div className='w-full'>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>Description</label>
-              <textarea
-                value={routeDescription}
-                onChange={e => setRouteDescription(e.target.value)}
-                placeholder='Optional description...'
-                rows={3}
-                className='w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y'
-              />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Map Container */}
-      <div className='flex-1 relative h-[80vh] min-h-[600px] w-full'>
-        <RouteCanvas
-          diveSite={diveSite}
-          onSave={handleSave}
-          onCancel={handleCancel}
-          isVisible={true}
-          routeName={routeName}
-          setRouteName={setRouteName}
-          routeDescription={routeDescription}
-          setRouteDescription={setRouteDescription}
-          routeType={routeType}
-          setRouteType={setRouteType}
-          showForm={false} // Hide the internal form as we have a compact one
-          onSegmentsChange={setRouteData} // Callback to update route data
-          existingRouteData={existingRoute?.route_data} // Pass existing route data for editing
-        />
+        {/* Map Container */}
+        <div className='flex-1 relative h-[80vh] min-h-[600px] w-full'>
+          <RouteCanvas
+            diveSite={diveSite}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            isVisible={true}
+            routeName={routeName}
+            setRouteName={setRouteName}
+            routeDescription={routeDescription}
+            setRouteDescription={setRouteDescription}
+            routeType={routeType}
+            setRouteType={setRouteType}
+            showForm={false} // Hide the internal form as we have a compact one
+            onSegmentsChange={setRouteData} // Callback to update route data
+            existingRouteData={existingRoute?.route_data} // Pass existing route data for editing
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

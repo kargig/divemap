@@ -7,10 +7,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Avatar from '../components/Avatar';
 import DivingCenterForm from '../components/DivingCenterForm';
+import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import { useAuth } from '../contexts/AuthContext';
-import usePageTitle from '../hooks/usePageTitle';
 import {
   uploadCenterLogo,
   addDivingCenterMedia,
@@ -23,8 +23,6 @@ import { getCurrencyOptions, DEFAULT_CURRENCY, formatCost } from '../utils/curre
 const getErrorMessage = error => extractErrorMessage(error, 'An error occurred');
 
 const EditDivingCenter = () => {
-  // Set page title
-  usePageTitle('Divemap - Edit Diving Center');
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -438,321 +436,169 @@ const EditDivingCenter = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
-      <div className='max-w-4xl mx-auto px-4'>
-        <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-          {/* Header */}
-          <div className='flex items-center justify-between mb-6'>
-            <h1 className='text-3xl font-bold text-gray-900'>Edit Diving Center</h1>
-          </div>
-
-          <div className='mb-6 pb-6 border-b border-gray-200'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>Center Logo</h3>
-            <div className='flex items-center gap-6'>
-              <Avatar
-                src={divingCenter.logo_full_url || divingCenter.logo_url}
-                alt={divingCenter.name}
-                size='2xl'
-                shape='rounded'
-                fallbackText={divingCenter.name}
-                className='border-2 border-gray-100 shadow-sm'
-              />
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>Update Logo</label>
-                <div className='flex items-center gap-3'>
-                  <input
-                    type='file'
-                    accept='image/*'
-                    onChange={handleLogoChange}
-                    className='hidden'
-                    id='logo-upload'
-                    disabled={logoUploading}
-                  />
-                  <label
-                    htmlFor='logo-upload'
-                    className={`cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${logoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {logoUploading ? 'Uploading...' : 'Choose new image'}
-                  </label>
-                  <p className='text-xs text-gray-500'>
-                    JPEG, PNG, WEBP up to 5MB.
-                    <br />
-                    Recommended: 512x512px (1:1 aspect ratio)
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <DivingCenterForm
-            mode='edit'
-            initialValues={formData}
-            onCancel={() => navigate(`/diving-centers/${id}`)}
-            onSubmit={handleSubmit}
-          />
-
-          {/* Media Management */}
-          <div className='border-t pt-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Media Gallery</h3>
+    <>
+      <SEO
+        title='Edit Diving Center | Divemap'
+        description='Update the details, pricing, and media for your diving center or scuba school.'
+      />
+      <div className='min-h-screen bg-gray-50 py-8'>
+        <div className='max-w-4xl mx-auto px-4'>
+          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
+            {/* Header */}
+            <div className='flex items-center justify-between mb-6'>
+              <h1 className='text-3xl font-bold text-gray-900'>Edit Diving Center</h1>
             </div>
 
-            {/* Manage Existing Media */}
-            {divingCenter?.media && divingCenter.media.length > 0 && (
-              <div className='mb-6'>
-                <h4 className='text-md font-medium text-gray-800 mb-3'>Manage Existing Media</h4>
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                  {divingCenter.media.map(item => (
-                    <div key={item.id} className='border rounded-lg p-4 bg-white relative'>
-                      <div className='flex items-center justify-between mb-2 absolute top-6 right-6 z-10 bg-white/80 p-1 rounded'>
-                        <button
-                          type='button'
-                          onClick={() => handleMediaRemove({ uid: item.id.toString() })}
-                          className='text-red-600 hover:text-red-800 bg-white p-1 rounded-full shadow-sm'
-                          title='Delete media'
-                        >
-                          <Trash2 className='w-5 h-5' />
-                        </button>
-                      </div>
-                      <div className='space-y-2'>
-                        <img
-                          src={item.full_thumbnail_url || item.thumbnail_url || item.url}
-                          alt={item.description || 'Media'}
-                          className='w-full object-cover h-48 rounded shadow-sm'
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Photo Upload */}
-            <div className='mb-3'>
-              <h4 className='text-md font-medium text-gray-800 mb-3'>Upload New Media</h4>
-              <UploadPhotosComponent
-                mediaUrls={centerMediaUrls}
-                setMediaUrls={setCenterMediaUrls}
-                onMediaRemove={handleMediaRemove}
-                savedPhotoUids={savedPhotoUids}
-                onUnsavedPhotosChange={unsavedPhotos => {
-                  unsavedR2PhotosRef.current = unsavedPhotos;
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Diving Organizations */}
-          <div className='border-t pt-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Diving Organizations</h3>
-            </div>
-
-            {/* Add Organization Form */}
-            <div className='bg-gray-50 p-4 rounded-lg mb-4'>
-              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='mb-6 pb-6 border-b border-gray-200'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Center Logo</h3>
+              <div className='flex items-center gap-6'>
+                <Avatar
+                  src={divingCenter.logo_full_url || divingCenter.logo_url}
+                  alt={divingCenter.name}
+                  size='2xl'
+                  shape='rounded'
+                  fallbackText={divingCenter.name}
+                  className='border-2 border-gray-100 shadow-sm'
+                />
                 <div>
-                  <label
-                    htmlFor='diving-organization-select'
-                    className='block text-sm font-medium text-gray-700 mb-2'
-                  >
-                    Organization
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>
+                    Update Logo
                   </label>
-                  <select
-                    id='diving-organization-select'
-                    name='diving_organization_id'
-                    value={newOrganization.diving_organization_id}
-                    onChange={handleOrganizationChange}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                  >
-                    <option value=''>Select Organization</option>
-                    {organizations.map(org => (
-                      <option key={org.id} value={org.id}>
-                        {org.acronym} - {org.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className='flex items-end'>
-                  <label htmlFor='primary-organization' className='flex items-center'>
+                  <div className='flex items-center gap-3'>
                     <input
-                      id='primary-organization'
-                      type='checkbox'
-                      name='is_primary'
-                      checked={newOrganization.is_primary}
-                      onChange={handleOrganizationChange}
-                      className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      type='file'
+                      accept='image/*'
+                      onChange={handleLogoChange}
+                      className='hidden'
+                      id='logo-upload'
+                      disabled={logoUploading}
                     />
-                    <span className='ml-2 text-sm text-gray-700'>Primary Organization</span>
-                  </label>
-                </div>
-
-                <div className='flex items-end'>
-                  <button
-                    type='button'
-                    onClick={handleAddOrganization}
-                    disabled={addOrganizationMutation.isLoading}
-                    className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
-                    style={{ backgroundColor: UI_COLORS.success }}
-                    onMouseEnter={e =>
-                      !e.currentTarget.disabled &&
-                      (e.currentTarget.style.backgroundColor = '#007a5c')
-                    }
-                    onMouseLeave={e =>
-                      !e.currentTarget.disabled &&
-                      (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                    }
-                  >
-                    <Plus className='h-4 w-4 mr-2' />
-                    {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
-                  </button>
+                    <label
+                      htmlFor='logo-upload'
+                      className={`cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${logoUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {logoUploading ? 'Uploading...' : 'Choose new image'}
+                    </label>
+                    <p className='text-xs text-gray-500'>
+                      JPEG, PNG, WEBP up to 5MB.
+                      <br />
+                      Recommended: 512x512px (1:1 aspect ratio)
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Organization List */}
-            <div className='space-y-3'>
-              {orgLoading && (
-                <div className='text-center py-4'>
-                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                  <p className='text-gray-600 mt-2'>Loading organizations...</p>
+            <DivingCenterForm
+              mode='edit'
+              initialValues={formData}
+              onCancel={() => navigate(`/diving-centers/${id}`)}
+              onSubmit={handleSubmit}
+            />
+
+            {/* Media Management */}
+            <div className='border-t pt-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-semibold text-gray-900'>Media Gallery</h3>
+              </div>
+
+              {/* Manage Existing Media */}
+              {divingCenter?.media && divingCenter.media.length > 0 && (
+                <div className='mb-6'>
+                  <h4 className='text-md font-medium text-gray-800 mb-3'>Manage Existing Media</h4>
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                    {divingCenter.media.map(item => (
+                      <div key={item.id} className='border rounded-lg p-4 bg-white relative'>
+                        <div className='flex items-center justify-between mb-2 absolute top-6 right-6 z-10 bg-white/80 p-1 rounded'>
+                          <button
+                            type='button'
+                            onClick={() => handleMediaRemove({ uid: item.id.toString() })}
+                            className='text-red-600 hover:text-red-800 bg-white p-1 rounded-full shadow-sm'
+                            title='Delete media'
+                          >
+                            <Trash2 className='w-5 h-5' />
+                          </button>
+                        </div>
+                        <div className='space-y-2'>
+                          <img
+                            src={item.full_thumbnail_url || item.thumbnail_url || item.url}
+                            alt={item.description || 'Media'}
+                            className='w-full object-cover h-48 rounded shadow-sm'
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              {!orgLoading && centerOrganizations.length === 0 && (
-                <p className='text-gray-500 text-center py-4'>No organizations associated yet.</p>
-              )}
-              {!orgLoading &&
-                centerOrganizations.map(org => (
-                  <div
-                    key={org.id}
-                    className='flex items-center justify-between p-4 border rounded-lg'
-                  >
-                    <div className='flex items-center space-x-3'>
-                      <span className='font-medium'>
-                        {org.diving_organization.acronym} - {org.diving_organization.name}
-                      </span>
-                      {org.is_primary && (
-                        <span className='px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                    <div className='flex items-center space-x-2'>
-                      <button
-                        type='button'
-                        onClick={() => handleTogglePrimary(org.id, org.is_primary)}
-                        disabled={updateOrganizationMutation.isLoading}
-                        className={`px-2 py-1 text-xs rounded ${
-                          org.is_primary
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        } disabled:opacity-50`}
-                      >
-                        {org.is_primary ? 'Primary' : 'Set Primary'}
-                      </button>
-                      <button
-                        type='button'
-                        onClick={() => handleRemoveOrganization(org.id)}
-                        disabled={deleteOrganizationMutation.isLoading}
-                        className='p-1 text-red-500 hover:text-red-700 disabled:opacity-50'
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
 
-          {/* Gear Rental Management */}
-          <div className='border-t pt-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h3 className='text-lg font-semibold text-gray-900'>Gear Rental Costs</h3>
-              <button
-                type='button'
-                onClick={() => setIsAddingGear(!isAddingGear)}
-                className='flex items-center px-4 py-2 text-white rounded-md'
-                style={{ backgroundColor: UI_COLORS.success }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
-              >
-                <Plus className='w-4 h-4 mr-2' />
-                Add Gear Rental
-              </button>
+              {/* Photo Upload */}
+              <div className='mb-3'>
+                <h4 className='text-md font-medium text-gray-800 mb-3'>Upload New Media</h4>
+                <UploadPhotosComponent
+                  mediaUrls={centerMediaUrls}
+                  setMediaUrls={setCenterMediaUrls}
+                  onMediaRemove={handleMediaRemove}
+                  savedPhotoUids={savedPhotoUids}
+                  onUnsavedPhotosChange={unsavedPhotos => {
+                    unsavedR2PhotosRef.current = unsavedPhotos;
+                  }}
+                />
+              </div>
             </div>
 
-            {/* Add Gear Rental Form */}
-            {isAddingGear && (
-              <div className='bg-gray-50 p-4 rounded-md mb-4'>
-                <div className='space-y-4'>
-                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                    <div>
-                      <label
-                        htmlFor='gear-item-name'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Item Name *
-                      </label>
-                      <input
-                        id='gear-item-name'
-                        type='text'
-                        value={newGearItem.item_name}
-                        onChange={e =>
-                          setNewGearItem(prev => ({ ...prev, item_name: e.target.value }))
-                        }
-                        required
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        placeholder='e.g., Full Set, BCD, Regulator'
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor='gear-cost'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Cost *
-                      </label>
-                      <input
-                        id='gear-cost'
-                        type='number'
-                        step='0.01'
-                        value={newGearItem.cost}
-                        onChange={e => setNewGearItem(prev => ({ ...prev, cost: e.target.value }))}
-                        required
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                        placeholder='0.00'
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor='gear-currency'
-                        className='block text-sm font-medium text-gray-700 mb-1'
-                      >
-                        Currency
-                      </label>
-                      <select
-                        id='gear-currency'
-                        value={newGearItem.currency}
-                        onChange={e =>
-                          setNewGearItem(prev => ({ ...prev, currency: e.target.value }))
-                        }
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                      >
-                        {getCurrencyOptions().map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+            {/* Diving Organizations */}
+            <div className='border-t pt-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-semibold text-gray-900'>Diving Organizations</h3>
+              </div>
+
+              {/* Add Organization Form */}
+              <div className='bg-gray-50 p-4 rounded-lg mb-4'>
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                  <div>
+                    <label
+                      htmlFor='diving-organization-select'
+                      className='block text-sm font-medium text-gray-700 mb-2'
+                    >
+                      Organization
+                    </label>
+                    <select
+                      id='diving-organization-select'
+                      name='diving_organization_id'
+                      value={newOrganization.diving_organization_id}
+                      onChange={handleOrganizationChange}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                    >
+                      <option value=''>Select Organization</option>
+                      {organizations.map(org => (
+                        <option key={org.id} value={org.id}>
+                          {org.acronym} - {org.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div className='flex space-x-2'>
+
+                  <div className='flex items-end'>
+                    <label htmlFor='primary-organization' className='flex items-center'>
+                      <input
+                        id='primary-organization'
+                        type='checkbox'
+                        name='is_primary'
+                        checked={newOrganization.is_primary}
+                        onChange={handleOrganizationChange}
+                        className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+                      />
+                      <span className='ml-2 text-sm text-gray-700'>Primary Organization</span>
+                    </label>
+                  </div>
+
+                  <div className='flex items-end'>
                     <button
                       type='button'
-                      onClick={handleAddGear}
-                      disabled={addGearMutation.isLoading}
-                      className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                      onClick={handleAddOrganization}
+                      disabled={addOrganizationMutation.isLoading}
+                      className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
                       style={{ backgroundColor: UI_COLORS.success }}
                       onMouseEnter={e =>
                         !e.currentTarget.disabled &&
@@ -763,63 +609,225 @@ const EditDivingCenter = () => {
                         (e.currentTarget.style.backgroundColor = UI_COLORS.success)
                       }
                     >
-                      {addGearMutation.isLoading ? 'Adding...' : 'Add Gear Rental'}
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => setIsAddingGear(false)}
-                      className='px-4 py-2 text-white rounded-md'
-                      style={{ backgroundColor: UI_COLORS.neutral }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
-                      onMouseLeave={e =>
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
-                      }
-                    >
-                      Cancel
+                      <Plus className='h-4 w-4 mr-2' />
+                      {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
                     </button>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Gear Rental List */}
-            <div className='space-y-3'>
-              {gearLoading && (
-                <div className='text-center py-4'>
-                  <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
-                  <p className='text-gray-600 mt-2'>Loading gear rental...</p>
+              {/* Organization List */}
+              <div className='space-y-3'>
+                {orgLoading && (
+                  <div className='text-center py-4'>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                    <p className='text-gray-600 mt-2'>Loading organizations...</p>
+                  </div>
+                )}
+                {!orgLoading && centerOrganizations.length === 0 && (
+                  <p className='text-gray-500 text-center py-4'>No organizations associated yet.</p>
+                )}
+                {!orgLoading &&
+                  centerOrganizations.map(org => (
+                    <div
+                      key={org.id}
+                      className='flex items-center justify-between p-4 border rounded-lg'
+                    >
+                      <div className='flex items-center space-x-3'>
+                        <span className='font-medium'>
+                          {org.diving_organization.acronym} - {org.diving_organization.name}
+                        </span>
+                        {org.is_primary && (
+                          <span className='px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full'>
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <div className='flex items-center space-x-2'>
+                        <button
+                          type='button'
+                          onClick={() => handleTogglePrimary(org.id, org.is_primary)}
+                          disabled={updateOrganizationMutation.isLoading}
+                          className={`px-2 py-1 text-xs rounded ${
+                            org.is_primary
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          } disabled:opacity-50`}
+                        >
+                          {org.is_primary ? 'Primary' : 'Set Primary'}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => handleRemoveOrganization(org.id)}
+                          disabled={deleteOrganizationMutation.isLoading}
+                          className='p-1 text-red-500 hover:text-red-700 disabled:opacity-50'
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Gear Rental Management */}
+            <div className='border-t pt-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <h3 className='text-lg font-semibold text-gray-900'>Gear Rental Costs</h3>
+                <button
+                  type='button'
+                  onClick={() => setIsAddingGear(!isAddingGear)}
+                  className='flex items-center px-4 py-2 text-white rounded-md'
+                  style={{ backgroundColor: UI_COLORS.success }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                >
+                  <Plus className='w-4 h-4 mr-2' />
+                  Add Gear Rental
+                </button>
+              </div>
+
+              {/* Add Gear Rental Form */}
+              {isAddingGear && (
+                <div className='bg-gray-50 p-4 rounded-md mb-4'>
+                  <div className='space-y-4'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                      <div>
+                        <label
+                          htmlFor='gear-item-name'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Item Name *
+                        </label>
+                        <input
+                          id='gear-item-name'
+                          type='text'
+                          value={newGearItem.item_name}
+                          onChange={e =>
+                            setNewGearItem(prev => ({ ...prev, item_name: e.target.value }))
+                          }
+                          required
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          placeholder='e.g., Full Set, BCD, Regulator'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='gear-cost'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Cost *
+                        </label>
+                        <input
+                          id='gear-cost'
+                          type='number'
+                          step='0.01'
+                          value={newGearItem.cost}
+                          onChange={e =>
+                            setNewGearItem(prev => ({ ...prev, cost: e.target.value }))
+                          }
+                          required
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                          placeholder='0.00'
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor='gear-currency'
+                          className='block text-sm font-medium text-gray-700 mb-1'
+                        >
+                          Currency
+                        </label>
+                        <select
+                          id='gear-currency'
+                          value={newGearItem.currency}
+                          onChange={e =>
+                            setNewGearItem(prev => ({ ...prev, currency: e.target.value }))
+                          }
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          {getCurrencyOptions().map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className='flex space-x-2'>
+                      <button
+                        type='button'
+                        onClick={handleAddGear}
+                        disabled={addGearMutation.isLoading}
+                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
+                        style={{ backgroundColor: UI_COLORS.success }}
+                        onMouseEnter={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = '#007a5c')
+                        }
+                        onMouseLeave={e =>
+                          !e.currentTarget.disabled &&
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
+                        }
+                      >
+                        {addGearMutation.isLoading ? 'Adding...' : 'Add Gear Rental'}
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setIsAddingGear(false)}
+                        className='px-4 py-2 text-white rounded-md'
+                        style={{ backgroundColor: UI_COLORS.neutral }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1f2937')}
+                        onMouseLeave={e =>
+                          (e.currentTarget.style.backgroundColor = UI_COLORS.neutral)
+                        }
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
-              {!gearLoading && Array.isArray(gearRentalData) && gearRentalData.length === 0 && (
-                <p className='text-gray-500 text-center py-4'>No gear rental items added yet.</p>
-              )}
-              {!gearLoading &&
-                Array.isArray(gearRentalData) &&
-                gearRentalData.map(item => (
-                  <div
-                    key={item.id}
-                    className='flex items-center justify-between p-4 border rounded-lg'
-                  >
-                    <div>
-                      <h4 className='font-medium text-gray-900'>{item.item_name}</h4>
-                      <p className='text-sm text-gray-600'>
-                        {formatCost(item.cost, item.currency || DEFAULT_CURRENCY)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteGear(item.id)}
-                      className='text-red-600 hover:text-red-800'
-                      title='Delete gear rental'
-                    >
-                      <Trash2 className='w-4 h-4' />
-                    </button>
+
+              {/* Gear Rental List */}
+              <div className='space-y-3'>
+                {gearLoading && (
+                  <div className='text-center py-4'>
+                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto'></div>
+                    <p className='text-gray-600 mt-2'>Loading gear rental...</p>
                   </div>
-                ))}
+                )}
+                {!gearLoading && Array.isArray(gearRentalData) && gearRentalData.length === 0 && (
+                  <p className='text-gray-500 text-center py-4'>No gear rental items added yet.</p>
+                )}
+                {!gearLoading &&
+                  Array.isArray(gearRentalData) &&
+                  gearRentalData.map(item => (
+                    <div
+                      key={item.id}
+                      className='flex items-center justify-between p-4 border rounded-lg'
+                    >
+                      <div>
+                        <h4 className='font-medium text-gray-900'>{item.item_name}</h4>
+                        <p className='text-sm text-gray-600'>
+                          {formatCost(item.cost, item.currency || DEFAULT_CURRENCY)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteGear(item.id)}
+                        className='text-red-600 hover:text-red-800'
+                        title='Delete gear rental'
+                      >
+                        <Trash2 className='w-4 h-4' />
+                      </button>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
