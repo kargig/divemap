@@ -1,0 +1,4 @@
+{
+  "resource": "https://divemap.gr/api/v1/",
+  "authorization_servers": ["https://divemap.gr"]
+}
