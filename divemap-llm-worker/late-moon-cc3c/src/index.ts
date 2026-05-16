@@ -31,8 +31,10 @@ export default {
 			// 4. Apply your requested 24h caching with stale-while-revalidate
 			headers.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=86400, stale-if-error=86400');
 
-			return new Response(object.body, {
-				headers,
+			// 5. Add Agent Discoverability Headers
+			headers.set('Link', '</openapi.json>; rel="api-catalog", </docs>; rel="service-doc", </llms.txt>; rel="service-desc"');
+
+			return new Response(object.body, {				headers,
 			});
 		} catch (e) {
 			// On error, try to fall back to the origin site
