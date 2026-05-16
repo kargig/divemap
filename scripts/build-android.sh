@@ -15,10 +15,16 @@ if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ] || [ "$VERSION_NAME" == "und
     exit 1
 fi
 
-echo "🚀 Building Divemap v${VERSION_NAME} (Code: ${VERSION_CODE})..."
+echo "🚀 Building Divemap v${VERSION_NAME}..."
 
 # Run bubblewrap
 bubblewrap build
+
+# Re-extract versions after build because bubblewrap might have updated them (e.g. bumped version code)
+VERSION_NAME=$(node -p "require('./twa-manifest.json').appVersionName")
+VERSION_CODE=$(node -p "require('./twa-manifest.json').appVersionCode")
+
+echo "✅ Build finished. Current version in manifest: v${VERSION_NAME} (Code: ${VERSION_CODE})"
 
 # Create releases archive directory
 mkdir -p releases

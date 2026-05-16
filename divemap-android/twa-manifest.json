@@ -20,8 +20,8 @@
     "path": "/home/kargig/src/divemap/divemap-android/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.2",
-  "appVersionCode": 6,
+  "appVersionName": "1.5",
+  "appVersionCode": 9,
   "shortcuts": [
     {
       "name": "Explore Map",
@@ -82,5 +82,5 @@
     "standalone",
     "minimal-ui"
   ],
-  "appVersion": "1.2"
+  "appVersion": "1.5"
 }
