@@ -258,6 +258,9 @@ async def add_security_headers(request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
+    # Agent Discoverability Headers
+    response.headers["Link"] = '</openapi.json>; rel="api-catalog", </docs>; rel="service-doc", </llms.txt>; rel="service-desc"'
+
     # Check if this is a documentation endpoint
     if request.url.path in DOCS_PATHS:
         # More permissive CSP for documentation endpoints
@@ -372,6 +375,19 @@ def load_admin_dive_sites_router():
         app._admin_dive_sites_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Admin-dive-sites router loaded lazily in {router_time:.2f}s")
+
+def load_agent_router():
+    """Load agent router lazily when first accessed"""
+    if not hasattr(app, '_agent_router_loaded'):
+        print("🔧 Loading agent router lazily...")
+        router_start = time.time()
+
+        from app.routers import agent
+        app.include_router(agent.router, prefix="/api/v1/agent", tags=["Agent Content Negotiation"])
+
+        app._agent_router_loaded = True
+        router_time = time.time() - router_start
+        print(f"✅ Agent router loaded lazily in {router_time:.2f}s")
 
 def load_routers():
     """Load routers lazily to improve startup time"""
@@ -684,6 +700,10 @@ async def lazy_router_loading(request: Request, call_next):
     # Load leaderboard router
     if (path.startswith("/api/v1/leaderboard") or is_docs) and not hasattr(app, '_leaderboard_router_loaded'):
         load_leaderboard_router()
+
+    # Load agent router
+    if (path.startswith("/api/v1/agent") or is_docs) and not hasattr(app, '_agent_router_loaded'):
+        load_agent_router()
 
     response = await call_next(request)
     return response
