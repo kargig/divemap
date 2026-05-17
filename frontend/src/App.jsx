@@ -370,7 +370,6 @@ function AppContent() {
               }
             />
 
-
             <Route
               path='/dive-routes/:id/draw'
               element={
