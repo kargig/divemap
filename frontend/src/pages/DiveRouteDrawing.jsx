@@ -12,8 +12,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const DiveRouteDrawing = () => {
-  const { siteId: diveSiteId, routeId: editRouteId } = useParams();
+  const { diveSiteId: urlSiteId, id } = useParams();
   const navigate = useNavigate();
+
+  // Handle both /dive-routes/:id/draw (id) and /dive-sites/:diveSiteId/dive-route (urlSiteId)
+  const editRouteId = id;
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -80,6 +83,18 @@ const DiveRouteDrawing = () => {
     }
   };
 
+  // Fetch route data for editing
+  const { data: existingRoute, isLoading: routeLoading } = useQuery(
+    ['route', editRouteId],
+    () => api.get(`/api/v1/dive-routes/${editRouteId}`).then(res => res.data),
+    {
+      enabled: !!editRouteId,
+    }
+  );
+
+  // Determine which dive site ID to use
+  const diveSiteId = urlSiteId || existingRoute?.dive_site_id;
+
   // Fetch dive site data
   const {
     data: diveSite,
@@ -90,15 +105,6 @@ const DiveRouteDrawing = () => {
     () => api.get(`/api/v1/dive-sites/${diveSiteId}`).then(res => res.data),
     {
       enabled: !!diveSiteId,
-    }
-  );
-
-  // Fetch route data for editing
-  const { data: existingRoute, isLoading: routeLoading } = useQuery(
-    ['route', editRouteId],
-    () => api.get(`/api/v1/dive-routes/${editRouteId}`).then(res => res.data),
-    {
-      enabled: !!editRouteId,
     }
   );
 

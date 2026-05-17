@@ -369,10 +369,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path='/dive-sites/:diveSiteId/route/:id/edit'
-              element={<Navigate to='/dive-routes/:id/draw' replace />}
-            />
+
 
             <Route
               path='/dive-routes/:id/draw'

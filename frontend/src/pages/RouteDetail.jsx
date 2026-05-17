@@ -710,7 +710,7 @@ const RouteDetail = () => {
   );
 
   const handleEditRoute = () => {
-    navigate(`/dive-sites/${diveSiteId}/route/${routeId}/edit`);
+    navigate(`/dive-routes/${routeId}/draw`);
   };
 
   const handleCopyRoute = () => {

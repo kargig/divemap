@@ -70,7 +70,7 @@ const RoutePreview = ({
   };
 
   const handleEditRoute = () => {
-    navigate(`/dive-sites/${diveSiteId}/route/${route.id}/edit`);
+    navigate(`/dive-routes/${route.id}/draw`);
   };
 
   const handleDeleteRoute = () => {
