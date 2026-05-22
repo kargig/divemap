@@ -77,8 +77,8 @@ const DiveSiteInfo = ({ dive, index }) => {
         </div>
       </div>
       {dive.dive_site_id && diveSite && (
-        <div className='text-sm text-gray-600'>
-          <div className='mb-2'>
+        <div className='text-sm text-gray-700 break-words overflow-hidden'>
+          <div className='mb-2 break-words overflow-hidden max-w-full'>
             {diveSite.description ? (
               <RichText content={diveSite.description} />
             ) : (
@@ -86,7 +86,7 @@ const DiveSiteInfo = ({ dive, index }) => {
             )}
           </div>
           {dive.dive_description && (
-            <div className='mb-2 text-gray-700'>
+            <div className='mb-2 text-gray-700 break-words overflow-hidden max-w-full'>
               <strong>Dive Description:</strong>
               <RichText content={dive.dive_description} className='mt-1' />
             </div>
@@ -529,14 +529,17 @@ const TripDetail = () => {
               {trip.special_requirements && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
-                  <RichText content={trip.special_requirements} className='text-gray-700' />
+                  <RichText
+                    content={trip.special_requirements}
+                    className='text-gray-700 break-words max-w-full overflow-hidden'
+                  />
                 </div>
               )}
 
               {trip.trip_duration && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Trip Duration</h3>
-                  <p className='text-gray-700 leading-relaxed'>
+                  <p className='text-gray-700 leading-relaxed break-words'>
                     {Math.floor(trip.trip_duration / 60)} hours {trip.trip_duration % 60} minutes
                   </p>
                 </div>
