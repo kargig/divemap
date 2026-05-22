@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Divemap</string>
+    <string name="title_activity_main">Divemap</string>
+    <string name="package_name">gr.divemap.twa</string>
+    <string name="custom_url_scheme">gr.divemap.twa</string>
+    <string name="server_client_id">13107819361-hoa5601v8kj69uh2l29rd7b49eqsq9qs.apps.googleusercontent.com</string>
+</resources>
