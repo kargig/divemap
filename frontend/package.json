@@ -6,7 +6,6 @@
     "@ant-design/icons": "^6.1.0",
     "@capacitor/android": "^8.3.4",
     "@capacitor/app": "^8.1.0",
-    "@capacitor/cli": "^7.6.5",
     "@capacitor/core": "^8.3.4",
     "@capacitor/geolocation": "^8.2.0",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
@@ -87,7 +86,8 @@
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-svgr": "^4.5.0",
     "vitest": "^3.2.4",
-    "workbox-window": "^7.4.0"
+    "workbox-window": "^7.4.0",
+    "@capacitor/cli": "^7.6.5"
   },
   "scripts": {
     "postinstall": "npx update-browserslist-db@latest || true",
@@ -131,6 +131,9 @@
     "resolve-url-loader": "^5.0.0",
     "eslint": "^9.33.0",
     "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.5.5",
-    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4"
+    "rollup-plugin-terser": "npm:@rollup/plugin-terser@^0.4.4",
+    "@codetrix-studio/capacitor-google-auth": {
+      "@capacitor/core": "$@capacitor/core"
+    }
   }
 }
