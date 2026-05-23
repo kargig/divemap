@@ -1,9 +1,10 @@
-import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
-import CapacitorBackButtonHandler from './CapacitorBackButtonHandler';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { render } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import CapacitorBackButtonHandler from './CapacitorBackButtonHandler';
 
 // Mock Capacitor
 vi.mock('@capacitor/core', () => ({
@@ -31,7 +32,7 @@ describe('CapacitorBackButtonHandler', () => {
 
   it('does not add listener if not on native platform', () => {
     vi.mocked(Capacitor.isNativePlatform).mockReturnValue(false);
-    
+
     render(
       <BrowserRouter>
         <CapacitorBackButtonHandler />
