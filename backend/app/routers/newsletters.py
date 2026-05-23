@@ -51,6 +51,10 @@ def clean_diving_terminology(dive_site_name: str) -> str:
         r'\bwreck\b',        # English: wreck
         r'\bWRECK\b',        # English: WRECK
         r'\bWreck\b',        # English: Wreck
+        r'\bπλοίο\b',        # Greek: πλοίο
+        r'\bΠλοίο\b',        # Greek: Πλοίο
+        r'\bκαράβι\b',       # Greek: καράβι
+        r'\bΚαράβι\b',       # Greek: Καράβι
         
         # Reef terminology
         r'\bύφαλος\b',       # Greek: ύφαλος
@@ -94,6 +98,18 @@ def clean_diving_terminology(dive_site_name: str) -> str:
         r'\bpoint\b',        # English: point
         r'\bPOINT\b',        # English: POINT
         r'\bPoint\b',        # English: Point
+
+        # Ship/Cable Ship terminology
+        r'\bκαλωδιακό πλοίο\b', # Greek: καλωδιακό πλοίο
+        r'\bΚαλωδιακό Πλοίο\b', # Greek: Καλωδιακό Πλοίο
+        r'\bcable ship\b',     # English: cable ship
+        r'\bCable Ship\b',     # English: Cable Ship
+
+        # Technical dive terminology
+        r'\bτεχνική κατάδυση\b', # Greek: τεχνική κατάδυση
+        r'\bΤεχνική Κατάδυση\b', # Greek: Τεχνική Κατάδυση
+        r'\btechnical dive\b',  # English: technical dive
+        r'\bTechnical Dive\b',  # English: Technical Dive
     ]
     
     cleaned_name = dive_site_name
@@ -101,6 +117,17 @@ def clean_diving_terminology(dive_site_name: str) -> str:
     # Remove each diving pattern
     for pattern in diving_patterns:
         cleaned_name = re.sub(pattern, '', cleaned_name, flags=re.IGNORECASE)
+        # Trim after each removal to handle prepositions correctly
+        cleaned_name = cleaned_name.strip()
+    
+    # Remove Greek prepositions if they appear at the start (common in extracted names)
+    prepositions_pattern = r'^(στο|στη|στην|στον|στις|στα|το|τη|την|τον|τα|at|in)\s+'
+    cleaned_name = re.sub(prepositions_pattern, '', cleaned_name, flags=re.IGNORECASE)
+
+    # Remove emojis and special characters from start/end
+    # This removes characters like 📍, 🙌, etc.
+    cleaned_name = re.sub(r'^[^\w\s\d]+', '', cleaned_name)
+    cleaned_name = re.sub(r'[^\w\s\d]+$', '', cleaned_name)
     
     # Clean up extra whitespace and trim
     cleaned_name = re.sub(r'\s+', ' ', cleaned_name).strip()
@@ -637,7 +664,9 @@ DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
   * "Πέμπτη 28 Αυγούστου" = "{current_year}-08-28"
   * "Παρασκευή 29 Αυγούστου" = "{current_year}-08-29"
 - Greek month names: Ιανουαρίου(January), Φεβρουαρίου(February), Μαρτίου(March), Απριλίου(April), Μαΐου(May), Ιουνίου(June), Ιουλίου(July), Αυγούστου(August), Σεπτεμβρίου(September), Οκτωβρίου(October), Νοεμβρίου(November), Δεκεμβρίου(December)
+- Greek month abbreviations: Ιαν(Jan), Φεβ(Feb), Μαρ(Mar), Απρ(Apr), Μαΐ(May), Ιουν(Jun), Ιουλ(Jul), Αυγ(Aug), Σεπ(Sep), Οκτ(Oct), Νοε(Nov), Δεκ(Dec)
 - Greek day names: Δευτέρα(Monday), Τρίτη(Tuesday), Τετάρτη(Wednesday), Πέμπτη(Thursday), Παρασκευή(Friday), Σάββατο(Saturday), Κυριακή(Sunday)
+- Greek day abbreviations: Δευ(Mon), Τρι(Tue), Τετ(Wed), Πεμ(Thu), Παρ(Fri), Σαβ(Sat), Κυρ(Sun)
 - Today's date is: {date.today().strftime('%Y-%m-%d')} (Day of week: {datetime.now().strftime('%A')})
 - If the content mentions "today", use today's date: {date.today().strftime('%Y-%m-%d')}
 - If the content mentions "tomorrow", use tomorrow's date: {(date.today() + timedelta(days=1)).strftime('%Y-%m-%d')}
@@ -735,6 +764,12 @@ CONCRETE EXAMPLES - FOLLOW THESE EXACTLY:
    
    CRITICAL: Each date has COMPLETELY DIFFERENT dive sites! Never copy dive sites between dates!
 
+9. Technical dive and ship examples:
+   - "Τεχνική Κατάδυση 📍Καλωδιακό Πλοίο RETRIEVER"
+     → Extract as 1 dive: dive_site_name = "Καλωδιακό Πλοίο RETRIEVER"
+   - "ΚΥΡ, 11 Μαΐ στις 11:00 Τεχνική Κατάδυση 📍Καλωδιακό Πλοίο RETRIEVER"
+     → Extract as 1 trip: trip_date = "{current_year}-05-11", trip_time = "11:00", dive 1 dive_site_name = "Καλωδιακό Πλοίο RETRIEVER"
+
 DIVE SITE EXTRACTION RULES:
 - ALWAYS extract dive site names from the content when mentioned
 - Look for dive site names in the text and extract them for dive_site_name
@@ -743,7 +778,8 @@ DIVE SITE EXTRACTION RULES:
 - When you see "Κυριακή 24 Αυγούστου", only look for dive sites mentioned near that date
 - Do NOT extract dive sites globally from the entire newsletter
 - IMPORTANT: Recognize various diving terminology:
-  * Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck
+  * Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck, "Καλωδιακό Πλοίο RETRIEVER" = Retriever cable ship
+  * Technical terminology: "Τεχνική κατάδυση" = technical dive
   * Reef terminology: "ν. Κουδούνια, ύφαλος" = Koudounia reef, "ύφαλος" = reef
   * Cave terminology: "σπήλαιο" = cave
   * Wall terminology: "τοίχος" = wall
@@ -755,6 +791,7 @@ DIVE SITE EXTRACTION RULES:
 - Pay attention to both English and Greek names for dive sites
 - Pay special attention to sites with diving terminology as they are popular diving destinations
 - The system will automatically clean terminology before database searching
+- IMPORTANT: Ignore emojis like 📍 or 🙌 when extracting names, but use them as markers for locations.
 
 ADDITIONAL INFORMATION EXTRACTION:
 - Extract "Διάρκεια: ~5 ώρες" as trip_duration (convert to minutes: 300)
@@ -766,7 +803,8 @@ ADDITIONAL INFORMATION EXTRACTION:
 
 DIVING TERMINOLOGY RECOGNITION:
 - IMPORTANT: Recognize various diving terminology for proper dive site matching
-- Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck
+- Wreck terminology: "Ναυάγιο ORIA" = Oria wreck, "Ναυάγιο ΚΥΡΑ ΛΕΝΗ" = Kyra Leni wreck, "Καλωδιακό Πλοίο" = Cable Ship
+- Technical terminology: "Τεχνική κατάδυση" = technical dive
 - Reef terminology: "ν. Κουδούνια, ύφαλος" = Koudounia reef, "ύφαλος" = reef
 - Cave terminology: "σπήλαιο" = cave
 - Wall terminology: "τοίχος" = wall
