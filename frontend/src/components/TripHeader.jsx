@@ -40,7 +40,7 @@ const TripHeader = ({ trip }) => {
                 </h1>
               </div>
             </div>
-            <div className='text-gray-600 text-sm sm:text-base lg:text-lg mb-4'>
+            <div className='text-gray-700 text-sm sm:text-base lg:text-lg mb-4 break-words overflow-hidden max-w-full'>
               {trip.trip_description ? (
                 <RichText content={trip.trip_description} />
               ) : (

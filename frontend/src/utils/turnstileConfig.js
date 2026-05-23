@@ -1,12 +1,19 @@
+import { Capacitor } from '@capacitor/core';
+
 /**
  * Get Turnstile configuration and check if it's enabled
  * @returns {Object} Object containing isEnabled boolean and siteKey string
  */
 export const getTurnstileConfig = () => {
   const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
-  const isEnabled = Boolean(
-    turnstileSiteKey && turnstileSiteKey.trim() && turnstileSiteKey !== 'undefined'
-  );
+
+  // Disable Turnstile completely when running natively inside Capacitor (Android/iOS)
+  // because WebView's CSP and User-Agent restrictions break the challenge scripts.
+  const isCapacitor = Capacitor.isNativePlatform();
+
+  const isEnabled =
+    !isCapacitor &&
+    Boolean(turnstileSiteKey && turnstileSiteKey.trim() && turnstileSiteKey !== 'undefined');
 
   return {
     isEnabled,

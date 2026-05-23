@@ -184,11 +184,19 @@ const ChatWindow = ({
             <h4 className='font-bold text-gray-900 dark:text-white'>Authentication Required</h4>
             <p className='text-sm max-w-xs'>
               Please{' '}
-              <Link to='/login' className='text-blue-600 hover:underline'>
+              <Link
+                to='/login'
+                className='text-blue-600 hover:underline'
+                onClick={() => onClose?.()}
+              >
                 log in
               </Link>{' '}
               or{' '}
-              <Link to='/register' className='text-blue-600 hover:underline'>
+              <Link
+                to='/register'
+                className='text-blue-600 hover:underline'
+                onClick={() => onClose?.()}
+              >
                 register
               </Link>{' '}
               to use the AI discovery assistant.
@@ -209,7 +217,7 @@ const ChatWindow = ({
             )}
 
             {messages.map((msg, idx) => (
-              <MessageBubble key={idx} message={msg} onFeedback={onFeedback} />
+              <MessageBubble key={idx} message={msg} onFeedback={onFeedback} onClose={onClose} />
             ))}
 
             {isLoading && (

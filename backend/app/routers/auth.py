@@ -59,8 +59,11 @@ async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
 ):
-    # Verify Turnstile if enabled
-    if turnstile_service.is_enabled():
+    # Verify Turnstile if enabled and not bypassing via native app user-agent
+    user_agent = request.headers.get("User-Agent", "")
+    is_native_app = "DivemapApp" in user_agent
+    
+    if turnstile_service.is_enabled() and not is_native_app:
         client_ip = get_client_ip(request)
 
         if not user_data.turnstile_token:
@@ -105,8 +108,8 @@ async def register(
         is_moderator=False
     )
 
-    # Store Turnstile verification timestamp if enabled
-    if turnstile_service.is_enabled():
+    # Store Turnstile verification timestamp if enabled and not native app
+    if turnstile_service.is_enabled() and not is_native_app:
         db_user.turnstile_verified_at = datetime.now(timezone.utc)
 
     try:
@@ -180,8 +183,11 @@ async def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
-    # Verify Turnstile before authenticating
-    if turnstile_service.is_enabled():
+    # Verify Turnstile before authenticating (skip if native app)
+    user_agent = request.headers.get("User-Agent", "")
+    is_native_app = "DivemapApp" in user_agent
+
+    if turnstile_service.is_enabled() and not is_native_app:
         client_ip = get_client_ip(request)
 
         if not login_data.turnstile_token:
@@ -201,7 +207,7 @@ async def login(
     # Update last_accessed_at and Turnstile timestamp
     if user:
         try:
-            if turnstile_service.is_enabled():
+            if turnstile_service.is_enabled() and not is_native_app:
                 user.turnstile_verified_at = datetime.now(timezone.utc)
             user.last_accessed_at = func.now()
             db.commit()

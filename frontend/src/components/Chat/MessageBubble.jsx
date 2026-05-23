@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm';
 
 import FeedbackButtons from './FeedbackButtons';
 
-const MessageBubble = memo(({ message, onFeedback }) => {
+const MessageBubble = memo(({ message, onFeedback, onClose }) => {
   const isUser = message.role === 'user';
 
   return (
@@ -30,7 +30,11 @@ const MessageBubble = memo(({ message, onFeedback }) => {
                 // Check if internal link
                 if (props.href && props.href.startsWith('/')) {
                   return (
-                    <Link to={props.href} className='text-blue-500 hover:underline'>
+                    <Link
+                      to={props.href}
+                      className='text-blue-500 hover:underline'
+                      onClick={() => onClose?.()}
+                    >
                       {props.children}
                     </Link>
                   );
