@@ -5,6 +5,7 @@ import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
+import CapacitorBackButtonHandler from './components/CapacitorBackButtonHandler';
 import ChatWidget from './components/Chat/ChatWidget';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
@@ -181,6 +182,7 @@ function AppContent() {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      <CapacitorBackButtonHandler />
       <PWAUpdater />
       <Navbar />
       <SessionManager />
