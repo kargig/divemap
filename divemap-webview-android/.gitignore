@@ -1,0 +1,5 @@
+# Ignore release artifacts
+*.apk
+*.aab
+releases/
+release-notes/
