@@ -7,15 +7,17 @@ import { extractErrorMessage } from './apiErrors';
  *
  * @param {number|string} diveId - The ID of the dive
  * @param {string} mediaUrl - The URL of the image to use
+ * @param {number|string} mediaId - The ID of the media record (for trusted lookup)
  * @param {object} crop - Crop parameters {x, y, width, height, unit}
  * @returns {Promise<Blob>} The generated image as a blob
  */
-export const generateSocialImage = async (diveId, mediaUrl, crop) => {
+export const generateSocialImage = async (diveId, mediaUrl, mediaId, crop) => {
   try {
     const response = await api.post(
       `/api/v1/dives/${diveId}/social-image`,
       {
         media_url: mediaUrl,
+        media_id: mediaId,
         crop: crop,
       },
       {

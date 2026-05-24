@@ -95,27 +95,48 @@ async def generate_social_image(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     media_url = payload.get("media_url")
+    media_id = payload.get("media_id")
     crop = payload.get("crop")
     
-    if not media_url:
-        raise HTTPException(status_code=400, detail="media_url is required")
+    if not media_url and not media_id:
+        raise HTTPException(status_code=400, detail="media_url or media_id is required")
 
-    # SSRF Protection Step 1: Validate incoming URL format/scope
-    validated_url = _validate_media_url(media_url)
-    
-    # SSRF/IDOR Protection Step 2: Verify association and use URL from trusted DB record
-    # This prevents using a user-controlled string at the final network sink.
-    dive_media_record = db.query(DiveMedia).filter(
-        DiveMedia.dive_id == dive_id, 
-        DiveMedia.url == validated_url
-    ).first()
-    
+    # SSRF Protection Step 1: Validate/Lookup the media
+    dive_media_record = None
     site_media_record = None
-    if not dive_media_record and dive.dive_site_id:
-        site_media_record = db.query(SiteMedia).filter(
-            SiteMedia.dive_site_id == dive.dive_site_id, 
-            SiteMedia.url == validated_url
+    
+    if media_id:
+        # Preferred: Lookup by ID
+        dive_media_record = db.query(DiveMedia).filter(
+            DiveMedia.id == media_id,
+            DiveMedia.dive_id == dive_id
         ).first()
+        
+        if not dive_media_record and dive.dive_site_id:
+            site_media_record = db.query(SiteMedia).filter(
+                SiteMedia.id == media_id,
+                SiteMedia.dive_site_id == dive.dive_site_id
+            ).first()
+    else:
+        # Fallback: Lookup by URL (format-aware)
+        from sqlalchemy import literal
+        validated_url = _validate_media_url(media_url)
+        
+        # Check if the URL matches the record. We handle R2 paths vs presigned URLs by checking both
+        dive_media_record = db.query(DiveMedia).filter(
+            DiveMedia.dive_id == dive_id
+        ).filter(
+            (DiveMedia.url == validated_url) | 
+            (literal(media_url).like('%' + DiveMedia.url + '%')) # Handle presigned URL containing the path
+        ).first()
+        
+        if not dive_media_record and dive.dive_site_id:
+            site_media_record = db.query(SiteMedia).filter(
+                SiteMedia.dive_site_id == dive.dive_site_id
+            ).filter(
+                (SiteMedia.url == validated_url) |
+                (literal(media_url).like('%' + SiteMedia.url + '%'))
+            ).first()
         
     if not dive_media_record and not site_media_record:
         raise HTTPException(status_code=403, detail="Not authorized: media does not belong to this dive or site")
@@ -123,10 +144,20 @@ async def generate_social_image(
     # Use the URL from our database as the trusted source
     trusted_media_url = dive_media_record.url if dive_media_record else site_media_record.url
     
+    # If it's a relative R2 path, we need to generate a full URL to fetch it
+    # BUT wait, the SocialImageService needs the image bytes.
+    # We can fetch it via R2 storage service directly if it's an R2 path
+    
     # SSRF Protection Step 3: Validate and Canonicalize the trusted URL
     # Hardening: Build canonical outbound URL from trusted components
-    trusted_validated_url = _validate_media_url(trusted_media_url)
-    outbound_media_url = trusted_validated_url if trusted_validated_url.startswith("/") else _build_canonical_media_url(trusted_validated_url)
+    if trusted_media_url.startswith("user_"):
+        # It's an R2 path, generate a presigned URL for internal fetching
+        # We use a short expiry
+        fetch_url = r2_storage.get_photo_url(trusted_media_url, expires_in=60)
+        outbound_media_url = fetch_url
+    else:
+        trusted_validated_url = _validate_media_url(trusted_media_url)
+        outbound_media_url = trusted_validated_url if trusted_validated_url.startswith("/") else _build_canonical_media_url(trusted_validated_url)
 
     # Fetch image from R2 or local storage
     try:
