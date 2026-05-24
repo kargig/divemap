@@ -45,6 +45,7 @@
     "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
+    "react-image-crop": "^11.0.10",
     "react-leaflet": "^4.2.1",
     "react-markdown": "^10.1.0",
     "react-query": "^3.39.3",
@@ -58,6 +59,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.5",
     "@eslint/js": "^9.33.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
@@ -86,8 +88,7 @@
     "vite-plugin-pwa": "^1.2.0",
     "vite-plugin-svgr": "^4.5.0",
     "vitest": "^3.2.4",
-    "workbox-window": "^7.4.0",
-    "@capacitor/cli": "^7.6.5"
+    "workbox-window": "^7.4.0"
   },
   "scripts": {
     "postinstall": "npx update-browserslist-db@latest || true",

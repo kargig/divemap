@@ -3,7 +3,25 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import orjson
+import re
+import unicodedata
 from cachetools import cached, TTLCache
+
+
+def slugify(text: str) -> str:
+    """
+    Generate a URL-friendly slug from text.
+    Mirrors the intent of the frontend slugify but handles unicode normalization.
+    """
+    if not text:
+        return ""
+    text = str(text)
+    # Normalize unicode characters
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    text = text.lower().strip()
+    text = re.sub(r'[\s\W-]+', '-', text)
+    text = text.strip('-')
+    return text
 
 
 def is_diving_center_reviews_enabled(db: Session) -> bool:
