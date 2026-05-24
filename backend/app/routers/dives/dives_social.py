@@ -30,6 +30,25 @@ def _is_allowed_media_host(hostname: str) -> bool:
         
     return hostname in trusted_domains
 
+def _build_canonical_media_url(validated_media_url: str) -> str:
+    """
+    Build a canonical outbound URL from an already validated media URL.
+    This avoids using a fully user-controlled URL string at the request sink.
+    """
+    parsed = urlparse(validated_media_url)
+    if parsed.scheme.lower() not in ALLOWED_MEDIA_URL_SCHEMES or not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Invalid media_url")
+    
+    # Reject URL features we do not need for media retrieval.
+    if parsed.username or parsed.password or parsed.params or parsed.fragment:
+        raise HTTPException(status_code=400, detail="Invalid media_url format")
+    
+    # Reconstruct canonical URL. We include query because R2 presigned URLs need it.
+    canonical_url = f"https://{parsed.hostname}{parsed.path or ''}"
+    if parsed.query:
+        canonical_url += f"?{parsed.query}"
+    return canonical_url
+
 def _validate_media_url(media_url: str) -> str:
     """
     Validate the media_url to prevent SSRF.
@@ -83,9 +102,8 @@ async def generate_social_image(
 
     # SSRF Protection: Validate the URL
     validated_url = _validate_media_url(media_url)
-
+    
     # VULN-001 Fix: Verify that the media is actually associated with this dive or its site
-    # This prevents users from using unauthorized images from the trusted R2 bucket
     is_dive_media = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id, DiveMedia.url == media_url).first() is not None
     is_site_media = False
     if not is_dive_media and dive.dive_site_id:
@@ -94,17 +112,20 @@ async def generate_social_image(
     if not is_dive_media and not is_site_media:
         raise HTTPException(status_code=403, detail="Not authorized: media does not belong to this dive or site")
 
+    # Hardening: Build canonical outbound URL from validated components
+    outbound_media_url = validated_url if validated_url.startswith("/") else _build_canonical_media_url(validated_url)
+
     # Fetch image from R2 or local storage
     try:
-        if validated_url.startswith("/"):
+        if outbound_media_url.startswith("/"):
             # Internal fetch for local files
-            full_media_url = f"http://localhost:8000{validated_url}"
+            full_media_url = f"http://localhost:8000{outbound_media_url}"
             async with httpx.AsyncClient() as client:
                 resp = await client.get(full_media_url, follow_redirects=False)
         else:
             async with httpx.AsyncClient() as client:
                 # follow_redirects=False is a critical security measure against redirect-based SSRF
-                resp = await client.get(validated_url, follow_redirects=False)
+                resp = await client.get(outbound_media_url, follow_redirects=False)
                 
         if resp.status_code != 200:
             raise HTTPException(status_code=400, detail="Could not fetch image")
