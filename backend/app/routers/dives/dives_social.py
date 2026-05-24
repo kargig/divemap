@@ -100,20 +100,33 @@ async def generate_social_image(
     if not media_url:
         raise HTTPException(status_code=400, detail="media_url is required")
 
-    # SSRF Protection: Validate the URL
+    # SSRF Protection Step 1: Validate incoming URL format/scope
     validated_url = _validate_media_url(media_url)
     
-    # VULN-001 Fix: Verify that the media is actually associated with this dive or its site
-    is_dive_media = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id, DiveMedia.url == media_url).first() is not None
-    is_site_media = False
-    if not is_dive_media and dive.dive_site_id:
-        is_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id == dive.dive_site_id, SiteMedia.url == media_url).first() is not None
+    # SSRF/IDOR Protection Step 2: Verify association and use URL from trusted DB record
+    # This prevents using a user-controlled string at the final network sink.
+    dive_media_record = db.query(DiveMedia).filter(
+        DiveMedia.dive_id == dive_id, 
+        DiveMedia.url == validated_url
+    ).first()
+    
+    site_media_record = None
+    if not dive_media_record and dive.dive_site_id:
+        site_media_record = db.query(SiteMedia).filter(
+            SiteMedia.dive_site_id == dive.dive_site_id, 
+            SiteMedia.url == validated_url
+        ).first()
         
-    if not is_dive_media and not is_site_media:
+    if not dive_media_record and not site_media_record:
         raise HTTPException(status_code=403, detail="Not authorized: media does not belong to this dive or site")
 
-    # Hardening: Build canonical outbound URL from validated components
-    outbound_media_url = validated_url if validated_url.startswith("/") else _build_canonical_media_url(validated_url)
+    # Use the URL from our database as the trusted source
+    trusted_media_url = dive_media_record.url if dive_media_record else site_media_record.url
+    
+    # SSRF Protection Step 3: Validate and Canonicalize the trusted URL
+    # Hardening: Build canonical outbound URL from trusted components
+    trusted_validated_url = _validate_media_url(trusted_media_url)
+    outbound_media_url = trusted_validated_url if trusted_validated_url.startswith("/") else _build_canonical_media_url(trusted_validated_url)
 
     # Fetch image from R2 or local storage
     try:
