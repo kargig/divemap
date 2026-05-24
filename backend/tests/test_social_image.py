@@ -2,6 +2,26 @@ import pytest
 from unittest.mock import patch, MagicMock
 from PIL import Image
 import io
+from app.services.social_image_service import SocialImageService
+
+def test_social_image_service_parsing():
+    """Unit test for SocialImageService internal parsing helpers."""
+    service = SocialImageService()
+    
+    # Test _parse_time
+    assert service._parse_time(10) == 10.0
+    assert service._parse_time("54:00 min") == 54.0
+    assert service._parse_time("1:30") == 1.5
+    assert service._parse_time("0:01:30") == 1.5
+    assert service._parse_time(None) is None
+    assert service._parse_time("invalid") is None
+    
+    # Test _parse_depth
+    assert service._parse_depth(20.5) == 20.5
+    assert service._parse_depth("30.2 m") == 30.2
+    assert service._parse_depth("15.0m") == 15.0
+    assert service._parse_depth(None) is None
+    assert service._parse_depth("invalid") is None
 
 def test_generate_social_image_endpoint(client, user_token, test_dive):
     # Create a small valid JPEG image
@@ -66,4 +86,43 @@ def test_generate_social_image_with_string_data(client, user_token, test_dive):
                 
                 assert response.status_code == 200
                 assert response.headers["content-type"] == "image/jpeg"
+
+def test_generate_social_image_unauthorized(client, user_token, test_dive, db_session, test_user_other):
+    """Test that a user cannot generate an image for someone else's private dive."""
+    # Make the dive private and change owner to another valid user
+    test_dive.is_private = True
+    test_dive.user_id = test_user_other.id
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/dives/{test_dive.id}/social-image",
+        json={"media_url": "https://example.com/test.jpg"},
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Not authorized"
+
+def test_generate_social_image_missing_media_url(client, user_token, test_dive):
+    """Test validation when media_url is missing."""
+    response = client.post(
+        f"/api/v1/dives/{test_dive.id}/social-image",
+        json={"crop": {"x": 0, "y": 0, "width": 100, "height": 100}},
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    
+    assert response.status_code == 400
+    assert "media_url is required" in response.json()["detail"]
+
+def test_generate_social_image_not_found(client, user_token):
+    """Test response for non-existent dive."""
+    response = client.post(
+        "/api/v1/dives/99999/social-image",
+        json={"media_url": "https://example.com/test.jpg"},
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    
+    assert response.status_code == 404
+    assert "Dive not found" in response.json()["detail"]
+
 
