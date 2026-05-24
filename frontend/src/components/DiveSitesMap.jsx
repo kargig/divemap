@@ -13,6 +13,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 import api from '../api';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import {
   getSuitabilityColor,
@@ -722,97 +723,135 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
             return (
               <Marker key={site.id} position={site.position} icon={createDiveSiteIcon(suitability)}>
-                <StablePopup maxWidth={240}>
-                  <div className='p-2 sm:p-3 max-h-[calc(100vh-160px)] overflow-y-auto'>
-                    <h3 className='font-semibold text-gray-900 mb-1 text-sm sm:text-base'>
-                      {site.name || `Dive Site #${site.id}`}
-                    </h3>
-                    {site.description && (
-                      <p className='text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2 max-w-[200px] sm:max-w-none'>
-                        {renderTextWithLinks(site.description)}
-                      </p>
-                    )}
-                    {(site.difficulty_code || site.average_rating) && (
-                      <div className='flex items-center justify-between mb-1.5 sm:mb-2'>
-                        {site.difficulty_code && (
+                <StablePopup maxWidth={200}>
+                  <div className='p-0.5 max-h-[calc(100vh-160px)] overflow-y-auto'>
+                    <div className='flex justify-between items-start mb-0.5'>
+                      <h3 className='font-bold text-[15px] leading-tight text-gray-900'>
+                        {site.name || `Dive Site #${site.id}`}
+                      </h3>
+                      {site.average_rating && (
+                        <span className='text-[11px] font-bold text-amber-600 whitespace-nowrap ml-1'>
+                          {site.average_rating.toFixed(1)}★
+                        </span>
+                      )}
+                    </div>
+
+                    <div className='flex flex-col gap-0.5 mb-2 mt-0.5'>
+                      {site.difficulty_code && (
+                        <div className='flex items-center text-[8px] font-bold uppercase tracking-tight'>
                           <span
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
+                            className={
+                              site.difficulty_code === 'OPEN_WATER'
+                                ? 'text-green-700'
+                                : site.difficulty_code === 'ADVANCED_OPEN_WATER'
+                                  ? 'text-amber-700'
+                                  : site.difficulty_code === 'DEEP_NITROX'
+                                    ? 'text-orange-700'
+                                    : 'text-red-700'
+                            }
                           >
                             {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>
-                        )}
-                        {site.average_rating && (
-                          <div className='flex items-center'>
-                            <span className='text-xs sm:text-sm text-gray-700'>
-                              {site.average_rating.toFixed(1)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                      {site.tags && site.tags.length > 0 && (
+                        <div className='text-[9px] text-gray-500 font-medium leading-tight'>
+                          {site.tags.map(tag => tag.name).join(', ')}
+                        </div>
+                      )}
+                    </div>
+
                     {recommendation && (
-                      <div className='border-t border-gray-200 pt-1.5 sm:pt-2 mt-1.5 sm:mt-2'>
-                        <h4 className='font-semibold text-xs sm:text-sm mb-1 sm:mb-2 text-blue-800 border-b pb-1'>
-                          Weather & Sea Conditions
-                        </h4>
-                        <div className='space-y-1 sm:space-y-1.5'>
-                          <div className='flex items-center gap-2'>
-                            <span
-                              className='px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium rounded-full'
-                              style={{
-                                backgroundColor: `${getSuitabilityColor(recommendation.suitability || 'unknown')}20`,
-                                color: getSuitabilityColor(recommendation.suitability || 'unknown'),
-                                border: `1px solid ${getSuitabilityColor(recommendation.suitability || 'unknown')}40`,
-                              }}
+                      <div className='border-t border-gray-100 pt-2 mt-1'>
+                        <div className='flex justify-between items-center mb-1.5'>
+                          <h4 className='font-bold text-[10px] text-blue-800 uppercase tracking-tight'>
+                            Weather
+                          </h4>
+                          <span
+                            className='px-1.5 py-0.5 text-[8px] font-bold uppercase rounded-full'
+                            style={{
+                              backgroundColor: `${getSuitabilityColor(recommendation.suitability || 'unknown')}20`,
+                              color: getSuitabilityColor(recommendation.suitability || 'unknown'),
+                              border: `1px solid ${getSuitabilityColor(recommendation.suitability || 'unknown')}40`,
+                            }}
+                          >
+                            {getSuitabilityLabel(recommendation.suitability || 'unknown')}
+                          </span>
+                        </div>
+                        <div className='flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-gray-600'>
+                          <div className='flex items-center gap-0.5' title='Wind'>
+                            <svg
+                              xmlns='http://www.w3.org/2000/svg'
+                              width='10'
+                              height='10'
+                              viewBox='0 0 24 24'
+                              fill='none'
+                              stroke='currentColor'
+                              strokeWidth='2'
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              className='w-2.5 h-2.5 text-gray-500'
                             >
-                              {getSuitabilityLabel(recommendation.suitability || 'unknown')}
-                            </span>
+                              <path d='M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2' />
+                              <path d='M9.6 4.6A2 2 0 1 1 11 8H2' />
+                              <path d='M12.6 19.4A2 2 0 1 0 14 16H2' />
+                            </svg>
+                            <span>{formatWindSpeed(recommendation.wind_speed).ms}</span>
                           </div>
-                          <div className='text-[10px] sm:text-xs text-gray-600 space-y-0.5'>
-                            {recommendation.wind_speed && (
-                              <div>
-                                <strong>Wind:</strong>{' '}
-                                {formatWindSpeed(recommendation.wind_speed).ms} m/s{' '}
-                                {formatWindDirection(recommendation.wind_direction).cardinal}
+                          {recommendation.wave_height !== undefined &&
+                            recommendation.wave_height !== null && (
+                              <div className='flex items-center gap-0.5' title='Waves'>
+                                <svg
+                                  xmlns='http://www.w3.org/2000/svg'
+                                  width='10'
+                                  height='10'
+                                  viewBox='0 0 24 24'
+                                  fill='none'
+                                  stroke='currentColor'
+                                  strokeWidth='2'
+                                  strokeLinecap='round'
+                                  strokeLinejoin='round'
+                                  className='w-2.5 h-2.5 text-gray-500'
+                                >
+                                  <path d='M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1' />
+                                  <path d='M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1' />
+                                  <path d='M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1' />
+                                </svg>
+                                <span>{recommendation.wave_height.toFixed(1)}m</span>
                               </div>
                             )}
-                            {recommendation.wave_height !== undefined &&
-                              recommendation.wave_height !== null && (
-                                <div>
-                                  <strong>Waves:</strong> {recommendation.wave_height.toFixed(1)}m{' '}
-                                  {recommendation.wave_period
-                                    ? `(${recommendation.wave_period.toFixed(1)}s)`
-                                    : ''}
-                                </div>
-                              )}
-                            {recommendation.sea_surface_temperature !== undefined &&
-                              recommendation.sea_surface_temperature !== null && (
-                                <div>
-                                  <strong>Water:</strong>{' '}
-                                  {recommendation.sea_surface_temperature.toFixed(1)}°C
-                                </div>
-                              )}
-                          </div>
-                          {recommendation.reasoning && (
-                            <div className='text-xs text-gray-700 mt-1 italic'>
-                              {recommendation.reasoning}
-                            </div>
-                          )}
-                          {(recommendation.suitability || 'unknown') === 'unknown' && (
-                            <div className='text-[10px] sm:text-xs text-amber-600 mt-0.5 sm:mt-1 font-medium'>
-                              ⚠️ Warning: Shore direction unknown
-                            </div>
-                          )}
+                          {recommendation.sea_surface_temperature !== undefined &&
+                            recommendation.sea_surface_temperature !== null && (
+                              <div className='flex items-center gap-0.5' title='Water Temp'>
+                                <svg
+                                  xmlns='http://www.w3.org/2000/svg'
+                                  width='10'
+                                  height='10'
+                                  viewBox='0 0 24 24'
+                                  fill='none'
+                                  stroke='currentColor'
+                                  strokeWidth='2'
+                                  strokeLinecap='round'
+                                  strokeLinejoin='round'
+                                  className='w-2.5 h-2.5 text-gray-500'
+                                >
+                                  <path d='M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z' />
+                                </svg>
+                                <span>{recommendation.sea_surface_temperature.toFixed(1)}°</span>
+                              </div>
+                            )}
                         </div>
                       </div>
                     )}
-                    <Link
-                      to={`/dive-sites/${site.id}`}
-                      state={{ from: window.location.pathname + window.location.search }}
-                      className='block w-full text-center px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600 text-white !text-white text-xs sm:text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm mt-1.5 sm:mt-2'
-                    >
-                      View Details
-                    </Link>
+
+                    <div className='mt-2 pt-1.5 border-t border-gray-50 text-center'>
+                      <a
+                        href={`/dive-sites/${site.id}`}
+                        className='text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-wider'
+                      >
+                        View Details →
+                      </a>
+                    </div>
                   </div>
                 </StablePopup>
               </Marker>

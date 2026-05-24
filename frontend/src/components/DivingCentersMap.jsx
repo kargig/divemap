@@ -97,39 +97,34 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
       // Add popup
       const popupContent = `
-        <div class="p-2">
-          <div class="flex justify-between items-start mb-2">
-            <h3 class="text-lg font-semibold text-gray-900 pr-2">${escape(marker.name)}</h3>
+                <div class="p-0.5">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="text-[15px] font-bold text-gray-900 leading-tight">${escape(marker.name)}</h3>
             ${
               marker.average_rating
-                ? `
-              <span class="text-sm font-semibold text-gray-700">
-                ${marker.average_rating.toFixed(1)}/10
-              </span>
-            `
+                ? `<span class="text-[11px] font-bold text-amber-600 whitespace-nowrap ml-1">${marker.average_rating.toFixed(1)}★</span>`
                 : ''
             }
           </div>
-          ${marker.description ? `<p class="text-sm text-gray-600 mb-3 line-clamp-2">${escape(marker.description)}</p>` : ''}
-          <div class="space-y-1 mb-3">
-            ${
-              marker.email
-                ? `
-              <div class="text-xs text-gray-500">
-                📧 <span class="masked-email">${marker.email.replace(/(.{2}).*(@.*)/, '$1***$2')}</span>
-              </div>
-            `
-                : ''
-            }
-            ${marker.phone ? `<div class="text-xs text-gray-500">📞 ${marker.phone}</div>` : ''}
-            ${marker.website ? `<div class="text-xs text-gray-500">🌐 ${marker.website}</div>` : ''}
+          <div class="flex items-center gap-2 text-[10px] text-gray-500 mb-1.5">
+            ${marker.type || 'Diving Center'}
           </div>
-          <a href="/diving-centers/${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
-            View Details
-          </a>
+          <div class="flex items-center space-x-3 mt-1">
+            ${marker.phone ? `<a href="tel:${marker.phone}" title="Call" class="text-blue-600 hover:text-blue-800">📞</a>` : ''}
+            ${marker.email ? `<a href="mailto:${marker.email}" title="Email" class="text-blue-600 hover:text-blue-800">✉️</a>` : ''}
+            ${marker.website ? `<a href="${(marker.website || '').startsWith('http') ? marker.website : `https://${marker.website}`}" target="_blank" rel="noopener" title="Website" class="text-blue-600 hover:text-blue-800">🌐</a>` : ''}
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-gray-50 text-center">
+            <a href="/diving-centers/${marker.id}" class="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-wider">
+              View Details →
+            </a>
+          </div>
         </div>
       `;
-      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent));
+      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent), {
+        maxWidth: 200,
+        minWidth: 180,
+      });
 
       clusterGroup.addLayer(leafletMarker);
     });
@@ -151,7 +146,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
       // Create cluster popup content
       const clusterPopupContent = `
-        <div class="p-2">
+                <div class="p-0.5">
           <h3 class="font-semibold text-gray-900 mb-2">${childCount} Diving Centers</h3>
           <div class="space-y-2 max-h-48 overflow-y-auto">
             ${childMarkers

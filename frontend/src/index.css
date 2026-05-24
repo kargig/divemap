@@ -1667,10 +1667,14 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
   z-index: 1000 !important;
 }
 
+.leaflet-popup-content {
+  margin: 5px 5px 5px 5px !important;
+}
+
 /* Mobile popup constraints - prevent popup from exceeding viewport */
 @media (max-width: 768px) {
   .leaflet-popup-content-wrapper {
-    max-width: calc(100vw - 40px) !important;
+    max-width: 200px !important;
     max-height: calc(100vh - 120px) !important;
     overflow: hidden !important;
   }
@@ -1684,6 +1688,6 @@ div[class*='fixed top-16 left-0 right-0 bg-blue-700'] {
 
   /* Ensure popup doesn't cause map to scroll */
   .leaflet-popup {
-    max-width: calc(100vw - 40px) !important;
+    max-width: 200px !important;
   }
 }
