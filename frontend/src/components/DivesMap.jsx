@@ -100,102 +100,34 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
       // Add popup
       const popupContent = `
-        <div class="p-2">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold text-gray-900">
+                <div class="p-0.5">
+          <div class="flex items-start justify-between mb-1">
+                        <h3 class="text-[15px] font-bold text-gray-900 leading-tight">
               ${escape(marker.name || marker.dive_site?.name || 'Unnamed Dive')}
             </h3>
-            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-              Dive
+            <span class="text-[11px] font-bold text-amber-600 whitespace-nowrap ml-1">
+              ${marker.user_rating ? `${marker.user_rating}★` : ''}
             </span>
           </div>
-          <div class="space-y-2 mb-3">
-            <div class="flex items-center text-sm text-gray-600">
-              <span class="mr-2">📅</span>
-              <span>${formatDate(marker.dive_date)}</span>
-              ${
-                marker.dive_time
-                  ? `
-                <span class="ml-2 mr-1">🕐</span>
-                <span>${formatTime(marker.dive_time, { hour: '2-digit', minute: '2-digit' })}</span>
-              `
-                  : ''
-              }
-            </div>
-            ${
-              marker.difficulty_code
-                ? `
-              <div class="flex items-center">
-                <span class="px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(marker.difficulty_code)}">
-                  ${marker.difficulty_label || getDifficultyLabel(marker.difficulty_code)}
-                </span>
-              </div>
-            `
-                : ''
-            }
-            <div class="flex items-center gap-4 text-sm text-gray-600">
-              ${
-                marker.max_depth
-                  ? `
-                <div class="flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                  <span>${marker.max_depth}m max</span>
-                </div>
-              `
-                  : ''
-              }
-              ${
-                marker.duration
-                  ? `
-                <div class="flex items-center gap-1">
-                  <span>🕐</span>
-                  <span>${marker.duration}min</span>
-                </div>
-              `
-                  : ''
-              }
-              ${
-                marker.user_rating
-                  ? `
-                <div class="flex items-center gap-1">
-                  <span>⭐</span>
-                  <span>${marker.user_rating}/10</span>
-                </div>
-              `
-                  : ''
-              }
-            </div>
-            ${
-              marker.dive_information
-                ? `
-              <p class="text-sm text-gray-700 line-clamp-2">${escape(marker.dive_information)}</p>
-            `
-                : ''
-            }
-            ${
-              marker.tags && marker.tags.length > 0
-                ? `
-              <div class="flex flex-wrap gap-1">
-                ${marker.tags
-                  .map(
-                    tag => `
-                  <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                    ${escape(tag.name)}
-                  </span>
-                `
-                  )
-                  .join('')}
-              </div>
-            `
-                : ''
-            }
+          <div class="text-[10px] text-gray-500 mb-1.5">
+            Dive on ${formatDate(marker.dive_date)}
           </div>
-          <a href="/dives/${marker.id}/${slugify(marker.name || marker.dive_site?.name || 'dive')}-${marker.dive_date}-dive-${marker.id}" class="block w-full text-center px-3 py-2 bg-blue-600 text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm" style="color: white !important;">
-            View Details
-          </a>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-600 mb-2">
+            ${marker.average_depth ? `<div class="flex items-center gap-1"><span>${marker.average_depth}m avg</span></div>` : ''}
+            ${marker.max_depth ? `<div class="flex items-center gap-1"><span>${marker.max_depth}m max</span></div>` : ''}
+            ${marker.duration ? `<div class="flex items-center gap-1"><span>${marker.duration}min</span></div>` : ''}
+          </div>
+          <div class="mt-2 pt-1.5 border-t border-gray-50 text-center">
+            <a href="/dives/${marker.id}" class="text-[10px] font-bold text-blue-600 hover:underline uppercase tracking-wider">
+              View Details →
+            </a>
+          </div>
         </div>
       `;
-      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent));
+      leafletMarker.bindPopup(DOMPurify.sanitize(popupContent), {
+        maxWidth: 200,
+        minWidth: 180,
+      });
 
       clusterGroup.addLayer(leafletMarker);
     });
@@ -217,7 +149,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
 
       // Create cluster popup content
       const clusterPopupContent = `
-        <div class="p-2">
+                <div class="p-0.5">
           <h3 class="font-semibold text-gray-900 mb-2">${childCount} Dives</h3>
           <div class="space-y-2 max-h-48 overflow-y-auto">
             ${childMarkers
@@ -285,7 +217,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
         <!-- Green circle background -->
         <circle cx="12" cy="12" r="10" fill="#16a34a" stroke="white" stroke-width="1"/>
         <!-- White dive mask symbol -->
-        <path d="M8 8 L16 8 M8 8 L8 12 M16 8 L16 12 M8 12 L16 12 M10 10 L14 10 M10 11 L14 11" 
+        <path d="M8 8 L16 8 M8 8 L8 12 M16 8 L16 12 M8 12 L16 12 M10 10 L14 10 M10 11 L14 11"
               stroke="white" stroke-width="1.5" stroke-linecap="round"/>
         <!-- Small bubbles -->
         <circle cx="9" cy="6" r="1" fill="white" opacity="0.8"/>
