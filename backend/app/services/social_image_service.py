@@ -40,14 +40,18 @@ class SocialImageService:
         # Task 3: Smooth Gradients (More transparent to see the image)
         self._draw_smooth_gradients(img, width, height)
 
-        draw = ImageDraw.Draw(img, 'RGBA')
-
         # Task 2: Profile Line Drawing (Overlayed with padding)
         if profile_data:
-            # Profile occupies bottom 35% but we leave 5% padding at the very bottom
-            profile_area_height = height * 0.30
-            y_offset = height - profile_area_height - (height * 0.05)
-            self._draw_profile(draw, width, profile_area_height, y_offset, profile_data)
+            # Profile area starts immediately after the axis line (2% padding)
+            profile_x_start = width * 0.02
+            profile_area_width = width - profile_x_start - (width * 0.02) # 2% right margin
+            profile_area_height = height * 0.28
+            # Move profile down to sit halfway between previous position and metrics row (9% bottom margin)
+            y_offset = height - profile_area_height - (height * 0.09)
+            self._draw_profile(img, profile_area_width, profile_area_height, y_offset, profile_x_start, profile_data)
+
+        # We need a new draw object if alpha_composite was used
+        draw = ImageDraw.Draw(img, 'RGBA')
 
         # Task 3: Metadata Overlay
         self._draw_metadata(draw, dive, profile_data, width, height)
@@ -75,15 +79,13 @@ class SocialImageService:
         # Bottom gradient (40% height, max alpha 160)
         bottom_grad_height = int(height * 0.4)
         for i in range(bottom_grad_height):
-            # i goes from 0 to bottom_grad_height
-            # we want alpha 0 at start of gradient (top) and 160 at end (bottom)
             alpha = int(160 * (i / bottom_grad_height))
             y = height - bottom_grad_height + i
             draw.line([(0, y), (width, y)], fill=(0, 0, 0, alpha))
             
         img.alpha_composite(overlay)
 
-    def _draw_profile(self, draw, width, height, y_offset, profile_data):
+    def _draw_profile(self, img, width, height, y_offset, x_offset, profile_data):
         samples = profile_data.get('samples', [])
         if not samples:
             return
@@ -108,15 +110,43 @@ class SocialImageService:
             for s in parsed_samples:
                 curr_time = float(s['time'])
                 curr_depth = float(s['depth'])
-                x = (curr_time / max_time) * width
+                x = x_offset + (curr_time / max_time) * width
                 # 0 depth at y_offset, max depth at y_offset + height
                 y = y_offset + ((curr_depth / max_depth) * height)
                 points.append((x, y))
             
-            # Area fill (Subtle blue overlay)
-            fill_points = [(0, y_offset + height)] + points + [(width, y_offset + height)]
-            draw.polygon(fill_points, fill=(59, 130, 246, 50))
+            # --- 1. Area fill with Gradient ---
+            # Create a dedicated layer for the profile fill
+            bottom_y = y_offset + height
+            fill_points = [(x_offset, bottom_y)] + points + [(x_offset + width, bottom_y)]
             
+            # Create mask from the polygon
+            mask = Image.new('L', img.size, 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.polygon(fill_points, fill=255)
+            
+            # Create gradient layer
+            grad_layer = Image.new('RGBA', img.size, (0, 0, 0, 0))
+            grad_draw = ImageDraw.Draw(grad_layer)
+            
+            for y in range(int(y_offset), int(bottom_y + 1)):
+                if y >= img.height: continue
+                # rel_y: 0 at top, 1 at bottom
+                rel_y = (y - y_offset) / height
+                # Gradient: subtle blue fade (15 to 85 alpha)
+                alpha = int(15 + (70 * rel_y))
+                grad_draw.line([(0, y), (img.width, y)], fill=(59, 130, 246, alpha))
+            
+            # Composite the masked gradient onto the main image
+            final_fill = Image.new('RGBA', img.size, (0, 0, 0, 0))
+            final_fill.paste(grad_layer, (0, 0), mask=mask)
+            img.alpha_composite(final_fill)
+            
+            # --- 2. Draw depth axis (Overlayed) ---
+            draw = ImageDraw.Draw(img, 'RGBA')
+            self._draw_depth_axis(draw, x_offset, y_offset, height, max_depth)
+            
+            # --- 3. Draw lines on top ---
             # Line Shadow (Soft dark line slightly offset)
             shadow_points = [(p[0] + 1.2, p[1] + 1.2) for p in points]
             draw.line(shadow_points, fill=(0, 0, 0, 100), width=5, joint="round")
@@ -125,6 +155,24 @@ class SocialImageService:
             draw.line(points, fill=(255, 255, 255, 240), width=4, joint="round")
         except (ValueError, KeyError, IndexError):
             return
+
+    def _draw_depth_axis(self, draw, x_offset, y_offset, height, max_depth):
+        """Draws a vertical depth axis on the left with overlaid labels."""
+        # Axis line - sitting directly at the start of the profile
+        line_x = x_offset
+        draw.line([(line_x, y_offset), (line_x, y_offset + height)], fill=(255, 255, 255, 100), width=1)
+        
+        font_axis = self._get_font(int(height * 0.09))
+        
+        # Ticks and labels (0m and Max Depth) to the RIGHT of the line, OVERLAYING the profile
+        text_x = line_x + 5
+        
+        # 0m label
+        draw.text((text_x, y_offset), "0m", font=font_axis, fill=(255, 255, 255, 200), anchor="lt")
+        
+        # Max Depth label
+        max_depth_str = f"{float(max_depth):.0f}m"
+        draw.text((text_x, y_offset + height), max_depth_str, font=font_axis, fill=(255, 255, 255, 200), anchor="ls")
 
     def _get_font(self, size):
         if self.default_font_path:
@@ -214,7 +262,8 @@ class SocialImageService:
         # Position at right edge
         rw, rh = rotated_txt.size
         x = width - rw - int(width * 0.02)
-        y = (height - rh) // 2
+        # Move higher than center to avoid overlap with profile line
+        y = (height - rh) // 2 - int(height * 0.08)
         
         img.alpha_composite(rotated_txt, (x, y))
 

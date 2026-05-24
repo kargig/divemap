@@ -100,7 +100,12 @@ const SocialShareModal = ({ isOpen, onClose, dive, diveMedia = [] }) => {
         height: crop.height * scaleY,
       };
 
-      const blob = await generateSocialImage(dive.id, selectedImage.url, pixelCrop);
+      const blob = await generateSocialImage(
+        dive.id,
+        selectedImage.url,
+        selectedImage.id,
+        pixelCrop
+      );
 
       const fileName = `dive_${dive.id}_social_${Date.now()}.jpg`;
       downloadBlob(blob, fileName);

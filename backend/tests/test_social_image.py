@@ -126,7 +126,36 @@ def test_generate_social_image_missing_media_url(client, user_token, test_dive):
     )
 
     assert response.status_code == 400
-    assert "media_url is required" in response.json()["detail"]
+    assert "media_url or media_id is required" in response.json()["detail"]
+
+def test_generate_social_image_with_media_id(client, user_token, test_dive, db_session):
+    """Test generating an image using media_id instead of raw URL."""
+    # Add media record for this dive
+    media = DiveMedia(dive_id=test_dive.id, url="https://example.com/test.jpg", media_type="photo")
+    db_session.add(media)
+    db_session.commit()
+
+    # Create a small valid JPEG image
+    img = Image.new('RGB', (100, 100), color = 'green')
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    valid_jpeg_bytes = img_byte_arr.getvalue()
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = valid_jpeg_bytes
+    
+    with patch("httpx.AsyncClient.get", return_value=mock_response):
+        with patch("os.getenv", side_effect=lambda k, d=None: "example.com" if k == "R2_PUBLIC_DOMAIN" else d):
+            response = client.post(
+                f"/api/v1/dives/{test_dive.id}/social-image",
+                json={"media_id": media.id, "crop": {"x": 0, "y": 0, "width": 100, "height": 100}},
+                headers={"Authorization": f"Bearer {user_token}"}
+            )
+            
+            assert response.status_code == 200
+            assert response.headers["content-type"] == "image/jpeg"
+
 
 def test_generate_social_image_not_found(client, user_token):
     """Test response for non-existent dive."""
