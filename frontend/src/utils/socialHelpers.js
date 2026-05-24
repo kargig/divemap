@@ -1,9 +1,10 @@
 import api from '../api';
+
 import { extractErrorMessage } from './apiErrors';
 
 /**
  * Generates a social media image for a dive.
- * 
+ *
  * @param {number|string} diveId - The ID of the dive
  * @param {string} mediaUrl - The URL of the image to use
  * @param {object} crop - Crop parameters {x, y, width, height, unit}
@@ -29,7 +30,7 @@ export const generateSocialImage = async (diveId, mediaUrl, crop) => {
 
 /**
  * Downloads a blob as a file.
- * 
+ *
  * @param {Blob} blob - The blob to download
  * @param {string} fileName - The name of the file
  */
