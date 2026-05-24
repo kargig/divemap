@@ -6,6 +6,50 @@ from app.services.dive_profile_parser import DiveProfileParser
 from app.utils import slugify
 import httpx
 import orjson
+import os
+from urllib.parse import urlparse
+from typing import Set
+
+# SSRF Protection Constants
+ALLOWED_MEDIA_URL_SCHEMES: Set[str] = {"https"}
+
+def _is_allowed_media_host(hostname: str) -> bool:
+    """Check if the hostname is one of our trusted R2 domains."""
+    hostname = hostname.lower()
+    trusted_domains = []
+    
+    account_id = os.getenv("R2_ACCOUNT_ID")
+    if account_id:
+        trusted_domains.append(f"{account_id}.r2.cloudflarestorage.com")
+        trusted_domains.append(f"pub-{account_id}.r2.dev")
+        
+    public_domain = os.getenv("R2_PUBLIC_DOMAIN")
+    if public_domain:
+        trusted_domains.append(public_domain.lower())
+        
+    return hostname in trusted_domains
+
+def _validate_media_url(media_url: str) -> str:
+    """
+    Validate the media_url to prevent SSRF.
+    Allows trusted R2 domains and local /uploads paths.
+    """
+    # Allow local relative paths for development
+    if media_url.startswith("/uploads/"):
+        return media_url
+        
+    parsed = urlparse(media_url)
+    
+    if parsed.scheme.lower() not in ALLOWED_MEDIA_URL_SCHEMES:
+        raise HTTPException(status_code=400, detail="Invalid media_url scheme")
+        
+    if not parsed.hostname:
+        raise HTTPException(status_code=400, detail="Invalid media_url host")
+        
+    if not _is_allowed_media_host(parsed.hostname):
+        raise HTTPException(status_code=400, detail="Invalid media_url: untrusted domain")
+        
+    return media_url
 
 @router.post("/{dive_id}/social-image")
 async def generate_social_image(
@@ -33,14 +77,24 @@ async def generate_social_image(
     if not media_url:
         raise HTTPException(status_code=400, detail="media_url is required")
 
-    # Fetch image from R2 or external URL
-    # For now, let's assume it's an R2 URL or full URL
+    # SSRF Protection: Validate the URL
+    validated_url = _validate_media_url(media_url)
+
+    # Fetch image from R2 or local storage
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(media_url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Could not fetch image")
-            image_bytes = resp.content
+        if validated_url.startswith("/"):
+            # Internal fetch for local files
+            full_media_url = f"http://localhost:8000{validated_url}"
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(full_media_url, follow_redirects=False)
+        else:
+            async with httpx.AsyncClient() as client:
+                # follow_redirects=False is a critical security measure against redirect-based SSRF
+                resp = await client.get(validated_url, follow_redirects=False)
+                
+        if resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Could not fetch image")
+        image_bytes = resp.content
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error fetching image: {str(e)}")
 
