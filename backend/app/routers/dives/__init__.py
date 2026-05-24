@@ -24,6 +24,7 @@ from . import dives_search
 from . import imports
 from . import dives_profiles
 from . import dives_utils
+from . import dives_social
 
 __all__ = [
     "router",

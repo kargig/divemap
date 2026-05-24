@@ -54,6 +54,7 @@ import ReactImage from '../components/Lightbox/ReactImage';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
+import SocialShareModal from '../components/SocialShareModal';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
@@ -103,6 +104,7 @@ const DiveDetail = () => {
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [profileHasDeco, setProfileHasDeco] = useState(undefined);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
     zoom: 15,
@@ -668,6 +670,15 @@ const DiveDetail = () => {
           {dive && dive.is_private && (user?.id === dive?.user_id || user?.is_admin) && (
             <ShareButton entityType='dive' entityData={dive} className='inline-flex items-center' />
           )}
+          {dive && (user?.id === dive?.user_id || user?.is_admin) && (
+            <Button
+              onClick={() => setIsSocialModalOpen(true)}
+              variant='secondary'
+              icon={<Image className='h-4 w-4' />}
+            >
+              Share to Social
+            </Button>
+          )}
           {(user?.id === dive?.user_id || user?.is_admin) && (
             <>
               <Button
@@ -1226,6 +1237,13 @@ const DiveDetail = () => {
             setProfileHasDeco(profileHasDeco);
           }
         }}
+      />
+
+      <SocialShareModal
+        isOpen={isSocialModalOpen}
+        onClose={() => setIsSocialModalOpen(false)}
+        dive={dive}
+        diveMedia={diveMedia}
       />
     </div>
   );
