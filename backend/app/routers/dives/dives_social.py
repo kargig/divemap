@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
 from .dives_shared import router, get_db, get_current_user, User, Dive, r2_storage, joinedload
+from app.models import DiveMedia, SiteMedia
 from app.services.social_image_service import SocialImageService
 from app.services.dive_profile_parser import DiveProfileParser
 from app.utils import slugify
@@ -36,6 +37,9 @@ def _validate_media_url(media_url: str) -> str:
     """
     # Allow local relative paths for development
     if media_url.startswith("/uploads/"):
+        # Prevent path traversal
+        if ".." in media_url or media_url.startswith("//"):
+             raise HTTPException(status_code=400, detail="Invalid local media_url path")
         return media_url
         
     parsed = urlparse(media_url)
@@ -79,6 +83,16 @@ async def generate_social_image(
 
     # SSRF Protection: Validate the URL
     validated_url = _validate_media_url(media_url)
+
+    # VULN-001 Fix: Verify that the media is actually associated with this dive or its site
+    # This prevents users from using unauthorized images from the trusted R2 bucket
+    is_dive_media = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id, DiveMedia.url == media_url).first() is not None
+    is_site_media = False
+    if not is_dive_media and dive.dive_site_id:
+        is_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id == dive.dive_site_id, SiteMedia.url == media_url).first() is not None
+        
+    if not is_dive_media and not is_site_media:
+        raise HTTPException(status_code=403, detail="Not authorized: media does not belong to this dive or site")
 
     # Fetch image from R2 or local storage
     try:
