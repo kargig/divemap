@@ -1,8 +1,8 @@
+import { Image as ImageIcon, Download, X, Maximize2, Check, Loader2 } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { Image as ImageIcon, Download, X, Maximize2, Check, Loader2 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 import { generateSocialImage, downloadBlob } from '../utils/socialHelpers';
 
