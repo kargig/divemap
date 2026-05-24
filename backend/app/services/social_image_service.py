@@ -45,9 +45,9 @@ class SocialImageService:
             # Profile area starts immediately after the axis line (2% padding)
             profile_x_start = width * 0.02
             profile_area_width = width - profile_x_start - (width * 0.02) # 2% right margin
-            profile_area_height = height * 0.28
-            # Move profile down to sit halfway between previous position and metrics row (9% bottom margin)
-            y_offset = height - profile_area_height - (height * 0.09)
+            # New dimensions: 18% height, starts at 75%, ends at 93% (7% bottom margin)
+            profile_area_height = height * 0.18
+            y_offset = height * 0.75
             self._draw_profile(img, profile_area_width, profile_area_height, y_offset, profile_x_start, profile_data)
 
         # We need a new draw object if alpha_composite was used
@@ -243,7 +243,8 @@ class SocialImageService:
 
     def _draw_url(self, img, width, height, full_url):
         """Draws the full URL vertically along the right edge."""
-        font_url = self._get_font(int(height * 0.022))
+        # Increased font size (0.022 -> 0.026)
+        font_url = self._get_font(int(height * 0.026))
         url_text = full_url.replace("https://", "").replace("http://", "").upper()
         
         # Calculate text size
@@ -254,7 +255,8 @@ class SocialImageService:
         # Create a transparent image for the text
         txt_img = Image.new('RGBA', (tw, th + 5), (0, 0, 0, 0))
         d = ImageDraw.Draw(txt_img)
-        d.text((0, 0), url_text, font=font_url, fill=(255, 255, 255, 140))
+        # Increased brightness/alpha (140 -> 170 is ~ +21%)
+        d.text((0, 0), url_text, font=font_url, fill=(255, 255, 255, 170))
         
         # Rotate 90 degrees counter-clockwise
         rotated_txt = txt_img.rotate(90, expand=True)
