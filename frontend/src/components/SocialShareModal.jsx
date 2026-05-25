@@ -179,6 +179,20 @@ const SocialShareModal = ({ isOpen, onClose, dive, diveMedia = [] }) => {
                 <span className='text-xs text-gray-400 font-mono'>Instagram Post</span>
               </button>
               <button
+                onClick={() => handleAspectChange(16 / 9)}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
+                  aspect === 16 / 9
+                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className='flex items-center gap-2'>
+                  <Maximize2 className='w-4 h-4' />
+                  <span>Landscape (16:9)</span>
+                </div>
+                <span className='text-xs text-gray-400 font-mono'>Video/TV</span>
+              </button>
+              <button
                 onClick={() => handleAspectChange(4 / 5)}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${
                   aspect === 4 / 5

@@ -102,7 +102,7 @@ def db_session(db_engine):
     # Use transactions instead of dropping/recreating tables
     connection = db_engine.connect()
     transaction = connection.begin()
-    
+
     session = TestingSessionLocal(bind=connection)
     try:
         yield session
@@ -129,28 +129,28 @@ def client(db_session):
         pass  # Ignore if reset fails
 
     app.dependency_overrides[get_db] = override_get_db
-    
+
     # Initialize fastapi-cache for tests
     from fastapi_cache import FastAPICache
     from fastapi_cache.backends.inmemory import InMemoryBackend
     FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache-test")
 
     # Create TestClient with specific configuration to handle anyio issues
-    test_client = TestClient(app, raise_server_exceptions=False)
-    
+    test_client = TestClient(app, raise_server_exceptions=True)
+
     # Set headers to simulate localhost request (exempts from rate limiting)
     test_client.headers.update({
         "X-Forwarded-For": "127.0.0.1",
         "X-Real-IP": "127.0.0.1",
         "Host": "localhost"
     })
-    
+
     try:
         yield test_client
     finally:
         # Ensure proper cleanup
         app.dependency_overrides.clear()
-        
+
         # Reset rate limiter cache after each test as well
         try:
             from app.limiter import limiter
@@ -387,7 +387,7 @@ def test_route(db_session, test_user, test_dive_site):
             }
         ]
     }
-    
+
     route = DiveRoute(
         dive_site_id=test_dive_site.id,
         created_by=test_user.id,
@@ -418,7 +418,7 @@ def test_route_other_user(db_session, test_user_other, test_dive_site):
             }
         ]
     }
-    
+
     route = DiveRoute(
         dive_site_id=test_dive_site.id,
         created_by=test_user_other.id,
@@ -453,7 +453,7 @@ def pytest_collection_modifyitems(config, items):
     import os
     database_url = os.getenv("DATABASE_URL", "sqlite:///./test.db")
     is_sqlite = database_url.startswith("sqlite")
-    
+
     if is_sqlite:
         skip_spatial = pytest.mark.skip(reason="Requires MySQL/PostGIS - skipped on SQLite")
         for item in items:

@@ -45,9 +45,14 @@ class SocialImageService:
             # Profile area starts immediately after the axis line (2% padding)
             profile_x_start = width * 0.02
             profile_area_width = width - profile_x_start - (width * 0.02) # 2% right margin
-            # New dimensions: 18% height, starts at 75%, ends at 93% (7% bottom margin)
+            # Default dimensions: 18% height, starts at 75%
             profile_area_height = height * 0.18
             y_offset = height * 0.75
+            
+            # Special layout for 16:9 (Landscape)
+            if width / height > 1.7:
+                y_offset = height * 0.73 # Moved down slightly while still leaving room for metrics
+                
             self._draw_profile(img, profile_area_width, profile_area_height, y_offset, profile_x_start, profile_data)
 
         # We need a new draw object if alpha_composite was used
@@ -175,6 +180,8 @@ class SocialImageService:
         draw.text((text_x, y_offset + height), max_depth_str, font=font_axis, fill=(255, 255, 255, 200), anchor="ls")
 
     def _get_font(self, size):
+        # Ensure a minimum size of 1 to avoid FreeType errors (invalid ppem value)
+        size = max(1, int(size))
         if self.default_font_path:
             return ImageFont.truetype(self.default_font_path, size)
         return ImageFont.load_default()
@@ -203,6 +210,8 @@ class SocialImageService:
         if aspect_ratio < 0.9: # Portrait or Story
             # Story (0.56) needs very small font to fit all metrics
             metrics_multiplier = 0.015 if aspect_ratio < 0.6 else 0.022
+        elif aspect_ratio > 1.7: # Landscape 16:9
+            metrics_multiplier = 0.030 # Slightly larger for landscape
             
         font_metrics = self._get_font(int(height * metrics_multiplier))
         metrics = []
@@ -236,15 +245,22 @@ class SocialImageService:
         if temp:
             metrics.append(f"TEMP: {temp}°C")
         
-        metrics_str = "  |  ".join(metrics)
+        separator = "  |  "
         metrics_y = height - padding - int(height * 0.03)
+        
+        if aspect_ratio > 1.7:
+            separator = "    |    " # Spread wider
+            # Ensure it's below the profile and closer to the bottom edge
+            metrics_y = height - int(height * 0.06)
+            
+        metrics_str = separator.join(metrics)
         # Draw metrics with a slight background glow for readability
         draw.text((padding, metrics_y), metrics_str, font=font_metrics, fill=(255, 255, 255, 255))
 
     def _draw_url(self, img, width, height, full_url):
         """Draws the full URL vertically along the right edge."""
-        # Increased font size (0.022 -> 0.026)
-        font_url = self._get_font(int(height * 0.026))
+        # Increased font size (0.026 -> 0.030)
+        font_url = self._get_font(int(height * 0.030))
         url_text = full_url.replace("https://", "").replace("http://", "").upper()
         
         # Calculate text size
@@ -255,8 +271,8 @@ class SocialImageService:
         # Create a transparent image for the text
         txt_img = Image.new('RGBA', (tw, th + 5), (0, 0, 0, 0))
         d = ImageDraw.Draw(txt_img)
-        # Increased brightness/alpha (140 -> 170 is ~ +21%)
-        d.text((0, 0), url_text, font=font_url, fill=(255, 255, 255, 170))
+        # Increased brightness/alpha (170 -> 210)
+        d.text((0, 0), url_text, font=font_url, fill=(255, 255, 255, 210))
         
         # Rotate 90 degrees counter-clockwise
         rotated_txt = txt_img.rotate(90, expand=True)
