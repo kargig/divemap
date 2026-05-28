@@ -653,7 +653,7 @@ const AdvancedDiveProfileChart = ({
         role='region'
         aria-label='Dive profile chart with interactive controls'
       >
-        <div className={`flex flex-col ${isMobileLandscape ? 'gap-0.5' : 'gap-4'}`}>
+        <div className={`flex flex-col ${isMobileLandscape ? 'gap-0.5' : 'gap-4'} px-3 sm:px-0`}>
           {isMobileLandscape && onClose && (
             <div className='flex justify-end'>
               <button
@@ -707,79 +707,64 @@ const AdvancedDiveProfileChart = ({
             )}
           </div>
 
-          <div className='mb-3'>
-            <div className='mb-2'>
-              <div className='text-xs text-gray-500 mb-1.5 font-medium'>Chart Display:</div>
-              <div
-                className={`${isMobileViewport && !isMobileLandscape ? 'grid grid-cols-2 gap-x-2 gap-y-1.5' : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}`}
-              >
-                <label className='flex items-center min-h-[34px] cursor-pointer'>
+          <div className='flex flex-wrap items-center gap-x-6 gap-y-2 mb-3 bg-gray-50/50 p-2 rounded-lg border border-gray-100'>
+            <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
+              <span className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>Display:</span>
+              <label className='flex items-center cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={showTemperature}
+                  onChange={e => setShowTemperature(e.target.checked)}
+                  className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
+                />
+                <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                  Temp
+                </span>
+              </label>
+              {hasDeco && hasStopdepth && (
+                <label className='flex items-center cursor-pointer'>
                   <input
                     type='checkbox'
-                    checked={showTemperature}
-                    onChange={e => setShowTemperature(e.target.checked)}
-                    className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
+                    checked={showCeiling}
+                    onChange={e => setShowCeiling(e.target.checked)}
+                    className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
                   />
                   <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                    Temperature
+                    Ceiling
                   </span>
                 </label>
-                {hasDeco && hasStopdepth && (
-                  <label className='flex items-center min-h-[34px] cursor-pointer'>
-                    <input
-                      type='checkbox'
-                      checked={showCeiling}
-                      onChange={e => setShowCeiling(e.target.checked)}
-                      className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
-                    />
-                    <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
-                      Ceiling
-                    </span>
-                  </label>
-                )}
-              </div>
+              )}
+              {chartData.some(s => s.cns !== null && s.cns !== undefined) && (
+                <label className='flex items-center cursor-pointer'>
+                  <input
+                    type='checkbox'
+                    checked={showCNS}
+                    onChange={e => setShowCNS(e.target.checked)}
+                    className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
+                  />
+                  <span
+                    className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
+                  >
+                    CNS
+                  </span>
+                </label>
+              )}
+              {hasDeco && chartData.some(s => s.stoptime > 0) && (
+                <label className='flex items-center cursor-pointer'>
+                  <input
+                    type='checkbox'
+                    checked={showStoptime}
+                    onChange={e => setShowStoptime(e.target.checked)}
+                    className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
+                  />
+                  <span
+                    className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
+                  >
+                    Stops
+                  </span>
+                </label>
+              )}
             </div>
-
-            {(chartData.some(s => s.cns !== null && s.cns !== undefined) ||
-              (hasDeco && chartData.some(s => s.stoptime > 0))) && (
-              <div>
-                <div className='text-xs text-gray-500 mb-1.5 font-medium'>Tooltip Display:</div>
-                <div
-                  className={`${isMobileViewport && !isMobileLandscape ? 'grid grid-cols-2 gap-x-2 gap-y-1.5' : `flex items-center ${isMobileLandscape ? 'space-x-2' : 'space-x-4'}`}`}
-                >
-                  {chartData.some(s => s.cns !== null && s.cns !== undefined) && (
-                    <label className='flex items-center min-h-[34px] cursor-pointer'>
-                      <input
-                        type='checkbox'
-                        checked={showCNS}
-                        onChange={e => setShowCNS(e.target.checked)}
-                        className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
-                      />
-                      <span
-                        className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
-                      >
-                        CNS
-                      </span>
-                    </label>
-                  )}
-                  {hasDeco && chartData.some(s => s.stoptime > 0) && (
-                    <label className='flex items-center min-h-[34px] cursor-pointer'>
-                      <input
-                        type='checkbox'
-                        checked={showStoptime}
-                        onChange={e => setShowStoptime(e.target.checked)}
-                        className='w-4 h-4 mr-2 cursor-pointer flex-shrink-0'
-                      />
-                      <span
-                        className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
-                      >
-                        Stop Time
-                      </span>
-                    </label>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           <div className='flex items-center gap-2'>
@@ -850,7 +835,7 @@ const AdvancedDiveProfileChart = ({
 
         <div
           ref={chartRef}
-          className={`bg-white rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-4'} relative`}
+          className={`bg-white rounded-lg border border-gray-200 p-0 relative`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -885,7 +870,7 @@ const AdvancedDiveProfileChart = ({
           <ResponsiveContainer width='100%' height={chartHeight}>
             <ComposedChart
               data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={isMobileViewport ? { top: 10, right: -5, left: -20, bottom: 0 } : { top: 20, right: -10, left: -30, bottom: 20 }}
               onMouseMove={handleMouseMove}
             >
               <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
@@ -982,7 +967,7 @@ const AdvancedDiveProfileChart = ({
         </div>
 
         <div
-          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-3'}`}
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-3'} mx-3 sm:mx-0`}
         >
           <div className='flex items-center justify-center space-x-6 text-sm'>
             <div className='flex items-center space-x-1'>

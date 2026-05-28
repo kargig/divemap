@@ -946,8 +946,8 @@ const DiveDetail = () => {
           )}
 
           {activeTab === 'profile' && (
-            <div className='bg-white rounded-lg shadow p-6'>
-              <div className='flex items-center gap-2 mb-4'>
+            <div className='bg-white sm:rounded-lg shadow p-0 sm:p-2 -mx-4 sm:mx-0'>
+              <div className='flex items-center gap-2 mb-4 px-4 sm:px-0 pt-4 sm:pt-0'>
                 <h2 className='text-xl font-semibold'>Dive Profile</h2>
                 {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
               </div>
@@ -959,24 +959,28 @@ const DiveDetail = () => {
                   </div>
                 }
               >
-                <AdvancedDiveProfileChart
-                  profileData={profileData}
-                  isLoading={profileLoading}
-                  error={profileError ? extractErrorMessage(profileError) : null}
-                  showTemperature={true}
-                  screenSize='desktop'
-                  diveId={id}
-                  onDecoStatusChange={profileHasDeco => {
-                    // If profile data is available, use it; otherwise keep tag-based detection
-                    if (profileHasDeco !== undefined) {
-                      setProfileHasDeco(profileHasDeco);
+                <div className='px-1 sm:px-0 pb-1 sm:pb-0'>
+                  <AdvancedDiveProfileChart
+                    profileData={profileData}
+                    isLoading={profileLoading}
+                    error={profileError ? extractErrorMessage(profileError) : null}
+                    showTemperature={true}
+                    screenSize={isMobile ? 'mobile' : 'desktop'}
+                    diveId={id}
+                    onDecoStatusChange={profileHasDeco => {
+                      // If profile data is available, use it; otherwise keep tag-based detection
+                      if (profileHasDeco !== undefined) {
+                        setProfileHasDeco(profileHasDeco);
+                      }
+                    }}
+                    onMaximize={handleOpenProfileModal}
+                    onUpload={
+                      user && (user.id === dive.user_id || user.is_admin)
+                        ? handleUploadProfile
+                        : null
                     }
-                  }}
-                  onMaximize={handleOpenProfileModal}
-                  onUpload={
-                    user && (user.id === dive.user_id || user.is_admin) ? handleUploadProfile : null
-                  }
-                />
+                  />
+                </div>
               </Suspense>
               <input
                 type='file'
