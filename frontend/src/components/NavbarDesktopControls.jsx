@@ -141,13 +141,36 @@ const NavbarDesktopControls = () => {
           </button>
         </Dropdown>
 
-        <Link
-          to='/leaderboard'
-          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: 'leaderboard',
+                label: 'Leaderboard',
+                icon: <Trophy className='h-4 w-4' />,
+                onClick: () => navigate('/leaderboard'),
+              },
+              ...(user
+                ? [
+                    {
+                      key: 'buddies',
+                      label: 'Buddies',
+                      icon: <Users className='h-4 w-4' />,
+                      onClick: () => navigate('/buddies'),
+                    },
+                  ]
+                : []),
+            ],
+          }}
+          trigger={['click']}
+          placement='bottomRight'
         >
-          <Trophy className='h-6 w-6' />
-          <span className='text-sm'>Community</span>
-        </Link>
+          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
+            <Users className='h-6 w-6' />
+            <span className='text-sm'>Community</span>
+            <ChevronDown className='h-4 w-4' />
+          </button>
+        </Dropdown>
 
         <Dropdown
           menu={{

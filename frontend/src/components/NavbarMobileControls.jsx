@@ -72,7 +72,6 @@ const NavbarMobileControls = () => {
     '--adm-color-text': '#ffffff', // White-ish for better contrast
     '--adm-color-weak': '#ffffff', // Force weak text to white
     '--adm-color-text-secondary': '#bfdbfe', // blue-200 for secondary text
-    '--adm-border-color': 'rgba(255, 255, 255, 0.1)',
     '--adm-list-item-content-active': 'rgba(0, 0, 0, 0.2)', // Darken on click instead of lighten
     color: '#ffffff', // Force text color inheritance
   };
@@ -140,7 +139,12 @@ const NavbarMobileControls = () => {
                 Map
               </List.Item>
 
-              <Collapse>
+              <Collapse
+                style={{
+                  '--border-top': 'none',
+                  '--border-bottom': 'none',
+                }}
+              >
                 <Collapse.Panel
                   key='diving'
                   title={
@@ -154,6 +158,7 @@ const NavbarMobileControls = () => {
                     style={{
                       '--border-top': 'none',
                       '--border-bottom': 'none',
+                      '--border-inner': 'none',
                       '--adm-color-text': '#ffffff',
                       '--adm-color-weak': '#ffffff',
                     }}
@@ -226,15 +231,58 @@ const NavbarMobileControls = () => {
                 </Collapse.Panel>
               </Collapse>
 
-              <List.Item
-                prefix={<Trophy className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/leaderboard')}
-                arrow={false}
+              <Collapse
+                style={{
+                  '--border-top': 'none',
+                  '--border-bottom': 'none',
+                }}
               >
-                Community
-              </List.Item>
+                <Collapse.Panel
+                  key='community'
+                  title={
+                    <div className='flex items-center gap-2'>
+                      <Users className='h-5 w-5 text-blue-100' />
+                      <span>Community</span>
+                    </div>
+                  }
+                >
+                  <List
+                    style={{
+                      '--border-top': 'none',
+                      '--border-bottom': 'none',
+                      '--border-inner': 'none',
+                      '--adm-color-text': '#ffffff',
+                      '--adm-color-weak': '#ffffff',
+                    }}
+                  >
+                    <List.Item
+                      prefix={<Trophy className='h-4 w-4 text-blue-200' />}
+                      onClick={() => handleNavigate('/leaderboard')}
+                      className='text-white'
+                      arrow={false}
+                    >
+                      Leaderboard
+                    </List.Item>
+                    {user && (
+                      <List.Item
+                        prefix={<Users className='h-4 w-4 text-blue-200' />}
+                        onClick={() => handleNavigate('/buddies')}
+                        className='text-white'
+                        arrow={false}
+                      >
+                        Buddies
+                      </List.Item>
+                    )}
+                  </List>
+                </Collapse.Panel>
+              </Collapse>
 
-              <Collapse>
+              <Collapse
+                style={{
+                  '--border-top': 'none',
+                  '--border-bottom': 'none',
+                }}
+              >
                 <Collapse.Panel
                   key='info'
                   title={
@@ -248,6 +296,7 @@ const NavbarMobileControls = () => {
                     style={{
                       '--border-top': 'none',
                       '--border-bottom': 'none',
+                      '--border-inner': 'none',
                       '--adm-color-text': '#ffffff',
                       '--adm-color-weak': '#ffffff',
                     }}
