@@ -709,7 +709,9 @@ const AdvancedDiveProfileChart = ({
 
           <div className='flex flex-wrap items-center gap-x-6 gap-y-2 mb-3 bg-gray-50/50 p-2 rounded-lg border border-gray-100'>
             <div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
-              <span className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>Display:</span>
+              <span className='text-xs font-semibold text-gray-500 uppercase tracking-wider'>
+                Display:
+              </span>
               <label className='flex items-center cursor-pointer'>
                 <input
                   type='checkbox'
@@ -742,9 +744,7 @@ const AdvancedDiveProfileChart = ({
                     onChange={e => setShowCNS(e.target.checked)}
                     className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
                   />
-                  <span
-                    className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
-                  >
+                  <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
                     CNS
                   </span>
                 </label>
@@ -757,9 +757,7 @@ const AdvancedDiveProfileChart = ({
                     onChange={e => setShowStoptime(e.target.checked)}
                     className='w-3.5 h-3.5 mr-1.5 cursor-pointer text-blue-600 rounded'
                   />
-                  <span
-                    className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}
-                  >
+                  <span className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} text-gray-600`}>
                     Stops
                   </span>
                 </label>
@@ -870,7 +868,11 @@ const AdvancedDiveProfileChart = ({
           <ResponsiveContainer width='100%' height={chartHeight}>
             <ComposedChart
               data={chartData}
-              margin={isMobileViewport ? { top: 10, right: -5, left: -20, bottom: 0 } : { top: 20, right: -10, left: -30, bottom: 20 }}
+              margin={
+                isMobileViewport
+                  ? { top: 10, right: -5, left: -20, bottom: 0 }
+                  : { top: 20, right: -10, left: -30, bottom: 20 }
+              }
               onMouseMove={handleMouseMove}
             >
               <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
