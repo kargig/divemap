@@ -110,22 +110,18 @@ const TripHeader = ({ trip }) => {
             </div>
           </div>
 
-          {/* Trip Image Placeholder */}
-          <div className='mt-6 lg:mt-0 lg:ml-6 shrink-0 w-full lg:w-auto'>
-            <div className='w-full lg:w-64 h-48 sm:h-56 lg:h-48 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden'>
-              {trip.trip_image_url ? (
+          {/* Trip Image */}
+          {trip.trip_image_url && (
+            <div className='mt-6 lg:mt-0 lg:ml-6 shrink-0 w-full lg:w-auto'>
+              <div className='w-full lg:w-64 h-48 sm:h-56 lg:h-48 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden'>
                 <img
                   src={trip.trip_image_url}
                   alt={generateTripName(trip)}
                   className='w-full h-full object-cover rounded-lg'
                 />
-              ) : (
-                <div className='text-center text-gray-500'>
-                  <div className='text-sm'>Trip Image</div>
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
