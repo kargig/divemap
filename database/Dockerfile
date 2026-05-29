@@ -1,4 +1,4 @@
-FROM mysql:lts
+FROM mysql:8.4.9
 
 # Copy the init script to the proper location
 # MySQL automatically creates database and user from environment variables
