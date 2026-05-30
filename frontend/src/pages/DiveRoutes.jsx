@@ -13,8 +13,8 @@ import {
   Grid,
   List,
 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from 'react-query';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useInfiniteQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import DesktopSearchBar from '../components/DesktopSearchBar';
@@ -24,7 +24,7 @@ import LoadingSkeleton from '../components/LoadingSkeleton';
 import PageHeader from '../components/PageHeader';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
-import Pagination from '../components/ui/Pagination';
+import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
@@ -45,14 +45,13 @@ const DiveRoutes = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [routeType, setRouteType] = useState(searchParams.get('route_type') || '');
   const [poiTypes, setPoiTypes] = useState(searchParams.getAll('poi_types') || []);
-  const [page, setPage] = useState(parseInt(searchParams.get('page') || '1', 10));
-  const [pageSize, setPageSize] = useState(parseInt(searchParams.get('page_size') || '20', 10));
 
   // Sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting } = useSorting('dive-routes');
 
   const { isMobile } = useResponsive();
   const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
+  const pageSize = isMobile ? 10 : 20;
 
   // View mode state
   const [viewMode, setViewMode] = useState(() => {
@@ -63,28 +62,44 @@ const DiveRoutes = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [quickFilters, setQuickFilters] = useState([]);
 
-  // Fetch Routes
+  // Fetch Routes with infinite query
   const {
-    data: routesData,
+    data: infiniteRoutesData,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error,
-  } = useQuery(
-    ['dive-routes', search, routeType, poiTypes, page, pageSize, sortBy, sortOrder],
-    () =>
+  } = useInfiniteQuery(
+    ['dive-routes', search, routeType, poiTypes, pageSize, sortBy, sortOrder],
+    ({ pageParam = 1 }) =>
       getDiveRoutes({
         search,
         route_type: routeType,
         poi_types: poiTypes,
-        page,
+        page: pageParam,
         page_size: pageSize,
         sort_by: sortBy,
         sort_order: sortOrder,
       }),
     {
-      keepPreviousData: true,
+      getNextPageParam: lastPage => {
+        if (lastPage.page < lastPage.total_pages) {
+          return lastPage.page + 1;
+        }
+        return undefined;
+      },
       staleTime: 5 * 60 * 1000,
     }
   );
+
+  // Flatten the pages into a single list
+  const routes = useMemo(() => {
+    if (!infiniteRoutesData) return [];
+    return infiniteRoutesData.pages.flatMap(page => page.routes || []);
+  }, [infiniteRoutesData]);
+
+  const totalCount = infiniteRoutesData?.pages[0]?.total || 0;
 
   // Update URL params
   useEffect(() => {
@@ -94,41 +109,30 @@ const DiveRoutes = () => {
     if (poiTypes.length > 0) {
       poiTypes.forEach(t => urlParams.append('poi_types', t));
     }
-    if (page > 1) urlParams.append('page', page);
-    if (pageSize !== 20) urlParams.append('page_size', pageSize);
     if (sortBy) urlParams.append('sort_by', sortBy);
     if (sortOrder) urlParams.append('sort_order', sortOrder);
     if (viewMode !== 'list') urlParams.append('view', viewMode);
 
     setSearchParams(urlParams, { replace: true });
-  }, [search, routeType, poiTypes, page, pageSize, sortBy, sortOrder, viewMode, setSearchParams]);
+  }, [search, routeType, poiTypes, sortBy, sortOrder, viewMode, setSearchParams]);
 
   const handleSearchChange = value => {
     setSearch(value);
-    setPage(1);
   };
 
   const handleTypeChange = type => {
     setRouteType(type === routeType ? '' : type);
-    setPage(1);
   };
 
   const handlePoiTypeToggle = type => {
     setPoiTypes(prev => (prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]));
-    setPage(1);
   };
 
   const clearFilters = () => {
     setSearch('');
     setRouteType('');
     setPoiTypes([]);
-    setPage(1);
     resetSorting();
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    setPageSize(newPageSize);
-    setPage(1);
   };
 
   const handleViewModeChange = newMode => {
@@ -148,10 +152,6 @@ const DiveRoutes = () => {
     if (poiTypes.length > 0) count++;
     return count;
   };
-
-  const routes = routesData?.routes || [];
-  const totalPages = routesData?.pages || 1;
-  const totalCount = routesData?.total || 0;
 
   return (
     <div className='min-h-screen bg-gray-50'>
@@ -277,20 +277,9 @@ const DiveRoutes = () => {
           </div>
         </div>
 
-        {/* Top Pagination Controls */}
-        <Pagination
-          currentPage={page}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          itemName='routes'
-          onPageChange={newPage => setPage(newPage)}
-          onPageSizeChange={handlePageSizeChange}
-          className='mb-4 sm:mb-6 lg:mb-8'
-        />
-
         {/* Loading State */}
         {isLoading ? (
-          <LoadingSkeleton type='card' count={6} compact={compactLayout} />
+          <LoadingSkeleton type='card' count={pageSize} compact={compactLayout} />
         ) : error ? (
           <ErrorPage error={error} />
         ) : routes.length === 0 ? (
@@ -313,7 +302,7 @@ const DiveRoutes = () => {
               return (
                 <div
                   key={route.id}
-                  className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
+                  className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
                 >
                   {/* Header: Title & Type */}
                   <div className='mb-2'>
@@ -413,16 +402,12 @@ const DiveRoutes = () => {
           </div>
         )}
 
-        {/* Bottom Pagination */}
-        {totalCount > 0 && (
-          <Pagination
-            currentPage={page}
-            pageSize={pageSize}
-            totalCount={totalCount}
-            itemName='routes'
-            onPageChange={newPage => setPage(newPage)}
-            onPageSizeChange={handlePageSizeChange}
-            className='mt-6 sm:mt-8'
+        {/* Infinite Scroll Trigger */}
+        {!isLoading && !error && routes.length > 0 && (
+          <InfiniteScrollTrigger
+            onIntersect={fetchNextPage}
+            hasNextPage={!!hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
           />
         )}
       </div>

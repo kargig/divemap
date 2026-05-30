@@ -15,9 +15,9 @@ import {
   ChevronRight,
   Wrench,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
@@ -31,7 +31,7 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
-import Pagination from '../components/ui/Pagination';
+import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
@@ -79,15 +79,9 @@ const DivingCenters = () => {
     };
   };
 
-  const getInitialPagination = () => {
-    return {
-      page: parseInt(searchParams.get('page')) || 1,
-      page_size: parseInt(searchParams.get('page_size')) || 25,
-    };
-  };
-
   const [filters, setFilters] = useState(getInitialFilters);
-  const [pagination, setPagination] = useState(getInitialPagination);
+  const pageSize = isMobile ? 10 : 20;
+
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search: getInitialFilters().search,
     name: getInitialFilters().name,
@@ -99,7 +93,7 @@ const DivingCenters = () => {
   const debouncedUpdateURL = useCallback(
     (() => {
       let timeoutId;
-      return (newFilters, newPagination, newViewMode) => {
+      return (newFilters, newViewMode) => {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           const newSearchParams = new URLSearchParams();
@@ -119,10 +113,6 @@ const DivingCenters = () => {
           if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
           if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
 
-          // Add pagination
-          newSearchParams.set('page', newPagination.page.toString());
-          newSearchParams.set('page_size', newPagination.page_size.toString());
-
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
         }, 800); // 800ms debounce delay
@@ -133,7 +123,7 @@ const DivingCenters = () => {
 
   // Immediate URL update for non-search filters
   const immediateUpdateURL = useCallback(
-    (newFilters, newPagination, newViewMode) => {
+    (newFilters, newViewMode) => {
       const newSearchParams = new URLSearchParams();
 
       // Add view mode
@@ -150,10 +140,6 @@ const DivingCenters = () => {
       const sortParams = getSortParams();
       if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
       if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
-
-      // Add pagination
-      newSearchParams.set('page', newPagination.page.toString());
-      newSearchParams.set('page_size', newPagination.page_size.toString());
 
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
@@ -181,16 +167,18 @@ const DivingCenters = () => {
   }, [filters]);
 
   const {
-    data: divingCentersResponse,
+    data: infiniteDivingCentersData,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error,
-    isPreviousData,
-  } = useQuery(
-    ['diving-centers', filters, pagination, sortBy, sortOrder],
-    () => {
+  } = useInfiniteQuery(
+    ['diving-centers', filters, sortBy, sortOrder, pageSize],
+    ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
-      params.append('page', pagination.page.toString());
-      params.append('page_size', pagination.page_size.toString());
+      params.append('page', pageParam.toString());
+      params.append('page_size', pageSize.toString());
 
       // Add sorting
       params.append('sort_by', sortBy);
@@ -204,31 +192,39 @@ const DivingCenters = () => {
       return api.get(`/api/v1/diving-centers/?${params.toString()}`).then(res => res.data);
     },
     {
-      keepPreviousData: true,
+      getNextPageParam: lastPage => {
+        if (lastPage.has_next_page) {
+          return lastPage.page + 1;
+        }
+        return undefined;
+      },
       staleTime: 5000,
     }
   );
 
-  const divingCenters = divingCentersResponse?.items || [];
-  const totalCount = divingCentersResponse?.total || 0;
-  const paginationInfo = {
-    totalCount,
-    totalPages: divingCentersResponse?.total_pages || 0,
-    currentPage: divingCentersResponse?.page || pagination.page,
-    pageSize: divingCentersResponse?.page_size || pagination.page_size,
-    hasNextPage: divingCentersResponse?.has_next_page || false,
-    hasPrevPage: divingCentersResponse?.has_prev_page || false,
-  };
+  // Flatten the pages into a single list
+  const divingCenters = useMemo(() => {
+    if (!infiniteDivingCentersData) return [];
+    return infiniteDivingCentersData.pages.flatMap(page => page.items || []);
+  }, [infiniteDivingCentersData]);
+
+  const totalCount = infiniteDivingCentersData?.pages[0]?.total || 0;
 
   // Track match types for diving centers (if search results contain scoring info)
   const [matchTypes, setMatchTypes] = useState({});
 
   useEffect(() => {
-    // If match_types is returned in the response body, use it
-    if (divingCentersResponse?.match_types) {
-      setMatchTypes(divingCentersResponse.match_types);
+    if (!infiniteDivingCentersData) return;
+
+    // Combine match types from all pages
+    const combinedMatchTypes = infiniteDivingCentersData.pages.reduce((acc, page) => {
+      return { ...acc, ...(page.match_types || {}) };
+    }, {});
+
+    if (Object.keys(combinedMatchTypes).length > 0) {
+      setMatchTypes(combinedMatchTypes);
     } else if (divingCenters && Array.isArray(divingCenters)) {
-      // Fallback for individual items having match info (rare in current backend)
+      // Fallback for individual items having match info
       const newMatchTypes = {};
       divingCenters.forEach(center => {
         if (center.match_type) {
@@ -238,50 +234,28 @@ const DivingCenters = () => {
           };
         }
       });
-      if (Object.keys(newMatchTypes).length > 0) {
-        setMatchTypes(newMatchTypes);
-      } else {
-        setMatchTypes({});
-      }
+      setMatchTypes(newMatchTypes);
     }
-  }, [divingCentersResponse, divingCenters]);
+  }, [infiniteDivingCentersData, divingCenters]);
 
   // Handle filter changes
   const handleFilterChange = (name, value) => {
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
 
-    // Reset to first page
-    const newPagination = { ...pagination, page: 1 };
-    setPagination(newPagination);
-
     // Update URL - use debounced for search/name, immediate for others
     if (name === 'search' || name === 'name') {
       setDebouncedSearchTerms(prev => ({ ...prev, [name]: value }));
-      debouncedUpdateURL(newFilters, newPagination, viewMode);
+      debouncedUpdateURL(newFilters, viewMode);
     } else {
-      immediateUpdateURL(newFilters, newPagination, viewMode);
+      immediateUpdateURL(newFilters, viewMode);
     }
-  };
-
-  const handlePageChange = newPage => {
-    const newPagination = { ...pagination, page: newPage };
-    setPagination(newPagination);
-    immediateUpdateURL(filters, newPagination, viewMode);
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    const newPagination = { page: 1, page_size: newPageSize };
-    setPagination(newPagination);
-    immediateUpdateURL(filters, newPagination, viewMode);
   };
 
   const handleSortChange = (newSortBy, newSortOrder) => {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
-    const newPagination = { ...pagination, page: 1 };
-    setPagination(newPagination);
-    immediateUpdateURL(filters, newPagination, viewMode);
+    immediateUpdateURL(filters, viewMode);
   };
 
   const clearFilters = () => {
@@ -295,14 +269,12 @@ const DivingCenters = () => {
       city: '',
     };
     setFilters(clearedFilters);
-    const newPagination = { ...pagination, page: 1 };
-    setPagination(newPagination);
-    immediateUpdateURL(clearedFilters, newPagination, viewMode);
+    immediateUpdateURL(clearedFilters, viewMode);
   };
 
   const handleViewModeChange = newViewMode => {
     setViewMode(newViewMode);
-    immediateUpdateURL(filters, pagination, newViewMode);
+    immediateUpdateURL(filters, newViewMode);
   };
 
   const handleQuickFilter = type => {
@@ -314,19 +286,15 @@ const DivingCenters = () => {
     }
 
     setFilters(newFilters);
-    const newPagination = { ...pagination, page: 1 };
-    setPagination(newPagination);
-    immediateUpdateURL(newFilters, newPagination, viewMode);
+    immediateUpdateURL(newFilters, viewMode);
   };
 
   // Apply a filter when clicking a badge (country, region, city)
   const applyFilterTag = (key, value) => {
     if (!value) return;
     const newFilters = { ...filters, [key]: value };
-    const newPagination = { ...pagination, page: 1 };
     setFilters(newFilters);
-    setPagination(newPagination);
-    immediateUpdateURL(newFilters, newPagination, viewMode);
+    immediateUpdateURL(newFilters, viewMode);
   };
 
   const sortOptions = [
@@ -438,24 +406,12 @@ const DivingCenters = () => {
 
             {/* Content Container */}
             <div className='content-section mb-4 sm:mb-8'>
-              {!isLoading && !error && (
-                <Pagination
-                  currentPage={pagination.page}
-                  pageSize={pagination.page_size}
-                  totalCount={totalCount}
-                  itemName='diving centers'
-                  onPageChange={handlePageChange}
-                  onPageSizeChange={handlePageSizeChange}
-                  className='mb-3 sm:mb-6'
-                />
-              )}
-
               {error ? (
                 <ErrorPage error={error} onRetry={() => window.location.reload()} />
               ) : isLoading ? (
                 <LoadingSkeleton
                   type='card'
-                  count={pagination.page_size || 25}
+                  count={pageSize}
                   className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}
                 />
               ) : (
@@ -723,16 +679,12 @@ const DivingCenters = () => {
                     </div>
                   )}
 
-                  {/* Bottom Pagination Controls */}
-                  {divingCenters && divingCenters.length > 0 && (
-                    <Pagination
-                      currentPage={pagination.page}
-                      pageSize={pagination.page_size}
-                      totalCount={totalCount}
-                      itemName='diving centers'
-                      onPageChange={handlePageChange}
-                      onPageSizeChange={handlePageSizeChange}
-                      className='mt-6 sm:mt-8'
+                  {/* Infinite Scroll Trigger */}
+                  {viewMode !== 'map' && (
+                    <InfiniteScrollTrigger
+                      onIntersect={fetchNextPage}
+                      hasNextPage={!!hasNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
                     />
                   )}
                 </>

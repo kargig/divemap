@@ -120,15 +120,20 @@ const NavbarMobileControls = () => {
         visible={isMobileMenuOpen}
         onMaskClick={closeMobileMenu}
         position='right'
+        getContainer={() => document.body}
         bodyStyle={{
           width: '100vw',
+          minWidth: '100vw',
+          maxWidth: '100vw',
+          height: '100vh',
+          minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: '#0072B2',
         }}
       >
         <div style={customTheme} className='flex flex-col h-full'>
-          <div className='flex-none p-4 border-b border-blue-400/30 flex justify-between items-center'>
+          <div className='flex-none px-4 py-0 border-b border-blue-400/30 flex justify-between items-center min-h-[65px]'>
             {user ? (
               <Link
                 to='/profile'
@@ -138,7 +143,7 @@ const NavbarMobileControls = () => {
                 <Avatar
                   src={user.avatar_full_url || user.avatar_url}
                   username={user.username}
-                  size='sm'
+                  size='lg'
                   className='border border-blue-300/30'
                 />
                 <span className='font-semibold text-lg truncate'>{user.username}</span>
@@ -161,7 +166,7 @@ const NavbarMobileControls = () => {
           </div>
 
           <div className='flex-1 overflow-y-auto'>
-            <List mode='card'>
+            <List>
               <List.Item
                 prefix={<Home className='h-5 w-5 text-blue-100' />}
                 onClick={() => handleNavigate('/')}

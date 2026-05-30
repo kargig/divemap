@@ -185,7 +185,7 @@ async def list_all_users(
 ):
     """List all users (admin only) with pagination, sorting, search, and filters"""
     # Validate page_size
-    valid_page_sizes = [25, 50, 100, 1000]
+    valid_page_sizes = [1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000]
     if page_size not in valid_page_sizes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

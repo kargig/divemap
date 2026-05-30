@@ -14,6 +14,10 @@
   /* 1. Typography Font Family: Force AntD to respect our Google Fonts */
   html,
   body {
+    scrollbar-gutter: stable;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
     font-family:
       'DM Sans',
       system-ui,
