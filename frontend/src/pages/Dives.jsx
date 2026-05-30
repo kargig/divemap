@@ -44,6 +44,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
+import DifficultyBadge from '../components/ui/DifficultyBadge';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
@@ -52,7 +53,6 @@ import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { formatDate, formatTime } from '../utils/dateHelpers';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
@@ -960,11 +960,10 @@ const Dives = () => {
                             </span>
                           </div>
                         )}
-                        <span
-                          className={`inline-flex items-center rounded-full px-1.5 py-0 text-xs sm:text-sm font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                        >
-                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                        </span>
+                        <DifficultyBadge
+                          code={dive.difficulty_code}
+                          label={dive.difficulty_label}
+                        />
                       </div>
 
                       {/* FOOTER: Tags & Buddies - Only show icons/counts on mobile */}
@@ -1121,11 +1120,11 @@ const Dives = () => {
                               </span>
                             </div>
                           )}
-                          <span
-                            className={`text-xs font-medium px-2 py-0.5 rounded-full ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                          >
-                            {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                          </span>
+                          <DifficultyBadge
+                            code={dive.difficulty_code}
+                            label={dive.difficulty_label}
+                            size='xs'
+                          />
                         </div>
                       </div>
                     </div>

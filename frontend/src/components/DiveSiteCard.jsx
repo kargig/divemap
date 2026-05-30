@@ -3,11 +3,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 import { useResponsive } from '../hooks/useResponsive';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
+
+import DifficultyBadge from './ui/DifficultyBadge';
 
 export const DiveSiteListCard = ({
   site,
@@ -100,13 +101,7 @@ export const DiveSiteListCard = ({
                     </span>
                   </div>
                 )}
-                {site.difficulty_code && site.difficulty_code !== 'unspecified' && (
-                  <span
-                    className={`inline-flex items-center rounded-full px-1.5 py-0 text-xs sm:text-sm font-medium ${getDifficultyColorClasses(site.difficulty_code)}`}
-                  >
-                    {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                  </span>
-                )}
+                <DifficultyBadge code={site.difficulty_code} label={site.difficulty_label} />
                 {site.route_count > 0 && (
                   <div className='flex items-center gap-1'>
                     <Route className='w-3 h-3 text-blue-400' />
@@ -189,13 +184,11 @@ export const DiveSiteGridCard = ({
 
         {/* Floating Badges */}
         <div className='absolute top-3 left-3 flex flex-wrap gap-2'>
-          {site.difficulty_code && (
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${getDifficultyColorClasses(site.difficulty_code)}`}
-            >
-              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-            </span>
-          )}
+          <DifficultyBadge
+            code={site.difficulty_code}
+            label={site.difficulty_label}
+            className='uppercase tracking-wider shadow-sm'
+          />
         </div>
 
         {/* Floating Rating */}

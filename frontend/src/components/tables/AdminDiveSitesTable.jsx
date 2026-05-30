@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 
-import { getDifficultyLabel, getDifficultyColorClasses } from '../../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../../utils/htmlDecode';
+import DifficultyBadge from '../ui/DifficultyBadge';
 import Pagination from '../ui/Pagination';
 
 /**
@@ -279,13 +279,14 @@ const AdminDiveSitesTable = ({
                       <span className='text-gray-500'>Creator:</span>{' '}
                       <span className='text-gray-900'>{site.created_by_username || 'Unknown'}</span>
                     </div>
-                    <div>
+                    <div className='flex items-center gap-2'>
                       <span className='text-gray-500'>Difficulty:</span>{' '}
-                      <span
-                        className={`px-2 py-0.5 text-xs font-medium rounded-full inline-block ${getDifficultyColorClasses(site.difficulty_code)}`}
-                      >
-                        {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-                      </span>
+                      <DifficultyBadge
+                        code={site.difficulty_code}
+                        label={site.difficulty_label}
+                        size='xs'
+                        className='inline-block'
+                      />
                     </div>
                     <div>
                       <span className='text-gray-500'>Rating:</span>{' '}

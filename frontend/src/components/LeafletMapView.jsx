@@ -485,16 +485,10 @@ const MapContent = ({ markers, selectedEntityType, viewport, onViewportChange, r
                     <div class="flex flex-col gap-1 mt-0.5 mb-1.5">
                       ${
                         marker.data.difficulty_code
-                          ? `<div class="flex items-center text-[8px] font-bold uppercase tracking-tight">
-                              <span class="${
-                                marker.data.difficulty_code === 'OPEN_WATER'
-                                  ? 'text-green-700'
-                                  : marker.data.difficulty_code === 'ADVANCED_OPEN_WATER'
-                                    ? 'text-amber-700'
-                                    : marker.data.difficulty_code === 'DEEP_NITROX'
-                                      ? 'text-orange-700'
-                                      : 'text-red-700'
-                              }">${marker.data.difficulty_label || getDifficultyLabel(marker.data.difficulty_code)}</span>
+                          ? `<div class="flex items-center mt-0.5 mb-1.5">
+                              <span class="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded ${getDifficultyColorClasses(marker.data.difficulty_code)}">
+                                ${marker.data.difficulty_label || getDifficultyLabel(marker.data.difficulty_code)}
+                              </span>
                             </div>`
                           : ''
                       }

@@ -29,15 +29,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 import SEO from '../components/SEO';
 import AdminDiveSitesTable from '../components/tables/AdminDiveSitesTable';
+import DifficultyBadge from '../components/ui/DifficultyBadge';
 import Select from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
 import { approveDiveSite, rejectDiveSite } from '../services/diveSites';
 import { formatDate } from '../utils/dateHelpers';
-import {
-  getDifficultyLabel,
-  getDifficultyColorClasses,
-  getDifficultyOptions,
-} from '../utils/difficultyHelpers';
+import { getDifficultyLabel, getDifficultyOptions } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 const AdminDiveSites = () => {
@@ -483,11 +480,7 @@ const AdminDiveSites = () => {
         cell: ({ row }) => {
           const site = row.original;
           return (
-            <span
-              className={`px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(site.difficulty_code)}`}
-            >
-              {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
-            </span>
+            <DifficultyBadge code={site.difficulty_code} label={site.difficulty_label} size='xs' />
           );
         },
       },

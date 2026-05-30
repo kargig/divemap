@@ -53,6 +53,7 @@ import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import StickyRateBar from '../components/StickyRateBar';
 import Button from '../components/ui/Button';
+import DifficultyBadge from '../components/ui/DifficultyBadge';
 import RichText from '../components/ui/RichText';
 import ShellRating from '../components/ui/ShellRating';
 import YouTubePreview from '../components/YouTubePreview';
@@ -61,7 +62,7 @@ import useFlickrImages from '../hooks/useFlickrImages';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
+import { getDifficultyLabel } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
@@ -594,11 +595,11 @@ const DiveSiteDetail = () => {
 
                 {dive.difficulty_code && (
                   <div className='flex items-center gap-1'>
-                    <span
-                      className={`px-1.5 py-0.5 text-[9px] font-bold uppercase rounded border ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                    >
-                      {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                    </span>
+                    <DifficultyBadge
+                      code={dive.difficulty_code}
+                      label={dive.difficulty_label}
+                      size='xs'
+                    />
                   </div>
                 )}
               </div>
@@ -844,11 +845,10 @@ const DiveSiteDetail = () => {
                   Difficulty
                 </span>
                 <div className='flex items-center mt-0.5'>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ${getDifficultyColorClasses(diveSite.difficulty_code)}`}
-                  >
-                    {diveSite.difficulty_label || getDifficultyLabel(diveSite.difficulty_code)}
-                  </span>
+                  <DifficultyBadge
+                    code={diveSite.difficulty_code}
+                    label={diveSite.difficulty_label}
+                  />
                 </div>
               </div>
 

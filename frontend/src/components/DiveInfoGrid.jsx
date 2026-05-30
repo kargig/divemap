@@ -3,9 +3,10 @@ import { Grid } from 'antd-mobile';
 import { Calendar, Clock, Eye, TrendingUp, User, Notebook, Wind, Droplets } from 'lucide-react';
 import React from 'react';
 
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
 import { formatGases } from '../utils/textHelpers';
+
+import DifficultyBadge from './ui/DifficultyBadge';
 
 const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
   const formatGasDisplay = gasStr => {
@@ -87,15 +88,11 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   Difficulty
                 </span>
                 <div className='flex items-center mt-0.5'>
-                  {dive.difficulty_code ? (
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                    >
-                      {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                    </span>
-                  ) : (
-                    <span className='text-sm text-gray-500'>-</span>
-                  )}
+                  <DifficultyBadge
+                    code={dive.difficulty_code}
+                    label={dive.difficulty_label}
+                    showUnspecified
+                  />
                 </div>
               </div>
             </Grid.Item>
@@ -245,15 +242,11 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                     Difficulty
                   </span>
                   <div className='flex items-center mt-0.5'>
-                    {dive.difficulty_code ? (
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                      >
-                        {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                      </span>
-                    ) : (
-                      <span className='text-sm text-gray-500'>-</span>
-                    )}
+                    <DifficultyBadge
+                      code={dive.difficulty_code}
+                      label={dive.difficulty_label}
+                      showUnspecified
+                    />
                   </div>
                 </div>
               </Col>
