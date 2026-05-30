@@ -471,10 +471,8 @@ const Home = () => {
         <div className='flex flex-wrap gap-4 justify-center'>
           <Link to='/register'>
             <Button
-              type='primary'
               size='large'
-              className='h-14 px-10 text-lg font-bold rounded-xl shadow-lg'
-              style={{ backgroundColor: '#0072B2' }}
+              className='h-14 px-10 text-lg font-bold rounded-xl shadow-md border border-gray-200 hover:border-gray-400 transition-all'
             >
               Get Started Free
             </Button>

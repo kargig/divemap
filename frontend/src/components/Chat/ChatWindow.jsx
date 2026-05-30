@@ -115,7 +115,7 @@ const ChatWindow = ({
     >
       {/* Header */}
       <div
-        className={`flex items-center px-3 py-2 sm:px-4 sm:py-3 bg-blue-600 text-white shrink-0 ${isEmbedded ? 'justify-center relative' : 'justify-between'}`}
+        className={`flex items-center px-3 py-2 sm:px-4 sm:py-3 bg-divemap-blue text-white shrink-0 ${isEmbedded ? 'justify-center relative' : 'justify-between'}`}
       >
         <div className='flex items-center gap-1.5 min-w-0'>
           <ChatbotIcon size={18} className='text-blue-100 shrink-0' />
@@ -131,7 +131,7 @@ const ChatWindow = ({
                 if (onClose) onClose(); // Close the floating widget if it's open
                 navigate('/ai-chat-history');
               }}
-              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
+              className='p-1.5 hover:bg-white/10 rounded-full transition-colors'
               title='View Chat History'
             >
               <History size={16} />
@@ -141,7 +141,7 @@ const ChatWindow = ({
             <button
               data-testid='chat-clear-button'
               onClick={onClear}
-              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
+              className='p-1.5 hover:bg-white/10 rounded-full transition-colors'
               title='Clear Chat'
             >
               <Trash2 size={16} />
@@ -152,7 +152,7 @@ const ChatWindow = ({
             <button
               data-testid='chat-expand-button'
               onClick={onToggleExpand}
-              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors hidden md:block'
+              className='p-1.5 hover:bg-white/10 rounded-full transition-colors hidden md:block'
               title={isExpanded ? 'Collapse' : 'Expand'}
             >
               {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -162,7 +162,7 @@ const ChatWindow = ({
             <button
               data-testid='chat-close-button'
               onClick={onClose}
-              className='p-1.5 hover:bg-blue-700 rounded-full transition-colors'
+              className='p-1.5 hover:bg-white/10 rounded-full transition-colors'
               title='Close'
             >
               <X size={18} />
@@ -179,14 +179,14 @@ const ChatWindow = ({
         {!isAuthenticated ? (
           <div className='py-8 sm:py-12 flex flex-col items-center justify-center text-gray-500 text-center px-6 space-y-4'>
             <div className='w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2'>
-              <Lock size={32} className='text-blue-600' />
+              <Lock size={32} className='text-divemap-blue' />
             </div>
             <h4 className='font-bold text-gray-900 dark:text-white'>Authentication Required</h4>
             <p className='text-sm max-w-xs'>
               Please{' '}
               <Link
                 to='/login'
-                className='text-blue-600 hover:underline'
+                className='text-divemap-blue hover:underline'
                 onClick={() => onClose?.()}
               >
                 log in
@@ -194,7 +194,7 @@ const ChatWindow = ({
               or{' '}
               <Link
                 to='/register'
-                className='text-blue-600 hover:underline'
+                className='text-divemap-blue hover:underline'
                 onClick={() => onClose?.()}
               >
                 register
@@ -258,7 +258,7 @@ const ChatWindow = ({
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder='Ask anything...'
-              className='flex-1 max-h-32 min-h-[44px] py-2 px-3 sm:py-2.5 sm:px-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-blue-500 resize-none text-xs sm:text-sm dark:text-white scrollbar-hide'
+              className='flex-1 max-h-32 min-h-[44px] py-2 px-3 sm:py-2.5 sm:px-4 bg-gray-100 dark:bg-gray-800 border-0 rounded-2xl focus:ring-2 focus:ring-divemap-sky resize-none text-xs sm:text-sm dark:text-white scrollbar-hide'
               rows={1}
               style={{ height: 'auto' }} // Adjust height logic if needed
             />
@@ -266,7 +266,7 @@ const ChatWindow = ({
               data-testid='chat-send-button'
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className='p-2 sm:p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5 shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px]'
+              className='p-2 sm:p-2.5 bg-divemap-blue text-white rounded-full hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm mb-0.5 shrink-0 flex items-center justify-center min-w-[36px] min-h-[36px] sm:min-w-[44px] sm:min-h-[44px]'
             >
               <Send className='w-4 h-4 sm:w-[18px] sm:h-[18px]' />
             </button>

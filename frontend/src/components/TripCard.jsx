@@ -63,7 +63,7 @@ const TripCard = ({
         <Link
           to={`/dive-sites/${diveSiteId}/${slug}`}
           state={{ from: window.location.pathname + window.location.search }}
-          className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors truncate !min-h-0'
+          className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-700 hover:underline transition-colors truncate !min-h-0'
         >
           {diveSiteName}
         </Link>
@@ -181,7 +181,7 @@ const TripCard = ({
                   {user ? (
                     <Link
                       to={tripUrl}
-                      className='text-blue-600 hover:text-blue-800 transition-colors'
+                      className='text-divemap-blue hover:text-blue-800 transition-colors'
                     >
                       {tripName}
                     </Link>
@@ -206,7 +206,7 @@ const TripCard = ({
                   <div className='flex items-center space-x-1 mr-2'>
                     <button
                       onClick={() => onEdit?.(trip)}
-                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-divemap-blue hover:bg-blue-50 rounded-md transition-colors'
                       title='Edit Trip'
                     >
                       <Edit className='h-5 w-5' />
@@ -236,7 +236,7 @@ const TripCard = ({
                   country: trip.diving_center_country,
                   region: trip.diving_center_region,
                 })}`}
-                className='text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate'
+                className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-800 hover:underline transition-colors truncate'
               >
                 {trip.diving_center_name}
               </Link>
@@ -279,7 +279,7 @@ const TripCard = ({
           className={`grid grid-cols-2 ${isGrid ? 'gap-2' : 'sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-2'} mb-4 lg:mb-3`}
         >
           <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-            <Calendar className='h-3.5 w-3.5 mr-2 text-blue-600 flex-shrink-0' />
+            <Calendar className='h-3.5 w-3.5 mr-2 text-divemap-blue flex-shrink-0' />
             <div className='min-w-0'>
               <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                 Date
@@ -487,7 +487,7 @@ const TripCard = ({
         {isGrid && (
           <Link
             to={tripUrl}
-            className='mt-auto w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors text-sm'
+            className='mt-auto w-full text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-colors text-sm'
           >
             View Trip
           </Link>

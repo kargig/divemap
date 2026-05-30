@@ -681,15 +681,7 @@ const CreateDiveSite = () => {
                   type='button'
                   onClick={suggestLocation}
                   disabled={!formData.latitude || !formData.longitude}
-                  className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                  style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e =>
-                    !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#007a5c')
-                  }
-                  onMouseLeave={e =>
-                    !e.currentTarget.disabled &&
-                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                  }
+                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
                 >
                   🗺️ Suggest Country & Region from Coordinates
                 </button>
@@ -904,14 +896,7 @@ const CreateDiveSite = () => {
                                 <button
                                   type='button'
                                   onClick={handleUrlAdd}
-                                  className='px-4 py-2 text-white rounded-md'
-                                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                                  onMouseEnter={e =>
-                                    (e.currentTarget.style.backgroundColor = '#007a5c')
-                                  }
-                                  onMouseLeave={e =>
-                                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                                  }
+                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                                 >
                                   Add Media
                                 </button>

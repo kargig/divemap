@@ -74,7 +74,7 @@ const DiveSiteRoutes = ({ diveSiteId, isMobileCollapsed = false }) => {
         </h2>
         <button
           onClick={handleDrawNewRoute}
-          className='flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium shadow-sm shrink-0'
+          className='flex items-center gap-1 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors text-xs sm:text-sm font-medium shadow-sm shrink-0'
         >
           <Plus className='w-3.5 h-3.5 sm:w-4 sm:h-4' />
           Draw Route

@@ -153,7 +153,7 @@ const PersonalAccessTokens = () => {
         <div className='mb-6'>
           <Link
             to='/profile'
-            className='inline-flex items-center text-blue-600 hover:text-blue-800 mb-4 transition-colors'
+            className='inline-flex items-center text-divemap-blue hover:text-blue-800 mb-4 transition-colors'
           >
             <ChevronLeft className='h-4 w-4 mr-1' />
             Back to Profile
@@ -161,7 +161,7 @@ const PersonalAccessTokens = () => {
           <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
             <div>
               <Title level={2} className='!mb-1 flex items-center'>
-                <Key className='mr-3 text-blue-600' />
+                <Key className='mr-3 text-divemap-blue' />
                 Personal Access Tokens
               </Title>
               <Paragraph className='text-gray-500'>
@@ -173,7 +173,7 @@ const PersonalAccessTokens = () => {
               icon={<Plus size={18} />}
               onClick={() => setIsCreateModalVisible(true)}
               size='large'
-              className='bg-blue-600'
+              className='bg-divemap-blue'
             >
               Generate New Token
             </Button>
@@ -258,7 +258,7 @@ const PersonalAccessTokens = () => {
                 type='primary'
                 htmlType='submit'
                 loading={createTokenMutation.isLoading}
-                className='bg-blue-600'
+                className='bg-divemap-blue'
               >
                 Generate Token
               </Button>
@@ -281,7 +281,7 @@ const PersonalAccessTokens = () => {
               key='close'
               type='primary'
               onClick={() => setIsSuccessModalVisible(false)}
-              className='bg-blue-600'
+              className='bg-divemap-blue'
             >
               I have saved my token
             </Button>,

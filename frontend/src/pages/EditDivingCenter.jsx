@@ -598,16 +598,7 @@ const EditDivingCenter = () => {
                       type='button'
                       onClick={handleAddOrganization}
                       disabled={addOrganizationMutation.isLoading}
-                      className='flex items-center px-4 py-2 text-white rounded-md disabled:opacity-50'
-                      style={{ backgroundColor: UI_COLORS.success }}
-                      onMouseEnter={e =>
-                        !e.currentTarget.disabled &&
-                        (e.currentTarget.style.backgroundColor = '#007a5c')
-                      }
-                      onMouseLeave={e =>
-                        !e.currentTarget.disabled &&
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                      }
+                      className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
                     >
                       <Plus className='h-4 w-4 mr-2' />
                       {addOrganizationMutation.isLoading ? 'Adding...' : 'Add Organization'}
@@ -677,10 +668,7 @@ const EditDivingCenter = () => {
                 <button
                   type='button'
                   onClick={() => setIsAddingGear(!isAddingGear)}
-                  className='flex items-center px-4 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                 >
                   <Plus className='w-4 h-4 mr-2' />
                   Add Gear Rental
@@ -759,16 +747,7 @@ const EditDivingCenter = () => {
                         type='button'
                         onClick={handleAddGear}
                         disabled={addGearMutation.isLoading}
-                        className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                        style={{ backgroundColor: UI_COLORS.success }}
-                        onMouseEnter={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = '#007a5c')
-                        }
-                        onMouseLeave={e =>
-                          !e.currentTarget.disabled &&
-                          (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                        }
+                        className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
                       >
                         {addGearMutation.isLoading ? 'Adding...' : 'Add Gear Rental'}
                       </button>

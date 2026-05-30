@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import DivingCenterForm from '../components/DivingCenterForm';
 import SEO from '../components/SEO';
+import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
@@ -261,14 +262,14 @@ const CreateDivingCenter = () => {
                 </div>
 
                 <div className='flex items-end'>
-                  <button
+                  <Button
                     type='button'
                     onClick={addOrganization}
-                    className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
+                    variant='secondary'
+                    icon={<Plus className='h-4 w-4' />}
                   >
-                    <Plus className='h-4 w-4 mr-2' />
                     Add Organization
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

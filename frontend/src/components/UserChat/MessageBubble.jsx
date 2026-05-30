@@ -33,7 +33,7 @@ const MessageBubble = ({
       return (
         <Link
           to={href}
-          className='text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-blue-500/30 underline-offset-2'
+          className='text-divemap-blue dark:text-blue-400 font-semibold hover:underline decoration-divemap-sky underline-offset-2'
         >
           {children}
         </Link>
@@ -44,7 +44,7 @@ const MessageBubble = ({
         href={href}
         target='_blank'
         rel='noopener noreferrer'
-        className='text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-blue-500/30 underline-offset-2'
+        className='text-divemap-blue dark:text-blue-400 font-semibold hover:underline decoration-divemap-sky underline-offset-2'
       >
         {children}
       </a>
@@ -63,7 +63,7 @@ const MessageBubble = ({
         return (
           <span
             key={i}
-            className={`font-semibold cursor-pointer hover:underline ${isOwn ? 'text-blue-200 hover:text-white' : 'text-blue-600 dark:text-blue-400'}`}
+            className={`font-semibold cursor-pointer hover:underline ${isOwn ? 'text-blue-200 hover:text-white' : 'text-divemap-blue dark:text-blue-400'}`}
           >
             {part}
           </span>
@@ -98,8 +98,8 @@ const MessageBubble = ({
         <div className='mr-2 mt-auto flex-shrink-0 w-8 h-8'>
           {showAvatar &&
             (isBot ? (
-              <div className='w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100'>
-                <ChatbotIcon className='w-5 h-5 text-blue-600' />
+              <div className='w-8 h-8 rounded-full bg-divemap-surface flex items-center justify-center border border-divemap-blue/10'>
+                <ChatbotIcon className='w-5 h-5 text-divemap-blue' />
               </div>
             ) : (
               <Avatar
@@ -124,9 +124,9 @@ const MessageBubble = ({
           <div
             className={`px-3 sm:px-4 py-1.5 sm:py-2 text-sm shadow-sm transition-colors ${
               isOwn
-                ? `bg-blue-600 text-white rounded-2xl ${!showName ? 'rounded-tr-[4px]' : ''} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-[4px]'}`
+                ? `bg-divemap-blue text-white rounded-2xl ${!showName ? 'rounded-tr-[4px]' : ''} ${isLastInGroup ? 'rounded-br-sm' : 'rounded-br-[4px]'}`
                 : isBot
-                  ? `bg-blue-50 dark:bg-blue-900/20 text-gray-800 dark:text-gray-100 border border-blue-100 dark:border-blue-800 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
+                  ? `bg-divemap-surface dark:bg-blue-900/20 text-gray-800 dark:text-gray-100 border border-divemap-blue/10 dark:border-blue-800 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
                   : `bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
             }`}
           >
@@ -146,8 +146,8 @@ const MessageBubble = ({
 
                 return (
                   <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200 dark:border-gray-700 min-w-[180px] sm:min-w-[280px] max-w-sm'>
-                    <div className='p-1.5 sm:p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/30 flex justify-between items-center'>
-                      <span className='text-[9px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide'>
+                    <div className='p-1.5 sm:p-3 border-b border-gray-100 dark:border-gray-700 bg-divemap-surface dark:bg-blue-900/30 flex justify-between items-center'>
+                      <span className='text-[9px] sm:text-xs font-bold text-divemap-blue dark:text-blue-400 uppercase tracking-wide'>
                         {tripData.is_update ? 'Updated Trip Announcement' : 'New Trip Announcement'}
                       </span>
                       {tripData.status === 'confirmed' && (
@@ -260,7 +260,7 @@ const MessageBubble = ({
 
                       <Link
                         to={`/dive-trips/${tripData.trip_id}`}
-                        className='block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1.5 sm:py-2.5 text-[10px] sm:text-sm rounded-lg transition-colors shadow-sm'
+                        className='block w-full text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-1.5 sm:py-2.5 text-[10px] sm:text-sm rounded-lg transition-colors shadow-sm'
                       >
                         View Trip Details
                       </Link>

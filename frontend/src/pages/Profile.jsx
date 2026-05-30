@@ -685,17 +685,18 @@ const Profile = () => {
                 <h2 className='text-lg sm:text-xl font-semibold text-gray-900 uppercase tracking-tight'>
                   Account Information
                 </h2>
-                <button
+                <Button
                   onClick={() => {
                     if (isEditing) {
                       resetProfile();
                     }
                     setIsEditing(!isEditing);
                   }}
-                  className='px-3 py-1.5 sm:px-4 sm:py-2 text-blue-600 hover:text-blue-700 font-medium text-sm sm:text-base transition-colors duration-200'
+                  variant={isEditing ? 'secondary' : 'primary'}
+                  size='sm'
                 >
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </button>
+                  {isEditing ? 'Cancel' : 'Edit Profile'}
+                </Button>
               </div>
 
               {isEditing ? (

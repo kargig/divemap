@@ -1156,7 +1156,7 @@ const DiveSiteDetail = () => {
                       to={`https://www.google.com/maps/dir/?api=1&destination=${diveSite.latitude},${diveSite.longitude}`}
                       target='_blank'
                       rel='noopener noreferrer'
-                      variant='primary'
+                      variant='secondary'
                       className='flex-[1.8] px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
                       title='Get driving directions from Google Maps'
                       icon={<Navigation className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}

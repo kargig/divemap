@@ -320,13 +320,13 @@ const DivingCenters = () => {
             {
               label: 'Explore Map',
               icon: Map,
-              variant: 'primary',
+              variant: 'secondary',
               onClick: () => handleViewModeChange('map'),
             },
             {
               label: 'Add Center',
               icon: Plus,
-              variant: 'secondary',
+              variant: 'primary',
               onClick: () => navigate('/diving-centers/create'),
             },
           ]}
