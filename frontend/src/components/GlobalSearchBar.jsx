@@ -1,4 +1,4 @@
-import { Search, Map, Building, Anchor, Calendar, Route } from 'lucide-react';
+import { Search, Map, MapPin, Building, Anchor, Calendar, Route } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,7 @@ import Combobox from './ui/Combobox';
 // Icon mapping for entity types
 const ENTITY_ICONS = {
   Map: Map,
+  MapPin: MapPin,
   Building: Building,
   Anchor: Anchor,
   Calendar: Calendar,

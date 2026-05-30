@@ -25,7 +25,7 @@ router = APIRouter()
 
 # Icon mappings for entity types
 ENTITY_ICONS = {
-    "dive_site": "Map",
+    "dive_site": "MapPin",
     "diving_center": "Building",
     "dive": "Notebook",
     "dive_route": "Route",

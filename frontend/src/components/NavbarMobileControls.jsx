@@ -32,10 +32,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
 
+import Avatar from './Avatar';
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
@@ -99,7 +100,7 @@ const NavbarMobileControls = () => {
         onMaskClick={closeMobileMenu}
         position='right'
         bodyStyle={{
-          width: '85vw',
+          width: '100vw',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: '#0072B2',
@@ -107,7 +108,23 @@ const NavbarMobileControls = () => {
       >
         <div style={customTheme} className='flex flex-col h-full'>
           <div className='flex-none p-4 border-b border-blue-400/30 flex justify-between items-center'>
-            <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
+            {user ? (
+              <Link
+                to='/profile'
+                onClick={closeMobileMenu}
+                className='flex items-center gap-3 text-white overflow-hidden'
+              >
+                <Avatar
+                  src={user.avatar_full_url || user.avatar_url}
+                  username={user.username}
+                  size='sm'
+                  className='border border-blue-300/30'
+                />
+                <span className='font-semibold text-lg truncate'>{user.username}</span>
+              </Link>
+            ) : (
+              <Logo size='small' showText={true} textOnly={false} textClassName='text-white' />
+            )}
             <button onClick={closeMobileMenu} className='text-white p-1'>
               <X className='h-6 w-6' />
             </button>
@@ -132,7 +149,7 @@ const NavbarMobileControls = () => {
                 Home
               </List.Item>
               <List.Item
-                prefix={<MapPin className='h-5 w-5 text-blue-100' />}
+                prefix={<Map className='h-5 w-5 text-blue-100' />}
                 onClick={() => handleNavigate('/map')}
                 arrow={false}
               >
@@ -172,7 +189,7 @@ const NavbarMobileControls = () => {
                       Dive Log
                     </List.Item>
                     <List.Item
-                      prefix={<Map className='h-4 w-4 text-blue-200' />}
+                      prefix={<MapPin className='h-4 w-4 text-blue-200' />}
                       onClick={() => handleNavigate('/dive-sites')}
                       className='text-white'
                       arrow={false}
