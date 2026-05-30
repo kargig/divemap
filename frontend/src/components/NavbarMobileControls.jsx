@@ -42,6 +42,27 @@ import Logo from './Logo';
 import NotificationBell from './NotificationBell';
 import ChatDropdown from './UserChat/ChatDropdown';
 
+const ThemedListItem = ({ label, onClick }) => (
+  <List.Item
+    onClick={onClick}
+    className='text-white'
+    arrow={false}
+    style={{
+      '--padding-left': '0',
+      '--padding-right': '0',
+      '--inner-padding-right': '0',
+      '--padding-top': '0px',
+      '--padding-bottom': '0px',
+      '--adm-list-item-min-height': '32px',
+    }}
+  >
+    <div className='flex items-center gap-3'>
+      <div className='w-1 h-1 rounded-full bg-blue-200/80 flex-none' />
+      <span className='text-[15px]'>{label}</span>
+    </div>
+  </List.Item>
+);
+
 const NavbarMobileControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -171,80 +192,47 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List
-                    style={{
-                      '--border-top': 'none',
-                      '--border-bottom': 'none',
-                      '--border-inner': 'none',
-                      '--adm-color-text': '#ffffff',
-                      '--adm-color-weak': '#ffffff',
-                    }}
-                  >
-                    <List.Item
-                      prefix={<Notebook className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/dives')}
-                      className='text-white'
-                      arrow={false}
+                  <div className='ml-6 pl-4 border-l border-blue-200/30'>
+                    <List
+                      style={{
+                        '--border-top': 'none',
+                        '--border-bottom': 'none',
+                        '--border-inner': 'none',
+                        '--adm-color-text': '#ffffff',
+                        '--adm-color-weak': '#ffffff',
+                      }}
                     >
-                      Dive Log
-                    </List.Item>
-                    <List.Item
-                      prefix={<MapPin className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/dive-sites')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Dive Sites
-                    </List.Item>
-                    <List.Item
-                      prefix={<Route className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/dive-routes')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Dive Routes
-                    </List.Item>
-                    <List.Item
-                      prefix={<Building className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/diving-centers')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Diving Centers
-                    </List.Item>
-                    <List.Item
-                      prefix={<Calendar className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/dive-trips')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Dive Trips
-                    </List.Item>
-                    <List.Item
-                      prefix={<Calculator className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/resources/tools/mod')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Tools
-                    </List.Item>
-                    <List.Item
-                      prefix={<Award className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/resources/diving-organizations')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Diving Organizations
-                    </List.Item>
-                    <List.Item
-                      prefix={<Tags className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/resources/tags')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Tags
-                    </List.Item>
-                  </List>
+                      <ThemedListItem label='Dive Log' onClick={() => handleNavigate('/dives')} />
+                      <ThemedListItem
+                        label='Dive Sites'
+                        onClick={() => handleNavigate('/dive-sites')}
+                      />
+                      <ThemedListItem
+                        label='Dive Routes'
+                        onClick={() => handleNavigate('/dive-routes')}
+                      />
+                      <ThemedListItem
+                        label='Diving Centers'
+                        onClick={() => handleNavigate('/diving-centers')}
+                      />
+                      <ThemedListItem
+                        label='Dive Trips'
+                        onClick={() => handleNavigate('/dive-trips')}
+                      />
+                      <ThemedListItem
+                        label='Tools'
+                        onClick={() => handleNavigate('/resources/tools/mod')}
+                      />
+                      <ThemedListItem
+                        label='Diving Organizations'
+                        onClick={() => handleNavigate('/resources/diving-organizations')}
+                      />
+                      <ThemedListItem
+                        label='Tags'
+                        onClick={() => handleNavigate('/resources/tags')}
+                      />
+                    </List>
+                  </div>
                 </Collapse.Panel>
               </Collapse>
 
@@ -263,34 +251,28 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List
-                    style={{
-                      '--border-top': 'none',
-                      '--border-bottom': 'none',
-                      '--border-inner': 'none',
-                      '--adm-color-text': '#ffffff',
-                      '--adm-color-weak': '#ffffff',
-                    }}
-                  >
-                    <List.Item
-                      prefix={<Trophy className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/leaderboard')}
-                      className='text-white'
-                      arrow={false}
+                  <div className='ml-6 pl-4 border-l border-blue-200/30'>
+                    <List
+                      style={{
+                        '--border-top': 'none',
+                        '--border-bottom': 'none',
+                        '--border-inner': 'none',
+                        '--adm-color-text': '#ffffff',
+                        '--adm-color-weak': '#ffffff',
+                      }}
                     >
-                      Leaderboard
-                    </List.Item>
-                    {user && (
-                      <List.Item
-                        prefix={<Users className='h-4 w-4 text-blue-200' />}
-                        onClick={() => handleNavigate('/buddies')}
-                        className='text-white'
-                        arrow={false}
-                      >
-                        Buddies
-                      </List.Item>
-                    )}
-                  </List>
+                      <ThemedListItem
+                        label='Leaderboard'
+                        onClick={() => handleNavigate('/leaderboard')}
+                      />
+                      {user && (
+                        <ThemedListItem
+                          label='Buddies'
+                          onClick={() => handleNavigate('/buddies')}
+                        />
+                      )}
+                    </List>
+                  </div>
                 </Collapse.Panel>
               </Collapse>
 
@@ -309,56 +291,26 @@ const NavbarMobileControls = () => {
                     </div>
                   }
                 >
-                  <List
-                    style={{
-                      '--border-top': 'none',
-                      '--border-bottom': 'none',
-                      '--border-inner': 'none',
-                      '--adm-color-text': '#ffffff',
-                      '--adm-color-weak': '#ffffff',
-                    }}
-                  >
-                    <List.Item
-                      prefix={<Info className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/about')}
-                      className='text-white'
-                      arrow={false}
+                  <div className='ml-6 pl-4 border-l border-blue-200/30'>
+                    <List
+                      style={{
+                        '--border-top': 'none',
+                        '--border-bottom': 'none',
+                        '--border-inner': 'none',
+                        '--adm-color-text': '#ffffff',
+                        '--adm-color-weak': '#ffffff',
+                      }}
                     >
-                      About
-                    </List.Item>
-                    <List.Item
-                      prefix={<Code className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/api-docs')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      API
-                    </List.Item>
-                    <List.Item
-                      prefix={<FileText className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/changelog')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Changelog
-                    </List.Item>
-                    <List.Item
-                      prefix={<HelpCircle className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/help')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Help
-                    </List.Item>
-                    <List.Item
-                      prefix={<Shield className='h-4 w-4 text-blue-200' />}
-                      onClick={() => handleNavigate('/privacy')}
-                      className='text-white'
-                      arrow={false}
-                    >
-                      Privacy
-                    </List.Item>
-                  </List>
+                      <ThemedListItem label='About' onClick={() => handleNavigate('/about')} />
+                      <ThemedListItem label='API' onClick={() => handleNavigate('/api-docs')} />
+                      <ThemedListItem
+                        label='Changelog'
+                        onClick={() => handleNavigate('/changelog')}
+                      />
+                      <ThemedListItem label='Help' onClick={() => handleNavigate('/help')} />
+                      <ThemedListItem label='Privacy' onClick={() => handleNavigate('/privacy')} />
+                    </List>
+                  </div>
                 </Collapse.Panel>
               </Collapse>
 

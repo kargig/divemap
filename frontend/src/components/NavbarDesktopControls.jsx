@@ -87,7 +87,7 @@ const NavbarDesktopControls = () => {
                 icon: <Notebook className='h-4 w-4' />,
                 onClick: () => navigate('/dives'),
               },
-                            {
+              {
                 key: 'dive-sites',
                 label: 'Dive Sites',
                 icon: <MapPin className='h-4 w-4' />,
