@@ -74,7 +74,7 @@ const NavbarDesktopControls = () => {
           to='/map'
           className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
         >
-          <MapPin className='h-6 w-6' />
+          <Map className='h-6 w-6' />
           <span className='text-sm'>Map</span>
         </Link>
 
@@ -90,7 +90,7 @@ const NavbarDesktopControls = () => {
               {
                 key: 'dive-sites',
                 label: 'Dive Sites',
-                icon: <Map className='h-4 w-4' />,
+                icon: <MapPin className='h-4 w-4' />,
                 onClick: () => navigate('/dive-sites'),
               },
               {
