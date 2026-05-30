@@ -911,11 +911,11 @@ async def get_dive_sites(
     current_user: User = Depends(get_current_user_optional)
 ):
 
-    # Validate page_size to only allow 25, 50, 100, or 1000
-    if page_size not in [1, 5, 25, 50, 100, 1000]:
+    # Validate page_size
+    if page_size not in [1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="page_size must be one of: 25, 50, 100, 1000"
+            detail="page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000"
         )
 
     # Validate search query length

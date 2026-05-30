@@ -24,7 +24,7 @@ import {
   Plus,
 } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from 'react-query';
+import { useInfiniteQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import DesktopSearchBar from '../components/DesktopSearchBar';
@@ -36,6 +36,7 @@ import SEO from '../components/SEO';
 import TripCard from '../components/TripCard';
 import Button from '../components/ui/Button';
 import CurrencyIcon from '../components/ui/CurrencyIcon';
+import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
@@ -96,20 +97,9 @@ const DiveTrips = () => {
     country: '',
     region: '',
   });
-  // Initialize sorting
+  // Sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
     useSorting('dive-trips');
-
-  // Wrappers to ensure pagination resets on sort change
-  const handleSortChangeWrapper = (newSortBy, newSortOrder) => {
-    handleSortChange(newSortBy, newSortOrder);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const resetSortingWrapper = () => {
-    resetSorting();
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
 
   // Get sort options based on user permissions
   const getAvailableSortOptions = () => {
@@ -123,6 +113,7 @@ const DiveTrips = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const { isMobile } = useResponsive();
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const pageSize = isMobile ? 10 : 20;
 
   // Helper function to get active filters count
   const getActiveFiltersCount = () => {
@@ -268,30 +259,24 @@ const DiveTrips = () => {
     }
   };
 
-  // Pagination state - match Dives page structure
-  const [pagination, setPagination] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      page: parseInt(params.get('page')) || 1,
-      per_page: parseInt(params.get('per_page') || params.get('page_size')) || 25,
-    };
-  });
-
-  // Query for parsed trips with pagination
+  // Query for parsed trips with infinite scrolling
   const {
-    data: tripsResponse,
+    data: infiniteTripsData,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error,
-  } = useQuery(
+  } = useInfiniteQuery(
     [
       'parsedTrips',
       filters,
       sortBy,
       sortOrder,
       sortBy === 'distance' ? userLocation : null,
-      pagination,
+      pageSize,
     ],
-    () => {
+    ({ pageParam = 1 }) => {
       // Route search terms intelligently (only for authenticated users)
       const { search_query, location_query } = user
         ? routeSearchTerms(filters.search_query)
@@ -326,8 +311,8 @@ const DiveTrips = () => {
         ...validFilters,
         sort_by: sortParams.sort_by || 'trip_date',
         sort_order: sortParams.sort_order || 'desc',
-        page: pagination.page,
-        page_size: pagination.per_page,
+        page: pageParam,
+        page_size: pageSize,
       };
 
       // Add user location for distance sorting
@@ -340,11 +325,21 @@ const DiveTrips = () => {
     },
     {
       enabled: !loading, // Only fetch when auth check is complete
+      getNextPageParam: lastPage => {
+        if (lastPage.page < lastPage.total_pages) {
+          return lastPage.page + 1;
+        }
+        return undefined;
+      },
     }
   );
 
-  const trips = tripsResponse?.items || [];
-  const paginationData = tripsResponse?.total !== undefined ? tripsResponse : null;
+  const trips = useMemo(() => {
+    if (!infiniteTripsData) return [];
+    return infiniteTripsData.pages.flatMap(page => page.items || []);
+  }, [infiniteTripsData]);
+
+  const totalCount = infiniteTripsData?.pages[0]?.total || 0;
 
   // Extract unique diving centers and dive sites directly from the loaded trips
   // This completely eliminates the need for separate API queries to /dive-sites and /diving-centers
@@ -430,8 +425,6 @@ const DiveTrips = () => {
       ...prev,
       [key]: value,
     }));
-    // Reset to page 1 when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const clearFilters = () => {
@@ -449,15 +442,6 @@ const DiveTrips = () => {
       country: '',
       region: '',
     });
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handlePageChange = newPage => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    setPagination(prev => ({ ...prev, page: 1, per_page: newPageSize }));
   };
 
   const toggleFilters = () => {
@@ -693,8 +677,8 @@ const DiveTrips = () => {
           sortBy={sortBy}
           sortOrder={sortOrder}
           sortOptions={getAvailableSortOptions()}
-          onSortChange={handleSortChangeWrapper}
-          onReset={resetSortingWrapper}
+          onSortChange={handleSortChange}
+          onReset={resetSorting}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
           compactLayout={compactLayout}
@@ -712,75 +696,6 @@ const DiveTrips = () => {
                 <strong>Distance sorting selected but no location set.</strong> Please set your
                 location coordinates above to enable distance-based sorting.
               </span>
-            </div>
-          </div>
-        )}
-
-        {/* Top Pagination Controls */}
-        {sortedTrips && sortedTrips.length > 0 && !isLoading && !error && viewMode !== 'map' && (
-          <div className='mt-4 mb-4 sm:mt-6 sm:mb-6'>
-            <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4'>
-              <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-                  {/* Page Size Selection */}
-                  <div className='flex items-center gap-2'>
-                    <label className='text-sm font-medium text-gray-700'>Show:</label>
-                    <select
-                      value={pagination.per_page}
-                      onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                    >
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <span className='text-sm text-gray-600'>per page</span>
-                  </div>
-
-                  {/* Pagination Info */}
-                  <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                    Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
-                    {(pagination.page - 1) * pagination.per_page + sortedTrips.length} of{' '}
-                    {paginationData
-                      ? paginationData.total
-                      : (pagination.page - 1) * pagination.per_page + sortedTrips.length}{' '}
-                    trips
-                  </div>
-
-                  {/* Pagination Navigation */}
-                  <div className='flex items-center gap-2'>
-                    <button
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page <= 1}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                    </button>
-
-                    <span className='text-xs sm:text-sm text-gray-700'>
-                      Page {pagination.page} of{' '}
-                      {paginationData
-                        ? Math.max(1, paginationData.pages)
-                        : Math.max(
-                            1,
-                            pagination.page + (sortedTrips.length === pagination.per_page ? 1 : 0)
-                          )}
-                    </span>
-
-                    <button
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={
-                        paginationData
-                          ? pagination.page >= paginationData.pages
-                          : sortedTrips.length < pagination.per_page
-                      }
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronRight className='h-4 w-4' />
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -814,7 +729,7 @@ const DiveTrips = () => {
           </div>
         )}
 
-        {sortedTrips && sortedTrips.length === 0 && !isLoading && !error && (
+        {trips && trips.length === 0 && !isLoading && !error && (
           <div className='text-center py-12'>
             <Search className='h-12 w-12 text-gray-400 mx-auto mb-4' />
             <h3 className='text-lg font-medium text-gray-900 mb-2'>No dive trips found</h3>
@@ -1026,74 +941,13 @@ const DiveTrips = () => {
           </>
         )}
 
-        {/* Pagination Controls - Match Dives page style */}
-        {sortedTrips && sortedTrips.length > 0 && !isLoading && !error && viewMode !== 'map' && (
-          <div className='mb-6 sm:mb-8'>
-            <div className='bg-white rounded-lg shadow-md p-4 sm:p-6'>
-              <div className='flex flex-col lg:flex-row justify-between items-center gap-4'>
-                {/* Pagination Controls */}
-                <div className='flex flex-col sm:flex-row items-center gap-3 sm:gap-4'>
-                  {/* Page Size Selection */}
-                  <div className='flex items-center gap-2'>
-                    <label className='text-sm font-medium text-gray-700'>Show:</label>
-                    <select
-                      value={pagination.per_page}
-                      onChange={e => handlePageSizeChange(parseInt(e.target.value))}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500'
-                    >
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <span className='text-sm text-gray-600'>per page</span>
-                  </div>
-
-                  {/* Pagination Info */}
-                  <div className='text-xs sm:text-sm text-gray-600 text-center sm:text-left'>
-                    Showing {Math.max(1, (pagination.page - 1) * pagination.per_page + 1)} to{' '}
-                    {(pagination.page - 1) * pagination.per_page + sortedTrips.length} of{' '}
-                    {paginationData
-                      ? paginationData.total
-                      : (pagination.page - 1) * pagination.per_page + sortedTrips.length}{' '}
-                    trips
-                  </div>
-
-                  {/* Pagination Navigation */}
-                  <div className='flex items-center gap-2'>
-                    <button
-                      onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page <= 1}
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                    </button>
-
-                    <span className='text-xs sm:text-sm text-gray-700'>
-                      Page {pagination.page} of{' '}
-                      {paginationData
-                        ? Math.max(1, paginationData.pages)
-                        : Math.max(
-                            1,
-                            pagination.page + (sortedTrips.length === pagination.per_page ? 1 : 0)
-                          )}
-                    </span>
-
-                    <button
-                      onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={
-                        paginationData
-                          ? pagination.page >= paginationData.pages
-                          : sortedTrips.length < pagination.per_page
-                      }
-                      className='px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50'
-                    >
-                      <ChevronRight className='h-4 w-4' />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Infinite Scroll Trigger */}
+        {!isLoading && !error && trips.length > 0 && viewMode !== 'map' && (
+          <InfiniteScrollTrigger
+            onIntersect={fetchNextPage}
+            hasNextPage={!!hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+          />
         )}
       </div>
     </div>

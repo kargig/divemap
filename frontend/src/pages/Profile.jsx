@@ -473,11 +473,11 @@ const Profile = () => {
         {features.map((f, i) => (
           <div
             key={i}
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold ${f.color}`}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold ${f.color} max-w-full`}
             title={f.title}
           >
             {f.icon}
-            <span className='whitespace-nowrap'>{f.label}</span>
+            <span className='truncate'>{f.label}</span>
           </div>
         ))}
       </div>
@@ -628,7 +628,7 @@ const Profile = () => {
         title='My Profile Settings | Divemap'
         description='Manage your Divemap account settings, certifications, and personal information.'
       />
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='w-full lg:max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8 overflow-x-hidden'>
         <div className='mb-6 sm:mb-8'>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
           <p className='text-sm sm:text-base text-gray-600'>
@@ -1405,7 +1405,7 @@ const Profile = () => {
                                 }`}
                                 title={cert.is_active ? 'Active' : 'Inactive'}
                               />
-                              <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors'>
+                              <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors truncate block'>
                                 {cert.diving_organization.acronym} - {cert.certification_level}
                               </span>
                             </div>
@@ -1436,31 +1436,31 @@ const Profile = () => {
               </h3>
               <div className='space-y-3'>
                 <div className='flex justify-between items-center font-bold pb-1'>
-                  <div className='flex items-center gap-2'>
-                    <Notebook size={16} className='text-blue-600' />
-                    <span className='text-gray-900'>Total Dives</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Notebook size={16} className='text-blue-600 shrink-0' />
+                    <span className='text-gray-900 truncate'>Total Dives</span>
                   </div>
-                  <span className='text-blue-600 bg-blue-50 px-2 py-0.5 rounded ml-4'>
+                  <span className='text-blue-600 bg-blue-50 px-2 py-0.5 rounded shrink-0'>
                     {(user?.number_of_dives || 0) +
                       (userStats?.dives_created || 0) +
                       (userStats?.buddy_dives_count || 0)}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <User size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dives from Profile</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <User size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dives from Profile</span>
                   </div>
-                  <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  <span className='font-semibold text-gray-900 shrink-0'>
                     {user?.number_of_dives || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <Activity size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dives Created</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Activity size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dives Created</span>
                   </div>
-                  <div className='flex-1 text-right'>
+                  <div className='shrink-0'>
                     <Link
                       to='/dives?my_dives=true'
                       className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
@@ -1470,20 +1470,20 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <Users size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dives Participated</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Users size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dives Participated</span>
                   </div>
-                  <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  <span className='font-semibold text-gray-900 shrink-0'>
                     {userStats?.buddy_dives_count || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <MapPin size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive Sites Created</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <MapPin size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dive Sites Created</span>
                   </div>
-                  <div className='flex-1 text-right'>
+                  <div className='shrink-0'>
                     <Link
                       to='/dive-sites?my_dive_sites=true'
                       className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
@@ -1493,29 +1493,29 @@ const Profile = () => {
                   </div>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <Star size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive Site Rated</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Star size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dive Site Rated</span>
                   </div>
-                  <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  <span className='font-semibold text-gray-900 shrink-0'>
                     {userStats?.dive_sites_rated || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <MessageSquare size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Comments Posted</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <MessageSquare size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Comments Posted</span>
                   </div>
-                  <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  <span className='font-semibold text-gray-900 shrink-0'>
                     {userStats?.comments_posted || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
-                  <div className='flex items-center gap-2'>
-                    <Award size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Certifications</span>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Award size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Certifications</span>
                   </div>
-                  <span className='font-semibold text-gray-900 flex-1 text-right'>
+                  <span className='font-semibold text-gray-900 shrink-0'>
                     {certifications.filter(c => c.is_active).length}
                   </span>
                 </div>

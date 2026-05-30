@@ -137,8 +137,8 @@ const TripCard = ({
 
   // Card classes based on view mode
   const cardClasses = isGrid
-    ? `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
-    : `bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
+    ? `dive-item trip-card bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
+    : `dive-item trip-card bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
         !user ? 'pointer-events-none' : ''
       }`;
 

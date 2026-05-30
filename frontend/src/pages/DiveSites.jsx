@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
@@ -40,7 +40,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
-import Pagination from '../components/ui/Pagination';
+import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
@@ -107,15 +107,7 @@ const DiveSites = () => {
     };
   };
 
-  const getInitialPagination = () => {
-    return {
-      page: parseInt(searchParams.get('page')) || 1,
-      page_size: parseInt(searchParams.get('page_size')) || 25,
-    };
-  };
-
   const [filters, setFilters] = useState(getInitialFilters);
-  const [pagination, setPagination] = useState(getInitialPagination);
   const [viewport, setViewport] = useState({
     longitude: 0,
     latitude: 0,
@@ -124,8 +116,9 @@ const DiveSites = () => {
 
   // Responsive detection using custom hook
   const { isMobile } = useResponsive();
-  // Calculate effective page size for pagination display
-  const effectivePageSize = pagination.page_size || 25;
+  // Default page size based on device
+  const pageSize = isMobile ? 10 : 20;
+
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search_query: getInitialFilters().search_query,
     country: getInitialFilters().country,
@@ -149,7 +142,7 @@ const DiveSites = () => {
 
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
-    debounce((newFilters, newPagination, newViewMode) => {
+    debounce((newFilters, newViewMode) => {
       const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
 
@@ -208,29 +201,14 @@ const DiveSites = () => {
         });
       }
 
-      if (
-        newPagination.page &&
-        newPagination.page.toString &&
-        newPagination.page.toString().trim()
-      ) {
-        newSearchParams.set('page', newPagination.page.toString());
-      }
-      if (
-        newPagination.page_size &&
-        newPagination.page_size.toString &&
-        newPagination.page_size.toString().trim()
-      ) {
-        newSearchParams.set('page_size', newPagination.page_size.toString());
-      }
-
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     }, 500),
-    [navigate]
+    [navigate, isMobile]
   );
 
-  // Immediate URL update for non-search filters (difficulty, ratings, tags, pagination)
+  // Immediate URL update for non-search filters (difficulty, ratings, tags)
   const immediateUpdateURL = useCallback(
-    (newFilters, newPagination, newViewMode) => {
+    (newFilters, newViewMode) => {
       const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
 
@@ -293,34 +271,14 @@ const DiveSites = () => {
         });
       }
 
-      if (
-        newPagination.page &&
-        newPagination.page.toString &&
-        newPagination.page.toString().trim()
-      ) {
-        newSearchParams.set('page', newPagination.page.toString());
-      }
-      if (
-        newPagination.page_size &&
-        newPagination.page_size.toString &&
-        newPagination.page_size.toString().trim()
-      ) {
-        newSearchParams.set('page_size', newPagination.page_size.toString());
-      }
-
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate]
+    [navigate, isMobile]
   );
-
-  // Update URL when pagination changes (immediate)
-  useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
-  }, [pagination, immediateUpdateURL, filters, viewMode]);
 
   // Debounced URL update for search inputs
   useEffect(() => {
-    debouncedUpdateURL(filters, pagination, viewMode);
+    debouncedUpdateURL(filters, viewMode);
   }, [
     filters.name,
     filters.search_query,
@@ -328,25 +286,12 @@ const DiveSites = () => {
     filters.region,
     filters.location,
     debouncedUpdateURL,
+    viewMode,
   ]);
-
-  // Debounced search terms for query key
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchTerms({
-        name: filters.name,
-        search_query: filters.search_query,
-        country: filters.country,
-        region: filters.region,
-        location: filters.location,
-      });
-    }, 1500);
-    return () => clearTimeout(timeoutId);
-  }, [filters.name, filters.search_query, filters.country, filters.region, filters.location]);
 
   // Immediate URL update for non-search filters
   useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
+    immediateUpdateURL(filters, viewMode);
   }, [
     filters.difficulty_code,
     filters.exclude_unspecified_difficulty,
@@ -354,6 +299,7 @@ const DiveSites = () => {
     filters.tag_ids,
     filters.my_dive_sites,
     immediateUpdateURL,
+    viewMode,
   ]);
 
   // Invalidate query when sorting changes to ensure fresh data
@@ -375,12 +321,15 @@ const DiveSites = () => {
     debouncedSearchTerms.search_query.trim().length > 0 &&
     debouncedSearchTerms.search_query.trim().length < 3;
 
-  // Fetch dive sites
+  // Fetch dive sites with infinite query
   const {
-    data: diveSitesResponse,
+    data: infiniteDiveSitesData,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error,
-  } = useQuery(
+  } = useInfiniteQuery(
     [
       'dive-sites',
       debouncedSearchTerms.search_query,
@@ -391,12 +340,11 @@ const DiveSites = () => {
       filters.min_rating,
       filters.tag_ids,
       filters.my_dive_sites,
-      pagination.page,
-      pagination.page_size,
+      pageSize,
       sortBy,
       sortOrder,
     ],
-    async () => {
+    async ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
 
       if (debouncedSearchTerms.search_query)
@@ -409,7 +357,7 @@ const DiveSites = () => {
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
       if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
 
-      // Add sorting parameters directly from state (not from getSortParams)
+      // Add sorting parameters
       if (sortBy) params.append('sort_by', sortBy);
       if (sortOrder) params.append('sort_order', sortOrder);
 
@@ -422,82 +370,43 @@ const DiveSites = () => {
       }
       if (filters.my_dive_sites) params.append('my_dive_sites', 'true');
 
-      if (pagination.page && pagination.page.toString && pagination.page.toString().trim()) {
-        params.append('page', pagination.page.toString());
-      }
-      if (
-        pagination.page_size &&
-        pagination.page_size.toString &&
-        pagination.page_size.toString().trim()
-      ) {
-        params.append('page_size', pagination.page_size.toString());
-      }
+      params.append('page', pageParam.toString());
+      params.append('page_size', pageSize.toString());
 
       const response = await api.get(`/api/v1/dive-sites/?${params.toString()}`);
-      const data = response.data;
-
-      // Extract pagination info from response body (new) or headers (fallback)
-      const paginationInfo = {
-        totalCount:
-          data.total !== undefined
-            ? data.total
-            : parseInt(response.headers['x-total-count'] || '0'),
-        totalPages:
-          data.total_pages !== undefined
-            ? data.total_pages
-            : parseInt(response.headers['x-total-pages'] || '0'),
-        currentPage:
-          data.page !== undefined ? data.page : parseInt(response.headers['x-current-page'] || '1'),
-        pageSize:
-          data.page_size !== undefined
-            ? data.page_size
-            : parseInt(response.headers['x-page-size'] || '25'),
-        hasNextPage:
-          data.has_next_page !== undefined
-            ? data.has_next_page
-            : response.headers['x-has-next-page'] === 'true',
-        hasPrevPage:
-          data.has_prev_page !== undefined
-            ? data.has_prev_page
-            : response.headers['x-has-prev-page'] === 'true',
-      };
-
-      // Extract match type information from response body (new) or headers (fallback)
-      let matchTypes = data.match_types || {};
-      if (!data.match_types) {
-        const matchTypesHeader = response.headers['x-match-types'];
-        if (matchTypesHeader) {
-          try {
-            matchTypes = JSON.parse(matchTypesHeader);
-          } catch (e) {
-            console.warn('Failed to parse match types header:', e);
-          }
-        }
-      }
-
-      return {
-        data: data.items || data,
-        matchTypes: matchTypes,
-        paginationInfo: paginationInfo,
-      };
+      return response.data;
     },
     {
+      getNextPageParam: lastPage => {
+        if (lastPage.has_next_page) {
+          return lastPage.page + 1;
+        }
+        return undefined;
+      },
       staleTime: 5 * 60 * 1000, // 5 minutes
       enabled: !isSearchTooShort,
     }
   );
 
-  // Handle the backend response structure - it returns a list directly, not an object with results
-  const diveSites = diveSitesResponse
-    ? { results: diveSitesResponse.data || diveSitesResponse }
-    : null;
-  const matchTypes = diveSitesResponse?.matchTypes || {};
+  // Flatten the pages into a single list of dive sites
+  const diveSitesList = useMemo(() => {
+    if (!infiniteDiveSitesData) return [];
+    return infiniteDiveSitesData.pages.flatMap(page => page.items || []);
+  }, [infiniteDiveSitesData]);
 
-  // Extract total count from the main API response headers (filtered results)
-  const totalCount = diveSitesResponse?.paginationInfo?.totalCount || 0;
-  const totalPages = diveSitesResponse?.paginationInfo?.totalPages || 0;
-  const hasNextPage = diveSitesResponse?.paginationInfo?.hasNextPage || false;
-  const hasPrevPage = diveSitesResponse?.paginationInfo?.hasPrevPage || false;
+  // Combine match types from all pages
+  const matchTypes = useMemo(() => {
+    if (!infiniteDiveSitesData) return {};
+    return infiniteDiveSitesData.pages.reduce((acc, page) => {
+      return { ...acc, ...(page.match_types || {}) };
+    }, {});
+  }, [infiniteDiveSitesData]);
+
+  // Handle the backend response structure for compatibility with existing components
+  const diveSites = useMemo(() => ({ results: diveSitesList }), [diveSitesList]);
+
+  // Extract total count from the first page
+  const totalCount = infiniteDiveSitesData?.pages[0]?.total || 0;
 
   // Extract all thumbnail URLs from the results to pass to the hook
   const thumbnailUrls = useMemo(() => {
@@ -543,17 +452,8 @@ const DiveSites = () => {
       my_dive_sites: false,
     };
     setFilters(clearedFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
     resetSorting();
-    immediateUpdateURL(clearedFilters, { ...pagination, page: 1 }, viewMode);
-  };
-
-  const handlePageChange = newPage => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    setPagination(prev => ({ ...prev, page: 1, page_size: newPageSize }));
+    immediateUpdateURL(clearedFilters, viewMode);
   };
 
   const handleViewModeChange = newViewMode => {
@@ -636,9 +536,6 @@ const DiveSites = () => {
         return newFilters;
       });
     }
-
-    // Reset to first page
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const getActiveFiltersCount = () => {
@@ -655,7 +552,6 @@ const DiveSites = () => {
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   const getMediaLink = site => {
@@ -785,30 +681,13 @@ const DiveSites = () => {
         )}
         {/* Content Section */}
         <div className={`content-section mb-4 sm:mb-6 lg:mb-8`}>
-          {/* Pagination Controls */}
-          {isLoading ? (
-            <LoadingSkeleton type='pagination' className='mb-2 sm:mb-4 lg:mb-6' />
-          ) : (
-            !isSearchTooShort && (
-              <Pagination
-                currentPage={pagination.page}
-                pageSize={pagination.page_size}
-                totalCount={totalCount}
-                itemName='dive sites'
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                className='mb-2 sm:mb-4 lg:mb-6'
-              />
-            )
-          )}
-
           {/* Results Section - Mobile-first responsive design */}
           {error ? (
             <ErrorPage error={error} onRetry={() => window.location.reload()} />
           ) : isLoading ? (
             <LoadingSkeleton
               type='card'
-              count={pagination.page_size || 25}
+              count={pageSize}
               className={`space-y-2 sm:space-y-3 ${compactLayout ? 'view-mode-compact' : ''}`}
             />
           ) : (
@@ -865,7 +744,15 @@ const DiveSites = () => {
                   ))}
                 </div>
               )}
-              {/* Close content-section */}
+
+              {/* Infinite Scroll Trigger */}
+              {!isSearchTooShort && viewMode !== 'map' && (
+                <InfiniteScrollTrigger
+                  onIntersect={fetchNextPage}
+                  hasNextPage={!!hasNextPage}
+                  isFetchingNextPage={isFetchingNextPage}
+                />
+              )}
             </>
           )}
 
@@ -884,22 +771,6 @@ const DiveSites = () => {
                     ? `No dive sites found matching "${filters.search_query}". Try different terms or add this site to our database.`
                     : 'No dive sites found matching your criteria. Try adjusting your filters.'
                 }
-              />
-            )}
-
-          {/* Bottom Pagination Controls */}
-          {!isLoading &&
-            !isSearchTooShort &&
-            diveSites?.results &&
-            diveSites.results.length > 0 && (
-              <Pagination
-                currentPage={pagination.page}
-                pageSize={pagination.page_size}
-                totalCount={totalCount}
-                itemName='dive sites'
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                className='mt-6 sm:mt-8'
               />
             )}
         </div>

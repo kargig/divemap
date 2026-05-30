@@ -46,6 +46,7 @@
     "react-hook-form": "^7.69.0",
     "react-hot-toast": "^2.6.0",
     "react-image-crop": "^11.0.10",
+    "react-intersection-observer": "^10.0.3",
     "react-leaflet": "^4.2.1",
     "react-markdown": "^10.1.0",
     "react-query": "^3.39.3",

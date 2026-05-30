@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
 import api from '../api';
@@ -44,7 +44,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
-import Pagination from '../components/ui/Pagination';
+import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
@@ -101,13 +101,6 @@ const Dives = () => {
     };
   };
 
-  const getInitialPagination = () => {
-    return {
-      page: parseInt(searchParams.get('page')) || 1,
-      per_page: parseInt(searchParams.get('per_page') || searchParams.get('page_size')) || 25,
-    };
-  };
-
   // View mode state
   const [viewMode, setViewMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -131,24 +124,23 @@ const Dives = () => {
   const [showMobileSorting, setShowMobileSorting] = useState(false);
 
   const [filters, setFilters] = useState(getInitialFilters);
-  const [pagination, setPagination] = useState(getInitialPagination);
   const [showImportModal, setShowImportModal] = useState(false);
   const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
     search: getInitialFilters().search,
   });
 
-  // Sync URL params back to filters when URL changes (e.g., when navigating with dive_site_id)
-  // This ensures that when navigating to /dives?dive_site_id=18, the filter is applied
+  // Responsive detection using custom hook
+  const { isMobile } = useResponsive();
+  const pageSize = isMobile ? 10 : 20;
+
+  // Sync URL params back to filters when URL changes
   useEffect(() => {
     const diveSiteIdFromURL = searchParams.get('dive_site_id') || '';
     const currentDiveSiteId = filters.dive_site_id || '';
-    // Only update if URL param differs from current filter state
-    // This prevents infinite loops while ensuring URL params are synced to filters
     if (diveSiteIdFromURL !== currentDiveSiteId) {
       setFilters(prev => ({ ...prev, dive_site_id: diveSiteIdFromURL }));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]); // Depend on location.search to detect URL changes
+  }, [location.search, filters.dive_site_id, searchParams]);
 
   // Quick filter state
   const getInitialQuickFilters = () => {
@@ -167,27 +159,12 @@ const Dives = () => {
   // Initialize sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } = useSorting('dives');
 
-  // Responsive detection using custom hook
-  const { isMobile } = useResponsive();
-
-  // Mobile optimization styles
-  const mobileStyles = {
-    touchTarget: 'min-h-[44px] sm:min-h-0 touch-manipulation',
-    mobilePadding: 'p-3 sm:p-4 lg:p-6',
-    mobileMargin: 'mb-4 sm:mb-6 lg:mb-8',
-    mobileText: 'text-xs sm:text-sm lg:text-base',
-    mobileFlex: 'flex-col sm:flex-row',
-    mobileCenter: 'justify-center sm:justify-start',
-    mobileFullWidth: 'w-full sm:w-auto',
-  };
-
   // Debounced URL update for search inputs
   const debouncedUpdateURL = useCallback(
     (() => {
       let timeoutId;
-      return (newFilters, newPagination, newViewMode) => {
-        // Safety check: only proceed if all parameters are properly defined
-        if (!newFilters || !newPagination || !newViewMode) {
+      return (newFilters, newViewMode) => {
+        if (!newFilters || !newViewMode) {
           return;
         }
 
@@ -195,16 +172,14 @@ const Dives = () => {
         timeoutId = setTimeout(() => {
           const newSearchParams = new URLSearchParams();
 
-          // Add view mode
           if (newViewMode === 'map') {
             newSearchParams.set('view', 'map');
           } else if (newViewMode === 'grid') {
             newSearchParams.set('view', 'grid');
           } else {
-            newSearchParams.delete('view'); // Default to list view
+            newSearchParams.delete('view');
           }
 
-          // Add filters with comprehensive safety checks
           if (
             newFilters.search &&
             newFilters.search.toString &&
@@ -218,13 +193,6 @@ const Dives = () => {
             newFilters.dive_site_id.toString().trim()
           ) {
             newSearchParams.set('dive_site_id', newFilters.dive_site_id.toString());
-          }
-          if (
-            newFilters.dive_site_name &&
-            newFilters.dive_site_name.toString &&
-            newFilters.dive_site_name.toString().trim()
-          ) {
-            newSearchParams.set('dive_site_name', newFilters.dive_site_name.toString());
           }
           if (
             newFilters.difficulty_code &&
@@ -272,7 +240,6 @@ const Dives = () => {
             newSearchParams.set('my_dives', newFilters.my_dives.toString());
           }
 
-          // Add tag IDs with safety check
           if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
             newFilters.tag_ids.forEach(tagId => {
               if (tagId && tagId.toString) {
@@ -281,7 +248,6 @@ const Dives = () => {
             });
           }
 
-          // Add sorting parameters with safety check
           const sortParams = getSortParams();
           if (sortParams && sortParams.sort_by) {
             newSearchParams.set('sort_by', sortParams.sort_by);
@@ -290,17 +256,8 @@ const Dives = () => {
             newSearchParams.set('sort_order', sortParams.sort_order);
           }
 
-          // Add pagination with safety checks
-          if (newPagination.page && newPagination.page.toString) {
-            newSearchParams.set('page', newPagination.page.toString());
-          }
-          if (newPagination.per_page && newPagination.per_page.toString) {
-            newSearchParams.set('per_page', newPagination.per_page.toString());
-          }
-
-          // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
-        }, 800); // 800ms debounce delay
+        }, 800);
       };
     })(),
     [navigate, getSortParams]
@@ -308,24 +265,21 @@ const Dives = () => {
 
   // Immediate URL update for non-search filters
   const immediateUpdateURL = useCallback(
-    (newFilters, newPagination, newViewMode) => {
-      // Safety check: only proceed if all parameters are properly defined
-      if (!newFilters || !newPagination || !newViewMode) {
+    (newFilters, newViewMode) => {
+      if (!newFilters || !newViewMode) {
         return;
       }
 
       const newSearchParams = new URLSearchParams();
 
-      // Add view mode
       if (newViewMode === 'map') {
         newSearchParams.set('view', 'map');
       } else if (newViewMode === 'grid') {
         newSearchParams.set('view', 'grid');
       } else {
-        newSearchParams.delete('view'); // Default to list view
+        newSearchParams.delete('view');
       }
 
-      // Add filters with comprehensive safety checks
       if (newFilters.search && newFilters.search.toString && newFilters.search.toString().trim()) {
         newSearchParams.set('search', newFilters.search.toString());
       }
@@ -396,7 +350,6 @@ const Dives = () => {
         newSearchParams.set('my_dives', newFilters.my_dives.toString());
       }
 
-      // Add tag IDs with safety check
       if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
         newFilters.tag_ids.forEach(tagId => {
           if (tagId && tagId.toString) {
@@ -405,7 +358,6 @@ const Dives = () => {
         });
       }
 
-      // Add sorting parameters with safety check
       const sortParams = getSortParams();
       if (sortParams && sortParams.sort_by) {
         newSearchParams.set('sort_by', sortParams.sort_by);
@@ -414,34 +366,17 @@ const Dives = () => {
         newSearchParams.set('sort_order', sortParams.sort_order);
       }
 
-      // Add pagination with safety checks
-      if (newPagination.page && newPagination.page.toString) {
-        newSearchParams.set('page', newPagination.page.toString());
-      }
-      if (newPagination.per_page && newPagination.per_page.toString) {
-        newSearchParams.set('per_page', newPagination.per_page.toString());
-      }
-
-      // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
     [navigate, getSortParams]
   );
 
-  // Update URL when view mode or pagination change (immediate)
+  // Update URL when view mode changes
   useEffect(() => {
-    // Only run if filters and pagination are properly initialized
-    if (
-      filters &&
-      pagination &&
-      Object.keys(filters).length > 0 &&
-      Object.keys(pagination).length > 0
-    ) {
-      immediateUpdateURL(filters, pagination, viewMode);
+    if (filters && Object.keys(filters).length > 0) {
+      immediateUpdateURL(filters, viewMode);
     }
-  }, [filters, pagination, viewMode, immediateUpdateURL]);
-
-  // No more debounced URL updates for search inputs - they only update when Search button is clicked
+  }, [filters, viewMode, immediateUpdateURL]);
 
   // Debounced search terms for query key
   useEffect(() => {
@@ -455,7 +390,7 @@ const Dives = () => {
 
   // Immediate URL update for filters
   useEffect(() => {
-    immediateUpdateURL(filters, pagination, viewMode);
+    immediateUpdateURL(filters, viewMode);
   }, [
     filters.search,
     filters.dive_site_id,
@@ -469,43 +404,44 @@ const Dives = () => {
     filters.tag_ids,
     filters.buddy_username,
     immediateUpdateURL,
+    viewMode,
   ]);
 
-  // Invalidate query when sorting changes to ensure fresh data
+  // Invalidate query when sorting changes
   useEffect(() => {
     queryClient.invalidateQueries(['dives']);
   }, [sortBy, sortOrder, queryClient]);
 
-  // Fetch available tags for filtering - also when tag filters are active in URL
+  // Fetch available tags
   const { data: availableTags } = useQuery(
     ['available-tags'],
     () => api.get('/api/v1/tags/').then(res => res.data),
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       enabled: showFilters || (filters.tag_ids && filters.tag_ids.length > 0),
     }
   );
 
-  // Fetch dive site for filter initialization - only if there's a dive_site_id in URL params
-  // Since dive site filter is now searchable via API, we don't need to fetch all sites upfront
-  // Only fetch the specific site if it's in the URL to initialize the search input
   const diveSiteIdFromURL = searchParams.get('dive_site_id');
   const { data: selectedDiveSite } = useQuery(
     ['dive-site-for-filter', diveSiteIdFromURL],
     () => getDiveSite(diveSiteIdFromURL),
     {
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      enabled: Boolean(diveSiteIdFromURL), // Always fetch if present in URL to resolve name
-      retry: false, // Don't retry if site doesn't exist
+      staleTime: 10 * 60 * 1000,
+      enabled: Boolean(diveSiteIdFromURL),
+      retry: false,
     }
   );
 
-  // Consolidated query for dives and total count
+  // Consolidated query for dives with infinite scrolling
   const {
-    data: divesResponse,
+    data: infiniteDivesData,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error,
-  } = useQuery(
+  } = useInfiniteQuery(
     [
       'dives',
       debouncedSearchTerms.search,
@@ -520,12 +456,11 @@ const Dives = () => {
       filters.end_date,
       filters.my_dives,
       filters.tag_ids,
-      pagination.page,
-      pagination.per_page,
+      pageSize,
       sortBy,
       sortOrder,
     ],
-    () => {
+    ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
 
       if (filters.dive_site_id) params.append('dive_site_id', filters.dive_site_id);
@@ -552,45 +487,36 @@ const Dives = () => {
         });
       }
 
-      // Add sorting parameters directly from state
       if (sortBy) params.append('sort_by', sortBy);
       if (sortOrder) params.append('sort_order', sortOrder);
 
-      if (pagination.page && pagination.page.toString) {
-        params.append('page', pagination.page.toString());
-      }
-      if (pagination.per_page && pagination.per_page.toString) {
-        params.append('page_size', pagination.per_page.toString());
-      }
+      params.append('page', pageParam.toString());
+      params.append('page_size', pageSize.toString());
 
       return api.get(`/api/v1/dives/?${params.toString()}`).then(res => {
-        // Match types are now included in the response body for better performance
         if (res.data?.match_types) {
-          setMatchTypes(res.data.match_types);
-        } else {
-          // Backward compatibility check for headers
-          const matchTypesHeader = res.headers['x-match-types'];
-          if (matchTypesHeader) {
-            try {
-              setMatchTypes(JSON.parse(matchTypesHeader));
-            } catch (e) {
-              setMatchTypes({});
-            }
-          } else {
-            setMatchTypes({});
-          }
+          setMatchTypes(prev => ({ ...prev, ...res.data.match_types }));
         }
         return res.data;
       });
     },
     {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      getNextPageParam: lastPage => {
+        if (lastPage.has_next_page) {
+          return lastPage.page + 1;
+        }
+        return undefined;
+      },
+      staleTime: 5 * 60 * 1000,
     }
   );
 
-  // Derived state from the consolidated response
-  const dives = divesResponse?.items || [];
-  const totalCount = divesResponse?.total || 0;
+  const dives = useMemo(() => {
+    if (!infiniteDivesData) return [];
+    return infiniteDivesData.pages.flatMap(page => page.items || []);
+  }, [infiniteDivesData]);
+
+  const totalCount = infiniteDivesData?.pages[0]?.total || 0;
 
   // Convert single dive site to array format expected by ResponsiveFilterBar
   // Also extract unique dive sites from the loaded dives to populate the filter dropdown without extra API calls
@@ -621,7 +547,6 @@ const Dives = () => {
 
   const handleSearch = e => {
     e.preventDefault();
-    setPagination(prev => ({ ...prev, page: 1 })); // Reset to first page when searching
 
     // Update URL with current search filters
     const newSearchParams = new URLSearchParams();
@@ -679,12 +604,6 @@ const Dives = () => {
       });
     }
 
-    // Add pagination with safety check
-    newSearchParams.set('page', '1'); // Reset to page 1
-    if (pagination.per_page && pagination.per_page.toString) {
-      newSearchParams.set('per_page', pagination.per_page.toString());
-    }
-
     // Update URL without triggering a page reload
     navigate(`?${newSearchParams.toString()}`, { replace: true });
   };
@@ -695,7 +614,6 @@ const Dives = () => {
       ...prev,
       [name]: value,
     }));
-    // Don't reset pagination or trigger search on every change - only when Search button is clicked
   };
 
   const handleFilterChange = (name, value) => {
@@ -703,10 +621,6 @@ const Dives = () => {
       ...prev,
       [name]: value,
     }));
-    // Reset pagination to page 1 when filters change (except for pagination-related filters)
-    if (name !== 'page' && name !== 'per_page') {
-      setPagination(prev => ({ ...prev, page: 1 }));
-    }
   };
 
   const clearFilters = () => {
@@ -722,7 +636,6 @@ const Dives = () => {
       my_dives: false,
     });
     setQuickFilters([]);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
   // Quick filter handler for dive types
@@ -772,17 +685,6 @@ const Dives = () => {
 
       return newFilters;
     });
-
-    // Reset to first page when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handlePageChange = newPage => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-  };
-
-  const handlePageSizeChange = newPageSize => {
-    setPagination(prev => ({ ...prev, page: 1, per_page: newPageSize }));
   };
 
   const toggleFilters = () => {
@@ -940,17 +842,6 @@ const Dives = () => {
           user={user}
         />
 
-        {/* Pagination Controls */}
-        <Pagination
-          currentPage={pagination.page}
-          pageSize={pagination.per_page}
-          totalCount={totalCount}
-          itemName='dives'
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          className='mb-6 sm:mb-8'
-        />
-
         {/* Import Modal */}
         <ImportDivesModal
           isOpen={showImportModal}
@@ -965,9 +856,11 @@ const Dives = () => {
         {error ? (
           <ErrorPage error={error} onRetry={() => window.location.reload()} />
         ) : isLoading ? (
-          <div className='flex justify-center items-center h-64'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600'></div>
-          </div>
+          <LoadingSkeleton
+            type='card'
+            count={pageSize}
+            className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}
+          />
         ) : viewMode === 'map' ? (
           <div className='mb-6 sm:mb-8 bg-gray-50 flex items-center justify-center min-h-[400px] rounded-lg border border-gray-200'>
             <Suspense
@@ -1241,25 +1134,13 @@ const Dives = () => {
               </div>
             )}
 
-            {/* Dives Map */}
-            {viewMode === 'map' && (
-              <div className='h-96 rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
-                <Suspense
-                  fallback={
-                    <div className='flex flex-col items-center gap-2'>
-                      <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
-                      <span>Loading Map...</span>
-                    </div>
-                  }
-                >
-                  <DivesMap
-                    key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
-                    dives={dives || []}
-                    viewport={viewport}
-                    onViewportChange={setViewport}
-                  />
-                </Suspense>
-              </div>
+            {/* Infinite Scroll Trigger */}
+            {viewMode !== 'map' && (
+              <InfiniteScrollTrigger
+                onIntersect={fetchNextPage}
+                hasNextPage={!!hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+              />
             )}
           </>
         )}
@@ -1270,19 +1151,6 @@ const Dives = () => {
             actionLink='/dives/create'
             actionText='Add New Dive'
             message='We couldn’t find any dives matching your current filters. Try broadening your search or log a new adventure.'
-          />
-        )}
-
-        {/* Bottom Pagination Controls */}
-        {dives && dives.length > 0 && (
-          <Pagination
-            currentPage={pagination.page}
-            pageSize={pagination.per_page}
-            totalCount={totalCount}
-            itemName='dives'
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-            className='mt-6 sm:mt-8'
           />
         )}
       </div>
