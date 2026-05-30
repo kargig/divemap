@@ -931,7 +931,7 @@ const Dives = () => {
                         {dive.user_rating !== undefined && dive.user_rating !== null && (
                           <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0'>
                             <img
-                              src='/arts/divemap_shell.png'
+                              src='/arts/starfish-2.svg'
                               alt='Rating'
                               className='w-3.5 h-3.5 object-contain'
                             />
@@ -1111,7 +1111,7 @@ const Dives = () => {
                           {dive.user_rating !== undefined && (
                             <div className='flex items-center gap-1 text-yellow-600'>
                               <img
-                                src='/arts/divemap_shell.png'
+                                src='/arts/starfish-2.svg'
                                 alt='Rating'
                                 className='w-3.5 h-3.5 object-contain'
                               />

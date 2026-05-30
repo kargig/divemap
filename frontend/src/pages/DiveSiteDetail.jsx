@@ -55,7 +55,7 @@ import StickyRateBar from '../components/StickyRateBar';
 import Button from '../components/ui/Button';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
 import RichText from '../components/ui/RichText';
-import ShellRating from '../components/ui/ShellRating';
+import StarfishRating from '../components/ui/StarfishRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import useFlickrImages from '../hooks/useFlickrImages';
@@ -826,7 +826,7 @@ const DiveSiteDetail = () => {
                 </span>
                 <div className='flex items-center gap-1 mt-0.5'>
                   <img
-                    src='/arts/divemap_shell.png'
+                    src='/arts/starfish-2.svg'
                     alt='Rating'
                     className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
                   />

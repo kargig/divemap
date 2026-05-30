@@ -9,11 +9,13 @@ import Avatar from '../components/Avatar';
 import BuddyRequests from '../components/BuddyRequests';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
+import { useResponsive } from '../hooks/useResponsive';
 
 const Buddies = () => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isMobile } = useResponsive();
 
   const {
     data: buddies = [],
@@ -66,8 +68,8 @@ const Buddies = () => {
         title='My Dive Buddies | Divemap'
         description='Manage your scuba diving buddies, accept requests, and connect with other divers on Divemap.'
       />
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
-        <div className='mb-6'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+        <div className='mb-6 px-4 sm:px-0'>
           <Link
             to='/profile'
             className='inline-flex items-center text-blue-600 hover:text-blue-700 mb-4'
@@ -82,19 +84,19 @@ const Buddies = () => {
           <p className='text-gray-600 mt-2'>Manage your dive buddies and friendship requests.</p>
         </div>
 
-        <div className='space-y-8'>
+        <div className='space-y-6 sm:space-y-8'>
           {/* Pending Requests Section */}
           <section>
             <BuddyRequests />
           </section>
 
           {/* Accepted Buddies Section */}
-          <section className='bg-white rounded-lg shadow-md overflow-hidden'>
-            <div className='p-6 border-b border-gray-200'>
+          <section className='bg-white sm:rounded-lg shadow-md overflow-hidden'>
+            <div className='p-4 sm:p-6 border-b border-gray-200'>
               <h2 className='text-xl font-semibold text-gray-900'>Current Buddies</h2>
             </div>
 
-            <div className='p-6'>
+            <div className='p-3 sm:p-6'>
               {isLoading ? (
                 <div className='flex justify-center py-8'>
                   <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
@@ -110,7 +112,7 @@ const Buddies = () => {
                   </p>
                 </div>
               ) : (
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4'>
                   {buddies.map(friendship => {
                     // Safeguard against deleted users or malformed data
                     if (!friendship.user || !friendship.friend) return null;
@@ -124,16 +126,16 @@ const Buddies = () => {
                     return (
                       <div
                         key={friendship.id}
-                        className='flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors'
+                        className='flex items-center justify-between p-3 sm:p-4 border border-gray-100 sm:border-gray-200 rounded-lg hover:border-blue-300 transition-colors bg-white'
                       >
                         <Link
                           to={`/users/${buddyUser.username}`}
-                          className='flex items-center gap-3 flex-1 min-w-0 group'
+                          className='flex items-center gap-2 sm:gap-3 flex-1 min-w-0 group'
                         >
                           <Avatar
                             src={buddyUser.avatar_full_url || buddyUser.avatar_url}
                             alt={buddyUser.username}
-                            size='md'
+                            size={isMobile ? 'sm' : 'md'}
                             fallbackText={buddyUser.username}
                           />
                           <div className='flex-1 min-w-0'>
@@ -146,17 +148,17 @@ const Buddies = () => {
                           </div>
                         </Link>
 
-                        <div className='flex items-center gap-2 ml-4 shrink-0'>
+                        <div className='flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4 shrink-0'>
                           <button
                             onClick={() => handleMessageBuddy(buddyUser)}
-                            className='p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors'
+                            className='p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors'
                             title='Message Buddy'
                           >
                             <MessageSquare className='h-5 w-5' />
                           </button>
                           <button
                             onClick={() => handleRemoveBuddy(friendship.id, buddyUser.username)}
-                            className='p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors'
+                            className='p-1.5 sm:p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors'
                             title='Remove Buddy'
                           >
                             <Trash2 className='h-5 w-5' />

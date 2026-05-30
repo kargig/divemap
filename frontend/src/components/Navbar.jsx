@@ -21,9 +21,9 @@ const Navbar = () => {
     >
       {/* Sea Components Background */}
       <div className='absolute inset-0 pointer-events-none z-0'>
-        {/* Shell - positioned on the left side */}
+        {/* Starfish - positioned on the left side */}
         <div className='absolute left-8 top-2 opacity-60 navbar-sea-component'>
-          <img src='/arts/divemap_shell.png' alt='Shell' className='w-8 h-8 object-contain' />
+          <img src='/arts/starfish-2.svg' alt='Starfish$!1' className='w-8 h-8 object-contain' />
         </div>
 
         {/* Fish - positioned on the right side */}
@@ -45,9 +45,9 @@ const Navbar = () => {
           <img src='/arts/divemap_coral.png' alt='Coral' className='w-10 h-10 object-contain' />
         </div>
 
-        {/* Second Shell - positioned next to coral */}
+        {/* Second Starfish - positioned next to coral */}
         <div className='absolute left-1/2 top-0 opacity-55 navbar-sea-component'>
-          <img src='/arts/divemap_shell.png' alt='Shell 2' className='w-6 h-6 object-contain' />
+          <img src='/arts/starfish-2.svg' alt='Starfish 2' className='w-6 h-6 object-contain' />
         </div>
 
         {/* Additional Small Bubble - near coral */}

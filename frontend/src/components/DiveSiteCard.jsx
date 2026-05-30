@@ -65,9 +65,9 @@ export const DiveSiteListCard = ({
             {site.average_rating !== undefined && site.average_rating !== null && (
               <div className='flex items-center gap-1 text-yellow-500 flex-shrink-0'>
                 <img
-                  src='/arts/divemap_shell.png'
-                  alt='Rating'
-                  className='w-3.5 h-3.5 object-contain'
+                  src='/arts/starfish-2.svg'
+                  alt='Starfish Rating'
+                  className='w-5 h-5 object-contain'
                 />
                 <span className='text-sm sm:text-lg font-bold text-gray-900'>
                   {Number(site.average_rating).toFixed(1)}
@@ -195,9 +195,9 @@ export const DiveSiteGridCard = ({
         {site.average_rating !== undefined && site.average_rating !== null && (
           <div className='absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-gray-100'>
             <img
-              src='/arts/divemap_shell.png'
-              alt='Rating'
-              className='w-3.5 h-3.5 object-contain'
+              src='/arts/starfish-2.svg'
+              alt='Starfish Rating'
+              className='w-5 h-5 object-contain'
             />
             <span className='text-xs font-bold text-gray-900'>
               {Number(site.average_rating).toFixed(1)}

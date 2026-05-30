@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
 
-import ShellRating from './ui/ShellRating';
+import StarfishRating from './ui/StarfishRating';
 
 const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) => {
   const { average_rating, total_ratings, user_rating } = diveSite;
@@ -124,7 +124,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
                 {!user ? 'Log in to rate' : user_rating ? 'Your Rating' : "What's your verdict?"}
               </span>
               <div className='relative'>
-                <ShellRating
+                <StarfishRating
                   value={user_rating || 0}
                   onChange={handleRate}
                   disabled={isSubmitting}

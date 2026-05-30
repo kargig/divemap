@@ -87,7 +87,7 @@ React application built with Vite, Tailwind CSS, and OpenLayers.
     - **Forms (`forms/`):** `FormField.jsx`, `GasMixInput.jsx`, `GasTanksInput.jsx`.
     - **Tables (`tables/`):** `LeaderboardTable.jsx`, and modular `Admin...Table.jsx` components.
     - **Calculators (`calculators/`):** Scuba physics tools (`BestMix`, `GasPlanning`, `MinGas`, `Mod`, `SacRate`, `Weight`).
-    - **UI Primitives (`ui/`):** `Button.jsx`, `Modal.jsx`, `Select.jsx`, `Tabs.jsx`, `Combobox.jsx`, `ShellRating.jsx`, `Pagination.jsx`.
+    - **UI Primitives (`ui/`):** `Button.jsx`, `Modal.jsx`, `Select.jsx`, `Tabs.jsx`, `Combobox.jsx`, `StarfishRating.jsx`, `Pagination.jsx`.
     - **System/Infrastructure:** `SessionManager.jsx`, `PWAUpdater.jsx`, `SEO.jsx`, `Turnstile.jsx`, `NotificationBell.jsx`, `CapacitorBackButtonHandler.jsx`.
 - `hooks/`: Custom React hooks (Settings, Viewport Data, Responsive Layout).
 - `services/`: Frontend-specific service logic (Notification permissions, PWA lifecycle).

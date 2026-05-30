@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
 
-import ShellRating from './ui/ShellRating';
+import StarfishRating from './ui/StarfishRating';
 
 const StickyRateBar = ({ diveSite, onRate, isSubmitting }) => {
   const { user } = useAuth();
@@ -59,7 +59,7 @@ const StickyRateBar = ({ diveSite, onRate, isSubmitting }) => {
             </span>
 
             <div className='flex items-center justify-center w-full'>
-              <ShellRating
+              <StarfishRating
                 value={localRating}
                 onChange={handleRate}
                 disabled={isSubmitting}

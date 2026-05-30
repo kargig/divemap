@@ -2,9 +2,9 @@ import { Rate, ConfigProvider } from 'antd';
 import PropTypes from 'prop-types';
 import React from 'react';
 
-const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, className }) => {
-  // Custom character component using the shell image
-  const ShellIcon = (
+const StarfishRating = ({ value, onChange, disabled, readOnly, size = 28, gap = 4, className }) => {
+  // Custom character component using the starfish SVG
+  const StarfishIcon = (
     <div
       style={{
         display: 'flex',
@@ -15,16 +15,16 @@ const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, 
       }}
     >
       <img
-        src='/arts/divemap_shell.png'
-        alt='shell'
+        src='/arts/starfish-2.svg'
+        alt='starfish'
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'contain',
-          filter: 'grayscale(100%) opacity(0.5)', // Default state (unselected)
+          filter: 'grayscale(100%) opacity(0.3)', // Default state (unselected)
           transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
         }}
-        className='shell-icon'
+        className='starfish-icon'
       />
     </div>
   );
@@ -33,9 +33,7 @@ const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, 
     <ConfigProvider
       theme={{
         token: {
-          // You can customize the active color here if needed,
-          // but we'll primarily handle visuals via the CSS/img styles
-          colorPrimary: '#f59e0b', // Amber/Orange-like color for the filled state
+          colorPrimary: '#f59e0b',
         },
         components: {
           Rate: {
@@ -44,36 +42,36 @@ const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, 
         },
       }}
     >
-      <div className={`shell-rating-container ${className || ''}`}>
+      <div className={`starfish-rating-container ${className || ''}`}>
         <style>
           {`
             /* Remove grayscale for full, half, active (hover), and focused (touch/keyboard) stars */
-            .shell-rating-container .ant-rate-star-full .shell-icon,
-            .shell-rating-container .ant-rate-star-half .shell-icon,
-            .shell-rating-container .ant-rate-star-active .shell-icon,
-            .shell-rating-container .ant-rate-star-focused .shell-icon {
+            .starfish-rating-container .ant-rate-star-full .starfish-icon,
+            .starfish-rating-container .ant-rate-star-half .starfish-icon,
+            .starfish-rating-container .ant-rate-star-active .starfish-icon,
+            .starfish-rating-container .ant-rate-star-focused .starfish-icon {
               filter: none !important;
               opacity: 1 !important;
-              transform: scale(1.1); /* Ensure scale is applied to all active states */
+              transform: scale(1.1);
             }
             
             /* Add a subtle scale effect to the stars being hovered over */
-            .shell-rating-container .ant-rate-star-active .shell-icon {
+            .starfish-rating-container .ant-rate-star-active .starfish-icon {
               transform: scale(1.1);
             }
 
             /* The specifically hovered star gets a slightly larger pop */
-            .shell-rating-container .ant-rate-star:hover .shell-icon {
+            .starfish-rating-container .ant-rate-star:hover .starfish-icon {
               transform: scale(1.25) !important;
             }
             
-            .shell-rating-container .ant-rate-star-second {
-              color: transparent; /* Hide default star color to let image show */
+            .starfish-rating-container .ant-rate-star-second {
+              color: transparent;
             }
           `}
         </style>
         <Rate
-          character={ShellIcon}
+          character={StarfishIcon}
           count={10}
           value={value}
           onChange={onChange}
@@ -83,7 +81,7 @@ const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, 
             fontSize: size,
             display: 'inline-flex',
             gap: gap,
-            flexWrap: 'nowrap', // Ensure shells don't wrap weirdly
+            flexWrap: 'nowrap',
           }}
         />
       </div>
@@ -91,7 +89,7 @@ const ShellRating = ({ value, onChange, disabled, readOnly, size = 24, gap = 4, 
   );
 };
 
-ShellRating.propTypes = {
+StarfishRating.propTypes = {
   value: PropTypes.number,
   onChange: PropTypes.func,
   disabled: PropTypes.bool,
@@ -101,4 +99,4 @@ ShellRating.propTypes = {
   className: PropTypes.string,
 };
 
-export default ShellRating;
+export default StarfishRating;

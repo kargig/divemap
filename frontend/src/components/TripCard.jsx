@@ -87,9 +87,9 @@ const TripCard = ({
     return (
       <div className='flex items-center gap-1 bg-yellow-50 dark:bg-yellow-100/50 rounded-full px-1.5 py-0.5 shrink-0 ml-auto'>
         <img
-          src='/arts/divemap_shell.png'
+          src='/arts/starfish-2.svg'
           alt='Rating'
-          className='w-2.5 h-2.5 sm:w-3 sm:h-3 object-contain'
+          className='w-4 h-4 sm:w-5 sm:h-5 object-contain'
         />
         <span className='text-xs sm:text-sm font-bold text-yellow-800 leading-none'>
           {rating.toFixed(1)}

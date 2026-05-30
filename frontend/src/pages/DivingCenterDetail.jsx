@@ -44,7 +44,7 @@ import TripCard from '../components/TripCard';
 import TripFormModal from '../components/TripFormModal';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
-import ShellRating from '../components/ui/ShellRating';
+import StarfishRating from '../components/ui/StarfishRating';
 import YouTubePreview from '../components/YouTubePreview';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';

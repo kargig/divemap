@@ -454,7 +454,7 @@ const DivingCenters = () => {
                                 {center.average_rating && (
                                   <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
                                     <img
-                                      src='/arts/divemap_shell.png'
+                                      src='/arts/starfish-2.svg'
                                       alt='Rating'
                                       className='w-2.5 h-2.5 object-contain'
                                     />
@@ -601,7 +601,7 @@ const DivingCenters = () => {
                               {center.average_rating && (
                                 <div className='flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-lg border border-yellow-100'>
                                   <img
-                                    src='/arts/divemap_shell.png'
+                                    src='/arts/starfish-2.svg'
                                     alt='Rating'
                                     className='w-3.5 h-3.5 object-contain'
                                   />

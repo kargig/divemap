@@ -60,7 +60,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
       <img
         src={isDoubles ? '/doubles.png' : '/single.png'}
         alt='tank'
-        className='w-4 h-4 object-contain'
+        className='w-5 h-5 object-contain'
       />
     );
   };
@@ -198,9 +198,9 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <img
-                      src='/arts/divemap_shell.png'
+                      src='/arts/starfish-2.svg'
                       alt='Rating'
-                      className='w-4 h-4 object-contain'
+                      className='w-5 h-5 object-contain'
                     />
                     <span className='text-sm font-medium'>{dive.user_rating}/10</span>
                   </div>
@@ -370,9 +370,9 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
                     <img
-                      src='/arts/divemap_shell.png'
+                      src='/arts/starfish-2.svg'
                       alt='Rating'
-                      className='w-4 h-4 object-contain'
+                      className='w-5 h-5 object-contain'
                     />
                     <span className='text-sm text-gray-600'>Rating:</span>
                     <span className='font-medium'>{dive.user_rating}/10</span>
