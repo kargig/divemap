@@ -85,7 +85,7 @@ const ResetPassword = () => {
         <SEO title='Verifying | Divemap' description='Verifying password reset token.' />
         <div className='min-h-screen flex items-center justify-center bg-gray-50'>
           <div className='text-center'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
+            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-divemap-blue mx-auto'></div>
             <p className='mt-4 text-gray-600'>Verifying link...</p>
           </div>
         </div>
@@ -112,7 +112,10 @@ const ResetPassword = () => {
               </p>
             </div>
             <div className='mt-4'>
-              <Link to='/forgot-password' className='text-blue-600 hover:text-blue-500 font-medium'>
+              <Link
+                to='/forgot-password'
+                className='text-divemap-blue hover:opacity-80 font-medium'
+              >
                 Request a new reset link
               </Link>
             </div>
@@ -197,7 +200,7 @@ const ResetPassword = () => {
                 <button
                   type='submit'
                   disabled={loading}
-                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50'
+                  className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-divemap-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky disabled:opacity-50'
                 >
                   {loading ? 'Resetting...' : 'Reset Password'}
                 </button>

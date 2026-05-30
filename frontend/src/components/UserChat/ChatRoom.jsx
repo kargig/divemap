@@ -230,13 +230,13 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
 
         <div className='flex items-center gap-2'>
           {showHints && (
-            <div className='hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full animate-in fade-in slide-in-from-right-4 duration-300'>
-              <HelpCircle size={14} className='text-blue-500 shrink-0' />
-              <div className='text-[10px] text-blue-800 dark:text-blue-200 flex items-center gap-2'>
+            <div className='hidden lg:flex items-center gap-2 px-3 py-1.5 bg-divemap-surface dark:bg-blue-900/20 border border-divemap-blue/20 dark:border-blue-800 rounded-full animate-in fade-in slide-in-from-right-4 duration-300'>
+              <HelpCircle size={14} className='text-divemap-blue shrink-0' />
+              <div className='text-[10px] text-divemap-deep dark:text-blue-200 flex items-center gap-2'>
                 <span className='whitespace-nowrap'>{activeTip}</span>
                 <button
                   onClick={dismissHints}
-                  className='text-blue-400 hover:text-blue-600 transition-colors ml-1'
+                  className='text-divemap-sky hover:text-divemap-blue transition-colors ml-1'
                   title='Dismiss tips'
                 >
                   <X size={12} />
@@ -379,7 +379,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
                 <Smile size={24} />
               </button>
 
-              <div className='flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 transition-shadow'>
+              <div className='flex-1 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-divemap-sky transition-shadow'>
                 <TextareaAutosize
                   minRows={1}
                   maxRows={5}
@@ -399,7 +399,7 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
               <button
                 type='submit'
                 disabled={!inputText.trim() || isSending}
-                className='p-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-12 h-12 mb-0.5 shadow-sm'
+                className='p-3 bg-divemap-blue hover:opacity-90 disabled:opacity-50 text-white rounded-full transition-colors flex items-center justify-center w-12 h-12 mb-0.5 shadow-sm'
               >
                 {isSending ? (
                   <Loader2 size={20} className='animate-spin' />

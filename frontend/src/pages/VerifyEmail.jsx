@@ -142,7 +142,7 @@ const VerifyEmail = () => {
           <div className='bg-white py-8 px-6 shadow rounded-lg'>
             {status === 'verifying' && (
               <div className='text-center'>
-                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
+                <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-divemap-blue mx-auto'></div>
                 <p className='mt-4 text-gray-600'>Verifying your email address...</p>
               </div>
             )}
@@ -172,7 +172,7 @@ const VerifyEmail = () => {
                 <div className='mt-6'>
                   <button
                     onClick={() => navigate('/login')}
-                    className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-divemap-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                   >
                     Go to Login
                   </button>
@@ -204,13 +204,13 @@ const VerifyEmail = () => {
                   <div className='mt-6 space-y-3'>
                     <button
                       onClick={() => setShowResendForm(true)}
-                      className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-divemap-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                     >
                       Request New Verification Email
                     </button>
                     <button
                       onClick={() => navigate('/login')}
-                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                     >
                       Go to Login
                     </button>
@@ -230,14 +230,14 @@ const VerifyEmail = () => {
                         value={resendEmail}
                         onChange={e => setResendEmail(e.target.value)}
                         placeholder='Enter your email address'
-                        className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm'
+                        className='w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-divemap-sky focus:border-divemap-blue sm:text-sm'
                         disabled={resending}
                       />
                     </div>
                     <button
                       onClick={handleResendVerification}
                       disabled={resending || !resendEmail.includes('@')}
-                      className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+                      className='w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-divemap-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                       {resending ? 'Sending...' : 'Send Verification Email'}
                     </button>
@@ -246,7 +246,7 @@ const VerifyEmail = () => {
                         setShowResendForm(false);
                         setResendEmail('');
                       }}
-                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                      className='w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-divemap-sky'
                     >
                       Cancel
                     </button>

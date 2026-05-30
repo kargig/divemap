@@ -267,7 +267,7 @@ const ChatWidget = () => {
           className={`
             pointer-events-auto
             flex items-center justify-center w-14 h-14 rounded-full shadow-lg transition-all duration-300 ease-in-out hover:scale-110 active:scale-95
-            ${isOpen ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-blue-600 text-white'}
+            ${isOpen ? 'bg-gray-200 text-gray-600 rotate-90' : 'bg-divemap-blue text-white'}
             ${isDragging ? 'cursor-grabbing scale-110 shadow-2xl' : 'cursor-grab'}
             ${getTranslation()}
           `}

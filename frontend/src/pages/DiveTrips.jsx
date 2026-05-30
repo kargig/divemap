@@ -572,7 +572,7 @@ const DiveTrips = () => {
               label: 'Explore Map',
               icon: Compass,
               onClick: () => navigate('/map?type=dive-trips'),
-              variant: 'primary',
+              variant: 'secondary',
             },
             ...(user
               ? [
@@ -580,7 +580,7 @@ const DiveTrips = () => {
                     label: 'Create Trip',
                     icon: Plus,
                     onClick: () => navigate('/dive-trips/create'),
-                    variant: 'secondary',
+                    variant: 'primary',
                   },
                 ]
               : []),
@@ -752,7 +752,7 @@ const DiveTrips = () => {
 
                   {filters.difficulty_code && <p>• Try a different difficulty level</p>}
                 </div>
-                <Button onClick={clearFilters} variant='primary' className='mt-4'>
+                <Button onClick={clearFilters} variant='secondary' className='mt-4'>
                   Clear All Filters
                 </Button>
               </div>

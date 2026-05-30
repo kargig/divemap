@@ -1342,12 +1342,7 @@ const EditDiveSite = () => {
                     <button
                       type='button'
                       onClick={() => setShowAliasForm(!showAliasForm)}
-                      className='flex items-center px-4 py-2 text-white rounded-md'
-                      style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                      onMouseLeave={e =>
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                      }
+                      className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                     >
                       <Plus className='w-4 h-4 mr-2' />
                       Add Alias
@@ -1379,16 +1374,7 @@ const EditDiveSite = () => {
                             type='button'
                             onClick={handleAddAlias}
                             disabled={addAliasMutation.isLoading}
-                            className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                            style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                            onMouseEnter={e =>
-                              !e.currentTarget.disabled &&
-                              (e.currentTarget.style.backgroundColor = '#007a5c')
-                            }
-                            onMouseLeave={e =>
-                              !e.currentTarget.disabled &&
-                              (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                            }
+                            className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
                           >
                             {addAliasMutation.isLoading ? 'Adding...' : 'Add Alias'}
                           </button>
@@ -1581,16 +1567,7 @@ const EditDiveSite = () => {
                     type='button'
                     onClick={suggestLocation}
                     disabled={!formData.latitude || !formData.longitude}
-                    className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
-                    style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                    onMouseEnter={e =>
-                      !e.currentTarget.disabled &&
-                      (e.currentTarget.style.backgroundColor = '#007a5c')
-                    }
-                    onMouseLeave={e =>
-                      !e.currentTarget.disabled &&
-                      (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                    }
+                    className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-2'
                   >
                     🗺️ Suggest Country & Region from Coordinates
                   </button>
@@ -1617,16 +1594,7 @@ const EditDiveSite = () => {
                           type='button'
                           onClick={detectShoreDirection}
                           disabled={!formData.latitude || !formData.longitude}
-                          className='px-4 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
-                          style={{ backgroundColor: UI_COLORS.success }}
-                          onMouseEnter={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = '#007a5c')
-                          }
-                          onMouseLeave={e =>
-                            !e.currentTarget.disabled &&
-                            (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                          }
+                          className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
                         >
                           🔍 Re-detect from Coordinates
                         </button>
@@ -1818,14 +1786,7 @@ const EditDiveSite = () => {
                                 <button
                                   type='button'
                                   onClick={handleAddMedia}
-                                  className='px-4 py-2 text-white rounded-md'
-                                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                                  onMouseEnter={e =>
-                                    (e.currentTarget.style.backgroundColor = '#007a5c')
-                                  }
-                                  onMouseLeave={e =>
-                                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                                  }
+                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -1915,12 +1876,7 @@ const EditDiveSite = () => {
                     <button
                       type='button'
                       onClick={() => setShowTagForm(!showTagForm)}
-                      className='flex items-center px-4 py-2 text-white rounded-md'
-                      style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                      onMouseLeave={e =>
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                      }
+                      className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                     >
                       <Tag className='w-4 h-4 mr-2' />
                       Add Tag
@@ -1974,16 +1930,7 @@ const EditDiveSite = () => {
                               });
                             }}
                             disabled={createTagMutation.isLoading}
-                            className='px-4 py-2 text-white rounded-md disabled:opacity-50'
-                            style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                            onMouseEnter={e =>
-                              !e.currentTarget.disabled &&
-                              (e.currentTarget.style.backgroundColor = '#007a5c')
-                            }
-                            onMouseLeave={e =>
-                              !e.currentTarget.disabled &&
-                              (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                            }
+                            className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50'
                           >
                             {createTagMutation.isLoading ? 'Adding...' : 'Add Tag'}
                           </button>
@@ -2106,10 +2053,7 @@ const EditDiveSite = () => {
                 <button
                   type='button'
                   onClick={handleToggleDivingCenterForm}
-                  className='flex items-center px-4 py-2 text-white rounded-md'
-                  style={{ backgroundColor: UI_COLORS.success }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = UI_COLORS.success)}
+                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                 >
                   <Building className='w-4 h-4 mr-2' />
                   Add Diving Center

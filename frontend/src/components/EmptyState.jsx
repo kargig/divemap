@@ -29,7 +29,7 @@ const EmptyState = ({
         {onClearFilters && (
           <button
             onClick={onClearFilters}
-            className='inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-blue-500/25'
+            className='inline-flex items-center gap-2 px-6 py-2 bg-divemap-blue text-white font-bold rounded-lg hover:opacity-90 transition-colors shadow-lg hover:shadow-divemap-blue/25'
           >
             <FilterX className='w-4 h-4' />
             Clear All Filters

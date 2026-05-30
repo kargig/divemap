@@ -775,13 +775,15 @@ const DivingCenterDetail = () => {
             />
           )}
           {shouldShowEdit && (
-            <Link
+            <Button
+              as={Link}
               to={`/diving-centers/${id}/edit`}
-              className='inline-flex items-center justify-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 border border-transparent transition-colors'
+              variant='primary'
+              icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+              className='px-3 py-1.5 text-xs sm:text-sm font-medium'
             >
-              <Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />
               Edit
-            </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -1256,7 +1258,7 @@ const DivingCenterDetail = () => {
                 <Button
                   type='submit'
                   disabled={broadcastTextMutation.isLoading || !broadcastMessage.trim()}
-                  variant='primary'
+                  variant='secondary'
                   icon={<MessageSquare className='h-4 w-4' />}
                 >
                   {broadcastTextMutation.isLoading ? 'Sending...' : 'Send Broadcast'}

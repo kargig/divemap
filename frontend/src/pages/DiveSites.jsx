@@ -587,7 +587,7 @@ const DiveSites = () => {
               label: 'Explore on Map',
               icon: Compass,
               onClick: () => navigate('/map?type=dive-sites'),
-              variant: 'primary',
+              variant: 'secondary',
             },
             {
               label: 'Suggest a New Site',
@@ -599,7 +599,7 @@ const DiveSites = () => {
                 }
                 navigate('/dive-sites/create');
               },
-              variant: 'secondary',
+              variant: 'primary',
             },
           ]}
         />

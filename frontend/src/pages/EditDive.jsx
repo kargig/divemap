@@ -1206,14 +1206,7 @@ const EditDive = () => {
                                 <button
                                   type='button'
                                   onClick={handleUrlAdd}
-                                  className='px-4 py-2 text-white rounded-md'
-                                  style={{ backgroundColor: UI_COLORS.success, color: 'white' }}
-                                  onMouseEnter={e =>
-                                    (e.currentTarget.style.backgroundColor = '#007a5c')
-                                  }
-                                  onMouseLeave={e =>
-                                    (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                                  }
+                                  className='flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors'
                                 >
                                   Add Media
                                 </button>
@@ -1503,12 +1496,7 @@ const EditDive = () => {
                     <button
                       type='button'
                       onClick={handleAddNewTag}
-                      className='px-4 py-2 text-white rounded-md flex items-center gap-2'
-                      style={{ backgroundColor: UI_COLORS.success }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#007a5c')}
-                      onMouseLeave={e =>
-                        (e.currentTarget.style.backgroundColor = UI_COLORS.success)
-                      }
+                      className='px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors flex items-center gap-2'
                     >
                       <Plus size={16} />
                       Add

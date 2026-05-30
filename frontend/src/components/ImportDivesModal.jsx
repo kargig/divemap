@@ -29,6 +29,7 @@ import { TANK_SIZES } from '../utils/diveConstants';
 
 import FuzzySearchInput from './FuzzySearchInput';
 import GasTanksDisplay from './GasTanksDisplay';
+import Button from './ui/Button';
 import Modal from './ui/Modal';
 
 const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
@@ -597,19 +598,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         <div className='flex justify-between items-center pt-4'>
-          <button
-            onClick={() => setCurrentStep('upload')}
-            className='px-4 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium'
-          >
+          <Button variant='ghost' onClick={() => setCurrentStep('upload')}>
             Back
-          </button>
-          <button
-            onClick={handleProcessCSV}
-            disabled={isProcessing}
-            className='px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all'
-          >
+          </Button>
+          <Button variant='primary' onClick={handleProcessCSV} isLoading={isProcessing}>
             {isProcessing ? 'Processing...' : `Process ${csvTotalRows} Dives`}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -641,12 +635,9 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                 <p className='text-sm text-gray-600'>
                   Drag and drop XML, CSV, FIT or JSON files here, or click to browse
                 </p>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors'
-                >
+                <Button variant='secondary' onClick={() => fileInputRef.current?.click()}>
                   Select Files
-                </button>
+                </Button>
               </div>
               <input
                 ref={fileInputRef}
@@ -675,29 +666,18 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             )}
 
             <div className='flex justify-end gap-3'>
-              <button
-                onClick={handleClose}
-                className='px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
-              >
+              <Button variant='secondary' onClick={handleClose}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant='primary'
                 onClick={handleUpload}
-                disabled={selectedFiles.length === 0 || isProcessing}
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
+                disabled={selectedFiles.length === 0}
+                isLoading={isProcessing}
+                icon={<Upload size={16} />}
               >
-                {isProcessing ? (
-                  <>
-                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Upload size={16} />
-                    Process Files
-                  </>
-                )}
-              </button>
+                {isProcessing ? 'Processing...' : 'Process Files'}
+              </Button>
             </div>
           </div>
         )}
@@ -1048,25 +1028,19 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
-              <button
-                onClick={() => setCurrentStep('upload')}
-                className='px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors'
-              >
+              <Button variant='secondary' onClick={() => setCurrentStep('upload')}>
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
+                variant='primary'
                 onClick={handleConfirmImport}
-                disabled={isProcessing}
-                className='px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2'
+                isLoading={isProcessing}
+                icon={<Check size={16} />}
               >
                 {isProcessing ? (
-                  <>
-                    <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white'></div>
-                    Importing...
-                  </>
+                  'Importing...'
                 ) : (
                   <>
-                    <Check size={16} />
                     Import{' '}
                     {
                       parsedDives.filter(
@@ -1079,7 +1053,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     Dives
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -7,6 +7,7 @@ import { getDifficultyOptions } from '../utils/difficultyHelpers';
 import { tripSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 
 import DivingCenterSearchableDropdown from './DivingCenterSearchableDropdown';
+import Button from './ui/Button';
 import { DiveSiteSearchDropdown } from './ui/DiveSiteSearchDropdown';
 import MarkdownEditor from './ui/MarkdownEditor';
 import Modal from './ui/Modal';
@@ -371,14 +372,15 @@ const TripFormModal = ({
       <div className='border-t pt-4'>
         <div className='flex justify-between items-center mb-4'>
           <h4 className='text-lg font-medium text-gray-900'>Dives</h4>
-          <button
+          <Button
             type='button'
             onClick={addDive}
-            className='flex items-center px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm'
+            variant='secondary'
+            size='sm'
+            icon={<Plus className='h-4 w-4' />}
           >
-            <Plus className='h-4 w-4 mr-1' />
             Add Dive
-          </button>
+          </Button>
         </div>
 
         {fields.length === 0 && (
@@ -515,7 +517,7 @@ const TripFormModal = ({
           type='checkbox'
           id='broadcast'
           {...register('broadcast_to_followers')}
-          className='w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500'
+          className='w-4 h-4 text-divemap-blue border-gray-300 rounded focus:ring-divemap-sky'
         />
         <label htmlFor='broadcast' className='text-sm font-medium text-gray-700'>
           {trip ? 'Broadcast update to followers' : 'Broadcast this trip to followers'}
@@ -524,20 +526,13 @@ const TripFormModal = ({
 
       <div className='flex justify-end space-x-3 pt-4 border-t'>
         {onCancel && (
-          <button
-            type='button'
-            onClick={onCancel}
-            className='px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50'
-          >
+          <Button type='button' onClick={onCancel} variant='secondary'>
             Cancel
-          </button>
+          </Button>
         )}
-        <button
-          type='submit'
-          className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700'
-        >
+        <Button type='submit' variant='primary'>
           Save Trip
-        </button>
+        </Button>
       </div>
     </form>
   );
