@@ -197,7 +197,8 @@ async def generate_social_image(
     base_url = f"{request.url.scheme}://{request.url.netloc}"
     full_url = f"{base_url}/dives/{dive.id}"
     
-    image_data = social_service.generate(dive, profile_data, image_bytes, crop, full_url=full_url)
+    metrics = payload.get("metrics")
+    image_data = social_service.generate(dive, profile_data, image_bytes, crop, full_url=full_url, requested_metrics=metrics)
 
     return Response(
         content=image_data,
