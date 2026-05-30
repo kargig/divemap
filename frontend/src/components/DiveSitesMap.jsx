@@ -284,7 +284,7 @@ const MarkerClusterGroup = ({
           <h3 class="font-semibold text-gray-900 mb-1">${escape(marker.name)}</h3>
           ${marker.description ? `<p class="text-sm text-gray-600 mb-2 line-clamp-2">${escape(marker.description)}</p>` : ''}
           <div class="flex items-center justify-between mb-2">
-            <span class="px-2 py-1 text-xs font-medium rounded-full             ${getDifficultyColorClasses(marker.difficulty_code)}">
+            <span class="px-2 py-1 text-xs font-medium rounded             ${getDifficultyColorClasses(marker.difficulty_code)}">
               ${marker.difficulty_label || getDifficultyLabel(marker.difficulty_code)}
             </span>
             ${
@@ -341,7 +341,7 @@ const MarkerClusterGroup = ({
                     ${
                       markerData.difficulty_code
                         ? `
-                      <span class="px-2 py-1 text-xs font-medium rounded-full ${getDifficultyColorClasses(markerData.difficulty_code)}">
+                      <span class="px-2 py-1 text-xs font-medium rounded ${getDifficultyColorClasses(markerData.difficulty_code)}">
                         ${markerData.difficulty_label || getDifficultyLabel(markerData.difficulty_code)}
                       </span>
                     `
@@ -738,17 +738,9 @@ const DiveSitesMap = ({ diveSites, onViewportChange }) => {
 
                     <div className='flex flex-col gap-0.5 mb-2 mt-0.5'>
                       {site.difficulty_code && (
-                        <div className='flex items-center text-[8px] font-bold uppercase tracking-tight'>
+                        <div className='flex items-center mt-0.5'>
                           <span
-                            className={
-                              site.difficulty_code === 'OPEN_WATER'
-                                ? 'text-green-700'
-                                : site.difficulty_code === 'ADVANCED_OPEN_WATER'
-                                  ? 'text-amber-700'
-                                  : site.difficulty_code === 'DEEP_NITROX'
-                                    ? 'text-orange-700'
-                                    : 'text-red-700'
-                            }
+                            className={`px-1.5 py-0.5 text-[10px] font-bold uppercase rounded ${getDifficultyColorClasses(site.difficulty_code)}`}
                           >
                             {site.difficulty_label || getDifficultyLabel(site.difficulty_code)}
                           </span>

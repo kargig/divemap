@@ -46,7 +46,6 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';

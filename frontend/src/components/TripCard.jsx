@@ -21,6 +21,8 @@ import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify'
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
+import DifficultyBadge from './ui/DifficultyBadge';
+
 /**
  * Reusable Trip Card component for both list and grid views.
  * Handles mobile-first responsive layout and management actions.
@@ -96,36 +98,6 @@ const TripCard = ({
     );
   };
   const isGrid = viewMode === 'grid';
-
-  const getDifficultyColorClasses = code => {
-    switch (code) {
-      case 'OPEN_WATER':
-        return 'bg-green-100 text-green-800';
-      case 'ADVANCED_OPEN_WATER':
-        return 'bg-blue-100 text-blue-800';
-      case 'DEEP_NITROX':
-        return 'bg-purple-100 text-purple-800';
-      case 'TECHNICAL_DIVING':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getDifficultyLabel = code => {
-    switch (code) {
-      case 'OPEN_WATER':
-        return 'Open Water';
-      case 'ADVANCED_OPEN_WATER':
-        return 'Advanced';
-      case 'DEEP_NITROX':
-        return 'Deep/Nitrox';
-      case 'TECHNICAL_DIVING':
-        return 'Technical';
-      default:
-        return code?.replace(/_/g, ' ') || 'Unspecified';
-    }
-  };
 
   const tripName = generateTripName(trip);
   const tripSlug = slugify(tripName);
@@ -248,13 +220,12 @@ const TripCard = ({
           </div>
 
           <div className='flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0'>
-            {trip.trip_difficulty_code && (
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getDifficultyColorClasses(trip.trip_difficulty_code)} shrink-0`}
-              >
-                {trip.trip_difficulty_label || getDifficultyLabel(trip.trip_difficulty_code)}
-              </span>
-            )}
+            <DifficultyBadge
+              code={trip.trip_difficulty_code}
+              label={trip.trip_difficulty_label}
+              size='xs'
+              className='shrink-0'
+            />
             {!isGrid && displayStatus && (
               <span
                 className={`sm:hidden inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColorClasses(displayStatus, false)} shrink-0`}

@@ -72,7 +72,6 @@ import {
 import { extractErrorMessage } from '../utils/apiErrors';
 import { getRouteTypeColor } from '../utils/colorPalette';
 import { formatDate, formatTime } from '../utils/dateHelpers';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';

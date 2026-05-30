@@ -44,7 +44,6 @@ import useSorting from '../hooks/useSorting';
 import { getParsedTrips } from '../services/newsletters';
 import { formatCost } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
-import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';

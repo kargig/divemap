@@ -14,6 +14,8 @@ import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { slugify } from '../utils/slugify';
 
+import DifficultyBadge from './ui/DifficultyBadge';
+
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -165,7 +167,7 @@ const MarkerClusterGroup = ({ markers, createIcon, onClusterClick }) => {
                     ${
                       markerData.difficulty_code
                         ? `
-                      <span class="px-1 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                      <span class="px-1 py-0.5 text-xs font-medium rounded ${getDifficultyColorClasses(markerData.difficulty_code)}">
                         ${markerData.difficulty_label || getDifficultyLabel(markerData.difficulty_code)}
                       </span>
                     `
@@ -360,11 +362,11 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
 
                     {dive.difficulty_code && (
                       <div className='flex items-center'>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColorClasses(dive.difficulty_code)}`}
-                        >
-                          {dive.difficulty_label || getDifficultyLabel(dive.difficulty_code)}
-                        </span>
+                        <DifficultyBadge
+                          code={dive.difficulty_code}
+                          label={dive.difficulty_label}
+                          size='sm'
+                        />
                       </div>
                     )}
 
