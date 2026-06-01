@@ -12,16 +12,18 @@ import {
   Eye,
   EyeOff,
   Download,
+  Upload,
   Link,
   Activity,
   Route,
   User,
+  Lock,
   X,
   Image,
   Video,
   TrendingUp,
 } from 'lucide-react';
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -46,15 +48,14 @@ import {
   MapViewUpdater,
   DiveRouteLayer,
 } from '../components/DiveMapComponents';
-import DiveProfileModal from '../components/DiveProfileModal';
 import DiveSidebar from '../components/DiveSidebar';
 import GasTanksDisplay from '../components/GasTanksDisplay';
 import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
+import MultiPhotoUploadModal from '../components/MultiPhotoUploadModal';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
-import SocialShareModal from '../components/SocialShareModal';
 import Button from '../components/ui/Button';
 import Modal from '../components/ui/Modal';
 import YouTubePreview from '../components/YouTubePreview';
@@ -102,8 +103,8 @@ const DiveDetail = () => {
   });
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [profileHasDeco, setProfileHasDeco] = useState(undefined);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+
   const [routeMapViewport, setRouteMapViewport] = useState({
     center: [38.1158243, 23.2146529], // Default to Psatha dive site coordinates
     zoom: 15,
@@ -183,15 +184,6 @@ const DiveDetail = () => {
       newSearchParams.delete('tab');
     }
     setSearchParams(newSearchParams);
-  };
-
-  // Handle profile modal
-  const handleOpenProfileModal = () => {
-    setIsProfileModalOpen(true);
-  };
-
-  const handleCloseProfileModal = () => {
-    setIsProfileModalOpen(false);
   };
 
   // Fetch dive data
@@ -493,13 +485,21 @@ const DiveDetail = () => {
   };
 
   // Filter media by type (photos vs videos)
-  const allPhotos = diveMedia
-    ? diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url))
-    : [];
+  const allPhotos = useMemo(
+    () =>
+      diveMedia
+        ? diveMedia.filter(item => item.media_type === 'photo' && !isVideoUrl(item.url))
+        : [],
+    [diveMedia, isVideoUrl]
+  );
 
-  const allVideos = diveMedia
-    ? diveMedia.filter(item => item.media_type === 'video' || isVideoUrl(item.url))
-    : [];
+  const allVideos = useMemo(
+    () =>
+      diveMedia
+        ? diveMedia.filter(item => item.media_type === 'video' || isVideoUrl(item.url))
+        : [],
+    [diveMedia, isVideoUrl]
+  );
 
   // All media is public (is_public column removed from database)
   const publicPhotos = allPhotos;
@@ -669,9 +669,9 @@ const DiveDetail = () => {
           {dive && dive.is_private && (user?.id === dive?.user_id || user?.is_admin) && (
             <ShareButton entityType='dive' entityData={dive} className='inline-flex items-center' />
           )}
-          {dive && (user?.id === dive?.user_id || user?.is_admin) && (
+          {dive && !dive.is_private && (
             <Button
-              onClick={() => setIsSocialModalOpen(true)}
+              to={`/dives/${id}/${slug}/social-share`}
               variant='secondary'
               icon={<Image className='h-4 w-4' />}
             >
@@ -730,21 +730,19 @@ const DiveDetail = () => {
                 Profile
               </div>
             </button>
-            {(allPhotos.length > 0 || allVideos.length > 0) && (
-              <button
-                onClick={() => handleTabChange('media')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'media'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <div className='flex items-center'>
-                  <Image className='h-4 w-4 mr-2' />
-                  Photos & Videos ({allPhotos.length + allVideos.length})
-                </div>
-              </button>
-            )}
+            <button
+              onClick={() => handleTabChange('media')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'media'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className='flex items-center'>
+                <Image className='h-4 w-4 mr-2' />
+                Photos & Videos ({allPhotos.length + allVideos.length})
+              </div>
+            </button>
             {dive.selected_route && !dive.dive_site?.deleted_at && (
               <button
                 onClick={() => handleTabChange('route')}
@@ -972,7 +970,7 @@ const DiveDetail = () => {
                         setProfileHasDeco(profileHasDeco);
                       }
                     }}
-                    onMaximize={handleOpenProfileModal}
+                    onMaximize={() => navigate(`/dives/${id}/${slug}/profile-full`)}
                     onUpload={
                       user && (user.id === dive.user_id || user.is_admin)
                         ? handleUploadProfile
@@ -991,9 +989,60 @@ const DiveDetail = () => {
             </div>
           )}
 
+          {activeTab === 'media' && allPhotos.length === 0 && allVideos.length === 0 && (
+            <div className='bg-white rounded-lg shadow p-6 text-center py-12'>
+              <Image className='h-12 w-12 text-gray-300 mx-auto mb-4' />
+              <h3 className='text-lg font-medium text-gray-900 mb-2'>No photos or videos</h3>
+              <p className='text-gray-500 mb-6'>This dive log doesn't have any media yet.</p>
+              {dive && (user?.id === dive?.user_id || user?.is_admin || !user) && (
+                <Button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please login or register to upload photos');
+                      navigate('/login');
+                      return;
+                    }
+                    setIsBulkUploadModalOpen(true);
+                  }}
+                  variant='primary'
+                  icon={
+                    user ? <Upload className='h-4 w-4' /> : <Lock className='h-4 w-4 opacity-70' />
+                  }
+                >
+                  {user ? 'Upload Your First Photos' : 'Login to Upload Photos'}
+                </Button>
+              )}
+            </div>
+          )}
+
           {activeTab === 'media' && (allPhotos.length > 0 || allVideos.length > 0) && (
             <div className='bg-white rounded-lg shadow p-6'>
-              <h2 className='text-xl font-semibold mb-4'>Photos & Videos</h2>
+              <div className='flex items-center justify-between mb-4'>
+                <h2 className='text-xl font-semibold'>Photos & Videos</h2>
+                {dive && (user?.id === dive?.user_id || user?.is_admin || !user) && (
+                  <Button
+                    onClick={() => {
+                      if (!user) {
+                        toast.error('Please login or register to upload photos');
+                        navigate('/login');
+                        return;
+                      }
+                      setIsBulkUploadModalOpen(true);
+                    }}
+                    variant='primary'
+                    size='sm'
+                    icon={
+                      user ? (
+                        <Upload className='h-4 w-4' />
+                      ) : (
+                        <Lock className='h-4 w-4 opacity-70' />
+                      )
+                    }
+                  >
+                    {user ? 'Upload Photos' : 'Login to Upload'}
+                  </Button>
+                )}
+              </div>
 
               {/* Media Tab Navigation */}
               <div className='border-b border-gray-200 mb-4'>
@@ -1223,31 +1272,17 @@ const DiveDetail = () => {
           )}
         </div>
       </Modal>
-
-      {/* Dive Profile Modal */}
-      <DiveProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={handleCloseProfileModal}
-        profileData={profileData}
-        isLoading={profileLoading}
-        error={profileError?.response?.data?.detail || profileError?.message}
-        showTemperature={true}
-        screenSize='desktop'
-        diveId={id}
-        onDecoStatusChange={profileHasDeco => {
-          // If profile data is available, use it; otherwise keep tag-based detection
-          if (profileHasDeco !== undefined) {
-            setProfileHasDeco(profileHasDeco);
-          }
-        }}
-      />
-
-      <SocialShareModal
-        isOpen={isSocialModalOpen}
-        onClose={() => setIsSocialModalOpen(false)}
-        dive={dive}
-        diveMedia={diveMedia}
-      />
+      {dive && (
+        <MultiPhotoUploadModal
+          isOpen={isBulkUploadModalOpen}
+          onClose={() => setIsBulkUploadModalOpen(false)}
+          diveId={dive.id}
+          onUploadSuccess={() => {
+            queryClient.invalidateQueries(['dive-media', id]);
+            queryClient.invalidateQueries(['dive', id]);
+          }}
+        />
+      )}
     </div>
   );
 };

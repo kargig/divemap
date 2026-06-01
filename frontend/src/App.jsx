@@ -54,6 +54,8 @@ const CreateTrip = lazy(() => import('./pages/CreateTrip'));
 const DiveDetail = lazy(() => import('./pages/DiveDetail'));
 const DiveRouteDrawing = lazy(() => import('./pages/DiveRouteDrawing'));
 const DiveRoutes = lazy(() => import('./pages/DiveRoutes'));
+const DiveProfileFullView = lazy(() => import('./pages/DiveProfileFullView'));
+const DiveSocialShare = lazy(() => import('./pages/DiveSocialShare'));
 const Dives = lazy(() => import('./pages/Dives'));
 const DiveSiteDetail = lazy(() => import('./pages/DiveSiteDetail'));
 const DiveSiteMap = lazy(() => import('./pages/DiveSiteMap'));
@@ -279,7 +281,6 @@ function AppContent() {
             />
             <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
-
             {/* Backward compatibility routes */}
             <Route
               path='/profile/notifications'
@@ -290,12 +291,10 @@ function AppContent() {
               element={<Navigate to='/notification-preferences' replace />}
             />
             <Route path='/check-email' element={<Navigate to='/check-your-email' replace />} />
-
             <Route path='/verify-email' element={<VerifyEmail />} />
             <Route path='/check-your-email' element={<CheckYourEmail />} />
             <Route path='/resubscribe' element={<Resubscribe />} />
             <Route path='/unsubscribe' element={<Unsubscribe />} />
-
             <Route path='/dives' element={<Dives />} />
             <Route
               path='/dives/create'
@@ -307,6 +306,8 @@ function AppContent() {
             />
             <Route path='/dives/:id' element={<DiveDetail />} />
             <Route path='/dives/:id/:slug' element={<DiveDetail />} />
+            <Route path='/dives/:id/:slug/profile-full' element={<DiveProfileFullView />} />
+            <Route path='/dives/:id/:slug/social-share' element={<DiveSocialShare />} />
             <Route
               path='/dives/:id/edit'
               element={
@@ -315,7 +316,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-
             <Route path='/dive-sites' element={<DiveSites />} />
             <Route
               path='/dive-sites/create'
@@ -336,7 +336,6 @@ function AppContent() {
               }
             />
             <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
-
             <Route path='/diving-centers' element={<DivingCenters />} />
             <Route
               path='/diving-centers/create'
@@ -356,7 +355,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-
             <Route path='/dive-routes' element={<DiveRoutes />} />
             <Route path='/dive-routes/:id' element={<RouteDetail />} />
             <Route path='/dive-routes/:id/:slug' element={<RouteDetail />} />
@@ -371,7 +369,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-
             <Route
               path='/dive-routes/:id/draw'
               element={
@@ -380,10 +377,8 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-
             <Route path='/map' element={<IndependentMapView />} />
             <Route path='/leaderboard' element={<Leaderboard />} />
-
             {/* Admin Routes */}
             <Route path='/admin' element={<AdminLayout />}>
               <Route index element={<Admin />} />
@@ -411,7 +406,6 @@ function AppContent() {
               <Route path='ownership-requests' element={<AdminOwnershipRequests />} />
               <Route path='dive-sites/:id/aliases' element={<AdminDiveSiteAliases />} />
             </Route>
-
             <Route path='/dive-trips' element={<DiveTrips />} />
             <Route
               path='/dive-trips/create'
@@ -423,12 +417,10 @@ function AppContent() {
             />
             <Route path='/dive-trips/:id' element={<TripDetail />} />
             <Route path='/dive-trips/:id/:slug' element={<TripDetail />} />
-
             {/* Map backward compatibility */}
             <Route path='/map/dives' element={<Navigate to='/map' replace />} />
             <Route path='/map/dive-sites' element={<Navigate to='/map' replace />} />
             <Route path='/map/diving-centers' element={<Navigate to='/map' replace />} />
-
             <Route path='/index.html' element={<Navigate to='/' replace />} />
             <Route path='/index.htm' element={<Navigate to='/' replace />} />
             <Route path='*' element={<NotFound />} />

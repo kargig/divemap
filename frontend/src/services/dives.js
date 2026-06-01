@@ -50,6 +50,11 @@ export const uploadDiveProfile = async (diveId, file) => {
   return response.data;
 };
 
+export const getDiveProfile = async id => {
+  const response = await api.get(`/api/v1/dives/${id}/profile`);
+  return response.data;
+};
+
 export const uploadDivePhoto = async (diveId, file, description = '', isPublic = true) => {
   const formData = new FormData();
   formData.append('file', file);

@@ -14,7 +14,7 @@ class SocialImageService:
         ]
         self.default_font_path = next((p for p in self.font_paths if os.path.exists(p)), None)
 
-    def generate(self, dive, profile_data, image_bytes, crop_params, full_url="divemap.gr"):
+    def generate(self, dive, profile_data, image_bytes, crop_params, full_url="divemap.gr", requested_metrics=None):
         """
         Generates a social media image with dive profile, metadata, and full URL.
         """
@@ -59,7 +59,7 @@ class SocialImageService:
         draw = ImageDraw.Draw(img, 'RGBA')
 
         # Task 3: Metadata Overlay
-        self._draw_metadata(draw, dive, profile_data, width, height)
+        self._draw_metadata(draw, dive, profile_data, width, height, requested_metrics=requested_metrics)
 
         # Task 4: Dynamic URL (Full URL)
         self._draw_url(img, width, height, full_url)
@@ -186,7 +186,7 @@ class SocialImageService:
             return ImageFont.truetype(self.default_font_path, size)
         return ImageFont.load_default()
 
-    def _draw_metadata(self, draw, dive, profile_data, width, height):
+    def _draw_metadata(self, draw, dive, profile_data, width, height, requested_metrics=None):
         """Renders dive metadata at top and bottom."""
         padding = int(width * 0.04)
         aspect_ratio = width / height
@@ -214,37 +214,75 @@ class SocialImageService:
             metrics_multiplier = 0.030 # Slightly larger for landscape
             
         font_metrics = self._get_font(int(height * metrics_multiplier))
+        
+        # If no metrics requested, use a default set
+        if not requested_metrics:
+            requested_metrics = ["TIME", "DEPTH", "AVG", "TEMP"]
+            
         metrics = []
         
-        # Duration
-        if dive.duration:
-            metrics.append(f"TIME: {dive.duration} min")
+        for key in requested_metrics:
+            key = key.upper()
             
-        # Max Depth
-        if dive.max_depth:
-            metrics.append(f"DEPTH: {float(dive.max_depth):.1f}m")
-            
-        # Avg Depth
-        if dive.average_depth:
-            metrics.append(f"AVG: {float(dive.average_depth):.1f}m")
-            
-        # Tanks
-        if dive.gas_bottles_used:
-            try:
-                tanks_data = json.loads(dive.gas_bottles_used)
-                if isinstance(tanks_data, list) and len(tanks_data) > 0:
-                    tank_count = len(tanks_data)
-                    metrics.append(f"TANKS: {tank_count}")
-            except:
-                pass
+            # Duration
+            if key == "TIME" and dive.duration:
+                metrics.append(f"TIME: {dive.duration} min")
                 
-        # Temperature
-        temp = None
-        if profile_data and 'temperature_range' in profile_data:
-            temp = profile_data['temperature_range'].get('min')
-        if temp:
-            metrics.append(f"TEMP: {temp}°C")
+            # Max Depth
+            elif key == "DEPTH" and dive.max_depth:
+                metrics.append(f"DEPTH: {float(dive.max_depth):.1f}m")
+                
+            # Avg Depth
+            elif key == "AVG" and dive.average_depth:
+                metrics.append(f"AVG: {float(dive.average_depth):.1f}m")
+                
+            # Tanks
+            elif key == "TANKS" and dive.gas_bottles_used:
+                try:
+                    tanks_data = json.loads(dive.gas_bottles_used)
+                    tank_count = 0
+                    if isinstance(tanks_data, list):
+                        tank_count = len(tanks_data)
+                    elif isinstance(tanks_data, dict):
+                        # Structured format: back_gas (optional) + stages (list)
+                        if tanks_data.get("back_gas"):
+                            tank_count += 1
+                        stages = tanks_data.get("stages", [])
+                        if isinstance(stages, list):
+                            tank_count += len(stages)
+                    
+                    if tank_count == 1:
+                        # For single tank, show the size if available (e.g. 12L)
+                        tank_label = "TANK: 1"
+                        if isinstance(tanks_data, dict):
+                            back_gas = tanks_data.get("back_gas")
+                            if back_gas and back_gas.get("tank"):
+                                tank_label = f"TANK: {back_gas.get('tank')}L"
+                        metrics.append(tank_label)
+                    elif tank_count > 1:
+                        metrics.append(f"TANKS: {tank_count}")
+                except:
+                    pass
+                    
+            # Temperature
+            elif key == "TEMP":
+                temp = None
+                if profile_data and 'temperature_range' in profile_data:
+                    temp = profile_data['temperature_range'].get('min')
+                if temp:
+                    metrics.append(f"TEMP: {temp}°C")
+                    
+            # Visibility
+            elif key == "VISIBILITY" and dive.visibility_rating:
+                metrics.append(f"VIS: {dive.visibility_rating}/10")
+                
+            # Rating
+            elif key == "RATING" and dive.user_rating:
+                metrics.append(f"RATING: {dive.user_rating}/10")
         
+        if not metrics:
+            return
+
         separator = "  |  "
         metrics_y = height - padding - int(height * 0.03)
         
@@ -254,6 +292,24 @@ class SocialImageService:
             metrics_y = height - int(height * 0.06)
             
         metrics_str = separator.join(metrics)
+        
+        # Ensure text fits within the padding
+        max_text_width = width - (2 * padding)
+        try:
+            text_width = draw.textlength(metrics_str, font=font_metrics)
+        except AttributeError:
+            # Fallback for older Pillow
+            left, top, right, bottom = font_metrics.getbbox(metrics_str)
+            text_width = right - left
+
+        if text_width > max_text_width:
+            # Scale down font size proportionally
+            reduction_factor = max_text_width / text_width
+            # Get original font size from font_metrics if possible, or recalculate
+            current_size = int(height * metrics_multiplier)
+            new_font_size = int(current_size * reduction_factor)
+            font_metrics = self._get_font(max(10, new_font_size)) # min 10px
+
         # Draw metrics with a slight background glow for readability
         draw.text((padding, metrics_y), metrics_str, font=font_metrics, fill=(255, 255, 255, 255))
 
