@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Download,
   Maximize,
+  Minimize,
   X,
   Contrast,
   Upload,
@@ -783,9 +784,19 @@ const AdvancedDiveProfileChart = ({
             {onMaximize && (
               <button
                 onClick={onMaximize}
-                className='p-2 rounded border border-blue-300 text-blue-600'
+                className='p-2 rounded border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors'
+                title='Enlarge profile'
               >
                 <Maximize className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              </button>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className='p-2 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors'
+                title='Minimize profile'
+              >
+                <Minimize className={`${isMobileLandscape ? 'h-4 w-4' : 'h-5 w-5'}`} />
               </button>
             )}
             {!isMobileLandscape && (
@@ -870,8 +881,8 @@ const AdvancedDiveProfileChart = ({
               data={chartData}
               margin={
                 isMobileViewport
-                  ? { top: 10, right: -5, left: -20, bottom: 0 }
-                  : { top: 20, right: -10, left: -30, bottom: 20 }
+                  ? { top: 10, right: -5, left: -10, bottom: 0 }
+                  : { top: 20, right: -10, left: -20, bottom: 20 }
               }
               onMouseMove={handleMouseMove}
             >
