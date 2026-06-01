@@ -76,3 +76,60 @@ class TestDiveImportUtils:
         result = create_structured_gas_data(cylinders)
         assert result is None
 
+    def test_prefer_steel_for_back_gas(self):
+        """Test that steel tanks are preferred for back gas over aluminum."""
+        cylinders = [
+            # AL80 (Aluminum)
+            {'size': '11.1 l', 'description': 'AL80', 'start': '200 bar', 'end': '100 bar'},
+            # 12L Steel
+            {'size': '12.0 l', 'description': '12L Steel', 'start': '200 bar', 'end': '100 bar'}
+        ]
+        
+        result_json = create_structured_gas_data(cylinders)
+        result = orjson.loads(result_json)
+        
+        # 12L Steel should be back_gas
+        assert result['back_gas']['tank'] == '12'
+        assert '12l' in result['back_gas']['description'].lower()
+        
+        # AL80 should be stage
+        assert len(result['stages']) == 1
+        assert result['stages'][0]['tank'] == 'al80'
+
+    def test_filter_gasses_without_pressures(self):
+        """Test that if some gasses have pressures, those without are filtered out."""
+        cylinders = [
+            # Used gas (with pressure)
+            {'size': '12.0 l', 'description': 'Main', 'start': '200 bar', 'end': '100 bar', 'o2': '32%'},
+            # Unused gas (no pressure)
+            {'size': '11.1 l', 'description': 'Stage 50%', 'o2': '50%'},
+            # Another unused gas
+            {'o2': '100%', 'description': 'O2'}
+        ]
+        
+        result_json = create_structured_gas_data(cylinders)
+        result = orjson.loads(result_json)
+        
+        # Only 1 tank should be left
+        assert result['back_gas'] is not None
+        assert len(result['stages']) == 0
+        assert result['back_gas']['gas']['o2'] == 32
+
+    def test_fallback_when_no_pressures_exist(self):
+        """Test that if NO gasses have pressures, we keep all identifiable ones."""
+        cylinders = [
+            {'size': '12.0 l', 'description': 'Main', 'o2': '32%'},
+            {'size': '11.1 l', 'description': 'Stage 50%', 'o2': '50%'}
+        ]
+        
+        result_json = create_structured_gas_data(cylinders)
+        result = orjson.loads(result_json)
+        
+        # Both tanks should be kept
+        assert result['back_gas'] is not None
+        assert len(result['stages']) == 1
+        # 12L (index 0) > 11.1L (index 1), so index 0 is back gas
+        assert result['back_gas']['gas']['o2'] == 32
+        assert result['back_gas']['tank'] == '12'
+        assert result['stages'][0]['tank'] == 'al80'
+
