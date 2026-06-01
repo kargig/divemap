@@ -8,7 +8,7 @@ export default {
 		const filename = url.pathname.slice(1); // e.g. "llms.txt"
 
 		// 1. Only handle specific files, otherwise pass through to main site
-		if (filename !== 'llms.txt' && filename !== 'sitemap.xml' && !filename.endsWith('.md')) {
+		if (filename !== 'llms.txt' && filename !== 'sitemap.xml' && filename !== 'robots.txt' && !filename.endsWith('.md')) {
 			return fetch(request);
 		}
 
@@ -34,7 +34,27 @@ export default {
 			// 5. Add Agent Discoverability Headers
 			headers.set('Link', '</openapi.json>; rel="api-catalog", </docs>; rel="service-doc", </llms.txt>; rel="service-desc"');
 
-			return new Response(object.body, {				headers,
+			// 6. Dynamic Hostname Replacement for text-based files
+			const isTextFile = filename === 'sitemap.xml' || filename === 'llms.txt' || filename === 'robots.txt' || filename.endsWith('.md');
+			if (isTextFile) {
+				const origin = url.origin; // e.g. "https://divemap.blue"
+				const hardcodedOrigin = "https://divemap.gr";
+				
+				let content = await object.text();
+				
+				// Replace hardcoded domain with the requested one if they differ
+				if (origin !== hardcodedOrigin) {
+					// We use split/join for a simple global replacement
+					content = content.split(hardcodedOrigin).join(origin);
+				}
+
+				return new Response(content, {
+					headers,
+				});
+			}
+
+			return new Response(object.body, {
+				headers,
 			});
 		} catch (e) {
 			// On error, try to fall back to the origin site

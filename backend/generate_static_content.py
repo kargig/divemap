@@ -23,7 +23,7 @@ R2_SECRET_ACCESS_KEY = os.getenv("R2_SECRET_ACCESS_KEY")
 R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 OUTPUT_DIR = os.path.join(current_dir, "llm_content")
-REQUIRED_FILES = ["dive-sites.md", "dive-routes.md", "diving-centers.md", "dives.md", "llms.txt", "sitemap.xml"]
+REQUIRED_FILES = ["dive-sites.md", "dive-routes.md", "diving-centers.md", "dives.md", "llms.txt", "sitemap.xml", "robots.txt"]
 
 def slugify(text):
     """
@@ -416,13 +416,29 @@ def generate_content(db: Session, r2_client=None):
         '</urlset>'
     ]
 
+    robots_txt = [
+        f"Sitemap: {BASE_URL}/sitemap.xml",
+        "",
+        "User-agent: *",
+        "Disallow: /admin/",
+        "Disallow: /notifications",
+        "Allow: /",
+        "",
+        "User-agent: dotbot",
+        "Crawl-delay: 10",
+        "",
+        "User-agent: AhrefsBot",
+        "Crawl-delay: 10"
+    ]
+
     files = {
         "dive-sites.md": "".join(content_sites),
         "dive-routes.md": "".join(content_routes),
         "diving-centers.md": "".join(content_centers),
         "dives.md": "".join(content_dives),
         "llms.txt": "".join(content_llms),
-        "sitemap.xml": "\n".join(sitemap_xml)
+        "sitemap.xml": "\n".join(sitemap_xml),
+        "robots.txt": "\n".join(robots_txt)
     }
 
     # Always write to local directory (for serving via Nginx -> Backend proxy)

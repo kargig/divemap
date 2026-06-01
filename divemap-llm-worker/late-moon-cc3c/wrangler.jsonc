@@ -22,6 +22,10 @@
 			"zone_name": "divemap.gr"
 		},
 		{
+			"pattern": "divemap.gr/robots.txt",
+			"zone_name": "divemap.gr"
+		},
+		{
 			"pattern": "divemap.gr/dive-sites.md",
 			"zone_name": "divemap.gr"
 		},
@@ -36,6 +40,34 @@
 		{
 			"pattern": "divemap.gr/dives.md",
 			"zone_name": "divemap.gr"
+		},
+		{
+			"pattern": "divemap.blue/llms.txt",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/sitemap.xml",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/robots.txt",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/dive-sites.md",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/dive-routes.md",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/diving-centers.md",
+			"zone_name": "divemap.blue"
+		},
+		{
+			"pattern": "divemap.blue/dives.md",
+			"zone_name": "divemap.blue"
 		}
 	]
 }
