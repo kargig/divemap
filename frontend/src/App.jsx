@@ -93,6 +93,16 @@ const UserAnalytics = lazy(() => import('./pages/UserAnalytics'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
+// Redirect component for external links
+const ExternalRedirect = ({ url }) => {
+  window.location.replace(url);
+  return <LoadingFallback />;
+};
+
+ExternalRedirect.propTypes = {
+  url: PropTypes.string.isRequired,
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -295,6 +305,7 @@ function AppContent() {
             <Route path='/check-your-email' element={<CheckYourEmail />} />
             <Route path='/resubscribe' element={<Resubscribe />} />
             <Route path='/unsubscribe' element={<Unsubscribe />} />
+            <Route path='/android' element={<ExternalRedirect url='https://play.google.com/store/apps/details?id=gr.divemap.twa&hl=en&pli=1' />} />
             <Route path='/dives' element={<Dives />} />
             <Route
               path='/dives/create'
