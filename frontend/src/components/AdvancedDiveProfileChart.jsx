@@ -93,7 +93,9 @@ const CustomTooltip = ({
           {data.stopdepth > 0 && showCeiling && (
             <div className='flex justify-between'>
               <span style={{ color: '#56B4E9' }}>Ceiling:</span>
-              <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
+              <span className='font-medium'>
+                {data.stopdepth?.toFixed(1)}m{data.calculated_deco && ' (Calculated)'}
+              </span>
             </div>
           )}
           {data.stoptime > 0 && data.in_deco && showStoptime && (
@@ -269,6 +271,12 @@ const AdvancedDiveProfileChart = ({
     );
   }, [profileData]);
 
+  // Check if deco is calculated internally
+  const isDecoCalculated = useMemo(() => {
+    if (!profileData?.samples) return false;
+    return profileData.samples.some(sample => sample.calculated_deco === true);
+  }, [profileData]);
+
   // Process gas change events
   const gasChangeEvents = useMemo(() => {
     if (!profileData?.events) return [];
@@ -350,6 +358,7 @@ const AdvancedDiveProfileChart = ({
         in_deco: lastKnownInDeco,
         stopdepth: lastKnownStopdepth,
         stoptime: lastKnownStoptime,
+        calculated_deco: sample.calculated_deco,
       };
     });
   }, [profileData, showAllSamples]);
@@ -1007,7 +1016,7 @@ const AdvancedDiveProfileChart = ({
                   className='w-4 h-0.5 border-dashed border-t-2'
                   style={{ borderColor: '#56B4E9' }}
                 ></div>
-                <span>Ceiling</span>
+                <span>Ceiling{isDecoCalculated ? ' (Calculated)' : ''}</span>
               </div>
             )}
           </div>

@@ -28,6 +28,8 @@ def get_fit_value(frame, field_name, default=None):
         pass
     return default
 
+from app.services.deco_service import calculate_deco_ceiling
+
 
 def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, user_dives=None, all_sites=None):
     """
@@ -289,6 +291,33 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                 
                 dive_data["profile_data"]["samples"].append(sample)
         
+        # 4.1 Calculate Missing Ceiling (Bühlmann ZH-L16)
+        # If the file lacks deco data (e.g. Suunto), calculate it internally
+        has_deco_in_profile = any(s.get('stopdepth') is not None for s in dive_data["profile_data"]["samples"])
+        if not has_deco_in_profile and dive_data["profile_data"]["samples"]:
+            try:
+                gfl = get_fit_value(session_settings, 'gf_low') if session_settings else 30
+                if gfl is None: gfl = 30
+                gfh = get_fit_value(session_settings, 'gf_high') if session_settings else 70
+                if gfh is None: gfh = 70
+                
+                calculated_ceilings = calculate_deco_ceiling(
+                    dive_data["profile_data"]["samples"], 
+                    gf_low=gfl, 
+                    gf_high=gfh
+                )
+                
+                # Apply calculated ceilings to samples
+                for i, sample in enumerate(dive_data["profile_data"]["samples"]):
+                    if i < len(calculated_ceilings):
+                        sample['stopdepth'] = calculated_ceilings[i]
+                        sample['in_deco'] = calculated_ceilings[i] > 0
+                        # Label as calculated for frontend awareness if needed
+                        sample['calculated_deco'] = True
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to calculate internal deco ceiling: {e}")
+
         # Duplicate detection
         existing = find_existing_dive(
             db, current_user_id, 

@@ -22,6 +22,8 @@ import orjson
 import os
 import tempfile
 import uuid
+from app.utils import parse_gf_from_text, has_deco_data
+from app.services.deco_service import calculate_deco_ceiling
 
 from .dives_shared import router, get_db, get_current_user, get_current_active_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
@@ -174,6 +176,32 @@ def get_dive_profile(
                 # Clean up temporary file
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+        # Backfill decompression data if missing
+        if profile_data and not has_deco_data(profile_data):
+            # Try to parse GF from dive description
+            gf_low, gf_high = parse_gf_from_text(dive.dive_information)
+            
+            # If GFs found, calculate ceiling
+            if gf_low is not None and gf_high is not None:
+                try:
+                    samples = profile_data.get('samples', [])
+                    if samples:
+                        calculated_ceilings = calculate_deco_ceiling(
+                            samples,
+                            gf_low=gf_low,
+                            gf_high=gf_high
+                        )
+                        
+                        # Inject calculated ceilings into samples
+                        for i, sample in enumerate(samples):
+                            if i < len(calculated_ceilings):
+                                sample['stopdepth'] = calculated_ceilings[i]
+                                sample['in_deco'] = calculated_ceilings[i] > 0
+                                sample['calculated_deco'] = True
+                except Exception as e:
+                    import logging
+                    logging.warning(f"Failed to backfill deco ceiling for dive {dive_id}: {e}")
         
         return profile_data
     except HTTPException:

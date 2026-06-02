@@ -1,42 +1,61 @@
-FROM python:3.11-slim
+# Stage 1: Builder
+# This stage installs build tools and compiles dependencies
+FROM python:3.11-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies including netcat-openbsd for IPv6 support
-# Optimized for faster installation
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
+    gcc \
+    python3-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install dependencies into a wheels directory or directly
+# Using a virtualenv is the cleanest way to transfer to the next stage
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
+
+
+# Stage 2: Runtime
+# This stage is the final small image containing only the app and its runtime deps
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+# Install runtime-only system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     netcat-openbsd \
     libmagic1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy the pre-compiled virtual environment from the builder stage
+COPY --from=builder /opt/venv /opt/venv
 
-# Install Python dependencies using only pre-compiled wheels
-# Optimized pip installation for faster startup
-RUN pip install --no-cache-dir --only-binary=all --disable-pip-version-check -r requirements.txt
+# Ensure the app uses the virtualenv
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Copy application code
 COPY . .
 
-# Create uploads directory and make scripts executable in one layer
+# Create uploads directory and set permissions
 RUN mkdir -p uploads && \
     chmod +x /app/run_migrations.py && \
     chmod +x /app/run_migrations_docker.sh && \
     chmod +x /app/test_netcat_ipv6.sh && \
     chmod +x /app/startup.sh
 
-# Set environment variables for faster startup
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
-
 # Expose port
 EXPOSE 8000
 
 # Run the startup script
-CMD ["/app/startup.sh"] 
+CMD ["/app/startup.sh"]
