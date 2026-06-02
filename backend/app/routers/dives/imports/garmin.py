@@ -17,6 +17,18 @@ from .common import (
 from .gas_utils import create_structured_gas_data
 
 
+def get_fit_value(frame, field_name, default=None):
+    """
+    Safely get a value from a FIT frame. Returns default if field is missing.
+    """
+    try:
+        if frame.has_field(field_name):
+            return frame.get_value(field_name)
+    except Exception:
+        pass
+    return default
+
+
 def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, user_dives=None, all_sites=None):
     """
     Parse a Garmin FIT activity file and extract dive sessions and samples.
@@ -32,16 +44,16 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                 messages[frame.name].append(frame)
 
     for session_frame in messages['session']:
-        start_time = session_frame.get_value('start_time')
+        start_time = get_fit_value(session_frame, 'start_time')
         if not start_time:
             continue
             
-        duration_secs = session_frame.get_value('total_elapsed_time') or 0
+        duration_secs = get_fit_value(session_frame, 'total_elapsed_time') or 0
         end_time = start_time + timedelta(seconds=duration_secs)
         
         # Categorize records, summaries and settings for this specific session
-        session_records = [r for r in messages['record'] if r.get_value('timestamp') and start_time <= r.get_value('timestamp') <= end_time]
-        session_summaries = [s for s in messages['dive_summary'] if s.get_value('timestamp') and start_time <= s.get_value('timestamp') <= end_time]
+        session_records = [r for r in messages['record'] if get_fit_value(r, 'timestamp') and start_time <= get_fit_value(r, 'timestamp') <= end_time]
+        session_summaries = [s for s in messages['dive_summary'] if get_fit_value(s, 'timestamp') and start_time <= get_fit_value(s, 'timestamp') <= end_time]
         session_settings = messages['dive_settings'][0] if messages['dive_settings'] else None
         # dive_gas messages usually aren't timestamped per session in the same way, but often there's only one set
         session_gases = messages['dive_gas']
@@ -52,18 +64,18 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
         if session_summaries:
             s = session_summaries[0]
             try:
-                max_d = s.get_value('max_depth')
-                avg_d = s.get_value('avg_depth')
+                max_d = get_fit_value(s, 'max_depth')
+                avg_d = get_fit_value(s, 'avg_depth')
             except Exception: pass
 
         if max_d is None:
             try:
-                max_d = session_frame.get_value('max_depth')
-                avg_d = session_frame.get_value('avg_depth')
+                max_d = get_fit_value(session_frame, 'max_depth')
+                avg_d = get_fit_value(session_frame, 'avg_depth')
             except Exception: pass
         
         if max_d is None and session_records:
-            depths = [r.get_value('depth') for r in session_records if r.get_value('depth') is not None]
+            depths = [get_fit_value(r, 'depth') for r in session_records if get_fit_value(r, 'depth') is not None]
             if depths:
                 max_d = max(depths)
                 avg_d = sum(depths) / len(depths)
@@ -87,16 +99,16 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
             # Sort to put CCR diluents first (index 0)
             sorted_gases = sorted(
                 session_gases, 
-                key=lambda g: 0 if g.get_value('mode') == 'closed_circuit_diluent' else 1
+                key=lambda g: 0 if get_fit_value(g, 'mode') == 'closed_circuit_diluent' else 1
             )
             
             seen_mixes = set()
             for g in sorted_gases:
-                if g.get_value('status') != 'enabled':
+                if get_fit_value(g, 'status') != 'enabled':
                     continue
                     
-                o2 = g.get_value('oxygen_content') or 21
-                he = g.get_value('helium_content') or 0
+                o2 = get_fit_value(g, 'oxygen_content') or 21
+                he = get_fit_value(g, 'helium_content') or 0
                 mix = (o2, he)
                 
                 if mix not in seen_mixes:
@@ -112,21 +124,21 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
             if cylinders:
                 events = []
                 # Filter events for this session
-                session_events = [e for e in messages['event'] if e.get_value('timestamp') and start_time <= e.get_value('timestamp') <= end_time]
+                session_events = [e for e in messages['event'] if get_fit_value(e, 'timestamp') and start_time <= get_fit_value(e, 'timestamp') <= end_time]
                 
                 for e in session_events:
-                    ts = e.get_value('timestamp')
+                    ts = get_fit_value(e, 'timestamp')
                     time_mins = (ts - start_time).total_seconds() / 60.0
                     
                     event_type = None
                     try:
-                        event_type = e.get_value('event')
+                        event_type = get_fit_value(e, 'event')
                     except Exception:
                         pass
                         
                     dive_alert = None
                     try:
-                        dive_alert = e.get_value('dive_alert')
+                        dive_alert = get_fit_value(e, 'dive_alert')
                     except Exception:
                         pass
                     
@@ -135,7 +147,7 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                             "type": "gaschange",
                             "name": "gaschange",
                             "time_minutes": time_mins,
-                            "cylinder": str(e.get_value('data') if e.has_field('data') else "0")
+                            "cylinder": str(get_fit_value(e, 'data') if e.has_field('data') else "0")
                         })
                     elif dive_alert in ['ndl_reached', 'approaching_first_deco_stop', 'deco_ceiling_broken']:
                         events.append({
@@ -157,15 +169,15 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
         # 2. GPS Coordinates
         lat, lng = None, None
         try:
-            lat = semicircles_to_degrees(session_frame.get_value('start_position_lat'))
-            lng = semicircles_to_degrees(session_frame.get_value('start_position_long'))
+            lat = semicircles_to_degrees(get_fit_value(session_frame, 'start_position_lat'))
+            lng = semicircles_to_degrees(get_fit_value(session_frame, 'start_position_long'))
         except Exception: pass
         
         if lat is None or lng is None:
             for r in session_records:
                 try:
-                    r_lat = semicircles_to_degrees(r.get_value('position_lat'))
-                    r_lng = semicircles_to_degrees(r.get_value('position_long'))
+                    r_lat = semicircles_to_degrees(get_fit_value(r, 'position_lat'))
+                    r_lng = semicircles_to_degrees(get_fit_value(r, 'position_long'))
                     if r_lat and r_lng:
                         lat, lng = r_lat, r_lng
                         break
@@ -188,41 +200,51 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
         info = []
         if messages['device_info']:
             d_info = messages['device_info'][0]
-            product = d_info.get_value('garmin_product') or d_info.get_value('product')
-            if product: info.append(f"Device: Garmin {product}")
+            manufacturer = get_fit_value(d_info, 'manufacturer')
+            product = get_fit_value(d_info, 'garmin_product') or get_fit_value(d_info, 'product')
+            product_name = get_fit_value(d_info, 'product_name')
+            
+            display_name = product_name or product
+            if display_name:
+                brand = str(manufacturer).capitalize() if manufacturer else "Device"
+                info.append(f"Device: {brand} {display_name}")
 
         if session_settings:
-            model = session_settings.get_value('model')
-            gf_low = session_settings.get_value('gf_low')
-            gf_high = session_settings.get_value('gf_high')
-            if model: info.append(f"Deco Model: {model} (GF {gf_low}/{gf_high})")
+            model = get_fit_value(session_settings, 'model')
+            gf_low = get_fit_value(session_settings, 'gf_low')
+            gf_high = get_fit_value(session_settings, 'gf_high')
             
-            water = session_settings.get_value('water_type')
+            if model or (gf_low is not None and gf_high is not None):
+                model_str = f"{model}" if model else "Bühlmann ZH-L16"
+                gf_str = f" (GF {gf_low}/{gf_high})" if gf_low is not None and gf_high is not None else ""
+                info.append(f"Deco Model: {model_str}{gf_str}")
+            
+            water = get_fit_value(session_settings, 'water_type')
             if water: info.append(f"Water: {water}")
 
         if session_summaries:
             s = session_summaries[0]
-            cns_start = s.get_value('start_cns')
+            cns_start = get_fit_value(s, 'start_cns')
             if cns_start is not None: info.append(f"Start CNS: {cns_start}%")
-            cns_end = s.get_value('end_cns')
+            cns_end = get_fit_value(s, 'end_cns')
             if cns_end is not None: info.append(f"End CNS: {cns_end}%")
-            n2_start = s.get_value('start_n2')
+            n2_start = get_fit_value(s, 'start_n2')
             if n2_start is not None: info.append(f"Start N2: {n2_start}%")
-            n2_end = s.get_value('end_n2')
+            n2_end = get_fit_value(s, 'end_n2')
             if n2_end is not None: info.append(f"End N2: {n2_end}%")
-            o2_tox = s.get_value('o2_toxicity')
+            o2_tox = get_fit_value(s, 'o2_toxicity')
             if o2_tox is not None: info.append(f"O2 Toxicity: {o2_tox} OTU")
-            surface_int = s.get_value('surface_interval')
+            surface_int = get_fit_value(s, 'surface_interval')
             if surface_int is not None: 
                 hrs = surface_int // 3600
                 mins = (surface_int % 3600) // 60
                 info.append(f"Surface Interval: {hrs}h {mins}m")
             
         try:
-            avg_temp = session_frame.get_value('avg_temperature')
+            avg_temp = get_fit_value(session_frame, 'avg_temperature')
             if avg_temp is not None: info.append(f"Avg Water Temp: {avg_temp}°C")
             
-            avg_hr = session_frame.get_value('avg_heart_rate')
+            avg_hr = get_fit_value(session_frame, 'avg_heart_rate')
             if avg_hr is not None: info.append(f"Avg HR: {avg_hr} bpm")
         except Exception: pass
             
@@ -230,12 +252,12 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
         
         # 4. Profile samples
         for r in session_records:
-            r_depth = r.get_value('depth')
-            r_ts = r.get_value('timestamp')
+            r_depth = get_fit_value(r, 'depth')
+            r_ts = get_fit_value(r, 'timestamp')
             if r_depth is not None and r_ts:
                 time_offset = (r_ts - start_time).total_seconds()
                 temp = None
-                try: temp = r.get_value('temperature')
+                try: temp = get_fit_value(r, 'temperature')
                 except Exception: pass
                 sample = {
                     "time_minutes": round(time_offset / 60.0, 2),
@@ -244,22 +266,22 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                 }
                 
                 try:
-                    cns = r.get_value('cns_load')
+                    cns = get_fit_value(r, 'cns_load')
                     if cns is not None: sample['cns_percent'] = cns
                     
-                    n2 = r.get_value('n2_load')
+                    n2 = get_fit_value(r, 'n2_load')
                     if n2 is not None: sample['n2_percent'] = n2
                     
-                    ndl = r.get_value('ndl_time')
+                    ndl = get_fit_value(r, 'ndl_time')
                     if ndl is not None:
                         sample['ndl_minutes'] = round(ndl / 60.0, 2)
                     
-                    stop_depth = r.get_value('next_stop_depth')
+                    stop_depth = get_fit_value(r, 'next_stop_depth')
                     if stop_depth is not None:
                         sample['stopdepth'] = round(stop_depth, 2)
                         sample['in_deco'] = stop_depth > 0
                     
-                    stop_time = r.get_value('next_stop_time')
+                    stop_time = get_fit_value(r, 'next_stop_time')
                     if stop_time is not None:
                         sample['stoptime_minutes'] = round(stop_time / 60.0, 2)
                         
