@@ -43,6 +43,7 @@ try {
       new RegExp('^/robots\\.txt$'),
       new RegExp('\\.md$'),
       new RegExp('^/\\.well-known/'),
+      new RegExp('^/android'),
     ],
   });
   registerRoute(navigationRoute);
