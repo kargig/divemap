@@ -966,6 +966,7 @@ const DiveDetail = () => {
                     showTemperature={true}
                     screenSize={isMobile ? 'mobile' : 'desktop'}
                     diveId={id}
+                    gasData={dive?.gas_bottles_used}
                     onDecoStatusChange={profileHasDeco => {
                       // If profile data is available, use it; otherwise keep tag-based detection
                       if (profileHasDeco !== undefined) {
@@ -980,11 +981,25 @@ const DiveDetail = () => {
                     }
                   />
                 </div>
+
+                {dive.gas_bottles_used && (
+                  <div className='px-4 sm:px-0 py-4 border-t border-gray-100'>
+                    <h3 className='text-base font-semibold text-gray-900 mb-3'>Gas Bottles Used</h3>
+                    <GasTanksDisplay
+                      gasData={dive.gas_bottles_used}
+                      averageDepth={dive.average_depth}
+                      duration={dive.duration}
+                      profileData={profileData}
+                    />
+                  </div>
+                )}
+
                 {profileData?.tissue_heatmap && (
                   <div className='py-2 mt-0'>
                     <TissueHeatmap
                       heatmapData={profileData.tissue_heatmap}
                       samples={profileData.samples}
+                      events={profileData.events}
                     />
                   </div>
                 )}

@@ -163,9 +163,12 @@ export const parseGradientFactors = text => {
  * @returns {string} Formatted gas string
  */
 export const formatGases = gasStr => {
-  if (!gasStr) return '';
+  if (!gasStr) return 'Air';
 
   let formatted = gasStr;
+
+  // 0. 21% or 21 -> Air
+  if (formatted === '21%' || formatted === '21' || formatted === 21) return 'Air';
 
   // 1. Nitrox XX% -> EANXX
   formatted = formatted.replace(/Nitrox\s*(\d+)\s*%?/gi, 'EAN$1');
@@ -179,6 +182,15 @@ export const formatGases = gasStr => {
   // 4. SafeAir XX% -> EANXX
   formatted = formatted.replace(/SafeAir\s*(\d+)\s*%?/gi, 'EAN$1');
   formatted = formatted.replace(/SafeAir/gi, 'EAN');
+
+  // 5. Handle raw numbers or percentage strings (e.g. "32" or "32%")
+  // If it's a numeric value > 21, treat as EAN
+  if (/^\d+(\.\d+)?%?$/.test(formatted.toString().trim())) {
+    const val = parseFloat(formatted);
+    if (val > 21) {
+      return `EAN${val}`;
+    }
+  }
 
   return formatted;
 };

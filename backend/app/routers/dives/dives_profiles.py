@@ -26,7 +26,7 @@ from app.utils import parse_gf_from_text, has_deco_data
 
 # Maximum file size for dive profile uploads (15MB)
 MAX_PROFILE_FILE_SIZE = 15 * 1024 * 1024
-from app.services.deco_service import calculate_deco_ceiling
+
 
 from .dives_shared import router, get_db, get_current_user, get_current_active_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
@@ -190,10 +190,13 @@ def get_dive_profile(
                 try:
                     samples = profile_data.get('samples', [])
                     if samples:
+                        from app.services.deco_service import calculate_deco_ceiling
                         calculated_ceilings, final_saturation, heatmap_data = calculate_deco_ceiling(
                             samples,
                             gf_low=gf_low,
-                            gf_high=gf_high
+                            gf_high=gf_high,
+                            cylinders=profile_data.get('cylinders'),
+                            events=profile_data.get('events')
                         )
                         
                         # Inject calculated ceilings into samples ONLY if computer deco is missing

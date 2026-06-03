@@ -50,5 +50,3 @@ fitdecode==0.11.0
 garmin-fit-sdk==21.158.0
 tiktoken>=0.7.0
 octo-deco==2.0.3
-pandas==3.0.3
-pytz

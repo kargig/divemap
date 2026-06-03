@@ -136,7 +136,8 @@ const DiveProfileFullView = () => {
                   showTemperature={true}
                   screenSize='desktop'
                   diveId={id}
-                  onDecoStatusChange={setProfileHasDeco}
+                  gasData={dive?.gas_bottles_used}
+                  onDecoStatusChange={profileHasDeco => {
                   onClose={handleBack}
                 />
               </Suspense>

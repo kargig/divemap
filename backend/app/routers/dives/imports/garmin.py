@@ -30,7 +30,7 @@ def get_fit_value(frame, field_name, default=None):
 
 # Maximum file size for FIT file uploads (15MB)
 MAX_FIT_FILE_SIZE = 15 * 1024 * 1024
-from app.services.deco_service import calculate_deco_ceiling
+
 
 
 def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, user_dives=None, all_sites=None):
@@ -303,10 +303,13 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                 gfh = get_fit_value(session_settings, 'gf_high') if session_settings else 70
                 if gfh is None: gfh = 70
                 
+                from app.services.deco_service import calculate_deco_ceiling
                 calculated_ceilings, final_saturation, heatmap_data = calculate_deco_ceiling(
                     dive_data["profile_data"]["samples"], 
                     gf_low=gfl, 
-                    gf_high=gfh
+                    gf_high=gfh,
+                    cylinders=dive_data["profile_data"].get('cylinders'),
+                    events=dive_data["profile_data"].get('events')
                 )
                 
                 # Apply calculated ceilings to samples

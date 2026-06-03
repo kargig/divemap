@@ -13,6 +13,7 @@ import {
   Upload,
   TrendingUp,
   Loader2,
+  Wind,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
@@ -31,6 +32,7 @@ import {
 
 import api from '../api';
 import { useResponsive } from '../hooks/useResponsive';
+import { formatGases } from '../utils/textHelpers';
 
 /**
  * Custom Tooltip component for the chart
@@ -241,6 +243,7 @@ const AdvancedDiveProfileChart = ({
   onClose,
   onUpload,
   diveId,
+  gasData,
 }) => {
   const [, setHoveredPoint] = useState(null);
   const [showTemperature, setShowTemperature] = useState(initialShowTemperature);
@@ -256,6 +259,30 @@ const AdvancedDiveProfileChart = ({
   const [chartOffset, setChartOffset] = useState({ x: 0, y: 0 });
   const [showLandscapeTip, setShowLandscapeTip] = useState(true);
   const { isMobile: isMobileViewport } = useResponsive();
+
+  // Determine the primary gas for display in the header
+  const primaryGas = useMemo(() => {
+    // 1. Check gasData prop first (highest priority - confirmed by user/importer)
+    if (gasData) {
+      try {
+        if (typeof gasData === 'string' && gasData.trim().startsWith('{')) {
+          const parsed = JSON.parse(gasData);
+          if (parsed.mode === 'structured' && parsed.back_gas?.gas?.o2) {
+            return formatGases(`${parsed.back_gas.gas.o2}%`);
+          }
+        }
+      } catch (e) {
+        // Fallback or ignore
+      }
+    }
+
+    // 2. Fallback to profileData.cylinders if gasData is missing
+    if (profileData?.cylinders?.[0]?.o2) {
+      return formatGases(profileData.cylinders[0].o2);
+    }
+
+    return null;
+  }, [profileData, gasData]);
 
   // Check if dive goes into deco
   const hasDeco = useMemo(() => {
@@ -715,6 +742,16 @@ const AdvancedDiveProfileChart = ({
                 </span>
               </div>
             )}
+            {primaryGas && (
+              <div className='flex items-center gap-2'>
+                <Wind className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-teal-500`} />
+                <span
+                  className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
+                >
+                  {primaryGas}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className='flex flex-wrap items-center gap-x-6 gap-y-2 mb-3 bg-gray-50/50 p-2 rounded-lg border border-gray-100'>
@@ -1060,6 +1097,7 @@ AdvancedDiveProfileChart.propTypes = {
   onClose: PropTypes.func,
   onUpload: PropTypes.func,
   diveId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  gasData: PropTypes.string,
 };
 
 export default AdvancedDiveProfileChart;
