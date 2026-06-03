@@ -2160,6 +2160,13 @@ async def get_dive_site(
             if thumbnail_type != 'video':
                 thumbnail_type = 'video'
 
+    # Get creator username
+    creator_username = None
+    if dive_site.created_by:
+        creator = db.query(User.username).filter(User.id == dive_site.created_by).first()
+        if creator:
+            creator_username = creator.username
+
     # Prepare response data
     # Extract difficulty_code and difficulty_label from relationship
     difficulty_code = dive_site.difficulty.code if dive_site.difficulty else None
@@ -2187,6 +2194,7 @@ async def get_dive_site(
         "updated_at": dive_site.updated_at.isoformat() if dive_site.updated_at else None,
         "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None,
         "created_by": dive_site.created_by,
+        "created_by_username": creator_username,
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "tags": tags_dict,

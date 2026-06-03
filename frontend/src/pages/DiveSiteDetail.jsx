@@ -21,6 +21,7 @@ import {
   Info,
   CloudSun,
   Route,
+  User,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -813,6 +814,20 @@ const DiveSiteDetail = () => {
                       </span>
                     )}
                   </h1>
+                  {diveSite.created_by_username && (
+                    <div className='lg:hidden mt-2 flex items-center gap-1.5 text-xs text-gray-500'>
+                      <User className='w-3.5 h-3.5 text-gray-400' />
+                      <span>
+                        Created by{' '}
+                        <RouterLink
+                          to={`/users/${diveSite.created_by_username}`}
+                          className='font-bold text-blue-600 hover:text-blue-800'
+                        >
+                          {diveSite.created_by_username}
+                        </RouterLink>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -926,6 +941,20 @@ const DiveSiteDetail = () => {
               isSubmitting={rateMutation.isLoading}
               compact={true}
             />
+            {diveSite.created_by_username && (
+              <div className='mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 text-xs text-gray-500'>
+                <User className='w-4 h-4 text-gray-400' />
+                <span>
+                  Created by{' '}
+                  <RouterLink
+                    to={`/users/${diveSite.created_by_username}`}
+                    className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+                  >
+                    {diveSite.created_by_username}
+                  </RouterLink>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

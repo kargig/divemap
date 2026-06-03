@@ -303,6 +303,7 @@ class DiveSiteResponse(DiveSiteBase):
     created_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
     created_by: Optional[int] = None
+    created_by_username: Optional[str] = None
     status: str = 'approved'
     updated_at: Optional[datetime] = None
     average_rating: Optional[float] = None
