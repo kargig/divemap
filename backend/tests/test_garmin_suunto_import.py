@@ -88,3 +88,11 @@ def test_parse_suunto_style_fit_with_calculated_deco():
             
             # Verify GF inclusion in dive info
             assert "Deco Model: Bühlmann ZH-L16 (GF 30/70)" in dive["dive_information"]
+            
+            # Verify tissue saturation data
+            assert "tissue_saturation" in dive["profile_data"]
+            assert len(dive["profile_data"]["tissue_saturation"]) == 16
+            
+            # Verify tissue heatmap data
+            assert "tissue_heatmap" in dive["profile_data"]
+            assert len(dive["profile_data"]["tissue_heatmap"]) == len(samples)

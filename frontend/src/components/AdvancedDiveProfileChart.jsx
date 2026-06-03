@@ -989,23 +989,23 @@ const AdvancedDiveProfileChart = ({
         </div>
 
         <div
-          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-3'} mx-3 sm:mx-0`}
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-1.5'} mx-3 sm:mx-0`}
         >
-          <div className='flex items-center justify-center space-x-6 text-sm'>
+          <div className='flex items-center justify-center space-x-4 text-xs'>
             <div className='flex items-center space-x-1'>
-              <div className='w-4 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
+              <div className='w-3 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
               <span>Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className='w-3 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#E69F00' }}
               ></div>
               <span>Avg Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className='w-3 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#009E73' }}
               ></div>
               <span>Temp</span>
@@ -1013,7 +1013,7 @@ const AdvancedDiveProfileChart = ({
             {hasDeco && hasStopdepth && (
               <div className='flex items-center space-x-1'>
                 <div
-                  className='w-4 h-0.5 border-dashed border-t-2'
+                  className='w-3 h-0.5 border-dashed border-t-2'
                   style={{ borderColor: '#56B4E9' }}
                 ></div>
                 <span>Ceiling{isDecoCalculated ? ' (Calculated)' : ''}</span>

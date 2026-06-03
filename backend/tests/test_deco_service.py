@@ -2,7 +2,10 @@ import pytest
 from app.services.deco_service import calculate_deco_ceiling
 
 def test_calculate_deco_ceiling_empty():
-    assert calculate_deco_ceiling([]) == []
+    ceilings, tissues, heatmap = calculate_deco_ceiling([])
+    assert ceilings == []
+    assert tissues is None
+    assert heatmap is None
 
 def test_calculate_deco_ceiling_basic():
     # A simple dive: 10 mins at 30m
@@ -13,11 +16,18 @@ def test_calculate_deco_ceiling_basic():
             'depth': 30.0 if i > 0 else 0.0
         })
     
-    ceilings = calculate_deco_ceiling(samples, gf_low=30, gf_high=70)
+    ceilings, tissues, heatmap = calculate_deco_ceiling(samples, gf_low=30, gf_high=70)
     assert len(ceilings) == len(samples)
-    # At 30m for 10 mins, we might not have mandatory deco but we should have tissue loading
-    # The ceiling should be 0 or very shallow for an air dive at 30m for 10 min
     assert all(isinstance(c, (int, float)) for c in ceilings)
+    
+    # Tissue data should be present
+    assert tissues is not None
+    assert len(tissues) == 16
+    assert all(isinstance(val, (int, float)) for val in tissues)
+    
+    # Heatmap data should be present
+    assert heatmap is not None
+    assert len(heatmap) == len(samples)
 
 def test_calculate_deco_ceiling_with_deco():
     # A deeper/longer dive to trigger mandatory deco
@@ -30,9 +40,21 @@ def test_calculate_deco_ceiling_with_deco():
     for i in range(3, 23):
         samples.append({'time_minutes': float(i), 'depth': 40.0})
     
-    ceilings = calculate_deco_ceiling(samples, gf_low=30, gf_high=70)
+    # Ascent to surface
+    samples.append({'time_minutes': 27.0, 'depth': 0.0})
+    
+    ceilings, tissues, heatmap = calculate_deco_ceiling(samples, gf_low=30, gf_high=70)
     
     # Check that ceiling increases over time
     assert max(ceilings) > 0
     # Final ceiling should be significant
-    assert ceilings[-1] > 3.0 
+    assert ceilings[-1] > 3.0
+    
+    # Check tissues (should be high for fast compartments)
+    assert tissues is not None
+    # Fast compartments (index 0-2) should be heavily loaded
+    assert any(val > 100 for val in tissues[:5])
+    
+    # Check heatmap
+    assert heatmap is not None
+    assert len(heatmap) == len(samples)

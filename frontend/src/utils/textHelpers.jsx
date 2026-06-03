@@ -137,6 +137,27 @@ export const renderTextWithLinks = (text, options = {}) => {
 };
 
 /**
+ * Parses Gradient Factors (GF Low/High) from a text string.
+ * @param {string} text - The text to parse
+ * @returns {Object|null} Object with low and high properties or null
+ */
+export const parseGradientFactors = text => {
+  if (!text || typeof text !== 'string') return null;
+
+  // Matches patterns like 'GF 30/70', 'GF: 30/70', '(GF 30/70)', 'GF 30 / 70'
+  const pattern = /(?:GF|Gradient Factor)[s]?[:]?\s*\(?(\d+)\s*\/\s*(\d+)\)?/i;
+  const match = text.match(pattern);
+
+  if (match) {
+    return {
+      low: parseInt(match[1], 10),
+      high: parseInt(match[2], 10),
+    };
+  }
+  return null;
+};
+
+/**
  * Formats gas strings for display, e.g., "Nitrox 32%" to "EAN32"
  * @param {string} gasStr - The gas string to format
  * @returns {string} Formatted gas string
