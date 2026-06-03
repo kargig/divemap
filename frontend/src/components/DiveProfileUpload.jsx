@@ -14,8 +14,14 @@ const DiveProfileUpload = ({ onUpload, onClose, isOpen, diveId }) => {
   const handleFileSelect = event => {
     const selectedFile = event.target.files[0];
     if (selectedFile) {
-      if (selectedFile.type !== 'text/xml') {
-        setError('Only XML files are allowed.');
+      const name = selectedFile.name.toLowerCase();
+      if (
+        !name.endsWith('.xml') &&
+        !name.endsWith('.uddf') &&
+        !name.endsWith('.fit') &&
+        !name.endsWith('.json')
+      ) {
+        setError('Only XML, UDDF, FIT and JSON files are allowed.');
         setFile(null);
         return;
       }
@@ -71,7 +77,7 @@ const DiveProfileUpload = ({ onUpload, onClose, isOpen, diveId }) => {
         )}
         <div className='mb-4'>
           <label htmlFor='file-upload' className='block text-sm font-medium text-gray-700 mb-2'>
-            Select XML File
+            Select Dive Log File
           </label>
           <div
             className='mt-1 flex justify-center rounded-md border-2 border-dashed border-gray-300 px-6 pt-5 pb-6 cursor-pointer hover:border-gray-400'
@@ -92,19 +98,19 @@ const DiveProfileUpload = ({ onUpload, onClose, isOpen, diveId }) => {
                   htmlFor='file-upload'
                   className='relative cursor-pointer rounded-md bg-white font-medium text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 hover:text-blue-500'
                 >
-                  <span>Click to select XML file</span>
+                  <span>Click to select file</span>
                   <input
                     id='file-upload'
                     name='file-upload'
                     type='file'
                     className='sr-only'
                     onChange={handleFileSelect}
-                    accept='.xml'
+                    accept='.xml,.uddf,.fit,.json'
                   />
                 </label>
                 <p className='pl-1'>or drag and drop</p>
               </div>
-              <p className='text-xs text-gray-500'>Subsurface XML format</p>
+              <p className='text-xs text-gray-500'>XML, UDDF, Garmin FIT, or Suunto JSON</p>
             </div>
           </div>
         </div>

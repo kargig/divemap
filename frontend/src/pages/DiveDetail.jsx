@@ -145,8 +145,14 @@ const DiveDetail = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith('.xml') && !file.name.toLowerCase().endsWith('.uddf')) {
-      toast.error('Please select a valid XML/UDDF dive profile file');
+    const name = file.name.toLowerCase();
+    if (
+      !name.endsWith('.xml') &&
+      !name.endsWith('.uddf') &&
+      !name.endsWith('.fit') &&
+      !name.endsWith('.json')
+    ) {
+      toast.error('Please select a valid dive profile file (.xml, .uddf, .fit, .json)');
       return;
     }
 
@@ -947,13 +953,35 @@ const DiveDetail = () => {
 
           {activeTab === 'profile' && (
             <div className='bg-white sm:rounded-lg shadow p-0 sm:p-2 -mx-4 sm:mx-0'>
-              <div className='flex items-center gap-2 mb-4 px-4 sm:px-0 pt-4 sm:pt-0'>
-                <h2 className='text-xl font-semibold'>Dive Profile</h2>
-                {hasDeco && (
-                  <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
-                    <Droplets className='w-3 h-3' />
-                    Deco
-                  </span>
+              <div className='flex items-center justify-between mb-4 px-4 sm:px-0 pt-4 sm:pt-0'>
+                <div className='flex items-center gap-2'>
+                  <h2 className='text-xl font-semibold'>Dive Profile</h2>
+                  {hasDeco && (
+                    <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
+                      <Droplets className='w-3 h-3' />
+                      Deco
+                    </span>
+                  )}
+                </div>
+
+                {user && (user.id === dive.user_id || user.is_admin) && (
+                  <div className='flex items-center gap-2'>
+                    <Button
+                      onClick={handleUploadProfile}
+                      variant='secondary'
+                      size='sm'
+                      icon={<Upload className='h-3.5 w-3.5' />}
+                    >
+                      Re-upload Profile
+                    </Button>
+                    <input
+                      type='file'
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept='.xml,.uddf,.fit,.json'
+                      className='hidden'
+                    />
+                  </div>
                 )}
               </div>
 
@@ -1019,13 +1047,6 @@ const DiveDetail = () => {
                   </div>
                 )}
               </Suspense>
-              <input
-                type='file'
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept='.xml,.uddf'
-                className='hidden'
-              />
             </div>
           )}
 

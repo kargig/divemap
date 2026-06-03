@@ -12,8 +12,10 @@ import {
   TrendingUp,
   Edit,
   X,
+  Upload,
+  CheckCircle,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
@@ -28,6 +30,7 @@ import Button from '../components/ui/Button';
 import RichText from '../components/ui/RichText';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
+import { uploadDiveProfile } from '../services/dives';
 import { getDiveSites, getDiveSite } from '../services/diveSites';
 import { getDivingCenter, getDivingCenters, broadcastTrip } from '../services/divingCenters';
 import { getParsedTrip, updateParsedTrip, deleteParsedTrip } from '../services/newsletters';
@@ -42,6 +45,10 @@ import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
 
 const DiveSiteInfo = ({ dive, index }) => {
+  const { user } = useAuth();
+  const fileInputRef = useRef(null);
+  const queryClient = useQueryClient();
+
   const { data: diveSite } = useQuery(
     ['diveSite', dive.dive_site_id],
     () => getDiveSite(dive.dive_site_id),
@@ -53,6 +60,42 @@ const DiveSiteInfo = ({ dive, index }) => {
       },
     }
   );
+
+  const handleUploadProfile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const name = file.name.toLowerCase();
+    if (
+      !name.endsWith('.xml') &&
+      !name.endsWith('.uddf') &&
+      !name.endsWith('.fit') &&
+      !name.endsWith('.json')
+    ) {
+      toast.error('Please select a valid dive profile file (.xml, .uddf, .fit, .json)');
+      return;
+    }
+
+    const toastId = toast.loading('Uploading dive profile...');
+    try {
+      await uploadDiveProfile(dive.user_dive_id, file);
+      toast.success('Dive profile uploaded successfully', { id: toastId });
+      queryClient.invalidateQueries(['dive-profile', dive.user_dive_id]);
+      queryClient.invalidateQueries(['dive', dive.user_dive_id]);
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Failed to upload profile'), { id: toastId });
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   return (
     <div className='bg-gray-50 rounded-lg p-4'>
@@ -100,6 +143,41 @@ const DiveSiteInfo = ({ dive, index }) => {
             {diveSite.country && <span>📍 {diveSite.country}</span>}
             {diveSite.region && <span>🏛️ {diveSite.region}</span>}
           </div>{' '}
+        </div>
+      )}
+
+      {dive.user_dive_id && (
+        <div className='mt-4 pt-3 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+          <div className='flex items-center gap-2 text-sm text-green-700'>
+            <CheckCircle className='w-4 h-4 flex-shrink-0' />
+            <span className='min-w-0 flex-1'>
+              Matched with your dive:{' '}
+              <Link
+                to={`/dives/${dive.user_dive_id}/${slugify(dive.user_dive_name || 'dive')}`}
+                className='font-bold hover:underline transition-colors'
+              >
+                {dive.user_dive_name || 'My Dive'}
+              </Link>
+            </span>
+          </div>
+          <div className='flex items-center gap-2'>
+            <Button
+              onClick={handleUploadProfile}
+              variant='secondary'
+              size='sm'
+              icon={<Upload className='h-3.5 w-3.5' />}
+              className='whitespace-nowrap'
+            >
+              Re-upload Profile
+            </Button>
+            <input
+              type='file'
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept='.xml,.uddf,.fit,.json'
+              className='hidden'
+            />
+          </div>
         </div>
       )}
     </div>

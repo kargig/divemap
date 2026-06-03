@@ -232,7 +232,10 @@ async def upload_dive_profile(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Upload dive profile XML file"""
+    """
+    Upload dive profile file (.xml, .uddf, .fit, .json).
+    Automatically parses the format and updates the dive record.
+    """
     if not current_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     
@@ -244,11 +247,15 @@ async def upload_dive_profile(
     if dive.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
     
-    # Validate file type
-    if not file.filename.lower().endswith('.xml'):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only XML files are allowed")
+    filename_lower = file.filename.lower()
+    allowed_extensions = ('.xml', '.uddf', '.fit', '.json')
+    if not filename_lower.endswith(allowed_extensions):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
+        )
     
-    # Check file size before reading
+    # Check file size
     if file.size and file.size > MAX_PROFILE_FILE_SIZE:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -256,67 +263,98 @@ async def upload_dive_profile(
         )
     
     try:
-        # Read file content
         content = await file.read()
-        
-        # Double check content size if file.size was not available
         if len(content) > MAX_PROFILE_FILE_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"File content too large. Maximum size allowed is {MAX_PROFILE_FILE_SIZE // (1024 * 1024)}MB"
-            )
-        
-        # Generate unique filename
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File content too large")
+
+        profile_data = None
+        stored_content = content
+        target_extension = os.path.splitext(filename_lower)[1]
+
+        # 1. Parse based on format
+        if filename_lower.endswith(('.xml', '.uddf')):
+            from app.services.dive_profile_parser import DiveProfileParser
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
+                temp_file.write(content)
+                temp_path = temp_file.name
+            try:
+                parser = DiveProfileParser()
+                profile_data = parser.parse_xml_file(temp_path)
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+
+        elif filename_lower.endswith('.fit'):
+            from .imports.garmin import parse_garmin_fit_file
+            parsed_dives = parse_garmin_fit_file(content, db, current_user.id)
+            if not parsed_dives:
+                raise HTTPException(status_code=400, detail="No dive sessions found in FIT file")
+            
+            # If multiple dives, find the best match for our dive_id
+            if len(parsed_dives) > 1:
+                # Simple matching by date and time if available
+                target_date = dive.dive_date.isoformat() if dive.dive_date else None
+                best_match = None
+                for p in parsed_dives:
+                    if p.get('dive_date') == target_date:
+                        best_match = p
+                        break
+                profile_data = (best_match or parsed_dives[0]).get('profile_data')
+            else:
+                profile_data = parsed_dives[0].get('profile_data')
+            
+            # Convert to JSON for storage since we don't store raw FIT for profiles yet
+            stored_content = orjson.dumps(profile_data)
+            target_extension = '.json'
+
+        elif filename_lower.endswith('.json'):
+            from .imports.suunto_parser import parse_suunto_json_file
+            # Try Suunto parser
+            try:
+                suunto_data = parse_suunto_json_file(content)
+                if suunto_data and suunto_data.get('profile_data'):
+                    profile_data = suunto_data['profile_data']
+                else:
+                    # Fallback: check if it's already a raw profile JSON
+                    profile_data = orjson.loads(content)
+            except Exception:
+                profile_data = orjson.loads(content)
+            
+            stored_content = orjson.dumps(profile_data)
+            target_extension = '.json'
+
+        if not profile_data or not profile_data.get('samples'):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not extract valid profile samples from file")
+
+        # 2. Store to R2
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"dive_{dive_id}_profile_{timestamp}.xml"
+        store_filename = f"dive_{dive_id}_profile_{timestamp}{target_extension}"
+        stored_path = r2_storage.upload_profile(dive.user_id, store_filename, stored_content)
+
+        # 3. Update Dive record
+        dive.profile_xml_path = stored_path
+        dive.profile_sample_count = len(profile_data.get('samples', []))
         
-        # Parse profile data first to validate
-        from app.services.dive_profile_parser import DiveProfileParser
-        import tempfile
-        import xml.etree.ElementTree as ET
+        # Calculate/update metrics from profile if they look valid
+        calc_max = profile_data.get('calculated_max_depth', 0)
+        calc_dur = profile_data.get('calculated_duration_minutes', 0)
+        if calc_max > 0: dive.profile_max_depth = calc_max
+        if calc_dur > 0: dive.profile_duration_minutes = calc_dur
         
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
-            temp_file.write(content)
-            temp_path = temp_file.name
-        
-        try:
-            parser = DiveProfileParser()
-            profile_data = parser.parse_xml_file(temp_path)
-            
-            if not profile_data:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not parse dive profile data")
-            
-            if not profile_data.get('samples'):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dive profile has no sample data (is it a valid Subsurface log?)")
-            
-            # Upload to R2 or local storage
-            stored_path = r2_storage.upload_profile(dive.user_id, filename, content)
-            
-            # Update dive record with profile metadata
-            dive.profile_xml_path = stored_path
-            dive.profile_sample_count = len(profile_data.get('samples', []))
-            dive.profile_max_depth = profile_data.get('calculated_max_depth', 0)
-            dive.profile_duration_minutes = profile_data.get('calculated_duration_minutes', 0)
-            
-            db.commit()
-            
-            return {
-                "message": "Dive profile uploaded successfully",
-                "profile_data": profile_data
-            }
-            
-        except (ET.ParseError, FileNotFoundError, ValueError) as e:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid dive profile data: {str(e)}")
-        finally:
-            # Clean up temporary file
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-        
+        db.commit()
+
+        return {
+            "message": "Dive profile uploaded and updated successfully",
+            "profile_data": profile_data
+        }
+
     except HTTPException:
-        # Re-raise HTTP exceptions (like 400 errors) as-is
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error uploading profile: {str(e)}")
+        import logging
+        logging.exception(f"Error uploading profile for dive {dive_id}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error processing profile: {str(e)}")
 
 
 @router.delete("/{dive_id}/profile")

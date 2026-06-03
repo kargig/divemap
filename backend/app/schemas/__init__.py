@@ -1137,6 +1137,8 @@ class ParsedDiveResponse(BaseModel):
     max_depth: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    user_dive_id: Optional[int] = None  # ID of the matching dive in user's logbook
+    user_dive_name: Optional[str] = None # Name of the matching dive
     created_at: datetime
     updated_at: datetime
 

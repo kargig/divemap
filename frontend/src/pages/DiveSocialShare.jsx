@@ -282,7 +282,7 @@ const DiveSocialShare = () => {
 
   const handleDownload = () => {
     if (!generatedBlob) return;
-    const fileName = `dive_${dive.id}_social_${Date.now()}.jpg`;
+    const fileName = `divemap_dive_${dive.id}_social_${Date.now()}.jpg`;
     downloadBlob(generatedBlob, fileName);
     toast.success('Download started!');
   };

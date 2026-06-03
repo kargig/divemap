@@ -203,5 +203,5 @@ async def generate_social_image(
     return Response(
         content=image_data,
         media_type="image/jpeg",
-        headers={"Content-Disposition": f"attachment; filename=dive_{dive_id}_social.jpg"}
+        headers={"Content-Disposition": f"attachment; filename=divemap_dive_{dive_id}_social.jpg"}
     )

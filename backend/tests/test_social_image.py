@@ -53,6 +53,7 @@ def test_generate_social_image_endpoint(client, user_token, test_dive, db_sessio
         # The route is now implemented, it should return 200 (skeleton)
         assert response.status_code == 200
         assert response.headers["content-type"] == "image/jpeg"
+        assert response.headers["Content-Disposition"].startswith(f"attachment; filename=divemap_dive_{test_dive.id}_social.jpg")
 
 def test_generate_social_image_with_string_data(client, user_token, test_dive, db_session):
     """Test handling of profile data where numbers are strings (common in JSON)."""

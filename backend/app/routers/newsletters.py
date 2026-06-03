@@ -9,7 +9,7 @@ import os
 import requests
 import math
 from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code
+from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
 from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
@@ -2263,6 +2263,34 @@ async def get_parsed_trip(
     from app.utils import increment_view_count
     background_tasks.add_task(increment_view_count, db, ParsedDiveTrip, trip.id)
 
+    # Find matching user dives for this trip date to allow re-uploading profiles
+    matching_user_dives_map = {}
+    if current_user:
+        # Fetch all dives by this user on the same date as the trip
+        user_dives = db.query(Dive).filter(
+            Dive.user_id == current_user.id,
+            Dive.dive_date == trip.trip_date
+        ).all()
+        
+        # Track which user dives have been matched to avoid double-matching
+        matched_user_dive_ids = set()
+        
+        for p_dive in trip.dives:
+            if p_dive.dive_site_id:
+                # 1. Try exact match: site + time
+                if p_dive.dive_time:
+                    matched = next((ud for ud in user_dives if ud.dive_site_id == p_dive.dive_site_id and ud.dive_time == p_dive.dive_time), None)
+                    if matched:
+                        matching_user_dives_map[p_dive.id] = matched
+                        matched_user_dive_ids.add(matched.id)
+                        continue
+                
+                # 2. Try site match only (excluding already matched ones)
+                matched = next((ud for ud in user_dives if ud.dive_site_id == p_dive.dive_site_id and ud.id not in matched_user_dive_ids), None)
+                if matched:
+                    matching_user_dives_map[p_dive.id] = matched
+                    matched_user_dive_ids.add(matched.id)
+
     return ParsedDiveTripResponse(
         id=trip.id,
         diving_center_id=trip.diving_center_id,
@@ -2284,33 +2312,35 @@ async def get_parsed_trip(
         latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
         longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
         # Restrict raw newsletter content access (Finding 4: Medium)
-        newsletter_content=(
-            db.query(Newsletter).filter(Newsletter.id == trip.source_newsletter_id).first().content 
-            if trip.source_newsletter_id and (
-                current_user.is_admin or 
-                current_user.is_moderator or 
-                (trip.diving_center_id and (
-                    db.query(DivingCenter).filter(DivingCenter.id == trip.diving_center_id, DivingCenter.owner_id == current_user.id).first() or
-                    db.query(DivingCenterManager).filter(DivingCenterManager.diving_center_id == trip.diving_center_id, DivingCenterManager.user_id == current_user.id).first()
-                ))
-            ) else None
+        newsletter_content=(\
+            db.query(Newsletter).filter(Newsletter.id == trip.source_newsletter_id).first().content \
+            if trip.source_newsletter_id and (\
+                current_user.is_admin or \
+                current_user.is_moderator or \
+                (trip.diving_center_id and (\
+                    db.query(DivingCenter).filter(DivingCenter.id == trip.diving_center_id, DivingCenter.owner_id == current_user.id).first() or\
+                    db.query(DivingCenterManager).filter(DivingCenterManager.diving_center_id == trip.diving_center_id, DivingCenterManager.user_id == current_user.id).first()\
+                ))\
+            ) else None\
         ),
-        dives=[
-            ParsedDiveResponse(
-                id=dive.id,
-                trip_id=dive.trip_id,
-                dive_site_id=dive.dive_site_id,
-                dive_number=dive.dive_number,
-                dive_time=dive.dive_time,
-                dive_duration=dive.dive_duration,
-                dive_description=dive.dive_description,
-                dive_site_name=dive.dive_site.name if dive.dive_site else None,
-                dive_site_country=dive.dive_site.country if dive.dive_site else None,
-                dive_site_region=dive.dive_site.region if dive.dive_site else None,
-                created_at=dive.created_at,
-                updated_at=dive.updated_at
-            )
-            for dive in trip.dives
+        dives=[\
+            ParsedDiveResponse(\
+                id=dive.id,\
+                trip_id=dive.trip_id,\
+                dive_site_id=dive.dive_site_id,\
+                dive_number=dive.dive_number,\
+                dive_time=dive.dive_time,\
+                dive_duration=dive.dive_duration,\
+                dive_description=dive.dive_description,\
+                dive_site_name=dive.dive_site.name if dive.dive_site else None,\
+                dive_site_country=dive.dive_site.country if dive.dive_site else None,\
+                dive_site_region=dive.dive_site.region if dive.dive_site else None,\
+                user_dive_id=matching_user_dives_map.get(dive.id).id if matching_user_dives_map.get(dive.id) else None,\
+                user_dive_name=matching_user_dives_map.get(dive.id).name if matching_user_dives_map.get(dive.id) else None,\
+                created_at=dive.created_at,\
+                updated_at=dive.updated_at\
+            )\
+            for dive in trip.dives\
         ],
         extracted_at=trip.extracted_at,
         created_at=trip.created_at,
