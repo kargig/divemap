@@ -1,5 +1,5 @@
 import { Row, Col, Space } from 'antd';
-import { ArrowLeft, Activity, Info, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Activity, Info, AlertCircle, Droplets } from 'lucide-react';
 import { lazy, Suspense, useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
@@ -114,9 +114,9 @@ const DiveProfileFullView = () => {
                 <h2 className='text-lg font-semibold text-gray-800'>Interactive Profile Chart</h2>
               </div>
               {profileHasDeco && (
-                <span className='px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 flex items-center gap-1'>
-                  <Info className='h-3 w-3' />
-                  Deco Dive
+                <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1'>
+                  <Droplets className='w-3 h-3' />
+                  Deco
                 </span>
               )}
             </div>

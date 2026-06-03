@@ -4,7 +4,6 @@ import { useMemo } from 'react';
 import { formatGases } from '../utils/textHelpers';
 
 const COMPARTMENTS = 16;
-const HALFTIMES = [5, 8, 12.5, 18.5, 27, 38.3, 54.3, 77, 109, 146, 187, 239, 305, 390, 498, 635];
 
 /**
  * Renders a tissue saturation heatmap similar to octo-deco.nl.
@@ -69,35 +68,19 @@ const TissueHeatmap = ({ heatmapData, samples, events }) => {
         <p className='text-[10px] text-gray-400'>GF99% Evolution</p>
       </div>
 
-      <div className='relative overflow-hidden border border-gray-200 rounded-md bg-gray-50'>
+      <div className='relative border border-gray-200 rounded-md bg-gray-50'>
         {/* The Heatmap Grid */}
         <div className='flex h-32 w-full'>
-          {/* Y-Axis Labels (Compartments) */}
-          <div className='flex flex-col justify-between h-full py-1 text-[7px] font-mono text-gray-400 select-none w-10 text-right pr-1'>
-            {HALFTIMES.slice()
-              .reverse()
-              .map((ht, i) => (
-                <span key={i}>{ht}m</span>
-              ))}
-          </div>
-
           {/* Heatmap Columns */}
-          <div className='flex-1 flex h-full border-l border-gray-200 mr-8 relative'>
+          <div className='flex-1 flex h-full relative overflow-hidden rounded-l-md'>
             {processedData.map((col, colIdx) => (
               <div key={colIdx} className='flex-1 flex flex-col-reverse h-full group relative'>
                 {col.values.map((val, rowIdx) => (
                   <div
                     key={rowIdx}
-                    className='flex-1 w-full border-[0.5px] border-white/10'
+                    className='flex-1 w-full border-[0.5px] border-white/5'
                     style={{ backgroundColor: getColor(val) }}
-                  >
-                    {/* Simple Tooltip on hover */}
-                    <div className='hidden group-hover:block absolute z-10 bottom-full left-0 bg-gray-900 text-white p-2 rounded text-[10px] whitespace-nowrap pointer-events-none mb-1 shadow-xl'>
-                      Time: {col.time.toFixed(1)}m<br />
-                      Comp: {HALFTIMES[rowIdx]}m<br />
-                      Load: {val}%
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
             ))}
@@ -106,16 +89,26 @@ const TissueHeatmap = ({ heatmapData, samples, events }) => {
             {gasMarkers.map((m, i) => (
               <div
                 key={`gas-${i}`}
-                className='absolute top-0 bottom-0 border-l-2 border-dashed border-white/40 pointer-events-none'
+                className='absolute top-0 bottom-0 border-l-2 border-dashed border-[#F0E442]/60 pointer-events-none'
                 style={{ left: `${m.left}%` }}
               >
                 {m.label && (
-                  <div className='absolute top-1 left-1 bg-white/20 backdrop-blur-sm text-[8px] font-bold text-white px-1 rounded'>
+                  <div className='absolute top-1 left-1 bg-[#F0E442]/20 backdrop-blur-sm text-[8px] font-bold text-yellow-200 px-1 rounded border border-[#F0E442]/30'>
                     {m.label}
                   </div>
                 )}
               </div>
             ))}
+          </div>
+
+          {/* Y-Axis Legend (Fast to Slow) */}
+          <div className='flex flex-col justify-between h-full w-8 text-[7px] font-bold uppercase tracking-tighter select-none border-l border-gray-200 bg-gray-100/50 relative group/legend py-3 rounded-r-md'>
+            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400'>
+              Slow
+            </div>
+            <div className='flex items-center justify-center -rotate-90 whitespace-nowrap text-gray-400'>
+              Fast
+            </div>
           </div>
         </div>
 
@@ -150,7 +143,7 @@ const TissueHeatmap = ({ heatmapData, samples, events }) => {
         </div>
         {gasMarkers.length > 0 && (
           <div className='flex items-center gap-1'>
-            <div className='w-4 h-0.5 border-l-2 border-dashed border-gray-400'></div>
+            <div className='w-4 h-0.5 border-l-2 border-dashed border-[#F0E442]'></div>
             <span>Gas Change</span>
           </div>
         )}

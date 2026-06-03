@@ -22,6 +22,7 @@ import {
   Image,
   Video,
   TrendingUp,
+  Droplets,
 } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -948,7 +949,12 @@ const DiveDetail = () => {
             <div className='bg-white sm:rounded-lg shadow p-0 sm:p-2 -mx-4 sm:mx-0'>
               <div className='flex items-center gap-2 mb-4 px-4 sm:px-0 pt-4 sm:pt-0'>
                 <h2 className='text-xl font-semibold'>Dive Profile</h2>
-                {hasDeco && <span className='text-red-500 font-medium'>Deco dive</span>}
+                {hasDeco && (
+                  <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
+                    <Droplets className='w-3 h-3' />
+                    Deco
+                  </span>
+                )}
               </div>
 
               <Suspense
