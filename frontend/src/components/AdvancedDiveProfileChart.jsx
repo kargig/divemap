@@ -93,7 +93,9 @@ const CustomTooltip = ({
           {data.stopdepth > 0 && showCeiling && (
             <div className='flex justify-between'>
               <span style={{ color: '#56B4E9' }}>Ceiling:</span>
-              <span className='font-medium'>{data.stopdepth?.toFixed(1)}m</span>
+              <span className='font-medium'>
+                {data.stopdepth?.toFixed(1)}m{data.calculated_deco && ' (Calculated)'}
+              </span>
             </div>
           )}
           {data.stoptime > 0 && data.in_deco && showStoptime && (
@@ -269,6 +271,12 @@ const AdvancedDiveProfileChart = ({
     );
   }, [profileData]);
 
+  // Check if deco is calculated internally
+  const isDecoCalculated = useMemo(() => {
+    if (!profileData?.samples) return false;
+    return profileData.samples.some(sample => sample.calculated_deco === true);
+  }, [profileData]);
+
   // Process gas change events
   const gasChangeEvents = useMemo(() => {
     if (!profileData?.events) return [];
@@ -350,6 +358,7 @@ const AdvancedDiveProfileChart = ({
         in_deco: lastKnownInDeco,
         stopdepth: lastKnownStopdepth,
         stoptime: lastKnownStoptime,
+        calculated_deco: sample.calculated_deco,
       };
     });
   }, [profileData, showAllSamples]);
@@ -980,23 +989,23 @@ const AdvancedDiveProfileChart = ({
         </div>
 
         <div
-          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-3'} mx-3 sm:mx-0`}
+          className={`bg-gray-50 rounded-lg border border-gray-200 ${isMobileLandscape ? 'p-1' : 'p-1.5'} mx-3 sm:mx-0`}
         >
-          <div className='flex items-center justify-center space-x-6 text-sm'>
+          <div className='flex items-center justify-center space-x-4 text-xs'>
             <div className='flex items-center space-x-1'>
-              <div className='w-4 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
+              <div className='w-3 h-0.5' style={{ backgroundColor: '#0072B2' }}></div>
               <span>Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className='w-3 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#E69F00' }}
               ></div>
               <span>Avg Depth</span>
             </div>
             <div className='flex items-center space-x-1'>
               <div
-                className='w-4 h-0.5 border-dashed border-t-2'
+                className='w-3 h-0.5 border-dashed border-t-2'
                 style={{ borderColor: '#009E73' }}
               ></div>
               <span>Temp</span>
@@ -1004,10 +1013,10 @@ const AdvancedDiveProfileChart = ({
             {hasDeco && hasStopdepth && (
               <div className='flex items-center space-x-1'>
                 <div
-                  className='w-4 h-0.5 border-dashed border-t-2'
+                  className='w-3 h-0.5 border-dashed border-t-2'
                   style={{ borderColor: '#56B4E9' }}
                 ></div>
-                <span>Ceiling</span>
+                <span>Ceiling{isDecoCalculated ? ' (Calculated)' : ''}</span>
               </div>
             )}
           </div>

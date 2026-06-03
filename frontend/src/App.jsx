@@ -305,7 +305,12 @@ function AppContent() {
             <Route path='/check-your-email' element={<CheckYourEmail />} />
             <Route path='/resubscribe' element={<Resubscribe />} />
             <Route path='/unsubscribe' element={<Unsubscribe />} />
-            <Route path='/android' element={<ExternalRedirect url='https://play.google.com/store/apps/details?id=gr.divemap.twa&hl=en&pli=1' />} />
+            <Route
+              path='/android'
+              element={
+                <ExternalRedirect url='https://play.google.com/store/apps/details?id=gr.divemap.twa&hl=en&pli=1' />
+              }
+            />
             <Route path='/dives' element={<Dives />} />
             <Route
               path='/dives/create'

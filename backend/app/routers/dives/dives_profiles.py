@@ -22,6 +22,11 @@ import orjson
 import os
 import tempfile
 import uuid
+from app.utils import parse_gf_from_text, has_deco_data
+
+# Maximum file size for dive profile uploads (15MB)
+MAX_PROFILE_FILE_SIZE = 15 * 1024 * 1024
+from app.services.deco_service import calculate_deco_ceiling
 
 from .dives_shared import router, get_db, get_current_user, get_current_active_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
 from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
@@ -174,6 +179,40 @@ def get_dive_profile(
                 # Clean up temporary file
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+        # Backfill decompression data if missing (either samples or heatmap)
+        if profile_data and (not has_deco_data(profile_data) or 'tissue_heatmap' not in profile_data):
+            # Try to parse GF from dive description
+            gf_low, gf_high = parse_gf_from_text(dive.dive_information)
+            
+            # If GFs found, calculate ceiling
+            if gf_low is not None and gf_high is not None:
+                try:
+                    samples = profile_data.get('samples', [])
+                    if samples:
+                        calculated_ceilings, final_saturation, heatmap_data = calculate_deco_ceiling(
+                            samples,
+                            gf_low=gf_low,
+                            gf_high=gf_high
+                        )
+                        
+                        # Inject calculated ceilings into samples ONLY if computer deco is missing
+                        has_computer_deco = has_deco_data(profile_data)
+                        for i, sample in enumerate(samples):
+                            if i < len(calculated_ceilings):
+                                if not has_computer_deco or sample.get('calculated_deco'):
+                                    sample['stopdepth'] = calculated_ceilings[i]
+                                    sample['in_deco'] = calculated_ceilings[i] > 0
+                                    sample['calculated_deco'] = True
+                        
+                        # Add tissue loading to profile data
+                        if final_saturation:
+                            profile_data['tissue_saturation'] = final_saturation
+                        if heatmap_data:
+                            profile_data['tissue_heatmap'] = heatmap_data
+                except Exception as e:
+                    import logging
+                    logging.warning(f"Failed to backfill deco ceiling for dive {dive_id}: {e}")
         
         return profile_data
     except HTTPException:
@@ -206,9 +245,23 @@ async def upload_dive_profile(
     if not file.filename.lower().endswith('.xml'):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only XML files are allowed")
     
+    # Check file size before reading
+    if file.size and file.size > MAX_PROFILE_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size allowed is {MAX_PROFILE_FILE_SIZE // (1024 * 1024)}MB"
+        )
+    
     try:
         # Read file content
         content = await file.read()
+        
+        # Double check content size if file.size was not available
+        if len(content) > MAX_PROFILE_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File content too large. Maximum size allowed is {MAX_PROFILE_FILE_SIZE // (1024 * 1024)}MB"
+            )
         
         # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

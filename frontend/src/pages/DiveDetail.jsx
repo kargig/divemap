@@ -78,13 +78,15 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { calculateRouteBearings, formatBearing } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
-import { renderTextWithLinks } from '../utils/textHelpers';
+import { renderTextWithLinks, parseGradientFactors } from '../utils/textHelpers';
 import { isYouTubeUrl, isVimeoUrl } from '../utils/youtubeHelpers';
 
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
 
 const AdvancedDiveProfileChart = lazy(() => import('../components/AdvancedDiveProfileChart'));
+const TissueSaturationChart = lazy(() => import('../components/TissueSaturationChart'));
+const TissueHeatmap = lazy(() => import('../components/TissueHeatmap'));
 
 const DiveDetail = () => {
   const { id, slug } = useParams();
@@ -978,6 +980,23 @@ const DiveDetail = () => {
                     }
                   />
                 </div>
+                {profileData?.tissue_heatmap && (
+                  <div className='py-2 mt-0'>
+                    <TissueHeatmap
+                      heatmapData={profileData.tissue_heatmap}
+                      samples={profileData.samples}
+                    />
+                  </div>
+                )}
+
+                {profileData?.tissue_saturation && (
+                  <div className='py-2 mt-0'>
+                    <TissueSaturationChart
+                      saturationData={profileData.tissue_saturation}
+                      gfHigh={parseGradientFactors(dive?.dive_information)?.high}
+                    />
+                  </div>
+                )}
               </Suspense>
               <input
                 type='file'

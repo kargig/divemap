@@ -1,5 +1,5 @@
 from fastapi import Request
-from typing import Optional
+from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import orjson
@@ -689,3 +689,42 @@ def populate_center_media_urls(media_obj, response_dict: dict) -> dict:
 
     return response_dict
 
+
+def parse_gf_from_text(text: Optional[str]) -> Tuple[Optional[int], Optional[int]]:
+    """
+    Parse Gradient Factors (GF Low/High) from a text string.
+    Looks for patterns like 'GF 30/70', 'GF: 30/70', 'Gradient Factors: 30/70', etc.
+    
+    Returns:
+        A tuple of (gf_low, gf_high) or (None, None) if not found.
+    """
+    if not text:
+        return None, None
+        
+    # Pattern to match GF Low/High: (GF|Gradient Factor)[s]?[:]? [0-9]+/[0-9]+
+    # Supports optional brackets: (GF 30/70)
+    # Supports optional spaces: GF 30 / 70
+    pattern = r'(?:GF|Gradient Factor)[s]?[:]?\s*\(?(\d+)\s*/\s*(\d+)\)?'
+    match = re.search(pattern, text, re.IGNORECASE)
+    
+    if match:
+        try:
+            gf_low = int(match.group(1))
+            gf_high = int(match.group(2))
+            return gf_low, gf_high
+        except (ValueError, IndexError):
+            pass
+            
+    return None, None
+
+
+def has_deco_data(profile_data: dict) -> bool:
+    """
+    Check if the dive profile data contains decompression information.
+    """
+    samples = profile_data.get('samples', [])
+    if not samples:
+        return False
+        
+    # Check for 'stopdepth' or 'ndl_minutes' in samples
+    return any(s.get('stopdepth') is not None or s.get('ndl_minutes') is not None for s in samples)

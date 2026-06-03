@@ -28,6 +28,10 @@ def get_fit_value(frame, field_name, default=None):
         pass
     return default
 
+# Maximum file size for FIT file uploads (15MB)
+MAX_FIT_FILE_SIZE = 15 * 1024 * 1024
+from app.services.deco_service import calculate_deco_ceiling
+
 
 def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, user_dives=None, all_sites=None):
     """
@@ -289,6 +293,39 @@ def parse_garmin_fit_file(content: bytes, db: Session, current_user_id: int, use
                 
                 dive_data["profile_data"]["samples"].append(sample)
         
+        # 4.1 Calculate Missing Ceiling (Bühlmann ZH-L16)
+        # If the file lacks deco data (e.g. Suunto), calculate it internally
+        has_deco_in_profile = any(s.get('stopdepth') is not None for s in dive_data["profile_data"]["samples"])
+        if not has_deco_in_profile and dive_data["profile_data"]["samples"]:
+            try:
+                gfl = get_fit_value(session_settings, 'gf_low') if session_settings else 30
+                if gfl is None: gfl = 30
+                gfh = get_fit_value(session_settings, 'gf_high') if session_settings else 70
+                if gfh is None: gfh = 70
+                
+                calculated_ceilings, final_saturation, heatmap_data = calculate_deco_ceiling(
+                    dive_data["profile_data"]["samples"], 
+                    gf_low=gfl, 
+                    gf_high=gfh
+                )
+                
+                # Apply calculated ceilings to samples
+                for i, sample in enumerate(dive_data["profile_data"]["samples"]):
+                    if i < len(calculated_ceilings):
+                        sample['stopdepth'] = calculated_ceilings[i]
+                        sample['in_deco'] = calculated_ceilings[i] > 0
+                        # Label as calculated for frontend awareness if needed
+                        sample['calculated_deco'] = True
+                
+                # Store tissue loading metadata
+                if final_saturation:
+                    dive_data["profile_data"]["tissue_saturation"] = final_saturation
+                if heatmap_data:
+                    dive_data["profile_data"]["tissue_heatmap"] = heatmap_data
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to calculate internal deco ceiling: {e}")
+
         # Duplicate detection
         existing = find_existing_dive(
             db, current_user_id, 
@@ -322,8 +359,22 @@ async def import_garmin_fit(
             detail="File must be a .fit file"
         )
 
+    # Check file size before reading
+    if file.size and file.size > MAX_FIT_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File too large. Maximum size allowed is {MAX_FIT_FILE_SIZE // (1024 * 1024)}MB"
+        )
+
     try:
         content = await file.read()
+        
+        # Double check content size if file.size was not available
+        if len(content) > MAX_FIT_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File content too large. Maximum size allowed is {MAX_FIT_FILE_SIZE // (1024 * 1024)}MB"
+            )
         
         all_centers = db.query(DivingCenter).all()
         user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()

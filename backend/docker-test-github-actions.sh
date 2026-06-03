@@ -103,7 +103,15 @@ BASE_IMAGE_EXISTS=$(docker images -q divemap-test-base 2> /dev/null)
 cat > Dockerfile.test << 'EOF'
 # Stage 1: Base with OS packages and dependencies pre-installed in venv
 FROM python:3.11-slim AS base
-RUN apt-get update && apt-get install -y pkg-config netcat-openbsd default-mysql-client libmagic1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    netcat-openbsd \
+    default-mysql-client \
+    libmagic1 \
+    build-essential \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt .
 # Create venv and install dependencies here so it's cached in the base image
