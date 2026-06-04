@@ -161,7 +161,7 @@ const TripCard = ({
                     <span>{tripName}</span>
                   )}
                 </h3>
-                <p className='text-gray-600 text-xs'>
+                <p className='hidden sm:block text-gray-600 text-xs'>
                   {trip.trip_date
                     ? formatDate(trip.trip_date, {
                         day: 'numeric',
@@ -208,12 +208,12 @@ const TripCard = ({
                   country: trip.diving_center_country,
                   region: trip.diving_center_region,
                 })}`}
-                className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-800 hover:underline transition-colors truncate'
+                className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-800 hover:underline transition-colors truncate flex items-center'
               >
                 {trip.diving_center_name}
               </Link>
             ) : (
-              <span className='text-xs sm:text-sm font-medium text-gray-700 truncate'>
+              <span className='text-xs sm:text-sm font-medium text-gray-700 truncate flex items-center'>
                 {trip.diving_center_name || 'Unknown Location'}
               </span>
             )}
@@ -239,7 +239,7 @@ const TripCard = ({
         {/* Description - Hidden on grid if too long */}
         {trip.trip_description && (
           <p
-            className={`text-gray-700 text-sm leading-relaxed mb-3 lg:mb-2 ${isGrid ? 'line-clamp-2' : 'line-clamp-3'}`}
+            className={`hidden sm:block text-gray-700 text-sm leading-relaxed mb-3 lg:mb-2 ${isGrid ? 'sm:line-clamp-2' : 'sm:line-clamp-3'}`}
           >
             {decodeHtmlEntities(trip.trip_description)}
           </p>
@@ -311,7 +311,11 @@ const TripCard = ({
                     <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Duration
                     </div>
-                    <div className='font-medium text-xs sm:text-sm'>{trip.trip_duration}m</div>
+                    <div className='font-medium text-xs sm:text-sm'>
+                      {trip.trip_duration >= 120
+                        ? `${Math.round(trip.trip_duration / 60)}hrs`
+                        : `${trip.trip_duration}m`}
+                    </div>
                   </div>
                 </div>
               ) : (
