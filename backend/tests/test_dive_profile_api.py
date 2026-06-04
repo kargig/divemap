@@ -212,7 +212,7 @@ class TestDiveProfileAPI:
                 
                 assert response.status_code == status.HTTP_200_OK
                 data = response.json()
-                assert "Dive profile uploaded successfully" in data["message"]
+                assert "Dive profile uploaded and updated successfully" in data["message"]
                 assert "profile_data" in data
 
     def test_upload_dive_profile_invalid_file_type(self, client, auth_headers, test_dive):
@@ -222,7 +222,7 @@ class TestDiveProfileAPI:
                              files=files, headers=auth_headers)
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Only XML files are allowed" in response.json()["detail"]
+        assert "Unsupported file type" in response.json()["detail"]
 
     def test_upload_dive_profile_invalid_xml(self, client, auth_headers, test_dive):
         """Test dive profile upload with invalid XML content."""

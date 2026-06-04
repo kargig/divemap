@@ -275,12 +275,15 @@ async def upload_dive_profile(
         if filename_lower.endswith(('.xml', '.uddf')):
             from app.services.dive_profile_parser import DiveProfileParser
             import tempfile
+            import xml.etree.ElementTree as ET
             with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
                 temp_file.write(content)
                 temp_path = temp_file.name
             try:
                 parser = DiveProfileParser()
                 profile_data = parser.parse_xml_file(temp_path)
+            except (ET.ParseError, ValueError) as e:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid dive profile data: {str(e)}")
             finally:
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
