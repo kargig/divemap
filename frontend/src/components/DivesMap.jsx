@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import escape from 'lodash/escape';
-import { Calendar, Clock, TrendingUp, Star } from 'lucide-react';
+import { Calendar, Clock, Star } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
@@ -14,6 +14,7 @@ import { formatDate, formatTime } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { slugify } from '../utils/slugify';
 
+import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
 // Fix default marker icons
@@ -373,7 +374,7 @@ const DivesMap = ({ dives = [], onViewportChange }) => {
                     <div className='flex items-center gap-4 text-sm text-gray-600'>
                       {dive.max_depth && (
                         <div className='flex items-center gap-1'>
-                          <TrendingUp size={14} />
+                          <DepthIcon className='text-divemap-blue' size={16} />
                           <span>{dive.max_depth}m max</span>
                         </div>
                       )}
