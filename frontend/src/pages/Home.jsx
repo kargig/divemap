@@ -127,9 +127,9 @@ const Home = () => {
           <Link
             key={user.user_id}
             to={`/users/${user.username}`}
-            className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4'
+            className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
           >
-            <div className='relative'>
+            <div className='relative shrink-0'>
               <Avatar
                 src={user.avatar_full_url || user.avatar_url}
                 alt={user.username}
@@ -149,11 +149,14 @@ const Home = () => {
                 {index === 0 ? <Trophy className='w-3 h-3' /> : <Medal className='w-3 h-3' />}
               </div>
             </div>
-            <div>
-              <p className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors'>
+            <div className='min-w-0 flex-1'>
+              <p
+                className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                title={user.username}
+              >
                 {user.username}
               </p>
-              <p className='text-xs font-medium text-blue-600 uppercase tracking-wider'>
+              <p className='text-xs font-medium text-blue-600 uppercase tracking-wider truncate'>
                 {user.points.toLocaleString()} Points
               </p>
             </div>

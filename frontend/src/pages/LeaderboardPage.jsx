@@ -72,25 +72,26 @@ const LeaderboardPage = () => {
 
       {/* Hero Section: Top 3 Overall */}
       <section className='mb-12'>
-        <div className='flex flex-col items-center justify-center space-y-8 md:space-y-0 md:flex-row md:space-x-8 py-8 bg-gradient-to-b from-blue-50 to-transparent rounded-3xl'>
+        <div className='flex flex-col items-center justify-center space-y-8 md:space-y-0 md:flex-row md:space-x-8 py-8 bg-gradient-to-b from-blue-50 to-transparent rounded-3xl px-4 overflow-hidden w-full'>
           {/* Rank 2 */}
           {topThree[1] && (
-            <div className='flex flex-col items-center space-y-3 order-2 md:order-1 mt-8'>
+            <div className='flex flex-col items-center space-y-3 order-2 md:order-1 mt-8 w-full max-w-[150px] sm:max-w-[200px] min-w-0'>
               <div className='relative'>
                 <Avatar
                   src={topThree[1].avatar_full_url || topThree[1].avatar_url}
                   alt={topThree[1].username}
                   size='xl'
-                  className='border-4 border-gray-300'
+                  className='border-4 border-gray-300 shrink-0'
                 />
                 <div className='absolute -bottom-2 -right-2 bg-gray-300 text-gray-700 rounded-full p-1.5 shadow-sm'>
                   <Medal className='w-5 h-5' />
                 </div>
               </div>
-              <div className='text-center'>
+              <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[1].username}`}
-                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors'
+                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  title={topThree[1].username}
                 >
                   {topThree[1].username}
                 </Link>
@@ -103,25 +104,26 @@ const LeaderboardPage = () => {
 
           {/* Rank 1 */}
           {topThree[0] && (
-            <div className='flex flex-col items-center space-y-4 order-1 md:order-2 scale-110'>
+            <div className='flex flex-col items-center space-y-4 order-1 md:order-2 scale-110 w-full max-w-[160px] sm:max-w-[220px] min-w-0'>
               <div className='relative'>
                 <div className='absolute -top-6 left-1/2 -translate-x-1/2'>
-                  <Trophy className='w-10 h-10 text-yellow-500 animate-bounce' />
+                  <Trophy className='w-10 h-10 text-yellow-500' />
                 </div>
                 <Avatar
                   src={topThree[0].avatar_full_url || topThree[0].avatar_url}
                   alt={topThree[0].username}
                   size='2xl'
-                  className='border-4 border-yellow-400 shadow-xl'
+                  className='border-4 border-yellow-400 shadow-xl shrink-0'
                 />
                 <div className='absolute -bottom-2 -right-2 bg-yellow-400 text-white rounded-full p-2 shadow-md'>
                   <span className='font-bold'>#1</span>
                 </div>
               </div>
-              <div className='text-center'>
+              <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[0].username}`}
-                  className='text-xl font-black text-blue-600 hover:text-blue-800 transition-colors block'
+                  className='text-xl font-black text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  title={topThree[0].username}
                 >
                   {topThree[0].username}
                 </Link>
@@ -134,7 +136,7 @@ const LeaderboardPage = () => {
 
           {/* Rank 3 */}
           {topThree[2] && (
-            <div className='flex flex-col items-center space-y-3 order-3 mt-8'>
+            <div className='flex flex-col items-center space-y-3 order-3 mt-8 w-full max-w-[150px] sm:max-w-[200px] min-w-0'>
               <div className='relative'>
                 <Avatar
                   src={topThree[2].avatar_full_url || topThree[2].avatar_url}
@@ -146,10 +148,11 @@ const LeaderboardPage = () => {
                   <Medal className='w-5 h-5' />
                 </div>
               </div>
-              <div className='text-center'>
+              <div className='text-center w-full min-w-0'>
                 <Link
                   to={`/users/${topThree[2].username}`}
-                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors'
+                  className='font-bold text-blue-600 hover:text-blue-800 transition-colors block truncate'
+                  title={topThree[2].username}
                 >
                   {topThree[2].username}
                 </Link>

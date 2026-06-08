@@ -37,11 +37,12 @@ const LeaderboardTable = ({
         const linkTo = type === 'user' ? `/users/${name}` : `/diving-centers/${row.center_id}`;
 
         return (
-          <div className='flex items-center space-x-3'>
-            <Avatar src={imgUrl} alt={name} size='sm' fallbackText={name} />
+          <div className='flex items-center space-x-2 min-w-0'>
+            <Avatar src={imgUrl} alt={name} size='sm' fallbackText={name} className='shrink-0' />
             <Link
               to={linkTo}
-              className='font-semibold text-blue-600 truncate max-w-[120px] sm:max-w-none hover:text-blue-800 transition-colors'
+              className='font-semibold text-blue-600 inline-block truncate max-w-[100px] sm:max-w-[180px] md:max-w-[110px] lg:max-w-[120px] xl:max-w-[180px] hover:text-blue-800 transition-colors'
+              title={name}
             >
               {name}
             </Link>
@@ -79,33 +80,44 @@ const LeaderboardTable = ({
   }
 
   return (
-    <div className='overflow-x-auto'>
+    <div className='overflow-hidden w-full'>
       <table className='min-w-full divide-y divide-gray-200'>
         <thead className='bg-gray-50'>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
-                <th
-                  key={header.id}
-                  className='px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider'
-                >
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
+              {headerGroup.headers.map((header, index) => {
+                let alignClass = 'text-left';
+                if (index === 0 || index === 2) alignClass = 'text-center';
+                let widthClass = '';
+                if (index === 0) widthClass = 'w-10 sm:w-16';
+                if (index === 2) widthClass = 'w-24 sm:w-32';
+                return (
+                  <th
+                    key={header.id}
+                    className={`px-1.5 sm:px-3 py-2.5 ${alignClass} ${widthClass} text-xs font-medium text-gray-500 uppercase tracking-wider`}
+                  >
+                    {flexRender(header.column.columnDef.header, header.getContext())}
+                  </th>
+                );
+              })}
             </tr>
           ))}
         </thead>
         <tbody className='bg-white divide-y divide-gray-200'>
           {table.getRowModel().rows.map(row => (
             <tr key={row.id} className='hover:bg-blue-50 transition-colors'>
-              {row.getVisibleCells().map((cell, index) => (
-                <td
-                  key={cell.id}
-                  className={`px-2 py-3 whitespace-nowrap text-sm text-gray-900 ${index === 2 ? 'text-center' : ''}`}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell, index) => {
+                let alignClass = 'text-left';
+                if (index === 0 || index === 2) alignClass = 'text-center';
+                return (
+                  <td
+                    key={cell.id}
+                    className={`px-1.5 py-2.5 whitespace-nowrap text-sm text-gray-900 ${alignClass}`}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
