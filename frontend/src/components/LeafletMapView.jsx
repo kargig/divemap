@@ -1,7 +1,7 @@
 import DOMPurify from 'dompurify';
 import L, { Icon } from 'leaflet';
 import escape from 'lodash/escape';
-import { Info, Phone, Mail, Globe, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { Info, Phone, Mail, Globe, Clock } from 'lucide-react';
 import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -21,6 +21,7 @@ import {
   formatWindDirection,
 } from '../utils/windSuitabilityHelpers';
 
+import DepthIcon from './ui/DepthIcon';
 import WindDataError from './WindDataError';
 import WindOverlay from './WindOverlay';
 import WindOverlayLegend from './WindOverlayLegend';
@@ -31,8 +32,8 @@ const ICONS = {
   Phone: renderToStaticMarkup(<Phone size={16} className='text-gray-600 hover:text-gray-800' />),
   Mail: renderToStaticMarkup(<Mail size={16} className='text-gray-600 hover:text-gray-800' />),
   Globe: renderToStaticMarkup(<Globe size={16} className='text-gray-600 hover:text-gray-800' />),
-  AverageDepth: renderToStaticMarkup(<TrendingDown size={16} className='text-gray-400' />),
-  MaxDepth: renderToStaticMarkup(<TrendingUp size={16} className='text-gray-400' />),
+  AverageDepth: renderToStaticMarkup(<DepthIcon size={18} className='text-divemap-blue' />),
+  MaxDepth: renderToStaticMarkup(<DepthIcon size={18} className='text-divemap-blue' />),
   Duration: renderToStaticMarkup(<Clock size={16} className='text-gray-400' />),
 };
 

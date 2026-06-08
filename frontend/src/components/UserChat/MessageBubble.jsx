@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Edit2, Check, CheckCheck, Clock, MapPin, TrendingUp } from 'lucide-react';
+import { Edit2, Check, CheckCheck, Clock, MapPin } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -11,6 +11,7 @@ import { slugify, getDiveSiteSlug } from '../../utils/slugify';
 import Avatar from '../Avatar';
 import ChatbotIcon from '../Chat/ChatbotIcon.jsx';
 import CurrencyIcon from '../ui/CurrencyIcon';
+import DepthIcon from '../ui/DepthIcon';
 
 import LinkPreview from './LinkPreview';
 
@@ -239,7 +240,7 @@ const MessageBubble = ({
                         )}
                         {tripData.max_depth && (
                           <div className='flex items-center space-x-1'>
-                            <TrendingUp className='w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-blue-500 shrink-0' />
+                            <DepthIcon className='text-divemap-blue shrink-0' size={16} />
                             <span className='font-medium text-gray-900 dark:text-gray-100 truncate'>
                               {tripData.max_depth}m
                             </span>

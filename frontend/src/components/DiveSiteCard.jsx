@@ -1,4 +1,4 @@
-import { Globe, User, TrendingUp, Fish, ChevronRight, Route } from 'lucide-react';
+import { Globe, User, Fish, ChevronRight, Route } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
+import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
 export const DiveSiteListCard = ({
@@ -79,8 +80,8 @@ export const DiveSiteListCard = ({
           {/* Content Row: Description, Stats and Mobile Thumbnail */}
           <div className='flex gap-3 items-start'>
             <div className='flex-1 min-w-0 flex flex-col'>
-              {/* BODY: Description - More aggressive clamp on mobile */}
-              {site.description && (
+              {/* BODY: Description - Completely removed on mobile view */}
+              {!isMobile && site.description && (
                 <div
                   className={`text-gray-600 leading-snug line-clamp-2 mb-1.5 ${compactLayout ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}
                 >
@@ -95,7 +96,7 @@ export const DiveSiteListCard = ({
               <div className='flex flex-wrap items-center gap-x-3 gap-y-1 py-1 sm:py-1.5 border-t border-gray-50'>
                 {site.max_depth && (
                   <div className='flex items-center gap-1'>
-                    <TrendingUp className='w-3 h-3 text-gray-400' />
+                    <DepthIcon className='text-divemap-blue font-bold' size={15} />
                     <span className='text-xs sm:text-sm font-bold text-gray-900'>
                       {site.max_depth}m
                     </span>
@@ -167,6 +168,8 @@ export const DiveSiteGridCard = ({
   getThumbnailUrl,
   handleFilterChange,
 }) => {
+  const { isMobile } = useResponsive();
+
   return (
     <div
       className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 bg-white ${compactLayout ? 'h-full' : ''}`}
@@ -227,7 +230,7 @@ export const DiveSiteGridCard = ({
         <div className='flex items-center gap-4 mb-3 pb-3 border-b border-gray-50'>
           {site.max_depth && (
             <div className='flex items-center gap-1'>
-              <TrendingUp className='w-3.5 h-3.5 text-gray-400' />
+              <DepthIcon className='text-divemap-blue font-bold' size={16} />
               <span className='text-xs font-bold text-gray-700'>{site.max_depth}m</span>
             </div>
           )}
@@ -240,7 +243,7 @@ export const DiveSiteGridCard = ({
         </div>
 
         {/* Description */}
-        {site.description && (
+        {!isMobile && site.description && (
           <p className='text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed'>
             {decodeHtmlEntities(site.description)}
           </p>

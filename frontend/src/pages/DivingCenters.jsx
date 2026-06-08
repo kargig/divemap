@@ -488,9 +488,9 @@ const DivingCenters = () => {
                                 )}
                               </div>
 
-                              {/* Description - expanded to fill space */}
-                              {center.description && (
-                                <p className='text-[10px] sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
+                              {/* Description - completely removed on mobile view */}
+                              {!isMobile && center.description && (
+                                <p className='text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
                                   {decodeHtmlEntities(center.description)}
                                 </p>
                               )}
@@ -507,37 +507,37 @@ const DivingCenters = () => {
                                   }
                                   target='_blank'
                                   rel='noopener noreferrer'
-                                  className='w-8 h-8 inline-flex items-center justify-center bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 active:scale-95 transition-all'
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
                                   title='Website'
                                 >
-                                  <Globe className='w-4 h-4 text-blue-700 flex-shrink-0' />
+                                  <Globe className='w-4 h-4 text-divemap-blue flex-shrink-0' />
                                 </a>
                               )}
                               {center.email &&
                                 (isMobile ? (
                                   <a
                                     href={`mailto:${center.email}`}
-                                    className='w-8 h-8 inline-flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:scale-95 transition-all'
+                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
                                     title='Email'
                                   >
-                                    <Mail className='w-4 h-4 text-green-700 flex-shrink-0' />
+                                    <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
                                   </a>
                                 ) : (
                                   <MaskedEmail
                                     email={center.email}
                                     label=''
-                                    className='w-8 h-8 inline-flex items-center justify-center bg-green-100 text-green-700 rounded-lg hover:bg-green-200 active:scale-95 transition-all cursor-pointer'
+                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all cursor-pointer'
                                   >
-                                    <Mail className='w-4 h-4 text-green-700 flex-shrink-0' />
+                                    <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
                                   </MaskedEmail>
                                 ))}
                               {center.phone && (
                                 <a
                                   href={`tel:${center.phone}`}
-                                  className='w-8 h-8 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 active:scale-95 transition-all'
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
                                   title='Call'
                                 >
-                                  <Phone className='w-4 h-4 text-indigo-700 flex-shrink-0' />
+                                  <Phone className='w-4 h-4 text-divemap-blue flex-shrink-0' />
                                 </a>
                               )}
                               <Link
@@ -612,8 +612,8 @@ const DivingCenters = () => {
                               )}
                             </div>
 
-                            {/* Description */}
-                            {center.description && (
+                            {/* Description - completely removed on mobile view */}
+                            {!isMobile && center.description && (
                               <p className='text-gray-600 text-sm line-clamp-3 mb-4 leading-relaxed'>
                                 {decodeHtmlEntities(center.description)}
                               </p>
@@ -625,7 +625,7 @@ const DivingCenters = () => {
                                 {center.phone && (
                                   <a
                                     href={`tel:${center.phone}`}
-                                    className='p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors'
+                                    className='p-2 bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
                                     title='Call'
                                   >
                                     <Phone className='w-4 h-4' />
@@ -640,7 +640,7 @@ const DivingCenters = () => {
                                     }
                                     target='_blank'
                                     rel='noopener noreferrer'
-                                    className='p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors'
+                                    className='p-2 bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
                                     title='Website'
                                   >
                                     <Globe className='w-4 h-4' />

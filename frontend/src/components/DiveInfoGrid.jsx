@@ -1,11 +1,12 @@
 import { Row, Col } from 'antd';
 import { Grid } from 'antd-mobile';
-import { Calendar, Clock, Eye, TrendingUp, User, Notebook, Wind, Droplets } from 'lucide-react';
+import { Calendar, Clock, Eye, User, Notebook, Wind, Droplets } from 'lucide-react';
 import React from 'react';
 
 import { getTagColor } from '../utils/tagHelpers';
 import { formatGases } from '../utils/textHelpers';
 
+import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
 const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
@@ -122,7 +123,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   Max Depth
                 </span>
                 <div className='flex items-center gap-1.5'>
-                  <TrendingUp className='w-4 h-4 text-blue-500' />
+                  <DepthIcon className='text-divemap-blue' size={18} />
                   <span className='text-sm font-bold text-gray-900'>
                     {dive.max_depth || '-'}
                     <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
@@ -257,7 +258,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                     Max Depth
                   </span>
                   <div className='flex items-center gap-1.5'>
-                    <TrendingUp className='w-4 h-4 text-blue-500' />
+                    <DepthIcon className='text-divemap-blue' size={18} />
                     <span className='text-sm font-bold text-gray-900'>
                       {dive.max_depth || '-'}
                       <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
@@ -349,7 +350,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
               {dive.average_depth && (
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
-                    <TrendingUp size={15} className='text-blue-500' />
+                    <DepthIcon size={18} className='text-divemap-blue' />
                     <span className='text-sm text-gray-600'>Avg Depth:</span>
                     <span className='font-medium'>{dive.average_depth}m</span>
                   </div>

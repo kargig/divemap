@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Star,
   MapPin,
-  TrendingUp,
   Compass,
   Globe,
   List,

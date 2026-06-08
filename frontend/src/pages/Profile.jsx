@@ -45,6 +45,7 @@ import OrganizationLogo from '../components/OrganizationLogo';
 import SEO from '../components/SEO';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import Button from '../components/ui/Button';
+import DepthIcon from '../components/ui/DepthIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { getDivingCenters } from '../services/divingCenters';
 import { getFullAvatarUrl } from '../utils/avatarHelpers';
@@ -423,10 +424,10 @@ const Profile = () => {
       }
 
       features.push({
-        icon: <TrendingUp className='h-3 w-3' />,
+        icon: <DepthIcon className='text-divemap-blue font-bold' size={14} />,
         label: shortDepth,
         title: `Max Depth: ${max_depth}`,
-        color: 'bg-blue-50 text-blue-700 border-blue-100',
+        color: 'bg-blue-50 text-divemap-blue border-blue-100',
       });
     }
 

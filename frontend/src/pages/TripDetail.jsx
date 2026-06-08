@@ -9,7 +9,6 @@ import {
   Building,
   Ticket,
   LogIn,
-  TrendingUp,
   Edit,
   X,
   Upload,
@@ -27,6 +26,7 @@ import SEO from '../components/SEO';
 import TripFormModal from '../components/TripFormModal';
 import TripHeader from '../components/TripHeader';
 import Button from '../components/ui/Button';
+import DepthIcon from '../components/ui/DepthIcon';
 import RichText from '../components/ui/RichText';
 import { useAuth } from '../contexts/AuthContext';
 import { useSetting } from '../hooks/useSettings';
@@ -115,7 +115,7 @@ const DiveSiteInfo = ({ dive, index }) => {
           )}
         </h4>
         <div className='text-sm text-gray-500 font-medium flex items-center gap-1.5'>
-          <TrendingUp className='w-4 h-4 text-gray-400' />
+          <DepthIcon className='text-divemap-blue font-bold' size={16} />
           {diveSite?.max_depth ? `${diveSite.max_depth}m max` : 'Depth TBD'}
         </div>
       </div>

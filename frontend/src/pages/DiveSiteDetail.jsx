@@ -54,6 +54,7 @@ import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import StickyRateBar from '../components/StickyRateBar';
 import Button from '../components/ui/Button';
+import DepthIcon from '../components/ui/DepthIcon';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
 import RichText from '../components/ui/RichText';
 import StarfishRating from '../components/ui/StarfishRating';
@@ -582,7 +583,7 @@ const DiveSiteDetail = () => {
               <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5'>
                 {dive.max_depth && (
                   <div className='flex items-center gap-1'>
-                    <TrendingUp className='w-3 h-3 text-gray-300' />
+                    <DepthIcon className='text-divemap-blue font-bold' size={14} />
                     <span className='text-gray-700 font-medium'>{dive.max_depth}m</span>
                   </div>
                 )}
@@ -874,7 +875,7 @@ const DiveSiteDetail = () => {
                     Max Depth
                   </span>
                   <div className='flex items-center gap-1'>
-                    <TrendingUp className='w-3.5 h-3.5 text-gray-400' />
+                    <DepthIcon className='text-divemap-blue font-bold' size={16} />
                     <span className='text-xs sm:text-sm font-bold text-gray-900'>
                       {diveSite.max_depth}
                       <span className='text-[10px] font-normal text-gray-400 ml-0.5'>m</span>

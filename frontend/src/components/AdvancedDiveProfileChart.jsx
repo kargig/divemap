@@ -11,7 +11,6 @@ import {
   X,
   Contrast,
   Upload,
-  TrendingUp,
   Loader2,
   Wind,
 } from 'lucide-react';
@@ -33,6 +32,8 @@ import {
 import api from '../api';
 import { useResponsive } from '../hooks/useResponsive';
 import { formatGases } from '../utils/textHelpers';
+
+import DepthIcon from './ui/DepthIcon';
 
 /**
  * Custom Tooltip component for the chart
@@ -713,9 +714,7 @@ const AdvancedDiveProfileChart = ({
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <TrendingUp
-                className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-blue-500`}
-              />
+              <DepthIcon className='text-divemap-blue' size={isMobileLandscape ? 14 : 22} />
               <span
                 className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
               >
@@ -723,7 +722,7 @@ const AdvancedDiveProfileChart = ({
               </span>
             </div>
             <div className='flex items-center gap-2'>
-              <TrendingUp className={`${isMobileLandscape ? 'h-3 w-3' : 'h-5 w-5'} text-red-500`} />
+              <DepthIcon className='text-red-500' size={isMobileLandscape ? 14 : 22} />
               <span
                 className={`${isMobileLandscape ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}
               >

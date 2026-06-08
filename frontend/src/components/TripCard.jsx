@@ -3,7 +3,6 @@ import {
   Clock,
   Euro,
   Users,
-  TrendingUp,
   MapPin,
   Building,
   Edit,
@@ -21,6 +20,7 @@ import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify'
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
+import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
 /**
@@ -323,7 +323,7 @@ const TripCard = ({
               )}
               {trip.max_depth ? (
                 <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-                  <TrendingUp className='h-3.5 w-3.5 mr-2 text-blue-400 flex-shrink-0' />
+                  <DepthIcon className='mr-2 text-divemap-blue flex-shrink-0' size={16} />
                   <div className='min-w-0'>
                     <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
                       Max Depth
