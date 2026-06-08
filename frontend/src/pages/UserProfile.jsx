@@ -55,6 +55,7 @@ import Avatar from '../components/Avatar';
 import OrganizationLogo from '../components/OrganizationLogo';
 import SEO from '../components/SEO';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
+import DepthIcon from '../components/ui/DepthIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateHelpers';
 import { formatGases } from '../utils/textHelpers';
@@ -303,10 +304,10 @@ const UserProfile = () => {
       }
 
       features.push({
-        icon: <TrendingUp className='h-3 w-3' />,
+        icon: <DepthIcon className='text-divemap-blue font-bold' size={14} />,
         label: shortDepth,
         title: `Max Depth: ${max_depth}`,
-        color: 'bg-blue-50 text-blue-700 border-blue-100',
+        color: 'bg-blue-50 text-divemap-blue border-blue-100',
       });
     }
 
@@ -470,9 +471,7 @@ const UserProfile = () => {
         >
           {stats.max_depth_str && (
             <StatCard
-              icon={
-                <TrendingUp className={`${isEmbedded ? 'h-4 w-4' : 'h-6 w-6'} text-blue-600`} />
-              }
+              icon={<DepthIcon className='text-divemap-blue' size={isEmbedded ? 16 : 24} />}
               value={stats.max_depth_str}
               label='Max Depth'
               color='blue'
@@ -885,7 +884,7 @@ const UserProfile = () => {
                         value={profile.diving_stats.max_depth || 0}
                         suffix={<span className='text-xs font-normal opacity-50'>m</span>}
                         precision={1}
-                        prefix={<TrendingUp className='h-3.5 w-3.5 inline mr-1 text-blue-500' />}
+                        prefix={<DepthIcon className='inline mr-1 text-divemap-blue' size={16} />}
                         styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
                       />
                     </Card>

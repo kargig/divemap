@@ -14,7 +14,6 @@ import {
   Tag,
   List,
   Grid,
-  TrendingUp,
   DollarSign,
   Star,
   ChevronDown,

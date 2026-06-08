@@ -15,7 +15,6 @@ import {
   Filter,
   Upload,
   Calendar,
-  TrendingUp,
   Grid,
   Route,
   User,
@@ -44,6 +43,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
+import DepthIcon from '../components/ui/DepthIcon';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
@@ -946,7 +946,7 @@ const Dives = () => {
                       <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50'>
                         {dive.max_depth && (
                           <div className='flex items-center gap-1'>
-                            <TrendingUp className='w-3 h-3 text-gray-400' />
+                            <DepthIcon className='text-divemap-blue font-bold' size={15} />
                             <span className='text-xs sm:text-sm font-semibold text-gray-700'>
                               {dive.max_depth}m
                             </span>
@@ -1075,7 +1075,7 @@ const Dives = () => {
                       {/* Stats Grid (Simplified for Grid layout) */}
                       <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 mb-4'>
                         <div className='flex items-center gap-2'>
-                          <TrendingUp className='w-4 h-4 text-gray-400' />
+                          <DepthIcon className='text-divemap-blue font-bold' size={18} />
                           <div>
                             <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                               Depth
