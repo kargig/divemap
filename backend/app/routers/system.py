@@ -1050,7 +1050,7 @@ async def get_growth_data(
                 "end_date": now.date().isoformat()
             }
         
-        # OPTIMIZATION: Query all items once instead of per date point (5 queries total vs 5*N queries)
+        # OPTIMIZATION: Query all items once instead of per date point (6 queries total vs 6*N queries)
         # Get all created_at dates for each entity type and sort them for efficient counting
         dive_sites_dates = sorted([
             item[0].date() for item in db.query(DiveSite.created_at).all()
@@ -1074,6 +1074,10 @@ async def get_growth_data(
             item[0].date() for item in db.query(ParsedDiveTrip.created_at).all()
             if item[0] and item[0].date()
         ])
+        users_dates = sorted([
+            item[0].date() for item in db.query(User.created_at).all()
+            if item[0] and item[0].date()
+        ])
         
         # Helper function to count items <= date using binary search
         def count_up_to_date(sorted_dates, target_date):
@@ -1087,7 +1091,8 @@ async def get_growth_data(
             "diving_centers": [],
             "dives": [],
             "dive_routes": [],
-            "dive_trips": []
+            "dive_trips": [],
+            "users": []
         }
         
         for date_point in date_points:
@@ -1097,6 +1102,7 @@ async def get_growth_data(
             dives_count = count_up_to_date(dives_dates, date_point)
             dive_routes_count = count_up_to_date(dive_routes_dates, date_point)
             dive_trips_count = count_up_to_date(dive_trips_dates, date_point)
+            users_count = count_up_to_date(users_dates, date_point)
             
             growth_data["dive_sites"].append({
                 "date": date_point.isoformat(),
@@ -1118,6 +1124,10 @@ async def get_growth_data(
                 "date": date_point.isoformat(),
                 "count": dive_trips_count
             })
+            growth_data["users"].append({
+                "date": date_point.isoformat(),
+                "count": users_count
+            })
         
         # Calculate growth rates using data already collected (no duplicate queries)
         if len(date_points) >= 2:
@@ -1136,12 +1146,16 @@ async def get_growth_data(
             dive_trips_start = growth_data["dive_trips"][0]["count"]
             dive_trips_end = growth_data["dive_trips"][-1]["count"]
             
+            users_start = growth_data["users"][0]["count"]
+            users_end = growth_data["users"][-1]["count"]
+            
             growth_rates = {
                 "dive_sites": calculate_growth_rate(dive_sites_start, dive_sites_end),
                 "diving_centers": calculate_growth_rate(diving_centers_start, diving_centers_end),
                 "dives": calculate_growth_rate(dives_start, dives_end),
                 "dive_routes": calculate_growth_rate(dive_routes_start, dive_routes_end),
-                "dive_trips": calculate_growth_rate(dive_trips_start, dive_trips_end)
+                "dive_trips": calculate_growth_rate(dive_trips_start, dive_trips_end),
+                "users": calculate_growth_rate(users_start, users_end)
             }
         else:
             growth_rates = {
@@ -1149,7 +1163,8 @@ async def get_growth_data(
                 "diving_centers": 0.0,
                 "dives": 0.0,
                 "dive_routes": 0.0,
-                "dive_trips": 0.0
+                "dive_trips": 0.0,
+                "users": 0.0
             }
         
         return {

@@ -85,6 +85,7 @@ const AdminGrowthVisualizations = () => {
 
   // Chart colors constants
   const CHART_COLORS = {
+    users: '#f43f5e',
     dive_sites: '#0072B2',
     diving_centers: '#10b981',
     dives: '#f59e0b',
@@ -263,6 +264,8 @@ const AdminGrowthVisualizations = () => {
         {/* Growth Charts */}
         {growthData && !isLoading && growthData.growth_data && (
           <>
+            {growthData.growth_data.users &&
+              renderChart(growthData.growth_data.users, 'User Growth', CHART_COLORS.users, 'users')}
             {growthData.growth_data.dive_sites &&
               renderChart(
                 growthData.growth_data.dive_sites,

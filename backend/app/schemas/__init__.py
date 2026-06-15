@@ -1346,6 +1346,7 @@ class GrowthDataResponse(BaseModel):
     dives: List[GrowthDataPoint]
     dive_routes: List[GrowthDataPoint]
     dive_trips: List[GrowthDataPoint]
+    users: Optional[List[GrowthDataPoint]] = None
 
 
 class GrowthRatesResponse(BaseModel):
@@ -1355,6 +1356,7 @@ class GrowthRatesResponse(BaseModel):
     dives: float
     dive_routes: float
     dive_trips: float
+    users: Optional[float] = 0.0
 
 
 class GrowthResponse(BaseModel):
