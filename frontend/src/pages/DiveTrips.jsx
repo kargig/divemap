@@ -22,7 +22,7 @@ import {
   Compass,
   Plus,
 } from 'lucide-react';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 
@@ -81,20 +81,96 @@ const DiveTrips = () => {
   const { compactLayout, handleDisplayOptionChange } = useCompactLayout();
 
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    start_date: '',
-    end_date: '',
-    diving_center_id: '',
-    dive_site_id: '',
-    trip_status: '',
-    min_price: '',
-    max_price: '',
-    difficulty_code: '',
-    exclude_unspecified_difficulty: false,
-    search_query: '',
-    country: '',
-    region: '',
+  const getInitialFilters = () => {
+    return {
+      start_date: searchParams.get('start_date') || '',
+      end_date: searchParams.get('end_date') || '',
+      diving_center_id: searchParams.get('diving_center_id') || '',
+      dive_site_id: searchParams.get('dive_site_id') || '',
+      trip_status: searchParams.get('trip_status') || '',
+      min_price: searchParams.get('min_price') || '',
+      max_price: searchParams.get('max_price') || '',
+      difficulty_code: searchParams.get('difficulty_code') || '',
+      exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
+      search_query: searchParams.get('search') || '',
+      country: searchParams.get('country') || '',
+      region: searchParams.get('region') || '',
+    };
+  };
+
+  const [filters, setFilters] = useState(getInitialFilters);
+
+  const [debouncedSearchTerms, setDebouncedSearchTerms] = useState({
+    search_query: getInitialFilters().search_query,
+    country: getInitialFilters().country,
+    region: getInitialFilters().region,
   });
+
+  // Debounced URL update for search inputs
+  const debouncedUpdateURL = useCallback(
+    (() => {
+      let timeoutId;
+      return (newFilters, newViewMode) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const newSearchParams = new URLSearchParams();
+
+          // Add view mode
+          if (newViewMode && newViewMode !== 'list') {
+            newSearchParams.set('view', newViewMode);
+          }
+
+          // Add filters
+          Object.entries(newFilters).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== '' && value !== false) {
+              const urlKey = key === 'search_query' ? 'search' : key;
+              newSearchParams.set(urlKey, value.toString());
+            }
+          });
+
+          // Update URL without triggering a page reload
+          navigate(`?${newSearchParams.toString()}`, { replace: true });
+        }, 800); // 800ms debounce delay
+      };
+    })(),
+    [navigate]
+  );
+
+  // Immediate URL update for non-search filters
+  const immediateUpdateURL = useCallback(
+    (newFilters, newViewMode) => {
+      const newSearchParams = new URLSearchParams();
+
+      // Add view mode
+      if (newViewMode && newViewMode !== 'list') {
+        newSearchParams.set('view', newViewMode);
+      }
+
+      // Add filters
+      Object.entries(newFilters).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '' && value !== false) {
+          const urlKey = key === 'search_query' ? 'search' : key;
+          newSearchParams.set(urlKey, value.toString());
+        }
+      });
+
+      // Update URL without triggering a page reload
+      navigate(`?${newSearchParams.toString()}`, { replace: true });
+    },
+    [navigate]
+  );
+
+  // Debounce search terms for React Query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        search_query: filters.search_query,
+        country: filters.country,
+        region: filters.region,
+      });
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timeoutId);
+  }, [filters.search_query, filters.country, filters.region]);
   // Sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting, getSortParams } =
     useSorting('dive-trips');
@@ -268,7 +344,18 @@ const DiveTrips = () => {
   } = useInfiniteQuery(
     [
       'parsedTrips',
-      filters,
+      debouncedSearchTerms.search_query,
+      debouncedSearchTerms.country,
+      debouncedSearchTerms.region,
+      filters.start_date,
+      filters.end_date,
+      filters.diving_center_id,
+      filters.dive_site_id,
+      filters.trip_status,
+      filters.min_price,
+      filters.max_price,
+      filters.difficulty_code,
+      filters.exclude_unspecified_difficulty,
       sortBy,
       sortOrder,
       sortBy === 'distance' ? userLocation : null,
@@ -277,20 +364,17 @@ const DiveTrips = () => {
     ({ pageParam = 1 }) => {
       // Route search terms intelligently (only for authenticated users)
       const { search_query, location_query } = user
-        ? routeSearchTerms(filters.search_query)
+        ? routeSearchTerms(debouncedSearchTerms.search_query)
         : { search_query: '', location_query: '' };
 
       // Only include filters that have actual values
       const validFilters = {};
       Object.entries(filters).forEach(([key, value]) => {
-        if (key === 'search_query') {
-          // Handle search_query separately since we're routing it
-          // Only include search queries for authenticated users
-          if (user) {
-            if (search_query) validFilters.search_query = search_query;
-            if (location_query) validFilters.location_query = location_query;
-          }
-        } else if (value !== null && value !== undefined && value !== '') {
+        if (key === 'search_query' || key === 'country' || key === 'region') {
+          // Handle these separately using debounced versions
+          return;
+        }
+        if (value !== null && value !== undefined && value !== '') {
           // For strings, also check for whitespace-only
           if (typeof value === 'string') {
             if (value.trim() !== '') {
@@ -302,6 +386,14 @@ const DiveTrips = () => {
           }
         }
       });
+
+      // Add debounced search and location queries
+      if (user) {
+        if (search_query) validFilters.search_query = search_query;
+        if (location_query) validFilters.location_query = location_query;
+      }
+      if (debouncedSearchTerms.country) validFilters.country = debouncedSearchTerms.country;
+      if (debouncedSearchTerms.region) validFilters.region = debouncedSearchTerms.region;
 
       // Add sorting parameters and pagination
       const sortParams = getSortParams();
@@ -419,14 +511,18 @@ const DiveTrips = () => {
   }, [displayTrips]);
 
   const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+
+    if (key === 'search_query' || key === 'country' || key === 'region') {
+      debouncedUpdateURL(newFilters, viewMode);
+    } else {
+      immediateUpdateURL(newFilters, viewMode);
+    }
   };
 
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       start_date: '',
       end_date: '',
       diving_center_id: '',
@@ -439,7 +535,9 @@ const DiveTrips = () => {
       search_query: '',
       country: '',
       region: '',
-    });
+    };
+    setFilters(clearedFilters);
+    immediateUpdateURL(clearedFilters, viewMode);
   };
 
   const toggleFilters = () => {

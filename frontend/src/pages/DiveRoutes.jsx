@@ -43,8 +43,17 @@ const DiveRoutes = () => {
 
   // State for filters
   const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(searchParams.get('search') || '');
   const [routeType, setRouteType] = useState(searchParams.get('route_type') || '');
   const [poiTypes, setPoiTypes] = useState(searchParams.getAll('poi_types') || []);
+
+  // Debounce search input for React Query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timeoutId);
+  }, [search]);
 
   // Sorting
   const { sortBy, sortOrder, handleSortChange, resetSorting } = useSorting('dive-routes');
@@ -71,10 +80,10 @@ const DiveRoutes = () => {
     hasNextPage,
     error,
   } = useInfiniteQuery(
-    ['dive-routes', search, routeType, poiTypes, pageSize, sortBy, sortOrder],
+    ['dive-routes', debouncedSearch, routeType, poiTypes, pageSize, sortBy, sortOrder],
     ({ pageParam = 1 }) =>
       getDiveRoutes({
-        search,
+        search: debouncedSearch,
         route_type: routeType,
         poi_types: poiTypes,
         page: pageParam,
@@ -109,12 +118,10 @@ const DiveRoutes = () => {
     if (poiTypes.length > 0) {
       poiTypes.forEach(t => urlParams.append('poi_types', t));
     }
-    if (sortBy) urlParams.append('sort_by', sortBy);
-    if (sortOrder) urlParams.append('sort_order', sortOrder);
     if (viewMode !== 'list') urlParams.append('view', viewMode);
 
     setSearchParams(urlParams, { replace: true });
-  }, [search, routeType, poiTypes, sortBy, sortOrder, viewMode, setSearchParams]);
+  }, [search, routeType, poiTypes, viewMode, setSearchParams]);
 
   const handleSearchChange = value => {
     setSearch(value);
