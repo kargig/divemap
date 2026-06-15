@@ -98,6 +98,8 @@ const DiveSites = () => {
       difficulty_code: searchParams.get('difficulty_code') || '',
       exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
       min_rating: searchParams.get('min_rating') || '',
+      created_by_id: '',
+      created_by_username: searchParams.get('created_by_username') || '',
       tag_ids: searchParams
         .getAll('tag_ids')
         .map(id => parseInt(id))
@@ -191,6 +193,10 @@ const DiveSites = () => {
         newSearchParams.set('min_rating', newFilters.min_rating.trim());
       }
 
+      if (newFilters.created_by_username && newFilters.created_by_username.trim()) {
+        newSearchParams.set('created_by_username', newFilters.created_by_username.trim());
+      }
+
       if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
         newFilters.tag_ids.forEach(tagId => {
           if (tagId && tagId.toString && tagId.toString().trim()) {
@@ -261,6 +267,10 @@ const DiveSites = () => {
         newSearchParams.set('min_rating', newFilters.min_rating.trim());
       }
 
+      if (newFilters.created_by_username && newFilters.created_by_username.trim()) {
+        newSearchParams.set('created_by_username', newFilters.created_by_username.trim());
+      }
+
       if (newFilters.tag_ids && Array.isArray(newFilters.tag_ids)) {
         newFilters.tag_ids.forEach(tagId => {
           if (tagId && tagId.toString && tagId.toString().trim()) {
@@ -294,11 +304,25 @@ const DiveSites = () => {
     filters.difficulty_code,
     filters.exclude_unspecified_difficulty,
     filters.min_rating,
+    filters.created_by_id,
+    filters.created_by_username,
     filters.tag_ids,
     filters.my_dive_sites,
     immediateUpdateURL,
     viewMode,
   ]);
+
+  // Debounce search terms for React Query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        search_query: filters.search_query,
+        country: filters.country,
+        region: filters.region,
+      });
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timeoutId);
+  }, [filters.search_query, filters.country, filters.region]);
 
   // Invalidate query when sorting changes to ensure fresh data
   useEffect(() => {
@@ -336,6 +360,7 @@ const DiveSites = () => {
       filters.difficulty_code,
       filters.exclude_unspecified_difficulty,
       filters.min_rating,
+      filters.created_by_username,
       filters.tag_ids,
       filters.my_dive_sites,
       pageSize,
@@ -354,6 +379,8 @@ const DiveSites = () => {
       if (filters.min_rating) params.append('min_rating', filters.min_rating);
       if (debouncedSearchTerms.country) params.append('country', debouncedSearchTerms.country);
       if (debouncedSearchTerms.region) params.append('region', debouncedSearchTerms.region);
+      if (filters.created_by_username)
+        params.append('created_by_username', filters.created_by_username);
 
       // Add sorting parameters
       if (sortBy) params.append('sort_by', sortBy);
@@ -448,6 +475,8 @@ const DiveSites = () => {
       region: '',
       tag_ids: [],
       my_dive_sites: false,
+      created_by_id: '',
+      created_by_username: '',
     };
     setFilters(clearedFilters);
     resetSorting();
@@ -544,6 +573,7 @@ const DiveSites = () => {
     if (filters.difficulty_code) count++;
     if (filters.exclude_unspecified_difficulty) count++;
     if (filters.min_rating) count++;
+    if (filters.created_by_username) count++;
     if (filters.tag_ids && filters.tag_ids.length > 0) count++;
     return count;
   };

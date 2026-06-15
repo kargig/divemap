@@ -203,21 +203,9 @@ def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCente
     Returns:
         List of diving centers with exact results first, followed by fuzzy matches
     """
-    # Always apply phrase-aware scoring to exact results for consistent ranking
-    # Sort exact results according to the specified sort criteria
-    if sort_by == 'name':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower(), reverse=(sort_order == 'desc'))
-    elif sort_by == 'created_at':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.created_at, reverse=(sort_order == 'desc'))
-    elif sort_by == 'updated_at':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.updated_at, reverse=(sort_order == 'desc'))
-    else:
-        # Default: sort by name ascending (case-insensitive)
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower())
-    
     # Convert exact results to the expected format with phrase-aware scoring
     exact_results_with_scores = []
-    for center in exact_results_sorted:
+    for center in exact_results:
         # Get tags for this diving center for scoring
         center_tags = []
         if hasattr(center, 'tags') and center.tags:
@@ -233,6 +221,41 @@ def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCente
             'country_contains': False, # No longer used
             'region_contains': False # No longer used
         })
+        
+    # Sort exact results with scores according to the specified sort criteria
+    if sort_by == 'name':
+        exact_results_with_scores.sort(key=lambda x: x['center'].name.lower(), reverse=(sort_order == 'desc'))
+    elif sort_by == 'created_at':
+        exact_results_with_scores.sort(key=lambda x: x['center'].created_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'updated_at':
+        exact_results_with_scores.sort(key=lambda x: x['center'].updated_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'view_count':
+        exact_results_with_scores.sort(key=lambda x: x['center'].view_count, reverse=(sort_order == 'desc'))
+    elif sort_by == 'average_rating':
+        center_ids = [result['center'].id for result in exact_results_with_scores]
+        ratings_map = {}
+        if center_ids:
+            from app.models import CenterRating
+            ratings_data = db.query(
+                CenterRating.diving_center_id,
+                func.avg(CenterRating.score).label("avg_rating")
+            ).filter(CenterRating.diving_center_id.in_(center_ids)).group_by(CenterRating.diving_center_id).all()
+            ratings_map = {row[0]: float(row[1]) if row[1] is not None else 0.0 for row in ratings_data}
+        exact_results_with_scores.sort(key=lambda x: ratings_map.get(x['center'].id, 0.0), reverse=(sort_order == 'desc'))
+    elif sort_by == 'comment_count':
+        center_ids = [result['center'].id for result in exact_results_with_scores]
+        comments_map = {}
+        if center_ids:
+            from app.models import CenterComment
+            comments_data = db.query(
+                CenterComment.diving_center_id,
+                func.count(CenterComment.id).label("comment_count")
+            ).filter(CenterComment.diving_center_id.in_(center_ids)).group_by(CenterComment.diving_center_id).all()
+            comments_map = {row[0]: row[1] or 0 for row in comments_data}
+        exact_results_with_scores.sort(key=lambda x: comments_map.get(x['center'].id, 0), reverse=(sort_order == 'desc'))
+    else:
+        # Default fallback (e.g. when sorting by relevance / sort_by is None): sort by score descending
+        exact_results_with_scores.sort(key=lambda x: x['score'], reverse=True)
     
     # If we have enough exact results and no fuzzy search needed, return them
     if len(exact_results) >= 10:
@@ -288,17 +311,6 @@ def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCente
     
     # Combine exact and fuzzy results
     final_results = []
-    
-    # Sort exact results according to the specified sort criteria
-    if sort_by == 'name':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower(), reverse=(sort_order == 'desc'))
-    elif sort_by == 'created_at':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.created_at, reverse=(sort_order == 'desc'))
-    elif sort_by == 'updated_at':
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.updated_at, reverse=(sort_order == 'desc'))
-    else:
-        # Default: sort by name ascending (case-insensitive)
-        exact_results_sorted = sorted(exact_results, key=lambda x: x.name.lower())
     
     # Add scored exact results first
     final_results.extend(exact_results_with_scores)
@@ -795,12 +807,14 @@ async def get_diving_centers(
     # Apply dynamic sorting based on parameters
     if sort_by:
         # All valid sort fields (including admin-only ones)
-        # Exclude comment_count if reviews are disabled
+        # Exclude comment_count and rating if reviews are disabled
         valid_sort_fields = {
             'name', 'view_count', 'created_at', 'updated_at', 'country', 'region', 'city'
         }
         if reviews_enabled:
             valid_sort_fields.add('comment_count')
+            valid_sort_fields.add('rating')
+            valid_sort_fields.add('average_rating')
         
         if sort_by not in valid_sort_fields:
             raise HTTPException(
@@ -818,6 +832,17 @@ async def get_diving_centers(
         # Apply sorting based on field
         if sort_by == 'name':
             sort_field = func.lower(DivingCenter.name)
+        elif sort_by in ['rating', 'average_rating']:
+            ratings_sort_subquery = db.query(
+                CenterRating.diving_center_id,
+                func.avg(CenterRating.score).label('avg_rating')
+            ).group_by(CenterRating.diving_center_id).subquery()
+            
+            query = query.outerjoin(
+                ratings_sort_subquery,
+                DivingCenter.id == ratings_sort_subquery.c.diving_center_id
+            )
+            sort_field = ratings_sort_subquery.c.avg_rating
         elif sort_by == 'view_count':
             # Only admin users can sort by view_count
             if not current_user or not current_user.is_admin:
@@ -921,7 +946,7 @@ async def get_diving_centers(
             db, 
             similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'], 
             max_fuzzy_results=10,
-            sort_by=sort_by,
+            sort_by=sort_by if sort_by != 'name' else None,
             sort_order=sort_order
         )
         

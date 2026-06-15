@@ -256,6 +256,13 @@ const ResponsiveFilterBar = ({
     if (filters.buddy_id) {
       active.push({ key: 'buddy_id', label: 'Buddy', value: `User #${filters.buddy_id}` });
     }
+    if (filters.created_by_username) {
+      active.push({
+        key: 'created_by_username',
+        label: 'Creator',
+        value: filters.created_by_username,
+      });
+    }
     if (filters.country) active.push({ key: 'country', label: 'Country', value: filters.country });
     if (filters.region) active.push({ key: 'region', label: 'Region', value: filters.region });
     if (filters.difficulty_code) {
@@ -693,14 +700,32 @@ const ResponsiveFilterBar = ({
                   <UserSearchDropdown
                     label='User/Owner'
                     placeholder='Search users...'
-                    value={{ id: filters.owner_id, name: filters.owner_name }}
+                    value={{ id: filters.owner_id, name: filters.username }}
                     onChange={user => {
                       if (user) {
                         onFilterChange('owner_id', user.id);
-                        onFilterChange('owner_name', user.name);
+                        onFilterChange('username', user.username);
                       } else {
                         onFilterChange('owner_id', '');
-                        onFilterChange('owner_name', '');
+                        onFilterChange('username', '');
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Creator Filter - Searchable for dive sites page */}
+                {pageType === 'dive-sites' && (
+                  <UserSearchDropdown
+                    label='Owner/Creator'
+                    placeholder='Search creators...'
+                    value={{ id: filters.created_by_id, name: filters.created_by_username }}
+                    onChange={user => {
+                      if (user) {
+                        onFilterChange('created_by_id', user.id);
+                        onFilterChange('created_by_username', user.username);
+                      } else {
+                        onFilterChange('created_by_id', '');
+                        onFilterChange('created_by_username', '');
                       }
                     }}
                   />
@@ -1138,14 +1163,33 @@ const ResponsiveFilterBar = ({
                 <UserSearchDropdown
                   label='User/Owner'
                   placeholder='Search users...'
-                  value={{ id: filters.owner_id, name: filters.owner_name }}
+                  value={{ id: filters.owner_id, name: filters.username }}
                   onChange={user => {
                     if (user) {
                       onFilterChange('owner_id', user.id);
-                      onFilterChange('owner_name', user.name);
+                      onFilterChange('username', user.username);
                     } else {
                       onFilterChange('owner_id', '');
-                      onFilterChange('owner_name', '');
+                      onFilterChange('username', '');
+                    }
+                  }}
+                />
+              )}
+
+              {/* Creator Filter - Searchable for dive sites page (mobile) */}
+
+              {pageType === 'dive-sites' && (
+                <UserSearchDropdown
+                  label='Owner/Creator'
+                  placeholder='Search creators...'
+                  value={{ id: filters.created_by_id, name: filters.created_by_username }}
+                  onChange={user => {
+                    if (user) {
+                      onFilterChange('created_by_id', user.id);
+                      onFilterChange('created_by_username', user.username);
+                    } else {
+                      onFilterChange('created_by_id', '');
+                      onFilterChange('created_by_username', '');
                     }
                   }}
                 />

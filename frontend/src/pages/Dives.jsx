@@ -384,7 +384,7 @@ const Dives = () => {
       setDebouncedSearchTerms({
         search: filters.search,
       });
-    }, 800);
+    }, 500);
     return () => clearTimeout(timeoutId);
   }, [filters.search]);
 

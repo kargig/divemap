@@ -87,6 +87,17 @@ const DivingCenters = () => {
     name: getInitialFilters().name,
   });
 
+  // Debounce search terms for React Query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        search: filters.search,
+        name: filters.name,
+      });
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timeoutId);
+  }, [filters.search, filters.name]);
+
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   // Debounced URL update for search inputs
@@ -108,17 +119,12 @@ const DivingCenters = () => {
             if (value) newSearchParams.set(key, value.toString());
           });
 
-          // Add sorting parameters
-          const sortParams = getSortParams();
-          if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
-          if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
-
           // Update URL without triggering a page reload
           navigate(`?${newSearchParams.toString()}`, { replace: true });
         }, 800); // 800ms debounce delay
       };
     })(),
-    [navigate, sortBy, sortOrder]
+    [navigate]
   );
 
   // Immediate URL update for non-search filters
@@ -136,15 +142,10 @@ const DivingCenters = () => {
         if (value) newSearchParams.set(key, value.toString());
       });
 
-      // Add sorting parameters
-      const sortParams = getSortParams();
-      if (sortParams.sort_by) newSearchParams.set('sort_by', sortParams.sort_by);
-      if (sortParams.sort_order) newSearchParams.set('sort_order', sortParams.sort_order);
-
       // Update URL without triggering a page reload
       navigate(`?${newSearchParams.toString()}`, { replace: true });
     },
-    [navigate, sortBy, sortOrder]
+    [navigate]
   );
 
   // Map sort labels to API fields
@@ -174,7 +175,19 @@ const DivingCenters = () => {
     hasNextPage,
     error,
   } = useInfiniteQuery(
-    ['diving-centers', filters, sortBy, sortOrder, pageSize],
+    [
+      'diving-centers',
+      debouncedSearchTerms.search,
+      debouncedSearchTerms.name,
+      filters.min_rating,
+      filters.services,
+      filters.country,
+      filters.region,
+      filters.city,
+      sortBy,
+      sortOrder,
+      pageSize,
+    ],
     ({ pageParam = 1 }) => {
       const params = new URLSearchParams();
       params.append('page', pageParam.toString());
@@ -185,9 +198,13 @@ const DivingCenters = () => {
       params.append('sort_order', sortOrder);
 
       // Add filters
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value.toString());
-      });
+      if (debouncedSearchTerms.search) params.append('search', debouncedSearchTerms.search);
+      if (debouncedSearchTerms.name) params.append('name', debouncedSearchTerms.name);
+      if (filters.min_rating) params.append('min_rating', filters.min_rating.toString());
+      if (filters.services) params.append('services', filters.services.toString());
+      if (filters.country) params.append('country', filters.country.toString());
+      if (filters.region) params.append('region', filters.region.toString());
+      if (filters.city) params.append('city', filters.city.toString());
 
       return api.get(`/api/v1/diving-centers/?${params.toString()}`).then(res => res.data);
     },
@@ -245,7 +262,6 @@ const DivingCenters = () => {
 
     // Update URL - use debounced for search/name, immediate for others
     if (name === 'search' || name === 'name') {
-      setDebouncedSearchTerms(prev => ({ ...prev, [name]: value }));
       debouncedUpdateURL(newFilters, viewMode);
     } else {
       immediateUpdateURL(newFilters, viewMode);
@@ -297,13 +313,19 @@ const DivingCenters = () => {
     immediateUpdateURL(newFilters, viewMode);
   };
 
-  const sortOptions = [
-    { value: 'name', label: 'Name', defaultOrder: 'asc' },
-    { value: 'city', label: 'City', defaultOrder: 'asc' },
-    { value: 'country', label: 'Country', defaultOrder: 'asc' },
-    { value: 'rating', label: 'Rating', defaultOrder: 'desc' },
-    { value: 'created_at', label: 'Date Added', defaultOrder: 'desc' },
-  ];
+  const sortOptions = useMemo(() => {
+    const baseOptions = [
+      { value: 'name', label: 'Name', defaultOrder: 'asc' },
+      { value: 'city', label: 'City', defaultOrder: 'asc' },
+      { value: 'country', label: 'Country', defaultOrder: 'asc' },
+      { value: 'created_at', label: 'Date Added', defaultOrder: 'desc' },
+    ];
+    if (reviewsEnabled) {
+      // Insert rating after country
+      baseOptions.splice(3, 0, { value: 'rating', label: 'Rating', defaultOrder: 'desc' });
+    }
+    return baseOptions;
+  }, [reviewsEnabled]);
 
   return (
     <>
@@ -341,7 +363,10 @@ const DivingCenters = () => {
               <DivingCentersDesktopSearchBar
                 searchValue={filters.search}
                 onSearchChange={val => handleFilterChange('search', val.target.value)}
-                onSearchSelect={() => {}}
+                onSearchSelect={selectedItem => {
+                  handleFilterChange('search', selectedItem.name);
+                }}
+                data={divingCenters || []}
               />
             </div>
 

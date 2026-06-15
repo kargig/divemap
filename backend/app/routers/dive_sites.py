@@ -422,7 +422,7 @@ def apply_sorting(query, sort_by, sort_order, current_user, ratings_subquery=Non
     return query
 
 
-def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10, **filters):
+def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc', **filters):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
 
@@ -432,26 +432,85 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         db: Database session
         similarity_threshold: Minimum similarity score (0.0 to 1.0)
         max_fuzzy_results: Maximum number of fuzzy results to return
+        sort_by: Field to sort by
+        sort_order: Sort order ('asc' or 'desc')
         **filters: Additional filters to apply (tag_ids, difficulty_code, etc.)
 
     Returns:
         List of dive sites with exact results first, followed by fuzzy matches
     """
-    # If we have enough exact results, return them with match type info
+    # Convert exact results to the expected format with phrase-aware scoring
+    exact_results_with_scores = []
+    for site in exact_results:
+        # Get tags for this dive site for scoring
+        site_tags = []
+        if hasattr(site, 'tags') and site.tags:
+            site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
+        else:
+            from app.models import DiveSiteTag, AvailableTag
+            tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+                DiveSiteTag.dive_site_id == site.id
+            ).all()
+            site_tags = [tag.name for tag in tags]
+            
+        score = calculate_unified_phrase_aware_score(
+            query.lower(),
+            site.name,
+            site.description,
+            site.country,
+            site.region,
+            None,
+            site_tags
+        )
+        
+        exact_results_with_scores.append({
+            'site': site,
+            'match_type': 'exact' if score >= 0.9 else 'exact_words' if score >= 0.7 else 'partial_words',
+            'score': score,
+            'name_contains': query.lower() in site.name.lower(),
+            'country_contains': site.country and query.lower() in site.country.lower(),
+            'region_contains': site.region and query.lower() in site.region.lower(),
+            'description_contains': site.description and query.lower() in site.description.lower()
+        })
+        
+    # Sort exact results with scores according to the specified sort criteria
+    if sort_by == 'name':
+        exact_results_with_scores.sort(key=lambda x: x['site'].name.lower(), reverse=(sort_order == 'desc'))
+    elif sort_by == 'created_at':
+        exact_results_with_scores.sort(key=lambda x: x['site'].created_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'updated_at':
+        exact_results_with_scores.sort(key=lambda x: x['site'].updated_at, reverse=(sort_order == 'desc'))
+    elif sort_by == 'view_count':
+        exact_results_with_scores.sort(key=lambda x: x['site'].view_count, reverse=(sort_order == 'desc'))
+    elif sort_by == 'average_rating':
+        site_ids = [result['site'].id for result in exact_results_with_scores]
+        ratings_map = {}
+        if site_ids:
+            from app.models import SiteRating
+            ratings_data = db.query(
+                SiteRating.dive_site_id,
+                func.avg(SiteRating.score).label("avg_rating")
+            ).filter(SiteRating.dive_site_id.in_(site_ids)).group_by(SiteRating.dive_site_id).all()
+            ratings_map = {row[0]: float(row[1]) if row[1] is not None else 0.0 for row in ratings_data}
+        exact_results_with_scores.sort(key=lambda x: ratings_map.get(x['site'].id, 0.0), reverse=(sort_order == 'desc'))
+    elif sort_by == 'comment_count':
+        site_ids = [result['site'].id for result in exact_results_with_scores]
+        comments_map = {}
+        if site_ids:
+            from app.models import SiteComment
+            comments_data = db.query(
+                SiteComment.dive_site_id,
+                func.count(SiteComment.id).label("comment_count")
+            ).filter(SiteComment.dive_site_id.in_(site_ids)).group_by(SiteComment.dive_site_id).all()
+            comments_map = {row[0]: row[1] or 0 for row in comments_data}
+        exact_results_with_scores.sort(key=lambda x: comments_map.get(x['site'].id, 0), reverse=(sort_order == 'desc'))
+    else:
+        # Default fallback (relevance-based): sort by score descending
+        exact_results_with_scores.sort(key=lambda x: x['score'], reverse=True)
+
+    # If we have enough exact results, return them
     if len(exact_results) >= 10:
-        # Convert exact results to the expected format
-        final_results = []
-        for site in exact_results:
-            final_results.append({
-                'site': site,
-                'match_type': 'exact',
-                'score': 1.0,
-                'name_contains': query.lower() in site.name.lower(),
-                'country_contains': site.country and query.lower() in site.country.lower(),
-                'region_contains': site.region and query.lower() in site.region.lower(),
-                'description_contains': site.description and query.lower() in site.description.lower()
-            })
-        return final_results
+        return exact_results_with_scores
 
     # Build a filtered query that respects the same filters as the main query
     filtered_query = db.query(DiveSite)
@@ -574,17 +633,8 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
     # Create final results with match type information
     final_results = []
 
-    # Add exact results first with match type
-    for site in exact_results:
-        final_results.append({
-            'site': site,
-            'match_type': 'exact',
-            'score': 1.0,
-            'name_contains': query_lower in site.name.lower(),
-            'country_contains': site.country and query.lower() in site.country.lower(),
-            'region_contains': site.region and query.lower() in site.region.lower(),
-            'description_contains': site.description and query.lower() in site.description.lower()
-        })
+    # Add exact results first with match type (already sorted by user sorting criteria or relevance)
+    final_results.extend(exact_results_with_scores)
 
     # Add fuzzy matches
     for match in fuzzy_matches:
@@ -1291,6 +1341,8 @@ async def get_dive_sites(
                 db,
                 similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'],
                 max_fuzzy_results=10,
+                sort_by=sort_by if sort_by != 'name' else None,
+                sort_order=sort_order,
                 tag_ids=tag_ids,
                 difficulty_code=difficulty_code,
                 country=country,
