@@ -42,8 +42,8 @@ export const UserSearchDropdown = ({
     <AutocompleteDropdown
       label={label}
       placeholder={placeholder}
-      value={value}
-      onChange={selectedUser => onChange(selectedUser ? selectedUser.username : '')}
+      value={value ? (typeof value === 'object' ? value.name || value.username || '' : value) : ''}
+      onChange={selectedUser => onChange(selectedUser)}
       fetchData={fetchUsers}
       renderItem={renderUserItem}
       keyExtractor={user => user.id}
