@@ -300,6 +300,18 @@ const DiveSites = () => {
     viewMode,
   ]);
 
+  // Debounce search terms for React Query key
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerms({
+        search_query: filters.search_query,
+        country: filters.country,
+        region: filters.region,
+      });
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timeoutId);
+  }, [filters.search_query, filters.country, filters.region]);
+
   // Invalidate query when sorting changes to ensure fresh data
   useEffect(() => {
     queryClient.invalidateQueries(['dive-sites']);
