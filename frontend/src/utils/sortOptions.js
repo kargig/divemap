@@ -1,12 +1,12 @@
 // Sort options configuration for different entity types
 export const SORT_OPTIONS = {
   'dive-sites': [
+    { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'name', label: 'Name', defaultOrder: 'asc' },
     { value: 'country', label: 'Country', defaultOrder: 'asc' },
     { value: 'region', label: 'Region', defaultOrder: 'asc' },
     { value: 'difficulty_level', label: 'Difficulty Level', defaultOrder: 'asc' },
     { value: 'average_rating', label: 'Rating', defaultOrder: 'desc' },
-    { value: 'created_at', label: 'Date Created', defaultOrder: 'desc' },
     { value: 'updated_at', label: 'Last Updated', defaultOrder: 'desc' },
   ],
 
