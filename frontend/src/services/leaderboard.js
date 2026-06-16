@@ -33,3 +33,16 @@ export const getCenterLeaderboard = async (params = {}) => {
   const response = await api.get('/api/v1/leaderboard/centers', { params });
   return response.data;
 };
+
+/**
+ * Fetch the monthly user leaderboard based on unified points system.
+ * @param {Object} params - Query parameters
+ * @param {number} params.year - Year of leaderboard (default current year)
+ * @param {number} params.month - Month of leaderboard (default current month)
+ * @param {number} params.limit - Max number of entries
+ * @returns {Promise<Object>} Leaderboard data
+ */
+export const getMonthlyLeaderboard = async (params = {}) => {
+  const response = await api.get('/api/v1/leaderboard/users/monthly', { params });
+  return response.data;
+};

@@ -76,6 +76,44 @@ class TestLeaderboard:
         entry = next(e for e in data["entries"] if e["center_id"] == center.id)
         assert entry["count"] == 5
 
+    def test_get_monthly_leaderboard_success(self, client, db_session, test_user):
+        """Test getting monthly leaderboard for a specific month with data."""
+        from datetime import datetime, timezone
+        from app.models import Dive, DiveSite, OwnershipStatus
+        
+        # This month (current date)
+        now = datetime.now(timezone.utc)
+        
+        # Log a dive in current month (10 pts)
+        dive = Dive(user_id=test_user.id, dive_date=now.date(), created_at=now)
+        db_session.add(dive)
+        db_session.commit()
+        
+        # Log a dive in previous month (should not be counted in this month's leaderboard)
+        from datetime import timedelta
+        prev_month_date = now - timedelta(days=45)
+        old_dive = Dive(user_id=test_user.id, dive_date=prev_month_date.date(), created_at=prev_month_date)
+        db_session.add(old_dive)
+        db_session.commit()
+
+        # Query current month's leaderboard
+        response = client.get(f"/api/v1/leaderboard/users/monthly?year={now.year}&month={now.month}")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data["entries"]) > 0
+        entry = next(e for e in data["entries"] if e["user_id"] == test_user.id)
+        # Should only count the current month's dive (10 pts), not the old one
+        assert entry["points"] == 10
+        assert entry["rank"] == 1
+
+    def test_get_monthly_leaderboard_empty(self, client):
+        """Test monthly leaderboard for a month with no activity."""
+        # Query next year (guaranteed empty)
+        response = client.get("/api/v1/leaderboard/users/monthly?year=2030&month=1")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data["entries"]) == 0
+
     def test_leaderboard_invalid_limit(self, client):
         """Test leaderboard with invalid limit parameters."""
         response = client.get("/api/v1/leaderboard/users/overall?limit=0")

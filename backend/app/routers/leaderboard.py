@@ -111,6 +111,130 @@ async def get_overall_leaderboard(
         updated_at=datetime.now(timezone.utc)
     )
 
+@router.get("/users/monthly", response_model=LeaderboardUserResponse)
+@cache(expire=600)  # 10 minutes cache
+async def get_monthly_leaderboard(
+    year: Optional[int] = Query(None, ge=1900, le=2100),
+    month: Optional[int] = Query(None, ge=1, le=12),
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """Get the monthly user leaderboard based on unified points system for a specific year and month."""
+    import calendar
+    from datetime import datetime, timezone
+    from sqlalchemy import and_
+
+    # Default to current UTC month/year if not specified
+    if not year or not month:
+        now = datetime.now(timezone.utc)
+        year = year or now.year
+        month = month or now.month
+
+    _, last_day = calendar.monthrange(year, month)
+    start_date = datetime(year, month, 1, 0, 0, 0, tzinfo=timezone.utc)
+    end_date = datetime(year, month, last_day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+
+    # Count subqueries with created_at filter
+    dives_sub = db.query(Dive.user_id, func.count(Dive.id).label("cnt")).filter(and_(Dive.created_at >= start_date, Dive.created_at <= end_date)).group_by(Dive.user_id).subquery()
+    sites_sub = db.query(DiveSite.created_by.label("user_id"), func.count(DiveSite.id).label("cnt")).filter(and_(DiveSite.created_at >= start_date, DiveSite.created_at <= end_date)).group_by(DiveSite.created_by).subquery()
+    centers_sub = db.query(DivingCenter.owner_id.label("user_id"), func.count(DivingCenter.id).label("cnt")).filter(and_(DivingCenter.created_at >= start_date, DivingCenter.created_at <= end_date)).group_by(DivingCenter.owner_id).subquery()
+    
+    edits_sub = db.query(DiveSiteEditRequest.requested_by_id.label("user_id"), func.count(DiveSiteEditRequest.id).label("cnt")).filter(
+        and_(
+            DiveSiteEditRequest.status == 'approved',
+            DiveSiteEditRequest.created_at >= start_date,
+            DiveSiteEditRequest.created_at <= end_date
+        )
+    ).group_by(DiveSiteEditRequest.requested_by_id).subquery()
+
+    d_media_sub = db.query(Dive.user_id, func.count(DiveMedia.id).label("cnt")).join(
+        DiveMedia, Dive.id == DiveMedia.dive_id
+    ).filter(
+        and_(
+            DiveMedia.created_at >= start_date,
+            DiveMedia.created_at <= end_date
+        )
+    ).group_by(Dive.user_id).subquery()
+
+    s_media_sub = db.query(SiteMedia.user_id, func.count(SiteMedia.id).label("cnt")).filter(
+        and_(SiteMedia.created_at >= start_date, SiteMedia.created_at <= end_date)
+    ).group_by(SiteMedia.user_id).subquery()
+    
+    s_ratings_sub = db.query(SiteRating.user_id, func.count(SiteRating.id).label("cnt")).filter(
+        and_(SiteRating.created_at >= start_date, SiteRating.created_at <= end_date)
+    ).group_by(SiteRating.user_id).subquery()
+
+    c_ratings_sub = db.query(CenterRating.user_id, func.count(CenterRating.id).label("cnt")).filter(
+        and_(CenterRating.created_at >= start_date, CenterRating.created_at <= end_date)
+    ).group_by(CenterRating.user_id).subquery()
+    
+    s_comments_sub = db.query(SiteComment.user_id, func.count(SiteComment.id).label("cnt")).filter(
+        and_(SiteComment.created_at >= start_date, SiteComment.created_at <= end_date)
+    ).group_by(SiteComment.user_id).subquery()
+
+    c_comments_sub = db.query(CenterComment.user_id, func.count(CenterComment.id).label("cnt")).filter(
+        and_(CenterComment.created_at >= start_date, CenterComment.created_at <= end_date)
+    ).group_by(CenterComment.user_id).subquery()
+
+    # Calculate total points in SQL
+    total_points_expr = (
+        func.coalesce(dives_sub.c.cnt, 0) * POINTS["DIVE_LOGGED"] +
+        func.coalesce(sites_sub.c.cnt, 0) * POINTS["DIVE_SITE_CREATED"] +
+        func.coalesce(centers_sub.c.cnt, 0) * POINTS["DIVING_CENTER_CREATED"] +
+        func.coalesce(edits_sub.c.cnt, 0) * POINTS["DIVE_SITE_EDITED"] +
+        func.coalesce(d_media_sub.c.cnt, 0) * POINTS["DIVE_MEDIA_ADDED"] +
+        func.coalesce(s_media_sub.c.cnt, 0) * POINTS["SITE_MEDIA_ADDED"] +
+        (func.coalesce(s_ratings_sub.c.cnt, 0) + func.coalesce(c_ratings_sub.c.cnt, 0)) * POINTS["REVIEW_POSTED"] +
+        (func.coalesce(s_comments_sub.c.cnt, 0) + func.coalesce(c_comments_sub.c.cnt, 0)) * POINTS["COMMENT_POSTED"]
+    ).label("total_points")
+
+    query = db.query(
+        User.id,
+        User.username,
+        User.avatar_url,
+        User.avatar_type,
+        User.google_avatar_url,
+        total_points_expr
+    ).outerjoin(dives_sub, User.id == dives_sub.c.user_id)\
+     .outerjoin(sites_sub, User.id == sites_sub.c.user_id)\
+     .outerjoin(centers_sub, User.id == centers_sub.c.user_id)\
+     .outerjoin(edits_sub, User.id == edits_sub.c.user_id)\
+     .outerjoin(d_media_sub, User.id == d_media_sub.c.user_id)\
+     .outerjoin(s_media_sub, User.id == s_media_sub.c.user_id)\
+     .outerjoin(s_ratings_sub, User.id == s_ratings_sub.c.user_id)\
+     .outerjoin(c_ratings_sub, User.id == c_ratings_sub.c.user_id)\
+     .outerjoin(s_comments_sub, User.id == s_comments_sub.c.user_id)\
+     .outerjoin(c_comments_sub, User.id == c_comments_sub.c.user_id)\
+     .filter(total_points_expr > 0)\
+     .order_by(desc("total_points"))\
+     .limit(limit)
+
+    results = query.all()
+    
+    entries = []
+    for i, row in enumerate(results):
+        entry = LeaderboardUserEntry(
+            user_id=row.id,
+            username=row.username,
+            avatar_url=row.avatar_url,
+            avatar_type=row.avatar_type or AvatarType.google,
+            count=row.total_points,
+            points=row.total_points,
+            rank=i + 1
+        )
+        from collections import namedtuple
+        UserMock = namedtuple('UserMock', ['avatar_url', 'avatar_type', 'google_avatar_url'])
+        mock_user = UserMock(avatar_url=row.avatar_url, avatar_type=row.avatar_type, google_avatar_url=row.google_avatar_url)
+        entry_dict = entry.model_dump()
+        populated = populate_avatar_full_url(mock_user, entry_dict)
+        entries.append(LeaderboardUserEntry(**populated))
+            
+    return LeaderboardUserResponse(
+        metric=f"monthly_{year}_{month:02d}",
+        entries=entries,
+        updated_at=datetime.now(timezone.utc)
+    )
+
 @router.get("/users/category/{metric}", response_model=LeaderboardUserResponse)
 @cache(expire=600)
 async def get_category_leaderboard(

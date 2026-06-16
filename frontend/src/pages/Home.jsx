@@ -22,7 +22,7 @@ import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
-import { getOverallLeaderboard } from '../services/leaderboard';
+import { getMonthlyLeaderboard } from '../services/leaderboard';
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
@@ -96,8 +96,15 @@ const Home = () => {
   const isBackendAvailable = !isError && !isLoading;
 
   const { data: overallData, isLoading: isLeaderboardLoading } = useQuery(
-    ['leaderboard', 'overall'],
-    () => getOverallLeaderboard({ limit: 3 }),
+    ['leaderboard', 'monthly-current'],
+    () => {
+      const now = new Date();
+      return getMonthlyLeaderboard({
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        limit: 3,
+      });
+    },
     {
       enabled: isBackendAvailable,
       staleTime: 5 * 60 * 1000,
@@ -445,7 +452,7 @@ const Home = () => {
             <h3 className='text-sm font-bold uppercase tracking-widest text-blue-600 mb-1'>
               Community Leaders
             </h3>
-            <h2 className='text-3xl font-bold text-gray-900'>Top Contributors</h2>
+            <h2 className='text-3xl font-bold text-gray-900'>Top Contributors This Month</h2>
           </div>
           <Link
             to='/leaderboard'

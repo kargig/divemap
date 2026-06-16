@@ -21,6 +21,7 @@ import {
   getOverallLeaderboard,
   getCategoryLeaderboard,
   getCenterLeaderboard,
+  getMonthlyLeaderboard,
 } from '../services/leaderboard';
 
 const CategoryCard = ({ title, icon: Icon, metric, label, limit = 5 }) => {
@@ -46,9 +47,53 @@ const CategoryCard = ({ title, icon: Icon, metric, label, limit = 5 }) => {
 };
 
 const LeaderboardPage = () => {
-  const { data: overallData, isLoading: isOverallLoading } = useQuery(
-    ['leaderboard', 'overall'],
-    () => getOverallLeaderboard({ limit: 10 })
+  // Generate periods for selection dynamically
+  const periods = (() => {
+    const arr = [];
+    const now = new Date();
+
+    // Monthly periods
+    for (let i = 0; i < 4; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = d.toLocaleString('default', { month: 'long' });
+      arr.push({
+        label:
+          i === 0
+            ? `Current Month (${monthName} ${d.getFullYear()})`
+            : `${monthName} ${d.getFullYear()}`,
+        value: `monthly_${d.getFullYear()}_${d.getMonth() + 1}`,
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        type: 'monthly',
+      });
+    }
+
+    // Overall period
+    arr.push({
+      label: 'Overall (All-Time)',
+      value: 'overall',
+      type: 'overall',
+    });
+
+    return arr;
+  })();
+
+  const [selectedPeriod, setSelectedPeriod] = useState(periods[0].value);
+  const activePeriodObj = periods.find(p => p.value === selectedPeriod) || periods[0];
+
+  const { data: periodLeaderboardData, isLoading: isPeriodLeaderboardLoading } = useQuery(
+    ['leaderboard', selectedPeriod],
+    () => {
+      if (activePeriodObj.type === 'overall') {
+        return getOverallLeaderboard({ limit: 10 });
+      } else {
+        return getMonthlyLeaderboard({
+          year: activePeriodObj.year,
+          month: activePeriodObj.month,
+          limit: 10,
+        });
+      }
+    }
   );
 
   const { data: centersData, isLoading: isCentersLoading } = useQuery(
@@ -56,7 +101,7 @@ const LeaderboardPage = () => {
     () => getCenterLeaderboard({ limit: 5 })
   );
 
-  const topThree = overallData?.entries?.slice(0, 3) || [];
+  const topThree = periodLeaderboardData?.entries?.slice(0, 3) || [];
 
   return (
     <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
@@ -69,6 +114,28 @@ const LeaderboardPage = () => {
         title='Community Leaderboard'
         subtitle='Celebrating our most active divers and contributors'
       />
+
+      {/* Period Tabs Selector */}
+      <div className='mb-8 border-b border-gray-200'>
+        <nav className='-mb-px flex flex-wrap gap-x-6 gap-y-2 pb-2'>
+          {periods.map(period => {
+            const isActive = selectedPeriod === period.value;
+            return (
+              <button
+                key={period.value}
+                onClick={() => setSelectedPeriod(period.value)}
+                className={`pb-2 px-1 border-b-2 font-bold text-sm sm:text-base transition-colors ${
+                  isActive
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {period.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
       {/* Hero Section: Top 3 Overall */}
       <section className='mb-12'>
@@ -167,18 +234,24 @@ const LeaderboardPage = () => {
 
       {/* Grid Layout for Categories */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-        {/* Overall Points - Full List */}
+        {/* Dynamic Period Points - Full List */}
         <div className='md:col-span-2 lg:col-span-1 bg-white rounded-xl shadow-md border border-blue-100 overflow-hidden'>
           <div className='p-4 bg-blue-600 text-white flex items-center justify-between'>
             <div className='flex items-center space-x-2'>
               <Trophy className='w-5 h-5' />
-              <h3 className='text-xl font-bold'>Top Divers (Overall)</h3>
+              <h3 className='text-xl font-bold'>
+                Top Divers (
+                {activePeriodObj.type === 'overall'
+                  ? 'All-Time'
+                  : activePeriodObj.label.replace('Current Month ', '').replace(/^\((.*)\)$/, '$1')}
+                )
+              </h3>
             </div>
           </div>
           <div className='p-2'>
             <LeaderboardTable
-              data={overallData?.entries}
-              isLoading={isOverallLoading}
+              data={periodLeaderboardData?.entries}
+              isLoading={isPeriodLeaderboardLoading}
               metricLabel='Total Points'
             />
           </div>
