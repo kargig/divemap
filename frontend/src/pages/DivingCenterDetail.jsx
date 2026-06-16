@@ -305,13 +305,18 @@ const DivingCenterDetail = () => {
   };
 
   const isOwner = Boolean(
-    user && user.id && (user.id === center?.created_by || user.id === center?.owner_id)
+    user &&
+      center &&
+      ((user.id && (user.id === center.created_by || user.id === center.owner_id)) ||
+        (center.owner_username &&
+          center.owner_username === user.username &&
+          center.ownership_status === 'approved'))
   );
   const isAdmin = Boolean(user?.is_admin);
   const isManager = Boolean(center?.is_manager);
   const isModerator = Boolean(user?.is_moderator);
   const shouldShowManage = isOwner || isAdmin || isManager || isModerator;
-  const shouldShowEdit = isOwner || isAdmin || isModerator;
+  const shouldShowEdit = canEdit || isOwner || isAdmin || isModerator;
 
   // Fetch dive trips for this diving center within the date range
   const { data: tripsResponse, isLoading: tripsLoading } = useQuery(

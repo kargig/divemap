@@ -64,6 +64,34 @@ class TestDivingCenters:
         assert "average_rating" in data
         assert "total_ratings" in data
 
+    def test_get_diving_center_is_manager_for_approved_owner(self, client, test_user, auth_headers, test_diving_center, db_session):
+        """Test that get diving center returns is_manager=True for the approved owner."""
+        from app.models import OwnershipStatus
+
+        # Make test_user the approved owner of test_diving_center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+        # Fetch as the approved owner
+        response = client.get(
+            f"/api/v1/diving-centers/{test_diving_center.id}",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["is_manager"] is True
+
+    def test_get_diving_center_is_manager_false_for_regular_user(self, client, auth_headers, test_diving_center):
+        """Test that get diving center returns is_manager=False for a regular user."""
+        response = client.get(
+            f"/api/v1/diving-centers/{test_diving_center.id}",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["is_manager"] is False
+
     def test_get_diving_center_not_found(self, client):
         """Test getting non-existent diving center."""
         response = client.get("/api/v1/diving-centers/999")

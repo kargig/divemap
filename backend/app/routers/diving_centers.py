@@ -1277,10 +1277,7 @@ async def get_diving_center(
     from app.models import DivingCenterManager, DivingCenterFollower
     is_user_manager = False
     if current_user:
-        is_user_manager = db.query(DivingCenterManager).filter(
-            DivingCenterManager.diving_center_id == diving_center.id,
-            DivingCenterManager.user_id == current_user.id
-        ).first() is not None
+        is_user_manager = is_center_manager(db, diving_center.id, current_user)
         
     follower_count = db.query(func.count(DivingCenterFollower.user_id)).filter(
         DivingCenterFollower.diving_center_id == diving_center.id

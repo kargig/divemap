@@ -344,7 +344,12 @@ const TripDetail = () => {
   );
 
   const isOwner = Boolean(
-    user && user.id && (user.id === divingCenter?.created_by || user.id === divingCenter?.owner_id)
+    user &&
+      divingCenter &&
+      ((user.id && (user.id === divingCenter.created_by || user.id === divingCenter.owner_id)) ||
+        (divingCenter.owner_username &&
+          divingCenter.owner_username === user.username &&
+          divingCenter.ownership_status === 'approved'))
   );
   const isAdmin = Boolean(user?.is_admin);
   const isManager = Boolean(divingCenter?.is_manager);
