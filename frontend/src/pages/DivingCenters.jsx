@@ -337,6 +337,7 @@ const DivingCenters = () => {
         <PageHeader
           title='Diving Centers'
           titleIcon={Building}
+          badge={isLoading ? null : totalCount}
           breadcrumbItems={[{ label: 'Diving Centers' }]}
           actions={[
             {

@@ -753,6 +753,7 @@ const Dives = () => {
         <PageHeader
           title='Dive Log'
           titleIcon={Notebook}
+          badge={isLoading ? null : totalCount}
           breadcrumbItems={[{ label: 'Dive Log' }]}
           actions={[
             {

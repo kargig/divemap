@@ -662,6 +662,7 @@ const DiveTrips = () => {
         <PageHeader
           title='Dive Trips'
           titleIcon={Calendar}
+          badge={isLoading ? null : totalCount}
           breadcrumbItems={[{ label: 'Dive Trips' }]}
           actions={[
             {

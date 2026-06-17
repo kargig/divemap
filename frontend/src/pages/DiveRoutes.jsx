@@ -170,6 +170,7 @@ const DiveRoutes = () => {
         <PageHeader
           title='Dive Routes'
           titleIcon={Route}
+          badge={isLoading ? null : totalCount}
           breadcrumbItems={[{ label: 'Dive Routes' }]}
         />
 

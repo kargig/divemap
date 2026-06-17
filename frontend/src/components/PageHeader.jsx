@@ -12,6 +12,7 @@ import PageTitle from './PageTitle';
 const PageHeader = ({
   title,
   titleIcon: TitleIcon,
+  badge,
   breadcrumbItems = [],
   actions = [],
   className = '',
@@ -28,7 +29,9 @@ const PageHeader = ({
       <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6'>
         {/* Title Group */}
         <div className='flex-1 min-w-0'>
-          <PageTitle icon={TitleIcon}>{title}</PageTitle>
+          <PageTitle icon={TitleIcon} badge={badge}>
+            {title}
+          </PageTitle>
         </div>
 
         {/* Action Toolbar */}
@@ -82,6 +85,7 @@ const PageHeader = ({
 PageHeader.propTypes = {
   title: PropTypes.string.isRequired,
   titleIcon: PropTypes.elementType,
+  badge: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   breadcrumbItems: PropTypes.array,
   actions: PropTypes.arrayOf(
     PropTypes.shape({

@@ -609,6 +609,7 @@ const DiveSites = () => {
         <PageHeader
           title='Dive Sites'
           titleIcon={Map}
+          badge={isLoading ? null : totalCount}
           breadcrumbItems={[{ label: 'Dive Sites' }]}
           actions={[
             {
