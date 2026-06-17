@@ -209,6 +209,102 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_update_diving_center_approved_owner_success(self, client, auth_headers, test_user, test_diving_center, db_session):
+        """Test updating diving center as the approved owner."""
+        from app.models import OwnershipStatus
+        
+        # Set test_user as the approved owner of test_diving_center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+        update_data = {
+            "name": "Updated by Owner",
+            "description": "Owner description"
+        }
+
+        response = client.put(f"/api/v1/diving-centers/{test_diving_center.id}",
+                            json=update_data, headers=auth_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Updated by Owner"
+
+    def test_update_diving_center_manager_forbidden(self, client, auth_headers, test_user, test_diving_center, db_session):
+        """Test that a manager (non-owner) cannot edit diving center details."""
+        from app.models import DivingCenterManager
+        
+        # Enroll test_user as a manager (but not owner)
+        manager_assoc = DivingCenterManager(diving_center_id=test_diving_center.id, user_id=test_user.id)
+        db_session.add(manager_assoc)
+        db_session.commit()
+
+        update_data = {"name": "Attempt by Manager"}
+
+        response = client.put(f"/api/v1/diving-centers/{test_diving_center.id}",
+                            json=update_data, headers=auth_headers)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_update_diving_center_moderator_success(self, client, moderator_headers, test_diving_center):
+        """Test updating diving center as a moderator."""
+        update_data = {
+            "name": "Updated by Moderator",
+            "description": "Moderator description"
+        }
+
+        response = client.put(f"/api/v1/diving-centers/{test_diving_center.id}",
+                            json=update_data, headers=moderator_headers)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Updated by Moderator"
+
+    def test_manager_crud_endpoints(self, client, auth_headers, test_user, test_user_other, test_diving_center, db_session):
+        """Test listing, adding, and removing managers with correct ownership checks."""
+        from app.models import OwnershipStatus
+        
+        # Make test_user the approved owner of the center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+        # 1. Add test_user_other as manager
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/managers",
+            json={"username": test_user_other.username},
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["username"] == test_user_other.username
+
+        # 2. List managers (owned user)
+        response = client.get(
+            f"/api/v1/diving-centers/{test_diving_center.id}/managers",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["username"] == test_user_other.username
+
+        # 3. Try to add same manager again (Expect 400 Bad Request)
+        response = client.post(
+            f"/api/v1/diving-centers/{test_diving_center.id}/managers",
+            json={"username": test_user_other.username},
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+        # 4. Remove manager
+        response = client.delete(
+            f"/api/v1/diving-centers/{test_diving_center.id}/managers/{test_user_other.id}",
+            headers=auth_headers
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["status"] == "success"
+
     def test_get_diving_center_with_empty_description_no_500(self, client, db_session):
         """Legacy data may contain empty-string descriptions. Ensure GET does not 500."""
         from app.models import DivingCenter

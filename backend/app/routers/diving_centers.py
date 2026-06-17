@@ -19,7 +19,8 @@ from app.schemas import (
     CenterDiveSiteCreate, GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
-    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest
+    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest,
+    DivingCenterManagerResponse, DivingCenterManagerCreate
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
@@ -1457,6 +1458,125 @@ async def upload_center_logo(
     db.commit()
     
     return {"message": "Logo updated", "logo_url": url, "logo_full_url": r2_storage.get_photo_url(url)}
+
+@router.get("/{diving_center_id}/managers", response_model=List[DivingCenterManagerResponse])
+async def get_diving_center_managers(
+    diving_center_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """List all managers associated with a diving center."""
+    # 1. Fetch diving center
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+
+    # 2. Check if current_user has access (Admin, Moderator, Owner, or Manager)
+    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
+    is_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == current_user.id
+    ).first() is not None
+
+    if not current_user.is_admin and not current_user.is_moderator and not is_owner and not is_manager:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view managers")
+
+    # 3. Fetch managers
+    managers = db.query(User).join(DivingCenterManager, User.id == DivingCenterManager.user_id).filter(
+        DivingCenterManager.diving_center_id == diving_center_id
+    ).all()
+
+    return [
+        DivingCenterManagerResponse(
+            user_id=u.id,
+            username=u.username,
+            name=u.name,
+            email=u.email,
+            avatar_url=u.avatar_url
+        ) for u in managers
+    ]
+
+
+@router.post("/{diving_center_id}/managers", response_model=DivingCenterManagerResponse)
+async def add_diving_center_manager(
+    diving_center_id: int,
+    manager_create: DivingCenterManagerCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Add a new manager to a diving center. Only approved owners or admins/moderators can do this."""
+    # 1. Fetch diving center
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+
+    # 2. Check permissions (Admin, Moderator, or Approved Owner)
+    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
+    if not current_user.is_admin and not current_user.is_moderator and not is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only approved owners or administrators can add managers")
+
+    # 3. Find user to add as manager
+    target_user = db.query(User).filter(User.username == manager_create.username).first()
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="User not found")
+
+    # 4. Check if already owner
+    if center.owner_id == target_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The owner is already a manager by default")
+
+    # 5. Check if already manager
+    existing_manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == target_user.id
+    ).first()
+    if existing_manager:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This user is already a manager of this center")
+
+    # 6. Create manager association
+    new_manager = DivingCenterManager(diving_center_id=diving_center_id, user_id=target_user.id)
+    db.add(new_manager)
+    db.commit()
+
+    return DivingCenterManagerResponse(
+        user_id=target_user.id,
+        username=target_user.username,
+        name=target_user.name,
+        email=target_user.email,
+        avatar_url=target_user.avatar_url
+    )
+
+
+@router.delete("/{diving_center_id}/managers/{user_id}", response_model=dict)
+async def remove_diving_center_manager(
+    diving_center_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a manager from a diving center. Only approved owners or admins/moderators can do this."""
+    # 1. Fetch diving center
+    center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    if not center:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+
+    # 2. Check permissions (Admin, Moderator, or Approved Owner)
+    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
+    if not current_user.is_admin and not current_user.is_moderator and not is_owner:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only approved owners or administrators can remove managers")
+
+    # 3. Find and delete manager association
+    assoc = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == diving_center_id,
+        DivingCenterManager.user_id == user_id
+    ).first()
+    
+    if not assoc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager association not found")
+
+    db.delete(assoc)
+    db.commit()
+
+    return {"status": "success", "message": "Manager removed successfully"}
 
 @router.post("/{center_id}/media", response_model=CenterMediaResponse)
 @skip_rate_limit_for_admin("30/minute")

@@ -118,3 +118,35 @@ export const broadcastTextMessage = async (id, message) => {
   const response = await api.post(`/api/v1/diving-centers/${id}/broadcast/text`, { message });
   return response.data;
 };
+
+/**
+ * Fetch all managers associated with a diving center.
+ * @param {number} centerId - ID of diving center
+ * @returns {Promise<Array>} List of managers
+ */
+export const getCenterManagers = async centerId => {
+  const response = await api.get(`/api/v1/diving-centers/${centerId}/managers`);
+  return response.data;
+};
+
+/**
+ * Associate a user as a manager of a diving center by username.
+ * @param {number} centerId - ID of diving center
+ * @param {string} username - Username of target user
+ * @returns {Promise<Object>} Added manager details
+ */
+export const addCenterManager = async (centerId, username) => {
+  const response = await api.post(`/api/v1/diving-centers/${centerId}/managers`, { username });
+  return response.data;
+};
+
+/**
+ * Remove a manager association from a diving center.
+ * @param {number} centerId - ID of diving center
+ * @param {number} userId - ID of user manager to remove
+ * @returns {Promise<Object>} Success status
+ */
+export const removeCenterManager = async (centerId, userId) => {
+  const response = await api.delete(`/api/v1/diving-centers/${centerId}/managers/${userId}`);
+  return response.data;
+};

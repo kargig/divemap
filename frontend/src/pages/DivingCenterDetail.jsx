@@ -19,6 +19,9 @@ import {
   MessageSquare,
   Bell,
   Plus,
+  Users,
+  UserPlus,
+  Trash2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -32,6 +35,7 @@ import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
 
 import api, { createChatRoom } from '../api';
+import Avatar from '../components/Avatar';
 import Breadcrumbs from '../components/Breadcrumbs';
 import DivingCenterSummaryCard from '../components/DivingCenterSummaryCard';
 import Lightbox from '../components/Lightbox/Lightbox';
@@ -57,6 +61,9 @@ import {
   broadcastTextMessage,
   getDivingCenters,
   broadcastTrip,
+  getCenterManagers,
+  addCenterManager,
+  removeCenterManager,
 } from '../services/divingCenters';
 import { getParsedTrips, deleteParsedTrip, updateParsedTrip } from '../services/newsletters';
 import { extractErrorMessage } from '../utils/apiErrors';
@@ -101,6 +108,7 @@ const DivingCenterDetail = () => {
   const [broadcastMessage, setBroadcastMessage] = useState('');
   const [ownershipReason, setOwnershipReason] = useState('');
   const [editingTrip, setEditingTrip] = useState(null);
+  const [managerUsername, setManagerUsername] = useState('');
   const [isEditTripModalOpen, setIsEditTripModalOpen] = useState(false);
   const [tripsDateRange, setTripsDateRange] = useState(() => {
     // Start with current date, going forward 3 months
@@ -317,6 +325,36 @@ const DivingCenterDetail = () => {
   const isModerator = Boolean(user?.is_moderator);
   const shouldShowManage = isOwner || isAdmin || isManager || isModerator;
   const shouldShowEdit = canEdit || isOwner || isAdmin || isModerator;
+
+  // Queries & Mutations for Managers
+  const { data: managers = [], refetch: refetchManagers } = useQuery(
+    ['diving-center-managers', id],
+    () => getCenterManagers(id),
+    {
+      enabled: !!id && shouldShowManage, // Only load if permitted
+    }
+  );
+
+  const addManagerMutation = useMutation(username => addCenterManager(id, username), {
+    onSuccess: () => {
+      toast.success('Manager added successfully!');
+      setManagerUsername('');
+      refetchManagers();
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to add manager');
+    },
+  });
+
+  const removeManagerMutation = useMutation(userId => removeCenterManager(id, userId), {
+    onSuccess: () => {
+      toast.success('Manager removed successfully!');
+      refetchManagers();
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to remove manager');
+    },
+  });
 
   // Fetch dive trips for this diving center within the date range
   const { data: tripsResponse, isLoading: tripsLoading } = useQuery(
@@ -1273,14 +1311,102 @@ const DivingCenterDetail = () => {
           </div>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
             <div className='flex justify-between items-center mb-4'>
-              <h2 className='text-xl font-bold text-gray-900'>Followers & Managers</h2>
+              <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                <Users className='h-5 w-5 text-blue-600' />
+                <span>Followers & Managers</span>
+              </h2>
               <div className='bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold'>
                 {center?.follower_count || 0} Follower{center?.follower_count !== 1 ? 's' : ''}
               </div>
             </div>
-            <p className='text-gray-500 italic'>
-              Manager administration tools are coming in a future update.
-            </p>
+
+            {/* Manager administration tools inside card */}
+            {isOwner || isAdmin || isModerator ? (
+              <div className='mt-6 border-t border-gray-100 pt-6'>
+                <h3 className='text-md font-bold text-gray-800 mb-2 flex items-center gap-2'>
+                  <span>Team Management</span>
+                </h3>
+                <p className='text-sm text-gray-500 mb-6 leading-relaxed'>
+                  As the owner, you can authorize other registered users to help manage this diving
+                  center profile. Authorized managers can create and edit dive trips, reply to
+                  messages, and update announcement broadcasts.
+                </p>
+
+                {/* Add Manager Form */}
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    if (!managerUsername.trim()) return;
+                    addManagerMutation.mutate(managerUsername.trim());
+                  }}
+                  className='flex flex-wrap sm:flex-nowrap gap-3 mb-6'
+                >
+                  <input
+                    type='text'
+                    placeholder='Enter username of the user to add as manager...'
+                    value={managerUsername}
+                    onChange={e => setManagerUsername(e.target.value)}
+                    className='w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                  />
+                  <button
+                    type='submit'
+                    disabled={addManagerMutation.isLoading}
+                    className='inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm shrink-0'
+                  >
+                    <UserPlus className='h-4 w-4' />
+                    <span>{addManagerMutation.isLoading ? 'Adding...' : 'Add Manager'}</span>
+                  </button>
+                </form>
+
+                {/* Managers List */}
+                {managers.length === 0 ? (
+                  <div className='text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50'>
+                    <p className='text-sm text-gray-400 font-medium'>
+                      No authorized managers added yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className='divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden'>
+                    {managers.map(manager => (
+                      <div
+                        key={manager.user_id}
+                        className='flex items-center justify-between p-4 bg-white hover:bg-gray-50/50 transition-colors'
+                      >
+                        <div className='flex items-center gap-3'>
+                          <Avatar src={manager.avatar_url} alt={manager.username} size='md' />
+                          <div>
+                            <p className='text-sm font-bold text-gray-900'>{manager.username}</p>
+                            {manager.name && (
+                              <p className='text-xs text-gray-500'>{manager.name}</p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          type='button'
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Are you sure you want to revoke manager access for ${manager.username}?`
+                              )
+                            ) {
+                              removeManagerMutation.mutate(manager.user_id);
+                            }
+                          }}
+                          className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors'
+                          title='Revoke access'
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className='text-gray-500 italic mt-4'>
+                Roster is private to the owner and staff administrators.
+              </p>
+            )}
           </div>{' '}
         </div>
       )}

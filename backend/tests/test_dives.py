@@ -225,6 +225,30 @@ class TestDives:
         data = response.json()
         assert data["name"] == "Updated Dive Name"
 
+    def test_update_dive_moderator_cannot_edit_other_user_dive(self, client, moderator_headers, db_session, test_user, test_dive_site):
+        """Test that moderators cannot edit private logs belonging to other users."""
+        from app.models import Dive
+        
+        # Create a dive for test_user
+        dive = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            name="Original Name",
+            is_private=False,
+            dive_date=date(2025, 1, 15),
+            dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
+            duration=45
+        )
+        db_session.add(dive)
+        db_session.commit()
+
+        update_data = {
+            "name": "Mod Tried To Edit"
+        }
+
+        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=moderator_headers)
+        assert response.status_code == status.HTTP_404_NOT_FOUND  # Securely hidden/rejected
+
     def test_update_dive_privacy(self, client, auth_headers, db_session, test_user, test_dive_site):
         """Test updating dive privacy setting."""
         # Create a dive

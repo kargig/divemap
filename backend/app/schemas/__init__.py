@@ -1800,3 +1800,13 @@ class LeaderboardCenterResponse(BaseModel):
     metric: str
     entries: List[LeaderboardCenterEntry]
     updated_at: datetime
+
+class DivingCenterManagerResponse(BaseModel):
+    user_id: int
+    username: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+class DivingCenterManagerCreate(BaseModel):
+    username: str
