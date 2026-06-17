@@ -305,6 +305,23 @@ class TestDivingCenters:
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["status"] == "success"
 
+    def test_get_my_managed_diving_centers_success(self, client, auth_headers, test_user, test_diving_center, db_session):
+        """Test getting diving centers owned or managed by the current user."""
+        from app.models import OwnershipStatus
+        
+        # Make test_user the approved owner of the center
+        test_diving_center.owner_id = test_user.id
+        test_diving_center.ownership_status = OwnershipStatus.approved
+        db_session.commit()
+
+        # Query endpoint
+        response = client.get("/api/v1/diving-centers/managed", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == test_diving_center.id
+        assert data[0]["is_manager"] is True
+
     def test_get_diving_center_with_empty_description_no_500(self, client, db_session):
         """Legacy data may contain empty-string descriptions. Ensure GET does not 500."""
         from app.models import DivingCenter

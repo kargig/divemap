@@ -1,4 +1,4 @@
-import { ArrowLeft, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, Trash2, Plus, Users, UserPlus } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
@@ -15,6 +15,9 @@ import {
   uploadCenterLogo,
   addDivingCenterMedia,
   deleteDivingCenterMedia,
+  getCenterManagers,
+  addCenterManager,
+  removeCenterManager,
 } from '../services/divingCenters';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { UI_COLORS } from '../utils/colorPalette';
@@ -83,6 +86,38 @@ const EditDivingCenter = () => {
       user.is_moderator ||
       (divingCenter.owner_username === user.username &&
         divingCenter.ownership_status === 'approved'));
+
+  const [managerUsername, setManagerUsername] = useState('');
+
+  // Team management queries & mutations
+  const {
+    data: managers = [],
+    isLoading: managersLoading,
+    refetch: refetchManagers,
+  } = useQuery(['diving-center-managers', id], () => getCenterManagers(id), {
+    enabled: !!id && canEdit,
+  });
+
+  const addManagerMutation = useMutation(username => addCenterManager(id, username), {
+    onSuccess: () => {
+      toast.success('Manager added successfully!');
+      setManagerUsername('');
+      refetchManagers();
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to add manager');
+    },
+  });
+
+  const removeManagerMutation = useMutation(userId => removeCenterManager(id, userId), {
+    onSuccess: () => {
+      toast.success('Manager removed successfully!');
+      refetchManagers();
+    },
+    onError: error => {
+      toast.error(getErrorMessage(error) || 'Failed to remove manager');
+    },
+  });
 
   // Fetch gear rental costs
   const { data: gearRentalData = [], isLoading: gearLoading } = useQuery(
@@ -804,6 +839,100 @@ const EditDivingCenter = () => {
               </div>
             </div>
           </div>
+
+          {/* Team Management Card */}
+          {(divingCenter?.owner_username === user?.username ||
+            user?.is_admin ||
+            user?.is_moderator) && (
+            <div className='bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'>
+              <div className='flex justify-between items-center mb-4 border-b border-gray-100 pb-4'>
+                <h2 className='text-2xl font-bold text-gray-900 flex items-center gap-2'>
+                  <Users className='h-6 w-6 text-blue-600' />
+                  <span>Team Management</span>
+                </h2>
+              </div>
+              <p className='text-sm text-gray-500 mb-6 leading-relaxed'>
+                As the owner, you can authorize other registered users to help manage this diving
+                center profile. Authorized managers can create and edit dive trips, reply to
+                messages, and update announcement broadcasts.
+              </p>
+
+              {/* Add Manager Form */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (!managerUsername.trim()) return;
+                  addManagerMutation.mutate(managerUsername.trim());
+                }}
+                className='flex flex-wrap sm:flex-nowrap gap-3 mb-6'
+              >
+                <input
+                  type='text'
+                  placeholder='Enter username of the user to add as manager...'
+                  value={managerUsername}
+                  onChange={e => setManagerUsername(e.target.value)}
+                  className='w-full px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+                />
+                <button
+                  type='submit'
+                  disabled={addManagerMutation.isLoading}
+                  className='inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm shrink-0'
+                >
+                  <UserPlus className='h-4 w-4' />
+                  <span>{addManagerMutation.isLoading ? 'Adding...' : 'Add Manager'}</span>
+                </button>
+              </form>
+
+              {/* Managers List */}
+              {managersLoading && (
+                <div className='text-center py-4'>
+                  <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto'></div>
+                  <p className='text-gray-600 mt-2 text-sm'>Loading managers...</p>
+                </div>
+              )}
+
+              {!managersLoading && managers.length === 0 ? (
+                <div className='text-center py-6 border border-dashed border-gray-200 rounded-xl bg-gray-50/50'>
+                  <p className='text-sm text-gray-400 font-medium'>
+                    No authorized managers added yet.
+                  </p>
+                </div>
+              ) : (
+                <div className='divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden'>
+                  {managers.map(manager => (
+                    <div
+                      key={manager.user_id}
+                      className='flex items-center justify-between p-4 bg-white hover:bg-gray-50/50 transition-colors'
+                    >
+                      <div className='flex items-center gap-3'>
+                        <Avatar src={manager.avatar_url} alt={manager.username} size='md' />
+                        <div>
+                          <p className='text-sm font-bold text-gray-900'>{manager.username}</p>
+                          {manager.name && <p className='text-xs text-gray-500'>{manager.name}</p>}
+                        </div>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Are you sure you want to revoke manager access for ${manager.username}?`
+                            )
+                          ) {
+                            removeManagerMutation.mutate(manager.user_id);
+                          }
+                        }}
+                        className='p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors'
+                        title='Revoke access'
+                      >
+                        <Trash2 className='h-4 w-4' />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </>

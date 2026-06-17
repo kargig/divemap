@@ -150,3 +150,12 @@ export const removeCenterManager = async (centerId, userId) => {
   const response = await api.delete(`/api/v1/diving-centers/${centerId}/managers/${userId}`);
   return response.data;
 };
+
+/**
+ * Fetch all diving centers owned or managed by the logged-in user.
+ * @returns {Promise<Array>} List of managed diving centers
+ */
+export const getManagedDivingCenters = async () => {
+  const response = await api.get('/api/v1/diving-centers/managed');
+  return response.data;
+};

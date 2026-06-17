@@ -63,6 +63,52 @@ def is_center_manager(db: Session, center_id: int, user: User) -> bool:
 router = APIRouter()
 
 # Place utility endpoints before dynamic "/{diving_center_id}" routes to avoid path conflicts
+@router.get("/managed", response_model=List[DivingCenterResponse])
+async def get_my_managed_diving_centers(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get all diving centers owned or managed by the current user."""
+    # 1. Fetch centers owned
+    owned_centers = db.query(DivingCenter).filter(
+        and_(DivingCenter.owner_id == current_user.id, DivingCenter.ownership_status == OwnershipStatus.approved)
+    ).all()
+
+    # 2. Fetch centers managed (from DivingCenterManager)
+    managed_centers = db.query(DivingCenter).join(
+        DivingCenterManager, DivingCenter.id == DivingCenterManager.diving_center_id
+    ).filter(DivingCenterManager.user_id == current_user.id).all()
+
+    # Combine lists avoiding duplicates
+    all_centers = {c.id: c for c in owned_centers + managed_centers}.values()
+
+    response_list = []
+    for center in all_centers:
+        logo_full_url = r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
+        
+        response_list.append(
+            DivingCenterResponse(
+                id=center.id,
+                name=center.name,
+                description=center.description,
+                address=center.address,
+                email=center.email,
+                phone=center.phone,
+                website=center.website,
+                latitude=center.latitude,
+                longitude=center.longitude,
+                country=center.country,
+                region=center.region,
+                city=center.city,
+                logo_url=center.logo_url,
+                logo_full_url=logo_full_url,
+                ownership_status=center.ownership_status.value if center.ownership_status else None,
+                owner_username=center.owner.username if center.owner else None,
+                is_manager=True
+            )
+        )
+    return response_list
+
 @router.get("/nearby")
 @skip_rate_limit_for_admin("250/minute")
 async def get_nearby_diving_centers(

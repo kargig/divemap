@@ -35,6 +35,8 @@ import { useQuery } from 'react-query';
 import { useNavigate, Link } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
+import { getManagedDivingCenters } from '../services/divingCenters';
+import { slugify } from '../utils/slugify';
 
 import Avatar from './Avatar';
 import GlobalSearchBar from './GlobalSearchBar';
@@ -67,6 +69,17 @@ const NavbarMobileControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { data: managedCenters = [] } = useQuery(
+    ['my-managed-diving-centers', user?.id],
+    getManagedDivingCenters,
+    {
+      enabled: !!user,
+      staleTime: 10 * 60 * 1000, // 10 minutes cache
+    }
+  );
+
+  const primaryCenter = managedCenters[0];
 
   const handleLogout = () => {
     logout();
@@ -181,6 +194,20 @@ const NavbarMobileControls = () => {
               >
                 Map
               </List.Item>
+
+              {primaryCenter && !user?.is_admin && !user?.is_moderator && (
+                <List.Item
+                  prefix={<Building className='h-5 w-5 text-yellow-300' />}
+                  onClick={() =>
+                    handleNavigate(
+                      `/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}`
+                    )
+                  }
+                  arrow={false}
+                >
+                  <span className='font-bold text-yellow-300'>My Diving Center</span>
+                </List.Item>
+              )}
 
               <Collapse
                 style={{

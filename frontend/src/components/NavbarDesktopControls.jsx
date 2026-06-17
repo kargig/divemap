@@ -34,6 +34,8 @@ import { useQuery } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
+import { getManagedDivingCenters } from '../services/divingCenters';
+import { slugify } from '../utils/slugify';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import NotificationBell from './NotificationBell';
@@ -43,6 +45,17 @@ import ChatDropdown from './UserChat/ChatDropdown';
 const NavbarDesktopControls = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const { data: managedCenters = [] } = useQuery(
+    ['my-managed-diving-centers', user?.id],
+    getManagedDivingCenters,
+    {
+      enabled: !!user,
+      staleTime: 10 * 60 * 1000, // 10 minutes cache
+    }
+  );
+
+  const primaryCenter = managedCenters[0];
 
   const handleLogout = () => {
     logout();
@@ -77,6 +90,16 @@ const NavbarDesktopControls = () => {
           <Map className='h-6 w-6' />
           <span className='text-sm'>Map</span>
         </Link>
+
+        {primaryCenter && !user?.is_admin && !user?.is_moderator && (
+          <Link
+            to={`/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}`}
+            className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors font-bold'
+          >
+            <Building className='h-6 w-6 text-yellow-300' />
+            <span className='text-sm'>My Diving Center</span>
+          </Link>
+        )}
 
         <Dropdown
           menu={{

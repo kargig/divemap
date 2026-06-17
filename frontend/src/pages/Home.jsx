@@ -10,6 +10,9 @@ import {
   Trophy,
   Medal,
   ChevronRight,
+  Settings,
+  Bell,
+  Plus,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
@@ -22,13 +25,17 @@ import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
+import { useAuth } from '../contexts/AuthContext';
+import { getManagedDivingCenters } from '../services/divingCenters';
 import { getMonthlyLeaderboard } from '../services/leaderboard';
+import { slugify } from '../utils/slugify';
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
 
 const Home = () => {
   const screens = useBreakpoint();
+  const { user } = useAuth();
 
   const features = [
     {
@@ -94,6 +101,17 @@ const Home = () => {
 
   // Determine if backend is available
   const isBackendAvailable = !isError && !isLoading;
+
+  const { data: managedCenters = [] } = useQuery(
+    ['my-managed-diving-centers', user?.id],
+    getManagedDivingCenters,
+    {
+      enabled: !!user,
+      staleTime: 10 * 60 * 1000,
+    }
+  );
+
+  const primaryCenter = managedCenters[0];
 
   const { data: overallData, isLoading: isLeaderboardLoading } = useQuery(
     ['leaderboard', 'monthly-current'],
@@ -284,6 +302,43 @@ const Home = () => {
           next underwater adventure.
         </p>
       </div>
+
+      {/* Diving Center Portal Greeting Snippet */}
+      {primaryCenter && !user?.is_admin && !user?.is_moderator && (
+        <div className='w-full mb-8'>
+          <div className='bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4'>
+            <div className='flex-1 min-w-0 w-full'>
+              <h3 className='text-xs font-bold uppercase tracking-wider text-blue-600 mb-1'>
+                Diving Center Portal
+              </h3>
+              <h2 className='text-xl sm:text-2xl font-bold text-gray-900 leading-snug'>
+                Welcome back to {primaryCenter.name}!
+              </h2>
+              <p className='hidden sm:block text-sm text-gray-500 mt-1 leading-relaxed'>
+                Create dive trips for followers, post announcements, update details, or manage staff
+                managers.
+              </p>
+            </div>
+            <div className='flex flex-wrap sm:flex-nowrap gap-3 w-full md:w-auto shrink-0'>
+              <Link
+                to={`/dive-trips/create?center_id=${primaryCenter.id}`}
+                className='inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-4 py-2 rounded-xl transition-all shadow-sm w-full sm:w-auto h-10'
+              >
+                <Plus className='h-4 w-4' />
+                <span>Create Dive Trip</span>
+              </Link>
+              <Link
+                to={`/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}?tab=manage`}
+                className='inline-flex items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 font-bold text-sm px-4 py-2 border border-gray-200 rounded-xl transition-all shadow-sm w-full sm:w-auto h-10'
+              >
+                <Bell className='h-4 w-4' />
+                <span>Roster & Staff</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Features Grid */}
       {screens.xs ? (
         <div className='px-4 pb-8'>
