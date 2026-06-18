@@ -121,39 +121,39 @@ const ActivityHeatmap = ({ data }) => {
   return (
     <div className='flex flex-col gap-1 overflow-x-auto pb-2'>
       {/* Months Row (With padding-left to account for day labels) */}
-      <div className='flex relative h-4 text-xs text-gray-500 dark:text-gray-400 ml-8'>
+      <div className='flex relative h-4 text-xs text-gray-500 dark:text-gray-400 ml-[26px]'>
         {monthLabels.map((label, index) => (
           <span
             key={index}
             className='absolute text-[10px]'
-            style={{ left: `${label.weekIndex * 16}px` }} // w-3 (12px) + gap-1 (4px)
+            style={{ left: `${label.weekIndex * 12}px` }} // w-2.5 (10px) + gap-0.5 (2px)
           >
             {label.monthName}
           </span>
         ))}
       </div>
 
-      <div className='flex items-center gap-1'>
+      <div className='flex items-center gap-0.5'>
         {/* Day Labels Column - Exactly aligned to Mon and Sun rows */}
-        <div className='flex flex-col justify-between h-[108px] w-7 text-[10px] text-gray-400 dark:text-gray-500 py-px'>
+        <div className='flex flex-col justify-between h-[82px] w-6 text-[10px] text-gray-400 dark:text-gray-500 py-px'>
           <span>Mon</span>
           <span>Sun</span>
         </div>
 
         {/* Grid Body */}
-        <div className='flex gap-1'>
+        <div className='flex gap-0.5'>
           {weeks.map((week, wIndex) => (
-            <div key={wIndex} className='flex flex-col gap-1'>
+            <div key={wIndex} className='flex flex-col gap-0.5'>
               {week.map(day =>
                 day.isOutOfRange ? (
-                  <div key={day.dateStr} className='w-3 h-3 rounded-sm bg-transparent' />
+                  <div key={day.dateStr} className='w-2.5 h-2.5 rounded-sm bg-transparent' />
                 ) : (
                   <Tooltip
                     key={day.dateStr}
                     title={`${day.count} dives on ${format(day.date, 'MMM d, yyyy')}`}
                   >
                     <div
-                      className={`w-3 h-3 rounded-sm ${getColor(day.count)} transition-colors`}
+                      className={`w-2.5 h-2.5 rounded-sm ${getColor(day.count)} transition-colors`}
                     />
                   </Tooltip>
                 )
