@@ -27,25 +27,19 @@ const MessageBubble = memo(({ message, onFeedback, onClose }) => {
             remarkPlugins={[remarkGfm]}
             components={{
               a: ({ node, ...props }) => {
+                const linkClass = isUser
+                  ? 'text-blue-200 hover:text-white font-semibold hover:underline'
+                  : 'text-blue-500 hover:underline';
                 // Check if internal link
                 if (props.href && props.href.startsWith('/')) {
                   return (
-                    <Link
-                      to={props.href}
-                      className='text-blue-500 hover:underline'
-                      onClick={() => onClose?.()}
-                    >
+                    <Link to={props.href} className={linkClass} onClick={() => onClose?.()}>
                       {props.children}
                     </Link>
                   );
                 }
                 return (
-                  <a
-                    {...props}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='text-blue-500 hover:underline'
-                  />
+                  <a {...props} target='_blank' rel='noopener noreferrer' className={linkClass} />
                 );
               },
             }}

@@ -30,23 +30,19 @@ const MessageBubble = ({
   // Custom link component for Markdown
   const MarkdownLink = ({ href, children }) => {
     const isInternal = href?.startsWith('/');
+    const linkClass = isOwn
+      ? 'text-blue-200 hover:text-white font-semibold hover:underline decoration-white underline-offset-2'
+      : 'text-divemap-blue dark:text-blue-400 font-semibold hover:underline decoration-divemap-sky underline-offset-2';
+
     if (isInternal) {
       return (
-        <Link
-          to={href}
-          className='text-divemap-blue dark:text-blue-400 font-semibold hover:underline decoration-divemap-sky underline-offset-2'
-        >
+        <Link to={href} className={linkClass}>
           {children}
         </Link>
       );
     }
     return (
-      <a
-        href={href}
-        target='_blank'
-        rel='noopener noreferrer'
-        className='text-divemap-blue dark:text-blue-400 font-semibold hover:underline decoration-divemap-sky underline-offset-2'
-      >
+      <a href={href} target='_blank' rel='noopener noreferrer' className={linkClass}>
         {children}
       </a>
     );
