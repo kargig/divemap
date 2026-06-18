@@ -538,6 +538,9 @@ const DivingCenters = () => {
                               )}
                               <Link
                                 to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
+                                state={{
+                                  from: window.location.pathname + window.location.search,
+                                }}
                                 className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
                                 title='View Details'
                               >
@@ -578,6 +581,9 @@ const DivingCenters = () => {
                                   >
                                     <Link
                                       to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
+                                      state={{
+                                        from: window.location.pathname + window.location.search,
+                                      }}
                                       className='hover:text-blue-600 transition-colors'
                                     >
                                       {center.name}
@@ -646,6 +652,9 @@ const DivingCenters = () => {
 
                               <Link
                                 to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
+                                state={{
+                                  from: window.location.pathname + window.location.search,
+                                }}
                                 className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 group'
                               >
                                 Explore

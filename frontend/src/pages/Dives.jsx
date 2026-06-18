@@ -880,6 +880,7 @@ const Dives = () => {
                           <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-xl'>
                             <Link
                               to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                              state={{ from: location.pathname + location.search }}
                               className='hover:text-blue-600 transition-colors'
                             >
                               {dive.name || `Dive #${dive.id}`}
@@ -992,6 +993,7 @@ const Dives = () => {
                         </div>
                         <Link
                           to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                          state={{ from: location.pathname + location.search }}
                           className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
                           title='View Details'
                         >
@@ -1029,6 +1031,7 @@ const Dives = () => {
                         <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>
                           <Link
                             to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                            state={{ from: location.pathname + location.search }}
                             className='hover:text-blue-600 transition-colors'
                           >
                             {dive.name || `Dive #${dive.id}`}

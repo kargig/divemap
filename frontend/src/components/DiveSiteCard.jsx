@@ -1,6 +1,6 @@
 import { Globe, User, Fish, ChevronRight, Route } from 'lucide-react';
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { useResponsive } from '../hooks/useResponsive';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
@@ -19,6 +19,7 @@ export const DiveSiteListCard = ({
   handleFilterChange,
 }) => {
   const { isMobile } = useResponsive();
+  const location = useLocation();
 
   return (
     <div
@@ -49,6 +50,7 @@ export const DiveSiteListCard = ({
               >
                 <Link
                   to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
+                  state={{ from: location.pathname + location.search }}
                   className='hover:text-blue-600 transition-colors'
                 >
                   {site.name}
@@ -149,6 +151,7 @@ export const DiveSiteListCard = ({
 
             <Link
               to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
+              state={{ from: location.pathname + location.search }}
               className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
               title='View Details'
             >
@@ -169,6 +172,7 @@ export const DiveSiteGridCard = ({
   handleFilterChange,
 }) => {
   const { isMobile } = useResponsive();
+  const location = useLocation();
 
   return (
     <div
@@ -220,6 +224,7 @@ export const DiveSiteGridCard = ({
         <h3 className='font-semibold text-gray-900 leading-snug mb-2 line-clamp-1'>
           <Link
             to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
+            state={{ from: location.pathname + location.search }}
             className='hover:text-blue-600 transition-colors'
           >
             {site.name}
@@ -267,6 +272,7 @@ export const DiveSiteGridCard = ({
 
           <Link
             to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
+            state={{ from: location.pathname + location.search }}
             className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 group'
           >
             Explore
