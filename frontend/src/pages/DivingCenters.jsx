@@ -39,9 +39,6 @@ import { useSetting } from '../hooks/useSettings';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify, getDivingCenterSlug } from '../utils/slugify';
 
-// Lazy load the map component
-const DivingCentersMap = lazy(() => import('../components/DivingCentersMap'));
-
 const DivingCenters = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -63,8 +60,11 @@ const DivingCenters = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort_by') || 'name');
   const [sortOrder, setSortOrder] = useState(searchParams.get('sort_order') || 'asc');
 
-  // View mode state (list, grid, map)
-  const [viewMode, setViewMode] = useState(searchParams.get('view') || 'list');
+  // View mode state (list, grid)
+  const [viewMode, setViewMode] = useState(() => {
+    const v = searchParams.get('view');
+    return v && v !== 'map' ? v : 'list';
+  });
 
   // Initialize filters from URL
   const getInitialFilters = () => {
@@ -344,7 +344,7 @@ const DivingCenters = () => {
               label: 'Explore Map',
               icon: Map,
               variant: 'secondary',
-              onClick: () => handleViewModeChange('map'),
+              onClick: () => navigate('/map'),
             },
             {
               label: 'Add Center',
@@ -399,36 +399,6 @@ const DivingCenters = () => {
               }
               className='mb-6'
             />
-
-            {/* Map Section - Show immediately when in map view */}
-            {viewMode === 'map' && (
-              <div className='mb-4 sm:mb-8'>
-                {isLoading ? (
-                  <LoadingSkeleton type='map' />
-                ) : (
-                  <div className='bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 border border-gray-100'>
-                    <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                      Map view of filtered Diving Centers
-                    </h2>
-                    <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
-                      <Suspense
-                        fallback={
-                          <div className='flex flex-col items-center gap-2'>
-                            <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
-                            <span>Loading Map...</span>
-                          </div>
-                        }
-                      >
-                        <DivingCentersMap
-                          data-testid='diving-centers-map'
-                          divingCenters={divingCenters || []}
-                        />
-                      </Suspense>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Content Container */}
             <div className='content-section mb-4 sm:mb-8'>
@@ -706,13 +676,11 @@ const DivingCenters = () => {
                   )}
 
                   {/* Infinite Scroll Trigger */}
-                  {viewMode !== 'map' && (
-                    <InfiniteScrollTrigger
-                      onIntersect={fetchNextPage}
-                      hasNextPage={!!hasNextPage}
-                      isFetchingNextPage={isFetchingNextPage}
-                    />
-                  )}
+                  <InfiniteScrollTrigger
+                    onIntersect={fetchNextPage}
+                    hasNextPage={!!hasNextPage}
+                    isFetchingNextPage={isFetchingNextPage}
+                  />
                 </>
               )}
             </div>

@@ -52,8 +52,6 @@ import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
-const DiveSitesMap = lazy(() => import('../components/DiveSitesMap'));
-
 const DiveSites = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -64,7 +62,8 @@ const DiveSites = () => {
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
     // Use React Router's searchParams consistently
-    return searchParams.get('view') || 'list';
+    const v = searchParams.get('view');
+    return v && v !== 'map' ? v : 'list';
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -679,35 +678,6 @@ const DiveSites = () => {
           />
         )}
 
-        {/* Map Section - Show immediately when in map view */}
-        {viewMode === 'map' && (
-          <div className='mb-4 sm:mb-8'>
-            {isLoading ? (
-              <LoadingSkeleton type='map' />
-            ) : (
-              <div className='bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6 border border-gray-100'>
-                <h2 className='text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4'>
-                  Map view of filtered Dive Sites
-                </h2>
-                <div className='h-96 sm:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center'>
-                  <Suspense
-                    fallback={
-                      <div className='flex flex-col items-center gap-2'>
-                        <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
-                        <span>Loading Map...</span>
-                      </div>
-                    }
-                  >
-                    <DiveSitesMap
-                      data-testid='dive-sites-map'
-                      diveSites={diveSites?.results || []}
-                    />
-                  </Suspense>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
         {/* Content Section */}
         <div className={`content-section mb-4 sm:mb-6 lg:mb-8`}>
           {/* Results Section - Mobile-first responsive design */}
@@ -775,7 +745,7 @@ const DiveSites = () => {
               )}
 
               {/* Infinite Scroll Trigger */}
-              {!isSearchTooShort && viewMode !== 'map' && (
+              {!isSearchTooShort && (
                 <InfiniteScrollTrigger
                   onIntersect={fetchNextPage}
                   hasNextPage={!!hasNextPage}
@@ -789,8 +759,7 @@ const DiveSites = () => {
           {!isLoading &&
             !isSearchTooShort &&
             diveSites?.results &&
-            diveSites.results.length === 0 &&
-            viewMode !== 'map' && (
+            diveSites.results.length === 0 && (
               <EmptyState
                 onClearFilters={clearFilters}
                 actionLink='/dive-sites/create'

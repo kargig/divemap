@@ -64,8 +64,6 @@ const getDiveSlug = dive => {
   return slugify(`${slugText}-${datePart}-dive-${dive.id}`);
 };
 
-const DivesMap = lazy(() => import('../components/DivesMap'));
-
 const Dives = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -76,7 +74,7 @@ const Dives = () => {
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
     const mode = searchParams.get('view') || 'list';
-    return ['list', 'grid', 'map'].includes(mode) ? mode : 'list';
+    return ['list', 'grid'].includes(mode) && mode !== 'map' ? mode : 'list';
   };
 
   const getInitialFilters = () => {
@@ -862,24 +860,6 @@ const Dives = () => {
             count={pageSize}
             className={`space-y-2 ${compactLayout ? 'view-mode-compact' : ''}`}
           />
-        ) : viewMode === 'map' ? (
-          <div className='mb-6 sm:mb-8 bg-gray-50 flex items-center justify-center min-h-[400px] rounded-lg border border-gray-200'>
-            <Suspense
-              fallback={
-                <div className='flex flex-col items-center gap-2'>
-                  <div className='w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin'></div>
-                  <span>Loading Map...</span>
-                </div>
-              }
-            >
-              <DivesMap
-                key={`dives-${dives?.length || 0}-${JSON.stringify(filters)}`}
-                dives={dives || []}
-                viewport={viewport}
-                onViewportChange={setViewport}
-              />
-            </Suspense>
-          </div>
         ) : (
           <>
             {/* Dives List */}
@@ -1135,13 +1115,11 @@ const Dives = () => {
             )}
 
             {/* Infinite Scroll Trigger */}
-            {viewMode !== 'map' && (
-              <InfiniteScrollTrigger
-                onIntersect={fetchNextPage}
-                hasNextPage={!!hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-              />
-            )}
+            <InfiniteScrollTrigger
+              onIntersect={fetchNextPage}
+              hasNextPage={!!hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+            />
           </>
         )}
 

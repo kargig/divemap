@@ -8,7 +8,6 @@ import {
   Search,
   Settings,
   List,
-  Map,
   RotateCcw,
   SortAsc,
   SortDesc,
@@ -307,7 +306,7 @@ const DivingCentersResponsiveFilterBar = ({
                   <button
                     onClick={() => onViewModeChange('grid')}
                     data-testid='grid-view-button'
-                    className={`px-3 py-2 text-sm border border-l-0 transition-colors ${
+                    className={`px-3 py-2 text-sm border border-l-0 transition-colors rounded-r-md ${
                       viewMode === 'grid'
                         ? 'bg-blue-600 text-white border-blue-600 active'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -315,18 +314,6 @@ const DivingCentersResponsiveFilterBar = ({
                     title='Grid View'
                   >
                     <Grid className='h-4 w-4' />
-                  </button>
-                  <button
-                    onClick={() => onViewModeChange('map')}
-                    data-testid='map-view-button'
-                    className={`px-3 py-2 text-sm border border-l-0 transition-colors rounded-r-md ${
-                      viewMode === 'map'
-                        ? 'bg-blue-600 text-white border-blue-600 active'
-                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                    }`}
-                    title='Map View'
-                  >
-                    <Map className='h-4 w-4' />
                   </button>
                 </div>
               </div>
@@ -652,41 +639,6 @@ const DivingCentersResponsiveFilterBar = ({
                 </div>
               </div>
 
-              {/* View Mode Selection - Compact Buttons */}
-              <div>
-                <h4 className='text-sm font-medium text-gray-700 mb-3'>View Mode</h4>
-                <div className='flex gap-2' data-testid='view-mode-toggle'>
-                  <button
-                    onClick={() => handleViewModeChange('list')}
-                    data-testid='list-view-button'
-                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                      viewMode === 'list'
-                        ? 'bg-blue-50 border-blue-200 text-blue-900 active'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className='flex items-center justify-center gap-2'>
-                      <List className='w-4 h-4' />
-                      List
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('map')}
-                    data-testid='map-view-button'
-                    className={`flex-1 px-4 py-3 text-sm font-medium rounded-lg border transition-colors min-h-[48px] ${
-                      viewMode === 'map'
-                        ? 'bg-blue-50 border-blue-200 text-blue-900 active'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className='flex items-center justify-center gap-2'>
-                      <Map className='w-4 h-4' />
-                      Map
-                    </div>
-                  </button>
-                </div>
-              </div>
-
               {/* Display Options - Compact Checkbox */}
               <div>
                 <h4 className='text-sm font-medium text-gray-700 mb-3'>Display Options</h4>
@@ -767,7 +719,7 @@ DivingCentersResponsiveFilterBar.propTypes = {
   onSortChange: PropTypes.func,
   onSortApply: PropTypes.func,
   onReset: PropTypes.func,
-  viewMode: PropTypes.oneOf(['list', 'grid', 'map']),
+  viewMode: PropTypes.oneOf(['list', 'grid']),
   onViewModeChange: PropTypes.func,
   compactLayout: PropTypes.bool,
   onDisplayOptionChange: PropTypes.func,
