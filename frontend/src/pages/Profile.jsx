@@ -27,6 +27,7 @@ import {
   Droplets,
   Notebook,
   MapPin,
+  Map,
   Star,
   Gauge,
 } from 'lucide-react';
@@ -1478,6 +1479,15 @@ const Profile = () => {
                   </div>
                   <span className='font-semibold text-gray-900 shrink-0'>
                     {userStats?.buddy_dives_count || 0}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center text-sm'>
+                  <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
+                    <Map size={16} className='text-gray-400 shrink-0' />
+                    <span className='text-gray-600 truncate'>Dive Sites Visited</span>
+                  </div>
+                  <span className='font-semibold text-gray-900 shrink-0'>
+                    {userStats?.unique_dive_sites_logged || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>

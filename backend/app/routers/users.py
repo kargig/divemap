@@ -12,14 +12,14 @@ from app.schemas import (
     ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
     UserSocialLinkCreate, UserSocialLinkResponse,
     PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse, AdvancedAnalyticsResponse,
-    AvatarUpdate, AvatarType
+    AvatarUpdate, AvatarType, VisitedDiveSiteResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.services.r2_storage_service import r2_storage
 from app.services.image_processing import image_processing
 from app.limiter import skip_rate_limit_for_admin
 from app.utils import utcnow, populate_avatar_full_url
-from sqlalchemy import func, extract, desc
+from sqlalchemy import func, extract, desc, distinct
 import secrets
 import base64
 import re
@@ -713,6 +713,12 @@ async def get_user_public_profile(
         DiveBuddy.user_id == user.id
     ).scalar()
 
+    # Calculate count of unique visited dive sites
+    unique_dive_sites_logged = db.query(func.count(distinct(Dive.dive_site_id))).filter(
+        Dive.user_id == user.id,
+        Dive.dive_site_id.isnot(None)
+    ).scalar() or 0
+
     # Leaderboard and gamification data
     from app.routers.leaderboard import get_user_leaderboard_data
     total_points, leaderboard_rank = get_user_leaderboard_data(db, user.id)
@@ -728,6 +734,7 @@ async def get_user_public_profile(
         site_ratings_count=site_ratings_count or 0,
         total_dives_claimed=total_dives_claimed,
         buddy_dives_count=buddy_dives_count or 0,
+        unique_dive_sites_logged=unique_dive_sites_logged,
         total_points=total_points,
         leaderboard_rank=leaderboard_rank
     )
@@ -937,6 +944,147 @@ async def get_user_public_profile(
     ).model_dump()
 
     return populate_avatar_full_url(user, response_dict)
+
+
+@router.get("/{username}/visited-sites", response_model=List[VisitedDiveSiteResponse])
+@skip_rate_limit_for_admin("60/minute")
+async def get_user_visited_sites(
+    request: Request,
+    username: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get unique dive sites visited/logged by the user, with visit count (Private to owner/admin)"""
+    user = db.query(User).filter(
+        User.username == username,
+        User.enabled == True
+    ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # Enforce privacy check: only the account owner or an Admin can access the list
+    if current_user.username != username and not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to view this user's visited sites list"
+        )
+
+    from app.models import DiveSiteAlias, DiveRoute, DiveSiteTag, AvailableTag
+
+    # Query distinct dive sites with their visit count from the user's logged dives
+    # If viewing own profile, show all logged dives; otherwise (Admin), show only public dives
+    is_private_filter = [Dive.user_id == user.id]
+    if current_user.username != username:
+        is_private_filter.append(Dive.is_private == False)
+
+    visited_sites_query = db.query(
+        DiveSite,
+        func.count(Dive.id).label('visit_count')
+    ).join(
+        Dive, Dive.dive_site_id == DiveSite.id
+    ).filter(
+        *is_private_filter
+    ).group_by(
+        DiveSite.id
+    ).order_by(
+        desc(func.count(Dive.id)),
+        DiveSite.name
+    ).all()
+
+    results = []
+    for site, count in visited_sites_query:
+        # Calculate rating/comment stats for this site
+        avg_rating = db.query(func.avg(SiteRating.score)).filter(
+            SiteRating.dive_site_id == site.id
+        ).scalar()
+        
+        total_ratings = db.query(func.count(SiteRating.id)).filter(
+            SiteRating.dive_site_id == site.id
+        ).scalar() or 0
+        
+        comment_count = db.query(func.count(SiteComment.id)).filter(
+            SiteComment.dive_site_id == site.id
+        ).scalar() or 0
+
+        route_count = db.query(func.count(DiveRoute.id)).filter(
+            DiveRoute.dive_site_id == site.id,
+            DiveRoute.deleted_at.is_(None)
+        ).scalar() or 0
+
+        # Get tags for this site
+        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
+            DiveSiteTag.dive_site_id == site.id
+        ).order_by(AvailableTag.name.asc()).all()
+        
+        tags_list = [
+            {
+                "id": tag.id,
+                "name": tag.name,
+                "description": tag.description,
+                "created_by": tag.created_by,
+                "created_at": tag.created_at
+            }
+            for tag in tags
+        ]
+
+        # Get aliases
+        aliases = db.query(DiveSiteAlias).filter(
+            DiveSiteAlias.dive_site_id == site.id
+        ).all()
+        
+        aliases_list = [
+            {
+                "id": alias.id,
+                "dive_site_id": alias.dive_site_id,
+                "alias": alias.alias,
+                "created_at": alias.created_at
+            }
+            for alias in aliases
+        ]
+
+        # Get creator username
+        creator_username = None
+        if site.created_by:
+            creator_user = db.query(User.username).filter(User.id == site.created_by).first()
+            if creator_user:
+                creator_username = creator_user.username
+
+        results.append({
+            "dive_site": {
+                "id": site.id,
+                "name": site.name,
+                "latitude": site.latitude,
+                "longitude": site.longitude,
+                "description": site.description,
+                "country": site.country,
+                "region": site.region,
+                "difficulty_id": site.difficulty_id,
+                "difficulty_label": site.difficulty.label if site.difficulty else None,
+                "created_at": site.created_at,
+                "updated_at": site.updated_at,
+                "deleted_at": site.deleted_at,
+                "created_by": site.created_by,
+                "created_by_username": creator_username,
+                "status": site.status,
+                "average_rating": avg_rating,
+                "total_ratings": total_ratings,
+                "comment_count": comment_count,
+                "route_count": route_count,
+                "tags": tags_list,
+                "aliases": aliases_list,
+                "shore_direction": site.shore_direction,
+                "shore_direction_confidence": site.shore_direction_confidence,
+                "shore_direction_method": site.shore_direction_method,
+                "shore_direction_distance_m": site.shore_direction_distance_m
+            },
+            "visit_count": count
+        })
+
+    return results
 
 
 @router.get("/{username}/analytics", response_model=AdvancedAnalyticsResponse)
