@@ -777,6 +777,7 @@ class UserProfileStats(BaseModel):
     site_ratings_count: int
     total_dives_claimed: int
     buddy_dives_count: int
+    unique_dive_sites_logged: int = 0
     total_points: Optional[int] = 0
     leaderboard_rank: Optional[int] = None
 
@@ -836,6 +837,12 @@ class UserPublicProfileResponse(BaseModel):
     stats: UserProfileStats
     certification_stats: Optional[CertificationStats] = None
     diving_stats: Optional[DivingStatsResponse] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class VisitedDiveSiteResponse(BaseModel):
+    dive_site: DiveSiteResponse
+    visit_count: int
 
     model_config = ConfigDict(from_attributes=True)
 

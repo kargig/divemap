@@ -510,3 +510,71 @@ class TestPublicUserProfile:
         response = client.get("/api/v1/users//public")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_get_user_visited_sites_and_unique_count(self, client, test_user, test_dive_site, db_session, auth_headers):
+        """Test getting visited sites list and unique visited count in profile stats with proper privacy checks."""
+        from app.models import Dive
+        from datetime import date
+
+        # Create some logged dives for the user on the test dive site
+        dive1 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            dive_date=date(2026, 6, 1),
+            is_private=False
+        )
+        dive2 = Dive(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            dive_date=date(2026, 6, 2),
+            is_private=False
+        )
+        db_session.add(dive1)
+        db_session.add(dive2)
+        db_session.commit()
+
+        # Check unique_dive_sites_logged in public profile endpoint
+        response = client.get(f"/api/v1/users/{test_user.username}/public")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["stats"]["unique_dive_sites_logged"] == 1
+
+        # 1. Check visited-sites list without authentication (should return 403 due to FastAPI HTTPBearer default)
+        response_unauth = client.get(f"/api/v1/users/{test_user.username}/visited-sites")
+        assert response_unauth.status_code == status.HTTP_403_FORBIDDEN
+
+        # 2. Check visited-sites list as the owner themselves (should succeed)
+        response_visited = client.get(f"/api/v1/users/{test_user.username}/visited-sites", headers=auth_headers)
+        assert response_visited.status_code == status.HTTP_200_OK
+        visited_data = response_visited.json()
+        assert len(visited_data) == 1
+        assert visited_data[0]["dive_site"]["id"] == test_dive_site.id
+        assert visited_data[0]["visit_count"] == 2
+
+        # 3. Check visited-sites list of another user as a regular user (should return 403)
+        # Create another user and get their token/headers
+        from app.models import User
+        from app.auth import get_password_hash
+        other_user = User(
+            username="other_stalker",
+            email="other_stalker@example.com",
+            password_hash=get_password_hash("securepass123"),
+            enabled=True,
+            email_verified=True
+        )
+        db_session.add(other_user)
+        db_session.commit()
+
+        # Login as the other user to get auth headers
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "other_stalker", "password": "securepass123"}
+        )
+        assert login_response.status_code == status.HTTP_200_OK
+        other_token = login_response.json()["access_token"]
+        other_headers = {"Authorization": f"Bearer {other_token}"}
+
+        # Attempt to access test_user's visited sites as other_stalker
+        response_forbidden = client.get(f"/api/v1/users/{test_user.username}/visited-sites", headers=other_headers)
+        assert response_forbidden.status_code == status.HTTP_403_FORBIDDEN
+        assert "not authorized to view" in response_forbidden.json()["detail"]

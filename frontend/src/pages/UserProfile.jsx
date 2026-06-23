@@ -737,6 +737,15 @@ const UserProfile = () => {
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
+                    <Map size={16} className='text-gray-400' />
+                    <span className='text-gray-600'>Dive sites visited:</span>
+                  </div>
+                  <span className='font-semibold flex-1 text-right'>
+                    {profile.stats.unique_dive_sites_logged || 0}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center'>
+                  <div className='flex items-center gap-2'>
                     <MapPin size={16} className='text-gray-400' />
                     <span className='text-gray-600'>Dive Sites Created:</span>
                   </div>
