@@ -75,13 +75,13 @@ const GasMixHeatmap = ({ data }) => {
       <div className='flex justify-center overflow-x-auto pb-4'>
         <div className='flex min-w-max'>
           {/* Y-Axis Labels (Gas Mixes) */}
-          <div className='flex flex-col gap-1 pr-3 mt-[52px] sm:mt-[64px]'>
+          <div className='flex flex-col gap-1 pr-3 mt-[44px] sm:mt-[56px]'>
             {GAS_MIXES.map(mix => {
               const isStandardMix = ['Nitrox 28', 'Nitrox 32', 'Nitrox 36'].includes(mix);
               return (
                 <div
                   key={mix}
-                  className='h-8 sm:h-12 lg:h-14 flex items-center justify-end w-28 sm:w-32'
+                  className='h-8 sm:h-9 lg:h-10 flex items-center justify-end w-28 sm:w-32'
                 >
                   <span
                     className={`text-[9px] sm:text-xs text-right whitespace-nowrap ${
@@ -102,7 +102,7 @@ const GasMixHeatmap = ({ data }) => {
             {/* X-Axis Labels (Depth bins) */}
             <div className='flex gap-1 mb-2'>
               {DEPTH_BINS.map(bin => (
-                <div key={bin} className='w-8 sm:w-16 lg:w-20 relative h-10 sm:h-12'>
+                <div key={bin} className='w-8 sm:w-14 lg:w-16 relative h-8 sm:h-10'>
                   <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 origin-bottom-left -rotate-45 whitespace-nowrap font-semibold'>
                     {bin}
                   </span>
@@ -126,7 +126,7 @@ const GasMixHeatmap = ({ data }) => {
                     return (
                       <div
                         key={`${mix}-${bin}`}
-                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
+                        className={`w-8 h-8 sm:w-14 sm:h-9 lg:w-16 lg:h-10 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
                           modViolation
                             ? 'bg-rose-50 border-2 border-rose-300 hover:ring-rose-400'
                             : getColor(count)
