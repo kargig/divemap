@@ -6,7 +6,10 @@ import { useParams, Link } from 'react-router-dom';
 import { getUserPublicProfile, getUserAdvancedAnalytics } from '../api';
 import AdvancedAnalytics from '../components/AdvancedAnalytics';
 import Avatar from '../components/Avatar';
+import CountryDistributionChart from '../components/CountryDistributionChart';
 import DepthDensityHeatmap from '../components/DepthDensityHeatmap';
+import DiveStyleRadar from '../components/DiveStyleRadar';
+import GasMixHeatmap from '../components/GasMixHeatmap';
 import SEO from '../components/SEO';
 
 const UserAnalytics = () => {
@@ -113,6 +116,25 @@ const UserAnalytics = () => {
             <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-2 sm:p-6 hover:shadow-md transition-shadow'>
               <DepthDensityHeatmap data={analytics.depth_density_heatmap} />
             </div>
+          ) : null}
+
+          {/* Dive Style Radar Chart */}
+          {analytics?.dive_style_radar && analytics.dive_style_radar.length > 0 ? (
+            <DiveStyleRadar
+              data={analytics.dive_style_radar}
+              boatPct={analytics.boat_dive_pct}
+              shorePct={analytics.shore_dive_pct}
+            />
+          ) : null}
+
+          {/* Gas Mix vs Max Depth Heatmap */}
+          {analytics?.gas_mix_heatmap && analytics.gas_mix_heatmap.length > 0 ? (
+            <GasMixHeatmap data={analytics.gas_mix_heatmap} />
+          ) : null}
+
+          {/* Global Dive Travel Donut Chart */}
+          {analytics?.country_distribution && analytics.country_distribution.length > 0 ? (
+            <CountryDistributionChart data={analytics.country_distribution} />
           ) : null}
 
           {/* Other Advanced Analytics */}

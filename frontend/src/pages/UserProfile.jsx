@@ -38,6 +38,7 @@ import {
   Award,
   Trophy,
   Medal,
+  Globe,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -742,6 +743,15 @@ const UserProfile = () => {
                   </div>
                   <span className='font-semibold flex-1 text-right'>
                     {profile.stats.unique_dive_sites_logged || 0}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center'>
+                  <div className='flex items-center gap-2'>
+                    <Globe size={16} className='text-gray-400' />
+                    <span className='text-gray-600'>Countries visited:</span>
+                  </div>
+                  <span className='font-semibold flex-1 text-right'>
+                    {profile.stats.countries_visited_count || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>

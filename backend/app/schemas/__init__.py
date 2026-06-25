@@ -778,6 +778,7 @@ class UserProfileStats(BaseModel):
     total_dives_claimed: int
     buddy_dives_count: int
     unique_dive_sites_logged: int = 0
+    countries_visited_count: int = 0
     total_points: Optional[int] = 0
     leaderboard_rank: Optional[int] = None
 
@@ -819,6 +820,11 @@ class AdvancedAnalyticsResponse(BaseModel):
     dives_per_gas_config: List[Dict[str, Any]] = [] # [{"config": "Single 12L", "count": 10}]
     weight_vs_gear: List[Dict[str, Any]] = [] # [{"gear": "Wetsuit + Single 12L", "weight": 4.5}]
     weight_over_time: List[Dict[str, Any]] = [] # [{"date": "2024-05", "weight": 5.0, "gear": "Wetsuit + Single 12L"}]
+    dive_style_radar: List[Dict[str, Any]] = [] # [{"subject": "Reef & Eco", "value": 15, "fullMark": 100}]
+    boat_dive_pct: Optional[float] = 0.0
+    shore_dive_pct: Optional[float] = 0.0
+    gas_mix_heatmap: List[Dict[str, Any]] = [] # [{"mix": "Nitrox 32", "depth_bin": "18-30m", "count": 14}]
+    country_distribution: List[Dict[str, Any]] = [] # [{"country": "Greece", "count": 42}]
 
 class UserPublicProfileResponse(BaseModel):
     id: int

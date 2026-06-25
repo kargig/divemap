@@ -719,6 +719,16 @@ async def get_user_public_profile(
         Dive.dive_site_id.isnot(None)
     ).scalar() or 0
 
+    # Calculate count of unique visited countries
+    countries_visited_count = db.query(func.count(distinct(DiveSite.country))).join(
+        Dive, Dive.dive_site_id == DiveSite.id
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False,
+        DiveSite.country.isnot(None),
+        DiveSite.country != ""
+    ).scalar() or 0
+
     # Leaderboard and gamification data
     from app.routers.leaderboard import get_user_leaderboard_data
     total_points, leaderboard_rank = get_user_leaderboard_data(db, user.id)
@@ -735,6 +745,7 @@ async def get_user_public_profile(
         total_dives_claimed=total_dives_claimed,
         buddy_dives_count=buddy_dives_count or 0,
         unique_dive_sites_logged=unique_dive_sites_logged,
+        countries_visited_count=countries_visited_count,
         total_points=total_points,
         leaderboard_rank=leaderboard_rank
     )
@@ -1333,6 +1344,149 @@ async def get_user_advanced_analytics(
         for k, v in sorted(depth_monthly_acc.items())
     ]
 
+    # 1. Dive Style Radar Aggregation
+    style_counts = {
+        "Reef & Eco": 0,
+        "Wreck & History": 0,
+        "Deep & Technical": 0,
+        "Drift & Wall": 0,
+        "Cave & Overhead": 0,
+        "Night & Shadow": 0,
+        "Photography": 0,
+        "Training": 0
+    }
+    boat_dives = 0
+    shore_dives = 0
+    total_logistics_dives = 0
+
+    # Query all tags associated with these dives
+    dive_ids = [row[0] for row in advanced_query] if advanced_query else []
+    all_dive_tags = []
+    if dive_ids:
+        from app.models import DiveTag, AvailableTag
+        all_dive_tags = db.query(DiveTag.dive_id, AvailableTag.name).join(AvailableTag).filter(
+            DiveTag.dive_id.in_(dive_ids)
+        ).all()
+
+    # Map tag names to dimensions
+    for d_id, tag_name in all_dive_tags:
+        lower_tag = tag_name.lower()
+        if any(term in lower_tag for term in ["reef", "coral", "shallow", "fish", "flora", "marine"]):
+            style_counts["Reef & Eco"] += 1
+        elif any(term in lower_tag for term in ["wreck", "shipwreck", "rust", "iron", "metal"]):
+            style_counts["Wreck & History"] += 1
+        elif any(term in lower_tag for term in ["deep", "deco", "tech", "technical"]):
+            style_counts["Deep & Technical"] += 1
+        elif any(term in lower_tag for term in ["drift", "wall", "current"]):
+            style_counts["Drift & Wall"] += 1
+        elif any(term in lower_tag for term in ["cave", "cavern", "overhead", "cenote"]):
+            style_counts["Cave & Overhead"] += 1
+        elif "night" in lower_tag:
+            style_counts["Night & Shadow"] += 1
+        elif "photography" in lower_tag or "photo" in lower_tag:
+            style_counts["Photography"] += 1
+        elif "training" in lower_tag or "course" in lower_tag:
+            style_counts["Training"] += 1
+        elif "boat" in lower_tag:
+            boat_dives += 1
+            total_logistics_dives += 1
+        elif "shore" in lower_tag:
+            shore_dives += 1
+            total_logistics_dives += 1
+
+    dive_style_radar = [
+        {"subject": k, "value": v, "fullMark": max(style_counts.values()) if style_counts.values() and max(style_counts.values()) > 0 else 100}
+        for k, v in style_counts.items()
+    ]
+    
+    boat_dive_pct = round((boat_dives / total_logistics_dives) * 100.0, 1) if total_logistics_dives > 0 else 0.0
+    shore_dive_pct = round((shore_dives / total_logistics_dives) * 100.0, 1) if total_logistics_dives > 0 else 0.0
+
+    # 2. Gas Mix vs Max Depth Heatmap
+    gas_mix_counts = {}
+    
+    def parse_gas_mix(gas_str):
+        if not gas_str:
+            return "Air"
+        try:
+            if str(gas_str).startswith('{'):
+                data = json.loads(gas_str)
+                if data.get('mode') == 'structured':
+                    bg = data.get('back_gas', {})
+                    gas = bg.get('gas', {})
+                    o2 = gas.get('o2')
+                    he = gas.get('he')
+                    
+                    if o2 is not None:
+                        o2_val = float(o2)
+                        he_val = float(he) if he is not None else 0
+                        
+                        if he_val > 0:
+                            return "Trimix"
+                        elif o2_val <= 21:
+                            return "Air"
+                        elif o2_val == 32:
+                            return "Nitrox 32"
+                        elif o2_val == 36:
+                            return "Nitrox 36"
+                        elif 21 < o2_val <= 50:
+                            return "Nitrox (Other)"
+                        elif o2_val > 50:
+                            return "Deco Gas"
+        except:
+            pass
+            
+        lower_str = str(gas_str).lower()
+        if 'trimix' in lower_str or 'tx' in lower_str:
+            return "Trimix"
+        elif 'nitrox 32' in lower_str or 'ean32' in lower_str or 'nx32' in lower_str:
+            return "Nitrox 32"
+        elif 'nitrox 36' in lower_str or 'ean36' in lower_str or 'nx36' in lower_str:
+            return "Nitrox 36"
+        elif 'nitrox' in lower_str or 'nx' in lower_str or 'ean' in lower_str:
+            return "Nitrox (Other)"
+        elif 'o2' in lower_str or 'oxygen' in lower_str or 'deco' in lower_str:
+            return "Deco Gas"
+        return "Air"
+
+    def get_gas_depth_bin(depth):
+        if depth is None:
+            return None
+        d = float(depth)
+        if d <= 18: return "0-18m"
+        if d <= 30: return "18-30m"
+        if d <= 40: return "30-40m"
+        if d <= 50: return "40-50m"
+        return "50m+"
+
+    for d_id, d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
+        if d_max is not None:
+            gas_mix_label = parse_gas_mix(d_gas)
+            depth_bin = get_gas_depth_bin(d_max)
+            if depth_bin:
+                key = f"{gas_mix_label}|{depth_bin}"
+                gas_mix_counts[key] = gas_mix_counts.get(key, 0) + 1
+
+    gas_mix_heatmap = [
+        {"mix": k.split('|')[0], "depth_bin": k.split('|')[1], "count": v}
+        for k, v in gas_mix_counts.items()
+    ]
+
+    # 3. Country Distribution aggregation
+    country_query = db.query(DiveSite.country, func.count(Dive.id)).join(
+        Dive, Dive.dive_site_id == DiveSite.id
+    ).filter(
+        Dive.user_id == user.id,
+        Dive.is_private == False,
+        DiveSite.country.isnot(None),
+        DiveSite.country != ""
+    ).group_by(DiveSite.country).all()
+    
+    country_distribution = [
+        {"country": country, "count": count}
+        for country, count in country_query
+    ]
+
     return AdvancedAnalyticsResponse(
       depth_density_heatmap=depth_density_heatmap,
       sac_vs_depth=sac_vs_depth,
@@ -1343,7 +1497,12 @@ async def get_user_advanced_analytics(
       depth_over_time=depth_over_time,
       dives_per_gas_config=dives_per_gas_config,
       weight_vs_gear=weight_vs_gear,
-      weight_over_time=weight_over_time
+      weight_over_time=weight_over_time,
+      dive_style_radar=dive_style_radar,
+      boat_dive_pct=boat_dive_pct,
+      shore_dive_pct=shore_dive_pct,
+      gas_mix_heatmap=gas_mix_heatmap,
+      country_distribution=country_distribution
     )
 
 
