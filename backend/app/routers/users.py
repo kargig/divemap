@@ -1416,37 +1416,59 @@ async def get_user_advanced_analytics(
                     gas = bg.get('gas', {})
                     o2 = gas.get('o2')
                     he = gas.get('he')
-                    
+
                     if o2 is not None:
                         o2_val = float(o2)
                         he_val = float(he) if he is not None else 0
-                        
+
                         if he_val > 0:
                             return "Trimix"
                         elif o2_val <= 21:
                             return "Air"
+                        elif 22 <= o2_val <= 27:
+                            return "Nitrox 22-27"
+                        elif o2_val == 28:
+                            return "Nitrox 28"
+                        elif 29 <= o2_val <= 31:
+                            return "Nitrox 29-31"
                         elif o2_val == 32:
                             return "Nitrox 32"
+                        elif 33 <= o2_val <= 35:
+                            return "Nitrox 33-35"
                         elif o2_val == 36:
                             return "Nitrox 36"
-                        elif 21 < o2_val <= 50:
-                            return "Nitrox (Other)"
-                        elif o2_val > 50:
-                            return "Deco Gas"
+                        elif 37 <= o2_val <= 42:
+                            return "Nitrox 37-42"
+                        elif 43 <= o2_val <= 48:
+                            return "Nitrox 43-48"
+                        elif o2_val >= 49:
+                            return "Deco Gas (49+)"
         except:
             pass
-            
+
         lower_str = str(gas_str).lower()
         if 'trimix' in lower_str or 'tx' in lower_str:
             return "Trimix"
+        elif 'nitrox 22-27' in lower_str or 'ean22' in lower_str or 'ean25' in lower_str or 'ean27' in lower_str:
+            return "Nitrox 22-27"
+        elif 'nitrox 28' in lower_str or 'ean28' in lower_str or 'nx28' in lower_str:
+            return "Nitrox 28"
+        elif 'nitrox 29-31' in lower_str or 'ean30' in lower_str or 'ean31' in lower_str:
+            return "Nitrox 29-31"
         elif 'nitrox 32' in lower_str or 'ean32' in lower_str or 'nx32' in lower_str:
             return "Nitrox 32"
+        elif 'nitrox 33-35' in lower_str or 'ean34' in lower_str or 'ean35' in lower_str:
+            return "Nitrox 33-35"
         elif 'nitrox 36' in lower_str or 'ean36' in lower_str or 'nx36' in lower_str:
             return "Nitrox 36"
+        elif 'nitrox 37-42' in lower_str or 'ean40' in lower_str or 'nx40' in lower_str:
+            return "Nitrox 37-42"
+        elif 'nitrox 43-48' in lower_str or 'ean45' in lower_str or 'nx45' in lower_str:
+            return "Nitrox 43-48"
+        elif 'deco' in lower_str or 'ean50' in lower_str or 'oxygen' in lower_str or 'o2' in lower_str or 'deco gas' in lower_str:
+            return "Deco Gas (49+)"
         elif 'nitrox' in lower_str or 'nx' in lower_str or 'ean' in lower_str:
-            return "Nitrox (Other)"
-        elif 'o2' in lower_str or 'oxygen' in lower_str or 'deco' in lower_str:
-            return "Deco Gas"
+            return "Nitrox 32"  # default standard
         return "Air"
 
     def get_gas_depth_bin(depth):

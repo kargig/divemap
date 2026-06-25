@@ -1,7 +1,19 @@
 import { HelpCircle } from 'lucide-react';
 import React from 'react';
 
-const GAS_MIXES = ['Trimix', 'Nitrox 32', 'Nitrox 36', 'Nitrox (Other)', 'Deco Gas', 'Air'];
+const GAS_MIXES = [
+  'Trimix',
+  'Deco Gas (49+)',
+  'Nitrox 43-48',
+  'Nitrox 37-42',
+  'Nitrox 36',
+  'Nitrox 33-35',
+  'Nitrox 32',
+  'Nitrox 29-31',
+  'Nitrox 28',
+  'Nitrox 22-27',
+  'Air',
+];
 const DEPTH_BINS = ['0-18m', '18-30m', '30-40m', '40-50m', '50m+'];
 
 const GasMixHeatmap = ({ data }) => {
@@ -35,9 +47,19 @@ const GasMixHeatmap = ({ data }) => {
 
   // Check safe Maximum Operating Depth (MOD) based on PO2 limit of 1.4 bar
   const isMODExceeded = (mix, bin) => {
-    if (mix === 'Nitrox 32' && ['30-40m', '40-50m', '50m+'].includes(bin)) return true;
-    if (mix === 'Nitrox 36' && ['30-40m', '40-50m', '50m+'].includes(bin)) return true;
-    if (mix === 'Deco Gas' && ['18-30m', '30-40m', '40-50m', '50m+'].includes(bin)) return true;
+    const deepBins = ['30-40m', '40-50m', '50m+'];
+    const midDeepBins = ['18-30m', '30-40m', '40-50m', '50m+'];
+
+    if (mix === 'Air' && bin === '50m+') return true;
+    if (mix === 'Nitrox 22-27' && ['40-50m', '50m+'].includes(bin)) return true;
+    if (mix === 'Nitrox 28' && deepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 29-31' && deepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 32' && deepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 33-35' && deepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 36' && midDeepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 37-42' && midDeepBins.includes(bin)) return true;
+    if (mix === 'Nitrox 43-48' && midDeepBins.includes(bin)) return true;
+    if (mix === 'Deco Gas (49+)' && midDeepBins.includes(bin)) return true;
     return false;
   };
 
@@ -54,14 +76,25 @@ const GasMixHeatmap = ({ data }) => {
         <div className='flex min-w-max'>
           {/* Y-Axis Labels (Gas Mixes) */}
           <div className='flex flex-col gap-1 pr-3 mt-[52px] sm:mt-[64px]'>
-            {GAS_MIXES.map(mix => (
-              <div
-                key={mix}
-                className='h-8 sm:h-12 lg:h-14 flex items-center justify-end text-[10px] sm:text-xs font-semibold text-gray-500 w-24 text-right'
-              >
-                {mix}
-              </div>
-            ))}
+            {GAS_MIXES.map(mix => {
+              const isStandardMix = ['Nitrox 28', 'Nitrox 32', 'Nitrox 36'].includes(mix);
+              return (
+                <div
+                  key={mix}
+                  className='h-8 sm:h-12 lg:h-14 flex items-center justify-end w-28 sm:w-32'
+                >
+                  <span
+                    className={`text-[9px] sm:text-xs text-right whitespace-nowrap ${
+                      isStandardMix
+                        ? 'font-extrabold text-blue-700 bg-blue-50/70 border border-blue-100 rounded px-1.5 py-0.5 shadow-sm'
+                        : 'font-semibold text-gray-500'
+                    }`}
+                  >
+                    {mix}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Grid Matrix Area */}
@@ -84,11 +117,16 @@ const GasMixHeatmap = ({ data }) => {
                   {GAS_MIXES.map(mix => {
                     const count = dataMap[`${mix}|${bin}`] || 0;
                     const modViolation = isMODExceeded(mix, bin) && count > 0;
+                    const isStandardRow = ['Nitrox 28', 'Nitrox 32', 'Nitrox 36'].includes(mix);
+                    const standardHighlight =
+                      isStandardRow && count > 0 && !modViolation
+                        ? 'ring-1 ring-blue-500/50 ring-offset-[1px]'
+                        : '';
 
                     return (
                       <div
                         key={`${mix}-${bin}`}
-                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${
+                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
                           modViolation
                             ? 'bg-rose-50 border-2 border-rose-300 hover:ring-rose-400'
                             : getColor(count)
