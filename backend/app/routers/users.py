@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, File, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from typing import List, Optional
 import uuid
@@ -12,7 +12,8 @@ from app.schemas import (
     ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
     UserSocialLinkCreate, UserSocialLinkResponse,
     PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse, AdvancedAnalyticsResponse,
-    AvatarUpdate, AvatarType, VisitedDiveSiteResponse
+    AvatarUpdate, AvatarType, VisitedDiveSiteResponse,
+    MyCommentsListResponse, MyRatingsListResponse
 )
 from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
 from app.services.r2_storage_service import r2_storage
@@ -1705,6 +1706,73 @@ async def delete_api_key(
     db.commit()
     
     return {"message": "API key deleted successfully"}
+
+
+# User Profile Comments/Ratings History (Private to the user)
+@router.get("/me/comments", response_model=MyCommentsListResponse)
+async def get_my_comments(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(15, ge=1, le=50),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Retrieve comments made by the current logged-in user with pagination"""
+    query = db.query(SiteComment).filter(SiteComment.user_id == current_user.id)
+    total_count = query.count()
+    
+    total_pages = (total_count + page_size - 1) // page_size
+    offset = (page - 1) * page_size
+    
+    comments = (
+        query.options(joinedload(SiteComment.dive_site))
+        .order_by(SiteComment.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+    
+    return {
+        "items": comments,
+        "total": total_count,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+        "has_next_page": page < total_pages,
+        "has_prev_page": page > 1
+    }
+
+
+@router.get("/me/ratings", response_model=MyRatingsListResponse)
+async def get_my_ratings(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Retrieve ratings submitted by the current logged-in user with pagination"""
+    query = db.query(SiteRating).filter(SiteRating.user_id == current_user.id)
+    total_count = query.count()
+    
+    total_pages = (total_count + page_size - 1) // page_size
+    offset = (page - 1) * page_size
+    
+    ratings = (
+        query.options(joinedload(SiteRating.dive_site))
+        .order_by(SiteRating.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+        .all()
+    )
+    
+    return {
+        "items": ratings,
+        "total": total_count,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": total_pages,
+        "has_next_page": page < total_pages,
+        "has_prev_page": page > 1
+    }
 
 
 # Personal Access Token (PAT) Management

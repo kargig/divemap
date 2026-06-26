@@ -1547,6 +1547,56 @@ class RouteDeletionCheck(BaseModel):
     requires_migration: bool = False
 
 
+# User Profile Comments/Ratings History
+class MyCommentItem(BaseModel):
+    id: int
+    comment_text: str
+    created_at: datetime
+    updated_at: datetime
+    dive_site: Optional[DiveSiteBasic] = None
+
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
+        return normalize_datetime_to_utc(cls, v)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MyCommentsListResponse(BaseModel):
+    items: List[MyCommentItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next_page: bool
+    has_prev_page: bool
+
+
+class MyRatingItem(BaseModel):
+    id: int
+    score: float
+    created_at: datetime
+    dive_site: Optional[DiveSiteBasic] = None
+
+    @field_validator('created_at', mode='before')
+    @classmethod
+    def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
+        return normalize_datetime_to_utc(cls, v)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MyRatingsListResponse(BaseModel):
+    items: List[MyRatingItem]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next_page: bool
+    has_prev_page: bool
+
+
 # Notification Schemas
 class NotificationResponse(BaseModel):
     """Notification response model"""

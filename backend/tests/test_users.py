@@ -578,3 +578,71 @@ class TestPublicUserProfile:
         response_forbidden = client.get(f"/api/v1/users/{test_user.username}/visited-sites", headers=other_headers)
         assert response_forbidden.status_code == status.HTTP_403_FORBIDDEN
         assert "not authorized to view" in response_forbidden.json()["detail"]
+
+
+class TestUserProfileFeedbackHistory:
+    def test_get_my_comments_success(self, client, test_user, test_dive_site, db_session, auth_headers):
+        """Test retrieving comments made by the current user with pagination"""
+        from app.models import SiteComment
+        from datetime import datetime, timezone, timedelta
+        
+        # Create some comments for the user with distinct timestamps for sorting
+        now = datetime.now(timezone.utc)
+        comment1 = SiteComment(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            comment_text="Great dive site!",
+            created_at=now - timedelta(minutes=5)
+        )
+        comment2 = SiteComment(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            comment_text="Visibility was okay.",
+            created_at=now
+        )
+        db_session.add(comment1)
+        db_session.add(comment2)
+        db_session.commit()
+
+        # Retrieve comments
+        response = client.get("/api/v1/users/me/comments", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["total"] == 2
+        assert len(data["items"]) == 2
+        assert data["items"][0]["comment_text"] == "Visibility was okay."  # desc order
+        assert data["items"][0]["dive_site"]["id"] == test_dive_site.id
+        assert data["items"][0]["dive_site"]["name"] == test_dive_site.name
+
+    def test_get_my_comments_unauthorized(self, client):
+        """Test retrieving comments without authorization fails"""
+        response = client.get("/api/v1/users/me/comments")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_my_ratings_success(self, client, test_user, test_dive_site, db_session, auth_headers):
+        """Test retrieving ratings submitted by the current user with pagination"""
+        from app.models import SiteRating
+        
+        # Create some ratings for the user
+        rating1 = SiteRating(
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            score=8
+        )
+        db_session.add(rating1)
+        db_session.commit()
+
+        # Retrieve ratings
+        response = client.get("/api/v1/users/me/ratings", headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["score"] == 8
+        assert data["items"][0]["dive_site"]["id"] == test_dive_site.id
+        assert data["items"][0]["dive_site"]["name"] == test_dive_site.name
+
+    def test_get_my_ratings_unauthorized(self, client):
+        """Test retrieving ratings without authorization fails"""
+        response = client.get("/api/v1/users/me/ratings")
+        assert response.status_code == status.HTTP_403_FORBIDDEN

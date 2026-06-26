@@ -79,6 +79,8 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
+const MyComments = lazy(() => import('./pages/MyComments'));
+const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
 const PersonalAccessTokens = lazy(() => import('./pages/PersonalAccessTokens'));
 const Register = lazy(() => import('./pages/Register'));
@@ -286,6 +288,22 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/comments'
+              element={
+                <ProtectedRoute>
+                  <MyComments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/ratings'
+              element={
+                <ProtectedRoute>
+                  <MyRatings />
                 </ProtectedRoute>
               }
             />

@@ -267,6 +267,17 @@ export const getUserAdvancedAnalytics = async username => {
   return response.data;
 };
 
+// Logged-in user private feedback history API functions
+export const getMyComments = async (params = {}) => {
+  const response = await api.get('/api/v1/users/me/comments', { params });
+  return response.data;
+};
+
+export const getMyRatings = async (params = {}) => {
+  const response = await api.get('/api/v1/users/me/ratings', { params });
+  return response.data;
+};
+
 // User search API function for buddy selection and filtering
 export const searchUsers = async (query, limit = 25, includeSelf = false) => {
   const response = await api.get('/api/v1/users/search', {

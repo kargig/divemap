@@ -1,6 +1,7 @@
 /* global Notification */
-import { Modal } from 'antd';
+import { Modal, Dropdown } from 'antd';
 import {
+  MoreVertical,
   User,
   Mail,
   Calendar,
@@ -471,15 +472,15 @@ const Profile = () => {
     if (features.length === 0) return null;
 
     return (
-      <div className='flex flex-wrap gap-1.5 mt-2'>
+      <div className='flex flex-wrap gap-1.5 mt-3 sm:mt-2 w-full'>
         {features.map((f, i) => (
           <div
             key={i}
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-bold ${f.color} max-w-full`}
+            className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-2 sm:py-0.5 rounded-md sm:rounded border text-[11px] sm:text-xs font-bold ${f.color} max-w-full`}
             title={f.title}
           >
             {f.icon}
-            <span className='truncate'>{f.label}</span>
+            <span className='whitespace-normal break-words leading-tight'>{f.label}</span>
           </div>
         ))}
       </div>
@@ -1355,72 +1356,86 @@ const Profile = () => {
                   {certifications.map(cert => (
                     <div
                       key={cert.id}
-                      className={`p-4 border rounded-lg ${
+                      className={`relative p-3 sm:p-4 border rounded-lg ${
                         cert.is_active
                           ? 'border-green-200 bg-green-50'
                           : 'border-gray-200 bg-gray-50'
                       }`}
                     >
-                      <div className='flex items-start gap-4'>
-                        {/* Left side: Logo + Actions */}
-                        <div className='flex flex-col items-center space-y-2 shrink-0'>
+                      <div className='flex flex-col'>
+                        {/* Top Header: Logo + Info */}
+                        <div className='flex items-start gap-3 sm:gap-4 pr-10'>
                           <Link
                             to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='transition-transform hover:scale-105'
+                            className='transition-transform hover:scale-105 shrink-0'
                             title={`View ${cert.diving_organization.acronym} details`}
                           >
                             <OrganizationLogo
                               org={cert.diving_organization}
-                              size='h-12 w-12'
-                              textSize='text-sm'
+                              size='h-10 w-10 sm:h-12 sm:w-12'
+                              textSize='text-xs sm:text-sm'
                             />
                           </Link>
-                          <div className='flex flex-col items-center space-y-0'>
-                            <button
-                              onClick={() => startEditCertification(cert)}
-                              className='p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-100 rounded-full transition-colors'
-                              title='Edit'
+
+                          {/* Info */}
+                          <div className='flex-1 min-w-0'>
+                            <Link
+                              to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
+                              className='block group'
                             >
-                              <Edit className='h-4 w-4' />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCertification(cert.id)}
-                              className='p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors'
-                              title='Delete'
-                            >
-                              <Trash2 className='h-4 w-4' />
-                            </button>
+                              <div className='flex items-start sm:items-center space-x-2'>
+                                <div
+                                  className={`h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full shrink-0 mt-1 sm:mt-0 ${
+                                    cert.is_active
+                                      ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]'
+                                      : 'bg-gray-400'
+                                  }`}
+                                  title={cert.is_active ? 'Active' : 'Inactive'}
+                                />
+                                <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors block text-sm sm:text-base whitespace-normal break-words'>
+                                  {cert.diving_organization.acronym} - {cert.certification_level}
+                                </span>
+                              </div>
+                            </Link>
                           </div>
                         </div>
 
-                        {/* Right side: Info */}
-                        <div className='flex-1 min-w-0'>
-                          <Link
-                            to={`/resources/diving-organizations?org=${encodeURIComponent(cert.diving_organization.acronym || cert.diving_organization.name)}&course=${encodeURIComponent(cert.certification_level)}`}
-                            className='block group'
+                        {/* Bottom Row: Full Width Badges */}
+                        {renderCertificationFeatures(cert)}
+                      </div>
+
+                      {/* Absolute Top-Right Dropdown (Kebab Menu) */}
+                      <div className='absolute top-2 right-2 sm:top-3 sm:right-3'>
+                        <Dropdown
+                          menu={{
+                            items: [
+                              {
+                                key: 'edit',
+                                icon: <Edit size={14} />,
+                                label: 'Edit Certification',
+                                onClick: () => startEditCertification(cert),
+                              },
+                              {
+                                type: 'divider',
+                              },
+                              {
+                                key: 'delete',
+                                icon: <Trash2 size={14} className='text-red-500' />,
+                                label: <span className='text-red-500 font-medium'>Delete</span>,
+                                onClick: () => handleDeleteCertification(cert.id),
+                              },
+                            ],
+                          }}
+                          trigger={['click']}
+                          placement='bottomRight'
+                        >
+                          <button
+                            className='p-1.5 text-gray-400 hover:text-gray-800 hover:bg-gray-200 rounded-full transition-colors flex items-center justify-center'
+                            title='More Actions'
                           >
-                            <div className='flex items-center space-x-2 mb-2'>
-                              <div
-                                className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                  cert.is_active
-                                    ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]'
-                                    : 'bg-gray-400'
-                                }`}
-                                title={cert.is_active ? 'Active' : 'Inactive'}
-                              />
-                              <span className='font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors truncate block'>
-                                {cert.diving_organization.acronym} - {cert.certification_level}
-                              </span>
-                            </div>
-                          </Link>
-
-                          <div className='text-sm text-gray-600 space-y-1'>
-                            <p className='hidden md:block text-xs uppercase tracking-tighter opacity-70'>
-                              Organization: {cert.diving_organization.name}
-                            </p>
-                            {renderCertificationFeatures(cert)}
-                          </div>
-                        </div>
+                            <MoreVertical className='h-5 w-5' />
+                          </button>
+                        </Dropdown>
                       </div>
                     </div>
                   ))}
@@ -1509,18 +1524,28 @@ const Profile = () => {
                     <Star size={16} className='text-gray-400 shrink-0' />
                     <span className='text-gray-600 truncate'>Dive Site Rated</span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
-                    {userStats?.dive_sites_rated || 0}
-                  </span>
+                  <div className='shrink-0'>
+                    <Link
+                      to='/profile/ratings'
+                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                    >
+                      {userStats?.dive_sites_rated || 0}
+                    </Link>
+                  </div>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <MessageSquare size={16} className='text-gray-400 shrink-0' />
                     <span className='text-gray-600 truncate'>Comments Posted</span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
-                    {userStats?.comments_posted || 0}
-                  </span>
+                  <div className='shrink-0'>
+                    <Link
+                      to='/profile/comments'
+                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                    >
+                      {userStats?.comments_posted || 0}
+                    </Link>
+                  </div>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
