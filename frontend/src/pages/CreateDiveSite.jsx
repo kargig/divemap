@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import api from '../api';
 import { FormField } from '../components/forms/FormField';
+import TagSelection from '../components/forms/TagSelection';
 import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import MarkdownEditor from '../components/ui/MarkdownEditor';
@@ -90,6 +91,9 @@ const CreateDiveSite = () => {
   // Store converted Flickr URLs (Map: original URL -> direct image URL)
   const [convertedFlickrUrls, setConvertedFlickrUrls] = useState(() => new Map());
 
+  // Tag management state
+  const [selectedTags, setSelectedTags] = useState([]);
+
   // Proximity check and moderation state
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [nearbySites, setNearbySites] = useState([]);
@@ -140,6 +144,16 @@ const CreateDiveSite = () => {
   const createDiveSiteMutation = useMutation(
     async data => {
       const response = await api.post('/api/v1/dive-sites/', data);
+      const siteId = response.data.id;
+
+      // Associate selected tags
+      if (selectedTags.length > 0 && siteId) {
+        const tagPromises = selectedTags.map(tagId =>
+          api.post(`/api/v1/tags/dive-sites/${siteId}/tags`, { tag_id: tagId })
+        );
+        await Promise.all(tagPromises);
+      }
+
       return response.data;
     },
     {
@@ -1007,6 +1021,9 @@ const CreateDiveSite = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Tags Management */}
+              <TagSelection selectedTags={selectedTags} setSelectedTags={setSelectedTags} />
 
               {/* Form Actions */}
               <div className='flex justify-end space-x-4 pt-6 border-t'>
