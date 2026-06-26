@@ -76,16 +76,22 @@ def calculate_similarity(str1: str, str2: str) -> float:
 
     # Method 2: Word-based similarity
     import re
-    common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'dive', 'site', 'reef', 'rock', 'point', 'bay', 'beach'}
+    common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'dive', 'site', 'reef', 'rock', 'point', 'bay', 'beach', 's', 'ss', 'mv', 'ms', 'hms', 'wreck', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'}
     str1_words = set(re.findall(r'\b\w+\b', str1_lower)) - common_words
     str2_words = set(re.findall(r'\b\w+\b', str2_lower)) - common_words
 
+    subset_similarity = 0.0
     if not str1_words and not str2_words:
         word_similarity = 0.0
     else:
         intersection = str1_words.intersection(str2_words)
         union = str1_words.union(str2_words)
         word_similarity = len(intersection) / len(union) if union else 0.0
+        
+        # Token-subset matching rule:
+        # If all significant words of one name are present in the other name, they are highly relevant
+        if str1_words and str2_words and (str1_words.issubset(str2_words) or str2_words.issubset(str1_words)):
+            subset_similarity = 0.8
 
     # Method 3: Substring matching
     substring_similarity = 0.0
@@ -94,7 +100,7 @@ def calculate_similarity(str1: str, str2: str) -> float:
             substring_similarity = 0.9
 
     # Return the highest similarity score
-    return max(sequence_similarity, word_similarity, substring_similarity)
+    return max(sequence_similarity, word_similarity, substring_similarity, subset_similarity)
 
 def find_potential_matches(search_term, data_list, threshold=0.6):
     """Generic fuzzy matcher for a list of objects with a 'name' attribute"""

@@ -208,3 +208,20 @@ export const importSuuntoJSON = async file => {
   });
   return response.data;
 };
+
+/**
+ * Import dives from Shearwater Cloud SQLite database file
+ * @param {File} file
+ * @returns {Promise<Object>}
+ */
+export const importShearwaterDB = async file => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await api.post('/api/v1/dives/import/shearwater-db', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};

@@ -173,7 +173,132 @@ export const fuzzySearch = (data, query, configType = 'generic') => {
       : configType;
 
   const fuse = createFuzzySearch(data, config);
-  const results = fuse.search(query);
+  let results = fuse.search(query);
+
+  // Word-aware search boost (aligning client-side fuzzySearch with backend's word-level optimizations)
+  const cleanQuery = query.toLowerCase().trim();
+  const stopwords = [
+    'the',
+    'a',
+    'an',
+    'and',
+    'or',
+    'but',
+    'in',
+    'on',
+    'at',
+    'to',
+    'for',
+    'of',
+    'with',
+    'by',
+    'dive',
+    'site',
+    'reef',
+    'rock',
+    'point',
+    'bay',
+    'beach',
+    's',
+    'ss',
+    'mv',
+    'ms',
+    'hms',
+    'wreck',
+    'i',
+    'ii',
+    'iii',
+    'iv',
+    'v',
+    'vi',
+    'vii',
+    'viii',
+    'ix',
+    'x',
+  ];
+  const queryWords = cleanQuery.split(/\W+/).filter(w => w.length > 1 && !stopwords.includes(w));
+
+  if (queryWords.length > 0) {
+    const wordMatches = [];
+    const existingIds = new Set(results.map(r => r.item.id || r.refIndex));
+
+    data.forEach((item, index) => {
+      const id = item.id || index;
+      const itemName = (item.name || item.title || '').toLowerCase();
+      const itemAliases = (item.aliases || '').toLowerCase();
+      const itemRegion = (item.region || '').toLowerCase();
+      const itemCountry = (item.country || '').toLowerCase();
+
+      let matchedWords = 0;
+      queryWords.forEach(word => {
+        if (
+          itemName.includes(word) ||
+          itemAliases.includes(word) ||
+          itemRegion.includes(word) ||
+          itemCountry.includes(word)
+        ) {
+          matchedWords += 1;
+        }
+      });
+
+      // Split item name into clean words for exact set comparison
+      const itemWords = itemName.split(/\W+/).filter(w => w.length > 1 && !stopwords.includes(w));
+      let isSubset = false;
+      if (itemWords.length > 0 && queryWords.length > 0) {
+        const itemWordSet = new Set(itemWords);
+        const queryWordSet = new Set(queryWords);
+        const isItemSubsetOfQuery = itemWords.every(w => queryWordSet.has(w));
+        const isQuerySubsetOfItem = queryWords.every(w => itemWordSet.has(w));
+        isSubset = isItemSubsetOfQuery || isQuerySubsetOfItem;
+      }
+
+      if (matchedWords > 0) {
+        // Higher ratio of matching words = better score (closer to 0.0)
+        const wordRatio = matchedWords / queryWords.length;
+        // Map ratio [0..1] to Fuse.js score [0.1..0.6]
+        let wordScore = 0.6 - wordRatio * 0.5;
+
+        // If it is a subset (e.g., "Avantis" and "Avantis III"), give it a very high score boost!
+        if (isSubset) {
+          wordScore = Math.min(wordScore, 0.15);
+        }
+
+        if (existingIds.has(id)) {
+          // Boost score of existing result
+          results = results.map(r => {
+            const rId = r.item.id || r.refIndex;
+            if (rId === id) {
+              return {
+                ...r,
+                score: Math.min(r.score || 1.0, wordScore),
+              };
+            }
+            return r;
+          });
+        } else {
+          // Add as new word-matched result
+          wordMatches.push({
+            item,
+            refIndex: index,
+            score: wordScore,
+            matches: queryWords
+              .filter(word => itemName.includes(word))
+              .map(word => {
+                const start = itemName.indexOf(word);
+                return {
+                  key: 'name',
+                  value: item.name || item.title || '',
+                  indices: [[start, start + word.length - 1]],
+                };
+              }),
+          });
+        }
+      }
+    });
+
+    // Combine and re-sort by score ascending
+    results = [...results, ...wordMatches].sort((a, b) => (a.score || 0) - (b.score || 0));
+  }
 
   return results;
 };

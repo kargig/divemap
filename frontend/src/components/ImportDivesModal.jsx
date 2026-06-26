@@ -22,6 +22,7 @@ import {
   processCSVImport,
   importGarminFIT,
   importSuuntoJSON,
+  importShearwaterDB,
 } from '../services/dives';
 import { extractErrorMessage } from '../utils/apiErrors';
 import { formatDate, formatTime } from '../utils/dateHelpers';
@@ -42,10 +43,34 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState('upload'); // 'upload', 'mapping', 'review', 'importing'
   const [isProcessing, setIsProcessing] = useState(false);
   const [diveSiteSearchStrings, setDiveSiteSearchStrings] = useState({});
+  const [diveCenterSearchStrings, setDiveCenterSearchStrings] = useState({});
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [csvSampleData, setCsvSampleData] = useState([]);
   const [csvTotalRows, setCsvTotalRows] = useState(0);
   const [fieldMapping, setFieldMapping] = useState({});
+
+  const prefillSearchStrings = (dives, sites, centers) => {
+    const initialSiteSearchStrings = {};
+    const initialCenterSearchStrings = {};
+
+    dives.forEach((dive, index) => {
+      if (dive.dive_site_id) {
+        const site = sites.find(s => s.id === dive.dive_site_id);
+        if (site) {
+          initialSiteSearchStrings[index] = site.name;
+        }
+      }
+      if (dive.diving_center_id) {
+        const center = centers.find(c => c.id === dive.diving_center_id);
+        if (center) {
+          initialCenterSearchStrings[index] = center.name;
+        }
+      }
+    });
+
+    setDiveSiteSearchStrings(initialSiteSearchStrings);
+    setDiveCenterSearchStrings(initialCenterSearchStrings);
+  };
 
   // Import mutation
   const importMutation = useMutation(importSubsurfaceXML, {
@@ -56,16 +81,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       setAvailableDiveSites(sites);
 
       // Pre-fill search strings for dives that already have a site selected
-      const initialSearchStrings = {};
-      dives.forEach((dive, index) => {
-        if (dive.dive_site_id) {
-          const site = sites.find(s => s.id === dive.dive_site_id);
-          if (site) {
-            initialSearchStrings[index] = site.name;
-          }
-        }
-      });
-      setDiveSiteSearchStrings(initialSearchStrings);
+      prefillSearchStrings(dives, sites, []);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -139,17 +155,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings
-      const initialSearchStrings = {};
-      dives.forEach((dive, index) => {
-        if (dive.dive_site_id) {
-          const site = sites.find(s => s.id === dive.dive_site_id);
-          if (site) {
-            initialSearchStrings[index] = site.name;
-          }
-        }
-      });
-      setDiveSiteSearchStrings(initialSearchStrings);
+      // Pre-fill search strings for sites and centers
+      prefillSearchStrings(dives, sites, centers);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -175,17 +182,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings
-      const initialSearchStrings = {};
-      dives.forEach((dive, index) => {
-        if (dive.dive_site_id) {
-          const site = sites.find(s => s.id === dive.dive_site_id);
-          if (site) {
-            initialSearchStrings[index] = site.name;
-          }
-        }
-      });
-      setDiveSiteSearchStrings(initialSearchStrings);
+      // Pre-fill search strings for sites and centers
+      prefillSearchStrings(dives, sites, centers);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -207,17 +205,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       const centers = data.available_diving_centers || [];
       setAvailableDivingCenters(centers);
 
-      // Pre-fill search strings
-      const initialSearchStrings = {};
-      dives.forEach((dive, index) => {
-        if (dive.dive_site_id) {
-          const site = sites.find(s => s.id === dive.dive_site_id);
-          if (site) {
-            initialSearchStrings[index] = site.name;
-          }
-        }
-      });
-      setDiveSiteSearchStrings(initialSearchStrings);
+      // Pre-fill search strings for sites and centers
+      prefillSearchStrings(dives, sites, centers);
 
       setCurrentStep('review');
       setIsProcessing(false);
@@ -225,6 +214,29 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     },
     onError: error => {
       toast.error(extractErrorMessage(error) || 'Failed to process Suunto JSON file');
+      setIsProcessing(false);
+    },
+  });
+
+  // Shearwater DB Import mutation
+  const shearwaterMutation = useMutation(importShearwaterDB, {
+    onSuccess: data => {
+      const dives = data.dives.map(dive => ({ ...dive, is_private: false }));
+      setParsedDives(dives);
+      const sites = data.available_dive_sites || [];
+      setAvailableDiveSites(sites);
+      const centers = data.available_diving_centers || [];
+      setAvailableDivingCenters(centers);
+
+      // Pre-fill search strings for sites and centers
+      prefillSearchStrings(dives, sites, centers);
+
+      setCurrentStep('review');
+      setIsProcessing(false);
+      toast.success(data.message);
+    },
+    onError: error => {
+      toast.error(extractErrorMessage(error) || 'Failed to process Shearwater database');
       setIsProcessing(false);
     },
   });
@@ -263,12 +275,16 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         name.endsWith('.xml') ||
         name.endsWith('.csv') ||
         name.endsWith('.fit') ||
-        name.endsWith('.json')
+        name.endsWith('.json') ||
+        name.endsWith('.db') ||
+        name.endsWith('.sqlite')
       );
     });
 
     if (validFiles.length !== files.length) {
-      toast.error('Only XML, CSV, Garmin FIT and Suunto JSON files are supported');
+      toast.error(
+        'Only XML, CSV, Garmin FIT, Suunto JSON and Shearwater DB (.db, .sqlite) files are supported'
+      );
     }
 
     setSelectedFiles(validFiles);
@@ -290,6 +306,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
       garminMutation.mutate(file);
     } else if (name.endsWith('.json')) {
       suuntoMutation.mutate(file);
+    } else if (name.endsWith('.db') || name.endsWith('.sqlite')) {
+      shearwaterMutation.mutate(file);
     } else {
       importMutation.mutate(file);
     }
@@ -344,10 +362,54 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     handleDiveSiteSearchChange(index, site.name);
   };
 
+  const handleDiveCenterSearchChange = (index, value) => {
+    setDiveCenterSearchStrings(prev => ({
+      ...prev,
+      [index]: value,
+    }));
+
+    // If input is cleared, remove diving center selection
+    if (!value || !value.trim()) {
+      setParsedDives(prev =>
+        prev.map((dive, i) =>
+          i === index ? { ...dive, diving_center_id: null, diving_center_name: null } : dive
+        )
+      );
+    }
+  };
+
+  const handleDiveCenterSelect = (index, center) => {
+    setParsedDives(prev =>
+      prev.map((dive, i) =>
+        i === index
+          ? {
+              ...dive,
+              diving_center_id: center.id,
+              diving_center_name: center.name,
+            }
+          : dive
+      )
+    );
+    setDiveCenterSearchStrings(prev => ({
+      ...prev,
+      [index]: center.name,
+    }));
+  };
+
   const handleSkipDive = index => {
     setParsedDives(prev =>
       prev.map((dive, i) => (i === index ? { ...dive, skip: !dive.skip } : dive))
     );
+  };
+
+  const handleSelectAllDives = () => {
+    setParsedDives(prev => prev.map(dive => ({ ...dive, skip: false })));
+    toast.success(`Selected all ${parsedDives.length} dives for import`);
+  };
+
+  const handleDeselectAllDives = () => {
+    setParsedDives(prev => prev.map(dive => ({ ...dive, skip: true })));
+    toast.success(`Skipped all ${parsedDives.length} dives`);
   };
 
   const handleMappingChange = (header, field) => {
@@ -398,44 +460,146 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
     });
   };
 
-  const renderBackGasSelector = (dive, index) => {
+  const handleTankSizeChange = (diveIndex, tankIndex, newTankId) => {
+    setParsedDives(prev => {
+      const newDives = [...prev];
+      const dive = { ...newDives[diveIndex] };
+
+      try {
+        const data = JSON.parse(dive.gas_bottles_used);
+        const tankDef = TANK_SIZES.find(t => t.id === newTankId);
+        if (!tankDef) return prev;
+
+        const updateTank = t => {
+          if (t.index === tankIndex) {
+            return {
+              ...t,
+              tank: tankDef.id,
+              size: tankDef.size,
+            };
+          }
+          return t;
+        };
+
+        const newBackGas = updateTank(data.back_gas);
+        const newStages = (data.stages || []).map(updateTank);
+
+        const newData = {
+          ...data,
+          back_gas: newBackGas,
+          stages: newStages,
+        };
+
+        dive.gas_bottles_used = JSON.stringify(newData);
+        newDives[diveIndex] = dive;
+      } catch (e) {
+        console.error('Failed to update tank size', e);
+      }
+      return newDives;
+    });
+  };
+
+  const renderCylinderReview = (dive, index) => {
     try {
       if (!dive.gas_bottles_used || !dive.gas_bottles_used.trim().startsWith('{')) return null;
 
       const data = JSON.parse(dive.gas_bottles_used);
-      if (!data.stages || data.stages.length === 0) return null;
-
-      const allTanks = [data.back_gas, ...data.stages].sort(
+      const allTanks = [data.back_gas, ...(data.stages || [])].sort(
         (a, b) => (a.index || 0) - (b.index || 0)
       );
 
       return (
-        <div className='flex items-center gap-2 mb-2'>
-          <span className='text-xs font-medium text-blue-700 bg-blue-50 px-2 py-1 rounded'>
-            Select Back Gas:
-          </span>
-          <select
-            className='border-gray-300 rounded-md text-xs py-1 pl-2 pr-8 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white'
-            value={data.back_gas.index !== undefined ? data.back_gas.index : 0}
-            onChange={e => handleBackGasChange(index, e.target.value)}
-            onClick={e => e.stopPropagation()}
-          >
+        <div
+          className='mt-2 bg-gray-50 dark:bg-zinc-900/10 p-3 rounded-lg border border-gray-150 dark:border-zinc-800 space-y-2'
+          onClick={e => e.stopPropagation()}
+        >
+          <div className='text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5'>
+            Configure Cylinders & Back Gas Selection:
+          </div>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
             {allTanks.map(tank => {
-              const tankDef = TANK_SIZES.find(t => t.id === tank.tank);
-              const name = tankDef ? tankDef.name : tank.tank;
-              const gas = tank.gas
+              const isBackGas = tank.index === data.back_gas.index;
+              const gasLabel = tank.gas
                 ? tank.gas.o2 === 21 && tank.gas.he === 0
                   ? 'Air'
                   : `EAN${tank.gas.o2}`
                 : 'Air';
-              const val = tank.index !== undefined ? tank.index : 0;
+
+              // Stage cylinders cannot be double tanks
+              const availableSizes = isBackGas ? TANK_SIZES : TANK_SIZES.filter(t => !t.isDoubles);
+
+              // Match originally parsed/imported tank size from profile cylinders list (which is read-only)
+              const initialCyl = dive.profile_data?.cylinders?.find(c => c.index === tank.index);
+              const initialCylSize = initialCyl?.size;
+
               return (
-                <option key={val} value={val}>
-                  {name} ({gas})
-                </option>
+                <div
+                  key={tank.index}
+                  className={`flex items-center justify-between p-2 rounded border transition-all ${
+                    isBackGas
+                      ? 'bg-blue-50/60 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800/50'
+                      : 'bg-white border-gray-200 dark:bg-zinc-900 dark:border-zinc-800'
+                  }`}
+                >
+                  <div className='flex items-center gap-2'>
+                    <input
+                      type='radio'
+                      id={`backgas-radio-${index}-${tank.index}`}
+                      name={`backgas-select-${index}`}
+                      value={tank.index}
+                      checked={isBackGas}
+                      onChange={e => handleBackGasChange(index, e.target.value)}
+                      className='text-blue-600 focus:ring-blue-500 w-3.5 h-3.5'
+                    />
+                    <label
+                      htmlFor={`backgas-radio-${index}-${tank.index}`}
+                      className='flex flex-col cursor-pointer'
+                    >
+                      <span
+                        className={`text-xs font-medium ${isBackGas ? 'text-blue-900 dark:text-blue-300 font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+                      >
+                        {isBackGas ? 'Back Gas' : `Stage ${tank.index}`}
+                      </span>
+                      <span className='text-[10px] text-gray-500 dark:text-zinc-400 font-mono'>
+                        {gasLabel}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className='flex items-center gap-1'>
+                    <select
+                      className={`rounded text-[11px] py-1 pl-1.5 pr-7 focus:border-blue-500 focus:ring-blue-500 shadow-sm border ${
+                        isBackGas
+                          ? 'border-blue-300 bg-white dark:bg-zinc-950 text-blue-950 dark:text-blue-200'
+                          : 'border-gray-300 bg-white dark:bg-zinc-950 text-gray-800 dark:text-zinc-200'
+                      }`}
+                      value={tank.tank}
+                      onChange={e => handleTankSizeChange(index, tank.index, e.target.value)}
+                    >
+                      {availableSizes.map(t => {
+                        const isParsed =
+                          initialCyl && initialCyl.parsed && t.size === initialCylSize;
+                        const label = isParsed ? `${t.name} (Parsed)` : t.name;
+                        return (
+                          <option
+                            key={t.id}
+                            value={t.id}
+                            className={
+                              isParsed
+                                ? 'text-green-600 font-bold bg-green-50 dark:bg-green-950/20'
+                                : ''
+                            }
+                          >
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
               );
             })}
-          </select>
+          </div>
         </div>
       );
     } catch (e) {
@@ -624,8 +788,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             <div>
               <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
               <p className='text-gray-600 mb-4'>
-                Select Subsurface XML, CSV (e.g. MySSI), Garmin FIT or Suunto JSON files to import
-                your dives.
+                Select Subsurface XML, CSV (e.g. MySSI), Garmin FIT, Suunto JSON or Shearwater DB
+                (.db, .sqlite) files to import your dives.
               </p>
             </div>
 
@@ -633,7 +797,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
               <div className='space-y-2'>
                 <p className='text-sm text-gray-600'>
-                  Drag and drop XML, CSV, FIT or JSON files here, or click to browse
+                  Drag and drop XML, CSV, FIT, JSON or Shearwater DB files here, or click to browse
                 </p>
                 <Button variant='secondary' onClick={() => fileInputRef.current?.click()}>
                   Select Files
@@ -642,7 +806,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <input
                 ref={fileInputRef}
                 type='file'
-                accept='.xml,.csv,.fit,.json'
+                accept='.xml,.csv,.fit,.json,.db,.sqlite'
                 onChange={handleFileSelect}
                 className='hidden'
               />
@@ -691,6 +855,29 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <p className='text-gray-600 mb-4'>
                 Review the parsed dives and adjust privacy settings before importing.
               </p>
+            </div>
+
+            <div className='flex items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
+              <span className='text-sm text-gray-600 font-medium'>
+                {parsedDives.filter(d => !d.skip).length} of {parsedDives.length} dives selected for
+                import
+              </span>
+              <div className='flex gap-2'>
+                <Button
+                  variant='secondary'
+                  onClick={handleSelectAllDives}
+                  className='text-xs py-1.5 px-3 h-auto'
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant='secondary'
+                  onClick={handleDeselectAllDives}
+                  className='text-xs py-1.5 px-3 h-auto'
+                >
+                  Skip All
+                </Button>
+              </div>
             </div>
 
             <div className='space-y-4'>
@@ -824,10 +1011,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     )}
                     {dive.gas_bottles_used && (
                       <div className='md:col-span-2'>
-                        <div className='flex justify-between items-center'>
-                          <span className='font-medium text-gray-700'>Gas Bottles:</span>
-                          {renderBackGasSelector(dive, index)}
-                        </div>
+                        <span className='font-medium text-gray-700'>Gas Bottles:</span>
                         <div className='mt-1'>
                           <GasTanksDisplay
                             gasData={dive.gas_bottles_used}
@@ -836,6 +1020,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                             profileData={dive.profile_data}
                           />
                         </div>
+                        {renderCylinderReview(dive, index)}
                       </div>
                     )}
                     {dive.dive_information && (
@@ -1004,21 +1189,15 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                           <Anchor size={14} className='text-blue-500' /> Diving Center:
                         </span>
                         <div className='mt-1'>
-                          {dive.diving_center_id ? (
-                            <div className='flex items-center gap-2'>
-                              <Anchor size={14} className='text-green-600' />
-                              <span className='text-sm text-gray-600 font-medium'>
-                                {dive.diving_center_name ||
-                                  availableDivingCenters.find(c => c.id === dive.diving_center_id)
-                                    ?.name ||
-                                  'Matched Center'}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className='text-xs text-gray-500 italic p-1 bg-gray-50 rounded border border-gray-100'>
-                              No matched center
-                            </div>
-                          )}
+                          <FuzzySearchInput
+                            data={availableDivingCenters}
+                            searchValue={diveCenterSearchStrings[index] || ''}
+                            onSearchChange={val => handleDiveCenterSearchChange(index, val)}
+                            onSearchSelect={center => handleDiveCenterSelect(index, center)}
+                            placeholder='Search for a diving center...'
+                            minQueryLength={2}
+                            configType='divingCenters'
+                          />
                         </div>
                       </div>
                     </div>
