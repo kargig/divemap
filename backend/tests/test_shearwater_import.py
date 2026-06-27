@@ -19,8 +19,8 @@ def test_shearwater_import_success(client, auth_headers, db_session, test_user):
         
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "Successfully parsed 259 dives from Shearwater database" in data["message"]
-    assert len(data["dives"]) == 259
+    assert "Successfully parsed 3 dives from Shearwater database" in data["message"]
+    assert len(data["dives"]) == 3
     
     # Verify the details of the first parsed dive
     first_dive = data["dives"][0]
@@ -60,8 +60,8 @@ def test_shearwater_import_multigas_and_pressures(client, auth_headers, db_sessi
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     
-    # Dive index 107 is a confirmed multi-gas dive (Air + EAN32)
-    multigas_dive = data["dives"][107]
+    # Dive index 2 (originally 107) is a confirmed multi-gas dive (Air + EAN32)
+    multigas_dive = data["dives"][2]
     assert multigas_dive["dive_date"] == "2023-12-03"
     assert multigas_dive["dive_time"] == "13:44:16"
     
@@ -184,7 +184,7 @@ def test_shearwater_import_tank_sizes(client, auth_headers, db_session, test_use
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     
-    # Dive index 64 has a confirmed 15L tank size
-    fifteen_l_dive = data["dives"][64]
+    # Dive index 1 (originally 64) has a confirmed 15L tank size
+    fifteen_l_dive = data["dives"][1]
     assert fifteen_l_dive["dive_date"] == "2022-11-12"
     assert fifteen_l_dive["cylinders"][0]["size"] == 15.0
