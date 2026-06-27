@@ -78,7 +78,7 @@ const Notifications = () => {
 
   if (error) {
     return (
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <div className='w-full'>
           <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
             <p className='text-red-800'>Error loading notifications. Please try again.</p>
@@ -94,7 +94,7 @@ const Notifications = () => {
         title='Notifications | Divemap'
         description='View your recent notifications, buddy requests, and updates.'
       />
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <div className='w-full'>
           {/* Header */}
           <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-transparent dark:border-gray-700'>

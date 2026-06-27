@@ -64,7 +64,7 @@ const GasMixHeatmap = ({ data }) => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow text-center animate-fade-in'>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow text-center animate-fade-in'>
       <h3 className='text-md font-semibold text-gray-800 mb-1 flex items-center justify-center gap-2'>
         Gas Mix vs. Maximum Depth Heatmap
       </h3>
@@ -75,13 +75,13 @@ const GasMixHeatmap = ({ data }) => {
       <div className='flex justify-center overflow-x-auto pb-4'>
         <div className='flex min-w-max'>
           {/* Y-Axis Labels (Gas Mixes) */}
-          <div className='flex flex-col gap-1 pr-3 mt-[44px] sm:mt-[56px]'>
+          <div className='flex flex-col gap-1 pr-2 sm:pr-3 mt-[40px] sm:mt-[56px]'>
             {GAS_MIXES.map(mix => {
               const isStandardMix = ['Nitrox 28', 'Nitrox 32', 'Nitrox 36'].includes(mix);
               return (
                 <div
                   key={mix}
-                  className='h-8 sm:h-9 lg:h-10 flex items-center justify-end w-28 sm:w-32'
+                  className='h-7 sm:h-9 lg:h-10 flex items-center justify-end w-24 sm:w-32'
                 >
                   <span
                     className={`text-[9px] sm:text-xs text-right whitespace-nowrap ${
@@ -102,7 +102,7 @@ const GasMixHeatmap = ({ data }) => {
             {/* X-Axis Labels (Depth bins) */}
             <div className='flex gap-1 mb-2'>
               {DEPTH_BINS.map(bin => (
-                <div key={bin} className='w-8 sm:w-14 lg:w-16 relative h-8 sm:h-10'>
+                <div key={bin} className='w-7 sm:w-14 lg:w-16 relative h-8 sm:h-10'>
                   <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 origin-bottom-left -rotate-45 whitespace-nowrap font-semibold'>
                     {bin}
                   </span>
@@ -126,7 +126,7 @@ const GasMixHeatmap = ({ data }) => {
                     return (
                       <div
                         key={`${mix}-${bin}`}
-                        className={`w-8 h-8 sm:w-14 sm:h-9 lg:w-16 lg:h-10 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
+                        className={`w-7 h-7 sm:w-14 sm:h-9 lg:w-16 lg:h-10 rounded-sm transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex flex-col items-center justify-center ${standardHighlight} ${
                           modViolation
                             ? 'bg-rose-50 border-2 border-rose-300 hover:ring-rose-400'
                             : getColor(count)

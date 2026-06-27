@@ -690,7 +690,7 @@ const DivingCenterDetail = () => {
   if (isLoading) {
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
-        <div className='max-w-4xl mx-auto px-4'>
+        <div className='max-w-4xl mx-auto'>
           <div className='bg-white rounded-lg shadow-md p-6'>
             <div className='animate-pulse'>
               <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
@@ -710,7 +710,7 @@ const DivingCenterDetail = () => {
     if (error.isRateLimited) {
       return (
         <div className='min-h-screen bg-gray-50 py-8'>
-          <div className='max-w-4xl mx-auto px-4'>
+          <div className='max-w-4xl mx-auto'>
             <div className='bg-white rounded-lg shadow-md p-6'>
               <RateLimitError
                 retryAfter={error.retryAfter}
@@ -735,7 +735,7 @@ const DivingCenterDetail = () => {
 
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
-        <div className='max-w-4xl mx-auto px-4'>
+        <div className='max-w-4xl mx-auto'>
           <div className='bg-white rounded-lg shadow-md p-6'>
             <h1 className='text-2xl font-bold text-red-600 mb-4'>Error</h1>
             <p className='text-gray-600'>Failed to load diving center: {getErrorMessage(error)}</p>
@@ -752,7 +752,7 @@ const DivingCenterDetail = () => {
     }
     return (
       <div className='min-h-screen bg-gray-50 py-8'>
-        <div className='max-w-4xl mx-auto px-4'>
+        <div className='max-w-4xl mx-auto'>
           <div className='bg-white rounded-lg shadow-md p-6'>
             <div className='animate-pulse'>
               <div className='h-8 bg-gray-200 rounded w-1/4 mb-4'></div>
@@ -769,7 +769,7 @@ const DivingCenterDetail = () => {
   }
 
   return (
-    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+    <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
       {center && (
         <SEO
           title={`${center.name} - ${[center.city, center.country].filter(Boolean).join(', ')}`}

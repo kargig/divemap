@@ -34,7 +34,7 @@ const CountryDistributionChart = ({ data }) => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow animate-fade-in text-center'>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow animate-fade-in text-center'>
       <h3 className='text-md font-semibold text-gray-800 mb-1 flex items-center justify-center gap-2'>
         <Globe className='w-5 h-5 text-blue-600' />
         Global Dive Travel Distribution

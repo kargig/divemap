@@ -104,7 +104,7 @@ const LeaderboardPage = () => {
   const topThree = periodLeaderboardData?.entries?.slice(0, 3) || [];
 
   return (
-    <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+    <div className='max-w-7xl mx-auto py-4 sm:py-8'>
       <SEO
         title='Leaderboard | Divemap'
         description='See the top contributors and active divers in the Divemap community.'

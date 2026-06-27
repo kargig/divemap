@@ -43,10 +43,10 @@ const AIChatHistoryDetail = () => {
   const displayMessages = session.messages.filter(m => m.role !== 'system' && m.content);
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8 flex flex-col'>
+    <div className='min-h-screen bg-gray-50 py-4 sm:py-8 flex flex-col'>
       <SEO title='Divemap Assistant Session' description='Chat session details' />
 
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex flex-col'>
+      <div className='max-w-4xl mx-auto w-full flex-1 flex flex-col'>
         <PageHeader
           title='Session Transcript'
           titleIcon={MessageSquare}

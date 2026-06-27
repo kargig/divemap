@@ -56,7 +56,7 @@ const Tools = () => {
   const activeToolLabel = TOOL_TABS.find(t => t.value === activeTab)?.label || 'Calculator';
 
   return (
-    <div className='w-full max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
+    <div className='w-full max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
       <SEO
         title={`${activeToolLabel} | Divemap Diving Tools`}
         description={`Use our ${activeToolLabel} to plan your scuba dives safely. Divemap offers a suite of advanced diving calculators for gas planning, MOD, best mix, and tank buoyancy.`}

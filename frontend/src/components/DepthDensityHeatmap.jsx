@@ -39,11 +39,11 @@ const DepthDensityHeatmap = ({ data }) => {
       <div className='flex justify-center overflow-x-auto pb-4'>
         <div className='flex min-w-max'>
           {/* Y-Axis Labels (Avg Depth) */}
-          <div className='flex flex-col gap-1 pr-3 mt-[52px] sm:mt-[64px]'>
+          <div className='flex flex-col gap-1 pr-2 sm:pr-3 mt-[44px] sm:mt-[64px]'>
             {AVG_DEPTH_BINS.map(label => (
               <div
                 key={label}
-                className='h-8 sm:h-12 lg:h-14 flex items-center justify-end text-[10px] sm:text-xs text-gray-500 w-12 text-right'
+                className='h-7 sm:h-12 lg:h-14 flex items-center justify-end text-[10px] sm:text-xs text-gray-500 w-10 sm:w-12 text-right'
               >
                 {label}
               </div>
@@ -55,7 +55,7 @@ const DepthDensityHeatmap = ({ data }) => {
             {/* X-Axis Labels (Max Depth) */}
             <div className='flex gap-1 mb-2'>
               {MAX_DEPTH_BINS.map(label => (
-                <div key={label} className='w-8 sm:w-16 lg:w-20 relative h-10 sm:h-12'>
+                <div key={label} className='w-7 sm:w-16 lg:w-20 relative h-9 sm:h-12'>
                   <span className='absolute bottom-0 left-1/2 text-[10px] sm:text-xs text-gray-500 origin-bottom-left -rotate-45 whitespace-nowrap'>
                     {label}
                   </span>
@@ -79,7 +79,7 @@ const DepthDensityHeatmap = ({ data }) => {
                     return (
                       <div
                         key={`${maxBin}-${avgBin}`}
-                        className={`w-8 h-8 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex items-center justify-center`}
+                        className={`w-7 h-7 sm:w-16 sm:h-12 lg:w-20 lg:h-14 rounded-sm ${isImpossible ? 'bg-gray-50/30' : getColor(count)} transition-all hover:ring-2 hover:ring-blue-400 group relative cursor-help flex items-center justify-center`}
                         title={
                           count > 0
                             ? `${count} dive(s): Max ${maxBin}m, Avg ${avgBin}m`

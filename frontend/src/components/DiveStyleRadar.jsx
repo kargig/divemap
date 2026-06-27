@@ -35,8 +35,8 @@ const DiveStyleRadar = ({ data, boatPct = 0, shorePct = 0 }) => {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow animate-fade-in'>
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8 items-center'>
+    <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow animate-fade-in'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 items-center'>
         {/* Radar Map Column */}
         <div>
           <h3 className='text-md font-semibold text-gray-800 mb-1 flex items-center gap-2'>
@@ -46,7 +46,7 @@ const DiveStyleRadar = ({ data, boatPct = 0, shorePct = 0 }) => {
           <p className='text-xs text-gray-500 mb-6'>Mappings based on your logged dive tags.</p>
           <div className='h-64 w-full flex justify-center'>
             <ResponsiveContainer width='100%' height='100%'>
-              <RadarChart cx='50%' cy='50%' outerRadius='75%' data={data}>
+              <RadarChart cx='50%' cy='50%' outerRadius='60%' data={data}>
                 <PolarGrid stroke='#e2e8f0' />
                 <PolarAngleAxis
                   dataKey='subject'

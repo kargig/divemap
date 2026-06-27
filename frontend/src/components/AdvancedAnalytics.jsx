@@ -174,10 +174,10 @@ const AdvancedAnalytics = ({
   };
 
   return (
-    <div className='mt-8 space-y-8'>
+    <div className='mt-4 sm:mt-8 space-y-4 sm:space-y-8'>
       {/* SAC vs Depth */}
       {hasSacData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>
             Air Consumption (SAC) vs. Depth
           </h3>
@@ -214,7 +214,7 @@ const AdvancedAnalytics = ({
 
       {/* Duration vs Depth Bubble Chart */}
       {hasDurationData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>
             Depth Distribution vs. Duration
           </h3>
@@ -284,7 +284,7 @@ const AdvancedAnalytics = ({
 
       {/* Temp vs Suit Stacked Bar */}
       {hasTempData && processedTempData && processedTempData.data.length > 0 && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>
             Temperature vs. Exposure Suit
           </h3>
@@ -320,7 +320,7 @@ const AdvancedAnalytics = ({
 
       {/* Dives per Year Bar Chart */}
       {hasYearlyData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>Dives per Year</h3>
           <p className='text-xs text-gray-500 mb-4'>Annual dive activity and progression.</p>
           <div className='h-64 w-full'>
@@ -346,7 +346,7 @@ const AdvancedAnalytics = ({
 
       {/* SAC Evolution Line Chart */}
       {hasSacTimeData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>SAC Evolution</h3>
           <p className='text-xs text-gray-500 mb-4'>Air consumption rate changes over time.</p>
           <div className='h-64 w-full'>
@@ -384,7 +384,7 @@ const AdvancedAnalytics = ({
 
       {/* Depth Evolution Area Chart */}
       {hasDepthTimeData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>Depth Progression</h3>
           <p className='text-xs text-gray-500 mb-4'>
             Maximum and average depths reached over time.
@@ -441,7 +441,7 @@ const AdvancedAnalytics = ({
 
       {/* Gas Config Bar Chart */}
       {hasGasConfigData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>
             Dives per Gas Tank Size Configuration
           </h3>
@@ -469,7 +469,7 @@ const AdvancedAnalytics = ({
 
       {/* Weight vs Gear Bar Chart */}
       {hasWeightSuitData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>
             Average Weight by Gear Configuration
           </h3>
@@ -502,7 +502,7 @@ const AdvancedAnalytics = ({
 
       {/* Weight Evolution Scatter Chart */}
       {hasWeightTimeData && (
-        <div className='bg-white rounded-lg p-4 border border-gray-100'>
+        <div className='bg-white rounded-lg p-3 sm:p-4 border border-gray-100'>
           <h3 className='text-md font-semibold text-gray-800 mb-1'>Weight Evolution Over Time</h3>
           <p className='text-xs text-gray-500 mb-4'>
             Historical weight changes mapped to gear configurations.

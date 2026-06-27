@@ -80,7 +80,7 @@ const UserAnalytics = () => {
         title={`${profile?.name || username} - Advanced Analytics | Divemap`}
         description={`View detailed scuba diving statistics, depth profiles, and insights for ${profile?.name || username}.`}
       />
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in'>
+      <div className='max-w-7xl mx-auto py-4 sm:py-8 animate-fade-in'>
         {/* Header */}
         <div className='mb-8 flex flex-col sm:flex-row items-center sm:items-start sm:space-x-6 w-full text-center sm:text-left gap-4'>
           <div className='shrink-0 relative'>
@@ -110,10 +110,10 @@ const UserAnalytics = () => {
         </div>
 
         {/* Analytics Content */}
-        <div className='space-y-8 bg-gray-50/50 p-4 sm:p-6 rounded-2xl border border-gray-100 shadow-inner'>
+        <div className='space-y-4 sm:space-y-8 bg-transparent sm:bg-gray-50/50 p-0 sm:p-6 rounded-none sm:rounded-2xl border-0 sm:border border-gray-100 sm:shadow-inner'>
           {/* Depth Density Heatmap */}
           {analytics?.depth_density_heatmap && analytics.depth_density_heatmap.length > 0 ? (
-            <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-2 sm:p-6 hover:shadow-md transition-shadow'>
+            <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-6 hover:shadow-md transition-shadow'>
               <DepthDensityHeatmap data={analytics.depth_density_heatmap} />
             </div>
           ) : null}

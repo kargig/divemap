@@ -747,7 +747,7 @@ const Dives = () => {
         title='Recent Public Dive Logs | Divemap'
         description='Browse recently logged scuba dives from the community. See water conditions, visibility, bottom time, and user ratings for dive sites around the world.'
       />
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader
           title='Dive Log'
           titleIcon={Notebook}

@@ -60,7 +60,7 @@ const MyComments = () => {
         title='My Comments History'
         description='View your full dive site comment history on Divemap.'
       />
-      <div className='max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8'>
+      <div className='max-w-4xl mx-auto py-4 sm:py-8'>
         {/* Navigation / Header */}
         <div className='mb-8'>
           <Link

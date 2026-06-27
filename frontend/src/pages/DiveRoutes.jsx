@@ -166,7 +166,7 @@ const DiveRoutes = () => {
         title='Underwater Dive Routes & Maps | Divemap'
         description='Explore user-created underwater navigation routes for popular dive sites. Discover headings, distances, POIs, and detailed dive plans.'
       />
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader
           title='Dive Routes'
           titleIcon={Route}

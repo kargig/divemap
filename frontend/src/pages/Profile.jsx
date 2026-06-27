@@ -631,7 +631,7 @@ const Profile = () => {
         title='My Profile Settings | Divemap'
         description='Manage your Divemap account settings, certifications, and personal information.'
       />
-      <div className='w-full lg:max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8 overflow-x-hidden'>
+      <div className='w-full lg:max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8 overflow-x-hidden'>
         <div className='mb-6 sm:mb-8'>
           <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
           <p className='text-sm sm:text-base text-gray-600'>

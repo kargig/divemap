@@ -658,7 +658,7 @@ const DiveTrips = () => {
         description='Find planned scuba diving trips, boat excursions, and guided tours from diving centers. Compare prices, schedules, and destinations.'
       />
       {/* Mobile-First Responsive Container */}
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-2 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader
           title='Dive Trips'
           titleIcon={Calendar}

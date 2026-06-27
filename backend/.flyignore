@@ -1,0 +1,67 @@
+# Standard python and cache ignores
+__pycache__/
+**/__pycache__/
+*.pyc
+**/*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+htmlcov/
+divemap_venv/
+media/
+llm_content/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Production deployment ignores (Fly.io specific)
+# Exclude entire test suite and testing configurations/databases/logs
+tests/
+conftest.py
+pytest.ini
+test-failures.txt
+test_migration.db
+test_r2_storage.py
+test_netcat_ipv6.sh
+analyze_chat_quality_diff.py
+evaluate_chat_quality.py
+evaluate_chat_quality_new.py
+evaluate_qualitative.py
+qualitative_evaluation_report.md
+find-relevant-tests.py
+docker-compose.test.yml
+docker-test-github-actions.sh
+run_tests.py
+run-changed-tests.sh
+.serena/
+.cursor/
+
+# Exclude unoptimized local avatar source files
+# In production, library avatars are served directly from Cloudflare R2 storage
+static/library/avatars/
+
+# Exclude AWS Lambda functions (deployed to AWS Lambda, not Fly)
+lambda/
+
+# Exclude local environment/deploy files
+.env.prod_upload
