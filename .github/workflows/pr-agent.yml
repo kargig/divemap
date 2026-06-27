@@ -1,0 +1,46 @@
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr_agent_job:
+    # Run only if the sender is not a bot, and either it's a pull request event
+    # or an issue comment that belongs to a pull request.
+    if: ${{ github.event.sender.type != 'Bot' && (github.event_name == 'pull_request' || github.event.issue.pull_request) }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Checkout is required if you want to use local configuration files like .pr_agent.toml
+
+      - name: PR Agent Action
+        uses: Codium-ai/pr-agent@main
+        env:
+          # GitHub Authentication
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # DeepSeek API Configuration
+          DEEPSEEK__KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }} # Standard LiteLLM env var
+
+          # Model Configuration
+          # "deepseek/deepseek-chat" uses the latest DeepSeek V3 chat model
+          # "deepseek/deepseek-reasoner" uses the DeepSeek R1 reasoning model (good for complex reasoning)
+          CONFIG__MODEL: "deepseek/deepseek-chat"
+          CONFIG__FALLBACK_MODELS: '["deepseek/deepseek-chat"]'
+
+          # Auto-trigger configuration (uncomment or toggle as needed)
+          GITHUB_ACTION_CONFIG__AUTO_DESCRIBE: "true" # Automatically describe PR on creation
+          GITHUB_ACTION_CONFIG__AUTO_REVIEW: "true"   # Automatically review PR on creation/update
+          GITHUB_ACTION_CONFIG__AUTO_IMPROVE: "false"  # Automatically post inline suggestions (toggle if needed)
+
+          # Custom instructions tailored for the Divemap tech stack
+          PR_REVIEWER__EXTRA_INSTRUCTIONS: "Focus on FastAPI/SQLAlchemy performance, potential SQL injection or XSS risks, and clean React + Tailwind CSS code standards."
