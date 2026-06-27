@@ -139,19 +139,19 @@ const WeightCalculator = () => {
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col'>
-      <div className='p-3 sm:p-5 border-b border-gray-100 bg-emerald-50/30'>
-        <div className='flex items-center space-x-3'>
-          <div className='p-2 bg-emerald-600 rounded-lg text-white'>
+      <div className='p-4 border-b border-gray-100 bg-emerald-50/30'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
+          <div className='p-1.5 bg-emerald-600 rounded text-white hidden sm:block'>
             <Gauge className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>Estimated Diving Weight</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Estimated Diving Weight</h2>
         </div>
-        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Estimate how much lead you need based on your gear and environment.
         </p>
       </div>
 
-      <div className='p-3 sm:p-6 flex-grow space-y-3 sm:space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4'>
           <div>
             <label

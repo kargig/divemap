@@ -62,20 +62,20 @@ const Tools = () => {
         description={`Use our ${activeToolLabel} to plan your scuba dives safely. Divemap offers a suite of advanced diving calculators for gas planning, MOD, best mix, and tank buoyancy.`}
       />
       <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8 min-h-[80vh] flex flex-col'>
-        <div className='p-6 border-b border-gray-200'>
-          <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
-            <Calculator className='h-8 w-8 mr-3 text-blue-600' />
+        <div className='p-4 sm:p-6 border-b border-gray-200'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 flex items-center'>
+            <Calculator className='h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-blue-600' />
             Diving Tools
           </h1>
-          <p className='mt-1 text-gray-600'>
+          <p className='mt-1 text-gray-600 hidden sm:block'>
             Useful calculators for dive planning. Remember to always double-check your calculations.
           </p>
         </div>
 
-        <div className='flex-grow bg-gray-50 p-4 sm:p-6'>
+        <div className='flex-grow bg-gray-50 p-0 sm:p-4 lg:p-6'>
           <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
             {/* Mobile View: Select Dropdown */}
-            <div className='mb-6 sm:hidden'>
+            <div className='mb-4 px-4 sm:hidden'>
               <Select
                 value={activeTab}
                 onValueChange={handleTabChange}
@@ -134,7 +134,7 @@ const Tools = () => {
             </div>
           </Tabs>
         </div>
-        <div className='p-6 bg-amber-50 border-t border-amber-100 mt-auto'>
+        <div className='p-4 sm:p-6 bg-amber-50 border-t border-amber-100 mt-auto'>
           <div className='flex items-start'>
             <AlertTriangle className='h-6 w-6 text-amber-600 mr-3 mt-0.5' />
             <div>

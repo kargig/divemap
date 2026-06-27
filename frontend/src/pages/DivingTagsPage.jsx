@@ -29,7 +29,7 @@ const DivingTagsPage = () => {
       />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <div className='bg-white shadow-sm rounded-lg overflow-hidden'>
-          <div className='p-6 border-b border-gray-200'>
+          <div className='p-4 sm:p-6 border-b border-gray-200'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
               <div>
                 <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
@@ -60,13 +60,13 @@ const DivingTagsPage = () => {
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
             </div>
           ) : (
-            <div className='bg-gray-50 p-6'>
+            <div className='bg-gray-50 p-2 sm:p-4 lg:p-6'>
               {filteredTags?.length > 0 ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                   {filteredTags.map(tag => (
                     <div
                       key={tag.id}
-                      className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-5 border border-gray-100'
+                      className='bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 sm:p-5 border border-gray-100'
                     >
                       <div className='flex items-start justify-between'>
                         <div className='flex items-center'>

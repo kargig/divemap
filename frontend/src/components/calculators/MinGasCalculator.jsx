@@ -101,20 +101,22 @@ const MinGasCalculator = () => {
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-3 sm:p-5 border-b border-gray-100 bg-red-50/30'>
-        <div className='flex items-center space-x-3'>
-          <div className='p-2 bg-red-600 rounded-lg text-white'>
+      <div className='p-4 border-b border-gray-100 bg-red-50/30'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
+          <div className='p-1.5 bg-red-600 rounded text-white hidden sm:block'>
             <AlertTriangle className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>Minimum Gas (Rock Bottom)</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>
+            Minimum Gas (Rock Bottom)
+          </h2>
         </div>
-        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Calculate the emergency reserve needed to share air with a buddy and ascend from the
           deepest part of the dive.
         </p>
       </div>
 
-      <div className='p-3 sm:p-6 flex-grow space-y-3 sm:space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         <div className='grid grid-cols-2 gap-2 sm:gap-4'>
           <div>
             <label
@@ -260,7 +262,7 @@ const MinGasCalculator = () => {
               htmlFor='minGasTankSize'
               className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
             >
-              Cylinder Size (Liters)
+              Cylinder Size (L)
             </label>
             <select
               id='minGasTankSize'

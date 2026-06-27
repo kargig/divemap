@@ -39,19 +39,19 @@ const ICDCalculator = () => {
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-3 sm:p-5 border-b border-gray-100 bg-indigo-50/30'>
-        <div className='flex items-center space-x-3'>
-          <div className='p-2 bg-indigo-600 rounded-lg text-white'>
+      <div className='p-4 border-b border-gray-100 bg-indigo-50/30'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
+          <div className='p-1.5 bg-indigo-600 rounded text-white hidden sm:block'>
             <RefreshCw className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>ICD Check (Gas Switch)</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>ICD Check (Gas Switch)</h2>
         </div>
-        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Check for Isobaric Counterdiffusion risk when switching from Trimix to another gas.
         </p>
       </div>
 
-      <div className='p-3 sm:p-6 flex-grow space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
           {/* Current Gas */}
           <div className='space-y-3'>

@@ -459,7 +459,7 @@ const UserProfile = () => {
         className={
           isEmbedded
             ? 'mt-4 lg:mt-0'
-            : 'bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100'
+            : 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'
         }
       >
         {!isEmbedded && (

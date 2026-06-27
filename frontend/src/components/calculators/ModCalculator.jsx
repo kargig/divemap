@@ -64,21 +64,21 @@ const ModCalculator = () => {
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
-      <div className='p-3 sm:p-5 border-b border-gray-100 bg-blue-50/30'>
-        <div className='flex items-center space-x-3'>
-          <div className='p-2 bg-blue-600 rounded-lg text-white'>
+      <div className='p-4 border-b border-gray-100 bg-blue-50/30'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
+          <div className='p-1.5 bg-blue-600 rounded text-white hidden sm:block'>
             <Gauge className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>
             Maximum Operating Depth (MOD)
           </h2>
         </div>
-        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Calculate the maximum depth for a given gas mixture and partial pressure of oxygen.
         </p>
       </div>
 
-      <div className='p-3 sm:p-6 flex-grow space-y-3 sm:space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         <div className='flex justify-end'>
           <div className='flex items-center space-x-2 text-xs sm:text-sm'>
             <span className={!isAdvanced ? 'font-bold text-blue-600' : 'text-gray-500'}>

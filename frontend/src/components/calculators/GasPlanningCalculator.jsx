@@ -108,26 +108,26 @@ const GasPlanningCalculator = () => {
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col h-full'>
       <div
-        className={`p-3 sm:p-5 border-b border-gray-100 ${
+        className={`p-4 border-b border-gray-100 ${
           planGasResult.isSafe ? 'bg-orange-50/30' : 'bg-red-50'
         }`}
       >
-        <div className='flex items-center space-x-3'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
           <div
-            className={`p-2 rounded-lg text-white ${
+            className={`p-1.5 rounded text-white hidden sm:block ${
               planGasResult.isSafe ? 'bg-orange-600' : 'bg-red-600'
             }`}
           >
             <Compass className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-lg sm:text-xl font-bold text-gray-900'>Gas Consumption</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Gas Consumption</h2>
         </div>
-        <p className='mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Estimate the total gas volume consumed for your planned depth and bottom time.
         </p>
       </div>
 
-      <div className='p-3 sm:p-6 flex-grow space-y-3 sm:space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         <div className='grid grid-cols-2 gap-2 sm:gap-4'>
           <div>
             <label
@@ -151,7 +151,7 @@ const GasPlanningCalculator = () => {
               htmlFor='planTime'
               className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
             >
-              Total Dive Time (minutes)
+              Total Dive Time (mins)
             </label>
             <input
               id='planTime'
@@ -164,36 +164,38 @@ const GasPlanningCalculator = () => {
           </div>
         </div>
 
-        <div>
-          <label
-            htmlFor='planSAC'
-            className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
-          >
-            SAC Rate (L/min)
-          </label>
-          <input
-            id='planSAC'
-            type='number'
-            min='5'
-            {...register('sac', { valueAsNumber: true })}
-            className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
-          />
-          {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
-        </div>
+        <div className='grid grid-cols-2 gap-2 sm:gap-4 items-end'>
+          <div>
+            <label
+              htmlFor='planSAC'
+              className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
+            >
+              SAC Rate (L/min)
+            </label>
+            <input
+              id='planSAC'
+              type='number'
+              min='5'
+              {...register('sac', { valueAsNumber: true })}
+              className='w-full px-2 py-1.5 sm:px-3 sm:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm'
+            />
+            {errors.sac && <p className='text-red-500 text-xs mt-1'>{errors.sac.message}</p>}
+          </div>
 
-        <div className='flex items-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200'>
-          <input
-            id='advancedGasToggle'
-            type='checkbox'
-            {...register('isAdvanced')}
-            className='w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer'
-          />
-          <label
-            htmlFor='advancedGasToggle'
-            className='ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none'
-          >
-            Advanced/Tech Mode (Rule of Thirds)
-          </label>
+          <div className='flex items-center p-2 bg-gray-50 rounded-lg border border-gray-200 h-[34px] sm:h-[38px]'>
+            <input
+              id='advancedGasToggle'
+              type='checkbox'
+              {...register('isAdvanced')}
+              className='w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer'
+            />
+            <label
+              htmlFor='advancedGasToggle'
+              className='ml-2 text-xs font-semibold text-gray-700 cursor-pointer select-none'
+            >
+              Rule of Thirds (Tech)
+            </label>
+          </div>
         </div>
 
         <div className='grid grid-cols-2 gap-2 sm:gap-4'>
@@ -202,7 +204,7 @@ const GasPlanningCalculator = () => {
               htmlFor='planTankSize'
               className='block text-xs sm:text-sm font-semibold text-gray-700 mb-1 sm:mb-2'
             >
-              Cylinder Size (Liters)
+              Cylinder Size (L)
             </label>
             <select
               id='planTankSize'
