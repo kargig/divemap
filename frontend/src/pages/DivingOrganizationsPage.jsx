@@ -235,10 +235,14 @@ const OrganizationCard = ({ org, initialDrawerOpen, highlightCourse }) => {
         role='button'
         tabIndex={0}
       >
-        <div className='p-5'>
+        <div className='p-4 sm:p-5'>
           <div className='flex justify-between items-start'>
             <div className='flex items-start space-x-3'>
-              <OrganizationLogo org={org} size='h-24 w-24' textSize='text-xl' />
+              <OrganizationLogo
+                org={org}
+                size='h-16 w-16 sm:h-24 sm:w-24'
+                textSize='text-base sm:text-xl'
+              />
               <div>
                 <h3 className='text-lg font-medium text-gray-900'>{org.name}</h3>
                 {org.acronym && <p className='text-sm text-gray-500 font-medium'>{org.acronym}</p>}
@@ -353,7 +357,7 @@ const DivingOrganizationsPage = () => {
       />
       <div className='w-full max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8'>
         <div className='bg-white shadow-sm rounded-lg overflow-hidden mb-8'>
-          <div className='p-6 border-b border-gray-200'>
+          <div className='p-4 sm:p-6 border-b border-gray-200'>
             <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
               <div>
                 <h1 className='text-3xl font-bold text-gray-900 flex items-center'>
@@ -384,7 +388,7 @@ const DivingOrganizationsPage = () => {
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600'></div>
             </div>
           ) : (
-            <div className='bg-gray-50 p-6'>
+            <div className='bg-gray-50 p-2 sm:p-4 lg:p-6'>
               {filteredOrgs?.length > 0 ? (
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6'>
                   {filteredOrgs.map(org => {

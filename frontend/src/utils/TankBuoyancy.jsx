@@ -224,20 +224,20 @@ const TankBuoyancy = () => {
 
   return (
     <div className='bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col'>
-      <div className='p-5 border-b border-gray-100 bg-sky-50/30'>
-        <div className='flex items-center space-x-3'>
-          <div className='p-2 bg-sky-600 rounded-lg text-white'>
-            <Anchor className='h-6 w-6' />
+      <div className='p-4 border-b border-gray-100 bg-sky-50/30'>
+        <div className='flex items-center space-x-2 sm:space-x-3'>
+          <div className='p-1.5 bg-sky-600 rounded text-white hidden sm:block'>
+            <Anchor className='h-5 w-5 sm:h-6 sm:w-6' />
           </div>
-          <h2 className='text-xl font-bold text-gray-900'>Tank Buoyancy Calculator</h2>
+          <h2 className='text-base sm:text-xl font-bold text-gray-900'>Tank Buoyancy Calculator</h2>
         </div>
-        <p className='mt-2 text-sm text-gray-600'>
+        <p className='mt-1 text-xs sm:text-sm text-gray-600 hidden sm:block'>
           Calculate the buoyancy characteristics of your scuba cylinder(s) to perfect your
           weighting.
         </p>
       </div>
 
-      <div className='p-6 flex-grow space-y-6'>
+      <div className='p-4 flex-grow space-y-4'>
         {/* Tank Config */}
         <div>
           <label className='block text-sm font-semibold text-gray-700 mb-2'>
@@ -293,23 +293,23 @@ const TankBuoyancy = () => {
         {showDetails && (
           <div className='space-y-4 animate-in fade-in slide-in-from-top-1 duration-200'>
             {result.tankBreakdown.map((item, idx) => (
-              <div key={idx} className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3'>
+              <div key={idx} className='p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4'>
                 <div className='flex justify-between items-center border-b border-gray-200 pb-2'>
                   <span className='text-sm font-bold text-gray-900'>{item.name}</span>
                   <span className='text-[10px] uppercase tracking-wider font-bold text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-100'>
                     {item.type}
                   </span>
                 </div>
-                <div className='space-y-4 text-xs font-mono text-gray-600'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 text-xs font-mono text-gray-600'>
                   {/* Volume Section */}
-                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
-                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1 flex justify-between items-center'>
+                  <div className='space-y-2'>
+                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5 flex justify-between items-center'>
                       <span>Displacement / Volume</span>
-                      <span className='text-[10px] font-normal text-gray-400 italic'>
+                      <span className='text-[10px] font-normal text-gray-400 italic hidden sm:inline'>
                         Total = Metal + Valve + Internal
                       </span>
                     </h5>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                    <div className='space-y-1'>
                       <div className='flex justify-between'>
                         <span>Metal Volume:</span>
                         <span>{item.data.volMetal.toFixed(3)} L</span>
@@ -322,7 +322,7 @@ const TankBuoyancy = () => {
                         <span>Internal Tank Volume:</span>
                         <span>{item.data.currentLiters.toFixed(1)} L</span>
                       </div>
-                      <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1 mt-1 sm:mt-0'>
+                      <div className='flex justify-between font-bold text-gray-800 border-t border-gray-200 pt-1 mt-1'>
                         <span>Total Displacement:</span>
                         <span>{item.data.totalDisplacedVolume.toFixed(3)} L</span>
                       </div>
@@ -330,11 +330,11 @@ const TankBuoyancy = () => {
                   </div>
 
                   {/* Weight Section */}
-                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
-                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1'>
+                  <div className='space-y-2'>
+                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5'>
                       Weight Breakdown
                     </h5>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                    <div className='space-y-1'>
                       <div className='flex justify-between'>
                         <span>Tank Weight (No Valve):</span>
                         <span>{item.data.totalTankWeight.toFixed(2)} kg</span>
@@ -349,7 +349,7 @@ const TankBuoyancy = () => {
                           <span>{item.data.totalManifoldWeight.toFixed(2)} kg</span>
                         </div>
                       )}
-                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='border-t border-gray-200 my-1'></div>
                       <div className='flex justify-between font-bold text-gray-800'>
                         <span>Total Weight (Empty):</span>
                         <span>{item.data.weightEmpty.toFixed(2)} kg</span>
@@ -358,11 +358,11 @@ const TankBuoyancy = () => {
                   </div>
 
                   {/* Gas Section */}
-                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
-                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1'>
+                  <div className='space-y-2'>
+                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5'>
                       Gas Characteristics
                     </h5>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                    <div className='space-y-1'>
                       <div className='flex justify-between'>
                         <span>Gas Density:</span>
                         <span>{item.data.mixDensity.toFixed(4)} kg/L</span>
@@ -371,7 +371,7 @@ const TankBuoyancy = () => {
                         <span>Gas Weight (Full):</span>
                         <span>{item.data.gasWeightFull.toFixed(2)} kg</span>
                       </div>
-                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='border-t border-gray-200 my-1'></div>
                       <div className='flex justify-between font-bold'>
                         <span>Total Weight (Full):</span>
                         <span>{item.data.weightFull.toFixed(2)} kg</span>
@@ -380,14 +380,14 @@ const TankBuoyancy = () => {
                   </div>
 
                   {/* Forces Section */}
-                  <div className='bg-gray-50/50 p-2 rounded border border-gray-100'>
-                    <h5 className='font-bold text-gray-700 mb-2 border-b border-gray-200 pb-1 flex justify-between items-center'>
+                  <div className='space-y-2'>
+                    <h5 className='font-bold text-gray-700 border-b border-gray-200 pb-1.5 flex justify-between items-center'>
                       <span>Forces & Buoyancy</span>
-                      <span className='text-[10px] font-normal text-gray-400 italic'>
+                      <span className='text-[10px] font-normal text-gray-400 italic hidden sm:inline'>
                         Force = Displacement × Water Density
                       </span>
                     </h5>
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1'>
+                    <div className='space-y-1'>
                       <div className='flex justify-between'>
                         <span>Water Density:</span>
                         <span>{item.data.waterDensity.toFixed(3)} kg/L</span>
@@ -396,7 +396,7 @@ const TankBuoyancy = () => {
                         <span>Buoyant Force:</span>
                         <span>{item.data.buoyantForce.toFixed(3)} kg</span>
                       </div>
-                      <div className='col-span-1 sm:col-span-2 border-t border-gray-200 my-1'></div>
+                      <div className='border-t border-gray-200 my-1'></div>
                       <div className='flex justify-between font-bold'>
                         <span>Buoyancy (Empty):</span>
                         <span

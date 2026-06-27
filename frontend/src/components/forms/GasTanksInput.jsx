@@ -302,10 +302,10 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
 
   // Structured Mode UI
   return (
-    <div className='space-y-4 border border-gray-200 rounded-md p-4 bg-gray-50'>
-      <div className='flex justify-between items-center mb-2'>
-        <h3 className='font-medium text-gray-700'>Gas Configuration</h3>
-        {showSwitchMode && (
+    <div className='space-y-3 sm:space-y-4'>
+      {showSwitchMode && (
+        <div className='flex justify-between items-center mb-2'>
+          <h3 className='font-medium text-gray-700'>Gas Configuration</h3>
           <button
             type='button'
             onClick={switchToSimple}
@@ -313,8 +313,8 @@ const GasTanksInput = ({ value, onChange, error, showSwitchMode = true }) => {
           >
             Switch to free-form text
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Back Gas Section */}
       <div className='bg-white p-3 rounded shadow-sm border border-gray-200'>
