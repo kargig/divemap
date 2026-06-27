@@ -133,6 +133,7 @@ temp/
 
 # Database
 *.db
+!backend/tests/Shearwater.db
 *.sqlite
 *.sqlite3
 

@@ -8,9 +8,9 @@ on:
 
 jobs:
   pr_agent_job:
-    # Run only if the sender is not a bot, and either it's a pull request event
-    # or an issue comment that belongs to a pull request.
-    if: ${{ github.event.sender.type != 'Bot' && (github.event_name == 'pull_request' || github.event.issue.pull_request) }}
+    # Run only on the main repository (kargig/divemap), if the sender is not a bot,
+    # and either it's a pull request event or an issue comment that belongs to a pull request.
+    if: ${{ github.repository == 'kargig/divemap' && github.event.sender.type != 'Bot' && (github.event_name == 'pull_request' || github.event.issue.pull_request) }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -38,7 +38,7 @@ jobs:
           CONFIG__FALLBACK_MODELS: '["deepseek/deepseek-chat"]'
 
           # Auto-trigger configuration (uncomment or toggle as needed)
-          GITHUB_ACTION_CONFIG__AUTO_DESCRIBE: "true" # Automatically describe PR on creation
+          GITHUB_ACTION_CONFIG__AUTO_DESCRIBE: "false" # Automatically describe PR on creation
           GITHUB_ACTION_CONFIG__AUTO_REVIEW: "true"   # Automatically review PR on creation/update
           GITHUB_ACTION_CONFIG__AUTO_IMPROVE: "false"  # Automatically post inline suggestions (toggle if needed)
 
