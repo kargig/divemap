@@ -413,7 +413,7 @@ const Home = () => {
         }}
       >
         <div className='absolute inset-0 opacity-10 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]'></div>
-        <div className='relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+        <div className='relative max-w-7xl mx-auto'>
           <div className='text-center mb-8'>
             <h3
               className='text-sm font-bold uppercase tracking-widest mb-2'

@@ -849,7 +849,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
         {currentStep === 'mapping' && renderMappingStep()}
 
         {currentStep === 'review' && (
-          <div className='space-y-6'>
+          <div className='space-y-4 sm:space-y-6'>
             <div>
               <h3 className='text-lg font-medium text-gray-900 mb-2'>Review Dives to Import</h3>
               <p className='text-gray-600 mb-4'>
@@ -857,80 +857,80 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               </p>
             </div>
 
-            <div className='flex items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
-              <span className='text-sm text-gray-600 font-medium'>
+            <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg'>
+              <span className='text-sm text-gray-600 font-semibold text-center sm:text-left'>
                 {parsedDives.filter(d => !d.skip).length} of {parsedDives.length} dives selected for
                 import
               </span>
-              <div className='flex gap-2'>
+              <div className='flex gap-2 justify-center'>
                 <Button
                   variant='secondary'
                   onClick={handleSelectAllDives}
-                  className='text-xs py-1.5 px-3 h-auto'
+                  className='text-xs py-1.5 px-3 h-auto flex-1 sm:flex-initial text-center justify-center font-semibold'
                 >
                   Select All
                 </Button>
                 <Button
                   variant='secondary'
                   onClick={handleDeselectAllDives}
-                  className='text-xs py-1.5 px-3 h-auto'
+                  className='text-xs py-1.5 px-3 h-auto flex-1 sm:flex-initial text-center justify-center font-semibold'
                 >
                   Skip All
                 </Button>
               </div>
             </div>
 
-            <div className='space-y-4'>
+            <div className='space-y-3 sm:space-y-4'>
               {parsedDives.map((dive, index) => (
                 <div
                   key={index}
-                  className={`border rounded-lg p-4 ${
+                  className={`border rounded-lg p-3 sm:p-4 ${
                     dive.skip ? 'border-red-200 bg-red-50' : 'border-gray-200'
                   }`}
                 >
-                  <div className='flex items-start justify-between mb-3'>
-                    <div className='flex-1'>
-                      <div className='flex items-center gap-2'>
-                        <h4 className='font-medium text-gray-900'>
+                  <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3 pb-3 border-b border-gray-100 sm:border-b-0 sm:pb-0'>
+                    <div className='flex-1 min-w-0'>
+                      <div className='flex flex-wrap items-center gap-1.5 mb-1.5'>
+                        <h4 className='font-semibold text-gray-900 text-sm sm:text-base truncate'>
                           {dive.name || `Dive ${index + 1}`}
                         </h4>
                         {dive.existing_dive_id && (
-                          <span className='px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 rounded-full border border-orange-200'>
+                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700 rounded-full border border-orange-200 shrink-0'>
                             Existing
                           </span>
                         )}
                         {(dive.latitude || dive.unmatched_dive_site?.latitude) && (
-                          <span className='px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-full border border-blue-200'>
+                          <span className='px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded-full border border-blue-200 shrink-0'>
                             GPS Included
                           </span>
                         )}
                       </div>
-                      <div className='flex items-center gap-4 mt-1 text-sm text-gray-600'>
-                        <div className='flex items-center gap-1'>
-                          <Calendar size={14} />
+                      <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs sm:text-sm text-gray-600'>
+                        <div className='flex items-center gap-1 shrink-0'>
+                          <Calendar size={13} className='text-gray-400' />
                           {formatDate(dive.dive_date)}
                         </div>
                         {dive.dive_time && (
-                          <div className='flex items-center gap-1'>
-                            <Clock size={14} />
+                          <div className='flex items-center gap-1 shrink-0'>
+                            <Clock size={13} className='text-gray-400' />
                             {formatTime(dive.dive_time)}
                           </div>
                         )}
                         {dive.duration && (
-                          <div className='flex items-center gap-1'>
-                            <Clock size={14} />
+                          <div className='flex items-center gap-1 shrink-0'>
+                            <Clock size={13} className='text-gray-400' />
                             {formatDuration(dive.duration)}
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className='flex flex-col items-end gap-2'>
+                    <div className='flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0'>
                       {/* Action Segmented Control */}
-                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200'>
+                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 flex-1 sm:flex-initial justify-center'>
                         <button
                           onClick={() => dive.skip && handleSkipDive(index)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                          className={`flex-1 sm:flex-none px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             !dive.skip
                               ? 'bg-white text-blue-600 shadow-sm'
                               : 'text-gray-500 hover:text-gray-700'
@@ -940,7 +940,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                         </button>
                         <button
                           onClick={() => !dive.skip && handleSkipDive(index)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                          className={`flex-1 sm:flex-none px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             dive.skip
                               ? 'bg-white text-amber-600 shadow-sm'
                               : 'text-gray-500 hover:text-gray-700'
@@ -951,32 +951,32 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                       </div>
 
                       {/* Privacy Segmented Control */}
-                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200'>
+                      <div className='flex bg-gray-100 p-0.5 rounded-lg border border-gray-200 flex-1 sm:flex-initial justify-center'>
                         <button
                           onClick={() => dive.is_private && handlePrivacyChange(index, false)}
-                          className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             !dive.is_private
                               ? 'bg-white text-green-600 shadow-sm'
                               : 'text-gray-500 hover:text-gray-700'
                           }`}
                         >
-                          <Eye size={12} /> Public
+                          <Eye size={12} className='shrink-0' /> Public
                         </button>
                         <button
                           onClick={() => !dive.is_private && handlePrivacyChange(index, true)}
-                          className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-1 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                             dive.is_private
                               ? 'bg-white text-purple-600 shadow-sm'
                               : 'text-gray-500 hover:text-gray-700'
                           }`}
                         >
-                          <EyeOff size={12} /> Private
+                          <EyeOff size={12} className='shrink-0' /> Private
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-4 text-sm'>
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 text-sm'>
                     {dive.max_depth && (
                       <div>
                         <span className='font-medium text-gray-700'>Max Depth:</span>
@@ -1047,8 +1047,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                   database
                                 </span>
                               </div>
-                              <div className='flex flex-col gap-2'>
-                                <div className='flex items-center gap-2'>
+                              <div className='flex flex-col gap-2 w-full'>
+                                <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full'>
                                   <div className='flex-1'>
                                     <FuzzySearchInput
                                       data={availableDiveSites}
@@ -1068,7 +1068,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                         : '/dive-sites/create';
                                       window.open(url, '_blank');
                                     }}
-                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10 shrink-0 w-full sm:w-auto text-center flex items-center justify-center font-semibold'
                                     title={
                                       dive.unmatched_dive_site?.latitude
                                         ? 'Create new site with GPS coordinates from file'
@@ -1138,8 +1138,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                   </div>
                                 ))}
                               </div>
-                              <div className='flex flex-col gap-2'>
-                                <div className='flex items-center gap-2'>
+                              <div className='flex flex-col gap-2 w-full'>
+                                <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full'>
                                   <div className='flex-1'>
                                     <FuzzySearchInput
                                       data={availableDiveSites}
@@ -1158,7 +1158,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                                         : '/dive-sites/create';
                                       window.open(url, '_blank');
                                     }}
-                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10'
+                                    className='px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors h-10 shrink-0 w-full sm:w-auto text-center flex items-center justify-center font-semibold'
                                     title={
                                       dive.latitude
                                         ? 'Create new site with GPS coordinates from file'
@@ -1206,8 +1206,12 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               ))}
             </div>
 
-            <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
-              <Button variant='secondary' onClick={() => setCurrentStep('upload')}>
+            <div className='flex items-center justify-between sm:justify-end gap-3 pt-4 border-t border-gray-200 w-full'>
+              <Button
+                variant='secondary'
+                onClick={() => setCurrentStep('upload')}
+                className='flex-1 sm:flex-none text-center justify-center font-semibold'
+              >
                 Back
               </Button>
               <Button
@@ -1215,6 +1219,7 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                 onClick={handleConfirmImport}
                 isLoading={isProcessing}
                 icon={<Check size={16} />}
+                className='flex-1 sm:flex-none text-center justify-center font-semibold'
               >
                 {isProcessing ? (
                   'Importing...'

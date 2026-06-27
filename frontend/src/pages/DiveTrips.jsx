@@ -640,7 +640,7 @@ const DiveTrips = () => {
   // Show loading state while checking authentication
   if (loading) {
     return (
-      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto p-3 sm:p-6'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto py-3 sm:py-6'>
         <div className='flex items-center justify-center min-h-64'>
           <div className='text-center'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>

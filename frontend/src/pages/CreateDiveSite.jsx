@@ -523,7 +523,7 @@ const CreateDiveSite = () => {
         title='Submit a New Dive Site | Divemap'
         description='Add a new scuba dive site to the Divemap global registry. Provide GPS coordinates, depth profiles, marine life details, and safety information.'
       />
-      <div className='max-w-4xl mx-auto p-6'>
+      <div className='max-w-4xl mx-auto py-4 sm:py-6'>
         <div className='flex items-center mb-6'>
           <button
             onClick={handleCancel}

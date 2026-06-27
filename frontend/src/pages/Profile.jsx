@@ -1445,7 +1445,7 @@ const Profile = () => {
           </div>
 
           {/* Sidebar */}
-          <div className='space-y-6'>
+          <div className='space-y-4 sm:space-y-6'>
             {/* Account Stats */}
             <div className='bg-white p-6 rounded-lg shadow-md'>
               <h3 className='text-lg font-bold text-gray-900 mb-4 border-b pb-2 uppercase tracking-tight flex items-center gap-2'>

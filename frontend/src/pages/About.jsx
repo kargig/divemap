@@ -45,7 +45,7 @@ const About = () => {
         </div>
 
         {/* Mission & PWA */}
-        <div className='grid md:grid-cols-2 gap-8 mb-10'>
+        <div className='grid md:grid-cols-2 gap-4 md:gap-8 mb-10'>
           <div>
             <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
               <Anchor className='h-6 w-6 text-blue-600 mr-2' />
@@ -163,7 +163,7 @@ const About = () => {
         </div>
 
         {/* Core Capabilities (Restored & Enhanced) */}
-        <div className='grid md:grid-cols-2 gap-8 mb-8'>
+        <div className='grid md:grid-cols-2 gap-4 md:gap-8 mb-8'>
           <div>
             <h2 className='text-2xl font-semibold text-gray-900 mb-4 flex items-center'>
               <Database className='h-6 w-6 text-blue-600 mr-2' />

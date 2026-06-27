@@ -892,7 +892,7 @@ const DivingCenterDetail = () => {
       </div>
       {/* Tab Content */}
       {activeTab === 'media' && center?.media && center.media.length > 0 && (
-        <div className='space-y-6'>
+        <div className='space-y-4 sm:space-y-6'>
           <div className='bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100'>
             <Lightbox
               open={isLightboxOpen}
@@ -916,7 +916,7 @@ const DivingCenterDetail = () => {
         </div>
       )}
       {activeTab === 'overview' && (
-        <div className='space-y-6'>
+        <div className='space-y-4 sm:space-y-6'>
           {/* Ownership Status */}
           {center?.ownership_status && (
             <div className='bg-white rounded-lg shadow-sm p-4 border border-gray-100'>
@@ -1271,7 +1271,7 @@ const DivingCenterDetail = () => {
       )}
       {/* Management Tab */}
       {activeTab === 'manage' && shouldShowManage && (
-        <div className='space-y-6'>
+        <div className='space-y-4 sm:space-y-6'>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
               <h2 className='text-2xl font-bold text-gray-900 flex items-center'>

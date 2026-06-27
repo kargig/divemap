@@ -658,7 +658,7 @@ const UserProfile = () => {
 
         <div className='flex flex-col lg:grid lg:grid-cols-3 gap-6 sm:gap-8'>
           {/* Sidebar - Order 1 on mobile, Order 2 on desktop */}
-          <div className='space-y-6 order-1 lg:order-2'>
+          <div className='space-y-4 sm:space-y-6 order-1 lg:order-2'>
             {/* Quick Stats */}
             <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
@@ -879,7 +879,7 @@ const UserProfile = () => {
           </div>
 
           {/* Main Content - Order 2 on mobile, Order 1 on desktop */}
-          <div className='lg:col-span-2 space-y-6 order-2 lg:order-1'>
+          <div className='lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1'>
             {/* Hero Stats */}
             {profile.diving_stats && (
               <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-100'>
@@ -954,7 +954,7 @@ const UserProfile = () => {
 
                 <Divider />
 
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8'>
                   {/* Favorite Sites */}
                   <div>
                     <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
@@ -992,7 +992,7 @@ const UserProfile = () => {
                       <Shirt className='h-4 w-4 text-blue-500' />
                       Suit & Gear Preferences
                     </h3>
-                    <div className='space-y-6'>
+                    <div className='space-y-4 sm:space-y-6'>
                       {/* Suit Stats */}
                       {Object.keys(profile.diving_stats.suit_preferences || {}).length > 0 && (
                         <div className='space-y-3'>

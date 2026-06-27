@@ -198,7 +198,7 @@ const CreateDivingCenter = () => {
         title='Register a Diving Center | Divemap'
         description='Add your scuba diving center, school, or shop to the Divemap directory. Connect with divers and manage your online presence.'
       />
-      <div className='max-w-4xl mx-auto p-6'>
+      <div className='max-w-4xl mx-auto py-4 sm:py-6'>
         {/* Back navigation is provided by DivingCenterForm; remove duplicate here */}
 
         <div className='bg-white rounded-lg shadow-md p-6'>

@@ -201,7 +201,7 @@ const Admin = () => {
           </div>
         </div>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8'>
           {/* Quick Actions Panel */}
           <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
             <h3 className='text-xl font-bold text-gray-900 mb-6'>Content Moderation</h3>

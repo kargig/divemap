@@ -1113,7 +1113,7 @@ const Help = () => {
         description='Learn how to use Divemap. Read guides on finding dive sites, logging dives, using the interactive map, and tracking your scuba certifications.'
       />
       <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
-        <div className='max-w-6xl mx-auto px-2 sm:px-4'>
+        <div className='max-w-6xl mx-auto'>
           <div className='text-center mb-10'>
             <Title level={1} className='mb-2'>
               Help & Documentation

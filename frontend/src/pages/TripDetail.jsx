@@ -608,7 +608,7 @@ const TripDetail = () => {
         {/* Tab Content */}
         <div className='p-4 sm:p-6'>
           {activeTab === 'overview' && (
-            <div className='space-y-6'>
+            <div className='space-y-4 sm:space-y-6'>
               {trip.special_requirements && (
                 <div>
                   <h3 className='text-lg font-semibold text-gray-900 mb-3'>Special Requirements</h3>
@@ -630,7 +630,7 @@ const TripDetail = () => {
             </div>
           )}
           {activeTab === 'dive-sites' && (
-            <div className='space-y-6'>
+            <div className='space-y-4 sm:space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Dive Sites</h3>
               {trip.dives && trip.dives.length > 0 ? (
                 <div className='space-y-4'>
@@ -648,7 +648,7 @@ const TripDetail = () => {
             </div>
           )}
           {activeTab === 'diving-center' && (
-            <div className='space-y-6'>
+            <div className='space-y-4 sm:space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Diving Center</h3>
               {divingCenter ? (
                 <DivingCenterSummaryCard
@@ -662,7 +662,7 @@ const TripDetail = () => {
             </div>
           )}{' '}
           {activeTab === 'booking' && (
-            <div className='space-y-6'>
+            <div className='space-y-4 sm:space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Book This Trip</h3>
               <div className='bg-blue-50 border border-blue-200 rounded-lg p-6'>
                 <div className='text-center'>
