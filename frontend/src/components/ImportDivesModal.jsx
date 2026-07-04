@@ -789,8 +789,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
             <div>
               <h3 className='text-lg font-medium text-gray-900 mb-2'>Upload Dive Log Files</h3>
               <p className='text-gray-600 mb-4'>
-                Select Subsurface (.xml, .ssrf), CSV (e.g. MySSI), Garmin FIT, Suunto JSON or Shearwater DB
-                (.db, .sqlite) files to import your dives.
+                Select Subsurface (.xml, .ssrf), CSV (e.g. MySSI), Garmin FIT, Suunto JSON or
+                Shearwater DB (.db, .sqlite) files to import your dives.
               </p>
             </div>
 
@@ -798,7 +798,8 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
               <Upload className='mx-auto h-12 w-12 text-gray-400 mb-4' />
               <div className='space-y-2'>
                 <p className='text-sm text-gray-600'>
-                  Drag and drop XML/SSRF, CSV, FIT, JSON or Shearwater DB files here, or click to browse
+                  Drag and drop XML/SSRF, CSV, FIT, JSON or Shearwater DB files here, or click to
+                  browse
                 </p>
                 <Button variant='secondary' onClick={() => fileInputRef.current?.click()}>
                   Select Files

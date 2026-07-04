@@ -13,6 +13,9 @@ import {
   Settings,
   Bell,
   Plus,
+  MapPin,
+  Compass,
+  Award,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
@@ -26,8 +29,10 @@ import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
-import { getManagedDivingCenters } from '../services/divingCenters';
-import { getMonthlyLeaderboard } from '../services/leaderboard';
+import { getDives } from '../services/dives';
+import { getDiveSites, getDiveRoutes } from '../services/diveSites';
+import { getManagedDivingCenters, getDivingCenters } from '../services/divingCenters';
+import { getMonthlyLeaderboard, getCategoryLeaderboard } from '../services/leaderboard';
 import { slugify } from '../utils/slugify';
 
 const { useBreakpoint } = Grid;
@@ -113,6 +118,77 @@ const Home = () => {
 
   const primaryCenter = managedCenters[0];
 
+  const activeWidgetIndex = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const mockParam = params.get('mock_widget');
+    if (mockParam !== null) {
+      const parsed = parseInt(mockParam, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 5) {
+        return parsed;
+      }
+    }
+    return new Date().getDate() % 6;
+  })();
+
+  const widgetConfigs = [
+    {
+      id: 'leaderboard',
+      category: 'Community Leaders',
+      title: 'Top Contributors This Month',
+      description:
+        'Meet the members of our community who have contributed the most reviews, edits, and logs this month.',
+      ctaText: 'View Full Leaderboard',
+      ctaLink: '/leaderboard',
+    },
+    {
+      id: 'sites',
+      category: 'New Horizons',
+      title: 'Recently Added Dive Sites',
+      description:
+        'Explore the latest dive sites mapped and discovered by our global diving community.',
+      ctaText: 'Explore All Sites',
+      ctaLink: '/dive-sites',
+    },
+    {
+      id: 'dives',
+      category: 'Recent Adventures',
+      title: 'Recent Dive Logs',
+      description: 'Check out the latest underwater logs and experiences shared by fellow divers.',
+      ctaText: 'View Public Logbook',
+      ctaLink: '/dives',
+    },
+    {
+      id: 'routes',
+      category: 'Newly Mapped Routes',
+      title: 'Recently Added Dive Routes',
+      description:
+        'Follow the exact underwater tracks and coordinate routes mapped by our community.',
+      ctaText: 'Browse Dive Routes',
+      ctaLink: '/dive-routes',
+    },
+    {
+      id: 'centers',
+      category: 'Verified Diving Centers',
+      title: 'Recently Verified Diving Centers',
+      description:
+        'Discover professional dive operations that have recently verified their listings and claimed ownership.',
+      ctaText: 'View All Centers',
+      ctaLink: '/diving-centers',
+    },
+    {
+      id: 'top_users',
+      category: 'Prolific Divers',
+      title: 'Top Divers by Logged Dives',
+      description:
+        'Celebrate our community members with the highest number of overall logged dives on Divemap.',
+      ctaText: 'View Full Leaderboard',
+      ctaLink: '/leaderboard',
+    },
+  ];
+
+  const currentWidget = widgetConfigs[activeWidgetIndex];
+
+  // 1. Leaderboard
   const { data: overallData, isLoading: isLeaderboardLoading } = useQuery(
     ['leaderboard', 'monthly-current'],
     () => {
@@ -124,17 +200,81 @@ const Home = () => {
       });
     },
     {
-      enabled: isBackendAvailable,
+      enabled: isBackendAvailable && activeWidgetIndex === 0,
       staleTime: 5 * 60 * 1000,
     }
   );
 
-  const LeaderboardSnippet = () => {
-    if (isLeaderboardLoading) {
+  // 2. Sites
+  const { data: sitesData, isLoading: isSitesLoading } = useQuery(
+    ['diveSites', 'recent-added-3'],
+    () => getDiveSites({ sort_by: 'created_at', sort_order: 'desc', page_size: 3 }),
+    {
+      enabled: isBackendAvailable && activeWidgetIndex === 1,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // 3. Dives
+  const { data: divesData, isLoading: isDivesLoading } = useQuery(
+    ['dives', 'recent-logged-3'],
+    () => getDives({ sort_by: 'created_at', sort_order: 'desc', page_size: 3 }),
+    {
+      enabled: isBackendAvailable && activeWidgetIndex === 2,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // 4. Routes
+  const { data: routesData, isLoading: isRoutesLoading } = useQuery(
+    ['diveRoutes', 'recent-routes-3'],
+    () => getDiveRoutes({ sort_by: 'created_at', sort_order: 'desc', page_size: 3 }),
+    {
+      enabled: isBackendAvailable && activeWidgetIndex === 3,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // 5. Centers
+  const { data: centersData, isLoading: isCentersLoading } = useQuery(
+    ['divingCenters', 'recent-verified-3'],
+    () =>
+      getDivingCenters({
+        only_claimed: true,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+        page_size: 3,
+      }),
+    {
+      enabled: isBackendAvailable && activeWidgetIndex === 4,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  // 6. Top Users
+  const { data: topUsersData, isLoading: isTopUsersLoading } = useQuery(
+    ['leaderboard', 'dives-leaderboard-3'],
+    () => getCategoryLeaderboard('dives', { limit: 3 }),
+    {
+      enabled: isBackendAvailable && activeWidgetIndex === 5,
+      staleTime: 5 * 60 * 1000,
+    }
+  );
+
+  const DailyFeatureSnippet = () => {
+    const isLoading =
+      (activeWidgetIndex === 0 && isLeaderboardLoading) ||
+      (activeWidgetIndex === 1 && isSitesLoading) ||
+      (activeWidgetIndex === 2 && isDivesLoading) ||
+      (activeWidgetIndex === 3 && isRoutesLoading) ||
+      (activeWidgetIndex === 4 && isCentersLoading) ||
+      (activeWidgetIndex === 5 && isTopUsersLoading);
+
+    if (isLoading) {
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
           <LoadingSkeleton
-            type='user'
+            type={activeWidgetIndex === 0 || activeWidgetIndex === 5 ? 'user' : 'card'}
             count={3}
             className='grid grid-cols-1 sm:grid-cols-3 gap-6 space-y-0'
           />
@@ -142,53 +282,236 @@ const Home = () => {
       );
     }
 
-    const topThree = overallData?.entries || [];
+    if (!isBackendAvailable) return null;
 
-    if (topThree.length === 0) return null;
+    if (activeWidgetIndex === 0) {
+      const topThree = overallData?.entries || [];
+      if (topThree.length === 0) return null;
 
-    return (
-      <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-        {topThree.map((user, index) => (
-          <Link
-            key={user.user_id}
-            to={`/users/${user.username}`}
-            className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
-          >
-            <div className='relative shrink-0'>
-              <Avatar
-                src={user.avatar_full_url || user.avatar_url}
-                alt={user.username}
-                size='lg'
-                fallbackText={user.username}
-                className={index === 0 ? 'border-2 border-yellow-400' : ''}
-              />
-              <div
-                className={`absolute -top-2 -right-2 rounded-full p-1 shadow-sm ${
-                  index === 0
-                    ? 'bg-yellow-400 text-white'
-                    : index === 1
-                      ? 'bg-gray-300 text-gray-700'
-                      : 'bg-amber-600 text-white'
-                }`}
-              >
-                {index === 0 ? <Trophy className='w-3 h-3' /> : <Medal className='w-3 h-3' />}
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {topThree.map((user, index) => (
+            <Link
+              key={user.user_id}
+              to={`/users/${user.username}`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='relative shrink-0'>
+                <Avatar
+                  src={user.avatar_full_url || user.avatar_url}
+                  alt={user.username}
+                  size='lg'
+                  fallbackText={user.username}
+                  className={index === 0 ? 'border-2 border-yellow-400' : ''}
+                />
+                <div
+                  className={`absolute -top-2 -right-2 rounded-full p-1 shadow-sm ${
+                    index === 0
+                      ? 'bg-yellow-400 text-white'
+                      : index === 1
+                        ? 'bg-gray-300 text-gray-700'
+                        : 'bg-amber-600 text-white'
+                  }`}
+                >
+                  {index === 0 ? <Trophy className='w-3 h-3' /> : <Medal className='w-3 h-3' />}
+                </div>
               </div>
-            </div>
-            <div className='min-w-0 flex-1'>
-              <p
-                className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
-                title={user.username}
-              >
-                {user.username}
-              </p>
-              <p className='text-xs font-medium text-blue-600 uppercase tracking-wider truncate'>
-                {user.points.toLocaleString()} Points
-              </p>
-            </div>
-          </Link>
-        ))}
-      </div>
-    );
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={user.username}
+                >
+                  {user.username}
+                </p>
+                <p className='text-xs font-medium text-blue-600 uppercase tracking-wider truncate'>
+                  {user.points.toLocaleString()} Points
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeWidgetIndex === 1) {
+      const recentSites = sitesData?.items || [];
+      if (recentSites.length === 0) return null;
+
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {recentSites.map(site => (
+            <Link
+              key={site.id}
+              to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='shrink-0 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600'>
+                <MapPin className='w-6 h-6' />
+              </div>
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={site.name}
+                >
+                  {site.name}
+                </p>
+                <p className='text-xs text-gray-500 truncate'>
+                  {site.region && `${site.region}, `}
+                  {site.country}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeWidgetIndex === 2) {
+      const recentDives = divesData?.items || [];
+      if (recentDives.length === 0) return null;
+
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {recentDives.map(dive => (
+            <Link
+              key={dive.id}
+              to={`/dives/${dive.id}`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='shrink-0'>
+                <Avatar
+                  src={dive.avatar_full_url || dive.avatar_url}
+                  alt={dive.user_username}
+                  size='lg'
+                  fallbackText={dive.user_username}
+                />
+              </div>
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={dive.dive_site?.name || 'Dive Log'}
+                >
+                  {dive.dive_site?.name || 'Unspecified Dive'}
+                </p>
+                <p className='text-xs text-gray-500 truncate'>
+                  Logged by {dive.user_username} • {dive.max_depth}m
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeWidgetIndex === 3) {
+      const recentRoutes = routesData?.routes || [];
+      if (recentRoutes.length === 0) return null;
+
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {recentRoutes.map(route => (
+            <Link
+              key={route.id}
+              to={`/dive-routes/${route.id}/${slugify(route.name)}`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='shrink-0 w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600'>
+                <Compass className='w-6 h-6' />
+              </div>
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={route.name}
+                >
+                  {route.name}
+                </p>
+                <p className='text-xs text-gray-500 truncate'>
+                  {route.route_type?.toUpperCase() || 'ROUTE'} • {route.points_count || 0} points
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeWidgetIndex === 4) {
+      const recentCenters = centersData?.items || [];
+      if (recentCenters.length === 0) return null;
+
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {recentCenters.map(center => (
+            <Link
+              key={center.id}
+              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='shrink-0 w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600'>
+                <Anchor className='w-6 h-6' />
+              </div>
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={center.name}
+                >
+                  {center.name}{' '}
+                  <span className='text-emerald-500' title='Verified Center'>
+                    ✅
+                  </span>
+                </p>
+                <p className='text-xs text-gray-500 truncate'>
+                  {center.city && `${center.city}, `}
+                  {center.country}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    if (activeWidgetIndex === 5) {
+      const prolificDivers = topUsersData?.entries || [];
+      if (prolificDivers.length === 0) return null;
+
+      return (
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
+          {prolificDivers.map(user => (
+            <Link
+              key={user.user_id}
+              to={`/users/${user.username}/analytics`}
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+            >
+              <div className='relative shrink-0'>
+                <Avatar
+                  src={user.avatar_full_url || user.avatar_url}
+                  alt={user.username}
+                  size='lg'
+                  fallbackText={user.username}
+                />
+                <div className='absolute -top-2 -right-2 bg-blue-100 text-blue-800 rounded-full p-1 shadow-sm'>
+                  <Award className='w-3 h-3' />
+                </div>
+              </div>
+              <div className='min-w-0 flex-1'>
+                <p
+                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                  title={user.username}
+                >
+                  {user.username}
+                </p>
+                <p className='text-xs font-medium text-blue-600 uppercase tracking-wider truncate'>
+                  {user.count.toLocaleString()} Dives Logged
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      );
+    }
+
+    return null;
   };
 
   const schema = {
@@ -500,25 +823,33 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Top Contributors Snippet */}
+      {/* Daily Feature Section */}
       <section className='mb-16 px-4'>
-        <div className='flex flex-col md:flex-row items-center justify-between mb-8 gap-4'>
+        <div className='flex flex-col md:flex-row items-center justify-between mb-8 gap-4 border-b border-gray-100 pb-6'>
           <div>
-            <h3 className='text-sm font-bold uppercase tracking-widest text-blue-600 mb-1'>
-              Community Leaders
-            </h3>
-            <h2 className='text-3xl font-bold text-gray-900'>Top Contributors This Month</h2>
+            <div className='flex items-center gap-2 mb-1.5'>
+              <span className='bg-blue-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider'>
+                Daily Feature
+              </span>
+              <h3 className='text-xs font-bold uppercase tracking-widest text-gray-500'>
+                {currentWidget.category}
+              </h3>
+            </div>
+            <h2 className='text-3xl font-bold text-gray-900 mb-2'>{currentWidget.title}</h2>
+            <p className='text-sm text-gray-500 max-w-2xl leading-relaxed'>
+              {currentWidget.description}
+            </p>
           </div>
           <Link
-            to='/leaderboard'
-            className='flex items-center text-blue-600 font-bold hover:text-blue-700 transition-colors group'
+            to={currentWidget.ctaLink}
+            className='flex items-center text-blue-600 font-bold hover:text-blue-700 transition-colors group shrink-0 self-start md:self-center'
           >
-            View Full Leaderboard
+            {currentWidget.ctaText}
             <ChevronRight className='ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform' />
           </Link>
         </div>
 
-        <LeaderboardSnippet />
+        <DailyFeatureSnippet />
       </section>
 
       {/* Final CTA */}

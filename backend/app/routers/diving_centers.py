@@ -705,6 +705,7 @@ async def get_diving_centers(
     east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
     west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
     detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)"),
+    only_claimed: Optional[bool] = Query(None, description="Filter to show only claimed diving centers"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
@@ -767,6 +768,14 @@ async def get_diving_centers(
     
     if city:
         query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
+
+    if only_claimed:
+        query = query.filter(
+            and_(
+                DivingCenter.owner_id.isnot(None),
+                DivingCenter.ownership_status == OwnershipStatus.approved
+            )
+        )
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
