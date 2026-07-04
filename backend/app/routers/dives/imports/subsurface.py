@@ -517,10 +517,11 @@ async def import_subsurface_xml(
     Import dives from Subsurface XML file.
     Returns parsed dive data for user review before import.
     """
-    if not file.filename.lower().endswith('.xml'):
+    filename_lower = file.filename.lower()
+    if not (filename_lower.endswith('.xml') or filename_lower.endswith('.ssrf')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be an XML file"
+            detail="File must be a Subsurface (.xml or .ssrf) file"
         )
 
     try:

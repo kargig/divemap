@@ -117,6 +117,36 @@ class TestDiveImportWithProfiles:
             assert dive_data["profile_data"]["calculated_avg_depth"] == pytest.approx(12.15, abs=1e-10)
             assert len(dive_data["profile_data"]["samples"]) == 10
 
+    def test_import_subsurface_ssrf_with_profile_success(self, client, auth_headers, test_dive_site, sample_subsurface_xml):
+        """Test successful import of Subsurface SSRF with profile data."""
+        with patch('app.routers.dives.r2_storage') as mock_r2:
+            mock_r2.upload_profile.return_value = "user_1/2025/09/dive_profile.json"
+            
+            files = {"file": ("test.ssrf", sample_subsurface_xml, "application/xml")}
+            response = client.post("/api/v1/dives/import/subsurface-xml", 
+                                 files=files, headers=auth_headers)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert "dives" in data
+            assert len(data["dives"]) == 1
+            
+            dive_data = data["dives"][0]
+            assert "profile_data" in dive_data
+            assert dive_data["profile_data"]["sample_count"] == 10
+            assert dive_data["profile_data"]["calculated_max_depth"] == 45.6
+            assert len(dive_data["profile_data"]["samples"]) == 10
+
+    def test_import_subsurface_invalid_extension(self, client, auth_headers, test_dive_site, sample_subsurface_xml):
+        """Test import of Subsurface with invalid file extension."""
+        files = {"file": ("test.txt", sample_subsurface_xml, "text/plain")}
+        response = client.post("/api/v1/dives/import/subsurface-xml", 
+                             files=files, headers=auth_headers)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        data = response.json()
+        assert "File must be a Subsurface (.xml or .ssrf) file" in data["detail"]
+
     def test_import_subsurface_xml_with_decompression_data(self, client, auth_headers, test_dive_site, sample_subsurface_xml):
         """Test import of Subsurface XML with decompression data."""
         with patch('app.routers.dives.r2_storage') as mock_r2:
