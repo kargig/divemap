@@ -381,9 +381,15 @@ const DiveSites = () => {
       if (filters.created_by_username)
         params.append('created_by_username', filters.created_by_username);
 
-      // Add sorting parameters
-      if (sortBy) params.append('sort_by', sortBy);
-      if (sortOrder) params.append('sort_order', sortOrder);
+      // Add sorting parameters (omit default created_at sorting during active search to prioritize relevance-first results)
+      const isSearching =
+        debouncedSearchTerms.search_query && debouncedSearchTerms.search_query.trim().length >= 3;
+      const isDefaultSort = sortBy === 'created_at';
+
+      if (sortBy && !(isSearching && isDefaultSort)) {
+        params.append('sort_by', sortBy);
+        if (sortOrder) params.append('sort_order', sortOrder);
+      }
 
       if (filters.tag_ids && Array.isArray(filters.tag_ids)) {
         filters.tag_ids.forEach(tagId => {

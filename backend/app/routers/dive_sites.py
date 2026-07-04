@@ -1299,6 +1299,17 @@ async def get_dive_sites(
     # Apply sorting using updated apply_sorting
     if sort_by:
         query = apply_sorting(query, sort_by, sort_order, current_user, ratings_subquery)
+    elif search:
+        # Default search-relevance sorting at DB layer (name matches first, then chronological)
+        from sqlalchemy import case
+        sanitized_search = search.strip()[:200]
+        query = query.order_by(
+            case(
+                (DiveSite.name.ilike(f"%{sanitized_search}%"), 0),
+                else_=1
+            ).asc(),
+            DiveSite.created_at.desc()
+        )
 
     # Add metadata columns to the query results for fetching
     query = query.add_columns(

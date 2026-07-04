@@ -55,7 +55,18 @@ def search_dive_sites(query: str, limit: int, db: Session) -> List[GlobalSearchR
         )
     )
     
-    sites = db.query(DiveSite).filter(search_filter, DiveSite.deleted_at.is_(None), DiveSite.status == 'approved').limit(limit).all()
+    from sqlalchemy import case
+    sites = db.query(DiveSite).filter(
+        search_filter, 
+        DiveSite.deleted_at.is_(None), 
+        DiveSite.status == 'approved'
+    ).order_by(
+        case(
+            (DiveSite.name.ilike(f"%{sanitized_query}%"), 0),
+            else_=1
+        ).asc(),
+        DiveSite.created_at.desc()
+    ).limit(limit).all()
     
     results = []
     for site in sites:
@@ -91,7 +102,14 @@ def search_diving_centers(query: str, limit: int, db: Session) -> List[GlobalSea
         and_(DivingCenter.city.isnot(None), DivingCenter.city.ilike(f"%{sanitized_query}%"))
     )
     
-    centers = db.query(DivingCenter).filter(search_filter).limit(limit).all()
+    from sqlalchemy import case
+    centers = db.query(DivingCenter).filter(search_filter).order_by(
+        case(
+            (DivingCenter.name.ilike(f"%{sanitized_query}%"), 0),
+            else_=1
+        ).asc(),
+        DivingCenter.created_at.desc()
+    ).limit(limit).all()
     
     results = []
     for center in centers:

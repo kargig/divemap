@@ -225,7 +225,22 @@ export const fuzzySearch = (data, query, configType = 'generic') => {
     data.forEach((item, index) => {
       const id = item.id || index;
       const itemName = (item.name || item.title || '').toLowerCase();
-      const itemAliases = (item.aliases || '').toLowerCase();
+
+      let itemAliases = '';
+      if (typeof item.aliases === 'string') {
+        itemAliases = item.aliases.toLowerCase();
+      } else if (Array.isArray(item.aliases)) {
+        itemAliases = item.aliases
+          .map(a => {
+            if (typeof a === 'string') return a;
+            if (a && typeof a === 'object' && typeof a.alias === 'string') return a.alias;
+            return '';
+          })
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+      }
+
       const itemRegion = (item.region || '').toLowerCase();
       const itemCountry = (item.country || '').toLowerCase();
 
