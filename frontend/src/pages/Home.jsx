@@ -16,6 +16,7 @@ import {
   MapPin,
   Compass,
   Award,
+  Clock,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
@@ -28,6 +29,7 @@ import BackgroundLogo from '../components/BackgroundLogo';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
+import DepthIcon from '../components/ui/DepthIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { getDives } from '../services/dives';
 import { getDiveSites, getDiveRoutes } from '../services/diveSites';
@@ -340,27 +342,41 @@ const Home = () => {
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
           {recentSites.map(site => (
-            <Link
+            <div
               key={site.id}
-              to={`/dive-sites/${site.id}/${slugify(site.name)}`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
             >
-              <div className='shrink-0 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600'>
+              <Link
+                to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+                className='shrink-0 w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors'
+              >
                 <MapPin className='w-6 h-6' />
-              </div>
+              </Link>
               <div className='min-w-0 flex-1'>
-                <p
-                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                <Link
+                  to={`/dive-sites/${site.id}/${slugify(site.name)}`}
+                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
                   title={site.name}
                 >
                   {site.name}
-                </p>
+                </Link>
                 <p className='text-xs text-gray-500 truncate'>
                   {site.region && `${site.region}, `}
                   {site.country}
+                  {site.created_by_username && (
+                    <>
+                      {' • by '}
+                      <Link
+                        to={`/users/${site.created_by_username}`}
+                        className='font-semibold text-blue-600 hover:underline'
+                      >
+                        @{site.created_by_username}
+                      </Link>
+                    </>
+                  )}
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       );
@@ -373,31 +389,54 @@ const Home = () => {
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
           {recentDives.map(dive => (
-            <Link
+            <div
               key={dive.id}
-              to={`/dives/${dive.id}`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
             >
               <div className='shrink-0'>
-                <Avatar
-                  src={dive.avatar_full_url || dive.avatar_url}
-                  alt={dive.user_username}
-                  size='lg'
-                  fallbackText={dive.user_username}
-                />
+                <Link to={`/users/${dive.user_username}`}>
+                  <Avatar
+                    src={dive.avatar_full_url || dive.avatar_url}
+                    alt={dive.user_username}
+                    size='lg'
+                    fallbackText={dive.user_username}
+                    className='hover:opacity-85 transition-opacity'
+                  />
+                </Link>
               </div>
               <div className='min-w-0 flex-1'>
-                <p
-                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                <Link
+                  to={`/dives/${dive.id}`}
+                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base mb-0.5'
                   title={dive.dive_site?.name || 'Dive Log'}
                 >
                   {dive.dive_site?.name || 'Unspecified Dive'}
-                </p>
-                <p className='text-xs text-gray-500 truncate'>
-                  Logged by {dive.user_username} • {dive.max_depth}m
-                </p>
+                </Link>
+                <div className='text-xs text-gray-500 truncate mb-1.5'>
+                  {'by '}
+                  <Link
+                    to={`/users/${dive.user_username}`}
+                    className='font-semibold text-blue-600 hover:underline'
+                  >
+                    @{dive.user_username}
+                  </Link>
+                </div>
+                <div className='flex items-center space-x-3 text-xs text-gray-400'>
+                  {dive.max_depth !== undefined && (
+                    <span className='flex items-center gap-1' title='Max Depth'>
+                      <DepthIcon className='text-blue-500' size={14} />
+                      <span className='font-medium text-gray-600'>{dive.max_depth}m</span>
+                    </span>
+                  )}
+                  {dive.duration !== undefined && (
+                    <span className='flex items-center gap-1' title='Dive Duration'>
+                      <Clock className='w-3.5 h-3.5 text-blue-500' />
+                      <span className='font-medium text-gray-600'>{dive.duration} min</span>
+                    </span>
+                  )}
+                </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       );
@@ -410,26 +449,40 @@ const Home = () => {
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
           {recentRoutes.map(route => (
-            <Link
+            <div
               key={route.id}
-              to={`/dive-routes/${route.id}/${slugify(route.name)}`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
             >
-              <div className='shrink-0 w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600'>
+              <Link
+                to={`/dive-routes/${route.id}/${slugify(route.name)}`}
+                className='shrink-0 w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors'
+              >
                 <Compass className='w-6 h-6' />
-              </div>
+              </Link>
               <div className='min-w-0 flex-1'>
-                <p
-                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                <Link
+                  to={`/dive-routes/${route.id}/${slugify(route.name)}`}
+                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
                   title={route.name}
                 >
                   {route.name}
-                </p>
+                </Link>
                 <p className='text-xs text-gray-500 truncate'>
                   {route.route_type?.toUpperCase() || 'ROUTE'} • {route.points_count || 0} points
+                  {route.creator?.username && (
+                    <>
+                      {' • by '}
+                      <Link
+                        to={`/users/${route.creator.username}`}
+                        className='font-semibold text-blue-600 hover:underline'
+                      >
+                        @{route.creator.username}
+                      </Link>
+                    </>
+                  )}
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       );
@@ -442,30 +495,44 @@ const Home = () => {
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
           {recentCenters.map(center => (
-            <Link
+            <div
               key={center.id}
-              to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
             >
-              <div className='shrink-0 w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600'>
+              <Link
+                to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                className='shrink-0 w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors'
+              >
                 <Anchor className='w-6 h-6' />
-              </div>
+              </Link>
               <div className='min-w-0 flex-1'>
-                <p
-                  className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
+                <Link
+                  to={`/diving-centers/${center.id}/${slugify(center.name)}`}
+                  className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
                   title={center.name}
                 >
                   {center.name}{' '}
                   <span className='text-emerald-500' title='Verified Center'>
                     ✅
                   </span>
-                </p>
+                </Link>
                 <p className='text-xs text-gray-500 truncate'>
                   {center.city && `${center.city}, `}
                   {center.country}
+                  {center.owner_username && (
+                    <>
+                      {' • claimed by '}
+                      <Link
+                        to={`/users/${center.owner_username}`}
+                        className='font-semibold text-blue-600 hover:underline'
+                      >
+                        @{center.owner_username}
+                      </Link>
+                    </>
+                  )}
                 </p>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       );
@@ -491,7 +558,7 @@ const Home = () => {
                   fallbackText={user.username}
                 />
                 <div className='absolute -top-2 -right-2 bg-blue-100 text-blue-800 rounded-full p-1 shadow-sm'>
-                  <Award className='w-3 h-3' />
+                  <Notebook className='w-3 h-3' />
                 </div>
               </div>
               <div className='min-w-0 flex-1'>
