@@ -1,5 +1,5 @@
 import { Collapse, Image as AntdImage } from 'antd';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Route, XCircle, Send, AlertTriangle } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -1062,57 +1062,115 @@ const CreateDiveSite = () => {
           title='Duplicate Dive Site Detected'
           size='lg'
         >
-          <div className='space-y-4 text-gray-700'>
-            <p className='text-base text-gray-900 font-medium'>
-              This location is extremely close to existing dive sites.
-            </p>
-            <p className='text-sm'>
-              Did you intend to submit one of these existing dive sites? If so, you might want to
-              create a new Dive Route for it instead.
-            </p>
-
-            <div className='mt-4 bg-gray-50 p-4 rounded-md border border-gray-200 max-h-60 overflow-y-auto'>
-              {nearbySites.map(site => (
-                <div
-                  key={site.id}
-                  className='mb-4 pb-4 border-b border-gray-200 last:mb-0 last:pb-0 last:border-0 flex justify-between items-center'
-                >
-                  <div>
-                    <h3 className='font-semibold text-gray-900'>{site.name}</h3>
-                    <p className='text-sm text-gray-500'>{site.distance_m}m away</p>
-                  </div>
-                  <Button
-                    type='button'
-                    variant='primary'
-                    size='sm'
-                    onClick={() => handleCreateRoute(site.id)}
-                  >
-                    Create Route Here
-                  </Button>
-                </div>
-              ))}
+          <div className='space-y-6 text-gray-700'>
+            <div className='border-b border-gray-100 pb-3'>
+              <p className='text-base text-gray-900 font-medium flex items-center gap-2'>
+                <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />
+                <span>This location is highly similar to existing dive sites.</span>
+              </p>
+              <p className='text-sm text-gray-500 mt-1'>
+                To maintain a clean and reliable map, please select one of the three options below
+                to proceed.
+              </p>
             </div>
 
-            <div className='flex flex-col space-y-3 mt-6 pt-4 border-t border-gray-200'>
-              <div className='flex justify-end space-x-3'>
-                <Button
-                  type='button'
-                  variant='secondary'
-                  onClick={() => setShowDuplicateModal(false)}
-                >
-                  Cancel & Discard
-                </Button>
+            {/* Option 1: Create Route on Existing Site */}
+            <div className='border border-blue-100 bg-blue-50/30 rounded-lg p-4 space-y-3'>
+              <div className='flex items-start gap-2.5'>
+                <div className='bg-blue-100 p-1.5 rounded-full text-blue-700 mt-0.5'>
+                  <Route className='h-4 w-4' />
+                </div>
+                <div>
+                  <h4 className='text-sm font-semibold text-gray-900'>
+                    Option 1: Add a GPS Route to an Existing Site (Recommended)
+                  </h4>
+                  <p className='text-xs text-gray-600 mt-0.5'>
+                    If the dive site you are trying to add is already on the map, you can create and
+                    share a GPS Dive Route for it instead.
+                  </p>
+                </div>
               </div>
 
-              <div className='mt-4 pt-4 border-t border-gray-100 flex justify-center'>
-                <button
-                  type='button'
-                  onClick={handleForceSubmit}
-                  className='text-xs text-red-600 hover:text-red-800 underline transition-colors'
-                >
-                  I'm sure this is a distinct site. Submit for review.
-                </button>
+              <div className='bg-white rounded-md border border-gray-200 divide-y divide-gray-100 max-h-48 overflow-y-auto mt-2'>
+                {nearbySites.map(site => (
+                  <div
+                    key={site.id}
+                    className='p-3 flex justify-between items-center hover:bg-gray-50 transition-colors'
+                  >
+                    <div>
+                      <h5 className='font-medium text-gray-900 text-sm'>{site.name}</h5>
+                      <p className='text-xs text-gray-500'>
+                        {site.distance_m >= 1000
+                          ? `${(site.distance_m / 1000).toFixed(1)}km away`
+                          : `${site.distance_m}m away`}
+                      </p>
+                    </div>
+                    <Button
+                      type='button'
+                      variant='primary'
+                      size='sm'
+                      icon={<Route className='h-3.5 w-3.5' />}
+                      onClick={() => handleCreateRoute(site.id)}
+                    >
+                      Create Route
+                    </Button>
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Option 2: Cancel and Discard */}
+            <div className='border border-gray-200 bg-gray-50/50 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+              <div className='flex items-start gap-2.5'>
+                <div className='bg-gray-200 p-1.5 rounded-full text-gray-600 mt-0.5'>
+                  <XCircle className='h-4 w-4' />
+                </div>
+                <div>
+                  <h4 className='text-sm font-semibold text-gray-900'>
+                    Option 2: Cancel & Discard Addition
+                  </h4>
+                  <p className='text-xs text-gray-600 mt-0.5'>
+                    Abort this operation and discard the form. Choose this if you're sure this site
+                    is a duplicate.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type='button'
+                variant='secondary'
+                className='w-full sm:w-auto flex-shrink-0'
+                icon={<XCircle className='h-4 w-4' />}
+                onClick={() => setShowDuplicateModal(false)}
+              >
+                Cancel Addition
+              </Button>
+            </div>
+
+            {/* Option 3: Submit for Moderation */}
+            <div className='border border-yellow-200 bg-yellow-50/30 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+              <div className='flex items-start gap-2.5'>
+                <div className='bg-yellow-100 p-1.5 rounded-full text-yellow-700 mt-0.5'>
+                  <Send className='h-4 w-4' />
+                </div>
+                <div>
+                  <h4 className='text-sm font-semibold text-gray-900'>
+                    Option 3: Submit for Manual Review
+                  </h4>
+                  <p className='text-xs text-gray-600 mt-0.5'>
+                    If you are absolutely certain this is a distinct, separate site from those
+                    listed above, submit it for manual review.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type='button'
+                variant='warning'
+                className='w-full sm:w-auto flex-shrink-0'
+                icon={<Send className='h-4 w-4' />}
+                onClick={handleForceSubmit}
+              >
+                Submit for Review
+              </Button>
             </div>
           </div>
         </Modal>
