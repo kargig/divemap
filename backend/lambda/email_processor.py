@@ -204,14 +204,22 @@ def process_email_notification(
             logger.warning(f"No unsubscribe token found in SQS message for user {final_user_id} - email will be sent without unsubscribe links")
         
         # Send email with unsubscribe token (if available)
+        # Reconstruct base payload and preserve any extra metadata (like site_creator_name, site_tags, etc.)
+        notification_payload = {
+            'title': notification_data.get('title', notification.get('title', '')),
+            'message': notification_data.get('message', notification.get('message', '')),
+            'link_url': notification_data.get('link_url', notification.get('link_url')),
+            'category': notification_data.get('category', notification.get('category', ''))
+        }
+        
+        # Merge any custom fields from SQS notification_data
+        for key, value in notification_data.items():
+            if key not in notification_payload:
+                notification_payload[key] = value
+
         success = email_service.send_notification_email(
             user_email=user_email,
-            notification={
-                'title': notification_data.get('title', notification.get('title', '')),
-                'message': notification_data.get('message', notification.get('message', '')),
-                'link_url': notification_data.get('link_url', notification.get('link_url')),
-                'category': notification_data.get('category', notification.get('category', ''))
-            },
+            notification=notification_payload,
             template_name=template_name,
             user_id=final_user_id,
             db=None,  # Lambda doesn't have database access
