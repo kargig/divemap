@@ -144,3 +144,138 @@ class TestProximityModeration:
         site = self._create_spatial_site(db_session, "Pending Site", self.lat1, self.lng1, test_user.id, status='pending')
         response = client.post(f"/api/v1/dive-sites/{site.id}/approve", headers=auth_headers)
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_create_dive_site_similar_name_conflict(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with a similar name within 50km returns 409 Conflict."""
+        # Create base site at self.lat1, self.lng1 (~Athens)
+        self._create_spatial_site(db_session, "Elphinstone", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Elphinstone East",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_409_CONFLICT
+        data = response.json()
+        assert "A dive site with a similar name already exists nearby" in data["detail"]["message"]
+        assert data["detail"]["nearby_sites"][0]["name"] == "Elphinstone"
+
+    def test_create_dive_site_similar_name_far_success(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with a similar name further than 50km succeeds."""
+        self._create_spatial_site(db_session, "Elphinstone", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~100km away
+        lat_100km = self.lat1 + 0.9
+        lng_100km = self.lng1 + 0.9
+
+        new_site_data = {
+            "name": "Elphinstone East",
+            "latitude": lat_100km,
+            "longitude": lng_100km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_create_dive_site_distinct_name_near_success(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with a completely distinct name within 50km succeeds."""
+        self._create_spatial_site(db_session, "Elphinstone", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Dolphin Reef",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_create_dive_site_similar_name_with_moderation_bypass(self, client, auth_headers, db_session, test_user):
+        """Test that setting moderation_needed=True bypasses similar name check but sets pending status."""
+        self._create_spatial_site(db_session, "Elphinstone", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Elphinstone East",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER",
+            "moderation_needed": True
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["status"] == "pending"
+
+    def test_create_dive_site_directional_distinction_success(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with a different directional word within 50km succeeds (no conflict)."""
+        self._create_spatial_site(db_session, "Elphinstone North", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Elphinstone South",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_create_dive_site_directional_distinction_conflict(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with no directional word when one exists nearby causes conflict."""
+        self._create_spatial_site(db_session, "Elphinstone North", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Elphinstone",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_409_CONFLICT
+        data = response.json()
+        assert "A dive site with a similar name already exists nearby" in data["detail"]["message"]
+
+    def test_create_dive_site_directional_same_word_conflict(self, client, auth_headers, db_session, test_user):
+        """Test that creating a site with the same directional word nearby causes conflict."""
+        self._create_spatial_site(db_session, "Elphinstone North", self.lat1, self.lng1, test_user.id)
+
+        # Coordinates ~10km away
+        lat_10km = self.lat1 + 0.09
+        lng_10km = self.lng1 + 0.09
+
+        new_site_data = {
+            "name": "Elphinstone North Reef",
+            "latitude": lat_10km,
+            "longitude": lng_10km,
+            "difficulty_code": "OPEN_WATER"
+        }
+
+        response = client.post("/api/v1/dive-sites/", json=new_site_data, headers=auth_headers)
+        assert response.status_code == status.HTTP_409_CONFLICT

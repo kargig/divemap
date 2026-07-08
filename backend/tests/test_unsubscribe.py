@@ -770,6 +770,73 @@ class TestNotificationServiceIntegration:
             assert call_args[1]['unsubscribe_token'] is not None
             assert len(call_args[1]['unsubscribe_token']) > 0
 
+    def test_queue_email_notification_includes_dive_site_metadata(self, db_session, test_user):
+        """Test that _queue_email_notification fetches and includes dive site metadata for emails."""
+        from app.services.notification_service import NotificationService
+        from app.models import Notification, DiveSite, AvailableTag, DiveSiteTag
+        from unittest.mock import patch
+        
+        notification_service = NotificationService()
+        
+        # Create base dive site
+        site = DiveSite(
+            name="Athens Wreck",
+            latitude=37.9838,
+            longitude=23.7275,
+            country="Greece",
+            region="Attica",
+            created_by=test_user.id,
+            status="approved",
+            location="POINT(23.7275 37.9838)"  # Mock string
+        )
+        db_session.add(site)
+        db_session.commit()
+        
+        # Add tag
+        tag = AvailableTag(name="Wreck")
+        db_session.add(tag)
+        db_session.commit()
+        
+        site_tag = DiveSiteTag(dive_site_id=site.id, tag_id=tag.id)
+        db_session.add(site_tag)
+        db_session.commit()
+        
+        # Create notification
+        notification = Notification(
+            user_id=test_user.id,
+            category='new_dive_sites',
+            title='New Dive Site: Athens Wreck',
+            message='Athens Wreck has been created',
+            link_url=f'/dive-sites/{site.id}',
+            entity_type='dive_site',
+            entity_id=site.id
+        )
+        db_session.add(notification)
+        db_session.commit()
+        
+        # Mock SQS service
+        with patch.object(notification_service.sqs_service, 'send_email_task') as mock_sqs:
+            mock_sqs.return_value = True
+            
+            # Queue email notification
+            success = notification_service._queue_email_notification(
+                notification=notification,
+                user=test_user,
+                template_name='new_dive_site',
+                db=db_session
+            )
+            
+            assert success is True
+            assert mock_sqs.called
+            
+            # Verify SQS message includes metadata
+            call_args = mock_sqs.call_args
+            data = call_args[1]['notification_data']
+            assert data['site_country'] == "Greece"
+            assert data['site_region'] == "Attica"
+            assert data['site_creator_name'] == (test_user.name or test_user.username)
+            assert "Wreck" in data['site_tags']
+
     def test_queue_email_notification_skips_opted_out_users(self, db_session, test_user):
         """Test that opted-out users don't get emails queued."""
         from app.services.notification_service import NotificationService

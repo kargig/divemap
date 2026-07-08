@@ -307,6 +307,34 @@ class NotificationService:
             'category': notification.category
         }
         
+        # Fetch additional metadata if this is a new dive site email
+        if db and template_name == 'new_dive_site' and notification.entity_id:
+            try:
+                from app.models import DiveSite, User, DiveSiteTag, AvailableTag
+                dive_site = db.query(DiveSite).filter(DiveSite.id == notification.entity_id).first()
+                if dive_site:
+                    notification_data['site_country'] = dive_site.country or ""
+                    notification_data['site_region'] = dive_site.region or ""
+                    
+                    if dive_site.created_by:
+                        creator = db.query(User).filter(User.id == dive_site.created_by).first()
+                        if creator:
+                            notification_data['site_creator_name'] = creator.name or creator.username or "A user"
+                    else:
+                        notification_data['site_creator_name'] = "A user"
+                        
+                    # Fetch tags associated with this dive site
+                    tags = db.query(AvailableTag.name).join(
+                        DiveSiteTag, AvailableTag.id == DiveSiteTag.tag_id
+                    ).filter(DiveSiteTag.dive_site_id == dive_site.id).all()
+                    
+                    if tags:
+                        notification_data['site_tags'] = [t[0] for t in tags]
+                    else:
+                        notification_data['site_tags'] = []
+            except Exception as e:
+                logger.warning(f"Failed to fetch extra metadata for dive site notification: {e}")
+        
         # Get unsubscribe token if needed (exclude admin alerts and email verification)
         unsubscribe_token = None
         if db and template_name not in ['admin_alert', 'email_verification']:

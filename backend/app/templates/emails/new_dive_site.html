@@ -54,6 +54,43 @@
                                 {{ notification.message }}
                             </p>
                             
+                            {% if notification.site_creator_name or notification.site_country or notification.site_tags %}
+                            <!-- Metadata Card -->
+                            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-top: 25px; margin-bottom: 25px;">
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                    {% if notification.site_creator_name %}
+                                    <tr>
+                                        <td style="padding-bottom: 10px; color: #475569; font-size: 15px;">
+                                            <strong style="color: #1e293b;">Created by:</strong> {{ notification.site_creator_name }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    {% if notification.site_country %}
+                                    <tr>
+                                        <td style="padding-bottom: 10px; color: #475569; font-size: 15px;">
+                                            <strong style="color: #1e293b;">Location:</strong> 
+                                            {% if notification.site_region %}{{ notification.site_region }}, {% endif %}{{ notification.site_country }}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    
+                                    {% if notification.site_tags %}
+                                    <tr>
+                                        <td style="padding-top: 5px; color: #475569; font-size: 15px;">
+                                            <strong style="color: #1e293b; display: block; margin-bottom: 8px;">Tags:</strong>
+                                            <div style="margin-top: 5px;">
+                                                {% for tag in notification.site_tags %}
+                                                <span style="display: inline-block; background-color: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 9999px; margin-right: 6px; margin-bottom: 6px;">{{ tag }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </table>
+                            </div>
+                            {% endif %}
+                            
                             {% if notification.link_url %}
                             <!-- CTA Button -->
                             <div style="text-align: center; margin: 40px 0;">

@@ -4,6 +4,16 @@
 
 {{ notification.message }}
 
+{% if notification.site_creator_name %}
+Created by: {{ notification.site_creator_name }}
+{% endif %}
+{% if notification.site_country %}
+Location: {% if notification.site_region %}{{ notification.site_region }}, {% endif %}{{ notification.site_country }}
+{% endif %}
+{% if notification.site_tags %}
+Tags: {{ notification.site_tags | join(', ') }}
+{% endif %}
+
 {% if notification.link_url %}
 View details: {{ site_url }}{{ notification.link_url }}
 {% endif %}

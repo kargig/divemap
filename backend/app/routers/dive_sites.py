@@ -1881,6 +1881,50 @@ async def _update_shore_direction_background(dive_site_id: int):
     await _update_location_data_background(dive_site_id)
 
 
+def is_similar_name(name1: str, name2: str) -> bool:
+    """
+    Check if two dive site names are highly similar.
+    Matches if:
+    1. They are not explicitly distinguished by different directional words (e.g. "East" vs "West").
+       If both names have different directional words, they are not similar.
+       If only one name has a directional word, they are considered similar.
+    2. The SequenceMatcher ratio is >= 0.70 (handling typos and suffix/prefix variations like Elphinstone vs Elphinstone Reef)
+    3. One is a substring of the other and the shorter name is at least 4 characters long
+    """
+    import re
+    import difflib
+
+    n1 = name1.lower().strip()
+    n2 = name2.lower().strip()
+    if n1 == n2:
+        return True
+
+    # Check for directional distinctions
+    DIRECTIONAL_WORDS = {"north", "south", "east", "west", "northeast", "northwest", "southeast", "southwest"}
+    
+    words1 = set(re.findall(r'\b[a-z]+\b', n1))
+    words2 = set(re.findall(r'\b[a-z]+\b', n2))
+    
+    dirs1 = words1.intersection(DIRECTIONAL_WORDS)
+    dirs2 = words2.intersection(DIRECTIONAL_WORDS)
+
+    # If both have directional words and they are different, they are distinct sub-sites (no conflict)
+    if dirs1 and dirs2 and dirs1 != dirs2:
+        return False
+
+    # Check SequenceMatcher ratio
+    ratio = difflib.SequenceMatcher(None, n1, n2).ratio()
+    if ratio >= 0.70:
+        return True
+        
+    # Check substring match for names with meaningful length (>= 4 chars)
+    shorter, longer = (n1, n2) if len(n1) < len(n2) else (n2, n1)
+    if len(shorter) >= 4 and shorter in longer:
+        return True
+        
+    return False
+
+
 @router.get("/check-proximity", response_model=List[dict])
 @skip_rate_limit_for_admin("300/minute")
 async def check_proximity(
@@ -1966,9 +2010,9 @@ async def create_dive_site(
     moderation_needed = dive_site_data.pop('moderation_needed', False)
     dive_site_data['created_by'] = current_user.id
 
-    # Check for proximity
+    # Check for proximity and name similarity
     if not moderation_needed and dive_site.latitude and dive_site.longitude:
-        # Check proximity internally
+        # 1. Exact geographic proximity check (50m radius)
         nearby_sites = await check_proximity(request, lat=dive_site.latitude, lng=dive_site.longitude, radius_m=50, db=db)
         if nearby_sites:
             # 409 Conflict with payload
@@ -1977,6 +2021,73 @@ async def create_dive_site(
                 detail={
                     "message": "Dive site is too close to existing ones.",
                     "nearby_sites": nearby_sites
+                }
+            )
+
+        # 2. Name similarity check within 50km (50,000 meters)
+        bind = db.get_bind()
+        dialect = bind.dialect.name if bind is not None else None
+
+        if dialect == 'mysql':
+            fifty_km_query = text("""
+                SELECT
+                    ds.id, ds.name, ds.description,
+                    ds.latitude, ds.longitude,
+                    ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) AS distance_m
+                FROM dive_sites ds
+                WHERE ds.location IS NOT NULL
+                AND ds.deleted_at IS NULL
+                AND ds.status = 'approved'
+                AND ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) <= 50000
+                ORDER BY distance_m ASC
+                LIMIT 100
+            """)
+        else:
+            fifty_km_query = text("""
+                SELECT
+                    ds.id, ds.name, ds.description,
+                    ds.latitude, ds.longitude,
+                    (6371 * acos(
+                        cos(radians(:lat)) * cos(radians(ds.latitude)) *
+                        cos(radians(ds.longitude) - radians(:lng)) +
+                        sin(radians(:lat)) * sin(radians(ds.latitude))
+                    )) * 1000 AS distance_m
+                FROM dive_sites ds
+                WHERE ds.latitude IS NOT NULL
+                AND ds.longitude IS NOT NULL
+                AND ds.deleted_at IS NULL
+                AND ds.status = 'approved'
+                HAVING distance_m <= 50000
+                ORDER BY distance_m ASC
+                LIMIT 100
+            """)
+
+        candidate_results = db.execute(
+            fifty_km_query,
+            {
+                "lat": dive_site.latitude,
+                "lng": dive_site.longitude
+            }
+        ).fetchall()
+
+        similar_sites = []
+        for row in candidate_results:
+            if is_similar_name(dive_site.name, row.name):
+                similar_sites.append({
+                    "id": row.id,
+                    "name": row.name,
+                    "description": row.description,
+                    "latitude": float(row.latitude) if row.latitude else None,
+                    "longitude": float(row.longitude) if row.longitude else None,
+                    "distance_m": round(row.distance_m, 2)
+                })
+
+        if similar_sites:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": "A dive site with a similar name already exists nearby (within 50km).",
+                    "nearby_sites": similar_sites
                 }
             )
 
