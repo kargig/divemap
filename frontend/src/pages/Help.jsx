@@ -669,7 +669,8 @@ const Help = () => {
                     children: (
                       <div className='py-2 px-1'>
                         <Paragraph className='text-xs text-gray-500 mb-4 italic'>
-                          The most comprehensive import method.
+                          The most comprehensive import method. Supports both .xml and native .ssrf
+                          files.
                         </Paragraph>
                         <Steps
                           orientation='vertical'
@@ -677,20 +678,65 @@ const Help = () => {
                           current={-1}
                           items={[
                             {
-                              title: 'Export XML',
-                              content: 'In Subsurface, go to File > Export > XML.',
+                              title: 'Export XML or Locate .ssrf file',
+                              content:
+                                'In Subsurface, you can either export to XML (File > Export > XML) or simply locate your native .ssrf save file.',
                             },
                             {
                               title: 'Upload',
                               content: (
                                 <span>
-                                  Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'.
+                                  Go to <Link to='/dives'>My Dives</Link> and click 'Import Dives'
+                                  to select your .xml or .ssrf file.
                                 </span>
                               ),
                             },
                             {
                               title: 'Review',
                               content: "We'll match sites automatically. Confirm and save.",
+                            },
+                          ]}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'shearwater',
+                    label: 'Shearwater',
+                    children: (
+                      <div className='py-2 px-1'>
+                        <Paragraph className='text-xs text-gray-500 mb-4 italic'>
+                          Import directly from your Shearwater Desktop database.
+                        </Paragraph>
+                        <Steps
+                          orientation='vertical'
+                          size='small'
+                          current={-1}
+                          items={[
+                            {
+                              title: 'Locate Database',
+                              content: (
+                                <span>
+                                  Find your Shearwater Desktop database file (usually named{' '}
+                                  <strong>shearwater_db.db</strong> or having a <strong>.db</strong>{' '}
+                                  / <strong>.sqlite</strong> extension). On Windows, it is typically
+                                  located in your AppData folder under Roaming.
+                                </span>
+                              ),
+                            },
+                            {
+                              title: 'Upload File',
+                              content: (
+                                <span>
+                                  Go to <Link to='/dives'>My Dives</Link>, click 'Import Dives' and
+                                  upload the database file directly to extract all your logs.
+                                </span>
+                              ),
+                            },
+                            {
+                              title: 'Review and Match',
+                              content:
+                                'Review the parsed dives, verify site matches, and confirm to save them.',
                             },
                           ]}
                         />
@@ -826,6 +872,34 @@ const Help = () => {
                   },
                 ]}
               />
+
+              <div className='mt-6 bg-blue-50/40 border border-blue-100/50 rounded-lg p-4'>
+                <Title level={5} className='mb-2 text-blue-800 flex items-center'>
+                  <CheckCircleOutlined className='mr-2' /> Pro Tips & Smart Importing
+                </Title>
+                <ul className='list-none pl-0 space-y-3 mb-0 text-sm text-gray-600'>
+                  <li className='flex items-start'>
+                    <CheckCircleOutlined className='text-blue-500 mr-2 mt-1 shrink-0' />
+                    <div>
+                      <strong>Smart Profile Re-upload:</strong> If you created a manual dive log but
+                      later acquired the telemetry file, you can easily enrich your existing log.
+                      Uploading the telemetry file on the import page will let you overwrite or
+                      merge with the existing log, preserving all your notes, ratings, and buddy
+                      tags while adding the interactive dive profile chart.
+                    </div>
+                  </li>
+                  <li className='flex items-start'>
+                    <CheckCircleOutlined className='text-blue-500 mr-2 mt-1 shrink-0' />
+                    <div>
+                      <strong>Robust Gas & Cylinder Parsing:</strong> Technical dive logs containing
+                      multiple gas mixtures or complex tank configurations (e.g. from Subsurface or
+                      Shearwater Desktop) are automatically parsed. Divemap respects custom gas
+                      boundaries, prefers steel cylinders for back-gas profiles, and maps gas
+                      switches dynamically onto your charts.
+                    </div>
+                  </li>
+                </ul>
+              </div>
             </Col>
           </Row>
         </Space>
@@ -1098,6 +1172,91 @@ const Help = () => {
                   alt='Public User Profile Example'
                   fallback='https://placehold.co/800x500?text=User+Profile'
                 />
+              </div>
+            </Col>
+          </Row>
+        </Space>
+      ),
+    },
+    {
+      key: 'business',
+      label: (
+        <span>
+          <ShopOutlined /> Business Portal
+        </span>
+      ),
+      children: (
+        <Space orientation='vertical' size='large' className='w-full py-4'>
+          <Row gutter={[32, 32]}>
+            <Col xs={24} lg={10}>
+              <Title level={3}>Grow Your Dive Business</Title>
+              <Paragraph>
+                Claim your professional listing on Divemap to access analytics, update services, and
+                collaborate with your team.
+              </Paragraph>
+
+              <Card title='1. Claim Your Listing' size='small' className='mb-4 bg-blue-50/20'>
+                <Paragraph>
+                  Search for your dive center in our directory. Click the **Claim Ownership** button
+                  and provide verification details. Our admin team will review and approve your
+                  request swiftly.
+                </Paragraph>
+              </Card>
+
+              <Card title='2. Unlock Shop Analytics & Services' size='small' className='mb-4'>
+                <Paragraph>
+                  Update your contact details, listing images, custom gas availability (Nitrox,
+                  Trimix), and rental gear pricing. Track user search views and profile interaction
+                  metrics.
+                </Paragraph>
+              </Card>
+
+              <Card title='3. Coordinate with Team Managers' size='small' className='mb-4'>
+                <Paragraph>
+                  Don't moderate alone! Add trusted instructors or staff as **Team Managers** using
+                  their Divemap username. They can co-manage services, coordinate events, and keep
+                  your details fresh.
+                </Paragraph>
+              </Card>
+            </Col>
+            <Col xs={24} lg={14}>
+              <div className='rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-white p-6'>
+                <Title level={4} className='mb-4 text-blue-600 flex items-center'>
+                  <ShopOutlined className='mr-2' /> Team Management & Portals
+                </Title>
+                <Paragraph>
+                  Our built-in co-moderation workflows ensure business owners maintain full security
+                  while delegating administrative access to their staff:
+                </Paragraph>
+                <div className='space-y-4 mt-6'>
+                  {[
+                    {
+                      title: 'Granular Co-Moderation',
+                      desc: 'Team Managers can edit services, add social links, and update listings without having full ownership over the business claim.',
+                    },
+                    {
+                      title: 'Instant Management Sync',
+                      desc: 'Add or revoke manager access at any time with a single click in the Team Managers panel.',
+                    },
+                    {
+                      title: 'Newsletter Parsing Integrations',
+                      desc: 'Link your newsletters to automate trip planning and promotional events directly onto the public calendar.',
+                    },
+                  ].map((feat, idx) => (
+                    <div key={idx} className='flex items-start text-sm'>
+                      <CheckCircleOutlined className='text-blue-500 mr-3 mt-1 shrink-0' />
+                      <div>
+                        <Text strong className='text-gray-900'>
+                          {feat.title}
+                        </Text>
+                        <br />
+                        <Text type='secondary' className='text-gray-600'>
+                          {feat.desc}
+                        </Text>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Col>
           </Row>

@@ -407,6 +407,14 @@ async def get_general_statistics(
         "timestamp": now.isoformat()
     }
     
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    pending_site_edits_count = db.query(func.count(DiveSiteEditRequest.id)).filter(
+        DiveSiteEditRequest.status == EditRequestStatus.pending
+    ).scalar()
+    pending_ownership_requests_count = db.query(func.count(DivingCenter.id)).filter(
+        DivingCenter.ownership_status == OwnershipStatus.claimed
+    ).scalar()
+    
     return {
         "platform_stats": {
             "users": {
@@ -483,6 +491,10 @@ async def get_general_statistics(
                 "most_accessed_endpoint": most_accessed_endpoint
             }
         },
+        "moderation_stats": {
+            "pending_site_edits": pending_site_edits_count,
+            "pending_ownership_requests": pending_ownership_requests_count
+        },
         "notification_analytics": notification_analytics,
         "last_updated": now.isoformat()
     }
@@ -545,6 +557,27 @@ async def get_system_health(
             "frontend": "healthy"
         },
         "timestamp": datetime.utcnow().isoformat()
+    }
+
+@router.get("/moderation-pending-counts")
+async def get_moderation_pending_counts(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db)
+):
+    """Get the current count of pending edit and ownership requests for real-time moderation dashboard display"""
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    
+    pending_site_edits = db.query(func.count(DiveSiteEditRequest.id)).filter(
+        DiveSiteEditRequest.status == EditRequestStatus.pending
+    ).scalar()
+    
+    pending_ownership_requests = db.query(func.count(DivingCenter.id)).filter(
+        DivingCenter.ownership_status == OwnershipStatus.claimed
+    ).scalar()
+    
+    return {
+        "pending_site_edits": pending_site_edits,
+        "pending_ownership_requests": pending_ownership_requests
     }
 
 @router.get("/stats", response_model=PlatformStatsResponse)

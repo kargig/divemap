@@ -21,6 +21,11 @@ export const getGeneralStatistics = async () => {
   return response.data;
 };
 
+export const getModerationPendingCounts = async () => {
+  const response = await api.get('/api/v1/admin/system/moderation-pending-counts');
+  return response.data;
+};
+
 export const getGrowthData = async (period = 'month') => {
   const response = await api.get(`/api/v1/admin/system/growth?period=${period}`);
   return response.data;

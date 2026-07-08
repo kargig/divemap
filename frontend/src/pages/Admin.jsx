@@ -36,6 +36,7 @@ import {
   getTurnstileStats,
   getStorageHealth,
   getGeneralStatistics,
+  getModerationPendingCounts,
 } from '../services/admin';
 
 const Admin = () => {
@@ -59,6 +60,15 @@ const Admin = () => {
     getGeneralStatistics,
     {
       refetchInterval: 60000,
+      enabled: !!user?.is_admin,
+    }
+  );
+
+  const { data: pendingCounts } = useQuery(
+    ['moderation-pending-counts', refreshKey],
+    getModerationPendingCounts,
+    {
+      refetchInterval: 15000, // Refetch every 15 seconds to keep counts fresh
       enabled: !!user?.is_admin,
     }
   );
@@ -213,6 +223,11 @@ const Admin = () => {
                 <div className='flex items-center'>
                   <FileText className='h-5 w-5 text-blue-600 mr-3' />
                   <span className='font-medium text-gray-900'>Pending Site Edits</span>
+                  {pendingCounts?.pending_site_edits > 0 && (
+                    <span className='ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white'>
+                      {pendingCounts.pending_site_edits}
+                    </span>
+                  )}
                 </div>
                 <div className='flex items-center'>
                   <ArrowRight className='h-4 w-4 text-blue-600' />
@@ -226,6 +241,11 @@ const Admin = () => {
                 <div className='flex items-center'>
                   <Crown className='h-5 w-5 text-yellow-600 mr-3' />
                   <span className='font-medium text-gray-900'>Ownership Requests</span>
+                  {pendingCounts?.pending_ownership_requests > 0 && (
+                    <span className='ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-600 text-white'>
+                      {pendingCounts.pending_ownership_requests}
+                    </span>
+                  )}
                 </div>
                 <div className='flex items-center'>
                   <ArrowRight className='h-4 w-4 text-yellow-600' />

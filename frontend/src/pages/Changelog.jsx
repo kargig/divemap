@@ -45,9 +45,63 @@ const Changelog = () => {
 
   const releases = [
     {
+      date: 'July 8, 2026',
+      title: 'Decompression Simulation, Native Formats & Business Collaboration',
+      tag: 'Latest Release',
+      sections: [
+        {
+          title: 'Major Features',
+          type: 'feature',
+          color: 'blue',
+          items: [
+            'Decompression Tissue Simulation: Native Bühlmann ZHL-16C model calculations visualizing tissue compartment gas-loading heatmaps.',
+            'Shearwater SQLite Connector: Native support for importing dive histories directly from Shearwater Desktop .db and .sqlite database files.',
+            'Subsurface .ssrf Support: Direct import of native, compressed Subsurface .ssrf logbooks.',
+            'Diving Center Business Portal: Completely dedicated shop dashboard to update services, rental gear pricing, and view customer search metrics.',
+            'Team Managers Panel: Empower shop owners to assign instructors or staff as co-managers to delegate listing updates and co-moderation.',
+            'Visited Dive Sites Map: Interactive global geographic maps tracking all logged diving locations.',
+            'Dynamic Monthly Leaderboard: Automatic ranking tables for active user contributions.',
+          ],
+        },
+        {
+          title: 'UI & Experience',
+          type: 'ux',
+          color: 'cyan',
+          items: [
+            'Interactive Gas Heatmaps: Compact, responsive Nitrox/Trimix range breakdown charts.',
+            'Interactive Notifications: Clear "View details ->" buttons with smooth hover translations signaling direct link navigation.',
+            'Modernized Navigation: Details pages tabs refactored into clean capsule pills with optimized mobile spacing.',
+            'Persisted Query States: Search input, categories, and active filters are fully retained when browsing back through history.',
+            'Daily Feature Hero Card: Highlighted homepage sections linking dynamically to daily featured site profiles.',
+            'Standardized Starfish Ratings: Unified five-star responsive starfish icon sets replacing legacy UI graphics.',
+          ],
+        },
+        {
+          title: 'Improvements',
+          type: 'improvement',
+          color: 'green',
+          items: [
+            'Real-Time Moderation Badges: Dedicated un-cached API feeds rendering live pending request counts on admin dashboard buttons.',
+            'Smart Profile Re-uploads: Overwrite and enrich manual dive records, preserving original buddy tags and ratings while importing raw telemetry charts.',
+            'Robust Garmin FIT Imports: Major enhancements supporting .fit activities from diverse external watch brands and sports configurations.',
+            'Exact Admin Navigation Matches: Applied strict path matching to sidebar layouts to resolve double-highlighting visual overlap.',
+            'Duplicate Site Detection: Precise geographic proximity checks triggering custom multi-choice confirmation modals during site creation.',
+          ],
+        },
+        {
+          title: 'Security',
+          type: 'security',
+          color: 'orange',
+          items: [
+            'Visited Map Privacy: Granular visibility restrictions (Public, Buddies-Only, Private) to keep personal geographic logs secure.',
+            'Delegated Business Role Access: Team Managers gain service editing rights without granting full administrative ownership over claim profiles.',
+          ],
+        },
+      ],
+    },
+    {
       date: 'April 17, 2026',
       title: 'Gamification, B2C Communications & AI Evolution',
-      tag: 'Latest Release',
       sections: [
         {
           title: 'Major Features',

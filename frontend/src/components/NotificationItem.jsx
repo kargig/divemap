@@ -56,7 +56,7 @@ const NotificationItem = ({ notification, onDelete }) => {
       <div className='flex items-start justify-between'>
         <Link
           to={notification.link_url || '/notifications'}
-          className='flex-1'
+          className='flex-1 group'
           onClick={handleMarkRead}
         >
           <div className='flex items-start'>
@@ -83,6 +83,14 @@ const NotificationItem = ({ notification, onDelete }) => {
                   </span>
                 )}
               </div>
+              {notification.link_url && (
+                <div className='mt-2.5 inline-flex items-center text-xs font-semibold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300'>
+                  View details{' '}
+                  <span className='transition-transform group-hover:translate-x-1 ml-1'>
+                    &rarr;
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </Link>

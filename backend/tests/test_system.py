@@ -577,6 +577,9 @@ class TestGeneralStatistics:
         
         # Check main sections
         assert "platform_stats" in data
+        assert "moderation_stats" in data
+        assert "pending_site_edits" in data["moderation_stats"]
+        assert "pending_ownership_requests" in data["moderation_stats"]
         assert "notification_analytics" in data
         assert "last_updated" in data
         
@@ -629,6 +632,24 @@ class TestGeneralStatistics:
     def test_get_general_statistics_regular_user_forbidden(self, client, auth_headers):
         """Test getting general statistics as regular user."""
         response = client.get("/api/v1/admin/system/statistics", headers=auth_headers)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_moderation_pending_counts(self, client, admin_headers, db_session):
+        """Test getting real-time moderation pending counts."""
+        response = client.get("/api/v1/admin/system/moderation-pending-counts", headers=admin_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "pending_site_edits" in data
+        assert "pending_ownership_requests" in data
+
+    def test_get_moderation_pending_counts_unauthorized(self, client):
+        """Test getting moderation pending counts without authentication."""
+        response = client.get("/api/v1/admin/system/moderation-pending-counts")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_moderation_pending_counts_regular_user_forbidden(self, client, auth_headers):
+        """Test getting moderation pending counts as regular user."""
+        response = client.get("/api/v1/admin/system/moderation-pending-counts", headers=auth_headers)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 

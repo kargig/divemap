@@ -102,7 +102,12 @@ const AdminLayout = () => {
       icon: <Database className='h-5 w-5' />,
       links: [
         { name: 'Dives', path: '/admin/dives', icon: <Notebook className='h-4 w-4' /> },
-        { name: 'Dive Sites', path: '/admin/dive-sites', icon: <MapPin className='h-4 w-4' /> },
+        {
+          name: 'Dive Sites',
+          path: '/admin/dive-sites',
+          icon: <MapPin className='h-4 w-4' />,
+          end: true,
+        },
         {
           name: 'Pending Edits',
           path: '/admin/dive-sites/edit-requests',
