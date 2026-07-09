@@ -275,17 +275,25 @@ async def get_dive_site_membership_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Retrieve bookmark checkmarks state across all user lists"""
+    """Retrieve bookmark checkmarks state across all user lists with single-query join efficiency"""
     ensure_default_lists(db, current_user.id)
     lists = db.query(DiveSiteList).filter(DiveSiteList.user_id == current_user.id).all()
-    
+    list_ids = [lst.id for lst in lists]
+
+    # Batch query all items matching lists & dive site to resolve N+1 overhead
+    items = []
+    if list_ids:
+        items = db.query(DiveSiteListItem).filter(
+            DiveSiteListItem.list_id.in_(list_ids),
+            DiveSiteListItem.dive_site_id == dive_site_id
+        ).all()
+
+    # Map by list ID for O(1) in-memory resolution
+    item_map = {item.list_id: item for item in items}
+
     results = []
     for lst in lists:
-        item = db.query(DiveSiteListItem).filter(
-            DiveSiteListItem.list_id == lst.id,
-            DiveSiteListItem.dive_site_id == dive_site_id
-        ).first()
-        
+        item = item_map.get(lst.id)
         results.append(UserDiveSiteListMembershipResponse(
             list_id=lst.id,
             title=lst.title,
@@ -296,11 +304,19 @@ async def get_dive_site_membership_status(
     return results
 
 def ensure_default_lists(db: Session, user_id: int):
-    """Verify and initialize standard My Favorites and My Wishlist files securely"""
+    """Verify and initialize standard My Favorites and My Wishlist files securely without side-effects during GET queries"""
     fav = db.query(DiveSiteList).filter(
         DiveSiteList.user_id == user_id,
         DiveSiteList.system_type == "favorites"
     ).first()
+    wish = db.query(DiveSiteList).filter(
+        DiveSiteList.user_id == user_id,
+        DiveSiteList.system_type == "wishlist"
+    ).first()
+
+    if fav and wish:
+        return
+
     if not fav:
         fav_list = DiveSiteList(
             user_id=user_id,
@@ -313,10 +329,6 @@ def ensure_default_lists(db: Session, user_id: int):
         )
         db.add(fav_list)
 
-    wish = db.query(DiveSiteList).filter(
-        DiveSiteList.user_id == user_id,
-        DiveSiteList.system_type == "wishlist"
-    ).first()
     if not wish:
         wish_list = DiveSiteList(
             user_id=user_id,
