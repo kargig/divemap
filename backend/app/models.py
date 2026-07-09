@@ -199,6 +199,7 @@ class User(Base):
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
     social_links = relationship("UserSocialLink", back_populates="user", cascade="all, delete-orphan")
     push_subscriptions = relationship("PushSubscription", back_populates="user", cascade="all, delete-orphan")
+    dive_site_lists = relationship("DiveSiteList", back_populates="user", cascade="all, delete-orphan")
 
 class UserSocialLink(Base):
     __tablename__ = "user_social_links"
@@ -217,6 +218,49 @@ class UserSocialLink(Base):
     __table_args__ = (
         sa.UniqueConstraint('user_id', 'platform', name='_user_platform_uc'),
    )
+
+class DiveSiteList(Base):
+    __tablename__ = "dive_site_lists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(100), nullable=False)
+    slug = Column(String(120), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    is_public = Column(Boolean, default=True, nullable=False)
+    show_on_profile = Column(Boolean, default=True, nullable=False)
+    system_type = Column(String(50), nullable=True, default=None)  # "favorites", "wishlist", or None
+    view_count = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="dive_site_lists")
+    items = relationship(
+        "DiveSiteListItem",
+        back_populates="list",
+        cascade="all, delete-orphan",
+        order_by="DiveSiteListItem.display_order"
+    )
+
+class DiveSiteListItem(Base):
+    __tablename__ = "dive_site_list_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    list_id = Column(Integer, ForeignKey("dive_site_lists.id", ondelete="CASCADE"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    notes = Column(Text, nullable=True)
+    display_order = Column(Integer, default=0, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    list = relationship("DiveSiteList", back_populates="items")
+    dive_site = relationship("DiveSite")
+
+    # Unique constraint to prevent duplicate dive sites in the same list
+    __table_args__ = (
+        sa.UniqueConstraint('list_id', 'dive_site_id', name='uq_list_dive_site'),
+    )
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"

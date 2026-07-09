@@ -22,6 +22,7 @@ import {
   CloudSun,
   Route,
   User,
+  Bookmark,
 } from 'lucide-react';
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
@@ -50,6 +51,7 @@ import ReactImage from '../components/Lightbox/ReactImage';
 import WeatherConditionsCard from '../components/MarineConditionsCard';
 import MaskedEmail from '../components/MaskedEmail';
 import RateLimitError from '../components/RateLimitError';
+import SaveToListModal from '../components/SaveToListModal';
 import SEO from '../components/SEO';
 import ShareButton from '../components/ShareButton';
 import StickyRateBar from '../components/StickyRateBar';
@@ -92,6 +94,7 @@ const DiveSiteDetail = () => {
   const [comment, setComment] = useState('');
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState('photos');
   const [activeContentTab, setActiveContentTab] = useState('description');
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -701,6 +704,16 @@ const DiveSiteDetail = () => {
               entityData={diveSite}
               className='inline-flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
             />
+          )}
+          {diveSite && !diveSite.deleted_at && user && (
+            <Button
+              onClick={() => setIsSaveOpen(true)}
+              variant='primary'
+              size='sm'
+              icon={<Bookmark className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+            >
+              Save to List
+            </Button>
           )}
           {(() => {
             const isOwner = user?.id === diveSite?.created_by;
@@ -1516,6 +1529,15 @@ const DiveSiteDetail = () => {
           setIsNearbyExpanded={setIsNearbyExpanded}
         />
       </div>
+
+      {diveSite && (
+        <SaveToListModal
+          isOpen={isSaveOpen}
+          onClose={() => setIsSaveOpen(false)}
+          diveSiteId={diveSite.id}
+          diveSiteName={diveSite.name}
+        />
+      )}
     </div>
   );
 };

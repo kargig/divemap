@@ -267,6 +267,65 @@ export const getUserAdvancedAnalytics = async username => {
   return response.data;
 };
 
+// Curated Lists API Functions
+export const getMyLists = async () => {
+  const response = await api.get('/api/v1/lists/my-lists');
+  return response.data;
+};
+
+export const getUserPublicLists = async username => {
+  const response = await api.get(`/api/v1/users/${username}/lists`);
+  return response.data;
+};
+
+export const getListById = async id => {
+  const response = await api.get(`/api/v1/lists/${id}`);
+  return response.data;
+};
+
+export const createList = async data => {
+  const response = await api.post('/api/v1/lists', data);
+  return response.data;
+};
+
+export const updateList = async (id, data) => {
+  const response = await api.put(`/api/v1/lists/${id}`, data);
+  return response.data;
+};
+
+export const deleteList = async id => {
+  await api.delete(`/api/v1/lists/${id}`);
+};
+
+export const addListItem = async (listId, data) => {
+  const response = await api.post(`/api/v1/lists/${listId}/items`, data);
+  return response.data;
+};
+
+export const updateListItem = async (listId, itemId, data) => {
+  const response = await api.put(`/api/v1/lists/${listId}/items/${itemId}`, data);
+  return response.data;
+};
+
+export const deleteListItem = async (listId, itemId) => {
+  await api.delete(`/api/v1/lists/${listId}/items/${itemId}`);
+};
+
+export const reorderListItems = async (listId, itemIds) => {
+  const response = await api.put(`/api/v1/lists/${listId}/reorder`, { item_ids: itemIds });
+  return response.data;
+};
+
+export const getDiveSiteListStatus = async diveSiteId => {
+  const response = await api.get(`/api/v1/lists/dive-site/${diveSiteId}/my-status`);
+  return response.data;
+};
+
+export const getAdminPopularLists = async () => {
+  const response = await api.get('/api/v1/lists/admin/popular-lists');
+  return response.data;
+};
+
 // Logged-in user private feedback history API functions
 export const getMyComments = async (params = {}) => {
   const response = await api.get('/api/v1/users/me/comments', { params });

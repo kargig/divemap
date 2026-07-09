@@ -92,6 +92,7 @@ const TripDetail = lazy(() => import('./pages/TripDetail'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 const UserProfile = lazy(() => import('./pages/UserProfile'));
 const UserAnalytics = lazy(() => import('./pages/UserAnalytics'));
+const UserListDetail = lazy(() => import('./pages/UserListDetail'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -309,6 +310,8 @@ function AppContent() {
             />
             <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
+            <Route path='/users/:username/lists/:id' element={<UserListDetail />} />
+            <Route path='/users/:username/lists/:id/:slug' element={<UserListDetail />} />
             {/* Backward compatibility routes */}
             <Route
               path='/profile/notifications'

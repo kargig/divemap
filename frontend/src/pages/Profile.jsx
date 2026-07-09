@@ -31,6 +31,11 @@ import {
   Map,
   Star,
   Gauge,
+  Bookmark,
+  Eye,
+  Globe,
+  FolderHeart,
+  Loader2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -38,7 +43,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
-import api, { getUserPublicProfile } from '../api';
+import api, { getUserPublicProfile, getMyLists, createList } from '../api';
 import Avatar from '../components/Avatar';
 import AvatarEditor from '../components/AvatarEditor';
 import { FormField } from '../components/forms/FormField';
@@ -73,6 +78,58 @@ const Profile = () => {
   const [editingCertification, setEditingCertification] = useState(null);
   const [availableLevels, setAvailableLevels] = useState([]);
   const [isAddingSocialLink, setIsAddingSocialLink] = useState(false);
+
+  const [lists, setLists] = useState([]);
+  const [loadingLists, setLoadingLists] = useState(true);
+  const [isAddingList, setIsAddingList] = useState(false);
+  const [newListTitle, setNewListTitle] = useState('');
+  const [newListDescription, setNewListDescription] = useState('');
+  const [newListIsPublic, setNewListIsPublic] = useState(true);
+  const [newListShowOnProfile, setNewListShowOnProfile] = useState(true);
+  const [creatingList, setCreatingList] = useState(false);
+
+  const fetchLists = async () => {
+    try {
+      setLoadingLists(true);
+      const data = await getMyLists();
+      setLists(data);
+    } catch (err) {
+      console.error('Failed to load lists:', err);
+    } finally {
+      setLoadingLists(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchLists();
+    }
+  }, [user]);
+
+  const handleCreateList = async e => {
+    e.preventDefault();
+    if (!newListTitle.trim()) return;
+    setCreatingList(true);
+    try {
+      await createList({
+        title: newListTitle,
+        description: newListDescription,
+        is_public: newListIsPublic,
+        show_on_profile: newListShowOnProfile,
+      });
+      toast.success('Curated list created successfully!');
+      setNewListTitle('');
+      setNewListDescription('');
+      setNewListIsPublic(true);
+      setNewListShowOnProfile(true);
+      setIsAddingList(false);
+      fetchLists();
+    } catch (err) {
+      toast.error(`Failed to create list: ${err.message || 'An error occurred'}`);
+    } finally {
+      setCreatingList(false);
+    }
+  };
 
   // Profile Form
   const profileMethods = useForm({
@@ -807,10 +864,10 @@ const Profile = () => {
                   </form>
                 </FormProvider>
               ) : (
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 sm:gap-y-4'>
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <User className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <User className='h-4 w-4 text-blue-600' />
                     </div>
                     <div className='min-w-0'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -821,8 +878,8 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <User className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <User className='h-4 w-4 text-blue-600' />
                     </div>
                     <div className='min-w-0'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -835,8 +892,8 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <Mail className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Mail className='h-4 w-4 text-blue-600' />
                     </div>
                     <div className='min-w-0'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -849,15 +906,15 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <Activity className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Activity className='h-4 w-4 text-blue-600' />
                     </div>
                     <div className='min-w-0'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
                         Total Dives
                       </span>
                       <div className='flex items-baseline gap-2'>
-                        <p className='text-gray-900 font-bold text-lg'>
+                        <p className='text-gray-900 font-bold text-base sm:text-lg leading-tight'>
                           {(user?.number_of_dives || 0) +
                             (userStats?.dives_created || 0) +
                             (userStats?.buddy_dives_count || 0)}
@@ -871,8 +928,8 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <Shield className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Shield className='h-4 w-4 text-blue-600' />
                     </div>
                     <div>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -890,8 +947,8 @@ const Profile = () => {
 
                   {ownedDivingCenters && ownedDivingCenters.length > 0 && (
                     <div className='flex items-start'>
-                      <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                        <Building2 className='h-5 w-5 text-blue-600' />
+                      <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                        <Building2 className='h-4 w-4 text-blue-600' />
                       </div>
                       <div className='flex-1 min-w-0'>
                         <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -913,8 +970,8 @@ const Profile = () => {
                   )}
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <Calendar className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Calendar className='h-4 w-4 text-blue-600' />
                     </div>
                     <div>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -927,8 +984,8 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-2 rounded-lg mr-3 shrink-0'>
-                      <Shield className='h-5 w-5 text-blue-600' />
+                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Shield className='h-4 w-4 text-blue-600' />
                     </div>
                     <div>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
@@ -1091,6 +1148,165 @@ const Profile = () => {
               )}
             </div>
 
+            {/* My Curated Lists Section */}
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
+                <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight flex items-center gap-2'>
+                  <Bookmark className='h-5 w-5 text-blue-600' />
+                  My Curated Lists
+                </h2>
+                <button
+                  onClick={() => setIsAddingList(!isAddingList)}
+                  className='flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold shadow-sm transition-all w-full sm:w-auto text-sm'
+                >
+                  <Plus className='h-4 w-4 mr-2' />
+                  Create List
+                </button>
+              </div>
+
+              {isAddingList && (
+                <form
+                  onSubmit={handleCreateList}
+                  className='mb-6 p-4 border border-gray-200 rounded-lg space-y-4 bg-gray-50/20'
+                >
+                  <div>
+                    <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1'>
+                      List Title
+                    </label>
+                    <input
+                      type='text'
+                      placeholder='e.g., Summer 2026 Trip, Shipwrecks I Love...'
+                      value={newListTitle}
+                      onChange={e => setNewListTitle(e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm'
+                      maxLength={100}
+                      required
+                      disabled={creatingList}
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1'>
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      placeholder='What is this collection about?'
+                      value={newListDescription}
+                      onChange={e => setNewListDescription(e.target.value)}
+                      className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:border-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white'
+                      disabled={creatingList}
+                    />
+                  </div>
+                  <div className='flex flex-wrap gap-4 sm:gap-8'>
+                    <label className='flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer'>
+                      <input
+                        type='checkbox'
+                        checked={newListIsPublic}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setNewListIsPublic(checked);
+                          if (!checked) {
+                            setNewListShowOnProfile(false);
+                          }
+                        }}
+                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        disabled={creatingList}
+                      />
+                      <span>Publicly viewable</span>
+                    </label>
+                    <label
+                      className={`flex items-center gap-2 text-sm font-semibold ${
+                        !newListIsPublic
+                          ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                          : 'text-gray-700 dark:text-gray-300 cursor-pointer'
+                      }`}
+                    >
+                      <input
+                        type='checkbox'
+                        checked={newListIsPublic && newListShowOnProfile}
+                        onChange={e => setNewListShowOnProfile(e.target.checked)}
+                        className='rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                        disabled={creatingList || !newListIsPublic}
+                      />
+                      <span>Show on Public Profile</span>
+                    </label>
+                  </div>
+                  <div className='flex justify-end gap-2 pt-2 border-t border-gray-100'>
+                    <button
+                      type='button'
+                      onClick={() => setIsAddingList(false)}
+                      className='px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-semibold text-sm'
+                      disabled={creatingList}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold text-sm flex items-center gap-1 shadow-sm'
+                      disabled={creatingList || !newListTitle.trim()}
+                    >
+                      {creatingList ? <Loader2 className='animate-spin h-4 w-4' /> : 'Create List'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {loadingLists ? (
+                <div className='flex justify-center py-8'>
+                  <Loader2 className='animate-spin text-blue-600 h-8 w-8' />
+                </div>
+              ) : lists.length === 0 ? (
+                <div className='text-center py-8 border border-dashed border-gray-200 rounded-lg'>
+                  <p className='text-gray-500 text-sm italic mb-2'>
+                    You haven't created any collections yet.
+                  </p>
+                  <p className='text-gray-400 text-xs'>
+                    Your standard system favorites and wishlist folders are automatically
+                    initialized when you bookmark your first dive site!
+                  </p>
+                </div>
+              ) : (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  {lists.map(lst => (
+                    <Link
+                      key={lst.id}
+                      to={`/users/${user?.username}/lists/${lst.id}/${lst.slug}`}
+                      className='block p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all group bg-gray-50/10'
+                    >
+                      <div className='flex justify-between items-start gap-2 mb-1'>
+                        <span className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-sm sm:text-base'>
+                          {lst.title}
+                        </span>
+                        <div className='flex gap-1 flex-shrink-0'>
+                          {lst.system_type && (
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-tighter'>
+                              SYSTEM
+                            </span>
+                          )}
+                          {!lst.is_public && (
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-tighter gap-0.5'>
+                              <Lock size={8} /> PRIVATE
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {lst.description && (
+                        <p className='text-xs text-gray-500 line-clamp-2 mb-3'>{lst.description}</p>
+                      )}
+                      <div className='flex items-center gap-4 text-[11px] text-gray-400 font-medium'>
+                        <span className='flex items-center gap-0.5'>
+                          <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
+                          {lst.items?.length || 0} sites
+                        </span>
+                        <span className='flex items-center gap-0.5'>
+                          <Eye className='h-3.5 w-3.5 text-gray-400' />
+                          {lst.view_count || 0} views
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             {/* Certifications Section */}
             <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>

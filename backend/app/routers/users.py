@@ -5,7 +5,7 @@ from typing import List, Optional
 import uuid
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken, DiveSiteList, DiveSiteListItem
 from app.schemas import (
     UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
@@ -13,9 +13,9 @@ from app.schemas import (
     UserSocialLinkCreate, UserSocialLinkResponse,
     PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse, AdvancedAnalyticsResponse,
     AvatarUpdate, AvatarType, VisitedDiveSiteResponse,
-    MyCommentsListResponse, MyRatingsListResponse
+    MyCommentsListResponse, MyRatingsListResponse, UserDiveSiteListResponse
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator
+from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator, get_current_user_optional
 from app.services.r2_storage_service import r2_storage
 from app.services.image_processing import image_processing
 from app.limiter import skip_rate_limit_for_admin
@@ -956,6 +956,39 @@ async def get_user_public_profile(
     ).model_dump()
 
     return populate_avatar_full_url(user, response_dict)
+
+
+@router.get("/{username}/lists", response_model=List[UserDiveSiteListResponse])
+@skip_rate_limit_for_admin("60/minute")
+async def get_user_public_lists(
+    request: Request,
+    username: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    """Get all public lists for a specific user (Option A delegation)"""
+    user = db.query(User).filter(User.username == username, User.enabled == True).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from app.routers.lists import ensure_default_lists
+    ensure_default_lists(db, user.id)
+
+    # Public profile endpoint always returns only public lists flagged to be shown on public profiles
+    query = db.query(DiveSiteList).filter(
+        DiveSiteList.user_id == user.id,
+        DiveSiteList.is_public == True,
+        DiveSiteList.show_on_profile == True
+    )
+
+    lists = query.options(joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site)).all()
+    for lst in lists:
+        lst.username = user.username
+        if lst.items:
+            for item in lst.items:
+                if item.dive_site:
+                    item.dive_site.tags = []
+    return lists
 
 
 @router.get("/{username}/visited-sites", response_model=List[VisitedDiveSiteResponse])

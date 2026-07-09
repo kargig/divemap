@@ -852,6 +852,65 @@ class VisitedDiveSiteResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+# User Curated Lists Schemas
+class DiveSiteListItemResponse(BaseModel):
+    id: int
+    list_id: int
+    dive_site_id: int
+    notes: Optional[str] = None
+    display_order: int
+    dive_site: DiveSiteResponse
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserDiveSiteListResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    title: str
+    slug: str
+    description: Optional[str] = None
+    is_public: bool
+    show_on_profile: bool
+    system_type: Optional[str] = None
+    view_count: int
+    created_at: datetime
+    updated_at: datetime
+    items: List[DiveSiteListItemResponse] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserDiveSiteListCreate(BaseModel):
+    title: str = Field(..., max_length=100)
+    description: Optional[str] = None
+    is_public: bool = True
+    show_on_profile: bool = True
+
+class UserDiveSiteListUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    is_public: Optional[bool] = None
+    show_on_profile: Optional[bool] = None
+
+class DiveSiteListItemCreate(BaseModel):
+    dive_site_id: int
+    notes: Optional[str] = None
+
+class DiveSiteListItemUpdate(BaseModel):
+    notes: Optional[str] = None
+    display_order: Optional[int] = None
+
+class UserDiveSiteListReorder(BaseModel):
+    item_ids: List[int]
+
+class UserDiveSiteListMembershipResponse(BaseModel):
+    list_id: int
+    title: str
+    system_type: Optional[str] = None
+    is_in_list: bool
+    item_id: Optional[int] = None
+
 # User Public Info for buddy lists
 class UserPublicInfo(BaseModel):
     id: int

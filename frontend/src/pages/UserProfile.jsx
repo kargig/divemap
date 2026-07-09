@@ -39,6 +39,10 @@ import {
   Trophy,
   Medal,
   Globe,
+  Bookmark,
+  Eye,
+  FolderHeart,
+  Loader2,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -51,6 +55,7 @@ import {
   getUserFriendships,
   sendFriendRequest,
   createChatRoom,
+  getUserPublicLists,
 } from '../api';
 import Avatar from '../components/Avatar';
 import OrganizationLogo from '../components/OrganizationLogo';
@@ -176,6 +181,8 @@ const UserProfile = () => {
   const [error, setError] = useState(null);
   const [friendshipStatus, setFriendshipStatus] = useState(null); // null, 'PENDING', 'ACCEPTED'
   const [isProcessingFriendship, setIsProcessingFriendship] = useState(false);
+  const [lists, setLists] = useState([]);
+  const [loadingLists, setLoadingLists] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -184,6 +191,16 @@ const UserProfile = () => {
         setError(null);
         const data = await getUserPublicProfile(username);
         setProfile(data);
+
+        // Fetch lists
+        try {
+          const listsData = await getUserPublicLists(username);
+          setLists(listsData);
+        } catch (listsErr) {
+          console.error('Failed to fetch user public lists:', listsErr);
+        } finally {
+          setLoadingLists(false);
+        }
 
         // Fetch friendship status if logged in and not viewing self
         if (currentUser && currentUser.username !== username) {
@@ -1150,6 +1167,59 @@ const UserProfile = () => {
                 </div>
               </div>
             )}
+
+            {/* Curated Lists / Collections */}
+            <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-100 dark:border-gray-700'>
+              <h2 className='text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center gap-2'>
+                <Bookmark className='h-5 w-5 text-blue-600 dark:text-blue-400' />
+                Curated Collections
+              </h2>
+              {loadingLists ? (
+                <div className='flex justify-center py-6'>
+                  <Loader2 className='animate-spin text-blue-600 dark:text-blue-400 h-6 w-6' />
+                </div>
+              ) : lists.length === 0 ? (
+                <p className='text-center py-6 text-sm text-gray-500 dark:text-gray-400 italic'>
+                  No public collections displayed yet.
+                </p>
+              ) : (
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  {lists.map(lst => (
+                    <Link
+                      key={lst.id}
+                      to={`/users/${username}/lists/${lst.id}/${lst.slug}`}
+                      className='block p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-blue-100 dark:hover:border-blue-900 hover:shadow-sm transition-all duration-200 bg-gray-50/30 dark:bg-gray-900/10'
+                    >
+                      <div className='flex justify-between items-start gap-2 mb-1'>
+                        <h3 className='font-bold text-gray-900 dark:text-white text-base hover:text-blue-600 dark:hover:text-blue-400 transition-colors leading-snug'>
+                          {lst.title}
+                        </h3>
+                        {lst.system_type && (
+                          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 uppercase tracking-tighter'>
+                            DEFAULT
+                          </span>
+                        )}
+                      </div>
+                      {lst.description && (
+                        <p className='text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3'>
+                          {lst.description}
+                        </p>
+                      )}
+                      <div className='flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500 font-medium'>
+                        <span className='flex items-center gap-1'>
+                          <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
+                          {lst.items?.length || 0} sites
+                        </span>
+                        <span className='flex items-center gap-1'>
+                          <Eye className='h-3.5 w-3.5 text-gray-400' />
+                          {lst.view_count || 0} views
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Mobile Certifications (hidden on lg) */}
             {profile.certifications && profile.certifications.length > 0 && (
