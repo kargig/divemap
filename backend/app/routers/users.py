@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, File, UploadFile
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 from typing import List, Optional
 import uuid
 
 from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken, DiveSiteList, DiveSiteListItem
+from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken, DiveSiteList, DiveSiteListItem, DiveSiteTag
 from app.schemas import (
     UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
     PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
@@ -971,7 +971,7 @@ async def get_user_public_lists(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    from app.routers.lists import ensure_default_lists
+    from app.routers.lists import ensure_default_lists, sanitize_list_for_response
     ensure_default_lists(db, user.id)
 
     # Public profile endpoint always returns only public lists flagged to be shown on public profiles
@@ -981,13 +981,14 @@ async def get_user_public_lists(
         DiveSiteList.show_on_profile == True
     )
 
-    lists = query.options(joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site)).all()
+    lists = query.options(
+        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        )
+    ).all()
     for lst in lists:
         lst.username = user.username
-        if lst.items:
-            for item in lst.items:
-                if item.dive_site:
-                    item.dive_site.tags = []
+        sanitize_list_for_response(lst)
     return lists
 
 

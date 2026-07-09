@@ -325,6 +325,31 @@ class DiveSiteResponse(DiveSiteBase):
     thumbnail_source: Optional[str] = None  # 'site_media' or 'dive_media'
     thumbnail_id: Optional[int] = None  # ID of the media item
 
+    @field_validator('tags', mode='before')
+    @classmethod
+    def format_tags(cls, v):
+        if isinstance(v, list):
+            formatted = []
+            for item in v:
+                if isinstance(item, dict):
+                    formatted.append(item)
+                elif hasattr(item, 'tag') and item.tag:
+                    formatted.append({
+                        "id": item.tag.id,
+                        "name": item.tag.name,
+                        "category": getattr(item.tag, 'category', None),
+                        "created_at": getattr(item.tag, 'created_at', None)
+                    })
+                elif hasattr(item, 'id') and hasattr(item, 'name'):
+                    formatted.append({
+                        "id": item.id,
+                        "name": item.name,
+                        "category": getattr(item, 'category', None),
+                        "created_at": getattr(item, 'created_at', None)
+                    })
+            return formatted
+        return v
+
     @field_validator('created_at', 'updated_at', mode='before')
     @classmethod
     def normalize_datetime_to_utc(cls, v, info: ValidationInfo):

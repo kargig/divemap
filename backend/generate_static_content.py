@@ -12,9 +12,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
-from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
+from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel, DiveSiteList
 
 # R2 Configuration
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
@@ -408,6 +408,18 @@ def generate_content(db: Session, r2_client=None):
         slug = slugify(org.name)
         url = f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}" if slug else f"{BASE_URL}/resources/diving-organizations/{org.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
+
+    # Curated Dive Site Lists (Only include public lists flagged to be shown on public profiles)
+    curated_lists = db.query(DiveSiteList).filter(
+        DiveSiteList.is_public == True,
+        DiveSiteList.show_on_profile == True
+    ).options(joinedload(DiveSiteList.user)).all()
+    for lst in curated_lists:
+        lastmod = lst.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(lst, 'updated_at') and lst.updated_at else now
+        username = lst.user.username if lst.user else "unknown"
+        url_slug = f"/{lst.slug}" if lst.slug else ""
+        url = f"{BASE_URL}/users/{username}/lists/{lst.id}{url_slug}"
+        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
 
     sitemap_xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
