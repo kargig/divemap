@@ -1,3 +1,19 @@
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -5,8 +21,6 @@ import {
   Eye,
   Globe,
   Lock,
-  ArrowUp,
-  ArrowDown,
   Trash2,
   Calendar,
   MessageSquare,
@@ -14,6 +28,9 @@ import {
   Loader2,
   MapPin,
   FileText,
+  GripVertical,
+  Pencil,
+  Fish,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
@@ -34,6 +51,7 @@ import Button from '../components/ui/Button';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateHelpers';
+import { getTagColor } from '../utils/tagHelpers';
 
 // Fix Leaflet marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -59,6 +77,141 @@ const SetMapBounds = ({ items }) => {
   return null;
 };
 
+const SortableListItem = ({
+  item,
+  index,
+  isOwner,
+  activeSiteId,
+  setActiveSiteId,
+  handleRemoveItem,
+  handleItemNoteUpdate,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    position: 'relative',
+  };
+
+  const site = item.dive_site;
+  const isActive = activeSiteId === site.id;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      id={`list-item-${site.id}`}
+      className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all duration-300 relative ${
+        isActive
+          ? 'border-blue-500 ring-2 ring-blue-500/20'
+          : 'border-gray-200/50 dark:border-gray-700 hover:border-blue-100/50 dark:hover:border-blue-900/30'
+      } ${isDragging ? 'shadow-lg ring-2 ring-blue-400/50 border-blue-400' : ''}`}
+    >
+      <div className='flex gap-4 items-start'>
+        {/* Ranking Index / Drag Handle */}
+        <div className='flex flex-col items-center gap-1 shrink-0 p-1 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50 w-10 sm:w-12'>
+          <div
+            {...attributes}
+            {...listeners}
+            className='p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-grab active:cursor-grabbing transition-colors'
+            title='Drag to reorder'
+          >
+            <GripVertical className='h-4.5 w-4.5' />
+          </div>
+          <span className='font-display font-extrabold text-lg text-gray-900 dark:text-white pb-1.5'>
+            {index + 1}
+          </span>
+        </div>
+
+        {/* Item Meta & Actions */}
+        <div className='flex-1 min-w-0 space-y-3'>
+          <div className='flex justify-between items-start gap-2'>
+            <div className='min-w-0'>
+              <Link
+                to={`/dive-sites/${site.id}/${site.slug || ''}`}
+                className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors block truncate'
+              >
+                {site.name}
+              </Link>
+              <p className='text-xs text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5 capitalize'>
+                📍 {site.region ? `${site.region}, ` : ''}
+                {site.country}
+              </p>
+            </div>
+            <button
+              onClick={() => handleRemoveItem(item.id)}
+              className='text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors'
+              title='Remove from list'
+            >
+              <Trash2 className='h-4.5 w-4.5' />
+            </button>
+          </div>
+
+          {/* Badges block */}
+          <div className='flex flex-wrap gap-2 items-center'>
+            <DifficultyBadge code={site.difficulty_code} label={site.difficulty_label} />
+            {site.max_depth && (
+              <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
+                Max Depth: {site.max_depth}m
+              </span>
+            )}
+            {site.tags?.map((tag, idx) => (
+              <span
+                key={idx}
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
+              >
+                {tag.name || tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Marine Life */}
+          {site.marine_life && (
+            <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
+              <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
+              <div>
+                <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
+                  Marine Life
+                </span>
+                <p className='leading-normal font-normal'>{site.marine_life}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Notes segment */}
+          <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative group/notes hover:border-blue-200 dark:hover:border-blue-900/30 transition-colors duration-200'>
+            <div className='flex items-center justify-between text-gray-400 group-hover/notes:text-blue-500 dark:group-hover/notes:text-blue-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
+              <div className='flex items-center gap-1'>
+                <FileText className='h-3 w-3' />
+                Notes
+              </div>
+              <span className='text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 px-1.5 py-0.5 rounded opacity-80 font-semibold uppercase tracking-normal normal-case'>
+                Click to edit
+              </span>
+            </div>
+            <textarea
+              defaultValue={item.notes || ''}
+              placeholder='Add some personal tips, landmarks or directions for this dive site...'
+              onBlur={e => {
+                const val = e.target.value.trim();
+                if (val !== (item.notes || '')) {
+                  handleItemNoteUpdate(item.id, val || null);
+                }
+              }}
+              className='w-full text-xs text-gray-700 dark:text-gray-300 bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-500 focus:outline-none py-0.5 resize-y min-h-[32px]'
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const UserListDetail = () => {
   const { username, id } = useParams();
   const navigate = useNavigate();
@@ -73,6 +226,17 @@ const UserListDetail = () => {
   const descInputRef = useRef(null);
 
   const isOwner = user && list && user.id === list.user_id;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const fetchListDetails = async () => {
     try {
@@ -142,29 +306,28 @@ const UserListDetail = () => {
     }
   };
 
-  const handleMoveItem = async (index, direction) => {
-    if (!isOwner) return;
-    const newItems = [...list.items];
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= newItems.length) return;
+  const handleDragEnd = async event => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
 
-    // Swap elements
-    const temp = newItems[index];
-    newItems[index] = newItems[targetIndex];
-    newItems[targetIndex] = temp;
+    const oldIndex = list.items.findIndex(item => item.id === active.id);
+    const newIndex = list.items.findIndex(item => item.id === over.id);
+
+    const reorderedItems = arrayMove(list.items, oldIndex, newIndex);
 
     // Adjust orders locally
-    newItems.forEach((item, idx) => {
+    reorderedItems.forEach((item, idx) => {
       item.display_order = idx;
     });
 
-    setList(prev => ({ ...prev, items: newItems }));
+    setList(prev => ({ ...prev, items: reorderedItems }));
 
     try {
       await reorderListItems(
         id,
-        newItems.map(it => it.id)
+        reorderedItems.map(it => it.id)
       );
+      toast.success('Collection order updated!');
     } catch (err) {
       toast.error('Failed to save collection order');
     }
@@ -274,22 +437,28 @@ const UserListDetail = () => {
               )}
 
               {isOwner ? (
-                <textarea
-                  ref={descInputRef}
-                  defaultValue={list.description || ''}
-                  placeholder='Write an optional description for this collection...'
-                  onBlur={e => {
-                    const val = e.target.value.trim();
-                    if (val !== (list.description || '')) {
-                      handleMetaUpdate('description', val || null);
-                    }
-                  }}
-                  className='text-sm text-gray-500 dark:text-gray-400 bg-transparent border border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none w-full p-1 rounded-md resize-y'
-                  rows={2}
-                />
+                <div className='relative group/desc w-full mt-1'>
+                  <textarea
+                    ref={descInputRef}
+                    defaultValue={list.description || ''}
+                    placeholder='Write a description for this collection...'
+                    onBlur={e => {
+                      const val = e.target.value.trim();
+                      if (val !== (list.description || '')) {
+                        handleMetaUpdate('description', val || null);
+                      }
+                    }}
+                    className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700/80 hover:border-blue-300 dark:hover:border-blue-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 focus:outline-none w-full p-3 pr-24 rounded-xl resize-y transition-all min-h-[64px]'
+                    rows={2}
+                  />
+                  <div className='absolute right-2.5 bottom-3.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pointer-events-none opacity-80 group-hover/desc:text-blue-500 dark:group-hover/desc:text-blue-400 transition-colors'>
+                    <Pencil className='h-3 w-3' />
+                    <span>Edit description</span>
+                  </div>
+                </div>
               ) : (
                 list.description && (
-                  <p className='text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-normal whitespace-pre-wrap'>
+                  <p className='text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-normal whitespace-pre-wrap mt-1'>
                     {list.description}
                   </p>
                 )
@@ -412,6 +581,38 @@ const UserListDetail = () => {
 
           {/* Cards Column (Lg: spans 3/5) */}
           <div className='lg:col-span-3 space-y-4'>
+            {isOwner && (
+              <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl p-4 border border-blue-100/50 dark:border-blue-900/30 flex items-start gap-3 shadow-sm mb-4'>
+                <div className='p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 mt-0.5'>
+                  <Bookmark className='h-5 w-5' />
+                </div>
+                <div className='space-y-1'>
+                  <h4 className='font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5'>
+                    How to add more dive sites to this list:
+                  </h4>
+                  <p className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
+                    Browse our global{' '}
+                    <Link
+                      to='/dive-sites'
+                      className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
+                    >
+                      Dive Sites directory
+                    </Link>{' '}
+                    or{' '}
+                    <Link
+                      to='/map'
+                      className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
+                    >
+                      Interactive Map
+                    </Link>
+                    . On any site's details page, click the{' '}
+                    <span className='font-semibold'>Save to List</span> button to add it to{' '}
+                    <span className='italic font-medium'>"{list.title}"</span> instantly.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {list.items.length === 0 ? (
               <div className='bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm border border-gray-200/50 dark:border-gray-700 text-center space-y-2'>
                 <MapPin className='h-12 w-12 text-gray-300 mx-auto' />
@@ -428,117 +629,123 @@ const UserListDetail = () => {
                   </Link>
                 </div>
               </div>
+            ) : isOwner ? (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={list.items.map(item => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className='space-y-4'>
+                    {list.items.map((item, index) => (
+                      <SortableListItem
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        isOwner={isOwner}
+                        activeSiteId={activeSiteId}
+                        setActiveSiteId={setActiveSiteId}
+                        handleRemoveItem={handleRemoveItem}
+                        handleItemNoteUpdate={handleItemNoteUpdate}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             ) : (
-              list.items.map((item, index) => {
-                const site = item.dive_site;
-                const isActive = activeSiteId === site.id;
+              <div className='space-y-4'>
+                {list.items.map((item, index) => {
+                  const site = item.dive_site;
+                  const isActive = activeSiteId === site.id;
 
-                return (
-                  <div
-                    key={item.id}
-                    id={`list-item-${site.id}`}
-                    className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all duration-300 relative ${
-                      isActive
-                        ? 'border-blue-500 ring-2 ring-blue-500/20'
-                        : 'border-gray-200/50 dark:border-gray-700 hover:border-blue-100/50 dark:hover:border-blue-900/30'
-                    }`}
-                  >
-                    <div className='flex gap-4 items-start'>
-                      {/* Ranking Index / Reordering Controls */}
-                      <div className='flex flex-col items-center gap-1 shrink-0 p-1 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50 w-10 sm:w-12'>
-                        {isOwner && (
-                          <button
-                            onClick={() => handleMoveItem(index, -1)}
-                            disabled={index === 0}
-                            className='p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-30'
-                            title='Move Up'
-                          >
-                            <ArrowUp className='h-4 w-4' />
-                          </button>
-                        )}
-                        <span className='font-display font-extrabold text-lg text-gray-900 dark:text-white'>
-                          {index + 1}
-                        </span>
-                        {isOwner && (
-                          <button
-                            onClick={() => handleMoveItem(index, 1)}
-                            disabled={index === list.items.length - 1}
-                            className='p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-30'
-                            title='Move Down'
-                          >
-                            <ArrowDown className='h-4 w-4' />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Item Meta & Actions */}
-                      <div className='flex-1 min-w-0 space-y-3'>
-                        <div className='flex justify-between items-start gap-2'>
-                          <div className='min-w-0'>
-                            <Link
-                              to={`/dive-sites/${site.id}/${site.slug || ''}`}
-                              className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors block truncate'
-                            >
-                              {site.name}
-                            </Link>
-                            <p className='text-xs text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5 capitalize'>
-                              📍 {site.region ? `${site.region}, ` : ''}
-                              {site.country}
-                            </p>
-                          </div>
-                          {isOwner && (
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className='text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors'
-                              title='Remove from list'
-                            >
-                              <Trash2 className='h-4.5 w-4.5' />
-                            </button>
-                          )}
+                  return (
+                    <div
+                      key={item.id}
+                      id={`list-item-${site.id}`}
+                      className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all duration-300 relative ${
+                        isActive
+                          ? 'border-blue-500 ring-2 ring-blue-500/20'
+                          : 'border-gray-200/50 dark:border-gray-700 hover:border-blue-100/50 dark:hover:border-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex gap-4 items-start'>
+                        {/* Ranking Index */}
+                        <div className='flex flex-col items-center gap-1 shrink-0 p-1 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50 w-10 sm:w-12'>
+                          <span className='font-display font-extrabold text-lg text-gray-900 dark:text-white py-2'>
+                            {index + 1}
+                          </span>
                         </div>
 
-                        {/* Badges block */}
-                        <div className='flex flex-wrap gap-2 items-center'>
-                          <DifficultyBadge
-                            code={site.difficulty_code}
-                            label={site.difficulty_label}
-                          />
-                          {site.max_depth && (
-                            <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
-                              Max Depth: {site.max_depth}m
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Custom notes segment */}
-                        <div className='mt-3 bg-blue-50/20 dark:bg-blue-950/10 rounded-xl p-4 border border-blue-100/30 dark:border-blue-900/10 relative'>
-                          <div className='flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-wider mb-1.5'>
-                            <FileText className='h-3.5 w-3.5' />
-                            {isOwner ? 'Custom Annotations (Editable)' : 'Curator Annotations'}
+                        {/* Item Meta & Actions */}
+                        <div className='flex-1 min-w-0 space-y-3'>
+                          <div className='flex justify-between items-start gap-2'>
+                            <div className='min-w-0'>
+                              <Link
+                                to={`/dive-sites/${site.id}/${site.slug || ''}`}
+                                className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors block truncate'
+                              >
+                                {site.name}
+                              </Link>
+                              <p className='text-xs text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5 capitalize'>
+                                📍 {site.region ? `${site.region}, ` : ''}
+                                {site.country}
+                              </p>
+                            </div>
                           </div>
-                          {isOwner ? (
-                            <textarea
-                              defaultValue={item.notes || ''}
-                              placeholder='Add some personal tips, landmarks or directions for this dive site...'
-                              onBlur={e => {
-                                const val = e.target.value.trim();
-                                if (val !== (item.notes || '')) {
-                                  handleItemNoteUpdate(item.id, val || null);
-                                }
-                              }}
-                              className='w-full text-sm text-gray-700 dark:text-gray-300 bg-transparent border-b border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none py-1 resize-y min-h-[48px]'
+
+                          {/* Badges block */}
+                          <div className='flex flex-wrap gap-2 items-center'>
+                            <DifficultyBadge
+                              code={site.difficulty_code}
+                              label={site.difficulty_label}
                             />
-                          ) : (
-                            <p className='text-sm text-gray-600 dark:text-gray-300 leading-relaxed italic'>
-                              {item.notes || 'No annotations written yet.'}
-                            </p>
+                            {site.max_depth && (
+                              <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
+                                Max Depth: {site.max_depth}m
+                              </span>
+                            )}
+                            {site.tags?.map((tag, idx) => (
+                              <span
+                                key={idx}
+                                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
+                              >
+                                {tag.name || tag}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Marine Life */}
+                          {site.marine_life && (
+                            <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
+                              <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
+                              <div>
+                                <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
+                                  Marine Life
+                                </span>
+                                <p className='leading-normal font-normal'>{site.marine_life}</p>
+                              </div>
+                            </div>
                           )}
+
+                          {/* Notes segment */}
+                          <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative'>
+                            <div className='flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
+                              <FileText className='h-3 w-3' />
+                              Notes
+                            </div>
+                            <p className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed italic'>
+                              {item.notes || 'No notes written yet.'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

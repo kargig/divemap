@@ -563,6 +563,83 @@ const Help = () => {
               </Col>
             </Row>
           </Card>
+
+          {/* Curated Dive Site Lists Section */}
+          <Card
+            id='lists'
+            title={
+              <Space>
+                <BookOutlined /> Curated Dive Site Lists
+              </Space>
+            }
+            variant='borderless'
+            className='shadow-sm'
+          >
+            <Row gutter={[24, 24]}>
+              <Col xs={24} md={14}>
+                <Paragraph>
+                  Create personalized, curated lists of dive sites to plan your upcoming trips, keep
+                  track of your dream destinations, or share your favorite diving spots with the
+                  community.
+                </Paragraph>
+
+                <Title level={5} className='mb-2'>
+                  How to Create a List:
+                </Title>
+                <div className='space-y-3 mt-2 mb-4'>
+                  {[
+                    'Step 1: Go to your Profile. Under "My Collections" (or the Lists tab), click the "Create New List" button.',
+                    'Step 2: Give your list a Title and an optional description (e.g., "My Summer Wishlist" or "Top Wrecks in Greece").',
+                    'Step 3: Decide on the visibility. You can make it Public (visible to everyone and shareable) or Private (only visible to you).',
+                    'Step 4: Click Create! Your list is now ready to receive some spectacular dive sites.',
+                  ].map((item, i) => (
+                    <div key={i} className='flex items-start text-sm'>
+                      <CheckCircleOutlined className='text-teal-500 mr-2 mt-1' /> {item}
+                    </div>
+                  ))}
+                </div>
+
+                <Title level={5} className='mb-2'>
+                  How to Manage and Organize Your Lists:
+                </Title>
+                <ul className='list-disc pl-5 space-y-2 text-gray-700 text-sm'>
+                  <li>
+                    <strong>Drag & Drop Reordering:</strong> Easily rearrange the sequence of dive
+                    sites in your list by dragging and moving them using the drag handles.
+                  </li>
+                  <li>
+                    <strong>Custom Annotations:</strong> Write personalized tips, directions, or
+                    memories as notes for each dive site in your collection.
+                  </li>
+                  <li>
+                    <strong>Show on Profile:</strong> For public lists, you can choose whether they
+                    appear directly on your public profile page for other divers to discover.
+                  </li>
+                </ul>
+              </Col>
+              <Col xs={24} md={10}>
+                <div className='rounded-xl overflow-hidden border border-gray-100 bg-gray-50 dark:bg-gray-800 p-6 flex flex-col justify-center h-full'>
+                  <div className='text-center space-y-3'>
+                    <div className='inline-flex items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl'>
+                      <BookOutlined style={{ fontSize: '32px' }} />
+                    </div>
+                    <h4 className='font-bold text-gray-900 dark:text-white'>
+                      Start Curating Your Adventures
+                    </h4>
+                    <p className='text-xs text-gray-500 max-w-xs mx-auto'>
+                      Compile your dream dives, share recommendations with buddies, or keep a
+                      personal wishlist of sites you want to explore next.
+                    </p>
+                    <div className='pt-2'>
+                      <Button type='primary' href='/profile'>
+                        Go to Profile
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+          </Card>
         </Space>
       ),
     },

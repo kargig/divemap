@@ -2,9 +2,9 @@ import re
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.database import get_db
-from app.models import DiveSiteList, DiveSiteListItem, DiveSite, User
+from app.models import DiveSiteList, DiveSiteListItem, DiveSite, User, DiveSiteTag
 from app.auth import get_current_active_user, get_current_user_optional, get_current_admin_user
 from app.utils import increment_view_count
 from app.schemas import (
@@ -23,10 +23,6 @@ def slugify(s: str) -> str:
 
 def sanitize_list_for_response(lst: Optional[DiveSiteList]) -> Optional[DiveSiteList]:
     """Sanitize nested dive site tags list objects to match Pydantic schema validation expectation"""
-    if lst and lst.items:
-        for item in lst.items:
-            if item.dive_site:
-                item.dive_site.tags = []
     return lst
 
 @router.get("/my-lists", response_model=List[UserDiveSiteListResponse])
@@ -38,7 +34,11 @@ async def get_my_lists(
     ensure_default_lists(db, current_user.id)
     lists = db.query(DiveSiteList).filter(
         DiveSiteList.user_id == current_user.id
-    ).options(joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site)).all()
+    ).options(
+        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        )
+    ).all()
     
     # Map usernames and sanitize tags
     for lst in lists:
@@ -82,7 +82,9 @@ async def get_list_by_id(
 ):
     """Retrieve details of a curated list with its items, tracked asynchronously on other user visits"""
     lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).options(
-        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site)
+        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        )
     ).first()
 
     if not lst:
@@ -350,7 +352,9 @@ async def get_popular_lists_admin(
 ):
     """Retrieve lists sorted by popularity (views) for site administrators"""
     lists = db.query(DiveSiteList).options(
-        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site)
+        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        )
     ).order_by(DiveSiteList.view_count.desc()).limit(50).all()
 
     # Resolve owners' usernames and sanitize

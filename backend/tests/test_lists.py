@@ -58,6 +58,8 @@ def test_lists_workflow(client, db_session: Session, test_user, test_user_other,
     assert len(list_details["items"]) == 1
     assert list_details["items"][0]["notes"] == "Fabulous visibility!"
     assert list_details["items"][0]["dive_site"]["name"] == test_dive_site.name
+    assert "tags" in list_details["items"][0]["dive_site"]
+    assert isinstance(list_details["items"][0]["dive_site"]["tags"], list)
 
     # 7. Check membership status
     response = client.get(f"/api/v1/lists/dive-site/{test_dive_site.id}/my-status", headers=auth_headers)
