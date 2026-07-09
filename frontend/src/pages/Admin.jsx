@@ -23,11 +23,17 @@ import {
   Database,
   TrendingUp,
   Clock,
+  Bookmark,
+  Eye,
+  Globe,
+  Lock,
+  Loader2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
+import { getAdminPopularLists } from '../api';
 import ChatbotIcon from '../components/Chat/ChatbotIcon';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,6 +75,15 @@ const Admin = () => {
     getModerationPendingCounts,
     {
       refetchInterval: 15000, // Refetch every 15 seconds to keep counts fresh
+      enabled: !!user?.is_admin,
+    }
+  );
+
+  const { data: popularLists, isLoading: listsLoading } = useQuery(
+    ['admin-popular-lists', refreshKey],
+    getAdminPopularLists,
+    {
+      refetchInterval: 60000,
       enabled: !!user?.is_admin,
     }
   );
@@ -305,6 +320,81 @@ const Admin = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Popular User Curated Lists */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6 md:mt-8'>
+          <h3 className='text-xl font-bold text-gray-900 mb-6 flex items-center gap-2'>
+            <Bookmark className='h-5 w-5 text-blue-600' />
+            Popular Curated Collections
+          </h3>
+          {listsLoading ? (
+            <div className='flex justify-center py-8'>
+              <Loader2 className='animate-spin text-blue-600 h-8 w-8' />
+            </div>
+          ) : !popularLists || popularLists.length === 0 ? (
+            <p className='text-center py-8 text-sm text-gray-500 italic'>
+              No collections created yet.
+            </p>
+          ) : (
+            <div className='overflow-x-auto'>
+              <table className='min-w-full divide-y divide-gray-200 text-sm'>
+                <thead className='bg-gray-50 font-semibold text-gray-700 text-xs uppercase tracking-wider text-left'>
+                  <tr>
+                    <th className='px-6 py-3'>List Title</th>
+                    <th className='px-6 py-3'>Owner</th>
+                    <th className='px-6 py-3'>Visibility</th>
+                    <th className='px-6 py-3 text-right'>Sites Count</th>
+                    <th className='px-6 py-3 text-right'>Views</th>
+                  </tr>
+                </thead>
+                <tbody className='divide-y divide-gray-100 text-gray-800 font-medium'>
+                  {popularLists.map(lst => (
+                    <tr key={lst.id} className='hover:bg-blue-50/20 transition-colors'>
+                      <td className='px-6 py-4'>
+                        <Link
+                          to={`/users/${lst.username}/lists/${lst.id}/${lst.slug}`}
+                          className='text-blue-600 hover:underline font-bold text-sm sm:text-base'
+                        >
+                          {lst.title}
+                        </Link>
+                        {lst.system_type && (
+                          <span className='ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 uppercase tracking-tighter'>
+                            SYSTEM
+                          </span>
+                        )}
+                      </td>
+                      <td className='px-6 py-4'>
+                        <Link
+                          to={`/users/${lst.username}`}
+                          className='text-gray-900 hover:underline font-bold'
+                        >
+                          @{lst.username}
+                        </Link>
+                      </td>
+                      <td className='px-6 py-4'>
+                        {lst.is_public ? (
+                          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100 gap-1'>
+                            <Globe size={11} /> Public
+                          </span>
+                        ) : (
+                          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100 gap-1'>
+                            <Lock size={11} /> Private
+                          </span>
+                        )}
+                      </td>
+                      <td className='px-6 py-4 text-right text-gray-900 font-bold'>
+                        {lst.items?.length || 0}
+                      </td>
+                      <td className='px-6 py-4 text-right text-blue-600 font-extrabold flex items-center justify-end gap-1.5'>
+                        <Eye size={14} className='text-gray-400' /> {lst.view_count || 0}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -32,6 +32,9 @@ export function generateShareUrl(entityType, entityId, params = {}, baseUrl = nu
     case 'diving-center':
       path = `/diving-centers/${entityId}${slug}`;
       break;
+    case 'list':
+      path = `/users/${params.username}/lists/${entityId}${slug}`;
+      break;
     default:
       throw new Error(`Unknown entity type: ${entityType}`);
   }
@@ -101,6 +104,7 @@ export function getTwitterShareUrl(url, title, description = '', entityType = ''
     'dive-site': 'dive site',
     route: 'dive route',
     'diving-center': 'diving center',
+    list: 'curated list',
   };
   const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
@@ -135,6 +139,7 @@ export function getFacebookShareUrl(url, title = '', entityType = '') {
       'dive-site': 'dive site',
       route: 'dive route',
       'diving-center': 'diving center',
+      list: 'curated list',
     };
     const entityLabel = entityLabels[entityType] || '';
     const quote = entityLabel ? `Check out this ${entityLabel} on Divemap: ${title}` : title;
@@ -158,6 +163,7 @@ export function getWhatsAppShareUrl(url, title, description = '', entityType = '
     'dive-site': 'dive site',
     route: 'dive route',
     'diving-center': 'diving center',
+    list: 'curated list',
   };
   const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
@@ -186,6 +192,7 @@ export function getViberShareUrl(url, title, description = '', entityType = '') 
     'dive-site': 'dive site',
     route: 'dive route',
     'diving-center': 'diving center',
+    list: 'curated list',
   };
   const entityLabel = entityLabels[entityType] || '';
   const prefix = entityLabel ? `Check out this ${entityLabel} on Divemap: ` : '';
@@ -213,6 +220,7 @@ export function getRedditShareUrl(url, title, entityType = '') {
     'dive-site': 'dive site',
     route: 'dive route',
     'diving-center': 'diving center',
+    list: 'curated list',
   };
   const entityLabel = entityLabels[entityType] || '';
   const redditTitle = entityLabel ? `Check out this ${entityLabel} on Divemap: ${title}` : title;
@@ -239,6 +247,7 @@ export function getEmailShareUrl(url, title, description = '', entityType = '') 
     'dive-site': 'dive site',
     route: 'dive route',
     'diving-center': 'diving center',
+    list: 'curated list',
   };
   const entityLabel = entityLabels[entityType] || '';
   const subjectText = entityLabel
@@ -434,6 +443,22 @@ export function generateShareContent(entityType, entityData) {
 
       url = generateShareUrl('diving-center', entityData.id, {
         slug: slugify(entityData.name || ''),
+      });
+      break;
+
+    case 'list':
+      title = entityData.title || 'Curated Dive Site List';
+      description =
+        entityData.description || `Explore this curated collection of dive sites on Divemap!`;
+
+      // Add item stats if available
+      if (entityData.items && entityData.items.length > 0) {
+        description += `\n\nContains ${entityData.items.length} top dive sites curated by ${entityData.username || 'a user'}.`;
+      }
+
+      url = generateShareUrl('list', entityData.id, {
+        username: entityData.username,
+        slug: slugify(entityData.title || 'list'),
       });
       break;
 

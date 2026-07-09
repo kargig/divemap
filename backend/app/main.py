@@ -395,13 +395,14 @@ def load_routers():
     router_start = time.time()
 
     # Import only the most essential routers for startup
-    from app.routers import auth, users, settings, notifications
+    from app.routers import auth, users, settings, notifications, lists
 
     # Include only the most critical routers (others moved to lazy loading)
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
     app.include_router(settings.router, prefix="/api/v1/settings", tags=["Settings"])
     app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
+    app.include_router(lists.router, prefix="/api/v1/lists", tags=["Dive Site Lists"])
 
     # Import unsubscribe router
     from app.routers import unsubscribe
