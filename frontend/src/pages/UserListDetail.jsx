@@ -92,6 +92,15 @@ const SortableListItem = ({
     id: item.id,
   });
 
+  const notesRef = useRef(null);
+
+  useEffect(() => {
+    if (notesRef.current) {
+      notesRef.current.style.height = 'auto';
+      notesRef.current.style.height = `${notesRef.current.scrollHeight}px`;
+    }
+  }, [item.notes]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -196,6 +205,7 @@ const SortableListItem = ({
             </span>
           </div>
           <textarea
+            ref={notesRef}
             defaultValue={item.notes || ''}
             placeholder='Add notes, tips or landmarks...'
             onBlur={e => {
@@ -207,12 +217,6 @@ const SortableListItem = ({
             onInput={e => {
               e.target.style.height = 'auto';
               e.target.style.height = `${e.target.scrollHeight}px`;
-            }}
-            ref={el => {
-              if (el) {
-                el.style.height = 'auto';
-                el.style.height = `${el.scrollHeight}px`;
-              }
             }}
             className='w-full text-xs text-gray-700 dark:text-gray-300 bg-transparent focus:outline-none py-0.5 resize-none overflow-hidden min-h-[24px]'
             rows={1}
@@ -231,9 +235,13 @@ const UserListDetail = () => {
   const [loading, setLoading] = useState(true);
   const [updatingMeta, setUpdatingMeta] = useState(false);
   const [activeSiteId, setActiveSiteId] = useState(null);
-  const [showAddInstructions, setShowAddInstructions] = useState(() => {
-    return typeof window !== 'undefined' ? window.innerWidth >= 1024 : false;
-  });
+  const [showAddInstructions, setShowAddInstructions] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setShowAddInstructions(true);
+    }
+  }, []);
 
   // References for in-place edit input blurs
   const titleInputRef = useRef(null);
