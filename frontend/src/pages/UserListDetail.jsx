@@ -3,6 +3,7 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -31,6 +32,7 @@ import {
   GripVertical,
   Pencil,
   Fish,
+  ChevronDown,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
@@ -90,6 +92,15 @@ const SortableListItem = ({
     id: item.id,
   });
 
+  const notesRef = useRef(null);
+
+  useEffect(() => {
+    if (notesRef.current) {
+      notesRef.current.style.height = 'auto';
+      notesRef.current.style.height = `${notesRef.current.scrollHeight}px`;
+    }
+  }, [item.notes]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -106,106 +117,110 @@ const SortableListItem = ({
       ref={setNodeRef}
       style={style}
       id={`list-item-${site.id}`}
-      className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all duration-300 relative ${
+      className={`bg-white dark:bg-gray-800 rounded-none sm:rounded-2xl py-3 px-3 sm:p-5 shadow-sm border-y sm:border transition-all duration-300 relative ${
         isActive
           ? 'border-blue-500 ring-2 ring-blue-500/20'
           : 'border-gray-200/50 dark:border-gray-700 hover:border-blue-100/50 dark:hover:border-blue-900/30'
       } ${isDragging ? 'shadow-lg ring-2 ring-blue-400/50 border-blue-400' : ''}`}
     >
-      <div className='flex gap-4 items-start'>
-        {/* Ranking Index / Drag Handle */}
-        <div className='flex flex-col items-center gap-1 shrink-0 p-1 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50 w-10 sm:w-12'>
+      {/* Card Header Bar */}
+      <div className='flex items-center justify-between gap-1.5 border-b border-gray-100/80 dark:border-gray-700/30 pb-1 mb-3'>
+        <div className='flex items-center gap-1.5 sm:gap-2.5 min-w-0'>
           <div
             {...attributes}
             {...listeners}
-            className='p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-grab active:cursor-grabbing transition-colors'
+            className='!-ml-2 sm:-ml-4 h-10 flex items-center !px-2 sm:!px-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-grab active:cursor-grabbing transition-colors touch-none select-none shrink-0'
             title='Drag to reorder'
           >
-            <GripVertical className='h-4.5 w-4.5' />
+            <GripVertical className='h-4 w-4' />
           </div>
-          <span className='font-display font-extrabold text-lg text-gray-900 dark:text-white pb-1.5'>
-            {index + 1}
+          <span className='shrink-0 min-w-[24px] h-10 flex items-center justify-center select-none'>
+            <span className='w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 text-[10px] font-extrabold font-display flex items-center justify-center transition-colors'>
+              {index + 1}
+            </span>
           </span>
+          <Link
+            to={`/dive-sites/${site.id}/${site.slug || ''}`}
+            className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors h-10 flex items-center'
+          >
+            {site.name}
+          </Link>
         </div>
 
-        {/* Item Meta & Actions */}
-        <div className='flex-1 min-w-0 space-y-3'>
-          <div className='flex justify-between items-start gap-2'>
-            <div className='min-w-0'>
-              <Link
-                to={`/dive-sites/${site.id}/${site.slug || ''}`}
-                className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors block truncate'
-              >
-                {site.name}
-              </Link>
-              <p className='text-xs text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5 capitalize'>
-                📍 {site.region ? `${site.region}, ` : ''}
-                {site.country}
-              </p>
-            </div>
-            <button
-              onClick={() => handleRemoveItem(item.id)}
-              className='text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors'
-              title='Remove from list'
-            >
-              <Trash2 className='h-4.5 w-4.5' />
-            </button>
-          </div>
+        <button
+          onClick={() => handleRemoveItem(item.id)}
+          className='text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-colors shrink-0'
+          title='Remove from list'
+        >
+          <Trash2 className='h-4.5 w-4.5' />
+        </button>
+      </div>
 
-          {/* Badges block */}
-          <div className='flex flex-wrap gap-2 items-center'>
-            <DifficultyBadge code={site.difficulty_code} label={site.difficulty_label} />
-            {site.max_depth && (
-              <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
-                Max Depth: {site.max_depth}m
-              </span>
-            )}
-            {site.tags?.map((tag, idx) => (
-              <span
-                key={idx}
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
-              >
-                {tag.name || tag}
-              </span>
-            ))}
-          </div>
+      <div className='space-y-3 pl-0 sm:pl-7'>
+        <p className='text-xs text-gray-400 dark:text-gray-500 font-semibold capitalize flex items-center gap-1'>
+          <span>📍</span> {site.region ? `${site.region}, ` : ''}
+          {site.country}
+        </p>
 
-          {/* Marine Life */}
-          {site.marine_life && (
-            <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
-              <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
-              <div>
-                <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
-                  Marine Life
-                </span>
-                <p className='leading-normal font-normal'>{site.marine_life}</p>
-              </div>
-            </div>
+        {/* Badges block */}
+        <div className='flex flex-wrap gap-2 items-center'>
+          <DifficultyBadge code={site.difficulty_code} label={site.difficulty_label} />
+          {site.max_depth && (
+            <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
+              Max Depth: {site.max_depth}m
+            </span>
           )}
+          {site.tags?.map((tag, idx) => (
+            <span
+              key={idx}
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
+            >
+              {tag.name || tag}
+            </span>
+          ))}
+        </div>
 
-          {/* Notes segment */}
-          <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative group/notes hover:border-blue-200 dark:hover:border-blue-900/30 transition-colors duration-200'>
-            <div className='flex items-center justify-between text-gray-400 group-hover/notes:text-blue-500 dark:group-hover/notes:text-blue-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
-              <div className='flex items-center gap-1'>
-                <FileText className='h-3 w-3' />
-                Notes
-              </div>
-              <span className='text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 px-1.5 py-0.5 rounded opacity-80 font-semibold uppercase tracking-normal normal-case'>
-                Click to edit
+        {/* Marine Life */}
+        {site.marine_life && (
+          <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
+            <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
+            <div>
+              <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
+                Marine Life
               </span>
+              <p className='leading-normal font-normal'>{site.marine_life}</p>
             </div>
-            <textarea
-              defaultValue={item.notes || ''}
-              placeholder='Add some personal tips, landmarks or directions for this dive site...'
-              onBlur={e => {
-                const val = e.target.value.trim();
-                if (val !== (item.notes || '')) {
-                  handleItemNoteUpdate(item.id, val || null);
-                }
-              }}
-              className='w-full text-xs text-gray-700 dark:text-gray-300 bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-blue-500 focus:outline-none py-0.5 resize-y min-h-[32px]'
-            />
           </div>
+        )}
+
+        {/* Notes segment */}
+        <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative group/notes hover:border-blue-200 dark:hover:border-blue-900/30 transition-colors duration-200'>
+          <div className='hidden sm:flex items-center justify-between text-gray-400 group-hover/notes:text-blue-500 dark:group-hover/notes:text-blue-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
+            <div className='flex items-center gap-1'>
+              <FileText className='h-3 w-3' />
+              Notes
+            </div>
+            <span className='hidden sm:inline-block text-[9px] bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 px-1.5 py-0.5 rounded opacity-80 font-semibold uppercase tracking-normal normal-case'>
+              Click to edit
+            </span>
+          </div>
+          <textarea
+            ref={notesRef}
+            defaultValue={item.notes || ''}
+            placeholder='Add notes, tips or landmarks...'
+            onBlur={e => {
+              const val = e.target.value.trim();
+              if (val !== (item.notes || '')) {
+                handleItemNoteUpdate(item.id, val || null);
+              }
+            }}
+            onInput={e => {
+              e.target.style.height = 'auto';
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            className='w-full text-xs text-gray-700 dark:text-gray-300 bg-transparent focus:outline-none py-0.5 resize-none overflow-hidden min-h-[24px]'
+            rows={1}
+          />
         </div>
       </div>
     </div>
@@ -220,6 +235,13 @@ const UserListDetail = () => {
   const [loading, setLoading] = useState(true);
   const [updatingMeta, setUpdatingMeta] = useState(false);
   const [activeSiteId, setActiveSiteId] = useState(null);
+  const [showAddInstructions, setShowAddInstructions] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setShowAddInstructions(true);
+    }
+  }, []);
 
   // References for in-place edit input blurs
   const titleInputRef = useRef(null);
@@ -231,6 +253,12 @@ const UserListDetail = () => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 6,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -367,8 +395,8 @@ const UserListDetail = () => {
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900 pb-12'>
       {/* Top Banner/Navigation */}
-      <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-4 sm:px-6 lg:px-8 shadow-sm'>
-        <div className='max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4'>
+      <div className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-0 sm:px-4 lg:px-6 xl:px-8 shadow-sm'>
+        <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-4 px-4 sm:px-0'>
           <div className='flex items-center gap-2'>
             <button
               onClick={() => navigate(-1)}
@@ -410,9 +438,9 @@ const UserListDetail = () => {
         </div>
       </div>
 
-      <div className='max-w-7xl mx-auto mt-6 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto mt-6 px-0 sm:px-4 lg:px-6 xl:px-8'>
         {/* Detail Header Block */}
-        <div className='bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200/50 dark:border-gray-700 space-y-4 mb-6'>
+        <div className='bg-white dark:bg-gray-800 rounded-none sm:rounded-2xl p-4 sm:p-6 shadow-sm border-y sm:border border-gray-200/50 dark:border-gray-700 space-y-4 mb-6'>
           <div className='flex flex-col md:flex-row md:items-start justify-between gap-4'>
             <div className='space-y-2 flex-1 min-w-0'>
               {isOwner && !list.system_type ? (
@@ -448,10 +476,10 @@ const UserListDetail = () => {
                         handleMetaUpdate('description', val || null);
                       }
                     }}
-                    className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700/80 hover:border-blue-300 dark:hover:border-blue-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 focus:outline-none w-full p-3 pr-24 rounded-xl resize-y transition-all min-h-[64px]'
+                    className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700/80 hover:border-blue-300 dark:hover:border-blue-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 focus:outline-none w-full p-3 pr-3 sm:pr-24 rounded-xl resize-y transition-all min-h-[64px]'
                     rows={2}
                   />
-                  <div className='absolute right-2.5 bottom-3.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pointer-events-none opacity-80 group-hover/desc:text-blue-500 dark:group-hover/desc:text-blue-400 transition-colors'>
+                  <div className='absolute right-2.5 bottom-3.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pointer-events-none opacity-80 group-hover/desc:text-blue-500 dark:group-hover/desc:text-blue-400 transition-colors'>
                     <Pencil className='h-3 w-3' />
                     <span>Edit description</span>
                   </div>
@@ -468,7 +496,7 @@ const UserListDetail = () => {
             {/* List Properties & Privacy Switches */}
             <div className='flex flex-wrap items-center gap-3 shrink-0'>
               {isOwner ? (
-                <div className='flex flex-col sm:flex-row gap-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50'>
+                <div className='flex flex-row flex-wrap items-center gap-4 p-2 px-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50'>
                   <label className='flex items-center gap-2 text-xs font-bold text-gray-700 dark:text-gray-300 cursor-pointer'>
                     <input
                       type='checkbox'
@@ -582,33 +610,56 @@ const UserListDetail = () => {
           {/* Cards Column (Lg: spans 3/5) */}
           <div className='lg:col-span-3 space-y-4'>
             {isOwner && (
-              <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl p-4 border border-blue-100/50 dark:border-blue-900/30 flex items-start gap-3 shadow-sm mb-4'>
-                <div className='p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 mt-0.5'>
-                  <Bookmark className='h-5 w-5' />
-                </div>
-                <div className='space-y-1'>
-                  <h4 className='font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5'>
-                    How to add more dive sites to this list:
-                  </h4>
-                  <p className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
-                    Browse our global{' '}
-                    <Link
-                      to='/dive-sites'
-                      className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
-                    >
-                      Dive Sites directory
-                    </Link>{' '}
-                    or{' '}
-                    <Link
-                      to='/map'
-                      className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
-                    >
-                      Interactive Map
-                    </Link>
-                    . On any site's details page, click the{' '}
-                    <span className='font-semibold'>Save to List</span> button to add it to{' '}
-                    <span className='italic font-medium'>"{list.title}"</span> instantly.
-                  </p>
+              <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 shadow-sm mb-4 overflow-hidden transition-all duration-300'>
+                <button
+                  onClick={() => setShowAddInstructions(!showAddInstructions)}
+                  className='w-full p-4 flex items-center justify-between text-left gap-3 focus:outline-none group/accordion'
+                >
+                  <div className='flex items-center gap-2.5 min-w-0'>
+                    <div className='p-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg shrink-0 transition-colors group-hover/accordion:bg-blue-200 dark:group-hover/accordion:bg-blue-900/60'>
+                      <Bookmark className='h-4 w-4' />
+                    </div>
+                    <h4 className='font-bold text-xs sm:text-sm text-gray-900 dark:text-white truncate group-hover/accordion:text-blue-600 dark:group-hover/accordion:text-blue-400 transition-colors'>
+                      How to add more dive sites to this list
+                    </h4>
+                  </div>
+                  <ChevronDown
+                    className={`h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-300 shrink-0 group-hover/accordion:text-blue-500 ${
+                      showAddInstructions ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className={`transition-all duration-300 ease-in-out ${
+                    showAddInstructions
+                      ? 'max-h-[200px] border-t border-blue-100/30 dark:border-blue-900/10 opacity-100'
+                      : 'max-h-0 opacity-0 pointer-events-none'
+                  } overflow-hidden`}
+                >
+                  {showAddInstructions && (
+                    <div className='p-4 pt-3 bg-white/40 dark:bg-gray-900/20'>
+                      <p className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
+                        Browse our global{' '}
+                        <Link
+                          to='/dive-sites'
+                          className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
+                        >
+                          Dive Sites directory
+                        </Link>{' '}
+                        or{' '}
+                        <Link
+                          to='/map'
+                          className='text-blue-600 dark:text-blue-400 hover:underline font-semibold'
+                        >
+                          Interactive Map
+                        </Link>
+                        . On any site's details page, click the{' '}
+                        <span className='font-semibold'>Save to List</span> button to add it to{' '}
+                        <span className='italic font-medium'>"{list.title}"</span> instantly.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -665,81 +716,78 @@ const UserListDetail = () => {
                     <div
                       key={item.id}
                       id={`list-item-${site.id}`}
-                      className={`bg-white dark:bg-gray-800 rounded-2xl p-5 shadow-sm border transition-all duration-300 relative ${
+                      className={`bg-white dark:bg-gray-800 rounded-none sm:rounded-2xl py-3 px-3 sm:p-5 shadow-sm border-y sm:border transition-all duration-300 relative ${
                         isActive
                           ? 'border-blue-500 ring-2 ring-blue-500/20'
                           : 'border-gray-200/50 dark:border-gray-700 hover:border-blue-100/50 dark:hover:border-blue-900/30'
                       }`}
                     >
-                      <div className='flex gap-4 items-start'>
-                        {/* Ranking Index */}
-                        <div className='flex flex-col items-center gap-1 shrink-0 p-1 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700/50 w-10 sm:w-12'>
-                          <span className='font-display font-extrabold text-lg text-gray-900 dark:text-white py-2'>
-                            {index + 1}
+                      {/* Card Header Bar */}
+                      <div className='flex items-center justify-between gap-1.5 border-b border-gray-100/80 dark:border-gray-700/30 pb-1 mb-3'>
+                        <div className='flex items-center gap-1.5 sm:gap-2.5 min-w-0'>
+                          <span className='shrink-0 min-w-[24px] h-10 flex items-center justify-center select-none'>
+                            <span className='w-6 h-6 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 text-[10px] font-extrabold font-display flex items-center justify-center transition-colors'>
+                              {index + 1}
+                            </span>
                           </span>
+                          <Link
+                            to={`/dive-sites/${site.id}/${site.slug || ''}`}
+                            className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors h-10 flex items-center'
+                          >
+                            {site.name}
+                          </Link>
+                        </div>
+                      </div>
+
+                      <div className='space-y-3 pl-0 sm:pl-7'>
+                        <p className='text-xs text-gray-400 dark:text-gray-500 font-semibold capitalize flex items-center gap-1'>
+                          <span>📍</span> {site.region ? `${site.region}, ` : ''}
+                          {site.country}
+                        </p>
+
+                        {/* Badges block */}
+                        <div className='flex flex-wrap gap-2 items-center'>
+                          <DifficultyBadge
+                            code={site.difficulty_code}
+                            label={site.difficulty_label}
+                          />
+                          {site.max_depth && (
+                            <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
+                              Max Depth: {site.max_depth}m
+                            </span>
+                          )}
+                          {site.tags?.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
+                            >
+                              {tag.name || tag}
+                            </span>
+                          ))}
                         </div>
 
-                        {/* Item Meta & Actions */}
-                        <div className='flex-1 min-w-0 space-y-3'>
-                          <div className='flex justify-between items-start gap-2'>
-                            <div className='min-w-0'>
-                              <Link
-                                to={`/dive-sites/${site.id}/${site.slug || ''}`}
-                                className='text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-blue-600 transition-colors block truncate'
-                              >
-                                {site.name}
-                              </Link>
-                              <p className='text-xs text-gray-400 dark:text-gray-500 font-medium truncate mt-0.5 capitalize'>
-                                📍 {site.region ? `${site.region}, ` : ''}
-                                {site.country}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Badges block */}
-                          <div className='flex flex-wrap gap-2 items-center'>
-                            <DifficultyBadge
-                              code={site.difficulty_code}
-                              label={site.difficulty_label}
-                            />
-                            {site.max_depth && (
-                              <span className='inline-flex items-center text-[10px] font-bold bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 border border-blue-100/50 dark:border-blue-900/30 px-2 py-0.5 rounded'>
-                                Max Depth: {site.max_depth}m
+                        {/* Marine Life */}
+                        {site.marine_life && (
+                          <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
+                            <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
+                            <div>
+                              <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
+                                Marine Life
                               </span>
-                            )}
-                            {site.tags?.map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${getTagColor(tag.name || tag)}`}
-                              >
-                                {tag.name || tag}
-                              </span>
-                            ))}
-                          </div>
-
-                          {/* Marine Life */}
-                          {site.marine_life && (
-                            <div className='flex items-start gap-1.5 bg-emerald-50/50 dark:bg-emerald-950/10 text-emerald-800 dark:text-emerald-400 p-2 px-3 rounded-xl border border-emerald-100/50 dark:border-emerald-900/10 text-xs mt-1.5'>
-                              <Fish className='h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400' />
-                              <div>
-                                <span className='font-bold uppercase text-[9px] tracking-wider block mb-0.5 text-emerald-700 dark:text-emerald-300'>
-                                  Marine Life
-                                </span>
-                                <p className='leading-normal font-normal'>{site.marine_life}</p>
-                              </div>
+                              <p className='leading-normal font-normal'>{site.marine_life}</p>
                             </div>
-                          )}
-
-                          {/* Notes segment */}
-                          <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative'>
-                            <div className='flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
-                              <FileText className='h-3 w-3' />
-                              Notes
-                            </div>
-                            <p className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed italic'>
-                              {item.notes || 'No notes written yet.'}
-                            </p>
                           </div>
+                        )}
+
+                        {/* Notes segment */}
+                        <div className='mt-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-2 px-3 border border-gray-100 dark:border-gray-800 relative'>
+                          <div className='hidden sm:flex items-center gap-1 text-gray-400 font-bold text-[10px] uppercase tracking-wider mb-1'>
+                            <FileText className='h-3 w-3' />
+                            Notes
+                          </div>
+                          <p className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed italic'>
+                            {item.notes || 'No notes written yet.'}
+                          </p>
                         </div>
                       </div>
                     </div>

@@ -18,7 +18,14 @@ This skill codifies the standards for responsive development in the Divemap proj
 - **Header Density**: In headers, use `flex-col lg:flex-row` to stack titles and actions on mobile, but utilize horizontal space on desktop by pushing high-density stats (e.g., "Certification Overview") to the far right.
 - **Sticky Actions**: Use `sticky top-0` or `sticky bottom-0` for critical mobile UI like navigation or "Save" buttons.
 - **Safe Area Insets (The `max` trick)**: For modern mobile displays, use safe area utilities but guarantee a minimum padding for non-iOS devices using `max()`: `pb-[max(1rem,env(safe-area-inset-bottom))]`.
-- **Responsive Spacing**: Use tighter padding (`p-3`, `p-4`) on mobile, increasing to (`p-6`, `p-8`) on larger screens.
+- **Responsive Spacing & Standardized Margins**:
+  - Always use tighter paddings on mobile (e.g., `p-3`, `p-4`), scaling up to `p-6` or `p-8` on desktops.
+  - To prevent double-padding (since baseline mobile lateral spacing of 16px is already handled by `App.jsx`’s central `<main>` layout wrapper), always format top-level page containers to use the codebase-wide standard responsive width pattern:
+    `className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8'`
+    Setting `px-0` on mobile ensures that contents stretch perfectly edge-to-edge on phone screens, with outer padding applied only from tablet sizes and up.
+- **Full-Width Mobile Stripe Layouts**:
+  - Main display cards, list cards, and Detail Header boxes should flow full-width with top/bottom outlines on mobile screens, rather than using desktop-style rounded boxes with thick margins.
+  - Apply the pattern `rounded-none sm:rounded-2xl border-y sm:border` alongside condensed paddings (`p-3.5 sm:p-5` for items and `p-4 sm:p-6` for page title boxes) to maximize content write/view areas on small viewports.
 - **Container Control**: Use `.container mx-auto` to maintain consistent max-widths and center content.
 - **Overflow Management**: Prevent horizontal scrolling with `overflow-x-hidden` or controlled `overflow-x-auto`.
 
@@ -34,6 +41,11 @@ To maximize data density on mobile devices without sacrificing usability, apply 
 - **Condensed Quick Filters & Buttons:** Reduce padding and font size for filter pills, tags, and supplementary buttons. Use `px-2 py-1 text-[10px] sm:text-xs` or `px-3 py-1.5 text-xs sm:text-sm` instead of standard bulky button sizing.
 - **Card Padding:** Reduce container padding inside list cards from `p-4` or `p-6` down to `p-2 sm:p-4` or `p-3 sm:p-6`.
 - **Metadata Gaps:** Tighten the spacing between metadata items (e.g., `gap-1 sm:gap-1.5` instead of `gap-2`).
+- **Typographic Baseline Synchronization & Centering (Perfect Alignments):** Centering elements vertically (`items-center`) is the standard way to align text with graphical SVG icons (which lack baselines) on a single row. However, since characters have standard line-heights, their visual medians can stagger if font-sizes differ. To ensure perfect, mathematical symmetry:
+  - Define an identical explicit height (e.g., `h-10` / `40px`) on all sibling headers (the drag container wrapper, the rank text container, and the title link).
+  - Style each with internal flex centering (`flex items-center`). This maps their visual capital heights and graphical icons precisely to the center-line of the row, avoiding any jagged vertical jumps.
+- **Neutralizing Global Attribute Selectors (Tailwind `!` Important Modifiers):** External packages (such as `@dnd-kit`) automatically inject accessibility roles (like `role="button"`) onto drag handle `div`s. Global stylesheets (like Ant Design or default resets) target `[role="button"]` or `button` to apply a default horizontal padding (typically 15px/16px), overriding standard utility classes.
+  - To guarantee layout integrity against framework interceptions on touch viewports, always prefix custom mobile paddings and negative margins with Tailwind's important modifier: **`!px-2`** and **`!-ml-2`**.
 
 ## 4. Mobile Anti-Patterns (What to Avoid)
 - **Avoid Bulky Sticky/Floating Filter Bars:** Sticky search/filter bars eat up 20-30% of the mobile viewport and cause "jumpy" layout shifts when scrolling. Render them as static, inline cards (`variant='inline'`) on mobile.
