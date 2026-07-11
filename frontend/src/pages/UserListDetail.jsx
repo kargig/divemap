@@ -33,6 +33,10 @@ import {
   Pencil,
   Fish,
   ChevronDown,
+  Users,
+  Plus,
+  LogOut,
+  X,
 } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
@@ -46,6 +50,9 @@ import {
   updateListItem,
   deleteListItem,
   reorderListItems,
+  addListCollaborator,
+  removeListCollaborator,
+  getUserFriendships,
 } from '../api';
 import Avatar from '../components/Avatar';
 import ShareButton from '../components/ShareButton';
@@ -236,6 +243,85 @@ const UserListDetail = () => {
   const [updatingMeta, setUpdatingMeta] = useState(false);
   const [activeSiteId, setActiveSiteId] = useState(null);
   const [showAddInstructions, setShowAddInstructions] = useState(false);
+  const [showCollabModal, setShowCollabModal] = useState(false);
+  const [buddies, setBuddies] = useState([]);
+  const [buddiesLoading, setBuddiesLoading] = useState(false);
+
+  const isOwner = user && list && user.id === list.user_id;
+  const canEdit = isOwner || (list && list.is_collaborator);
+
+  // Load buddies for adding collaborators (only list owner needs this)
+  useEffect(() => {
+    if (isOwner && showCollabModal) {
+      const fetchBuddies = async () => {
+        try {
+          setBuddiesLoading(true);
+          const data = await getUserFriendships('ACCEPTED');
+          setBuddies(data);
+        } catch (err) {
+          console.error('Failed to load buddies:', err);
+        } finally {
+          setBuddiesLoading(false);
+        }
+      };
+      fetchBuddies();
+    }
+  }, [isOwner, showCollabModal]);
+
+  const filterAddableBuddies = () => {
+    if (!list) return [];
+    const collabUserIds = new Set(list.collaborators?.map(c => c.user_id) || []);
+    collabUserIds.add(list.user_id); // Include owner
+
+    return buddies
+      .map(friendship => {
+        if (!friendship.user || !friendship.friend) return null;
+        return friendship.user.id === user.id ? friendship.friend : friendship.user;
+      })
+      .filter(buddyUser => buddyUser && !collabUserIds.has(buddyUser.id));
+  };
+
+  const handleAddCollab = async targetUsername => {
+    try {
+      const collab = await addListCollaborator(id, targetUsername);
+      setList(prev => ({
+        ...prev,
+        collaborators: [...(prev.collaborators || []), collab],
+      }));
+      toast.success(`@${targetUsername} added as editor!`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to add buddy');
+    }
+  };
+
+  const handleRemoveCollab = async collabUserId => {
+    try {
+      await removeListCollaborator(id, collabUserId);
+      setList(prev => ({
+        ...prev,
+        collaborators: prev.collaborators.filter(c => c.user_id !== collabUserId),
+      }));
+      toast.success('Editor removed');
+    } catch (err) {
+      toast.error('Failed to remove buddy');
+    }
+  };
+
+  const handleLeaveList = async () => {
+    if (
+      window.confirm(
+        'Are you sure you want to leave this collaborative list? You will lose edit access.'
+      )
+    ) {
+      try {
+        await removeListCollaborator(id, user.id);
+        toast.success('You have left the list');
+        navigate('/profile');
+      } catch (err) {
+        toast.error('Failed to leave list');
+      }
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
@@ -246,8 +332,6 @@ const UserListDetail = () => {
   // References for in-place edit input blurs
   const titleInputRef = useRef(null);
   const descInputRef = useRef(null);
-
-  const isOwner = user && list && user.id === list.user_id;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -305,7 +389,7 @@ const UserListDetail = () => {
   };
 
   const handleItemNoteUpdate = async (itemId, notes) => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     try {
       await updateListItem(id, itemId, { notes });
       setList(prev => ({
@@ -319,7 +403,7 @@ const UserListDetail = () => {
   };
 
   const handleRemoveItem = async itemId => {
-    if (!isOwner) return;
+    if (!canEdit) return;
     if (window.confirm('Are you sure you want to remove this dive site from your collection?')) {
       try {
         await deleteListItem(id, itemId);
@@ -335,6 +419,7 @@ const UserListDetail = () => {
   };
 
   const handleDragEnd = async event => {
+    if (!canEdit) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -413,6 +498,30 @@ const UserListDetail = () => {
               >
                 @{username}
               </Link>
+
+              {/* Collaborator Roster */}
+              {list.collaborators && list.collaborators.length > 0 && (
+                <div className='flex items-center -space-x-1 ml-2 border-l border-gray-200 dark:border-gray-700 pl-2'>
+                  {list.collaborators.map(c => (
+                    <div key={c.id} className='relative group' title={`Editor: @${c.username}`}>
+                      <Avatar
+                        username={c.username}
+                        size='xs'
+                        className='ring-2 ring-white dark:ring-gray-800'
+                      />
+                      {isOwner && (
+                        <button
+                          onClick={() => handleRemoveCollab(c.user_id)}
+                          className='absolute -top-1 -right-1 hidden group-hover:flex bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 shadow-sm'
+                          title='Remove editor'
+                        >
+                          <X className='h-2.5 w-2.5' />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -425,13 +534,18 @@ const UserListDetail = () => {
               />
             )}
             {isOwner && !list.system_type && (
-              <Button
-                variant='outline'
-                size='sm'
-                onClick={handleDeleteList}
-                className='text-red-500 hover:text-red-700 dark:text-red-400 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/20'
-              >
+              <Button variant='primary' size='sm' onClick={() => setShowCollabModal(true)}>
+                <Plus className='h-4 w-4 mr-1' /> Collaborators
+              </Button>
+            )}
+            {isOwner && !list.system_type && (
+              <Button variant='danger' size='sm' onClick={handleDeleteList}>
                 <Trash2 className='h-4 w-4 mr-1' /> Delete List
+              </Button>
+            )}
+            {list.is_collaborator && (
+              <Button variant='danger-outline' size='sm' onClick={handleLeaveList}>
+                <LogOut className='h-4 w-4 mr-1' /> Leave List
               </Button>
             )}
           </div>
@@ -462,34 +576,6 @@ const UserListDetail = () => {
                   <Bookmark className='h-7 w-7 text-blue-600 dark:text-blue-400 shrink-0' />
                   {list.title}
                 </h1>
-              )}
-
-              {isOwner ? (
-                <div className='relative group/desc w-full mt-1'>
-                  <textarea
-                    ref={descInputRef}
-                    defaultValue={list.description || ''}
-                    placeholder='Write a description for this collection...'
-                    onBlur={e => {
-                      const val = e.target.value.trim();
-                      if (val !== (list.description || '')) {
-                        handleMetaUpdate('description', val || null);
-                      }
-                    }}
-                    className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700/80 hover:border-blue-300 dark:hover:border-blue-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 focus:outline-none w-full p-3 pr-3 sm:pr-24 rounded-xl resize-y transition-all min-h-[64px]'
-                    rows={2}
-                  />
-                  <div className='absolute right-2.5 bottom-3.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pointer-events-none opacity-80 group-hover/desc:text-blue-500 dark:group-hover/desc:text-blue-400 transition-colors'>
-                    <Pencil className='h-3 w-3' />
-                    <span>Edit description</span>
-                  </div>
-                </div>
-              ) : (
-                list.description && (
-                  <p className='text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-normal whitespace-pre-wrap mt-1'>
-                    {list.description}
-                  </p>
-                )
               )}
             </div>
 
@@ -561,6 +647,35 @@ const UserListDetail = () => {
               </div>
             </div>
           </div>
+
+          {/* Description Block */}
+          {isOwner ? (
+            <div className='relative group/desc w-full mt-2'>
+              <textarea
+                ref={descInputRef}
+                defaultValue={list.description || ''}
+                placeholder='Write a description for this collection...'
+                onBlur={e => {
+                  const val = e.target.value.trim();
+                  if (val !== (list.description || '')) {
+                    handleMetaUpdate('description', val || null);
+                  }
+                }}
+                className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50 focus:bg-white dark:focus:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-700/80 hover:border-blue-300 dark:hover:border-blue-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/10 focus:outline-none w-full p-3 pr-3 sm:pr-24 rounded-xl resize-y transition-all min-h-[64px]'
+                rows={2}
+              />
+              <div className='absolute right-2.5 bottom-3.5 hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 pointer-events-none opacity-80 group-hover/desc:text-blue-500 dark:group-hover/desc:text-blue-400 transition-colors'>
+                <Pencil className='h-3 w-3' />
+                <span>Edit description</span>
+              </div>
+            </div>
+          ) : (
+            list.description && (
+              <p className='text-sm text-gray-600 dark:text-gray-400 leading-relaxed font-normal whitespace-pre-wrap mt-2'>
+                {list.description}
+              </p>
+            )
+          )}
         </div>
 
         {/* Double Splitscreen Column Layout (Map + Cards List) */}
@@ -609,7 +724,7 @@ const UserListDetail = () => {
 
           {/* Cards Column (Lg: spans 3/5) */}
           <div className='lg:col-span-3 space-y-4'>
-            {isOwner && (
+            {canEdit && (
               <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 shadow-sm mb-4 overflow-hidden transition-all duration-300'>
                 <button
                   onClick={() => setShowAddInstructions(!showAddInstructions)}
@@ -680,7 +795,7 @@ const UserListDetail = () => {
                   </Link>
                 </div>
               </div>
-            ) : isOwner ? (
+            ) : canEdit ? (
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -798,6 +913,101 @@ const UserListDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Collaborator Modal / Dialog */}
+      {showCollabModal && (
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999] animate-fade-in'>
+          <div className='bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-xl border border-gray-100 dark:border-gray-700 space-y-4'>
+            <div className='flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3'>
+              <h3 className='text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2'>
+                <Users className='h-5 w-5 text-blue-600' />
+                Manage Editors
+              </h3>
+              <button
+                onClick={() => setShowCollabModal(false)}
+                className='text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+              >
+                <X className='h-5 w-5' />
+              </button>
+            </div>
+
+            <div className='space-y-4'>
+              {/* Current Collaborators */}
+              <div>
+                <h4 className='text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2'>
+                  Current Editors
+                </h4>
+                {list.collaborators && list.collaborators.length > 0 ? (
+                  <div className='divide-y divide-gray-100 dark:divide-gray-700/50 max-h-40 overflow-y-auto pr-1'>
+                    {list.collaborators.map(c => (
+                      <div key={c.id} className='flex items-center justify-between py-2'>
+                        <div className='flex items-center gap-2'>
+                          <Avatar username={c.username} size='xs' />
+                          <span className='text-sm font-semibold text-gray-800 dark:text-gray-200'>
+                            @{c.username}
+                          </span>
+                        </div>
+                        {isOwner && (
+                          <button
+                            onClick={() => handleRemoveCollab(c.user_id)}
+                            className='text-xs font-bold text-red-500 hover:text-red-700'
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                    No collaborators added yet.
+                  </p>
+                )}
+              </div>
+
+              {/* Add Collaborator */}
+              {isOwner && (
+                <div>
+                  <h4 className='text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2'>
+                    Add Editor
+                  </h4>
+                  {buddiesLoading ? (
+                    <div className='flex justify-center py-2'>
+                      <Loader2 className='animate-spin h-5 w-5 text-blue-600' />
+                    </div>
+                  ) : filterAddableBuddies().length > 0 ? (
+                    <div className='divide-y divide-gray-100 dark:divide-gray-700/50 max-h-40 overflow-y-auto pr-1'>
+                      {filterAddableBuddies().map(buddyUser => (
+                        <div
+                          key={buddyUser.id}
+                          className='flex items-center justify-between py-2 hover:bg-blue-100/50 dark:hover:bg-blue-900/40 px-2 rounded-lg transition-colors'
+                        >
+                          <div className='flex items-center gap-2'>
+                            <Avatar username={buddyUser.username} size='xs' />
+                            <span className='text-sm font-semibold text-gray-800 dark:text-gray-200'>
+                              @{buddyUser.username}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleAddCollab(buddyUser.username)}
+                            className='inline-flex items-center gap-1 text-xs font-bold bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/80 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30 px-2 py-1 rounded-md'
+                          >
+                            <Plus className='h-3 w-3' /> Add
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className='text-xs text-gray-500 dark:text-gray-400 italic'>
+                      No addable buddies. Only accepted buddies can be added.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

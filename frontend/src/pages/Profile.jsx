@@ -43,7 +43,12 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
 import { Link, useNavigate } from 'react-router-dom';
 
-import api, { getUserPublicProfile, getMyLists, createList } from '../api';
+import api, {
+  getUserPublicProfile,
+  getMyLists,
+  createList,
+  updateCollaboratorPreference,
+} from '../api';
 import Avatar from '../components/Avatar';
 import AvatarEditor from '../components/AvatarEditor';
 import { FormField } from '../components/forms/FormField';
@@ -1287,20 +1292,52 @@ const Profile = () => {
                               <Lock size={8} /> PRIVATE
                             </span>
                           )}
+                          {lst.is_collaborator && (
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-tighter gap-0.5'>
+                              <Users size={8} /> SHARED
+                            </span>
+                          )}
                         </div>
                       </div>
                       {lst.description && (
                         <p className='text-xs text-gray-500 line-clamp-2 mb-3'>{lst.description}</p>
                       )}
-                      <div className='flex items-center gap-4 text-[11px] text-gray-400 font-medium'>
-                        <span className='flex items-center gap-0.5'>
-                          <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
-                          {lst.items?.length || 0} sites
-                        </span>
-                        <span className='flex items-center gap-0.5'>
-                          <Eye className='h-3.5 w-3.5 text-gray-400' />
-                          {lst.view_count || 0} views
-                        </span>
+                      <div className='flex items-center justify-between mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700/50'>
+                        <div className='flex items-center gap-4 text-[11px] text-gray-400 font-medium'>
+                          <span className='flex items-center gap-0.5'>
+                            <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
+                            {lst.items?.length || 0} sites
+                          </span>
+                          <span className='flex items-center gap-0.5'>
+                            <Eye className='h-3.5 w-3.5 text-gray-400' />
+                            {lst.view_count || 0} views
+                          </span>
+                        </div>
+                        {lst.is_collaborator && (
+                          <label
+                            className='flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-white dark:bg-gray-800 border dark:border-gray-700 rounded px-2 py-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700'
+                            onClick={e => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <input
+                              type='checkbox'
+                              checked={lst.show_on_profile}
+                              onChange={async e => {
+                                e.stopPropagation();
+                                try {
+                                  await updateCollaboratorPreference(lst.id, e.target.checked);
+                                  toast.success('Profile preference updated!');
+                                  fetchLists();
+                                } catch (err) {
+                                  toast.error('Failed to update preference');
+                                }
+                              }}
+                              className='rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 h-3 w-3'
+                            />
+                            Show on Profile
+                          </label>
+                        )}
                       </div>
                     </Link>
                   ))}

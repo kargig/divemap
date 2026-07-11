@@ -1,0 +1,20 @@
+{{ notification.title }} - {{ site_name }}
+=========================================
+
+{{ notification.message }}
+
+{% if notification.link_url %}
+View Shared List:
+{{ site_url }}{{ notification.link_url }}
+{% endif %}
+
+-----------------------------------------
+You're receiving this email because you have notifications enabled for collaborative lists.
+
+{% if unsubscribe_url and unsubscribe_all_url %}
+Unsubscribe from list emails: {{ unsubscribe_url }}
+Unsubscribe from all emails: {{ unsubscribe_all_url }}
+{% endif %}
+
+Manage Preferences: {{ site_url }}/profile/notifications
+© {{ current_year }} {{ site_name }}. All rights reserved.

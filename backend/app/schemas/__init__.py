@@ -889,6 +889,22 @@ class DiveSiteListItemResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class CollaboratorResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    role: str
+    show_on_profile: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AddCollaboratorRequest(BaseModel):
+    username: str = Field(..., description="Username of the buddy to add")
+
+class UpdateCollaboratorPreference(BaseModel):
+    show_on_profile: bool
+
 class UserDiveSiteListResponse(BaseModel):
     id: int
     user_id: int
@@ -903,6 +919,9 @@ class UserDiveSiteListResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     items: List[DiveSiteListItemResponse] = []
+    collaborators: List[CollaboratorResponse] = []
+    is_collaborator: bool = False
+    role: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
