@@ -996,12 +996,12 @@ async def get_user_public_lists(
         joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
         ),
-        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user)
+        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteList.user)
     ).all()
 
     for lst in lists:
-        owner = db.query(User).filter(User.id == lst.user_id).first()
-        lst.username = owner.username if owner else "unknown"
+        lst.username = lst.user.username if lst.user else "unknown"
         lst.is_collaborator = (lst.user_id != user.id)
         lst.role = "owner" if lst.user_id == user.id else "editor"
         sanitize_list_for_response(lst)

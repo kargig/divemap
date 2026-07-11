@@ -162,6 +162,11 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
 - **Performance:** Eliminate waterfalls (parallelize async), use `React.lazy` for heavy components, and animate wrapper `div`s (not SVGs).
 - **Architecture:** Avoid 'barrel files', place interaction logic in event handlers (not effects), and use functional state updates.
 - **State:** Use lazy initialization `useState(() => ...)` for expensive values (and localStorage!), and `useRef` for transient high-frequency updates.
+- **Temporal Dead Zone (TDZ):** Always define component constants derived from hooks or state (like `isOwner` or `canEdit`) *above* any hook definitions (like `useEffect`) that reference them to prevent `ReferenceError: Cannot access 'X' before initialization` during component mounting.
+
+## Backend Development Best Practices
+- **FastAPI Background Tasks & Session Lifetimes:** NEVER pass the active request's `db` session dependency directly to a background task (using `background_tasks.add_task`). Because the HTTP request finishes and closes/recycles the request session before the background task completes, this triggers a `DetachedInstanceError`. Instead, import `SessionLocal` and instantiate/close an isolated session locally inside the task function using a `try...finally` block.
+- **N+1 Query Prevention:** When serializing lists containing nested relational data (such as user models or owners), always use SQLAlchemy's `joinedload` (e.g., `joinedload(DiveSiteList.user)`) in the initial query to eager-load the records. Avoid querying the database inside loops (`db.query().filter()`), as it leads to $N+1$ query performance degradation on profiles.
 
 ## UI Styling Standards
 - **Standardized Hover:** Use `hover:bg-interactive-hover` and `dark:hover:bg-interactive-hover-dark` for high-interaction lists (notifications, chat, buddy requests) to ensure brand-consistent visual feedback.

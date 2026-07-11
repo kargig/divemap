@@ -47,45 +47,51 @@ def check_list_write_permission(list_id: int, user: User, db: Session) -> DiveSi
         
     return lst
 
-def notify_collaborative_list_activity(list_id: int, initiator_id: int, action: str, details: str, db: Session):
-    # Fetch list and collaborators
-    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
-    if not lst:
-        return
+def notify_collaborative_list_activity(list_id: int, initiator_id: int, action: str, details: str, db: Optional[Session] = None):
+    from app.database import SessionLocal
+    local_db = db or SessionLocal()
+    try:
+        # Fetch list and collaborators
+        lst = local_db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
+        if not lst:
+            return
+            
+        initiator = local_db.query(User).filter(User.id == initiator_id).first()
+        initiator_username = initiator.username if initiator else "Someone"
         
-    initiator = db.query(User).filter(User.id == initiator_id).first()
-    initiator_username = initiator.username if initiator else "Someone"
-    
-    # Participants
-    participants = {lst.user_id} | {c.user_id for c in lst.collaborators}
-    target_users = participants - {initiator_id}
-    
-    owner = db.query(User).filter(User.id == lst.user_id).first()
-    owner_username = owner.username if owner else "unknown"
-    
-    message_body = ""
-    if action == "add":
-        message_body = f"{initiator_username} added {details} to the list '{lst.title}'."
-    elif action == "edit_notes":
-        message_body = f"{initiator_username} updated notes for {details} in the list '{lst.title}'."
-    elif action == "remove":
-        message_body = f"{initiator_username} removed {details} from the list '{lst.title}'."
-    elif action == "reorder":
-        message_body = f"{initiator_username} reordered the dive sites in the list '{lst.title}'."
+        # Participants
+        participants = {lst.user_id} | {c.user_id for c in lst.collaborators}
+        target_users = participants - {initiator_id}
         
-    from app.services.notification_service import NotificationService
-    notif_service = NotificationService()
-    
-    for uid in target_users:
-        notif_service.create_notification(
-            user_id=uid,
-            category="collaborative_list",
-            title=f"List Updated: {lst.title}",
-            message=message_body,
-            link_url=f"/users/{owner_username}/lists/{lst.id}/{lst.slug}",
-            entity_type="dive_site",
-            db=db
-        )
+        owner = local_db.query(User).filter(User.id == lst.user_id).first()
+        owner_username = owner.username if owner else "unknown"
+        
+        message_body = ""
+        if action == "add":
+            message_body = f"{initiator_username} added {details} to the list '{lst.title}'."
+        elif action == "edit_notes":
+            message_body = f"{initiator_username} updated notes for {details} in the list '{lst.title}'."
+        elif action == "remove":
+            message_body = f"{initiator_username} removed {details} from the list '{lst.title}'."
+        elif action == "reorder":
+            message_body = f"{initiator_username} reordered the dive sites in the list '{lst.title}'."
+            
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService()
+        
+        for uid in target_users:
+            notif_service.create_notification(
+                user_id=uid,
+                category="collaborative_list",
+                title=f"List Updated: {lst.title}",
+                message=message_body,
+                link_url=f"/users/{owner_username}/lists/{lst.id}/{lst.slug}",
+                entity_type="dive_site",
+                db=local_db
+            )
+    finally:
+        if not db:
+            local_db.close()
 
 @router.get("/my-lists", response_model=List[UserDiveSiteListResponse])
 async def get_my_lists(
@@ -102,7 +108,8 @@ async def get_my_lists(
         joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
         ),
-        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user)
+        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteList.user)
     ).all()
     
     # Query mappings where current user is a collaborator
@@ -112,7 +119,8 @@ async def get_my_lists(
         joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
         ),
-        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user)
+        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.user)
     ).all()
     
     collab_lists = [mapping.list for mapping in collab_mappings if mapping.list]
@@ -121,8 +129,7 @@ async def get_my_lists(
     
     # Set helper properties for response serialization
     for lst in all_lists:
-        owner = db.query(User).filter(User.id == lst.user_id).first()
-        lst.username = owner.username if owner else "unknown"
+        lst.username = lst.user.username if lst.user else "unknown"
         lst.is_collaborator = (lst.user_id != current_user.id)
         lst.role = "owner" if lst.user_id == current_user.id else "editor"
         sanitize_list_for_response(lst)
@@ -301,7 +308,7 @@ async def add_list_item(
     if db_item and db_item.dive_site:
         db_item.dive_site.tags = []
         
-    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "add", site.name, db)
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "add", site.name)
     return db_item
 
 @router.put("/{list_id}/items/{item_id}", response_model=DiveSiteListItemResponse)
@@ -331,7 +338,7 @@ async def update_list_item(
     db.refresh(item)
     
     site_name = item.dive_site.name if item.dive_site else "a site"
-    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "edit_notes", site_name, db)
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "edit_notes", site_name)
     return item
 
 @router.delete("/{list_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -355,7 +362,7 @@ async def remove_list_item(
     db.delete(item)
     db.commit()
     
-    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "remove", site_name, db)
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "remove", site_name)
     return None
 
 @router.put("/{list_id}/reorder")
@@ -377,7 +384,7 @@ async def reorder_list_items(
             item_map[item_id].display_order = index
 
     db.commit()
-    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "reorder", "", db)
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "reorder", "")
     return {"status": "success"}
 
 @router.post("/{list_id}/collaborators", response_model=CollaboratorResponse, status_code=status.HTTP_201_CREATED)
