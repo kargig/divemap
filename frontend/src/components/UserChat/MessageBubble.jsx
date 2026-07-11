@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Edit2, Check, CheckCheck, Clock, MapPin } from 'lucide-react';
+import { Edit2, Check, CheckCheck, Clock, MapPin, Users, FolderHeart } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -127,7 +127,60 @@ const MessageBubble = ({
                   : `bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 border border-gray-100 dark:border-gray-600 rounded-2xl ${!showName ? 'rounded-tl-[4px]' : ''} ${isLastInGroup ? 'rounded-bl-sm' : 'rounded-bl-[4px]'}`
             }`}
           >
-            {message.message_type === 'TRIP_AD' ? (
+            {message.message_type === 'system_shared_list' ||
+            message.message_type === 'SYSTEM_SHARED_LIST' ? (
+              (() => {
+                let listData;
+                try {
+                  listData = JSON.parse(message.content);
+                } catch (e) {
+                  listData = { text: message.content };
+                }
+
+                const ownerUsername = message.sender?.username || 'unknown';
+                const listUrl =
+                  listData.list_id && listData.list_slug
+                    ? `/users/${ownerUsername}/lists/${listData.list_id}/${listData.list_slug}`
+                    : '#';
+
+                return (
+                  <div className='bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md mt-1 mb-2 border border-gray-200/60 dark:border-gray-700 min-w-[200px] sm:min-w-[280px] max-w-sm'>
+                    {/* Header bar */}
+                    <div className='p-2 sm:p-3 border-b border-gray-100 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-950/20 flex items-center gap-2'>
+                      <Users className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                      <span className='text-[10px] sm:text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider'>
+                        Shared Collaborative List
+                      </span>
+                    </div>
+                    {/* Body */}
+                    <div className='p-3 sm:p-4 space-y-3.5'>
+                      <div className='flex items-start gap-2.5'>
+                        <div className='bg-blue-100/40 dark:bg-blue-950/30 p-2 rounded-xl text-blue-600 dark:text-blue-400 mt-0.5 shrink-0'>
+                          <FolderHeart className='h-5 w-5' />
+                        </div>
+                        <div className='space-y-1 text-left'>
+                          <h4 className='font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-snug'>
+                            {listData.list_title || 'Curated List'}
+                          </h4>
+                          <p className='text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-normal'>
+                            {listData.text || 'You have been added as a collaborator.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {listData.list_id && (
+                        <Link
+                          to={listUrl}
+                          className='block w-full text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 text-xs sm:text-sm rounded-xl transition-colors shadow-sm'
+                        >
+                          View Collaborative List
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : message.message_type === 'TRIP_AD' ? (
               (() => {
                 let tripData;
                 try {

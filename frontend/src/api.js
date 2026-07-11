@@ -326,6 +326,22 @@ export const getAdminPopularLists = async () => {
   return response.data;
 };
 
+export const addListCollaborator = async (listId, username) => {
+  const response = await api.post(`/api/v1/lists/${listId}/collaborators`, { username });
+  return response.data;
+};
+
+export const removeListCollaborator = async (listId, userId) => {
+  await api.delete(`/api/v1/lists/${listId}/collaborators/${userId}`);
+};
+
+export const updateCollaboratorPreference = async (listId, showOnProfile) => {
+  const response = await api.put(`/api/v1/lists/${listId}/collaborators/preference`, {
+    show_on_profile: showOnProfile,
+  });
+  return response.data;
+};
+
 // Logged-in user private feedback history API functions
 export const getMyComments = async (params = {}) => {
   const response = await api.get('/api/v1/users/me/comments', { params });

@@ -200,6 +200,7 @@ class User(Base):
     social_links = relationship("UserSocialLink", back_populates="user", cascade="all, delete-orphan")
     push_subscriptions = relationship("PushSubscription", back_populates="user", cascade="all, delete-orphan")
     dive_site_lists = relationship("DiveSiteList", back_populates="user", cascade="all, delete-orphan")
+    collaborating_lists = relationship("DiveSiteListCollaborator", back_populates="user", cascade="all, delete-orphan")
 
 class UserSocialLink(Base):
     __tablename__ = "user_social_links"
@@ -242,6 +243,7 @@ class DiveSiteList(Base):
         cascade="all, delete-orphan",
         order_by="DiveSiteListItem.display_order"
     )
+    collaborators = relationship("DiveSiteListCollaborator", back_populates="list", cascade="all, delete-orphan")
 
 class DiveSiteListItem(Base):
     __tablename__ = "dive_site_list_items"
@@ -261,6 +263,33 @@ class DiveSiteListItem(Base):
     __table_args__ = (
         sa.UniqueConstraint('list_id', 'dive_site_id', name='uq_list_dive_site'),
     )
+
+class DiveSiteListCollaborator(Base):
+    __tablename__ = "dive_site_list_collaborators"
+    __table_args__ = (
+        sa.UniqueConstraint('list_id', 'user_id', name='uq_list_collaborator'),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    list_id = Column(Integer, ForeignKey("dive_site_lists.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String(20), default="editor", nullable=False)
+    show_on_profile = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # Relationships
+    list = relationship("DiveSiteList", back_populates="collaborators")
+    user = relationship("User", back_populates="collaborating_lists")
+
+    @property
+    def username(self) -> str:
+        if hasattr(self, "_username_val") and self._username_val:
+            return self._username_val
+        return self.user.username if self.user else "unknown"
+
+    @username.setter
+    def username(self, value: str):
+        self._username_val = value
 
 class DiveSite(Base):
     __tablename__ = "dive_sites"

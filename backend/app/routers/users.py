@@ -974,20 +974,36 @@ async def get_user_public_lists(
     from app.routers.lists import ensure_default_lists, sanitize_list_for_response
     ensure_default_lists(db, user.id)
 
-    # Public profile endpoint always returns only public lists flagged to be shown on public profiles
+    from app.models import DiveSiteListCollaborator
+    from sqlalchemy import or_
+
+    # Subquery to find list IDs where this profile user is a collaborator and show_on_profile is True
+    collab_list_ids_subquery = db.query(DiveSiteListCollaborator.list_id).filter(
+        DiveSiteListCollaborator.user_id == user.id,
+        DiveSiteListCollaborator.show_on_profile == True
+    ).subquery()
+
+    # Query public lists owned by the user, or public lists where the user is a collaborator
     query = db.query(DiveSiteList).filter(
-        DiveSiteList.user_id == user.id,
         DiveSiteList.is_public == True,
-        DiveSiteList.show_on_profile == True
+        or_(
+            (DiveSiteList.user_id == user.id) & (DiveSiteList.show_on_profile == True),
+            DiveSiteList.id.in_(collab_list_ids_subquery)
+        )
     )
 
     lists = query.options(
         joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
-        )
+        ),
+        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteList.user)
     ).all()
+
     for lst in lists:
-        lst.username = user.username
+        lst.username = lst.user.username if lst.user else "unknown"
+        lst.is_collaborator = (lst.user_id != user.id)
+        lst.role = "owner" if lst.user_id == user.id else "editor"
         sanitize_list_for_response(lst)
     return lists
 

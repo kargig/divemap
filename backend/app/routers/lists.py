@@ -4,13 +4,14 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload, selectinload
 from app.database import get_db
-from app.models import DiveSiteList, DiveSiteListItem, DiveSite, User, DiveSiteTag
+from app.models import DiveSiteList, DiveSiteListItem, DiveSite, User, DiveSiteTag, DiveSiteListCollaborator, UserFriendship
 from app.auth import get_current_active_user, get_current_user_optional, get_current_admin_user
 from app.utils import increment_view_count
 from app.schemas import (
     UserDiveSiteListResponse, UserDiveSiteListCreate, UserDiveSiteListUpdate,
     DiveSiteListItemResponse, DiveSiteListItemCreate, DiveSiteListItemUpdate,
-    UserDiveSiteListReorder, UserDiveSiteListMembershipResponse
+    UserDiveSiteListReorder, UserDiveSiteListMembershipResponse,
+    CollaboratorResponse, AddCollaboratorRequest, UpdateCollaboratorPreference
 )
 
 router = APIRouter()
@@ -25,26 +26,115 @@ def sanitize_list_for_response(lst: Optional[DiveSiteList]) -> Optional[DiveSite
     """Sanitize nested dive site tags list objects to match Pydantic schema validation expectation"""
     return lst
 
+def check_list_write_permission(list_id: int, user: User, db: Session) -> DiveSiteList:
+    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
+    if not lst:
+        raise HTTPException(status_code=404, detail="List not found")
+    
+    # 1. Owner & Admin check
+    if lst.user_id == user.id or user.is_admin:
+        return lst
+        
+    # 2. Collaborator check
+    collab = db.query(DiveSiteListCollaborator).filter(
+        DiveSiteListCollaborator.list_id == list_id,
+        DiveSiteListCollaborator.user_id == user.id,
+        DiveSiteListCollaborator.role == "editor"
+    ).first()
+    
+    if not collab:
+        raise HTTPException(status_code=403, detail="You do not have write access to this list")
+        
+    return lst
+
+def notify_collaborative_list_activity(list_id: int, initiator_id: int, action: str, details: str, db: Optional[Session] = None):
+    from app.database import SessionLocal
+    local_db = db or SessionLocal()
+    try:
+        # Fetch list and collaborators
+        lst = local_db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
+        if not lst:
+            return
+            
+        initiator = local_db.query(User).filter(User.id == initiator_id).first()
+        initiator_username = initiator.username if initiator else "Someone"
+        
+        # Participants
+        participants = {lst.user_id} | {c.user_id for c in lst.collaborators}
+        target_users = participants - {initiator_id}
+        
+        owner = local_db.query(User).filter(User.id == lst.user_id).first()
+        owner_username = owner.username if owner else "unknown"
+        
+        message_body = ""
+        if action == "add":
+            message_body = f"{initiator_username} added {details} to the list '{lst.title}'."
+        elif action == "edit_notes":
+            message_body = f"{initiator_username} updated notes for {details} in the list '{lst.title}'."
+        elif action == "remove":
+            message_body = f"{initiator_username} removed {details} from the list '{lst.title}'."
+        elif action == "reorder":
+            message_body = f"{initiator_username} reordered the dive sites in the list '{lst.title}'."
+            
+        from app.services.notification_service import NotificationService
+        notif_service = NotificationService()
+        
+        for uid in target_users:
+            notif_service.create_notification(
+                user_id=uid,
+                category="collaborative_list",
+                title=f"List Updated: {lst.title}",
+                message=message_body,
+                link_url=f"/users/{owner_username}/lists/{lst.id}/{lst.slug}",
+                entity_type="dive_site",
+                db=local_db
+            )
+    finally:
+        if not db:
+            local_db.close()
+
 @router.get("/my-lists", response_model=List[UserDiveSiteListResponse])
 async def get_my_lists(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get all curated lists of the authenticated user (including system lists)"""
+    """Get all curated lists of the authenticated user (including system lists and collaborative lists)"""
     ensure_default_lists(db, current_user.id)
-    lists = db.query(DiveSiteList).filter(
+    
+    # Query lists owned by the current user
+    owned_lists = db.query(DiveSiteList).filter(
         DiveSiteList.user_id == current_user.id
     ).options(
         joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
-        )
+        ),
+        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteList.user)
     ).all()
     
-    # Map usernames and sanitize tags
-    for lst in lists:
-        lst.username = current_user.username
+    # Query mappings where current user is a collaborator
+    collab_mappings = db.query(DiveSiteListCollaborator).filter(
+        DiveSiteListCollaborator.user_id == current_user.id
+    ).options(
+        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        ),
+        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
+        joinedload(DiveSiteListCollaborator.list).joinedload(DiveSiteList.user)
+    ).all()
+    
+    collab_lists = [mapping.list for mapping in collab_mappings if mapping.list]
+    
+    all_lists = owned_lists + collab_lists
+    
+    # Set helper properties for response serialization
+    for lst in all_lists:
+        lst.username = lst.user.username if lst.user else "unknown"
+        lst.is_collaborator = (lst.user_id != current_user.id)
+        lst.role = "owner" if lst.user_id == current_user.id else "editor"
         sanitize_list_for_response(lst)
-    return lists
+        
+    return all_lists
 
 @router.post("", response_model=UserDiveSiteListResponse, status_code=status.HTTP_201_CREATED)
 async def create_list(
@@ -84,7 +174,8 @@ async def get_list_by_id(
     lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).options(
         joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
             selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
-        )
+        ),
+        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user)
     ).first()
 
     if not lst:
@@ -95,8 +186,22 @@ async def get_list_by_id(
 
     # Privacy enforcement
     is_owner = current_user and current_user.id == lst.user_id
-    if not lst.is_public and not is_owner and not (current_user and current_user.is_admin):
+    is_collab = False
+    collab_role = None
+    if current_user:
+        collab_entry = db.query(DiveSiteListCollaborator).filter(
+            DiveSiteListCollaborator.list_id == list_id,
+            DiveSiteListCollaborator.user_id == current_user.id
+        ).first()
+        if collab_entry:
+            is_collab = True
+            collab_role = collab_entry.role
+
+    if not lst.is_public and not is_owner and not is_collab and not (current_user and current_user.is_admin):
         raise HTTPException(status_code=403, detail="This list is private")
+
+    lst.is_collaborator = is_collab
+    lst.role = "owner" if is_owner else collab_role
 
     # Track views
     if not is_owner:
@@ -166,13 +271,12 @@ async def delete_list(
 async def add_list_item(
     list_id: int,
     data: DiveSiteListItemCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Add a site to a list with optional notes"""
-    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
-    if not lst or lst.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    lst = check_list_write_permission(list_id, current_user, db)
 
     # Check site exists
     site = db.query(DiveSite).filter(DiveSite.id == data.dive_site_id).first()
@@ -203,6 +307,8 @@ async def add_list_item(
     db_item = db.query(DiveSiteListItem).options(joinedload(DiveSiteListItem.dive_site)).filter(DiveSiteListItem.id == item.id).first()
     if db_item and db_item.dive_site:
         db_item.dive_site.tags = []
+        
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "add", site.name)
     return db_item
 
 @router.put("/{list_id}/items/{item_id}", response_model=DiveSiteListItemResponse)
@@ -210,6 +316,7 @@ async def update_list_item(
     list_id: int,
     item_id: int,
     data: DiveSiteListItemUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -218,8 +325,9 @@ async def update_list_item(
         DiveSiteListItem.id == item_id,
         DiveSiteListItem.list_id == list_id
     ).first()
-    if not item or item.list.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    if not item:
+        raise HTTPException(status_code=404, detail="List item not found")
+    check_list_write_permission(list_id, current_user, db)
 
     if data.notes is not None:
         item.notes = data.notes
@@ -228,12 +336,16 @@ async def update_list_item(
 
     db.commit()
     db.refresh(item)
+    
+    site_name = item.dive_site.name if item.dive_site else "a site"
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "edit_notes", site_name)
     return item
 
 @router.delete("/{list_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_list_item(
     list_id: int,
     item_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -242,24 +354,27 @@ async def remove_list_item(
         DiveSiteListItem.id == item_id,
         DiveSiteListItem.list_id == list_id
     ).first()
-    if not item or item.list.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    if not item:
+        raise HTTPException(status_code=404, detail="List item not found")
+    check_list_write_permission(list_id, current_user, db)
 
+    site_name = item.dive_site.name if item.dive_site else "a site"
     db.delete(item)
     db.commit()
+    
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "remove", site_name)
     return None
 
 @router.put("/{list_id}/reorder")
 async def reorder_list_items(
     list_id: int,
     data: UserDiveSiteListReorder,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
     """Bulk reorder items of a list securely in a single transaction"""
-    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
-    if not lst or lst.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    lst = check_list_write_permission(list_id, current_user, db)
 
     items = db.query(DiveSiteListItem).filter(DiveSiteListItem.list_id == list_id).all()
     item_map = {item.id: item for item in items}
@@ -269,7 +384,154 @@ async def reorder_list_items(
             item_map[item_id].display_order = index
 
     db.commit()
+    background_tasks.add_task(notify_collaborative_list_activity, list_id, current_user.id, "reorder", "")
     return {"status": "success"}
+
+@router.post("/{list_id}/collaborators", response_model=CollaboratorResponse, status_code=status.HTTP_201_CREATED)
+async def add_list_collaborator(
+    list_id: int,
+    data: AddCollaboratorRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
+    if not lst or lst.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only list owners can manage collaborators")
+
+    if lst.system_type:
+        raise HTTPException(status_code=403, detail="System lists cannot have collaborators")
+
+    target_user = db.query(User).filter(User.username == data.username).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Enforce accepted friendships
+    friendship = db.query(UserFriendship).filter(
+        ((UserFriendship.user_id == current_user.id) & (UserFriendship.friend_id == target_user.id)) |
+        ((UserFriendship.user_id == target_user.id) & (UserFriendship.friend_id == current_user.id)),
+        UserFriendship.status == "ACCEPTED"
+    ).first()
+    if not friendship:
+        raise HTTPException(status_code=400, detail="You can only collaborate with accepted buddies")
+
+    # Check already exists
+    exists = db.query(DiveSiteListCollaborator).filter(
+        DiveSiteListCollaborator.list_id == list_id,
+        DiveSiteListCollaborator.user_id == target_user.id
+    ).first()
+    if exists:
+        raise HTTPException(status_code=400, detail="User is already a collaborator")
+
+    collab = DiveSiteListCollaborator(
+        list_id=list_id,
+        user_id=target_user.id,
+        role="editor",
+        show_on_profile=True
+    )
+    db.add(collab)
+    db.commit()
+    db.refresh(collab)
+    
+    # 1. Trigger Web Push System Notification and Email
+    from app.services.notification_service import NotificationService
+    notif_service = NotificationService()
+    notification = notif_service.create_notification(
+        user_id=target_user.id,
+        category="collaborative_list",
+        title="New Shared List",
+        message=f"{current_user.username} added you as an editor on '{lst.title}'",
+        link_url=f"/users/{current_user.username}/lists/{lst.id}/{lst.slug}",
+        db=db
+    )
+    if notification:
+        # Trigger email delivery logic 
+        notif_service._queue_email_notification(notification, target_user, 'shared_list', db)
+    
+    # 2. Inject interactive shared list card inside DM chat if room exists
+    try:
+        from app.models import UserChatRoom, UserChatRoomMember, UserChatMessage
+        from sqlalchemy import func
+        from app.services.encryption_service import encrypt_message
+        import json
+        
+        room_ids_subquery = db.query(UserChatRoomMember.room_id).filter(
+            UserChatRoomMember.user_id.in_([current_user.id, target_user.id])
+        ).group_by(UserChatRoomMember.room_id).having(func.count(UserChatRoomMember.user_id) == 2).subquery()
+
+        room = db.query(UserChatRoom).filter(
+            UserChatRoom.id.in_(room_ids_subquery),
+            UserChatRoom.is_group == False,
+            UserChatRoom.diving_center_id.is_(None)
+        ).first()
+        
+        if room:
+            payload = json.dumps({
+                "list_id": lst.id,
+                "list_slug": lst.slug,
+                "list_title": lst.title,
+                "text": f"{current_user.username} added you as a collaborator on the list '{lst.title}'."
+            })
+            ciphertext = encrypt_message(payload, room.encrypted_dek)
+            msg = UserChatMessage(
+                room_id=room.id,
+                sender_id=current_user.id,
+                content=ciphertext,
+                message_type="system_shared_list"
+            )
+            db.add(msg)
+            db.commit()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to inject shared list card in DM chat: {e}")
+    
+    # Dynamic fields for response mapping
+    collab.username = target_user.username
+    return collab
+
+@router.delete("/{list_id}/collaborators/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_list_collaborator(
+    list_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    lst = db.query(DiveSiteList).filter(DiveSiteList.id == list_id).first()
+    if not lst:
+        raise HTTPException(status_code=404, detail="List not found")
+
+    if lst.user_id != current_user.id and current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    collab = db.query(DiveSiteListCollaborator).filter(
+        DiveSiteListCollaborator.list_id == list_id,
+        DiveSiteListCollaborator.user_id == user_id
+    ).first()
+    if not collab:
+        raise HTTPException(status_code=404, detail="Collaborator not found")
+
+    db.delete(collab)
+    db.commit()
+    return None
+
+@router.put("/{list_id}/collaborators/preference", response_model=CollaboratorResponse)
+async def update_collaborator_profile_preference(
+    list_id: int,
+    data: UpdateCollaboratorPreference,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    collab = db.query(DiveSiteListCollaborator).filter(
+        DiveSiteListCollaborator.list_id == list_id,
+        DiveSiteListCollaborator.user_id == current_user.id
+    ).first()
+    if not collab:
+        raise HTTPException(status_code=404, detail="Collaborator not found")
+
+    collab.show_on_profile = data.show_on_profile
+    db.commit()
+    db.refresh(collab)
+    return collab
 
 @router.get("/dive-site/{dive_site_id}/my-status", response_model=List[UserDiveSiteListMembershipResponse])
 async def get_dive_site_membership_status(
