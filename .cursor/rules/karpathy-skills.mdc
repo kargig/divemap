@@ -1,0 +1,39 @@
+---
+description: Behavioral guidelines to reduce common LLM coding mistakes based on Andrej Karpathy's principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution)
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Andrej Karpathy's Coding Principles
+
+Universal guidelines to minimize over-engineering, speculative code, and accidental regressions.
+
+## 1. Think Before Coding
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- State your assumptions explicitly before implementing. If uncertain, ask.
+- If multiple interpretations exist, present them—do not pick one silently.
+- If a simpler approach exists, say so. Push back when instructions are suboptimal.
+- If anything is unclear, stop immediately and ask.
+
+## 2. Simplicity First
+**Minimum code that solves the problem. Nothing speculative.**
+- Write the absolute minimum code required to solve the task. No extra abstractions.
+- No unrequested "flexibility", "configurability", or features.
+- Avoid error handling for impossible scenarios.
+- If a solution is 200 lines and could be 50, rewrite it entirely.
+- Ask: "Would a senior engineer say this is overcomplicated?" If so, simplify.
+
+## 3. Surgical Changes
+**Touch only what you must. Clean up only your own mess.**
+- Do not modify adjacent code, comments, or formatting unless directly related to the task.
+- Do not refactor anything that isn't broken.
+- Strictly match the existing style of the file, even if you disagree with it.
+- If you notice unrelated dead code, mention it to the user—do not delete it.
+- Remove imports, variables, and functions that *your* changes made unused. Never touch pre-existing unused elements.
+- Ensure every changed line traces directly back to the user's request.
+
+## 4. Goal-Driven Execution
+**Define success criteria. Loop until verified.**
+- Transform vague tasks into specific, testable criteria (e.g., "Write reproducing tests first").
+- For multi-step tasks, provide a brief plan where each step lists a verification check.
+- Loop through implementation and testing until success criteria are completely met.
