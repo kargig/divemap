@@ -746,7 +746,7 @@ const Home = () => {
                 Explore the world's best scuba locations, read reviews from fellow divers, and find
                 your next underwater adventure.
               </p>
-              <div className='max-w-md mx-auto px-4 relative z-30'>
+              <div className='max-w-2xl mx-auto px-4 relative z-30'>
                 <GlobalSearchBar
                   className='w-full shadow-lg rounded-xl'
                   placeholder='Search dives, sites, centers...'
@@ -1121,9 +1121,12 @@ const Home = () => {
                       <p className='text-sm text-gray-700'>
                         {activity.event_type === 'claim_approved' ? (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
+                            </Link>{' '}
                             is now the verified owner of{' '}
                             <Link
                               to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
@@ -1134,9 +1137,12 @@ const Home = () => {
                           </>
                         ) : activity.event_type === 'center_added' ? (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
+                            </Link>{' '}
                             listed a new diving center:{' '}
                             <Link
                               to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
@@ -1147,21 +1153,44 @@ const Home = () => {
                           </>
                         ) : activity.event_type === 'trip_added' ? (
                           <>
-                            A new diving trip was created by{' '}
+                            A new{' '}
+                            {activity.trip_id ? (
+                              <Link
+                                to={`/dive-trips/${activity.trip_id}`}
+                                className='text-[#0072B2] font-bold hover:underline'
+                              >
+                                diving trip
+                              </Link>
+                            ) : (
+                              'diving trip'
+                            )}{' '}
+                            was created by{' '}
                             <Link
                               to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
-                              className='text-[#0072B2] font-bold hover:underline'
+                              className='text-blue-600 font-bold hover:underline'
                             >
                               {activity.center_name}
                             </Link>
                           </>
                         ) : activity.event_type === 'route_added' ? (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
+                            </Link>{' '}
                             mapped a new dive route:{' '}
-                            <span className='font-bold text-gray-800'>{activity.route_name}</span>{' '}
+                            {activity.route_id ? (
+                              <Link
+                                to={`/dive-routes/${activity.route_id}/${slugify(activity.route_name)}`}
+                                className='text-[#0072B2] font-bold hover:underline'
+                              >
+                                {activity.route_name}
+                              </Link>
+                            ) : (
+                              <span className='font-bold text-gray-800'>{activity.route_name}</span>
+                            )}{' '}
                             at{' '}
                             <Link
                               to={`/dive-sites/${activity.site_id}`}
@@ -1172,10 +1201,24 @@ const Home = () => {
                           </>
                         ) : activity.event_type === 'dive_logged' ? (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
-                            logged a new public dive at{' '}
+                            </Link>{' '}
+                            logged a new dive{' '}
+                            {activity.dive_id ? (
+                              <Link
+                                to={`/dives/${activity.dive_id}`}
+                                className='text-[#0072B2] font-bold hover:underline'
+                              >
+                                {activity.dive_name || 'Unnamed dive'}
+                              </Link>
+                            ) : (
+                              'Unnamed dive'
+                            )}{' '}
+                            at{' '}
                             <Link
                               to={`/dive-sites/${activity.site_id}`}
                               className='text-blue-600 font-bold hover:underline'
@@ -1185,9 +1228,12 @@ const Home = () => {
                           </>
                         ) : activity.event_type === 'site_review' ? (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
+                            </Link>{' '}
                             rated{' '}
                             <Link
                               to={`/dive-sites/${activity.site_id}`}
@@ -1196,16 +1242,26 @@ const Home = () => {
                               {activity.site_name}
                             </Link>
                             {activity.rating && (
-                              <span className='ml-1.5 text-yellow-500 font-bold'>
-                                {'★'.repeat(activity.rating)}
+                              <span className='inline-flex items-center gap-0.5 ml-1.5 align-middle'>
+                                {[...Array(activity.rating)].map((_, i) => (
+                                  <img
+                                    key={i}
+                                    src='/arts/starfish-2.svg'
+                                    alt='Starfish Rating'
+                                    className='w-3.5 h-3.5 object-contain'
+                                  />
+                                ))}
                               </span>
                             )}
                           </>
                         ) : (
                           <>
-                            <span className='font-extrabold text-gray-900'>
+                            <Link
+                              to={`/users/${activity.username}`}
+                              className='text-blue-600 font-extrabold hover:underline'
+                            >
                               {activity.username}
-                            </span>{' '}
+                            </Link>{' '}
                             discovered a new dive site:{' '}
                             <Link
                               to={`/dive-sites/${activity.site_id}`}

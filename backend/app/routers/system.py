@@ -728,6 +728,8 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
             "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
             "status": "success",
             "username": dive.user.username if dive.user else "Anonymous",
+            "dive_id": dive.id,
+            "dive_name": dive.name or 'Unnamed dive',
             "site_id": dive.dive_site_id,
             "site_name": dive.dive_site.name if dive.dive_site else "Unknown Site"
         })
@@ -746,6 +748,7 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
             "action": "Dive trip created",
             "details": f"New trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
             "status": "success",
+            "trip_id": trip.id,
             "center_id": trip.diving_center_id,
             "center_name": trip.diving_center.name if trip.diving_center else "Unknown Center"
         })
