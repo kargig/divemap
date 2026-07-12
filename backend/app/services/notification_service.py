@@ -763,7 +763,7 @@ class NotificationService:
             notification = self.create_notification(
                 user_id=user.id,
                 category='new_dive_trips',
-                title=f"New Dive Trip: {trip.title or 'Untitled Trip'}",
+                title=f"New Dive Trip: {getattr(trip, 'title', None) or f'Trip on {trip.trip_date}'}",
                 message=f"A new dive trip has been posted.",
                 link_url=link_url,
                 entity_type='dive_trip',

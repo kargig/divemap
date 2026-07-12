@@ -828,7 +828,18 @@ async def get_public_recent_activity(db: Session = Depends(get_db)):
     """Get the 6 most recent public community activities securely with zero PII leakage."""
     try:
         from app.routers.system import fetch_recent_activities
-        return fetch_recent_activities(db, hours=720, limit=6, is_admin=False)
+        # 1. Try finding activity in the last 5 days (120 hours)
+        activities = fetch_recent_activities(db, hours=120, limit=6, is_admin=False)
+        
+        # 2. If we don't have enough (e.g. < 6), expand to 30 days (720 hours)
+        if len(activities) < 6:
+            activities = fetch_recent_activities(db, hours=720, limit=6, is_admin=False)
+            
+        # 3. If still not enough, lift the lookback limit completely (hours=None)
+        if len(activities) < 6:
+            activities = fetch_recent_activities(db, hours=None, limit=6, is_admin=False)
+            
+        return activities
     except Exception as e:
         import logging
         logging.error(f"Error getting public recent activity: {e}", exc_info=True)

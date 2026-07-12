@@ -637,22 +637,26 @@ async def get_platform_stats(
         "timestamp": datetime.utcnow().isoformat()
     }
 
-def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
+def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
     from app.models import OwnershipRequest
     from sqlalchemy.orm import joinedload
     
     # Calculate time range
-    end_time = datetime.utcnow()
-    start_time = end_time - timedelta(hours=hours)
+    if hours is not None:
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=hours)
+    else:
+        start_time = None
     
     activities = []
     
     # 1. User registrations (ADMIN ONLY)
     if is_admin:
-        new_users = db.query(User).filter(
-            User.created_at >= start_time
-        ).order_by(desc(User.created_at)).limit(limit).all()
+        user_query = db.query(User)
+        if start_time is not None:
+            user_query = user_query.filter(User.created_at >= start_time)
+        new_users = user_query.order_by(desc(User.created_at)).limit(limit).all()
         
         for user in new_users:
             activities.append({
@@ -666,7 +670,9 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
     # 2. Dive Sites (Created)
-    site_query = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(DiveSite.created_at >= start_time)
+    site_query = db.query(DiveSite).options(joinedload(DiveSite.creator))
+    if start_time is not None:
+        site_query = site_query.filter(DiveSite.created_at >= start_time)
     if not is_admin:
         site_query = site_query.filter(DiveSite.status == "approved")
     new_dive_sites = site_query.order_by(desc(DiveSite.created_at)).limit(limit).all()
@@ -686,7 +692,9 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 3. Diving Centers (Created)
-    center_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(DivingCenter.created_at >= start_time)
+    center_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner))
+    if start_time is not None:
+        center_query = center_query.filter(DivingCenter.created_at >= start_time)
     new_diving_centers = center_query.order_by(desc(DivingCenter.created_at)).limit(limit).all()
     
     for center in new_diving_centers:
@@ -704,7 +712,9 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 4. Dives Logged (Created)
-    dive_query = db.query(Dive).options(joinedload(Dive.user), joinedload(Dive.dive_site)).filter(Dive.created_at >= start_time)
+    dive_query = db.query(Dive).options(joinedload(Dive.user), joinedload(Dive.dive_site))
+    if start_time is not None:
+        dive_query = dive_query.filter(Dive.created_at >= start_time)
     if not is_admin:
         dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id != None)
     new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
@@ -723,9 +733,10 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 5. Dive Trips (Created)
-    new_trips = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.diving_center)).filter(
-        ParsedDiveTrip.created_at >= start_time
-    ).order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
+    trip_query = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.diving_center))
+    if start_time is not None:
+        trip_query = trip_query.filter(ParsedDiveTrip.created_at >= start_time)
+    new_trips = trip_query.order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
 
     for trip in new_trips:
         activities.append({
@@ -733,19 +744,17 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             "type": "content_creation",
             "event_type": "trip_added",
             "action": "Dive trip created",
-            "details": f"New trip: {trip.title or ('Trip on ' + str(trip.trip_date))}",
+            "details": f"New trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
             "status": "success",
             "center_id": trip.diving_center_id,
             "center_name": trip.diving_center.name if trip.diving_center else "Unknown Center"
         })
 
     # 6. Dive Routes (Created)
-    new_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site)).filter(
-        and_(
-            DiveRoute.created_at >= start_time,
-            DiveRoute.deleted_at.is_(None)
-        )
-    ).order_by(desc(DiveRoute.created_at)).limit(limit).all()
+    route_query = db.query(DiveRoute).options(joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site))
+    if start_time is not None:
+        route_query = route_query.filter(DiveRoute.created_at >= start_time)
+    new_routes = route_query.filter(DiveRoute.deleted_at.is_(None)).order_by(desc(DiveRoute.created_at)).limit(limit).all()
 
     for route in new_routes:
         activities.append({
@@ -764,9 +773,10 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
 
     # 7. Site Comments (Engagement - ADMIN ONLY)
     if is_admin:
-        new_comments = db.query(SiteComment).options(joinedload(SiteComment.dive_site), joinedload(SiteComment.user)).filter(
-            SiteComment.created_at >= start_time
-        ).order_by(desc(SiteComment.created_at)).limit(limit).all()
+        comment_query = db.query(SiteComment).options(joinedload(SiteComment.dive_site), joinedload(SiteComment.user))
+        if start_time is not None:
+            comment_query = comment_query.filter(SiteComment.created_at >= start_time)
+        new_comments = comment_query.order_by(desc(SiteComment.created_at)).limit(limit).all()
         
         for comment in new_comments:
             activities.append({
@@ -779,9 +789,10 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
     # 8. Site Ratings (Engagement)
-    new_ratings = db.query(SiteRating).options(joinedload(SiteRating.user), joinedload(SiteRating.dive_site)).filter(
-        SiteRating.created_at >= start_time
-    ).order_by(desc(SiteRating.created_at)).limit(limit).all()
+    rating_query = db.query(SiteRating).options(joinedload(SiteRating.user), joinedload(SiteRating.dive_site))
+    if start_time is not None:
+        rating_query = rating_query.filter(SiteRating.created_at >= start_time)
+    new_ratings = rating_query.order_by(desc(SiteRating.created_at)).limit(limit).all()
     
     for rating in new_ratings:
         activities.append({
@@ -798,10 +809,12 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 9. Approved Ownership Requests
-    approved_claims = db.query(OwnershipRequest).options(joinedload(OwnershipRequest.diving_center), joinedload(OwnershipRequest.user)).filter(
-        OwnershipRequest.request_status == "approved",
-        OwnershipRequest.request_date >= start_time
-    ).order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
+    claim_query = db.query(OwnershipRequest).options(joinedload(OwnershipRequest.diving_center), joinedload(OwnershipRequest.user)).filter(
+        OwnershipRequest.request_status == "approved"
+    )
+    if start_time is not None:
+        claim_query = claim_query.filter(OwnershipRequest.request_date >= start_time)
+    approved_claims = claim_query.order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
 
     for claim in approved_claims:
         activities.append({
@@ -819,11 +832,11 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
     # ADMIN ONLY: Content updates and edit requests
     if is_admin:
         # 10. Dive Site Updates
-        updated_dive_sites = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(
-            and_(
-                DiveSite.updated_at >= start_time,
-                DiveSite.updated_at > DiveSite.created_at
-            )
+        site_update_query = db.query(DiveSite).options(joinedload(DiveSite.creator))
+        if start_time is not None:
+            site_update_query = site_update_query.filter(DiveSite.updated_at >= start_time)
+        updated_dive_sites = site_update_query.filter(
+            DiveSite.updated_at > DiveSite.created_at
         ).order_by(desc(DiveSite.updated_at)).limit(limit).all()
 
         for site in updated_dive_sites:
@@ -837,11 +850,11 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 11. Diving Center Updates
-        updated_diving_centers = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(
-            and_(
-                DivingCenter.updated_at >= start_time,
-                DivingCenter.updated_at > DivingCenter.created_at
-            )
+        center_update_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner))
+        if start_time is not None:
+            center_update_query = center_update_query.filter(DivingCenter.updated_at >= start_time)
+        updated_diving_centers = center_update_query.filter(
+            DivingCenter.updated_at > DivingCenter.created_at
         ).order_by(desc(DivingCenter.updated_at)).limit(limit).all()
 
         for center in updated_diving_centers:
@@ -855,11 +868,11 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 12. Dive Updates
-        updated_dives = db.query(Dive).options(joinedload(Dive.user)).filter(
-            and_(
-                Dive.updated_at >= start_time,
-                Dive.updated_at > Dive.created_at
-            )
+        dive_update_query = db.query(Dive).options(joinedload(Dive.user))
+        if start_time is not None:
+            dive_update_query = dive_update_query.filter(Dive.updated_at >= start_time)
+        updated_dives = dive_update_query.filter(
+            Dive.updated_at > Dive.created_at
         ).order_by(desc(Dive.updated_at)).limit(limit).all()
 
         for dive in updated_dives:
@@ -873,11 +886,11 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 13. Dive Trip Updates
-        updated_trips = db.query(ParsedDiveTrip).filter(
-            and_(
-                ParsedDiveTrip.updated_at >= start_time,
-                ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
-            )
+        trip_update_query = db.query(ParsedDiveTrip)
+        if start_time is not None:
+            trip_update_query = trip_update_query.filter(ParsedDiveTrip.updated_at >= start_time)
+        updated_trips = trip_update_query.filter(
+            ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
         ).order_by(desc(ParsedDiveTrip.updated_at)).limit(limit).all()
 
         for trip in updated_trips:
@@ -885,14 +898,16 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
                 "timestamp": trip.updated_at.isoformat(),
                 "type": "content_update",
                 "action": "Dive trip updated",
-                "details": f"Updated trip: {trip.title or ('Trip on ' + str(trip.trip_date))}",
+                "details": f"Updated trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
                 "status": "success"
             })
 
         # 14. Dive Route Updates
-        updated_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(
+        route_update_query = db.query(DiveRoute).options(joinedload(DiveRoute.creator))
+        if start_time is not None:
+            route_update_query = route_update_query.filter(DiveRoute.updated_at >= start_time)
+        updated_routes = route_update_query.filter(
             and_(
-                DiveRoute.updated_at >= start_time,
                 DiveRoute.updated_at > DiveRoute.created_at,
                 DiveRoute.deleted_at.is_(None)
             )
@@ -912,12 +927,13 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         from app.models import DiveSiteEditRequest
         from sqlalchemy.orm import joinedload
         
-        new_edit_requests = db.query(DiveSiteEditRequest).options(
+        edit_request_query = db.query(DiveSiteEditRequest).options(
             joinedload(DiveSiteEditRequest.requested_by),
             joinedload(DiveSiteEditRequest.dive_site)
-        ).filter(
-            DiveSiteEditRequest.created_at >= start_time
-        ).order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
+        )
+        if start_time is not None:
+            edit_request_query = edit_request_query.filter(DiveSiteEditRequest.created_at >= start_time)
+        new_edit_requests = edit_request_query.order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
         
         for req in new_edit_requests:
             user_name = req.requested_by.username if req.requested_by else f"User {req.requested_by_id}"
