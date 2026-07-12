@@ -822,3 +822,15 @@ async def get_statistics(db: Session = Depends(get_db)):
             "diving_centers": 0,
             "dive_trips": 0
         }
+
+@app.get("/api/v1/public/recent-activity")
+async def get_public_recent_activity(db: Session = Depends(get_db)):
+    """Get the 6 most recent public community activities securely with zero PII leakage."""
+    try:
+        from app.routers.system import fetch_recent_activities
+        return fetch_recent_activities(db, hours=720, limit=6, is_admin=False)
+    except Exception as e:
+        import logging
+        logging.error(f"Error getting public recent activity: {e}", exc_info=True)
+        return []
+
