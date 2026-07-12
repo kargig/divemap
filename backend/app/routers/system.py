@@ -637,14 +637,10 @@ async def get_platform_stats(
         "timestamp": datetime.utcnow().isoformat()
     }
 
-@router.get("/activity", response_model=List[dict])
-async def get_recent_activity(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db),
-    hours: int = 24,
-    limit: int = 100
-):
-    """Get recent user and system activity"""
+def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
+    """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
+    from app.models import OwnershipRequest
+    from sqlalchemy.orm import joinedload
     
     # Calculate time range
     end_time = datetime.utcnow()
@@ -652,72 +648,82 @@ async def get_recent_activity(
     
     activities = []
     
-    # User registrations
-    new_users = db.query(User).filter(
-        User.created_at >= start_time
-    ).order_by(desc(User.created_at)).limit(limit).all()
-    
-    for user in new_users:
-        activities.append({
-            "timestamp": user.created_at.isoformat(),
-            "type": "user_registration",
-            "user_id": user.id,
-            "username": user.username,
-            "action": "User registered",
-            "details": f"New user {user.username} joined the platform",
-            "status": "success"
-        })
-    
-    # Content creation - Dive Sites
-    new_dive_sites = db.query(DiveSite).filter(
-        DiveSite.created_at >= start_time
-    ).order_by(desc(DiveSite.created_at)).limit(limit).all()
+    # 1. User registrations (ADMIN ONLY)
+    if is_admin:
+        new_users = db.query(User).filter(
+            User.created_at >= start_time
+        ).order_by(desc(User.created_at)).limit(limit).all()
+        
+        for user in new_users:
+            activities.append({
+                "timestamp": user.created_at.isoformat(),
+                "type": "user_registration",
+                "action": "User registered",
+                "details": f"New user {user.username} joined the platform",
+                "status": "success",
+                "username": user.username,
+                "user_id": user.id
+            })
+
+    # 2. Dive Sites (Created)
+    site_query = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(DiveSite.created_at >= start_time)
+    if not is_admin:
+        site_query = site_query.filter(DiveSite.status == "approved")
+    new_dive_sites = site_query.order_by(desc(DiveSite.created_at)).limit(limit).all()
     
     for site in new_dive_sites:
+        username = site.creator.username if site.creator else "Anonymous"
         activities.append({
             "timestamp": site.created_at.isoformat(),
             "type": "content_creation",
-            "user_id": site.created_by if hasattr(site, 'created_by') else None,
-            "username": None,  # Would need to join with User table
+            "event_type": "site_added",
             "action": "Dive site created",
             "details": f"New dive site: {site.name}",
-            "status": "success"
+            "status": "success",
+            "username": username,
+            "site_id": site.id,
+            "site_name": site.name
         })
-    
-    # Content creation - Diving Centers
-    new_diving_centers = db.query(DivingCenter).filter(
-        DivingCenter.created_at >= start_time
-    ).order_by(desc(DivingCenter.created_at)).limit(limit).all()
+
+    # 3. Diving Centers (Created)
+    center_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(DivingCenter.created_at >= start_time)
+    new_diving_centers = center_query.order_by(desc(DivingCenter.created_at)).limit(limit).all()
     
     for center in new_diving_centers:
+        username = center.owner.username if center.owner else "Anonymous"
         activities.append({
             "timestamp": center.created_at.isoformat(),
             "type": "content_creation",
-            "user_id": center.created_by if hasattr(center, 'created_by') else None,
-            "username": None,
+            "event_type": "center_added",
             "action": "Diving center created",
             "details": f"New diving center: {center.name}",
-            "status": "success"
+            "status": "success",
+            "username": username,
+            "center_id": center.id,
+            "center_name": center.name
         })
-    
-    # Content creation - Dives
-    new_dives = db.query(Dive).filter(
-        Dive.created_at >= start_time
-    ).order_by(desc(Dive.created_at)).limit(limit).all()
+
+    # 4. Dives Logged (Created)
+    dive_query = db.query(Dive).options(joinedload(Dive.user), joinedload(Dive.dive_site)).filter(Dive.created_at >= start_time)
+    if not is_admin:
+        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id != None)
+    new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
     
     for dive in new_dives:
         activities.append({
             "timestamp": dive.created_at.isoformat(),
             "type": "content_creation",
-            "user_id": dive.user_id,
-            "username": None,
+            "event_type": "dive_logged",
             "action": "Dive logged",
             "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
-            "status": "success"
+            "status": "success",
+            "username": dive.user.username if dive.user else "Anonymous",
+            "site_id": dive.dive_site_id,
+            "site_name": dive.dive_site.name if dive.dive_site else "Unknown Site"
         })
 
-    # Content creation - Dive Trips
-    new_trips = db.query(ParsedDiveTrip).filter(
+    # 5. Dive Trips (Created)
+    new_trips = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.diving_center)).filter(
         ParsedDiveTrip.created_at >= start_time
     ).order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
 
@@ -725,91 +731,16 @@ async def get_recent_activity(
         activities.append({
             "timestamp": trip.created_at.isoformat(),
             "type": "content_creation",
-            "user_id": None, # Trip is associated with a center, not directly a user
-            "username": None,
+            "event_type": "trip_added",
             "action": "Dive trip created",
-            "details": f"New trip on {trip.trip_date}",
-            "status": "success"
+            "details": f"New trip: {trip.title or ('Trip on ' + str(trip.trip_date))}",
+            "status": "success",
+            "center_id": trip.diving_center_id,
+            "center_name": trip.diving_center.name if trip.diving_center else "Unknown Center"
         })
 
-    # Content updates - Dive Sites
-    updated_dive_sites = db.query(DiveSite).filter(
-        and_(
-            DiveSite.updated_at >= start_time,
-            DiveSite.updated_at > DiveSite.created_at
-        )
-    ).order_by(desc(DiveSite.updated_at)).limit(limit).all()
-
-    for site in updated_dive_sites:
-        activities.append({
-            "timestamp": site.updated_at.isoformat(),
-            "type": "content_update",
-            "user_id": site.created_by if hasattr(site, 'created_by') else None,
-            "username": None,
-            "action": "Dive site updated",
-            "details": f"Updated dive site: {site.name}",
-            "status": "success"
-        })
-
-    # Content updates - Diving Centers
-    updated_diving_centers = db.query(DivingCenter).filter(
-        and_(
-            DivingCenter.updated_at >= start_time,
-            DivingCenter.updated_at > DivingCenter.created_at
-        )
-    ).order_by(desc(DivingCenter.updated_at)).limit(limit).all()
-
-    for center in updated_diving_centers:
-        activities.append({
-            "timestamp": center.updated_at.isoformat(),
-            "type": "content_update",
-            "user_id": center.created_by if hasattr(center, 'created_by') else None,
-            "username": None,
-            "action": "Diving center updated",
-            "details": f"Updated diving center: {center.name}",
-            "status": "success"
-        })
-
-    # Content updates - Dives
-    updated_dives = db.query(Dive).filter(
-        and_(
-            Dive.updated_at >= start_time,
-            Dive.updated_at > Dive.created_at
-        )
-    ).order_by(desc(Dive.updated_at)).limit(limit).all()
-
-    for dive in updated_dives:
-        activities.append({
-            "timestamp": dive.updated_at.isoformat(),
-            "type": "content_update",
-            "user_id": dive.user_id,
-            "username": None,
-            "action": "Dive updated",
-            "details": f"Updated dive: {dive.name or 'Unnamed dive'}",
-            "status": "success"
-        })
-
-    # Content updates - Dive Trips
-    updated_trips = db.query(ParsedDiveTrip).filter(
-        and_(
-            ParsedDiveTrip.updated_at >= start_time,
-            ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
-        )
-    ).order_by(desc(ParsedDiveTrip.updated_at)).limit(limit).all()
-
-    for trip in updated_trips:
-        activities.append({
-            "timestamp": trip.updated_at.isoformat(),
-            "type": "content_update",
-            "user_id": None,
-            "username": None,
-            "action": "Dive trip updated",
-            "details": f"Updated trip on {trip.trip_date}",
-            "status": "success"
-        })
-
-    # Content creation - Dive Routes
-    new_routes = db.query(DiveRoute).filter(
+    # 6. Dive Routes (Created)
+    new_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site)).filter(
         and_(
             DiveRoute.created_at >= start_time,
             DiveRoute.deleted_at.is_(None)
@@ -820,51 +751,35 @@ async def get_recent_activity(
         activities.append({
             "timestamp": route.created_at.isoformat(),
             "type": "content_creation",
-            "user_id": route.created_by,
-            "username": None,
+            "event_type": "route_added",
             "action": "Dive route created",
             "details": f"New dive route: {route.name}",
-            "status": "success"
+            "status": "success",
+            "username": route.creator.username if route.creator else "Anonymous",
+            "route_id": route.id,
+            "route_name": route.name,
+            "site_id": route.dive_site_id,
+            "site_name": route.dive_site.name if route.dive_site else "Unknown Site"
         })
 
-    # Content updates - Dive Routes
-    updated_routes = db.query(DiveRoute).filter(
-        and_(
-            DiveRoute.updated_at >= start_time,
-            DiveRoute.updated_at > DiveRoute.created_at,
-            DiveRoute.deleted_at.is_(None)
-        )
-    ).order_by(desc(DiveRoute.updated_at)).limit(limit).all()
+    # 7. Site Comments (Engagement - ADMIN ONLY)
+    if is_admin:
+        new_comments = db.query(SiteComment).options(joinedload(SiteComment.dive_site), joinedload(SiteComment.user)).filter(
+            SiteComment.created_at >= start_time
+        ).order_by(desc(SiteComment.created_at)).limit(limit).all()
+        
+        for comment in new_comments:
+            activities.append({
+                "timestamp": comment.created_at.isoformat(),
+                "type": "engagement",
+                "action": "Comment posted",
+                "details": f"Comment on dive site: {comment.dive_site.name if comment.dive_site else 'Unknown Site'}",
+                "status": "success",
+                "username": comment.user.username if comment.user else "Anonymous"
+            })
 
-    for route in updated_routes:
-        activities.append({
-            "timestamp": route.updated_at.isoformat(),
-            "type": "content_update",
-            "user_id": route.created_by,
-            "username": None,
-            "action": "Dive route updated",
-            "details": f"Updated dive route: {route.name}",
-            "status": "success"
-        })
-    
-    # Comments
-    new_comments = db.query(SiteComment).filter(
-        SiteComment.created_at >= start_time
-    ).order_by(desc(SiteComment.created_at)).limit(limit).all()
-    
-    for comment in new_comments:
-        activities.append({
-            "timestamp": comment.created_at.isoformat(),
-            "type": "engagement",
-            "user_id": comment.user_id,
-            "username": None,
-            "action": "Comment posted",
-            "details": f"Comment on dive site",
-            "status": "success"
-        })
-    
-    # Ratings
-    new_ratings = db.query(SiteRating).filter(
+    # 8. Site Ratings (Engagement)
+    new_ratings = db.query(SiteRating).options(joinedload(SiteRating.user), joinedload(SiteRating.dive_site)).filter(
         SiteRating.created_at >= start_time
     ).order_by(desc(SiteRating.created_at)).limit(limit).all()
     
@@ -872,57 +787,175 @@ async def get_recent_activity(
         activities.append({
             "timestamp": rating.created_at.isoformat(),
             "type": "engagement",
-            "user_id": rating.user_id,
-            "username": None,
+            "event_type": "site_review",
             "action": "Rating submitted",
             "details": f"Rating: {rating.score}/10",
-            "status": "success"
+            "status": "success",
+            "username": rating.user.username if rating.user else "Anonymous",
+            "site_id": rating.dive_site_id,
+            "site_name": rating.dive_site.name if rating.dive_site else "Unknown Site",
+            "rating": int(rating.score / 2) if rating.score else None
         })
-    
+
+    # 9. Approved Ownership Requests
+    approved_claims = db.query(OwnershipRequest).options(joinedload(OwnershipRequest.diving_center), joinedload(OwnershipRequest.user)).filter(
+        OwnershipRequest.request_status == "approved",
+        OwnershipRequest.request_date >= start_time
+    ).order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
+
+    for claim in approved_claims:
+        activities.append({
+            "timestamp": (claim.processed_date or claim.request_date).isoformat(),
+            "type": "engagement" if not is_admin else "edit_request",
+            "event_type": "claim_approved",
+            "action": "Ownership claimed",
+            "details": f"Diving center '{claim.diving_center.name if claim.diving_center else 'Unknown'}' ownership approved",
+            "status": "success",
+            "username": claim.user.username if claim.user else "Anonymous",
+            "center_id": claim.diving_center_id,
+            "center_name": claim.diving_center.name if claim.diving_center else "Unknown Center"
+        })
+
+    # ADMIN ONLY: Content updates and edit requests
+    if is_admin:
+        # 10. Dive Site Updates
+        updated_dive_sites = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(
+            and_(
+                DiveSite.updated_at >= start_time,
+                DiveSite.updated_at > DiveSite.created_at
+            )
+        ).order_by(desc(DiveSite.updated_at)).limit(limit).all()
+
+        for site in updated_dive_sites:
+            activities.append({
+                "timestamp": site.updated_at.isoformat(),
+                "type": "content_update",
+                "action": "Dive site updated",
+                "details": f"Updated dive site: {site.name}",
+                "status": "success",
+                "username": site.creator.username if site.creator else "Anonymous"
+            })
+
+        # 11. Diving Center Updates
+        updated_diving_centers = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(
+            and_(
+                DivingCenter.updated_at >= start_time,
+                DivingCenter.updated_at > DivingCenter.created_at
+            )
+        ).order_by(desc(DivingCenter.updated_at)).limit(limit).all()
+
+        for center in updated_diving_centers:
+            activities.append({
+                "timestamp": center.updated_at.isoformat(),
+                "type": "content_update",
+                "action": "Diving center updated",
+                "details": f"Updated diving center: {center.name}",
+                "status": "success",
+                "username": center.owner.username if center.owner else "Anonymous"
+            })
+
+        # 12. Dive Updates
+        updated_dives = db.query(Dive).options(joinedload(Dive.user)).filter(
+            and_(
+                Dive.updated_at >= start_time,
+                Dive.updated_at > Dive.created_at
+            )
+        ).order_by(desc(Dive.updated_at)).limit(limit).all()
+
+        for dive in updated_dives:
+            activities.append({
+                "timestamp": dive.updated_at.isoformat(),
+                "type": "content_update",
+                "action": "Dive updated",
+                "details": f"Updated dive: {dive.name or 'Unnamed dive'}",
+                "status": "success",
+                "username": dive.user.username if dive.user else "Anonymous"
+            })
+
+        # 13. Dive Trip Updates
+        updated_trips = db.query(ParsedDiveTrip).filter(
+            and_(
+                ParsedDiveTrip.updated_at >= start_time,
+                ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
+            )
+        ).order_by(desc(ParsedDiveTrip.updated_at)).limit(limit).all()
+
+        for trip in updated_trips:
+            activities.append({
+                "timestamp": trip.updated_at.isoformat(),
+                "type": "content_update",
+                "action": "Dive trip updated",
+                "details": f"Updated trip: {trip.title or ('Trip on ' + str(trip.trip_date))}",
+                "status": "success"
+            })
+
+        # 14. Dive Route Updates
+        updated_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(
+            and_(
+                DiveRoute.updated_at >= start_time,
+                DiveRoute.updated_at > DiveRoute.created_at,
+                DiveRoute.deleted_at.is_(None)
+            )
+        ).order_by(desc(DiveRoute.updated_at)).limit(limit).all()
+
+        for route in updated_routes:
+            activities.append({
+                "timestamp": route.updated_at.isoformat(),
+                "type": "content_update",
+                "action": "Dive route updated",
+                "details": f"Updated dive route: {route.name}",
+                "status": "success",
+                "username": route.creator.username if route.creator else "Anonymous"
+            })
+
+        # 15. Edit Requests (Moderation)
+        from app.models import DiveSiteEditRequest
+        from sqlalchemy.orm import joinedload
+        
+        new_edit_requests = db.query(DiveSiteEditRequest).options(
+            joinedload(DiveSiteEditRequest.requested_by),
+            joinedload(DiveSiteEditRequest.dive_site)
+        ).filter(
+            DiveSiteEditRequest.created_at >= start_time
+        ).order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
+        
+        for req in new_edit_requests:
+            user_name = req.requested_by.username if req.requested_by else f"User {req.requested_by_id}"
+            site_name = req.dive_site.name if req.dive_site else f"Site {req.dive_site_id}"
+            
+            status_color = "warning"
+            action_verb = "submitted"
+            if req.status == "approved":
+                status_color = "success"
+                action_verb = "approved"
+            elif req.status == "rejected":
+                status_color = "error"
+                action_verb = "rejected"
+                
+            activities.append({
+                "timestamp": req.created_at.isoformat(),
+                "type": "edit_request",
+                "action": f"Edit request {action_verb}",
+                "details": f"User {user_name} {action_verb} a {req.edit_type.replace('_', ' ')} edit for {site_name}",
+                "status": status_color,
+                "username": user_name,
+                "user_id": req.requested_by_id
+            })
+
     # Sort all activities by timestamp (most recent first)
     activities.sort(key=lambda x: x["timestamp"], reverse=True)
     
-    # Moderation - Edit Requests
-    from app.models import DiveSiteEditRequest
-    from sqlalchemy.orm import joinedload
-    
-    new_edit_requests = db.query(DiveSiteEditRequest).options(
-        joinedload(DiveSiteEditRequest.requested_by),
-        joinedload(DiveSiteEditRequest.dive_site)
-    ).filter(
-        DiveSiteEditRequest.created_at >= start_time
-    ).order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
-    
-    for req in new_edit_requests:
-        user_name = req.requested_by.username if req.requested_by else f"User {req.requested_by_id}"
-        site_name = req.dive_site.name if req.dive_site else f"Site {req.dive_site_id}"
-        
-        status_color = "warning"
-        action_verb = "submitted"
-        if req.status == "approved":
-            status_color = "success"
-            action_verb = "approved"
-        elif req.status == "rejected":
-            status_color = "error"
-            action_verb = "rejected"
-            
-        activities.append({
-            "timestamp": req.created_at.isoformat(),
-            "type": "edit_request",
-            "user_id": req.requested_by_id,
-            "username": user_name,
-            "action": f"Edit request {action_verb}",
-            "details": f"User {user_name} {action_verb} a {req.edit_type.replace('_', ' ')} edit for {site_name}",
-            "status": status_color
-        })
+    return activities[:limit]
 
-    # Sort all activities by timestamp (most recent first) again after adding edit requests
-    activities.sort(key=lambda x: x["timestamp"], reverse=True)
-
-    # Limit the total number of activities
-    activities = activities[:limit]
-    
-    return activities
+@router.get("/activity", response_model=List[dict])
+async def get_recent_activity(
+    current_user: User = Depends(get_current_admin_user),
+    db: Session = Depends(get_db),
+    hours: int = 24,
+    limit: int = 100
+):
+    """Get recent user and system activity"""
+    return fetch_recent_activities(db, hours, limit, is_admin=True)
 
 @router.get("/client-ip")
 async def get_client_ip_info(request: Request):

@@ -321,6 +321,7 @@ class DiveSite(Base):
     location = Column(sa.Text, nullable=False)
 
     # Relationships
+    creator = relationship("User", foreign_keys=[created_by])
     difficulty = relationship("DifficultyLevel", back_populates="dive_sites")
     media = relationship("SiteMedia", back_populates="dive_site", cascade="all, delete-orphan")
     ratings = relationship("SiteRating", back_populates="dive_site", cascade="all, delete-orphan")

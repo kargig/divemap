@@ -580,3 +580,8 @@ export const toggleChatArchive = async (roomId, isArchived) => {
   });
   return response.data;
 };
+
+export const getRecentActivity = async () => {
+  const response = await api.get('/api/v1/public/recent-activity');
+  return response.data;
+};

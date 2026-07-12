@@ -17,15 +17,18 @@ import {
   Compass,
   Award,
   Clock,
+  Activity,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 
-import api from '../api';
+import api, { getRecentActivity } from '../api';
 import AnimatedCounter from '../components/AnimatedCounter';
 import Avatar from '../components/Avatar';
 import BackgroundLogo from '../components/BackgroundLogo';
+import ScubaTools from '../components/calculators/ScubaTools';
+import GlobalSearchBar from '../components/GlobalSearchBar';
 import HeroSection from '../components/HeroSection';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import SEO from '../components/SEO';
@@ -43,6 +46,17 @@ const { Title, Paragraph, Text } = Typography;
 const Home = () => {
   const screens = useBreakpoint();
   const { user } = useAuth();
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    if (isHovered) return;
+    const interval = window.setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % 3);
+    }, 6000);
+    return () => window.clearInterval(interval);
+  }, [isHovered]);
 
   const features = [
     {
@@ -104,6 +118,11 @@ const Home = () => {
     select: response => response.data,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1, // Only retry once
+  });
+
+  const { data: recentActivity = [] } = useQuery(['recent-activity'], getRecentActivity, {
+    refetchInterval: 30000, // Refresh activity feed every 30s
+    staleTime: 20000,
   });
 
   // Determine if backend is available
@@ -296,7 +315,9 @@ const Home = () => {
             <Link
               key={user.user_id}
               to={`/users/${user.username}`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <div className='relative shrink-0'>
                 <Avatar
@@ -318,7 +339,7 @@ const Home = () => {
                   {index === 0 ? <Trophy className='w-3 h-3' /> : <Medal className='w-3 h-3' />}
                 </div>
               </div>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <p
                   className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
                   title={user.username}
@@ -341,10 +362,12 @@ const Home = () => {
 
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          {recentSites.map(site => (
+          {recentSites.map((site, index) => (
             <div
               key={site.id}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <Link
                 to={`/dive-sites/${site.id}/${slugify(site.name)}`}
@@ -352,7 +375,7 @@ const Home = () => {
               >
                 <MapPin className='w-6 h-6' />
               </Link>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <Link
                   to={`/dive-sites/${site.id}/${slugify(site.name)}`}
                   className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
@@ -388,10 +411,12 @@ const Home = () => {
 
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          {recentDives.map(dive => (
+          {recentDives.map((dive, index) => (
             <div
               key={dive.id}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <div className='shrink-0'>
                 <Link to={`/users/${dive.user_username}`}>
@@ -404,7 +429,7 @@ const Home = () => {
                   />
                 </Link>
               </div>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <Link
                   to={`/dives/${dive.id}`}
                   className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base mb-0.5'
@@ -448,10 +473,12 @@ const Home = () => {
 
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          {recentRoutes.map(route => (
+          {recentRoutes.map((route, index) => (
             <div
               key={route.id}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <Link
                 to={`/dive-routes/${route.id}/${slugify(route.name)}`}
@@ -459,7 +486,7 @@ const Home = () => {
               >
                 <Compass className='w-6 h-6' />
               </Link>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <Link
                   to={`/dive-routes/${route.id}/${slugify(route.name)}`}
                   className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
@@ -494,10 +521,12 @@ const Home = () => {
 
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          {recentCenters.map(center => (
+          {recentCenters.map((center, index) => (
             <div
               key={center.id}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <Link
                 to={`/diving-centers/${center.id}/${slugify(center.name)}`}
@@ -505,7 +534,7 @@ const Home = () => {
               >
                 <Anchor className='w-6 h-6' />
               </Link>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <Link
                   to={`/diving-centers/${center.id}/${slugify(center.name)}`}
                   className='font-bold text-gray-900 hover:text-blue-600 transition-colors block truncate font-sans text-base'
@@ -544,11 +573,13 @@ const Home = () => {
 
       return (
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-6'>
-          {prolificDivers.map(user => (
+          {prolificDivers.map((user, index) => (
             <Link
               key={user.user_id}
               to={`/users/${user.username}/analytics`}
-              className='bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group flex items-center space-x-4 min-w-0'
+              className={`bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group items-center space-x-4 min-w-0 ${
+                index > 0 ? 'hidden sm:flex' : 'flex'
+              }`}
             >
               <div className='relative shrink-0'>
                 <Avatar
@@ -561,7 +592,7 @@ const Home = () => {
                   <Notebook className='w-3 h-3' />
                 </div>
               </div>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 flex-1 text-left'>
                 <p
                   className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate'
                   title={user.username}
@@ -606,47 +637,274 @@ const Home = () => {
       {/* Background Logo Watermark */}
       <BackgroundLogo opacity={0.02} size='xlarge' />
 
-      {/* Mobile Hero with Gradient - Visible only on Mobile */}
+      {/* Embedded CSS Animations for Wavy Mask & Bubbles */}
+      <style>{`
+        @keyframes waveSlow {
+          0% { transform: translateX(0); }
+          50% { transform: translateX(-40px); }
+          100% { transform: translateX(0); }
+        }
+        @keyframes waveSlowAlt {
+          0% { transform: translateX(0); }
+          50% { transform: translateX(30px); }
+          100% { transform: translateX(0); }
+        }
+        .wave-path-1 {
+          animation: waveSlow 12s ease-in-out infinite;
+        }
+        .wave-path-2 {
+          animation: waveSlowAlt 14s ease-in-out infinite;
+        }
+        @keyframes floatUp {
+          0% { transform: translateY(110%) scale(0.5); opacity: 0; }
+          10% { opacity: 0.6; }
+          90% { opacity: 0.6; }
+          100% { transform: translateY(-10%) scale(1.1); opacity: 0; }
+        }
+        .bubble {
+          position: absolute;
+          bottom: -15px;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.75) 0%, rgba(135,206,250,0.1) 70%);
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          border-radius: 50%;
+          pointer-events: none;
+        }
+        .bubble-1 { left: 10%; width: 14px; height: 14px; animation: floatUp 8s infinite linear; animation-delay: 0s; }
+        .bubble-2 { left: 30%; width: 22px; height: 22px; animation: floatUp 12s infinite linear; animation-delay: 2.5s; }
+        .bubble-3 { left: 55%; width: 10px; height: 10px; animation: floatUp 7s infinite linear; animation-delay: 1s; }
+        .bubble-4 { left: 75%; width: 18px; height: 18px; animation: floatUp 10s infinite linear; animation-delay: 4.5s; }
+        .bubble-5 { left: 90%; width: 12px; height: 12px; animation: floatUp 9s infinite linear; animation-delay: 3s; }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.45s ease-out forwards;
+        }
+      `}</style>
 
+      {/* Morphing Hero Carousel - Visible on both Mobile & Desktop */}
       <div
-        className='block md:hidden w-full mb-8 rounded-2xl overflow-hidden shadow-lg text-white p-8 text-center'
+        className='relative overflow-hidden w-full mb-6 sm:mb-8 rounded-none sm:rounded-3xl shadow-xl text-gray-900 pt-6 pb-12 sm:pt-10 sm:pb-16 px-3.5 sm:px-8 border-y sm:border border-gray-100 transition-all duration-700 ease-in-out'
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         style={{
-          background: 'linear-gradient(135deg, #0072B2 0%, #004d7a 100%)',
+          background:
+            activeSlide === 0
+              ? 'linear-gradient(135deg, #eaf4f9 0%, #d5eaf2 100%)'
+              : activeSlide === 1
+                ? 'linear-gradient(135deg, #e1f5fe 0%, #c4e4f5 100%)'
+                : 'linear-gradient(135deg, #eaf4f9 0%, #d5eaf2 100%)',
+          minHeight: '260px',
         }}
       >
-        <h1 className='text-3xl font-display font-extrabold tracking-tight mb-4'>
-          Discover Amazing <span style={{ color: '#80c9ed' }}>Dive Sites</span>
-        </h1>
-
-        <p className='text-lg leading-relaxed' style={{ color: '#eaf4f9' }}>
-          Explore the world's best scuba locations, read reviews from fellow divers, and find your
-          next underwater adventure.
-        </p>
-      </div>
-
-      {/* Visual Banner - Contained and Compact with Overlaid Headline - Visible only on Desktop */}
-
-      <div className='hidden md:block isolate w-full mb-6 shadow-sm bg-[#cee5f4] rounded-2xl overflow-hidden border border-[#c2d9ea] relative'>
-        <div
-          className='pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[clamp(3.25rem,12vmin,6rem)] overflow-hidden'
-          aria-hidden
-        >
-          <div className='absolute inset-0 bg-gradient-to-t from-[#64939e] from-0% via-[#7baab5]/80 via-45% to-transparent to-100%' />
-          <div className='absolute -bottom-[46%] left-1/2 h-[89%] w-[min(185%,78rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#4d828c]/90' />
-          <div className='absolute -bottom-[47%] left-1/2 z-[1] h-[58%] w-[min(200%,88rem)] max-w-none -translate-x-1/2 rounded-[100%] bg-[#7bb0b9]' />
+        {/* HTML/SVG Wavy Divider Bottom Mask */}
+        <div className='absolute bottom-0 left-0 w-full overflow-hidden leading-none z-10 select-none pointer-events-none'>
+          <svg
+            className='relative block w-full h-[40px] sm:h-[60px] md:h-[80px]'
+            viewBox='0 0 1200 120'
+            preserveAspectRatio='none'
+            xmlns='http://www.w3.org/2000/svg'
+          >
+            <path
+              d='M0,60 C150,100 350,20 500,60 C650,100 850,20 1000,60 C1150,100 1300,60 1400,60 L1400,120 L0,120 Z'
+              fill='#ffffff'
+              className='wave-path-1'
+            ></path>
+            <path
+              d='M0,50 C200,90 400,10 600,50 C800,90 1000,10 1200,50 L1200,120 L0,120 Z'
+              fill='#ffffff'
+              opacity='0.35'
+              className='wave-path-2'
+            ></path>
+          </svg>
         </div>
-        <img
-          src='/divemap_logo_domain_top5_extend.png'
-          alt='Divemap Banner'
-          className='relative z-[1] w-full h-auto object-contain max-h-[300px] mx-auto'
-        />
 
-        {/* Overlaid Headline on top part - Hidden on Mobile */}
+        {/* Floating Ambient Bubbles Layer */}
+        <div className='absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30 select-none'>
+          <div className='bubble bubble-1'></div>
+          <div className='bubble bubble-2'></div>
+          <div className='bubble bubble-3'></div>
+          <div className='bubble bubble-4'></div>
+          <div className='bubble bubble-5'></div>
+        </div>
 
-        <div className='hidden md:block absolute top-0 left-0 right-0 z-[2] pt-4 md:pt-6 px-4 text-center pointer-events-none'>
-          <h1 className='text-3xl md:text-5xl lg:text-5xl font-display font-extrabold tracking-tight text-gray-900 drop-shadow-sm'>
-            Discover Amazing <span className='text-blue-600'>Dive Sites</span>
-          </h1>
+        {/* Carousel Content */}
+        <div className='relative z-20 max-w-5xl mx-auto'>
+          {/* SLIDE 1: Brand Intro + Fuzzy Search */}
+          {activeSlide === 0 && (
+            <div className='text-center transition-all duration-500 animate-fadeIn px-2'>
+              <img
+                src='/divemap_navbar_logo.png'
+                alt='Divemap'
+                className='mx-auto max-h-[45px] sm:max-h-[60px] md:max-h-[80px] object-contain mb-3 sm:mb-4 select-none pointer-events-none'
+              />
+              <h1 className='text-2xl sm:text-3xl md:text-5xl font-display font-extrabold tracking-tight text-gray-900 mb-1.5 sm:mb-2 md:mb-3'>
+                Discover Amazing <span className='text-blue-600'>Dive Sites</span>
+              </h1>
+              <p className='text-gray-600 text-xs sm:text-sm md:text-base max-w-md mx-auto mb-4 sm:mb-5 px-4 leading-relaxed'>
+                Explore the world's best scuba locations, read reviews from fellow divers, and find
+                your next underwater adventure.
+              </p>
+              <div className='max-w-md mx-auto px-4 relative z-30'>
+                <GlobalSearchBar
+                  className='w-full shadow-lg rounded-xl'
+                  placeholder='Search dives, sites, centers...'
+                />
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 2: Our Growing Community Stats */}
+          {activeSlide === 1 && (
+            <div className='text-center transition-all duration-500 animate-fadeIn px-2 max-w-4xl mx-auto'>
+              <span className='bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-1.5 inline-block'>
+                Our Growing Community
+              </span>
+              <h2 className='text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-1.5'>
+                Real-time Dive Statistics
+              </h2>
+              <p className='text-gray-600 text-xs sm:text-sm md:text-base max-w-lg mx-auto mb-4 sm:mb-6 px-4'>
+                Track our global growing community milestones and real-time platform statistics.
+              </p>
+              <div className='grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3 max-w-4xl mx-auto'>
+                <Link
+                  to='/dives'
+                  className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block'
+                >
+                  <Notebook className='w-4 h-4 sm:w-5 h-5 text-[#0072B2] mb-1 sm:mb-1.5 mx-auto' />
+                  <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
+                    <AnimatedCounter
+                      targetValue={stats?.dives || 0}
+                      isBackendAvailable={isBackendAvailable}
+                    />
+                  </div>
+                  <div className='text-gray-400 font-bold uppercase tracking-wider text-[9px] mt-1'>
+                    Dives Logged
+                  </div>
+                </Link>
+                <Link
+                  to='/dive-sites'
+                  className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block'
+                >
+                  <MapPin className='w-4 h-4 sm:w-5 h-5 text-[#0072B2] mb-1 sm:mb-1.5 mx-auto' />
+                  <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
+                    <AnimatedCounter
+                      targetValue={stats?.dive_sites || 0}
+                      isBackendAvailable={isBackendAvailable}
+                    />
+                  </div>
+                  <div className='text-gray-400 font-bold uppercase tracking-wider text-[9px] mt-1'>
+                    Dive Sites
+                  </div>
+                </Link>
+                <Link
+                  to='/dive-sites?sort_by=average_rating&sort_order=desc'
+                  className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block'
+                >
+                  <Star
+                    className='w-4 h-4 sm:w-5 h-5 text-yellow-500 mb-1 sm:mb-1.5 mx-auto'
+                    fill='currentColor'
+                  />
+                  <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
+                    <AnimatedCounter
+                      targetValue={stats?.reviews || 0}
+                      isBackendAvailable={isBackendAvailable}
+                    />
+                  </div>
+                  <div className='text-gray-400 font-bold uppercase tracking-wider text-[9px] mt-1'>
+                    Reviews
+                  </div>
+                </Link>
+                <Link
+                  to='/diving-centers'
+                  className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block'
+                >
+                  <Anchor className='w-4 h-4 sm:w-5 h-5 text-[#0072B2] mb-1 sm:mb-1.5 mx-auto' />
+                  <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
+                    <AnimatedCounter
+                      targetValue={stats?.diving_centers || 0}
+                      isBackendAvailable={isBackendAvailable}
+                    />
+                  </div>
+                  <div className='text-gray-400 font-bold uppercase tracking-wider text-[9px] mt-1'>
+                    Centers
+                  </div>
+                </Link>
+                <Link
+                  to='/dive-trips'
+                  className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block col-span-2 md:col-span-1'
+                >
+                  <Calendar className='w-4 h-4 sm:w-5 h-5 text-[#0072B2] mb-1 sm:mb-1.5 mx-auto' />
+                  <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
+                    <AnimatedCounter
+                      targetValue={stats?.dive_trips || 0}
+                      isBackendAvailable={isBackendAvailable}
+                    />
+                  </div>
+                  <div className='text-gray-400 font-bold uppercase tracking-wider text-[9px] mt-1'>
+                    Organized Trips
+                  </div>
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 3: Daily Featured Item */}
+          {activeSlide === 2 && (
+            <div className='text-center transition-all duration-500 animate-fadeIn max-w-[1600px] mx-auto px-4'>
+              <div className='flex items-center justify-center gap-1.5 mb-1.5'>
+                <span className='bg-yellow-400 text-yellow-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider'>
+                  ★ Daily Feature
+                </span>
+                <span className='text-xs font-bold uppercase tracking-widest text-gray-500'>
+                  {currentWidget?.category}
+                </span>
+              </div>
+              <h2 className='text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4'>
+                {currentWidget?.title}
+              </h2>
+              <div className='mb-4 max-w-md sm:max-w-4xl mx-auto'>
+                <DailyFeatureSnippet />
+              </div>
+              <Link
+                to={currentWidget?.ctaLink}
+                className='text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 hover:underline'
+              >
+                {currentWidget?.ctaText} →
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Carousel Indicators & Manual Pagination */}
+        <div className='absolute bottom-4 left-0 right-0 flex justify-center items-center gap-2 z-20 select-none'>
+          {/* Left Arrow */}
+          <button
+            onClick={() => setActiveSlide(prev => (prev - 1 + 3) % 3)}
+            className='p-1 rounded-full text-gray-400 hover:text-gray-900 hover:bg-white/20 transition-all mr-2'
+            aria-label='Previous Slide'
+          >
+            ‹
+          </button>
+          {[0, 1, 2].map(idx => (
+            <button
+              key={idx}
+              onClick={() => setActiveSlide(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                activeSlide === idx ? 'w-6 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
+              }`}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+          {/* Right Arrow */}
+          <button
+            onClick={() => setActiveSlide(prev => (prev + 1) % 3)}
+            className='p-1 rounded-full text-gray-400 hover:text-gray-900 hover:bg-white/20 transition-all ml-2'
+            aria-label='Next Slide'
+          >
+            ›
+          </button>
         </div>
       </div>
 
@@ -763,7 +1021,7 @@ const Home = () => {
           </MobileGrid>
         </div>
       ) : (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pb-8 pt-2 px-4'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 pb-8 pt-2'>
           {features.map((feature, index) => {
             const content = (
               <>
@@ -795,160 +1053,175 @@ const Home = () => {
         </div>
       )}
 
-      {/* Stats Section (Integrated) */}
-      <div
-        className='relative overflow-hidden rounded-3xl py-10 mb-10 shadow-2xl'
-        style={{
-          background: 'linear-gradient(135deg, #003656 0%, #001a2a 100%)',
-        }}
-      >
-        <div className='absolute inset-0 opacity-10 bg-[url("https://www.transparenttextures.com/patterns/cubes.png")]'></div>
-        <div className='relative max-w-7xl mx-auto'>
-          <div className='text-center mb-8'>
-            <h3
-              className='text-sm font-bold uppercase tracking-widest mb-2'
-              style={{ color: '#56B4E9' }}
-            >
-              Our Growing Community
-            </h3>
-            <p className='text-2xl font-bold text-white'>Real-time Dive Statistics</p>
-          </div>
-          <div className='grid grid-cols-2 md:grid-cols-5 gap-6'>
-            <Link to='/dives' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
-                <AnimatedCounter
-                  targetValue={stats?.dives || 0}
-                  isBackendAvailable={isBackendAvailable}
-                  growthConfig={{ speed: 150, minIncrement: 2, maxIncrement: 8 }}
-                  suffix={!isBackendAvailable ? '+' : ''}
-                />
-              </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
-                Dives Logged
-              </div>
-            </Link>
-            <Link to='/dive-sites' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
-                <AnimatedCounter
-                  targetValue={stats?.dive_sites || 0}
-                  duration={2200}
-                  isBackendAvailable={isBackendAvailable}
-                  growthConfig={{ speed: 300, minIncrement: 1, maxIncrement: 4 }}
-                  suffix={!isBackendAvailable ? '+' : ''}
-                />
-              </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
-                Dive Sites
-              </div>
-            </Link>
-            <Link
-              to='/dive-sites?sort_by=average_rating&sort_order=desc'
-              className='text-center group block'
-            >
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
-                <AnimatedCounter
-                  targetValue={stats?.reviews || 0}
-                  duration={2400}
-                  isBackendAvailable={isBackendAvailable}
-                  growthConfig={{ speed: 180, minIncrement: 1, maxIncrement: 6 }}
-                  suffix={!isBackendAvailable ? '+' : ''}
-                />
-              </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs group-hover:text-gray-300 transition-colors'>
-                Reviews
-              </div>
-            </Link>
-            <Link to='/diving-centers' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
-                <AnimatedCounter
-                  targetValue={stats?.diving_centers || 0}
-                  duration={2600}
-                  isBackendAvailable={isBackendAvailable}
-                  growthConfig={{ speed: 400, minIncrement: 1, maxIncrement: 3 }}
-                  suffix={!isBackendAvailable ? '+' : ''}
-                />
-              </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
-                Centers
-              </div>
-            </Link>
-            <Link to='/dive-trips' className='text-center group'>
-              <div className='text-3xl sm:text-4xl font-extrabold text-white mb-1 transition-colors group-hover:text-[#56B4E9]'>
-                <AnimatedCounter
-                  targetValue={stats?.dive_trips || 0}
-                  duration={2800}
-                  isBackendAvailable={isBackendAvailable}
-                  growthConfig={{ speed: 250, minIncrement: 1, maxIncrement: 4 }}
-                  suffix={!isBackendAvailable ? '+' : ''}
-                />
-              </div>
-              <div className='text-gray-400 font-medium uppercase tracking-wider text-xs'>
-                Organized Trips
-              </div>
-            </Link>
-          </div>
+      {/* Bottom Layout Container - Side-by-Side on Desktop, Stacked on Mobile with Scuba Tools first */}
+      <div className='grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-[1600px] mx-auto mb-16 items-start'>
+        {/* Scuba Tools (First on Mobile, Left/5-columns on Desktop) */}
+        <div className='lg:col-span-5 w-full order-1 lg:order-none'>
+          <ScubaTools />
         </div>
-      </div>
 
-      {/* Daily Feature Section */}
-      <section className='mb-16 px-4'>
-        <div className='flex flex-col md:flex-row items-center justify-between mb-8 gap-4 border-b border-gray-100 pb-6'>
-          <div>
-            <div className='flex items-center gap-2 mb-1.5'>
-              <span className='bg-blue-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider'>
-                Daily Feature
+        {/* Live Pulse Recent Activity Timeline (Second on Mobile, Right/7-columns on Desktop) */}
+        <div className='lg:col-span-7 w-full order-2 lg:order-none bg-white rounded-none sm:rounded-2xl border-y sm:border border-gray-100 shadow-sm sm:shadow-xl overflow-hidden'>
+          <section className='w-full'>
+            {/* Standardized Card Header matching Scuba Tools */}
+            <div className='bg-[#eaf4f9]/50 p-5 border-b border-gray-100 flex items-center justify-between gap-3.5'>
+              <div className='flex items-center gap-3.5 flex-1 min-w-0'>
+                <div className='bg-white p-2.5 rounded-xl border border-blue-100/50 shadow-sm shrink-0 flex items-center justify-center h-11 w-11 relative'>
+                  <span className='animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75'></span>
+                  <span className='relative inline-flex rounded-full h-3 w-3 bg-emerald-500'></span>
+                </div>
+                <div className='min-w-0 flex-1 text-left'>
+                  <h3 className='text-base font-extrabold text-gray-900 leading-snug'>
+                    Live Community Pulse
+                  </h3>
+                  <p className='text-xs text-gray-500 leading-tight mt-0.5'>
+                    Real-time community updates & public activity
+                  </p>
+                </div>
+              </div>
+              <span className='text-[10px] text-gray-400 font-bold uppercase tracking-wider bg-white border border-gray-100 px-2 py-1 rounded-md shrink-0 self-center hidden sm:inline-block'>
+                Live Feed
               </span>
-              <h3 className='text-xs font-bold uppercase tracking-widest text-gray-500'>
-                {currentWidget.category}
-              </h3>
             </div>
-            <h2 className='text-3xl font-bold text-gray-900 mb-2'>{currentWidget.title}</h2>
-            <p className='text-sm text-gray-500 max-w-2xl leading-relaxed'>
-              {currentWidget.description}
-            </p>
-          </div>
-          <Link
-            to={currentWidget.ctaLink}
-            className='flex items-center text-blue-600 font-bold hover:text-blue-700 transition-colors group shrink-0 self-start md:self-center'
-          >
-            {currentWidget.ctaText}
-            <ChevronRight className='ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform' />
-          </Link>
-        </div>
 
-        <DailyFeatureSnippet />
-      </section>
+            <div className='p-3.5 sm:p-5 grid grid-cols-1 gap-3 bg-white'>
+              {recentActivity.map((activity, index) => {
+                const getIcon = () => {
+                  switch (activity.event_type) {
+                    case 'dive_logged':
+                      return <Notebook className='h-[18px] w-[18px] text-[#0072B2]' />;
+                    case 'site_added':
+                      return <MapPin className='h-[18px] w-[18px] text-[#0072B2]' />;
+                    case 'site_review':
+                      return (
+                        <Star className='h-[18px] w-[18px] text-yellow-500' fill='currentColor' />
+                      );
+                    case 'route_added':
+                      return <Compass className='h-[18px] w-[18px] text-[#0072B2]' />;
+                    case 'center_added':
+                      return <Anchor className='h-[18px] w-[18px] text-[#0072B2]' />;
+                    case 'trip_added':
+                      return <Calendar className='h-[18px] w-[18px] text-[#0072B2]' />;
+                    case 'claim_approved':
+                      return <Award className='h-[18px] w-[18px] text-emerald-600' />;
+                    default:
+                      return <Activity className='h-[18px] w-[18px] text-[#0072B2]' />;
+                  }
+                };
 
-      {/* Final CTA */}
-      <div
-        className='text-center py-20 rounded-3xl mb-12 px-6'
-        style={{ backgroundColor: '#eaf4f9' }}
-      >
-        <h2 className='text-4xl font-extrabold text-gray-900 mb-6'>
-          Ready to Start Your Diving Journey?
-        </h2>
-        <p className='text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed'>
-          Join our global community of passionate divers. Discover hidden gems, log your adventures,
-          and connect with dive centers worldwide.
-        </p>
-        <div className='flex flex-wrap gap-4 justify-center'>
-          <Link to='/register'>
-            <Button
-              size='large'
-              className='h-14 px-10 text-lg font-bold rounded-xl shadow-md border border-gray-200 hover:border-gray-400 transition-all'
-            >
-              Get Started Free
-            </Button>
-          </Link>
-          <Link to='/dive-sites'>
-            <Button
-              size='large'
-              className='h-14 px-10 text-lg font-bold rounded-xl border-2 hover:opacity-80 transition-all'
-              style={{ borderColor: '#0072B2', color: '#0072B2' }}
-            >
-              Explore Sites
-            </Button>
-          </Link>
+                return (
+                  <div
+                    key={index}
+                    className='bg-white p-2.5 sm:p-3 rounded-xl border border-gray-100 hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors flex items-start gap-3 shadow-sm'
+                  >
+                    <div className='bg-blue-50/50 p-1.5 rounded-lg shrink-0 flex items-center justify-center h-9 w-9'>
+                      {getIcon()}
+                    </div>
+                    <div className='min-w-0 flex-1 leading-relaxed'>
+                      <p className='text-sm text-gray-700'>
+                        {activity.event_type === 'claim_approved' ? (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            is now the verified owner of{' '}
+                            <Link
+                              to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.center_name}
+                            </Link>
+                          </>
+                        ) : activity.event_type === 'center_added' ? (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            listed a new diving center:{' '}
+                            <Link
+                              to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.center_name}
+                            </Link>
+                          </>
+                        ) : activity.event_type === 'trip_added' ? (
+                          <>
+                            A new diving trip was created by{' '}
+                            <Link
+                              to={`/diving-centers/${activity.center_id}/${slugify(activity.center_name)}`}
+                              className='text-[#0072B2] font-bold hover:underline'
+                            >
+                              {activity.center_name}
+                            </Link>
+                          </>
+                        ) : activity.event_type === 'route_added' ? (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            mapped a new dive route:{' '}
+                            <span className='font-bold text-gray-800'>{activity.route_name}</span>{' '}
+                            at{' '}
+                            <Link
+                              to={`/dive-sites/${activity.site_id}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.site_name}
+                            </Link>
+                          </>
+                        ) : activity.event_type === 'dive_logged' ? (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            logged a new public dive at{' '}
+                            <Link
+                              to={`/dive-sites/${activity.site_id}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.site_name}
+                            </Link>
+                          </>
+                        ) : activity.event_type === 'site_review' ? (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            rated{' '}
+                            <Link
+                              to={`/dive-sites/${activity.site_id}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.site_name}
+                            </Link>
+                            {activity.rating && (
+                              <span className='ml-1.5 text-yellow-500 font-bold'>
+                                {'★'.repeat(activity.rating)}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className='font-extrabold text-gray-900'>
+                              {activity.username}
+                            </span>{' '}
+                            discovered a new dive site:{' '}
+                            <Link
+                              to={`/dive-sites/${activity.site_id}`}
+                              className='text-blue-600 font-bold hover:underline'
+                            >
+                              {activity.site_name}
+                            </Link>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         </div>
       </div>
     </div>
