@@ -640,6 +640,7 @@ async def get_platform_stats(
 def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
     from app.models import OwnershipRequest
+    from sqlalchemy.orm import joinedload
     
     # Calculate time range
     end_time = datetime.utcnow()
@@ -665,7 +666,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
     # 2. Dive Sites (Created)
-    site_query = db.query(DiveSite).filter(DiveSite.created_at >= start_time)
+    site_query = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(DiveSite.created_at >= start_time)
     if not is_admin:
         site_query = site_query.filter(DiveSite.status == "approved")
     new_dive_sites = site_query.order_by(desc(DiveSite.created_at)).limit(limit).all()
@@ -685,7 +686,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 3. Diving Centers (Created)
-    center_query = db.query(DivingCenter).filter(DivingCenter.created_at >= start_time)
+    center_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(DivingCenter.created_at >= start_time)
     new_diving_centers = center_query.order_by(desc(DivingCenter.created_at)).limit(limit).all()
     
     for center in new_diving_centers:
@@ -703,7 +704,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 4. Dives Logged (Created)
-    dive_query = db.query(Dive).filter(Dive.created_at >= start_time)
+    dive_query = db.query(Dive).options(joinedload(Dive.user), joinedload(Dive.dive_site)).filter(Dive.created_at >= start_time)
     if not is_admin:
         dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id != None)
     new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
@@ -722,7 +723,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 5. Dive Trips (Created)
-    new_trips = db.query(ParsedDiveTrip).filter(
+    new_trips = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.diving_center)).filter(
         ParsedDiveTrip.created_at >= start_time
     ).order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
 
@@ -739,7 +740,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 6. Dive Routes (Created)
-    new_routes = db.query(DiveRoute).filter(
+    new_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site)).filter(
         and_(
             DiveRoute.created_at >= start_time,
             DiveRoute.deleted_at.is_(None)
@@ -763,7 +764,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
 
     # 7. Site Comments (Engagement - ADMIN ONLY)
     if is_admin:
-        new_comments = db.query(SiteComment).filter(
+        new_comments = db.query(SiteComment).options(joinedload(SiteComment.dive_site), joinedload(SiteComment.user)).filter(
             SiteComment.created_at >= start_time
         ).order_by(desc(SiteComment.created_at)).limit(limit).all()
         
@@ -778,7 +779,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
     # 8. Site Ratings (Engagement)
-    new_ratings = db.query(SiteRating).filter(
+    new_ratings = db.query(SiteRating).options(joinedload(SiteRating.user), joinedload(SiteRating.dive_site)).filter(
         SiteRating.created_at >= start_time
     ).order_by(desc(SiteRating.created_at)).limit(limit).all()
     
@@ -797,7 +798,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
         })
 
     # 9. Approved Ownership Requests
-    approved_claims = db.query(OwnershipRequest).filter(
+    approved_claims = db.query(OwnershipRequest).options(joinedload(OwnershipRequest.diving_center), joinedload(OwnershipRequest.user)).filter(
         OwnershipRequest.request_status == "approved",
         OwnershipRequest.request_date >= start_time
     ).order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
@@ -818,7 +819,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
     # ADMIN ONLY: Content updates and edit requests
     if is_admin:
         # 10. Dive Site Updates
-        updated_dive_sites = db.query(DiveSite).filter(
+        updated_dive_sites = db.query(DiveSite).options(joinedload(DiveSite.creator)).filter(
             and_(
                 DiveSite.updated_at >= start_time,
                 DiveSite.updated_at > DiveSite.created_at
@@ -836,7 +837,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 11. Diving Center Updates
-        updated_diving_centers = db.query(DivingCenter).filter(
+        updated_diving_centers = db.query(DivingCenter).options(joinedload(DivingCenter.owner)).filter(
             and_(
                 DivingCenter.updated_at >= start_time,
                 DivingCenter.updated_at > DivingCenter.created_at
@@ -854,7 +855,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 12. Dive Updates
-        updated_dives = db.query(Dive).filter(
+        updated_dives = db.query(Dive).options(joinedload(Dive.user)).filter(
             and_(
                 Dive.updated_at >= start_time,
                 Dive.updated_at > Dive.created_at
@@ -889,7 +890,7 @@ def fetch_recent_activities(db: Session, hours: int = 168, limit: int = 100, is_
             })
 
         # 14. Dive Route Updates
-        updated_routes = db.query(DiveRoute).filter(
+        updated_routes = db.query(DiveRoute).options(joinedload(DiveRoute.creator)).filter(
             and_(
                 DiveRoute.updated_at >= start_time,
                 DiveRoute.updated_at > DiveRoute.created_at,
