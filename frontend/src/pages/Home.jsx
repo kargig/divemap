@@ -2,7 +2,6 @@ import { Grid, Button, Typography, Space } from 'antd';
 import { Grid as MobileGrid } from 'antd-mobile';
 import {
   Map,
-  Star,
   Anchor,
   Notebook,
   Calendar,
@@ -42,6 +41,15 @@ import { slugify } from '../utils/slugify';
 
 const { useBreakpoint } = Grid;
 const { Title, Paragraph, Text } = Typography;
+
+const StarfishIcon = ({ className, ...props }) => (
+  <img
+    src='/arts/starfish-2.svg'
+    alt='Starfish'
+    className={`${className || ''} object-contain`}
+    {...props}
+  />
+);
 
 const Home = () => {
   const screens = useBreakpoint();
@@ -88,7 +96,7 @@ const Home = () => {
       description:
         'Share your experiences by rating dive sites and leaving detailed reviews to help other divers.',
       shortDescription: 'Rate sites and leave reviews to help others.',
-      icon: Star,
+      icon: StarfishIcon,
       link: '/dive-sites?sort_by=average_rating&sort_order=desc',
       color: 'yellow',
       bgColor: 'bg-yellow-50',
@@ -802,10 +810,7 @@ const Home = () => {
                   to='/dive-sites?sort_by=average_rating&sort_order=desc'
                   className='text-center bg-white/80 backdrop-blur-sm p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-blue-50 shadow-sm hover:scale-105 transition-all block'
                 >
-                  <Star
-                    className='w-4 h-4 sm:w-5 h-5 text-yellow-500 mb-1 sm:mb-1.5 mx-auto'
-                    fill='currentColor'
-                  />
+                  <StarfishIcon className='w-4 h-4 sm:w-5 h-5 mb-1 sm:mb-1.5 mx-auto' />
                   <div className='text-lg sm:text-xl md:text-2xl font-extrabold text-blue-600'>
                     <AnimatedCounter
                       targetValue={stats?.reviews || 0}
@@ -854,8 +859,8 @@ const Home = () => {
           {activeSlide === 2 && (
             <div className='text-center transition-all duration-500 animate-fadeIn max-w-[1600px] mx-auto px-4'>
               <div className='flex items-center justify-center gap-1.5 mb-1.5'>
-                <span className='bg-yellow-400 text-yellow-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider'>
-                  ★ Daily Feature
+                <span className='bg-yellow-400 text-yellow-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1'>
+                  <StarfishIcon className='w-3 h-3' /> Daily Feature
                 </span>
                 <span className='text-xs font-bold uppercase tracking-widest text-gray-500'>
                   {currentWidget?.category}
@@ -1084,7 +1089,7 @@ const Home = () => {
               </span>
             </div>
 
-            <div className='p-3.5 sm:p-5 grid grid-cols-1 gap-3 bg-white'>
+            <div className='p-2.5 sm:p-3.5 grid grid-cols-1 gap-2 bg-white'>
               {recentActivity.map((activity, index) => {
                 const getIcon = () => {
                   switch (activity.event_type) {
@@ -1093,9 +1098,7 @@ const Home = () => {
                     case 'site_added':
                       return <MapPin className='h-[18px] w-[18px] text-[#0072B2]' />;
                     case 'site_review':
-                      return (
-                        <Star className='h-[18px] w-[18px] text-yellow-500' fill='currentColor' />
-                      );
+                      return <StarfishIcon className='h-[18px] w-[18px]' />;
                     case 'route_added':
                       return <Compass className='h-[18px] w-[18px] text-[#0072B2]' />;
                     case 'center_added':
@@ -1112,7 +1115,7 @@ const Home = () => {
                 return (
                   <div
                     key={index}
-                    className='bg-white p-2.5 sm:p-3 rounded-xl border border-gray-100 hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors flex items-start gap-3 shadow-sm'
+                    className='bg-white p-1.5 sm:p-2 rounded-xl border border-gray-100 hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors flex items-center gap-2.5 shadow-sm'
                   >
                     <div className='bg-blue-50/50 p-1.5 rounded-lg shrink-0 flex items-center justify-center h-9 w-9'>
                       {getIcon()}
