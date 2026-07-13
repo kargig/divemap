@@ -90,13 +90,24 @@ const InFeedPromoCard = ({ platform, index }) => {
   // Deterministically pick one message per card based on its index in the list.
   // This guarantees that scrolled cards show a diverse and progressive sequence of feature highlights,
   // falling back to standard random selection if index is omitted.
+  // On iOS, we support 11 distinct promo items (1 install promo, 10 register/feature promos).
   const selectedPromo = useMemo(() => {
+    const poolLength = platform === 'ios' ? promoPool.length + 1 : promoPool.length;
     const selectedIndex =
-      typeof index === 'number'
-        ? index % promoPool.length
-        : Math.floor(Math.random() * promoPool.length);
-    return promoPool[selectedIndex];
-  }, [promoPool, index]);
+      typeof index === 'number' ? index % poolLength : Math.floor(Math.random() * poolLength);
+
+    if (platform === 'ios' && selectedIndex === 0) {
+      return {
+        isInstall: true,
+        title: 'Add to Home Screen',
+        message: 'Install Divemap on your iPhone/iPad to access your offline dive logs anytime.',
+        icon: <Smartphone size={16} />,
+      };
+    }
+
+    const promoIndex = platform === 'ios' ? selectedIndex - 1 : selectedIndex;
+    return promoPool[promoIndex];
+  }, [promoPool, index, platform]);
 
   if (platform === 'standalone') return null;
 
@@ -136,66 +147,94 @@ const InFeedPromoCard = ({ platform, index }) => {
     }
 
     if (platform === 'ios') {
+      if (selectedPromo.isInstall) {
+        return (
+          <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-4 text-left'>
+            <div className='flex flex-row items-start gap-3 flex-1 min-w-0'>
+              <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm motion-safe:animate-pulse'>
+                <Smartphone size={16} />
+              </div>
+              <div className='min-w-0'>
+                <h4 className='font-display font-bold text-gray-900 dark:text-white text-xs sm:text-sm'>
+                  {selectedPromo.title}
+                </h4>
+                <p className='text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-snug'>
+                  {selectedPromo.message}
+                </p>
+              </div>
+            </div>
+            <div className='flex justify-end w-full sm:w-auto mt-1 sm:mt-0 flex-shrink-0'>
+              <button
+                onClick={() => setShowIOSModal(true)}
+                className='px-3.5 py-1.5 bg-divemap-blue hover:bg-divemap-deep text-white text-[10px] sm:text-xs font-semibold rounded-xl transition-colors shadow-sm'
+              >
+                How to Install
+              </button>
+
+              {showIOSModal && (
+                <div className='fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4'>
+                  <div className='bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-left'>
+                    <button
+                      onClick={() => setShowIOSModal(false)}
+                      className='absolute top-4 right-4 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400'
+                      aria-label='Close installation instructions'
+                    >
+                      <X size={18} />
+                    </button>
+                    <h3 className='font-display font-bold text-lg text-gray-900 dark:text-white mb-4'>
+                      Install on iPhone/iPad
+                    </h3>
+                    <ol className='space-y-4 text-sm text-gray-600 dark:text-gray-300'>
+                      <li className='flex gap-3'>
+                        <span className='w-6 h-6 rounded-full bg-divemap-surface dark:bg-gray-700 text-divemap-blue dark:text-divemap-sky flex items-center justify-center font-bold text-xs'>
+                          1
+                        </span>
+                        <div>
+                          Tap Safari's <strong>Share</strong> button{' '}
+                          <Share size={16} className='inline text-gray-700 dark:text-gray-300' />.
+                        </div>
+                      </li>
+                      <li className='flex gap-3'>
+                        <span className='w-6 h-6 rounded-full bg-divemap-surface dark:bg-gray-700 text-divemap-blue dark:text-divemap-sky flex items-center justify-center font-bold text-xs'>
+                          2
+                        </span>
+                        <div>
+                          Scroll down and select <strong>"Add to Home Screen"</strong>{' '}
+                          <Plus size={16} className='inline text-gray-700 dark:text-gray-300' />.
+                        </div>
+                      </li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // Feature promotion targeting user registration
       return (
         <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-4 text-left'>
           <div className='flex flex-row items-start gap-3 flex-1 min-w-0'>
-            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm motion-safe:animate-pulse'>
-              <Smartphone size={16} />
+            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm'>
+              {selectedPromo.icon}
             </div>
             <div className='min-w-0'>
               <h4 className='font-display font-bold text-gray-900 dark:text-white text-xs sm:text-sm'>
-                Add to Home Screen
+                {selectedPromo.title}
               </h4>
               <p className='text-[10px] sm:text-xs text-gray-600 dark:text-gray-300 mt-0.5 leading-snug'>
-                {selectedPromo.message} Install on your iPhone to access your offline dive logs
-                anytime.
+                {selectedPromo.message} Sign up for a free account to access this feature!
               </p>
             </div>
           </div>
           <div className='flex justify-end w-full sm:w-auto mt-1 sm:mt-0 flex-shrink-0'>
             <button
-              onClick={() => setShowIOSModal(true)}
+              onClick={() => navigate('/register')}
               className='px-3.5 py-1.5 bg-divemap-blue hover:bg-divemap-deep text-white text-[10px] sm:text-xs font-semibold rounded-xl transition-colors shadow-sm'
             >
-              How to Install
+              Sign Up Free
             </button>
-
-            {showIOSModal && (
-              <div className='fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4'>
-                <div className='bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-left'>
-                  <button
-                    onClick={() => setShowIOSModal(false)}
-                    className='absolute top-4 right-4 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400'
-                    aria-label='Close installation instructions'
-                  >
-                    <X size={18} />
-                  </button>
-                  <h3 className='font-display font-bold text-lg text-gray-900 dark:text-white mb-4'>
-                    Install on iPhone
-                  </h3>
-                  <ol className='space-y-4 text-sm text-gray-600 dark:text-gray-300'>
-                    <li className='flex gap-3'>
-                      <span className='w-6 h-6 rounded-full bg-divemap-surface dark:bg-gray-700 text-divemap-blue dark:text-divemap-sky flex items-center justify-center font-bold text-xs'>
-                        1
-                      </span>
-                      <div>
-                        Tap Safari's <strong>Share</strong> button{' '}
-                        <Share size={16} className='inline text-gray-700 dark:text-gray-300' />.
-                      </div>
-                    </li>
-                    <li className='flex gap-3'>
-                      <span className='w-6 h-6 rounded-full bg-divemap-surface dark:bg-gray-700 text-divemap-blue dark:text-divemap-sky flex items-center justify-center font-bold text-xs'>
-                        2
-                      </span>
-                      <div>
-                        Scroll down and select <strong>"Add to Home Screen"</strong>{' '}
-                        <Plus size={16} className='inline text-gray-700 dark:text-gray-300' />.
-                      </div>
-                    </li>
-                  </ol>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       );

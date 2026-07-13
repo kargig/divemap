@@ -76,18 +76,19 @@ describe('InFeedPromoCard', () => {
     );
 
     expect(screen.getByText('Add to Home Screen')).toBeInTheDocument();
-    expect(screen.getByText(/Visualize your dive data!/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Install on your iPhone to access your offline dive logs anytime./)
+      screen.getByText(
+        /Install Divemap on your iPhone\/iPad to access your offline dive logs anytime./
+      )
     ).toBeInTheDocument();
 
     const showButton = screen.getByRole('button', { name: 'How to Install' });
     expect(showButton).toBeInTheDocument();
 
-    expect(screen.queryByText('Install on iPhone')).not.toBeInTheDocument();
+    expect(screen.queryByText('Install on iPhone/iPad')).not.toBeInTheDocument();
 
     fireEvent.click(showButton);
-    expect(screen.getByText('Install on iPhone')).toBeInTheDocument();
+    expect(screen.getByText('Install on iPhone/iPad')).toBeInTheDocument();
     expect(screen.getByText(/Tap Safari's/)).toBeInTheDocument();
     expect(screen.getByText(/Scroll down and select/)).toBeInTheDocument();
 
@@ -95,7 +96,27 @@ describe('InFeedPromoCard', () => {
     const closeBtn = svg.closest('button');
     fireEvent.click(closeBtn);
 
-    expect(screen.queryByText('Install on iPhone')).not.toBeInTheDocument();
+    expect(screen.queryByText('Install on iPhone/iPad')).not.toBeInTheDocument();
+  });
+
+  it('correctly rotates through the message pool based on index on iOS', () => {
+    render(
+      <Router>
+        <InFeedPromoCard platform='ios' index={1} />
+      </Router>
+    );
+
+    expect(screen.getByText('Log Your Dive Computer Profiles')).toBeInTheDocument();
+    expect(screen.getByText(/Visualize your dive data!/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sign up for a free account to access this feature!/)
+    ).toBeInTheDocument();
+
+    const signUpButton = screen.getByRole('button', { name: 'Sign Up Free' });
+    expect(signUpButton).toBeInTheDocument();
+
+    fireEvent.click(signUpButton);
+    expect(mockNavigate).toHaveBeenCalledWith('/register');
   });
 
   it('returns null when platform is standalone', () => {
