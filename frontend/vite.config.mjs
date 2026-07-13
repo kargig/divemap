@@ -45,7 +45,7 @@ export default defineConfig({
         prefer_related_applications: false,
         related_applications: [],
         scope: '/',
-        start_url: '/',
+        start_url: '/?utm_source=pwa',
         id: '/',
         categories: ['travel', 'sports', 'social'],
         launch_handler: {

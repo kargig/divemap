@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#FFFFFF",
   "enableNotifications": true,
-  "startUrl": "/",
+  "startUrl": "/?utm_source=android-twa",
   "iconUrl": "https://divemap.gr/favicons/android-chrome-512x512.png",
   "maskableIconUrl": "https://divemap.gr/favicons/android-chrome-512x512.png",
   "splashScreenFadeOutDuration": 300,
@@ -20,8 +20,8 @@
     "path": "/home/kargig/src/divemap/divemap-android/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.5",
-  "appVersionCode": 9,
+  "appVersionName": "1.9",
+  "appVersionCode": 25,
   "shortcuts": [
     {
       "name": "Explore Map",
@@ -82,5 +82,5 @@
     "standalone",
     "minimal-ui"
   ],
-  "appVersion": "1.5"
+  "appVersion": "1.9"
 }

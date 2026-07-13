@@ -22,17 +22,25 @@ const ChatWidget = () => {
 
   const [position, setPosition] = useState(() => {
     const saved = localStorage.getItem('divemap_chat_widget_pos');
-    const defaultPos = { x: 20, y: window.innerHeight - 80, side: 'right' };
+    const defaultBottomOffset = window.innerWidth < 640 ? 180 : 80;
+    const defaultPos = { x: 20, y: window.innerHeight - defaultBottomOffset, side: 'right' };
     if (!saved) return defaultPos;
     try {
       const parsed = JSON.parse(saved);
-      if (parsed.y > window.innerHeight) parsed.y = window.innerHeight - 80;
+      if (parsed.y > window.innerHeight - defaultBottomOffset)
+        parsed.y = window.innerHeight - defaultBottomOffset;
       if (parsed.y < 0) parsed.y = 80;
       return parsed;
     } catch (e) {
       return defaultPos;
     }
   });
+
+  // Always elevate bottom offset to 180px on mobile to prevent overlapping and layout jumping
+  const bottomOffset = window.innerWidth < 640 ? 180 : 80;
+  const displayY = useMemo(() => {
+    return Math.min(position.y, window.innerHeight - bottomOffset);
+  }, [position.y, bottomOffset]);
 
   // Handle inactivity timeout to trigger "edge peek"
   useEffect(() => {
@@ -177,9 +185,13 @@ const ChatWidget = () => {
         const margin = 20;
         const isRightSide = upEvent.clientX > screenWidth / 2;
 
+        const finalBottomOffset = window.innerWidth < 640 ? 180 : 80;
         const finalPos = {
           x: margin,
-          y: Math.max(margin, Math.min(upEvent.clientY - 28, window.innerHeight - 80)),
+          y: Math.max(
+            margin,
+            Math.min(upEvent.clientY - 28, window.innerHeight - finalBottomOffset)
+          ),
           side: isRightSide ? 'right' : 'left',
         };
 
@@ -219,7 +231,7 @@ const ChatWidget = () => {
           ${isExpanded ? 'md:w-[800px] md:h-[80dvh]' : 'md:w-[400px] md:h-[600px]'}
         `}
         style={{
-          bottom: '100px', // Offset from the FAB
+          bottom: `${window.innerHeight - displayY + 20}px`, // Always floats perfectly 20px above the FAB
         }}
       >
         {isOpen && (
@@ -246,7 +258,7 @@ const ChatWidget = () => {
         style={{
           left: position.side === 'right' ? 'auto' : `${position.x}px`,
           right: position.side === 'right' ? `${position.x}px` : 'auto',
-          top: `${position.y}px`,
+          top: `${displayY}px`,
           touchAction: 'none',
         }}
       >

@@ -25,7 +25,7 @@ import {
   Anchor,
   Notebook,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -45,6 +45,7 @@ import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
 import DepthIcon from '../components/ui/DepthIcon';
 import DifficultyBadge from '../components/ui/DifficultyBadge';
+import InFeedPromoCard from '../components/ui/InFeedPromoCard';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
@@ -53,6 +54,7 @@ import useSorting from '../hooks/useSorting';
 import { deleteDive } from '../services/dives';
 import { getDiveSite, getDiveSites } from '../services/diveSites';
 import { formatDate, formatTime } from '../utils/dateHelpers';
+import { getPromoEligibility } from '../utils/promoStorage';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
@@ -70,6 +72,9 @@ const Dives = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const eligibility = getPromoEligibility();
+  const shouldShowFeedPromo = !user && eligibility.isEligible;
 
   // Get initial values from URL parameters
   const getInitialViewMode = () => {
@@ -865,143 +870,147 @@ const Dives = () => {
             {/* Dives List */}
             {viewMode === 'list' && (
               <div className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}>
-                {dives?.map(dive => (
-                  <div
-                    key={dive.id}
-                    className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
-                      dive.is_private ? 'bg-purple-50/30' : 'bg-white'
-                    }`}
-                  >
-                    <div className='flex flex-col space-y-1.5 sm:space-y-4'>
-                      {/* HEADER ROW */}
-                      <div className='flex items-start justify-between gap-2'>
-                        <div className='flex-1 min-w-0'>
-                          {/* Compact Title & Site combo */}
-                          <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-xl'>
-                            <Link
-                              to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
-                              state={{ from: location.pathname + location.search }}
-                              className='hover:text-blue-600 transition-colors'
-                            >
-                              {dive.name || `Dive #${dive.id}`}
-                            </Link>
-                            {dive.dive_site?.name && (
-                              <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
-                                @ {dive.dive_site.name}
-                              </span>
-                            )}
-                          </h3>
-
-                          {/* Meta Byline - Single line on mobile */}
-                          <div className='mt-0.5 text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
-                            <Calendar className='w-3 h-3 text-gray-400' />
-                            {formatDate(dive.dive_date, {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                            {dive.dive_time && (
-                              <span className='flex items-center gap-1'>
-                                <span className='text-gray-300'>•</span>
-                                {formatTime(dive.dive_time)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Right Side: Rating */}
-                        {dive.user_rating !== undefined && dive.user_rating !== null && (
-                          <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0'>
-                            <img
-                              src='/arts/starfish-2.svg'
-                              alt='Rating'
-                              className='w-3.5 h-3.5 object-contain'
-                            />
-                            <span className='text-sm sm:text-lg font-bold text-gray-900'>
-                              {dive.user_rating}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* STATS STRIP - Compact 1-liner */}
-                      <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50'>
-                        {dive.max_depth && (
-                          <div className='flex items-center gap-1'>
-                            <DepthIcon className='text-divemap-blue font-bold' size={15} />
-                            <span className='text-xs sm:text-sm font-semibold text-gray-700'>
-                              {dive.max_depth}m
-                            </span>
-                          </div>
-                        )}
-                        {dive.duration && (
-                          <div className='flex items-center gap-1'>
-                            <Clock className='w-3 h-3 text-gray-400' />
-                            <span className='text-xs sm:text-sm font-semibold text-gray-700'>
-                              {dive.duration}m
-                            </span>
-                          </div>
-                        )}
-                        <DifficultyBadge
-                          code={dive.difficulty_code}
-                          label={dive.difficulty_label}
-                        />
-                      </div>
-
-                      {/* FOOTER: Tags & Buddies - Only show icons/counts on mobile */}
-                      <div className='flex items-center justify-between gap-4'>
-                        <div className='flex items-center gap-2 overflow-hidden'>
-                          {dive.tags?.length > 0 && (
-                            <div className='flex gap-1'>
-                              {dive.tags.slice(0, isMobile ? 3 : 5).map(tag => (
-                                <span
-                                  key={tag.id}
-                                  className={`px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getTagColor(tag.name)}`}
-                                >
-                                  {tag.name}
+                {dives?.map((dive, index) => (
+                  <React.Fragment key={`${dive.id}-${index}`}>
+                    <div
+                      className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
+                        dive.is_private ? 'bg-purple-50/30' : 'bg-white'
+                      }`}
+                    >
+                      <div className='flex flex-col space-y-1.5 sm:space-y-4'>
+                        {/* HEADER ROW */}
+                        <div className='flex items-start justify-between gap-2'>
+                          <div className='flex-1 min-w-0'>
+                            {/* Compact Title & Site combo */}
+                            <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-xl'>
+                              <Link
+                                to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                                state={{ from: location.pathname + location.search }}
+                                className='hover:text-blue-600 transition-colors'
+                              >
+                                {dive.name || `Dive #${dive.id}`}
+                              </Link>
+                              {dive.dive_site?.name && (
+                                <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
+                                  @ {dive.dive_site.name}
                                 </span>
-                              ))}
-                              {dive.tags.length > (isMobile ? 3 : 5) && (
-                                <span className='text-xs text-gray-400'>
-                                  +{dive.tags.length - (isMobile ? 3 : 5)}
+                              )}
+                            </h3>
+
+                            {/* Meta Byline - Single line on mobile */}
+                            <div className='mt-0.5 text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
+                              <Calendar className='w-3 h-3 text-gray-400' />
+                              {formatDate(dive.dive_date, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                              {dive.dive_time && (
+                                <span className='flex items-center gap-1'>
+                                  <span className='text-gray-300'>•</span>
+                                  {formatTime(dive.dive_time)}
                                 </span>
                               )}
                             </div>
-                          )}
-                          {dive.buddies?.length > 0 && (
-                            <div className='flex -space-x-1.5'>
-                              {dive.buddies.slice(0, isMobile ? 2 : 5).map(buddy => (
-                                <div
-                                  key={buddy.id}
-                                  className='w-4 h-4 sm:w-6 sm:h-6 rounded-full ring-1 ring-white bg-blue-100 flex items-center justify-center overflow-hidden'
-                                >
-                                  {buddy.avatar_url ? (
-                                    <img
-                                      src={buddy.avatar_full_url || buddy.avatar_url}
-                                      className='w-full h-full object-cover'
-                                      alt=''
-                                    />
-                                  ) : (
-                                    <span className='text-[7px] font-bold text-blue-600'>
-                                      {buddy.username[0]}
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
+                          </div>
+
+                          {/* Right Side: Rating */}
+                          {dive.user_rating !== undefined && dive.user_rating !== null && (
+                            <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0'>
+                              <img
+                                src='/arts/starfish-2.svg'
+                                alt='Rating'
+                                className='w-3.5 h-3.5 object-contain'
+                              />
+                              <span className='text-sm sm:text-lg font-bold text-gray-900'>
+                                {dive.user_rating}
+                              </span>
                             </div>
                           )}
                         </div>
-                        <Link
-                          to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
-                          state={{ from: location.pathname + location.search }}
-                          className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
-                          title='View Details'
-                        >
-                          <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
-                        </Link>
+
+                        {/* STATS STRIP - Compact 1-liner */}
+                        <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50'>
+                          {dive.max_depth && (
+                            <div className='flex items-center gap-1'>
+                              <DepthIcon className='text-divemap-blue font-bold' size={15} />
+                              <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+                                {dive.max_depth}m
+                              </span>
+                            </div>
+                          )}
+                          {dive.duration && (
+                            <div className='flex items-center gap-1'>
+                              <Clock className='w-3 h-3 text-gray-400' />
+                              <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+                                {dive.duration}m
+                              </span>
+                            </div>
+                          )}
+                          <DifficultyBadge
+                            code={dive.difficulty_code}
+                            label={dive.difficulty_label}
+                          />
+                        </div>
+
+                        {/* FOOTER: Tags & Buddies - Only show icons/counts on mobile */}
+                        <div className='flex items-center justify-between gap-4'>
+                          <div className='flex items-center gap-2 overflow-hidden'>
+                            {dive.tags?.length > 0 && (
+                              <div className='flex gap-1'>
+                                {dive.tags.slice(0, isMobile ? 3 : 5).map(tag => (
+                                  <span
+                                    key={tag.id}
+                                    className={`px-1.5 py-0.5 rounded-full text-xs sm:text-sm font-medium ${getTagColor(tag.name)}`}
+                                  >
+                                    {tag.name}
+                                  </span>
+                                ))}
+                                {dive.tags.length > (isMobile ? 3 : 5) && (
+                                  <span className='text-xs text-gray-400'>
+                                    +{dive.tags.length - (isMobile ? 3 : 5)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {dive.buddies?.length > 0 && (
+                              <div className='flex -space-x-1.5'>
+                                {dive.buddies.slice(0, isMobile ? 2 : 5).map(buddy => (
+                                  <div
+                                    key={buddy.id}
+                                    className='w-4 h-4 sm:w-6 sm:h-6 rounded-full ring-1 ring-white bg-blue-100 flex items-center justify-center overflow-hidden'
+                                  >
+                                    {buddy.avatar_url ? (
+                                      <img
+                                        src={buddy.avatar_full_url || buddy.avatar_url}
+                                        className='w-full h-full object-cover'
+                                        alt=''
+                                      />
+                                    ) : (
+                                      <span className='text-[7px] font-bold text-blue-600'>
+                                        {buddy.username[0]}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <Link
+                            to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
+                            state={{ from: location.pathname + location.search }}
+                            className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+                            title='View Details'
+                          >
+                            <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
+                      <InFeedPromoCard platform={eligibility.platform} />
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             )}
