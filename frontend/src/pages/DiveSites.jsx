@@ -21,7 +21,7 @@ import {
   Route,
   Search,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -39,6 +39,7 @@ import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
+import InFeedPromoCard from '../components/ui/InFeedPromoCard';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
@@ -46,6 +47,7 @@ import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { getPromoEligibility } from '../utils/promoStorage';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
@@ -58,6 +60,9 @@ const DiveSites = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+
+  const eligibility = getPromoEligibility();
+  const shouldShowFeedPromo = !user && eligibility.isEligible;
 
   // Enhanced state for mobile UX
   const [viewMode, setViewMode] = useState(() => {
@@ -719,15 +724,19 @@ const DiveSites = () => {
                   data-testid='dive-sites-list'
                   className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
                 >
-                  {diveSites.results.map(site => (
-                    <DiveSiteListCard
-                      key={site.id}
-                      site={site}
-                      compactLayout={compactLayout}
-                      getMediaLink={getMediaLink}
-                      getThumbnailUrl={getThumbnailUrl}
-                      handleFilterChange={handleFilterChange}
-                    />
+                  {diveSites.results.map((site, index) => (
+                    <React.Fragment key={`${site.id}-${index}`}>
+                      <DiveSiteListCard
+                        site={site}
+                        compactLayout={compactLayout}
+                        getMediaLink={getMediaLink}
+                        getThumbnailUrl={getThumbnailUrl}
+                        handleFilterChange={handleFilterChange}
+                      />
+                      {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
+                        <InFeedPromoCard platform={eligibility.platform} index={index} />
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
               )}
@@ -737,15 +746,19 @@ const DiveSites = () => {
                 <div
                   className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${compactLayout ? 'view-mode-compact' : ''}`}
                 >
-                  {diveSites.results.map(site => (
-                    <DiveSiteGridCard
-                      key={site.id}
-                      site={site}
-                      compactLayout={compactLayout}
-                      getMediaLink={getMediaLink}
-                      getThumbnailUrl={getThumbnailUrl}
-                      handleFilterChange={handleFilterChange}
-                    />
+                  {diveSites.results.map((site, index) => (
+                    <React.Fragment key={`${site.id}-${index}`}>
+                      <DiveSiteGridCard
+                        site={site}
+                        compactLayout={compactLayout}
+                        getMediaLink={getMediaLink}
+                        getThumbnailUrl={getThumbnailUrl}
+                        handleFilterChange={handleFilterChange}
+                      />
+                      {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
+                        <InFeedPromoCard platform={eligibility.platform} index={index} />
+                      )}
+                    </React.Fragment>
                   ))}
                 </div>
               )}

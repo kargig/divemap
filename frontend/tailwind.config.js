@@ -31,6 +31,15 @@ module.exports = {
       boxShadow: {
         'dive-card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'dive-card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+      },
+      keyframes: {
+        'bounce-gentle': {
+          '0%, 100%': { transform: 'translateY(0) translateX(-50%)' },
+          '50%': { transform: 'translateY(-6px) translateX(-50%)' },
+        }
+      },
+      animation: {
+        'bounce-gentle': 'bounce-gentle 2.5s ease-in-out infinite',
       }
     },
   },

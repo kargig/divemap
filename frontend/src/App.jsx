@@ -9,6 +9,7 @@ import CapacitorBackButtonHandler from './components/CapacitorBackButtonHandler'
 import ChatWidget from './components/Chat/ChatWidget';
 import EmailVerificationBanner from './components/EmailVerificationBanner';
 import Navbar from './components/Navbar';
+import PromoBannerManager from './components/PromoBannerManager';
 import PWAUpdater from './components/PWAUpdater';
 import ReportIssueButton from './components/ReportIssueButton';
 import ScrollToTop from './components/ScrollToTop';
@@ -205,6 +206,7 @@ function AppContent() {
         className={`${isAdminPath ? 'w-full max-w-none px-0' : 'container mx-auto px-4 sm:px-6 lg:px-8'} py-4 sm:py-8 pt-16`}
       >
         <EmailVerificationBanner />
+        <PromoBannerManager />
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path='/' element={<Home />} />

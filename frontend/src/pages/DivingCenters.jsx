@@ -15,7 +15,7 @@ import {
   ChevronRight,
   Wrench,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useInfiniteQuery, useMutation, useQueryClient } from 'react-query';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
@@ -31,12 +31,14 @@ import MatchTypeBadge from '../components/MatchTypeBadge';
 import PageHeader from '../components/PageHeader';
 import RateLimitError from '../components/RateLimitError';
 import SEO from '../components/SEO';
+import InFeedPromoCard from '../components/ui/InFeedPromoCard';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
 import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useSetting } from '../hooks/useSettings';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { getPromoEligibility } from '../utils/promoStorage';
 import { slugify, getDivingCenterSlug } from '../utils/slugify';
 
 const DivingCenters = () => {
@@ -45,6 +47,9 @@ const DivingCenters = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+
+  const eligibility = getPromoEligibility();
+  const shouldShowFeedPromo = !user && eligibility.isEligible;
   const { isMobile } = useResponsive();
   const { searchBarVisible, quickFiltersVisible } = useResponsiveScroll();
   const { compactLayout, handleDisplayOptionChange: setCompactLayout } = useCompactLayout({
@@ -417,138 +422,142 @@ const DivingCenters = () => {
                     <div
                       className={`space-y-3 sm:space-y-4 ${compactLayout ? 'view-mode-compact' : ''}`}
                     >
-                      {divingCenters?.map(center => (
-                        <div
-                          key={center.id}
-                          className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
-                        >
-                          {/* Main content column */}
-                          <div className='flex flex-col'>
-                            {/* Main info */}
-                            <div className='flex-1 min-w-0 flex flex-col'>
-                              {/* Title row */}
-                              <div className='flex items-start justify-between gap-2'>
-                                <div className='flex items-center gap-3 flex-1 min-w-0 pr-2'>
-                                  <Avatar
-                                    src={center.logo_full_url || center.logo_url}
-                                    alt={center.name}
-                                    size='md'
-                                    fallbackText={center.name}
-                                  />
-                                  <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
-                                    <Link
-                                      to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
-                                      state={{
-                                        from: window.location.pathname + window.location.search,
-                                      }}
-                                      className='hover:text-blue-600 transition-colors'
-                                    >
-                                      {center.name}
-                                    </Link>
-                                  </h3>
-                                </div>
-                                {center.average_rating && (
-                                  <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
-                                    <img
-                                      src='/arts/starfish-2.svg'
-                                      alt='Rating'
-                                      className='w-2.5 h-2.5 object-contain'
+                      {divingCenters?.map((center, index) => (
+                        <React.Fragment key={`${center.id}-${index}`}>
+                          <div
+                            className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-1.5 sm:p-4 hover:shadow-md transition-all duration-200 relative`}
+                          >
+                            {/* Main content column */}
+                            <div className='flex flex-col'>
+                              {/* Main info */}
+                              <div className='flex-1 min-w-0 flex flex-col'>
+                                {/* Title row */}
+                                <div className='flex items-start justify-between gap-2'>
+                                  <div className='flex items-center gap-3 flex-1 min-w-0 pr-2'>
+                                    <Avatar
+                                      src={center.logo_full_url || center.logo_url}
+                                      alt={center.name}
+                                      size='md'
+                                      fallbackText={center.name}
                                     />
-                                    <span>{center.average_rating.toFixed(1)}</span>
+                                    <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-lg truncate'>
+                                      <Link
+                                        to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
+                                        state={{
+                                          from: window.location.pathname + window.location.search,
+                                        }}
+                                        className='hover:text-blue-600 transition-colors'
+                                      >
+                                        {center.name}
+                                      </Link>
+                                    </h3>
                                   </div>
+                                  {center.average_rating && (
+                                    <div className='flex items-center gap-1 text-yellow-600 flex-shrink-0 bg-yellow-50/50 px-1 py-0.5 rounded text-[10px] sm:text-xs font-bold'>
+                                      <img
+                                        src='/arts/starfish-2.svg'
+                                        alt='Rating'
+                                        className='w-2.5 h-2.5 object-contain'
+                                      />
+                                      <span>{center.average_rating.toFixed(1)}</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Location & Metadata Row - Very compact */}
+                                <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
+                                  {(center.country || center.region || center.city) && (
+                                    <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 font-semibold'>
+                                      <MapPin className='w-2.5 h-2.5 text-blue-400 flex-shrink-0' />
+                                      <span className='truncate max-w-[200px] sm:max-w-[300px]'>
+                                        {Array.from(
+                                          new Set(
+                                            [center.country, center.region, center.city]
+                                              .filter(Boolean)
+                                              .flatMap(s => s.split(',').map(p => p.trim()))
+                                          )
+                                        ).join(', ')}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {matchTypes[center.id] && (
+                                    <MatchTypeBadge
+                                      matchType={matchTypes[center.id].type}
+                                      score={matchTypes[center.id].score}
+                                      className='scale-75 origin-left -ml-2'
+                                    />
+                                  )}
+                                </div>
+
+                                {/* Description - completely removed on mobile view */}
+                                {!isMobile && center.description && (
+                                  <p className='text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
+                                    {decodeHtmlEntities(center.description)}
+                                  </p>
                                 )}
                               </div>
 
-                              {/* Location & Metadata Row - Very compact */}
-                              <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5'>
-                                {(center.country || center.region || center.city) && (
-                                  <div className='flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-500 font-semibold'>
-                                    <MapPin className='w-2.5 h-2.5 text-blue-400 flex-shrink-0' />
-                                    <span className='truncate max-w-[200px] sm:max-w-[300px]'>
-                                      {Array.from(
-                                        new Set(
-                                          [center.country, center.region, center.city]
-                                            .filter(Boolean)
-                                            .flatMap(s => s.split(',').map(p => p.trim()))
-                                        )
-                                      ).join(', ')}
-                                    </span>
-                                  </div>
-                                )}
-                                {matchTypes[center.id] && (
-                                  <MatchTypeBadge
-                                    matchType={matchTypes[center.id].type}
-                                    score={matchTypes[center.id].score}
-                                    className='scale-75 origin-left -ml-2'
-                                  />
-                                )}
-                              </div>
-
-                              {/* Description - completely removed on mobile view */}
-                              {!isMobile && center.description && (
-                                <p className='text-xs sm:text-sm text-gray-600 line-clamp-3 sm:line-clamp-4 leading-tight mt-1.5'>
-                                  {decodeHtmlEntities(center.description)}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Bottom row - Quick Action Row (High consistency) */}
-                            <div className='flex flex-row items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-50'>
-                              {center.website && (
-                                <a
-                                  href={
-                                    center.website.startsWith('http')
-                                      ? center.website
-                                      : `https://${center.website}`
-                                  }
-                                  target='_blank'
-                                  rel='noopener noreferrer'
-                                  className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
-                                  title='Website'
-                                >
-                                  <Globe className='w-4 h-4 text-divemap-blue flex-shrink-0' />
-                                </a>
-                              )}
-                              {center.email &&
-                                (isMobile ? (
+                              {/* Bottom row - Quick Action Row (High consistency) */}
+                              <div className='flex flex-row items-center justify-end gap-2 mt-2 pt-2 border-t border-gray-50'>
+                                {center.website && (
                                   <a
-                                    href={`mailto:${center.email}`}
+                                    href={
+                                      center.website.startsWith('http')
+                                        ? center.website
+                                        : `https://${center.website}`
+                                    }
+                                    target='_blank'
+                                    rel='noopener noreferrer'
                                     className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
-                                    title='Email'
+                                    title='Website'
                                   >
-                                    <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                    <Globe className='w-4 h-4 text-divemap-blue flex-shrink-0' />
                                   </a>
-                                ) : (
-                                  <MaskedEmail
-                                    email={center.email}
-                                    label=''
-                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all cursor-pointer'
+                                )}
+                                {center.email &&
+                                  (isMobile ? (
+                                    <a
+                                      href={`mailto:${center.email}`}
+                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                      title='Email'
+                                    >
+                                      <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                    </a>
+                                  ) : (
+                                    <MaskedEmail
+                                      email={center.email}
+                                      label=''
+                                      className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all cursor-pointer'
+                                    >
+                                      <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                    </MaskedEmail>
+                                  ))}
+                                {center.phone && (
+                                  <a
+                                    href={`tel:${center.phone}`}
+                                    className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
+                                    title='Call'
                                   >
-                                    <Mail className='w-4 h-4 text-divemap-blue flex-shrink-0' />
-                                  </MaskedEmail>
-                                ))}
-                              {center.phone && (
-                                <a
-                                  href={`tel:${center.phone}`}
-                                  className='w-8 h-8 inline-flex items-center justify-center bg-blue-50 text-divemap-blue rounded-lg hover:bg-blue-100/70 active:scale-95 transition-all'
-                                  title='Call'
+                                    <Phone className='w-4 h-4 text-divemap-blue flex-shrink-0' />
+                                  </a>
+                                )}
+                                <Link
+                                  to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
+                                  state={{
+                                    from: window.location.pathname + window.location.search,
+                                  }}
+                                  className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
+                                  title='View Details'
                                 >
-                                  <Phone className='w-4 h-4 text-divemap-blue flex-shrink-0' />
-                                </a>
-                              )}
-                              <Link
-                                to={`/diving-centers/${center.id}/${getDivingCenterSlug(center)}`}
-                                state={{
-                                  from: window.location.pathname + window.location.search,
-                                }}
-                                className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group ml-auto sm:ml-0'
-                                title='View Details'
-                              >
-                                <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
-                              </Link>
+                                  <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
+                                </Link>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                          {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
+                            <InFeedPromoCard platform={eligibility.platform} index={index} />
+                          )}
+                        </React.Fragment>
                       ))}
                     </div>
                   )}

@@ -13,7 +13,7 @@ import {
   Grid,
   List,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery } from 'react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -24,7 +24,9 @@ import LoadingSkeleton from '../components/LoadingSkeleton';
 import PageHeader from '../components/PageHeader';
 import ResponsiveFilterBar from '../components/ResponsiveFilterBar';
 import SEO from '../components/SEO';
+import InFeedPromoCard from '../components/ui/InFeedPromoCard';
 import InfiniteScrollTrigger from '../components/ui/InfiniteScrollTrigger';
+import { useAuth } from '../contexts/AuthContext';
 import { useCompactLayout } from '../hooks/useCompactLayout';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
@@ -32,14 +34,19 @@ import { getDiveRoutes } from '../services/diveSites';
 import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
+import { getPromoEligibility } from '../utils/promoStorage';
 import { getRouteTypeLabel } from '../utils/routeUtils';
 import { slugify } from '../utils/slugify';
 import { getSortOptions } from '../utils/sortOptions';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
 const DiveRoutes = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const eligibility = getPromoEligibility();
+  const shouldShowFeedPromo = !user && eligibility.isEligible;
 
   // State for filters
   const [search, setSearch] = useState(searchParams.get('search') || '');
@@ -304,107 +311,111 @@ const DiveRoutes = () => {
                 : 'flex flex-col gap-4'
             }
           >
-            {routes.map(route => {
+            {routes.map((route, index) => {
               const detectedType = getRouteTypeLabel(route.route_type, null, route.route_data);
 
               return (
-                <div
-                  key={route.id}
-                  className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
-                >
-                  {/* Header: Title & Type */}
-                  <div className='mb-2'>
-                    <div className='flex items-start justify-between gap-2 sm:gap-3'>
-                      <h3
-                        className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
-                      >
-                        <Link
-                          to={`/dive-routes/${route.id}/${slugify(route.name)}`}
-                          className='hover:text-blue-600 transition-colors'
-                        >
-                          {decodeHtmlEntities(route.name)}
-                        </Link>
-                      </h3>
-                      {/* Route Type Badge */}
-                      <span
-                        className={`flex-shrink-0 px-1.5 py-0 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border ${
-                          detectedType === 'scuba'
-                            ? 'bg-blue-50 text-blue-700 border-blue-100'
-                            : detectedType === 'swim' || detectedType === 'free_swim'
-                              ? 'bg-cyan-50 text-cyan-700 border-cyan-100'
-                              : detectedType === 'mixed'
-                                ? 'bg-purple-50 text-purple-700 border-purple-100'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                        }`}
-                      >
-                        {detectedType.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Meta Info: Site & Creator */}
-                  <div className='mb-2 sm:mb-4 flex flex-col gap-1 sm:gap-1.5'>
-                    {route.dive_site && (
-                      <div className='flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-medium text-gray-600'>
-                        <MapPin className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 flex-shrink-0' />
-                        <span className='text-gray-500 leading-tight mt-0.5 sm:mt-1'>at</span>
-                        <Link
-                          to={`/dive-sites/${route.dive_site_id}`}
-                          className='text-blue-600 hover:text-blue-800 hover:underline flex items-center'
-                        >
-                          <span className='leading-tight mt-0.5 sm:mt-1'>
-                            {route.dive_site.name}
-                          </span>
-                        </Link>
-                      </div>
-                    )}
-
-                    <div className='text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 sm:gap-1.5'>
-                      <User className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
-                      <span>{route.creator?.username || route.owner?.username || 'Unknown'}</span>
-                    </div>
-                  </div>
-
-                  {/* Body: Description (Hidden in List Compact Mode if desired, but good to keep) */}
-                  {route.description && (
-                    <div
-                      className={`text-gray-500 leading-relaxed line-clamp-2 mb-2 sm:mb-4 ${compactLayout ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm'}`}
-                    >
-                      {renderTextWithLinks(decodeHtmlEntities(route.description))}
-                    </div>
-                  )}
-
-                  {/* Stats Strip & Actions */}
+                <React.Fragment key={`${route.id}-${index}`}>
                   <div
-                    className={`flex items-center justify-between py-2 sm:py-3 border-y border-gray-50 mt-auto ${compactLayout ? 'py-1.5 sm:py-2' : 'py-2 sm:py-3'}`}
+                    className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
                   >
-                    <div className='flex flex-col'>
-                      <span className='text-[9px] sm:text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0 sm:mb-0.5'>
-                        Created
-                      </span>
-                      <div className='flex items-center gap-1 sm:gap-1.5'>
-                        <Calendar className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400' />
-                        <span
-                          className={`font-semibold text-gray-700 ${compactLayout ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'}`}
+                    {/* Header: Title & Type */}
+                    <div className='mb-2'>
+                      <div className='flex items-start justify-between gap-2 sm:gap-3'>
+                        <h3
+                          className={`font-bold text-gray-900 leading-snug ${compactLayout ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
                         >
-                          {formatDate(route.created_at, {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                          <Link
+                            to={`/dive-routes/${route.id}/${slugify(route.name)}`}
+                            className='hover:text-blue-600 transition-colors'
+                          >
+                            {decodeHtmlEntities(route.name)}
+                          </Link>
+                        </h3>
+                        {/* Route Type Badge */}
+                        <span
+                          className={`flex-shrink-0 px-1.5 py-0 sm:px-2 sm:py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border ${
+                            detectedType === 'scuba'
+                              ? 'bg-blue-50 text-blue-700 border-blue-100'
+                              : detectedType === 'swim' || detectedType === 'free_swim'
+                                ? 'bg-cyan-50 text-cyan-700 border-cyan-100'
+                                : detectedType === 'mixed'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-100'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                          }`}
+                        >
+                          {detectedType.replace('_', ' ')}
                         </span>
                       </div>
                     </div>
 
-                    <Link
-                      to={`/dive-routes/${route.id}/${slugify(route.name)}`}
-                      className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
-                      title='View Route Details'
+                    {/* Meta Info: Site & Creator */}
+                    <div className='mb-2 sm:mb-4 flex flex-col gap-1 sm:gap-1.5'>
+                      {route.dive_site && (
+                        <div className='flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-medium text-gray-600'>
+                          <MapPin className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 flex-shrink-0' />
+                          <span className='text-gray-500 leading-tight mt-0.5 sm:mt-1'>at</span>
+                          <Link
+                            to={`/dive-sites/${route.dive_site_id}`}
+                            className='text-blue-600 hover:text-blue-800 hover:underline flex items-center'
+                          >
+                            <span className='leading-tight mt-0.5 sm:mt-1'>
+                              {route.dive_site.name}
+                            </span>
+                          </Link>
+                        </div>
+                      )}
+
+                      <div className='text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 sm:gap-1.5'>
+                        <User className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
+                        <span>{route.creator?.username || route.owner?.username || 'Unknown'}</span>
+                      </div>
+                    </div>
+
+                    {/* Body: Description (Hidden in List Compact Mode if desired, but good to keep) */}
+                    {route.description && (
+                      <div
+                        className={`text-gray-500 leading-relaxed line-clamp-2 mb-2 sm:mb-4 ${compactLayout ? 'text-[10px] sm:text-xs' : 'text-[11px] sm:text-sm'}`}
+                      >
+                        {renderTextWithLinks(decodeHtmlEntities(route.description))}
+                      </div>
+                    )}
+
+                    {/* Stats Strip & Actions */}
+                    <div
+                      className={`flex items-center justify-between py-2 sm:py-3 border-y border-gray-50 mt-auto ${compactLayout ? 'py-1.5 sm:py-2' : 'py-2 sm:py-3'}`}
                     >
-                      <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
-                    </Link>
+                      <div className='flex flex-col'>
+                        <span className='text-[9px] sm:text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0 sm:mb-0.5'>
+                          Created
+                        </span>
+                        <div className='flex items-center gap-1 sm:gap-1.5'>
+                          <Calendar className='w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400' />
+                          <span
+                            className={`font-semibold text-gray-700 ${compactLayout ? 'text-[10px] sm:text-[11px]' : 'text-xs sm:text-sm'}`}
+                          >
+                            {formatDate(route.created_at, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Link
+                        to={`/dive-routes/${route.id}/${slugify(route.name)}`}
+                        className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+                        title='View Route Details'
+                      >
+                        <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
+                      </Link>
+                    </div>
                   </div>
-                </div>
+                  {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
+                    <InFeedPromoCard platform={eligibility.platform} index={index} />
+                  )}
+                </React.Fragment>
               );
             })}
           </div>
