@@ -734,7 +734,7 @@ const DiveSites = () => {
                         handleFilterChange={handleFilterChange}
                       />
                       {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
-                        <InFeedPromoCard platform={eligibility.platform} />
+                        <InFeedPromoCard platform={eligibility.platform} index={index} />
                       )}
                     </React.Fragment>
                   ))}
@@ -756,7 +756,7 @@ const DiveSites = () => {
                         handleFilterChange={handleFilterChange}
                       />
                       {shouldShowFeedPromo && (index - 2) % 15 === 0 && (
-                        <InFeedPromoCard platform={eligibility.platform} />
+                        <InFeedPromoCard platform={eligibility.platform} index={index} />
                       )}
                     </React.Fragment>
                   ))}

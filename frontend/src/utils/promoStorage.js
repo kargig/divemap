@@ -22,14 +22,20 @@ export const dismissPromo = () => {
   window.localStorage.setItem(DISMISSAL_COUNT_KEY, dismissals.toString());
 
   const cumulative = parseInt(window.localStorage.getItem(CUMULATIVE_KEY), 10) || 0;
+
+  // Absolute target thresholds sequence: 3 -> 7 -> 12 -> 18 -> 25
+  const TARGETS = [3, 7, 12, 18, 25];
+
   let target = 9999999;
 
-  // Progressive targets: 3 -> 7 -> 12 -> 18 -> 25 -> Permanent Suppression
-  if (dismissals === 1) target = Math.max(7, cumulative + 4);
-  else if (dismissals === 2) target = Math.max(12, cumulative + 5);
-  else if (dismissals === 3) target = Math.max(18, cumulative + 6);
-  else if (dismissals === 4) target = Math.max(25, cumulative + 7);
-  else target = 9999999; // Permanent suppression (dismissed 5+ times)
+  if (dismissals < 5) {
+    // Find the very next absolute threshold in our sequence that is strictly in the future.
+    // This handles both perfect path dismissals and late dismissals gracefully.
+    const nextAbsoluteTarget = TARGETS.find(t => t > cumulative);
+
+    // Fall back to current cumulative + 5 if they have scrolled past all spec targets
+    target = nextAbsoluteTarget || cumulative + 5;
+  }
 
   window.localStorage.setItem(NEXT_ELIGIBLE_VIEW_KEY, target.toString());
 };

@@ -16,7 +16,7 @@ import {
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const InFeedPromoCard = ({ platform }) => {
+const InFeedPromoCard = ({ platform, index }) => {
   const navigate = useNavigate();
   const [showIOSModal, setShowIOSModal] = useState(false);
 
@@ -87,11 +87,16 @@ const InFeedPromoCard = ({ platform }) => {
     []
   );
 
-  // Deterministically pick one message per card mount to keep things fresh and avoid re-render shifting
+  // Deterministically pick one message per card based on its index in the list.
+  // This guarantees that scrolled cards show a diverse and progressive sequence of feature highlights,
+  // falling back to standard random selection if index is omitted.
   const selectedPromo = useMemo(() => {
-    const randomIndex = Math.floor(Math.random() * promoPool.length);
-    return promoPool[randomIndex];
-  }, [promoPool]);
+    const selectedIndex =
+      typeof index === 'number'
+        ? index % promoPool.length
+        : Math.floor(Math.random() * promoPool.length);
+    return promoPool[selectedIndex];
+  }, [promoPool, index]);
 
   if (platform === 'standalone') return null;
 
@@ -100,7 +105,7 @@ const InFeedPromoCard = ({ platform }) => {
       return (
         <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-4 text-left'>
           <div className='flex flex-row items-start gap-3 flex-1 min-w-0'>
-            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse'>
+            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm motion-safe:animate-pulse'>
               <Smartphone size={16} />
             </div>
             <div className='min-w-0'>
@@ -134,7 +139,7 @@ const InFeedPromoCard = ({ platform }) => {
       return (
         <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-4 text-left'>
           <div className='flex flex-row items-start gap-3 flex-1 min-w-0'>
-            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse'>
+            <div className='w-8 h-8 rounded-full bg-white dark:bg-gray-800 text-divemap-blue dark:text-divemap-sky flex items-center justify-center flex-shrink-0 shadow-sm motion-safe:animate-pulse'>
               <Smartphone size={16} />
             </div>
             <div className='min-w-0'>
@@ -157,7 +162,7 @@ const InFeedPromoCard = ({ platform }) => {
 
             {showIOSModal && (
               <div className='fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4'>
-                <div className='bg-white dark:bg-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-left'>
+                <div className='bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-left'>
                   <button
                     onClick={() => setShowIOSModal(false)}
                     className='absolute top-4 right-4 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-500 dark:text-gray-400'
