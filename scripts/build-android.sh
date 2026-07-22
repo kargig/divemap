@@ -17,6 +17,14 @@ fi
 
 echo "🚀 Building Divemap v${VERSION_NAME}..."
 
+# Force targetSdkVersion to 36 for Google Play Store compliance
+# (Since the latest bubblewrap-cli 1.24.1 template defaults to targetSdkVersion 35,
+# we programmatically patch it to targetSdkVersion 36 right before compiling)
+if [ -f "app/build.gradle" ]; then
+    echo "🔧 Patching app/build.gradle to targetSdkVersion 36..."
+    sed -i 's/targetSdkVersion 35/targetSdkVersion 36/g' app/build.gradle
+fi
+
 # Run bubblewrap
 bubblewrap build
 
