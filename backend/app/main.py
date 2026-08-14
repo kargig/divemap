@@ -408,6 +408,10 @@ def load_routers():
     from app.routers import unsubscribe
     app.include_router(unsubscribe.router, prefix="/api/v1", tags=["Unsubscribe"])
 
+    # Import and register SEO Dynamic pre-rendering router
+    from app.routers import seo
+    app.include_router(seo.router, prefix="/api/v1/seo", tags=["SEO"])
+
     # Moved to lazy loading:
     # - dive_sites (already implemented)
     # - newsletters (heavy AI/ML dependencies)

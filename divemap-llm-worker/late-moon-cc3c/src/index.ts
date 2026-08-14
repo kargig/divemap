@@ -2,6 +2,8 @@ export interface Env {
 	LLM_CONTENT: R2Bucket;
 }
 
+const HARDCODED_ORIGIN = 'https://divemap.gr';
+
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		const url = new URL(request.url);
@@ -14,7 +16,7 @@ export default {
 
 		// 2. Map to the path where your Python script saves them in R2
 		const key = `llm_content/${filename}`;
-		
+
 		try {
 			const object = await env.LLM_CONTENT.get(key);
 
@@ -27,7 +29,7 @@ export default {
 			const headers = new Headers();
 			object.writeHttpMetadata(headers);
 			headers.set('etag', object.httpEtag);
-			
+
 			// 4. Apply your requested 24h caching with stale-while-revalidate
 			headers.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=86400, stale-if-error=86400');
 
@@ -38,14 +40,13 @@ export default {
 			const isTextFile = filename === 'sitemap.xml' || filename === 'llms.txt' || filename === 'robots.txt' || filename.endsWith('.md');
 			if (isTextFile) {
 				const origin = url.origin; // e.g. "https://divemap.blue"
-				const hardcodedOrigin = "https://divemap.gr";
-				
+
 				let content = await object.text();
-				
+
 				// Replace hardcoded domain with the requested one if they differ
-				if (origin !== hardcodedOrigin) {
+				if (origin !== HARDCODED_ORIGIN) {
 					// We use split/join for a simple global replacement
-					content = content.split(hardcodedOrigin).join(origin);
+					content = content.split(HARDCODED_ORIGIN).join(origin);
 				}
 
 				return new Response(content, {
