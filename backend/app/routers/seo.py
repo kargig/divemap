@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 import re
@@ -6,7 +5,7 @@ import sys
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 import httpx
 from sqlalchemy.orm import Session, joinedload
 
@@ -28,16 +27,14 @@ from static_html import (
     render_listing_main,
     render_seo_page,
     resolve_html_template,
-    escape_text,
 )
 
 logger = logging.getLogger("divemap.seo")
 
 router = APIRouter()
 
-# Global in-memory cache and concurrency lock for SPA index.html template
+# Global in-memory cache for SPA index.html template
 _spa_template_cache: Optional[str] = None
-_spa_template_lock: Optional[asyncio.Lock] = None
 
 
 async def get_spa_template() -> Optional[str]:
@@ -46,48 +43,40 @@ async def get_spa_template() -> Optional[str]:
     Caches the template in-memory. Fetches from nginx or frontend dev servers,
     or falls back to disk files. Returns None if all sources fail.
     """
-    global _spa_template_cache, _spa_template_lock
+    global _spa_template_cache
     if _spa_template_cache is not None:
         return _spa_template_cache
 
-    if _spa_template_lock is None:
-        _spa_template_lock = asyncio.Lock()
+    urls = [
+        "http://nginx/index.html",
+        "http://frontend:3000/",
+    ]
 
-    async with _spa_template_lock:
-        # Double check after acquiring the lock to prevent thundering herd
-        if _spa_template_cache is not None:
-            return _spa_template_cache
-
-        urls = [
-            "http://nginx/index.html",
-            "http://frontend:3000/",
-        ]
-
-        async with httpx.AsyncClient() as client:
-            for url in urls:
-                try:
-                    # Set Host: localhost header to bypass Vite's internal Host Validation
-                    response = await client.get(url, timeout=1.5, headers={"Host": "localhost"})
-                    if response.status_code == 200 and response.text:
-                        logger.info(f"Successfully fetched SPA template from {url}")
-                        _spa_template_cache = response.text
-                        return _spa_template_cache
-                except Exception as e:
-                    logger.debug(f"Failed to fetch SPA template from {url}: {e}")
-
-        # Local disk fallbacks
-        template_path = resolve_html_template()
-        if template_path and os.path.isfile(template_path):
+    async with httpx.AsyncClient() as client:
+        for url in urls:
             try:
-                with open(template_path, "r", encoding="utf-8") as f:
-                    _spa_template_cache = f.read()
-                logger.info(f"Successfully read SPA template from disk: {template_path}")
-                return _spa_template_cache
+                # Set Host: localhost header to bypass Vite's internal Host Validation
+                response = await client.get(url, timeout=1.5, headers={"Host": "localhost"})
+                if response.status_code == 200 and response.text:
+                    logger.info(f"Successfully fetched SPA template from {url}")
+                    _spa_template_cache = response.text
+                    return _spa_template_cache
             except Exception as e:
-                logger.error(f"Failed to read SPA template from {template_path}: {e}")
+                logger.debug(f"Failed to fetch SPA template from {url}: {e}")
 
-        logger.warning("No SPA template could be loaded. Falling back to clean semantic-only HTML response.")
-        return None
+    # Local disk fallbacks
+    template_path = resolve_html_template()
+    if template_path and os.path.isfile(template_path):
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                _spa_template_cache = f.read()
+            logger.info(f"Successfully read SPA template from disk: {template_path}")
+            return _spa_template_cache
+        except Exception as e:
+            logger.error(f"Failed to read SPA template from {template_path}: {e}")
+
+    logger.warning("No SPA template could be loaded. Falling back to clean semantic-only HTML response.")
+    return None
 
 
 @router.get("/html/{path:path}", response_class=HTMLResponse)
@@ -96,20 +85,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
     Dynamic server-side pre-rendering endpoint. Intercepts public crawler/human GET paths,
     populates meta/JSON-LD/content elements, and returns them in the SPA index.html wrapper.
     """
-    # Build dynamic canonical base URL from request Host with validation (prevent Host Injection)
+    # Build dynamic canonical base URL from request Host
     host = request.headers.get("host", "divemap.blue")
     proto = request.headers.get("x-forwarded-proto", "https")
-
-    allowed_dev_hosts = {"localhost", "127.0.0.1", "nginx", "frontend", "testserver"}
-    host_name = host.split(":")[0].lower()  # Strip port if present
-
-    if host_name in allowed_dev_hosts:
-        base_url = f"{proto}://{host}"
-    elif "divemap.gr" in host_name:
-        base_url = "https://divemap.gr"
-    else:
-        base_url = "https://divemap.blue"
-
+    base_url = "https://divemap.blue" if "divemap.blue" in host or "divemap.gr" in host else f"{proto}://{host}"
     base_url = base_url.rstrip("/")
 
     # Parse path elements
@@ -132,6 +111,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
             sites = (
                 db.query(DiveSite)
                 .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
+                .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings))
                 .limit(20)
                 .all()
             )
@@ -151,6 +131,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 sites = (
                     db.query(DiveSite)
                     .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
+                    .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings))
                     .limit(100)
                     .all()
                 )
@@ -186,12 +167,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Dive Site not found")
 
                 slug = get_dive_site_slug(site)
-                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
-                requested_slug = parts[2] if len(parts) >= 3 else ""
-                if requested_slug != slug:
-                    redirect_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
-
                 detail_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
                 avg, total = _site_rating_stats(site)
                 location_parts = [site.region, site.country]
@@ -236,12 +211,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Diving Center not found")
 
                 slug = get_diving_center_slug(center)
-                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
-                requested_slug = parts[2] if len(parts) >= 3 else ""
-                if requested_slug != slug:
-                    redirect_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
-
                 detail_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
                 location_parts = [center.city or center.region, center.country]
                 location_suffix = ", ".join(filter(None, location_parts))
@@ -296,12 +265,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Dive Route not found")
 
                 slug = slugify(route.name)
-                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
-                requested_slug = parts[2] if len(parts) >= 3 else ""
-                if requested_slug != slug:
-                    redirect_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
-
                 detail_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
                 page_title = f"Divemap - {route.name}"
 
@@ -313,15 +276,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
         elif parts[0] == "dives":
             if len(parts) == 1:
                 # Public Dives Directory Listing
-                # Fetch dives only associated with active, non-deleted users
                 dives = (
                     db.query(Dive)
-                    .join(User, Dive.user_id == User.id)
-                    .filter(
-                        Dive.is_private == False,
-                        User.enabled == True,
-                        User.deleted_at.is_(None)
-                    )
+                    .filter(Dive.is_private == False)
                     .options(joinedload(Dive.user), joinedload(Dive.dive_site))
                     .order_by(Dive.id.desc())
                     .limit(100)
@@ -352,16 +309,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 except ValueError:
                     raise HTTPException(status_code=404, detail="Invalid Dive ID")
 
-                # Query dive only if associated with active, non-deleted users
                 dive = (
                     db.query(Dive)
-                    .join(User, Dive.user_id == User.id)
-                    .filter(
-                        Dive.id == dive_id,
-                        Dive.is_private == False,
-                        User.enabled == True,
-                        User.deleted_at.is_(None)
-                    )
+                    .filter(Dive.id == dive_id, Dive.is_private == False)
                     .options(joinedload(Dive.user), joinedload(Dive.dive_site))
                     .first()
                 )
@@ -374,99 +324,71 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 description = f"Read the log details of {diver}'s dive at {site_name}. Max depth: {dive.max_depth or 'unknown'}m, bottom time: {dive.duration or 'unknown'} mins."
 
                 slug = slugify(dive.name or f"dive-by-{diver}")
-                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
-                requested_slug = parts[2] if len(parts) >= 3 else ""
-                if requested_slug != slug:
-                    redirect_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
-
                 detail_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
 
                 main_content = f"""<main class="seo-prerender">
                     <nav class="breadcrumbs">
                         <a href="/">Home</a> &rsaquo; 
                         <a href="/dives">Dives</a> &rsaquo; 
-                        <span>{escape_text(diver)}'s Log</span>
+                        <span>{diver}'s Log</span>
                     </nav>
-                    <h1>{escape_text(diver)}'s dive at {escape_text(site_name)}</h1>
-                    <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
-                    <p><strong>Diver:</strong> <a href="/users/{escape_text(diver)}">{escape_text(diver)}</a></p>
-                    <p><strong>Dive Site:</strong> {escape_text(site_name)}</p>
-                    <p><strong>Max Depth:</strong> {escape_text(str(dive.max_depth)) if dive.max_depth is not None else 'Unknown'} m</p>
-                    <p><strong>Duration:</strong> {escape_text(str(dive.duration)) if dive.duration is not None else 'Unknown'} mins</p>
-                    <p><strong>Notes:</strong> {escape_text(dive.dive_information or 'No notes provided.')}</p>
+                    <h1>{diver}'s dive at {site_name}</h1>
+                    <p><strong>Title:</strong> {dive.name or 'Unnamed Dive'}</p>
+                    <p><strong>Diver:</strong> <a href="/users/{diver}">{diver}</a></p>
+                    <p><strong>Dive Site:</strong> {site_name}</p>
+                    <p><strong>Max Depth:</strong> {dive.max_depth or 'Unknown'} m</p>
+                    <p><strong>Duration:</strong> {dive.duration or 'Unknown'} mins</p>
+                    <p><strong>Notes:</strong> {dive.dive_information or 'No notes provided.'}</p>
                 </main>"""
                 canonical = f"{base_url}{detail_path}"
 
         elif parts[0] == "users":
             if len(parts) >= 2:
                 username = parts[1]
-                # Validate username structure (alphanumeric, underscores, hyphens only) to prevent malicious URL parsing
-                if not re.match(r"^[a-zA-Z0-9_\-]+$", username):
-                    raise HTTPException(status_code=404, detail="Invalid username format")
-
-                # Fetch only active, non-deleted users
-                user = (
-                    db.query(User)
-                    .filter(
-                        User.username == username,
-                        User.enabled == True,
-                        User.deleted_at.is_(None)
-                    )
-                    .first()
-                )
+                user = db.query(User).filter(User.username == username).first()
                 if not user:
                     raise HTTPException(status_code=404, detail="User not found")
 
-                # Securely escape usernames and other user-controlled variables for display, but use raw for URLs
-                raw_user = user.username
-                escaped_user = escape_text(raw_user)
-
                 if len(parts) == 2:
                     # User profile page
-                    page_title = f"Divemap - User {escaped_user}"
-                    description = f"View {escaped_user}'s public diving profile, contributions, and community stats on Divemap."
+                    page_title = f"Divemap - User {user.username}"
+                    description = f"View {user.username}'s public diving profile, contributions, and community stats on Divemap."
                     main_content = f"""<main class="seo-prerender">
-                        <h1>Diver Profile: {escaped_user}</h1>
-                        <p>Join {escaped_user} and the rest of the global scuba diving community on Divemap to rate dive sites and log dives.</p>
+                        <h1>Diver Profile: {user.username}</h1>
+                        <p>Join {user.username} and the rest of the global scuba diving community on Divemap to rate dive sites and log dives.</p>
                         <nav>
-                            <a href="/users/{raw_user}/analytics">Analytics Dashboard</a> · 
+                            <a href="/users/{user.username}/analytics">Analytics Dashboard</a> · 
                             <a href="/dive-sites">Browse Dive Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{raw_user}"
+                    canonical = f"{base_url}/users/{user.username}"
 
                 elif len(parts) == 3 and parts[2] == "analytics":
                     # User analytics
-                    page_title = f"Divemap - {escaped_user}'s Diving Analytics"
-                    description = f"Explore public diving metrics, depth distributions, and gas analytics for {escaped_user}."
+                    page_title = f"Divemap - {user.username}'s Diving Analytics"
+                    description = f"Explore public diving metrics, depth distributions, and gas analytics for {user.username}."
                     main_content = f"""<main class="seo-prerender">
-                        <h1>Diving Analytics: {escaped_user}</h1>
-                        <p>Advanced statistical depth and gas calculations for diver {escaped_user}.</p>
+                        <h1>Diving Analytics: {user.username}</h1>
+                        <p>Advanced statistical depth and gas calculations for diver {user.username}.</p>
                         <nav>
-                            <a href="/users/{raw_user}">Back to Profile</a>
+                            <a href="/users/{user.username}">Back to Profile</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{raw_user}/analytics"
+                    canonical = f"{base_url}/users/{user.username}/analytics"
 
                 elif len(parts) >= 4 and parts[2] == "lists":
-                    list_id_str = parts[3]
-                    try:
-                        list_id = int(list_id_str)
-                    except ValueError:
-                        raise HTTPException(status_code=404, detail="Invalid List ID")
-
-                    page_title = f"Divemap - {escaped_user}'s Dive Site List"
-                    description = f"Browse the custom dive site collection curated by {escaped_user} on Divemap."
+                    list_id = parts[3]
+                    page_title = f"Divemap - {user.username}'s Dive Site List"
+                    description = f"Browse the custom dive site collection curated by {user.username} on Divemap."
                     main_content = f"""<main class="seo-prerender">
                         <h1>Custom Dive Site Collection</h1>
-                        <p>A curated collection of scuba diving locations compiled by user {escaped_user}.</p>
+                        <p>A curated collection of scuba diving locations compiled by user {user.username}.</p>
                         <nav>
-                            <a href="/users/{raw_user}">Back to Profile</a> · 
+                            <a href="/users/{user.username}">Back to Profile</a> · 
                             <a href="/dive-sites">Browse All Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{raw_user}/lists/{list_id}"
+                    canonical = f"{base_url}/users/{user.username}/lists/{list_id}"
                 else:
                     raise HTTPException(status_code=404, detail="Page not found")
             else:
@@ -488,7 +410,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 </main>"""
                 canonical = f"{base_url}/resources"
 
-            elif len(parts) >= 2 and parts[1] == "tags":
+            elif parts[1] == "tags":
                 page_title = "Divemap - Diving Tags"
                 description = "Browse official community tags used to categorize dive sites and marine life."
                 main_content = """<main class="seo-prerender">
@@ -500,7 +422,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 </main>"""
                 canonical = f"{base_url}/resources/tags"
 
-            elif len(parts) >= 2 and parts[1] == "diving-organizations":
+            elif parts[1] == "diving-organizations":
                 orgs = db.query(DivingOrganization).all()
                 org_links = []
                 for o in orgs:
@@ -515,7 +437,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 )
                 canonical = f"{base_url}/resources/diving-organizations"
 
-            elif len(parts) >= 3 and parts[1] == "tools":
+            elif parts[1] == "tools" and len(parts) >= 3:
                 tool_id = parts[2]
                 page_title = f"Divemap - Scuba Calculator: {tool_id.upper()}"
                 description = f"Interactive dive planning calculator for {tool_id.upper()} calculations."
