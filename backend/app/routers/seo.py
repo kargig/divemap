@@ -27,6 +27,7 @@ from static_html import (
     render_listing_main,
     render_seo_page,
     resolve_html_template,
+    escape_text,
 )
 
 logger = logging.getLogger("divemap.seo")
@@ -85,10 +86,20 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
     Dynamic server-side pre-rendering endpoint. Intercepts public crawler/human GET paths,
     populates meta/JSON-LD/content elements, and returns them in the SPA index.html wrapper.
     """
-    # Build dynamic canonical base URL from request Host
+    # Build dynamic canonical base URL from request Host with validation (prevent Host Injection)
     host = request.headers.get("host", "divemap.blue")
     proto = request.headers.get("x-forwarded-proto", "https")
-    base_url = "https://divemap.blue" if "divemap.blue" in host or "divemap.gr" in host else f"{proto}://{host}"
+
+    allowed_dev_hosts = {"localhost", "127.0.0.1", "nginx", "frontend", "testserver"}
+    host_name = host.split(":")[0].lower()  # Strip port if present
+
+    if host_name in allowed_dev_hosts:
+        base_url = f"{proto}://{host}"
+    elif "divemap.gr" in host_name:
+        base_url = "https://divemap.gr"
+    else:
+        base_url = "https://divemap.blue"
+
     base_url = base_url.rstrip("/")
 
     # Parse path elements
@@ -330,15 +341,15 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     <nav class="breadcrumbs">
                         <a href="/">Home</a> &rsaquo; 
                         <a href="/dives">Dives</a> &rsaquo; 
-                        <span>{diver}'s Log</span>
+                        <span>{escape_text(diver)}'s Log</span>
                     </nav>
-                    <h1>{diver}'s dive at {site_name}</h1>
-                    <p><strong>Title:</strong> {dive.name or 'Unnamed Dive'}</p>
-                    <p><strong>Diver:</strong> <a href="/users/{diver}">{diver}</a></p>
-                    <p><strong>Dive Site:</strong> {site_name}</p>
+                    <h1>{escape_text(diver)}'s dive at {escape_text(site_name)}</h1>
+                    <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
+                    <p><strong>Diver:</strong> <a href="/users/{escape_text(diver)}">{escape_text(diver)}</a></p>
+                    <p><strong>Dive Site:</strong> {escape_text(site_name)}</p>
                     <p><strong>Max Depth:</strong> {dive.max_depth or 'Unknown'} m</p>
                     <p><strong>Duration:</strong> {dive.duration or 'Unknown'} mins</p>
-                    <p><strong>Notes:</strong> {dive.dive_information or 'No notes provided.'}</p>
+                    <p><strong>Notes:</strong> {escape_text(dive.dive_information or 'No notes provided.')}</p>
                 </main>"""
                 canonical = f"{base_url}{detail_path}"
 
@@ -349,46 +360,49 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 if not user:
                     raise HTTPException(status_code=404, detail="User not found")
 
+                # Securely escape usernames and other user-controlled variables
+                escaped_user = escape_text(user.username)
+
                 if len(parts) == 2:
                     # User profile page
-                    page_title = f"Divemap - User {user.username}"
-                    description = f"View {user.username}'s public diving profile, contributions, and community stats on Divemap."
+                    page_title = f"Divemap - User {escaped_user}"
+                    description = f"View {escaped_user}'s public diving profile, contributions, and community stats on Divemap."
                     main_content = f"""<main class="seo-prerender">
-                        <h1>Diver Profile: {user.username}</h1>
-                        <p>Join {user.username} and the rest of the global scuba diving community on Divemap to rate dive sites and log dives.</p>
+                        <h1>Diver Profile: {escaped_user}</h1>
+                        <p>Join {escaped_user} and the rest of the global scuba diving community on Divemap to rate dive sites and log dives.</p>
                         <nav>
-                            <a href="/users/{user.username}/analytics">Analytics Dashboard</a> · 
+                            <a href="/users/{escaped_user}/analytics">Analytics Dashboard</a> · 
                             <a href="/dive-sites">Browse Dive Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{user.username}"
+                    canonical = f"{base_url}/users/{escaped_user}"
 
                 elif len(parts) == 3 and parts[2] == "analytics":
                     # User analytics
-                    page_title = f"Divemap - {user.username}'s Diving Analytics"
-                    description = f"Explore public diving metrics, depth distributions, and gas analytics for {user.username}."
+                    page_title = f"Divemap - {escaped_user}'s Diving Analytics"
+                    description = f"Explore public diving metrics, depth distributions, and gas analytics for {escaped_user}."
                     main_content = f"""<main class="seo-prerender">
-                        <h1>Diving Analytics: {user.username}</h1>
-                        <p>Advanced statistical depth and gas calculations for diver {user.username}.</p>
+                        <h1>Diving Analytics: {escaped_user}</h1>
+                        <p>Advanced statistical depth and gas calculations for diver {escaped_user}.</p>
                         <nav>
-                            <a href="/users/{user.username}">Back to Profile</a>
+                            <a href="/users/{escaped_user}">Back to Profile</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{user.username}/analytics"
+                    canonical = f"{base_url}/users/{escaped_user}/analytics"
 
                 elif len(parts) >= 4 and parts[2] == "lists":
                     list_id = parts[3]
-                    page_title = f"Divemap - {user.username}'s Dive Site List"
-                    description = f"Browse the custom dive site collection curated by {user.username} on Divemap."
+                    page_title = f"Divemap - {escaped_user}'s Dive Site List"
+                    description = f"Browse the custom dive site collection curated by {escaped_user} on Divemap."
                     main_content = f"""<main class="seo-prerender">
                         <h1>Custom Dive Site Collection</h1>
-                        <p>A curated collection of scuba diving locations compiled by user {user.username}.</p>
+                        <p>A curated collection of scuba diving locations compiled by user {escaped_user}.</p>
                         <nav>
-                            <a href="/users/{user.username}">Back to Profile</a> · 
+                            <a href="/users/{escaped_user}">Back to Profile</a> · 
                             <a href="/dive-sites">Browse All Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{user.username}/lists/{list_id}"
+                    canonical = f"{base_url}/users/{escaped_user}/lists/{list_id}"
                 else:
                     raise HTTPException(status_code=404, detail="Page not found")
             else:
