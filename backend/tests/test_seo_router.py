@@ -233,3 +233,25 @@ def test_seo_junk_path_404(client):
     assert response.status_code == 404
     assert response.headers.get("X-Prerendered") == "404"
     assert "404 - Page Not Found" in response.text
+
+
+def test_seo_mismatched_slug_redirect(client, sample_data):
+    site, _, _, _, _, _ = sample_data
+    # Access with a mismatched slug should do a 301 Redirect
+    response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/completely-wrong-slug", follow_redirects=False)
+    assert response.status_code == 301
+    assert f"/dive-sites/{site.id}/greece-cyclades-seo-test-site" in response.headers["location"]
+
+
+def test_seo_invalid_username_404(client):
+    # Username with invalid URL-encoded characters should be rejected with 404
+    response = client.get("/api/v1/seo/html/users/some%2Fusername")
+    assert response.status_code == 404
+
+
+def test_seo_invalid_list_id_404(client, sample_data):
+    _, _, _, user, _, _ = sample_data
+    # Non-numeric list ID should be rejected with 404
+    response = client.get(f"/api/v1/seo/html/users/{user.username}/lists/abc")
+    assert response.status_code == 404
+    assert response.headers.get("X-Prerendered") == "404"

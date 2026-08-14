@@ -5,7 +5,7 @@ import sys
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import httpx
 from sqlalchemy.orm import Session, joinedload
 
@@ -122,7 +122,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
             sites = (
                 db.query(DiveSite)
                 .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
-                .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings))
                 .limit(20)
                 .all()
             )
@@ -142,7 +141,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 sites = (
                     db.query(DiveSite)
                     .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
-                    .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings))
                     .limit(100)
                     .all()
                 )
@@ -178,6 +176,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Dive Site not found")
 
                 slug = get_dive_site_slug(site)
+                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
+                requested_slug = parts[2] if len(parts) >= 3 else ""
+                if requested_slug != slug:
+                    redirect_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
+                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+
                 detail_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
                 avg, total = _site_rating_stats(site)
                 location_parts = [site.region, site.country]
@@ -222,6 +226,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Diving Center not found")
 
                 slug = get_diving_center_slug(center)
+                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
+                requested_slug = parts[2] if len(parts) >= 3 else ""
+                if requested_slug != slug:
+                    redirect_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
+                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+
                 detail_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
                 location_parts = [center.city or center.region, center.country]
                 location_suffix = ", ".join(filter(None, location_parts))
@@ -276,6 +286,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Dive Route not found")
 
                 slug = slugify(route.name)
+                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
+                requested_slug = parts[2] if len(parts) >= 3 else ""
+                if requested_slug != slug:
+                    redirect_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
+                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+
                 detail_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
                 page_title = f"Divemap - {route.name}"
 
@@ -335,6 +351,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 description = f"Read the log details of {diver}'s dive at {site_name}. Max depth: {dive.max_depth or 'unknown'}m, bottom time: {dive.duration or 'unknown'} mins."
 
                 slug = slugify(dive.name or f"dive-by-{diver}")
+                # Check for mismatched/missing slug and return 301 Redirect for canonicalization
+                requested_slug = parts[2] if len(parts) >= 3 else ""
+                if requested_slug != slug:
+                    redirect_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
+                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+
                 detail_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
 
                 main_content = f"""<main class="seo-prerender">
@@ -356,6 +378,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
         elif parts[0] == "users":
             if len(parts) >= 2:
                 username = parts[1]
+                # Validate username structure (alphanumeric, underscores, hyphens only) to prevent malicious URL parsing
+                if not re.match(r"^[a-zA-Z0-9_\-]+$", username):
+                    raise HTTPException(status_code=404, detail="Invalid username format")
+
                 user = db.query(User).filter(User.username == username).first()
                 if not user:
                     raise HTTPException(status_code=404, detail="User not found")
@@ -391,7 +417,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     canonical = f"{base_url}/users/{escaped_user}/analytics"
 
                 elif len(parts) >= 4 and parts[2] == "lists":
-                    list_id = parts[3]
+                    list_id_str = parts[3]
+                    try:
+                        list_id = int(list_id_str)
+                    except ValueError:
+                        raise HTTPException(status_code=404, detail="Invalid List ID")
+
                     page_title = f"Divemap - {escaped_user}'s Dive Site List"
                     description = f"Browse the custom dive site collection curated by {escaped_user} on Divemap."
                     main_content = f"""<main class="seo-prerender">
