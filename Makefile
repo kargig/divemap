@@ -90,6 +90,19 @@ lint-frontend:
 	@docker exec divemap_frontend npm run lint:fix -- --quiet > frontend-lint-errors.log 2>&1 || if [ $$(wc -l < frontend-lint-errors.log) -gt 2 ]; then echo "❌ Linting failed:"; cat frontend-lint-errors.log; exit 1; fi
 	@echo "✅ Linting complete. No errors found."
 
+# Lint development and production Nginx configuration files
+lint-nginx:
+	@echo "🔍 Linting Nginx configurations..."
+	@mkdir -p .nginx_lint_temp
+	@python3 -c "import os; content = open('nginx/dev.conf').read().replace('divemap_frontend:3000', '127.0.0.1:3000').replace('divemap_backend:8000', '127.0.0.1:8000'); open('.nginx_lint_temp/dev.conf', 'w').write(content)"
+	@echo "📂 Testing nginx/dev.conf syntax..."
+	@docker run --rm -v $$(pwd)/.nginx_lint_temp/dev.conf:/etc/nginx/nginx.conf:ro nginx:alpine nginx -t
+	@python3 -c "import os; content = open('nginx/prod.conf').read().replace('divemap-frontend.flycast:80', '127.0.0.1:80').replace('divemap-backend.flycast:80', '127.0.0.1:80'); open('.nginx_lint_temp/prod.conf', 'w').write(content)"
+	@echo "📂 Testing nginx/prod.conf syntax..."
+	@docker run --rm -v $$(pwd)/.nginx_lint_temp/prod.conf:/etc/nginx/nginx.conf:ro nginx:alpine nginx -t
+	@rm -rf .nginx_lint_temp
+	@echo "✅ All Nginx configuration syntax tests passed successfully!"
+
 # Purge Cloudflare cache
 purge-cache:
 	@echo "🧹 Purging Cloudflare cache for divemap.gr..."

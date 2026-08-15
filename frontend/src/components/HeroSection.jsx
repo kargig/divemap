@@ -81,7 +81,7 @@ const HeroSection = ({
                 <div className='pointer-events-none absolute inset-0 z-[1] flex items-center justify-center'>
                   <img
                     src='/divemap_logo_domain_top5_extend.png'
-                    alt=''
+                    alt='Divemap Extended Brand Header Logo'
                     className='max-h-[min(280px,55vh)] w-full object-contain object-center'
                     fetchpriority='high'
                   />
@@ -154,13 +154,13 @@ const HeroSection = ({
             {/* Desktop Logo */}
             <img
               src='/divemap-logo-hero-background.png'
-              alt=''
+              alt='Divemap Ocean Theme Desktop Hero Background'
               className='hidden md:block h-full w-full object-contain'
             />
             {/* Mobile Logo */}
             <img
               src='/divemap-logo-hero-background-mobile.png'
-              alt=''
+              alt='Divemap Ocean Theme Mobile Hero Background'
               className='md:hidden h-full w-full object-contain'
             />
           </div>
@@ -211,13 +211,13 @@ const HeroSection = ({
           {/* Desktop Logo */}
           <img
             src='/divemap-logo-hero-background.png'
-            alt=''
+            alt='Divemap Ocean Theme Desktop Hero Background'
             className='hidden md:block h-full w-full object-contain'
           />
           {/* Mobile Logo */}
           <img
             src='/divemap-logo-hero-background-mobile.png'
-            alt=''
+            alt='Divemap Ocean Theme Mobile Hero Background'
             className='md:hidden h-full w-full object-contain'
           />
         </div>

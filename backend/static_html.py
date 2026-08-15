@@ -433,25 +433,28 @@ def _build_head_injection(
     canonical: str,
     og_type: str = "website",
     json_ld: Optional[dict] = None,
+    include_description: bool = True,
 ) -> str:
-    lines = [
-        f'<meta name="description" content="{escape_text(description)}" />',
-        f'<link rel="canonical" href="{escape_text(canonical)}" />',
-        '<meta name="robots" content="index, follow, max-image-preview:large" />',
-        f'<meta property="og:locale" content="en_US" />',
-        f'<meta property="og:site_name" content="Divemap" />',
-        f'<meta property="og:type" content="{escape_text(og_type)}" />',
-        f'<meta property="og:title" content="{escape_text(title)}" />',
-        f'<meta property="og:description" content="{escape_text(description)}" />',
-        f'<meta property="og:url" content="{escape_text(canonical)}" />',
-        f'<meta name="twitter:card" content="summary" />',
-        f'<meta name="twitter:title" content="{escape_text(title)}" />',
-        f'<meta name="twitter:description" content="{escape_text(description)}" />',
-    ]
+    lines = []
+    if include_description:
+        lines.append(f'<meta name="description" content="{escape_text(description)}" data-rh="true" />')
+    lines.extend([
+        f'<link rel="canonical" href="{escape_text(canonical)}" data-rh="true" />',
+        '<meta name="robots" content="index, follow, max-image-preview:large" data-rh="true" />',
+        f'<meta property="og:locale" content="en_US" data-rh="true" />',
+        f'<meta property="og:site_name" content="Divemap" data-rh="true" />',
+        f'<meta property="og:type" content="{escape_text(og_type)}" data-rh="true" />',
+        f'<meta property="og:title" content="{escape_text(title)}" data-rh="true" />',
+        f'<meta property="og:description" content="{escape_text(description)}" data-rh="true" />',
+        f'<meta property="og:url" content="{escape_text(canonical)}" data-rh="true" />',
+        f'<meta name="twitter:card" content="summary" data-rh="true" />',
+        f'<meta name="twitter:title" content="{escape_text(title)}" data-rh="true" />',
+        f'<meta name="twitter:description" content="{escape_text(description)}" data-rh="true" />',
+    ])
     if json_ld:
         ld_json = json.dumps(json_ld, ensure_ascii=False)
         ld_json = ld_json.replace("</", "<\\/")
-        lines.append(f'<script type="application/ld+json">{ld_json}</script>')
+        lines.append(f'<script type="application/ld+json" data-rh="true">{ld_json}</script>')
     return "\n    ".join(lines)
 
 
@@ -465,12 +468,14 @@ def render_seo_page(
     og_type: str = "website",
     json_ld: Optional[dict] = None,
 ) -> str:
+    # Disable duplicate description injection since we replace the default meta description in the template below!
     head_injection = _build_head_injection(
         title=title,
         description=description,
         canonical=canonical,
         og_type=og_type,
         json_ld=json_ld,
+        include_description=False,
     )
 
     # Gorgeous navigation header matching the real app's fixed top navbar precisely

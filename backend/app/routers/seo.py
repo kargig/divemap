@@ -62,6 +62,10 @@ async def get_spa_template() -> Optional[str]:
             "http://nginx/index.html",
             "http://frontend:3000/",
         ]
+        # Dynamically prepend the production URL from an environment variable if defined
+        env_template_url = os.getenv("SPA_TEMPLATE_URL")
+        if env_template_url:
+            urls.insert(0, env_template_url)
 
         async with httpx.AsyncClient() as client:
             for url in urls:
