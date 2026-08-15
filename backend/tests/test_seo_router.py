@@ -255,3 +255,21 @@ def test_seo_invalid_list_id_404(client, sample_data):
     response = client.get(f"/api/v1/seo/html/users/{user.username}/lists/abc")
     assert response.status_code == 404
     assert response.headers.get("X-Prerendered") == "404"
+
+
+def test_seo_banned_user_profile_404(client, db_session, sample_data):
+    _, _, _, user, _, _ = sample_data
+    user.enabled = False
+    db_session.commit()
+
+    response = client.get(f"/api/v1/seo/html/users/{user.username}")
+    assert response.status_code == 404
+
+
+def test_seo_banned_user_dive_404(client, db_session, sample_data):
+    _, _, _, user, dive, _ = sample_data
+    user.enabled = False
+    db_session.commit()
+
+    response = client.get(f"/api/v1/seo/html/dives/{dive.id}/seo-test-dive-log")
+    assert response.status_code == 404

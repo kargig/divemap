@@ -37,7 +37,7 @@ router = APIRouter()
 
 # Global in-memory cache and concurrency lock for SPA index.html template
 _spa_template_cache: Optional[str] = None
-_spa_template_lock = asyncio.Lock()
+_spa_template_lock: Optional[asyncio.Lock] = None
 
 
 async def get_spa_template() -> Optional[str]:
@@ -46,9 +46,12 @@ async def get_spa_template() -> Optional[str]:
     Caches the template in-memory. Fetches from nginx or frontend dev servers,
     or falls back to disk files. Returns None if all sources fail.
     """
-    global _spa_template_cache
+    global _spa_template_cache, _spa_template_lock
     if _spa_template_cache is not None:
         return _spa_template_cache
+
+    if _spa_template_lock is None:
+        _spa_template_lock = asyncio.Lock()
 
     async with _spa_template_lock:
         # Double check after acquiring the lock to prevent thundering herd
@@ -415,8 +418,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 if not user:
                     raise HTTPException(status_code=404, detail="User not found")
 
-                # Securely escape usernames and other user-controlled variables
-                escaped_user = escape_text(user.username)
+                # Securely escape usernames and other user-controlled variables for display, but use raw for URLs
+                raw_user = user.username
+                escaped_user = escape_text(raw_user)
 
                 if len(parts) == 2:
                     # User profile page
@@ -426,11 +430,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         <h1>Diver Profile: {escaped_user}</h1>
                         <p>Join {escaped_user} and the rest of the global scuba diving community on Divemap to rate dive sites and log dives.</p>
                         <nav>
-                            <a href="/users/{escaped_user}/analytics">Analytics Dashboard</a> · 
+                            <a href="/users/{raw_user}/analytics">Analytics Dashboard</a> · 
                             <a href="/dive-sites">Browse Dive Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{escaped_user}"
+                    canonical = f"{base_url}/users/{raw_user}"
 
                 elif len(parts) == 3 and parts[2] == "analytics":
                     # User analytics
@@ -440,10 +444,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         <h1>Diving Analytics: {escaped_user}</h1>
                         <p>Advanced statistical depth and gas calculations for diver {escaped_user}.</p>
                         <nav>
-                            <a href="/users/{escaped_user}">Back to Profile</a>
+                            <a href="/users/{raw_user}">Back to Profile</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{escaped_user}/analytics"
+                    canonical = f"{base_url}/users/{raw_user}/analytics"
 
                 elif len(parts) >= 4 and parts[2] == "lists":
                     list_id_str = parts[3]
@@ -458,11 +462,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         <h1>Custom Dive Site Collection</h1>
                         <p>A curated collection of scuba diving locations compiled by user {escaped_user}.</p>
                         <nav>
-                            <a href="/users/{escaped_user}">Back to Profile</a> · 
+                            <a href="/users/{raw_user}">Back to Profile</a> · 
                             <a href="/dive-sites">Browse All Sites</a>
                         </nav>
                     </main>"""
-                    canonical = f"{base_url}/users/{escaped_user}/lists/{list_id}"
+                    canonical = f"{base_url}/users/{raw_user}/lists/{list_id}"
                 else:
                     raise HTTPException(status_code=404, detail="Page not found")
             else:
