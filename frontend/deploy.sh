@@ -56,6 +56,15 @@ else
     VAPID_BUILD_ARG=""
 fi
 
+# Check if VITE_GOOGLE_ANALYTICS_ID is set (optional)
+if [ -n "$VITE_GOOGLE_ANALYTICS_ID" ]; then
+    echo "Google Analytics ID: ${VITE_GOOGLE_ANALYTICS_ID:0:8}..."
+    GA_BUILD_ARG="--build-arg VITE_GOOGLE_ANALYTICS_ID=${VITE_GOOGLE_ANALYTICS_ID}"
+else
+    echo "Google Analytics ID: Not set"
+    GA_BUILD_ARG=""
+fi
+
 echo "Deploying frontend with configuration from $ENV_FILE file..."
 echo "Google Client ID: ${VITE_GOOGLE_CLIENT_ID:0:20}..."
 echo "API URL: $VITE_API_URL"
@@ -65,7 +74,8 @@ fly deploy -a divemap-frontend \
   --build-arg VITE_GOOGLE_CLIENT_ID="$VITE_GOOGLE_CLIENT_ID" \
   --build-arg VITE_API_URL="$VITE_API_URL" \
   $TURNSTILE_BUILD_ARG \
-  $VAPID_BUILD_ARG
+  $VAPID_BUILD_ARG \
+  $GA_BUILD_ARG
 
 echo "Deployment completed successfully!"
 echo "Visit your app at: https://divemap.gr/" 
