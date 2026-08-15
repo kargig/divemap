@@ -488,7 +488,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 </main>"""
                 canonical = f"{base_url}/resources"
 
-            elif parts[1] == "tags":
+            elif len(parts) >= 2 and parts[1] == "tags":
                 page_title = "Divemap - Diving Tags"
                 description = "Browse official community tags used to categorize dive sites and marine life."
                 main_content = """<main class="seo-prerender">
@@ -500,7 +500,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 </main>"""
                 canonical = f"{base_url}/resources/tags"
 
-            elif parts[1] == "diving-organizations":
+            elif len(parts) >= 2 and parts[1] == "diving-organizations":
                 orgs = db.query(DivingOrganization).all()
                 org_links = []
                 for o in orgs:
@@ -515,7 +515,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 )
                 canonical = f"{base_url}/resources/diving-organizations"
 
-            elif parts[1] == "tools" and len(parts) >= 3:
+            elif len(parts) >= 3 and parts[1] == "tools":
                 tool_id = parts[2]
                 page_title = f"Divemap - Scuba Calculator: {tool_id.upper()}"
                 description = f"Interactive dive planning calculator for {tool_id.upper()} calculations."
