@@ -388,24 +388,41 @@ def render_listing_main(title: str, intro: str, links: list[tuple[str, str]]) ->
 
 def render_homepage_main(featured_links: list[tuple[str, str]]) -> str:
     lines = [
-        '<main class="seo-prerender">',
-        "<h1>Divemap - Discover and Rate Scuba Dive Sites Worldwide</h1>",
-        "<p>The ultimate scuba diving platform. Discover and rate dive sites, log your dives, "
-        "plan trips, share underwater routes, and connect with the global diving community.</p>",
-        "<nav>",
-        '<a href="/dive-sites">Dive Sites</a> · ',
-        '<a href="/diving-centers">Diving Centers</a> · ',
-        '<a href="/dive-routes">Dive Routes</a> · ',
-        '<a href="/dives">Public Dives</a> · ',
-        '<a href="/about">About</a>',
-        "</nav>",
+        """<section class="relative text-white overflow-hidden py-16 px-4 mb-12" style="background-color: rgb(0, 114, 178); border-radius: 1.5rem; margin-top: 1rem; position: relative;">
+  <!-- Decorative background ocean pattern -->
+  <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0%, transparent 50%); position: absolute; inset: 0;"></div>
+  <div class="relative max-w-4xl mx-auto text-center" style="position: relative; max-width: 56rem; margin: 0 auto; text-align: center;">
+    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-white" style="font-size: 3rem; font-weight: 800; line-height: 1.2; margin-bottom: 1.5rem;">
+      Discover Amazing Dive Sites
+    </h1>
+    <p class="text-lg md:text-xl text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed" style="font-size: 1.125rem; color: #eff6ff; max-width: 42rem; margin: 0 auto 2.5rem auto; line-height: 1.625;">
+      The ultimate scuba diving platform. Discover and rate dive sites, log your dives, plan trips, share underwater routes, and connect with the global diving community.
+    </p>
+    <div class="flex flex-wrap justify-center gap-4" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="/dive-sites" class="bg-white text-blue-700 font-semibold px-6 py-3 rounded-xl hover:bg-blue-50 transition-all shadow-md" style="background-color: white; color: rgb(0, 114, 178); padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; text-decoration: none; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">Explore Dive Sites</a>
+      <a href="/register" class="bg-blue-800/50 text-white border border-blue-400/30 font-semibold px-6 py-3 rounded-xl hover:bg-blue-800 transition-all" style="background-color: rgba(30, 58, 138, 0.4); color: white; padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 600; border: 1px solid rgba(96, 165, 250, 0.3); text-decoration: none;">Join the Community</a>
+    </div>
+  </div>
+</section>""",
+        '<div class="max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8">',
+        '  <h2 class="text-2xl font-bold mb-8 text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-800 pb-4" style="font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-bottom: 2rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">Popular Dive Sites</h2>',
+        '  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">',
     ]
     if featured_links:
-        lines.append("<h2>Popular Dive Sites</h2><ul>")
         for label, href in featured_links[:20]:
-            lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
-        lines.append("</ul>")
-    lines.append("</main>")
+            lines.append(f"""    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between" style="border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 1rem; background-color: white; display: flex; flex-direction: column; justify-content: space-between; height: 160px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05);">
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-wider mb-2 block" style="font-size: 0.75rem; font-weight: 600; color: rgb(0, 114, 178); display: block; margin-bottom: 0.5rem;">DIVE SITE</span>
+        <h3 class="text-lg font-bold mb-2" style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f172a; line-height: 1.3;">
+          <a href="{escape_text(href)}" class="text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400" style="color: #0f172a; text-decoration: none;">{escape_text(label)}</a>
+        </h3>
+      </div>
+      <div class="flex items-center text-xs font-medium" style="color: rgb(0, 114, 178); font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+        <span>View Details &rarr;</span>
+      </div>
+    </div>""")
+    lines.append("  </div>")
+    lines.append("</div>")
     return "\n".join(lines)
 
 
@@ -456,6 +473,100 @@ def render_seo_page(
         json_ld=json_ld,
     )
 
+    # Gorgeous navigation header matching the real app's fixed top navbar precisely
+    navbar_html = """<nav class="text-white shadow-lg fixed top-0 left-0 right-0 z-[60]" style="background-color: rgb(0, 114, 178); height: 4rem; width: 100%; font-family: system-ui, -apple-system, sans-serif;">
+  <div class="container mx-auto px-4 relative z-20" style="max-width: 80rem; margin: 0 auto; padding: 0 1rem;">
+    <div class="flex justify-between items-center h-16" style="display: flex; justify-content: space-between; align-items: center; height: 4rem;">
+      <a class="flex items-center space-x-2" href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: white;">
+        <img src="/divemap_navbar_logo.png" alt="Divemap Logo" class="h-10 w-10 drop-shadow-sm" style="height: 2.5rem; width: 2.5rem;">
+        <span class="font-bold text-lg text-white" style="font-weight: 700; font-size: 1.125rem;">Divemap</span>
+      </a>
+      
+      <!-- Search Combobox Mock (Middle) -->
+      <div class="hidden md:flex flex-1 max-w-xl mx-6" style="display: flex; flex: 1; max-width: 36rem; margin: 0 1.5rem;">
+        <div class="flex h-10 w-full items-center rounded-md border bg-white px-3 py-2 text-sm border-gray-300" style="display: flex; align-items: center; background-color: white; width: 100%; height: 2.5rem; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+          <span class="text-gray-500 truncate" style="color: #6b7280; font-size: 0.875rem;">Search dives, sites, centers...</span>
+        </div>
+      </div>
+      
+      <!-- Right Nav Links -->
+      <div class="flex items-center space-x-6" style="display: flex; align-items: center; gap: 1.5rem;">
+        <a class="hidden sm:flex items-center space-x-1 text-white hover:text-blue-200 transition-colors text-sm" href="/" style="color: white; text-decoration: none; font-size: 0.875rem; display: flex; align-items: center; gap: 0.25rem;">
+          <span>Home</span>
+        </a>
+        <a class="hidden sm:flex items-center space-x-1 text-white hover:text-blue-200 transition-colors text-sm" href="/map" style="color: white; text-decoration: none; font-size: 0.875rem; display: flex; align-items: center; gap: 0.25rem;">
+          <span>Map</span>
+        </a>
+        <a class="hidden sm:flex items-center space-x-1 text-white hover:text-blue-200 transition-colors text-sm" href="/dive-sites" style="color: white; text-decoration: none; font-size: 0.875rem; display: flex; align-items: center; gap: 0.25rem;">
+          <span>Dive Sites</span>
+        </a>
+        <div class="flex items-center space-x-4" style="display: flex; align-items: center; gap: 1rem;">
+          <a class="inline-flex items-center justify-center font-medium rounded-md transition-colors px-4 py-2 text-sm bg-blue-700 hover:bg-blue-800 text-white border border-blue-400" href="/login" style="background-color: #1d4ed8; color: white; border: 1px solid #60a5fa; padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; text-decoration: none;">Login</a>
+          <a class="inline-flex items-center justify-center font-medium rounded-md transition-colors px-4 py-2 text-sm bg-white border border-blue-600 text-blue-600" href="/register" style="background-color: white; color: rgb(0, 114, 178); border: 1px solid rgb(0, 114, 178); padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; text-decoration: none;">Register</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>"""
+
+    # Determine if this is the Homepage to apply the full-width layout
+    # Home canonical is '/' or ends with port, check title or canonical
+    is_homepage = "Discover and Rate" in title or canonical.rstrip("/").split("/")[-1] == "" or canonical.rstrip("/") == "https://divemap.blue"
+
+    if is_homepage:
+        styled_content = f"""{navbar_html}
+<div class="min-h-screen bg-slate-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pb-20 pt-16" style="background-color: #f8fafc; min-height: 100vh; padding-top: 4rem; padding-bottom: 5rem;">
+  <div class="prose-custom">
+    {main_content}
+  </div>
+</div>"""
+    else:
+        styled_content = f"""{navbar_html}
+<div class="min-h-screen bg-slate-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 pb-20 pt-16" style="background-color: #f8fafc; min-height: 100vh; padding-top: 4rem; padding-bottom: 5rem;">
+  <div class="max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 pt-8" style="max-width: 80rem; margin: 0 auto; padding: 2rem 1rem 0 1rem;">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 md:p-10 shadow-sm" style="background-color: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 2.5rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+      <div class="prose-custom">
+        {main_content}
+      </div>
+    </div>
+  </div>
+</div>"""
+
+    # Custom CSS overrides to bypass Tailwind Preflight CSS Reset defaults for crawlers/human preload state
+    seo_custom_styles = """
+    <style>
+      .prose-custom h1 { font-size: 2.25rem; font-weight: 800; color: #0f172a; margin-bottom: 1.5rem; line-height: 1.25; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom h1 { color: #60a5fa; }
+      .prose-custom h2 { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin-top: 2.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom h2 { color: #f8fafc; border-color: #1e293b; }
+      .prose-custom p { margin-bottom: 1.25rem; line-height: 1.625; color: #334155; font-size: 1rem; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom p { color: #94a3b8; }
+      .prose-custom strong { font-weight: 600; color: #0f172a; }
+      .dark .prose-custom strong { color: #f1f5f9; }
+      .prose-custom a { color: rgb(0, 114, 178); font-weight: 500; text-decoration: none; transition: color 0.15s; }
+      .prose-custom a:hover { color: #1d4ed8; text-decoration: underline; }
+      .dark .prose-custom a { color: #60a5fa; }
+      .dark .prose-custom a:hover { color: #93c5fd; }
+      
+      .prose-custom nav[aria-label="Breadcrumb"] { font-size: 0.875rem; margin-bottom: 1.5rem; color: #64748b; font-weight: 500; font-family: system-ui, -apple-system, sans-serif; }
+      .prose-custom nav[aria-label="Breadcrumb"] a { color: #64748b; text-decoration: none; }
+      .prose-custom nav[aria-label="Breadcrumb"] a:hover { color: rgb(0, 114, 178); text-decoration: underline; }
+      .dark .prose-custom nav[aria-label="Breadcrumb"] a { color: #94a3b8; }
+      
+      .prose-custom nav[aria-label="Related pages"] { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; }
+      .dark .prose-custom nav[aria-label="Related pages"] { border-color: #1e293b; }
+      
+      .prose-custom ul { list-style-type: none; padding-left: 0; margin-top: 1rem; margin-bottom: 1rem; }
+      .prose-custom li { padding: 0.875rem 1.25rem; margin-bottom: 0.75rem; border-radius: 0.75rem; background-color: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.15s; font-family: system-ui, -apple-system, sans-serif; }
+      .dark .prose-custom li { background-color: #0f172a; border-color: #1e293b; }
+      .prose-custom li:hover { background-color: #eff6ff; border-color: #bfdbfe; }
+      .dark .prose-custom li:hover { background-color: #1e3a8a; border-color: #3b82f6; }
+      .prose-custom li a { display: block; width: 100%; font-size: 1rem; font-weight: 600; text-decoration: none; }
+    </style>
+    """
+
+    head_injection = f"{head_injection}\n    {seo_custom_styles}"
+
     if template_html:
         page = template_html
         page = re.sub(r"<title>[^<]*</title>", f"<title>{escape_text(title)}</title>", page, count=1)
@@ -468,7 +579,7 @@ def render_seo_page(
         page = page.replace("</title>", f"</title>\n    {head_injection}", 1)
         page = re.sub(
             r"(<div id=\"root\">).*?(</div>)",
-            rf"\1\n{main_content}\n      \2",
+            rf"\1\n{styled_content}\n      \2",
             page,
             count=1,
             flags=re.DOTALL,
@@ -480,10 +591,12 @@ def render_seo_page(
 <head>
   <meta charset="utf-8" />
   <title>{escape_text(title)}</title>
-  {_build_head_injection(title=title, description=description, canonical=canonical, og_type=og_type, json_ld=json_ld)}
+  {head_injection}
 </head>
 <body>
-  {main_content}
+  <div id="root">
+    {styled_content}
+  </div>
 </body>
 </html>"""
 
