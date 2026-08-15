@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import re
@@ -34,8 +35,9 @@ logger = logging.getLogger("divemap.seo")
 
 router = APIRouter()
 
-# Global in-memory cache for SPA index.html template
+# Global in-memory cache and concurrency lock for SPA index.html template
 _spa_template_cache: Optional[str] = None
+_spa_template_lock = asyncio.Lock()
 
 
 async def get_spa_template() -> Optional[str]:
@@ -48,36 +50,41 @@ async def get_spa_template() -> Optional[str]:
     if _spa_template_cache is not None:
         return _spa_template_cache
 
-    urls = [
-        "http://nginx/index.html",
-        "http://frontend:3000/",
-    ]
-
-    async with httpx.AsyncClient() as client:
-        for url in urls:
-            try:
-                # Set Host: localhost header to bypass Vite's internal Host Validation
-                response = await client.get(url, timeout=1.5, headers={"Host": "localhost"})
-                if response.status_code == 200 and response.text:
-                    logger.info(f"Successfully fetched SPA template from {url}")
-                    _spa_template_cache = response.text
-                    return _spa_template_cache
-            except Exception as e:
-                logger.debug(f"Failed to fetch SPA template from {url}: {e}")
-
-    # Local disk fallbacks
-    template_path = resolve_html_template()
-    if template_path and os.path.isfile(template_path):
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                _spa_template_cache = f.read()
-            logger.info(f"Successfully read SPA template from disk: {template_path}")
+    async with _spa_template_lock:
+        # Double check after acquiring the lock to prevent thundering herd
+        if _spa_template_cache is not None:
             return _spa_template_cache
-        except Exception as e:
-            logger.error(f"Failed to read SPA template from {template_path}: {e}")
 
-    logger.warning("No SPA template could be loaded. Falling back to clean semantic-only HTML response.")
-    return None
+        urls = [
+            "http://nginx/index.html",
+            "http://frontend:3000/",
+        ]
+
+        async with httpx.AsyncClient() as client:
+            for url in urls:
+                try:
+                    # Set Host: localhost header to bypass Vite's internal Host Validation
+                    response = await client.get(url, timeout=1.5, headers={"Host": "localhost"})
+                    if response.status_code == 200 and response.text:
+                        logger.info(f"Successfully fetched SPA template from {url}")
+                        _spa_template_cache = response.text
+                        return _spa_template_cache
+                except Exception as e:
+                    logger.debug(f"Failed to fetch SPA template from {url}: {e}")
+
+        # Local disk fallbacks
+        template_path = resolve_html_template()
+        if template_path and os.path.isfile(template_path):
+            try:
+                with open(template_path, "r", encoding="utf-8") as f:
+                    _spa_template_cache = f.read()
+                logger.info(f"Successfully read SPA template from disk: {template_path}")
+                return _spa_template_cache
+            except Exception as e:
+                logger.error(f"Failed to read SPA template from {template_path}: {e}")
+
+        logger.warning("No SPA template could be loaded. Falling back to clean semantic-only HTML response.")
+        return None
 
 
 @router.get("/html/{path:path}", response_class=HTMLResponse)
@@ -303,9 +310,15 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
         elif parts[0] == "dives":
             if len(parts) == 1:
                 # Public Dives Directory Listing
+                # Fetch dives only associated with active, non-deleted users
                 dives = (
                     db.query(Dive)
-                    .filter(Dive.is_private == False)
+                    .join(User, Dive.user_id == User.id)
+                    .filter(
+                        Dive.is_private == False,
+                        User.enabled == True,
+                        User.deleted_at.is_(None)
+                    )
                     .options(joinedload(Dive.user), joinedload(Dive.dive_site))
                     .order_by(Dive.id.desc())
                     .limit(100)
@@ -336,9 +349,16 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 except ValueError:
                     raise HTTPException(status_code=404, detail="Invalid Dive ID")
 
+                # Query dive only if associated with active, non-deleted users
                 dive = (
                     db.query(Dive)
-                    .filter(Dive.id == dive_id, Dive.is_private == False)
+                    .join(User, Dive.user_id == User.id)
+                    .filter(
+                        Dive.id == dive_id,
+                        Dive.is_private == False,
+                        User.enabled == True,
+                        User.deleted_at.is_(None)
+                    )
                     .options(joinedload(Dive.user), joinedload(Dive.dive_site))
                     .first()
                 )
@@ -369,8 +389,8 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
                     <p><strong>Diver:</strong> <a href="/users/{escape_text(diver)}">{escape_text(diver)}</a></p>
                     <p><strong>Dive Site:</strong> {escape_text(site_name)}</p>
-                    <p><strong>Max Depth:</strong> {dive.max_depth or 'Unknown'} m</p>
-                    <p><strong>Duration:</strong> {dive.duration or 'Unknown'} mins</p>
+                    <p><strong>Max Depth:</strong> {escape_text(str(dive.max_depth)) if dive.max_depth is not None else 'Unknown'} m</p>
+                    <p><strong>Duration:</strong> {escape_text(str(dive.duration)) if dive.duration is not None else 'Unknown'} mins</p>
                     <p><strong>Notes:</strong> {escape_text(dive.dive_information or 'No notes provided.')}</p>
                 </main>"""
                 canonical = f"{base_url}{detail_path}"
@@ -382,7 +402,16 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 if not re.match(r"^[a-zA-Z0-9_\-]+$", username):
                     raise HTTPException(status_code=404, detail="Invalid username format")
 
-                user = db.query(User).filter(User.username == username).first()
+                # Fetch only active, non-deleted users
+                user = (
+                    db.query(User)
+                    .filter(
+                        User.username == username,
+                        User.enabled == True,
+                        User.deleted_at.is_(None)
+                    )
+                    .first()
+                )
                 if not user:
                     raise HTTPException(status_code=404, detail="User not found")
 
