@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import random
 import re
 import sys
 from typing import Optional
@@ -201,7 +202,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Extract a random photo media URL if available
                 photos = [m for m in site.media if m.media_type == MediaType.photo] if site.media else []
                 if photos:
-                    import random
                     photo_media = random.choice(photos)
                     image_url = make_absolute_url(photo_media.url, base_url)
 
@@ -395,7 +395,6 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Extract a random photo media URL if available
                 photos = [m for m in dive.media if m.media_type == MediaType.photo] if dive.media else []
                 if photos:
-                    import random
                     photo_media = random.choice(photos)
                     image_url = make_absolute_url(photo_media.url, base_url)
 

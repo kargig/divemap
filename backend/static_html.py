@@ -447,7 +447,7 @@ def _build_head_injection(
     title: str,
     description: str,
     canonical: str,
-    base_url: str,
+    base_url: Optional[str] = None,
     og_type: str = "website",
     json_ld: Optional[dict] = None,
     include_description: bool = True,
@@ -457,7 +457,13 @@ def _build_head_injection(
     if include_description:
         lines.append(f'<meta name="description" content="{escape_text(description)}" data-rh="true" />')
     
-    logo_url = f"{base_url.rstrip('/')}/divemap_navbar_logo.png"
+    if not base_url and canonical.startswith(("http://", "https://")):
+        match = re.match(r"(https?://[^/]+)", canonical)
+        if match:
+            base_url = match.group(1)
+            
+    resolved_base_url = base_url or ""
+    logo_url = f"{resolved_base_url.rstrip('/')}/divemap_navbar_logo.png"
 
     lines.extend([
         f'<link rel="canonical" href="{escape_text(canonical)}" data-rh="true" />',
@@ -479,16 +485,11 @@ def _build_head_injection(
         ])
     else:
         lines.extend([
+            f'<meta property="og:image" content="{escape_text(logo_url)}" data-rh="true" />',
+            f'<meta property="og:image:secure_url" content="{escape_text(logo_url)}" data-rh="true" />',
+            f'<meta name="twitter:image" content="{escape_text(logo_url)}" data-rh="true" />',
             f'<meta name="twitter:card" content="summary" data-rh="true" />',
         ])
-
-    # Include the main logo in all previews (along with the custom image, or as the only image)
-    lines.extend([
-        f'<meta property="og:image" content="{escape_text(logo_url)}" data-rh="true" />',
-        f'<meta property="og:image:secure_url" content="{escape_text(logo_url)}" data-rh="true" />',
-    ])
-    if not image_url:
-        lines.append(f'<meta name="twitter:image" content="{escape_text(logo_url)}" data-rh="true" />')
 
     lines.extend([
         f'<meta name="twitter:title" content="{escape_text(title)}" data-rh="true" />',
@@ -509,7 +510,7 @@ def render_seo_page(
     description: str,
     canonical: str,
     main_content: str,
-    base_url: str,
+    base_url: Optional[str] = None,
     og_type: str = "website",
     json_ld: Optional[dict] = None,
     image_url: Optional[str] = None,

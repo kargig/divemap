@@ -140,6 +140,7 @@ def test_seo_dive_site_detail(client, db_session, sample_data):
     assert response.status_code == 200
     html = response.text
     assert 'meta property="og:image" content="https://localhost/uploads/test_photo.jpg"' in html
+    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' not in html
     assert 'meta name="twitter:card" content="summary_large_image"' in html
 
 
