@@ -67,7 +67,7 @@ import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel } from '../utils/difficultyHelpers';
-import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { decodeHtmlEntities, stripHtmlTags } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
@@ -454,7 +454,7 @@ const DiveSiteDetail = () => {
     }
 
     if (diveSite.description) {
-      const cleanDesc = decodeHtmlEntities(diveSite.description.replace(/<[^>]+>/g, '')).trim();
+      const cleanDesc = decodeHtmlEntities(stripHtmlTags(diveSite.description)).trim();
       if (cleanDesc) {
         parts.push(cleanDesc.substring(0, 100) + (cleanDesc.length > 100 ? '...' : ''));
       }

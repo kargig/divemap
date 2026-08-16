@@ -21,3 +21,22 @@ export const decodeHtmlEntities = html => {
     return textarea.value;
   });
 };
+
+/**
+ * Robustly strips HTML tags from a string using the browser's native DOMParser.
+ * Fallback to regex is provided if DOMParser is unavailable.
+ * @param {string} html - The raw HTML string
+ * @returns {string} - The stripped plain text string
+ */
+export const stripHtmlTags = html => {
+  if (!html || typeof html !== 'string') {
+    return '';
+  }
+  try {
+    const parser = new window.DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  } catch (e) {
+    return html.replace(/<[^>]+>/g, '');
+  }
+};

@@ -277,14 +277,15 @@ async def add_security_headers(request, call_next):
             "object-src 'self'"
         )
     else:
-        # Stricter CSP for API endpoints
+        # Stricter CSP for API endpoints but dynamic enough for SPA pre-rendering and dev assets
         csp_policy = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self'; "
-            "font-src 'self'; "
-            "connect-src 'self'"
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "connect-src 'self' ws: wss: https:; "
+            "frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com"
         )
 
     response.headers["Content-Security-Policy"] = csp_policy
