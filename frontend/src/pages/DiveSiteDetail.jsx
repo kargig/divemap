@@ -67,7 +67,7 @@ import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel } from '../utils/difficultyHelpers';
-import { decodeHtmlEntities } from '../utils/htmlDecode';
+import { decodeHtmlEntities, stripHtmlTags } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
@@ -440,13 +440,24 @@ const DiveSiteDetail = () => {
     ];
 
     if (diveSite.max_depth) {
-      parts.push(`Max depth: ${diveSite.max_depth}m.`);
+      parts.push(`Max depth: ${Number(diveSite.max_depth)}m.`);
     }
 
     if (diveSite.total_ratings > 0) {
-      parts.push(`Read ${diveSite.total_ratings} reviews and see photos.`);
+      if (diveSite.average_rating) {
+        parts.push(`Rated ${Number(diveSite.average_rating).toFixed(1)}/10.`);
+      }
+      const reviewWord = diveSite.total_ratings === 1 ? 'review' : 'reviews';
+      parts.push(`Read ${diveSite.total_ratings} ${reviewWord} and see photos.`);
     } else {
       parts.push('Be the first to share your experience and photos!');
+    }
+
+    if (diveSite.description) {
+      const cleanDesc = decodeHtmlEntities(stripHtmlTags(diveSite.description)).trim();
+      if (cleanDesc) {
+        parts.push(cleanDesc.substring(0, 100) + (cleanDesc.length > 100 ? '...' : ''));
+      }
     }
 
     return parts.join(' ');

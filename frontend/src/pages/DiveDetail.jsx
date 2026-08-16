@@ -324,7 +324,7 @@ const DiveDetail = () => {
     ];
 
     if (dive.max_depth) {
-      parts.push(`Max depth: ${dive.max_depth}m.`);
+      parts.push(`Max depth: ${Number(dive.max_depth)}m.`);
     }
 
     if (dive.duration) {
