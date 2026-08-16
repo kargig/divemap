@@ -14,7 +14,7 @@ class SocialImageService:
         ]
         self.default_font_path = next((p for p in self.font_paths if os.path.exists(p)), None)
 
-    def generate(self, dive, profile_data, image_bytes, crop_params, full_url="divemap.gr", requested_metrics=None):
+    def generate(self, dive, profile_data, image_bytes, crop_params, full_url="divemap.blue", requested_metrics=None):
         """
         Generates a social media image with dive profile, metadata, and full URL.
         """

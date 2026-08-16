@@ -130,7 +130,9 @@ def test_json_ld_is_valid_in_output():
         main_content="<main><h1>Test</h1></main>",
         json_ld={"@context": "https://schema.org", "@type": "Place", "name": "Test"},
     )
-    start = page.index('application/ld+json">') + len('application/ld+json">')
+    # Find the script tag and locate its closing '>' to find the JSON-LD payload start robustly
+    tag_index = page.index('type="application/ld+json"')
+    start = page.index('>', tag_index) + 1
     end = page.index("</script>", start)
     payload = json.loads(page[start:end])
     assert payload["@type"] == "Place"

@@ -53,7 +53,7 @@ Use this only for maintaining older versions or if explicitly requested to use B
 ### 3. Verify Digital Asset Links (TWA Only)
 1. Check `frontend/public/.well-known/assetlinks.json`.
 2. Ensure it contains the SHA-256 fingerprints for both the Bubblewrap keystore and Google Play App Signing.
-3. Verify at `https://divemap.gr/.well-known/assetlinks.json`.
+3. Verify at `https://divemap.blue/.well-known/assetlinks.json`.
 
 ---
 

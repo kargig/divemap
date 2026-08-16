@@ -96,7 +96,7 @@ Pass your PAT in the `Authorization` header just like a standard JWT:
 
 ```bash
 curl -H "Authorization: Bearer dm_pat_abc123..." \
-     https://divemap.gr/api/v1/auth/me
+     https://divemap.blue/api/v1/auth/me
 ```text
 
 #### Rate Limiting for PATs

@@ -550,8 +550,8 @@ const Privacy = () => {
                   contact us:
                 </p>
                 <div className='space-y-1 text-gray-600 dark:text-gray-400'>
-                  <p>Email: privacy@divemap.gr</p>
-                  <p>Subject: Divemap.gr Privacy Policy Inquiry</p>
+                  <p>Email: privacy@divemap.blue</p>
+                  <p>Subject: Divemap.blue Privacy Policy Inquiry</p>
                 </div>
               </div>
             </section>

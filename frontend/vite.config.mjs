@@ -155,7 +155,7 @@ export default defineConfig(({ mode }) => {
     server: {
     host: true, // Needed for Docker
     port: 3000, // Maintain existing port
-    allowedHosts: ['dev.divemap.gr'], // Fix DNS rebinding block
+    allowedHosts: ['dev.divemap.gr','dev.divemap.blue'], // Fix DNS rebinding block
     watch: {
       usePolling: true, // Needed for some Docker environments
     },

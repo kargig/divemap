@@ -1,15 +1,15 @@
 {
   "linkset": [
     {
-      "anchor": "https://divemap.gr/api/v1/",
+      "anchor": "https://divemap.blue/api/v1/",
       "service-desc": [
-        {"href": "https://divemap.gr/openapi.json", "type": "application/vnd.oai.openapi+json;version=3.1.0"}
+        {"href": "https://divemap.blue/openapi.json", "type": "application/vnd.oai.openapi+json;version=3.1.0"}
       ],
       "service-doc": [
-        {"href": "https://divemap.gr/docs", "type": "text/html"}
+        {"href": "https://divemap.blue/docs", "type": "text/html"}
       ],
       "status": [
-        {"href": "https://divemap.gr/api/v1/health", "type": "application/json"}
+        {"href": "https://divemap.blue/api/v1/health", "type": "application/json"}
       ]
     }
   ]
