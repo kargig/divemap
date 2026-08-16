@@ -440,13 +440,24 @@ const DiveSiteDetail = () => {
     ];
 
     if (diveSite.max_depth) {
-      parts.push(`Max depth: ${diveSite.max_depth}m.`);
+      parts.push(`Max depth: ${Number(diveSite.max_depth)}m.`);
     }
 
     if (diveSite.total_ratings > 0) {
-      parts.push(`Read ${diveSite.total_ratings} reviews and see photos.`);
+      if (diveSite.average_rating) {
+        parts.push(`Rated ${Number(diveSite.average_rating).toFixed(1)}/10.`);
+      }
+      const reviewWord = diveSite.total_ratings === 1 ? 'review' : 'reviews';
+      parts.push(`Read ${diveSite.total_ratings} ${reviewWord} and see photos.`);
     } else {
       parts.push('Be the first to share your experience and photos!');
+    }
+
+    if (diveSite.description) {
+      const cleanDesc = decodeHtmlEntities(diveSite.description.replace(/<[^>]+>/g, '')).trim();
+      if (cleanDesc) {
+        parts.push(cleanDesc.substring(0, 100) + (cleanDesc.length > 100 ? '...' : ''));
+      }
     }
 
     return parts.join(' ');

@@ -53,6 +53,18 @@ def resolve_html_template() -> Optional[str]:
     return None
 
 
+def format_depth(depth: Any) -> str:
+    if depth is None:
+        return ""
+    try:
+        val = float(depth)
+        if val.is_integer():
+            return str(int(val))
+        return str(val)
+    except (ValueError, TypeError):
+        return str(depth)
+
+
 def _site_rating_stats(site: DiveSite) -> tuple[Optional[float], int]:
     ratings = getattr(site, "ratings", None) or []
     if not ratings:
@@ -66,11 +78,15 @@ def dive_site_meta_description(site: DiveSite, avg_rating: Optional[float], tota
     difficulty = site.difficulty.label if site.difficulty else "scuba"
     parts = [f"{site.name} is a {difficulty} dive site in {site.country or 'the world'}."]
     if site.max_depth:
-        parts.append(f"Max depth: {site.max_depth}m.")
+        parts.append(f"Max depth: {format_depth(site.max_depth)}m.")
     if total_ratings > 0 and avg_rating is not None:
-        parts.append(f"Read {total_ratings} reviews and see photos.")
+        parts.append(f"Rated {avg_rating:.1f}/10.")
+        review_word = "review" if total_ratings == 1 else "reviews"
+        parts.append(f"Read {total_ratings} {review_word} and see photos.")
     else:
         parts.append("Be the first to share your experience and photos!")
+    if site.description:
+        parts.append(truncate(strip_html_tags(site.description), 100))
     return " ".join(parts)
 
 
@@ -278,7 +294,7 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
 
     meta_bits = []
     if site.max_depth:
-        meta_bits.append(f"Max depth: {site.max_depth}m")
+        meta_bits.append(f"Max depth: {format_depth(site.max_depth)}m")
     if site.difficulty:
         meta_bits.append(f"Difficulty: {site.difficulty.label}")
     if site.latitude is not None and site.longitude is not None:
@@ -431,13 +447,18 @@ def _build_head_injection(
     title: str,
     description: str,
     canonical: str,
+    base_url: str,
     og_type: str = "website",
     json_ld: Optional[dict] = None,
     include_description: bool = True,
+    image_url: Optional[str] = None,
 ) -> str:
     lines = []
     if include_description:
         lines.append(f'<meta name="description" content="{escape_text(description)}" data-rh="true" />')
+    
+    logo_url = f"{base_url.rstrip('/')}/divemap_navbar_logo.png"
+
     lines.extend([
         f'<link rel="canonical" href="{escape_text(canonical)}" data-rh="true" />',
         '<meta name="robots" content="index, follow, max-image-preview:large" data-rh="true" />',
@@ -447,10 +468,33 @@ def _build_head_injection(
         f'<meta property="og:title" content="{escape_text(title)}" data-rh="true" />',
         f'<meta property="og:description" content="{escape_text(description)}" data-rh="true" />',
         f'<meta property="og:url" content="{escape_text(canonical)}" data-rh="true" />',
-        f'<meta name="twitter:card" content="summary" data-rh="true" />',
+    ])
+
+    if image_url:
+        lines.extend([
+            f'<meta property="og:image" content="{escape_text(image_url)}" data-rh="true" />',
+            f'<meta property="og:image:secure_url" content="{escape_text(image_url)}" data-rh="true" />',
+            f'<meta name="twitter:image" content="{escape_text(image_url)}" data-rh="true" />',
+            f'<meta name="twitter:card" content="summary_large_image" data-rh="true" />',
+        ])
+    else:
+        lines.extend([
+            f'<meta name="twitter:card" content="summary" data-rh="true" />',
+        ])
+
+    # Include the main logo in all previews (along with the custom image, or as the only image)
+    lines.extend([
+        f'<meta property="og:image" content="{escape_text(logo_url)}" data-rh="true" />',
+        f'<meta property="og:image:secure_url" content="{escape_text(logo_url)}" data-rh="true" />',
+    ])
+    if not image_url:
+        lines.append(f'<meta name="twitter:image" content="{escape_text(logo_url)}" data-rh="true" />')
+
+    lines.extend([
         f'<meta name="twitter:title" content="{escape_text(title)}" data-rh="true" />',
         f'<meta name="twitter:description" content="{escape_text(description)}" data-rh="true" />',
     ])
+
     if json_ld:
         ld_json = json.dumps(json_ld, ensure_ascii=False)
         ld_json = ld_json.replace("</", "<\\/")
@@ -465,17 +509,21 @@ def render_seo_page(
     description: str,
     canonical: str,
     main_content: str,
+    base_url: str,
     og_type: str = "website",
     json_ld: Optional[dict] = None,
+    image_url: Optional[str] = None,
 ) -> str:
     # Disable duplicate description injection since we replace the default meta description in the template below!
     head_injection = _build_head_injection(
         title=title,
         description=description,
         canonical=canonical,
+        base_url=base_url,
         og_type=og_type,
         json_ld=json_ld,
         include_description=False,
+        image_url=image_url,
     )
 
     # Gorgeous navigation header matching the real app's fixed top navbar precisely

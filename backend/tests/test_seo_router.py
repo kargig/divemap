@@ -1,6 +1,6 @@
 from datetime import date
 import pytest
-from app.models import DiveSite, DivingCenter, DiveRoute, DifficultyLevel, User, Dive, DivingOrganization
+from app.models import DiveSite, DivingCenter, DiveRoute, DifficultyLevel, User, Dive, DivingOrganization, SiteMedia, MediaType
 
 @pytest.fixture
 def sample_data(db_session):
@@ -114,13 +114,33 @@ def test_seo_dive_sites_listing(client, sample_data):
     assert "SEO Test Site" in response.text
 
 
-def test_seo_dive_site_detail(client, sample_data):
+def test_seo_dive_site_detail(client, db_session, sample_data):
     site, _, _, _, _, _ = sample_data
+    
+    # 1. Test basic pre-rendering, depth formatting, and logo fallbacks
     response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site")
     assert response.status_code == 200
-    assert "<h1>SEO Test Site</h1>" in response.text
-    assert "A wonderful pre-rendered test" in response.text
-    assert "application/ld+json" in response.text
+    html = response.text
+    assert "<h1>SEO Test Site</h1>" in html
+    assert "A wonderful pre-rendered test" in html
+    assert "Max depth: 25m." in html  # Redundant decimal trailing zeros stripped
+    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' in html
+    assert 'meta name="twitter:card" content="summary"' in html
+
+    # 2. Add an attached photo and assert dynamic og:image selection
+    media = SiteMedia(
+        dive_site_id=site.id,
+        media_type=MediaType.photo,
+        url="uploads/test_photo.jpg"
+    )
+    db_session.add(media)
+    db_session.commit()
+
+    response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site")
+    assert response.status_code == 200
+    html = response.text
+    assert 'meta property="og:image" content="https://localhost/uploads/test_photo.jpg"' in html
+    assert 'meta name="twitter:card" content="summary_large_image"' in html
 
 
 def test_seo_diving_centers_listing(client, sample_data):
@@ -130,12 +150,25 @@ def test_seo_diving_centers_listing(client, sample_data):
     assert "SEO Test Center" in response.text
 
 
-def test_seo_diving_center_detail(client, sample_data):
+def test_seo_diving_center_detail(client, db_session, sample_data):
     _, center, _, _, _, _ = sample_data
+    
+    # 1. Test standard pre-rendering
     response = client.get(f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center")
     assert response.status_code == 200
-    assert "<h1>SEO Test Center</h1>" in response.text
-    assert "A professional dive center on Naxos island." in response.text
+    html = response.text
+    assert "<h1>SEO Test Center</h1>" in html
+    assert "A professional dive center on Naxos island." in html
+    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' in html
+
+    # 2. Update center with a custom logo and verify it is used
+    center.logo_url = "uploads/center_logo.png"
+    db_session.commit()
+
+    response = client.get(f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center")
+    assert response.status_code == 200
+    html = response.text
+    assert 'meta property="og:image" content="https://localhost/uploads/center_logo.png"' in html
 
 
 def test_seo_dive_routes_listing(client, sample_data):

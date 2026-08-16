@@ -11,7 +11,14 @@ import httpx
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import Dive, DiveRoute, DiveSite, DivingCenter, DivingOrganization, User
+from app.models import Dive, DiveRoute, DiveSite, DivingCenter, DivingOrganization, User, MediaType
+
+def make_absolute_url(url: str, base_url: str) -> str:
+    if not url:
+        return ""
+    if url.startswith(("http://", "https://")):
+        return url
+    return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
 from generate_static_content import get_dive_site_slug, get_diving_center_slug, slugify
 from static_html import (
     _site_rating_stats,
@@ -29,6 +36,7 @@ from static_html import (
     render_seo_page,
     resolve_html_template,
     escape_text,
+    format_depth,
 )
 
 logger = logging.getLogger("divemap.seo")
@@ -128,6 +136,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
     canonical = f"{base_url}/"
     main_content = ""
     json_ld: Optional[dict] = None
+    image_url: Optional[str] = None
 
     # Routing
     try:
@@ -183,11 +192,18 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 site = (
                     db.query(DiveSite)
                     .filter(DiveSite.id == site_id, DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
-                    .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings))
+                    .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings), joinedload(DiveSite.media))
                     .first()
                 )
                 if not site:
                     raise HTTPException(status_code=404, detail="Dive Site not found")
+
+                # Extract a random photo media URL if available
+                photos = [m for m in site.media if m.media_type == MediaType.photo] if site.media else []
+                if photos:
+                    import random
+                    photo_media = random.choice(photos)
+                    image_url = make_absolute_url(photo_media.url, base_url)
 
                 slug = get_dive_site_slug(site)
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
@@ -238,6 +254,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
                 if not center:
                     raise HTTPException(status_code=404, detail="Diving Center not found")
+
+                # Use diving center logo if it exists
+                if center.logo_url:
+                    image_url = make_absolute_url(center.logo_url, base_url)
 
                 slug = get_diving_center_slug(center)
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
@@ -366,16 +386,23 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         User.enabled == True,
                         User.deleted_at.is_(None)
                     )
-                    .options(joinedload(Dive.user), joinedload(Dive.dive_site))
+                    .options(joinedload(Dive.user), joinedload(Dive.dive_site), joinedload(Dive.media))
                     .first()
                 )
                 if not dive:
                     raise HTTPException(status_code=404, detail="Dive not found")
 
+                # Extract a random photo media URL if available
+                photos = [m for m in dive.media if m.media_type == MediaType.photo] if dive.media else []
+                if photos:
+                    import random
+                    photo_media = random.choice(photos)
+                    image_url = make_absolute_url(photo_media.url, base_url)
+
                 diver = dive.user.username if dive.user else "Diver"
                 site_name = dive.dive_site.name if dive.dive_site else "Unknown Site"
                 page_title = f"Divemap - {diver}'s dive at {site_name}"
-                description = f"Read the log details of {diver}'s dive at {site_name}. Max depth: {dive.max_depth or 'unknown'}m, bottom time: {dive.duration or 'unknown'} mins."
+                description = f"Read the log details of {diver}'s dive at {site_name}. Max depth: {format_depth(dive.max_depth) if dive.max_depth is not None else 'unknown'}m, bottom time: {dive.duration or 'unknown'} mins."
 
                 slug = slugify(dive.name or f"dive-by-{diver}")
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
@@ -396,7 +423,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
                     <p><strong>Diver:</strong> <a href="/users/{escape_text(diver)}">{escape_text(diver)}</a></p>
                     <p><strong>Dive Site:</strong> {escape_text(site_name)}</p>
-                    <p><strong>Max Depth:</strong> {escape_text(str(dive.max_depth)) if dive.max_depth is not None else 'Unknown'} m</p>
+                    <p><strong>Max Depth:</strong> {escape_text(format_depth(dive.max_depth)) if dive.max_depth is not None else 'Unknown'} m</p>
                     <p><strong>Duration:</strong> {escape_text(str(dive.duration)) if dive.duration is not None else 'Unknown'} mins</p>
                     <p><strong>Notes:</strong> {escape_text(dive.dive_information or 'No notes provided.')}</p>
                 </main>"""
@@ -587,6 +614,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
             description=description,
             canonical=canonical,
             main_content=main_content,
+            base_url=base_url,
         )
         return HTMLResponse(content=html, status_code=he.status_code, headers={"X-Prerendered": "404"})
 
@@ -597,8 +625,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
         description=description,
         canonical=canonical,
         main_content=main_content,
+        base_url=base_url,
         og_type="website",
         json_ld=json_ld,
+        image_url=image_url,
     )
 
     return HTMLResponse(
