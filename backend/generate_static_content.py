@@ -24,6 +24,7 @@ R2_BUCKET_NAME = os.getenv("R2_BUCKET_NAME")
 
 OUTPUT_DIR = os.path.join(current_dir, "llm_content")
 REQUIRED_FILES = ["dive-sites.md", "dive-routes.md", "diving-centers.md", "dives.md", "llms.txt", "sitemap.xml", "robots.txt"]
+CANONICAL_BASE_URL = os.getenv("CANONICAL_BASE_URL", "https://divemap.blue")
 
 def slugify(text):
     """
@@ -33,8 +34,8 @@ def slugify(text):
     if not text:
         return ""
     text = str(text)
-    # Normalize unicode characters (e.g. é -> e, Greek -> Latin equivalent if desired, 
-    # but frontend doesn't seem to transliterate, so we stick to simple normalization 
+    # Normalize unicode characters (e.g. é -> e, Greek -> Latin equivalent if desired,
+    # but frontend doesn't seem to transliterate, so we stick to simple normalization
     # and ASCII encoding to strip accents/non-ascii if necessary, or keep them if standard allowed.
     # Standard slugify usually strips non-ASCII.
     text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
@@ -47,16 +48,16 @@ def generate_clean_slug(parts):
     """Generates a clean, deduplicated slug, removing administrative boilerplate."""
     raw = " ".join([str(p) for p in parts if p])
     slug = slugify(raw)
-    
+
     # Remove common verbose administrative boilerplate
     boilerplates = [
-        "regional-unit-of-", "municipality-of-", "region-of-", 
+        "regional-unit-of-", "municipality-of-", "region-of-",
         "prefecture-of-", "province-of-", "department-of-",
         "-and-the-lesser-cyclades", "municipal-unit"
     ]
     for b in boilerplates:
         slug = slug.replace(b, "")
-        
+
     # Deduplicate words to prevent "naxos-south-aegean-naxos"
     words = slug.split('-')
     seen = set()
@@ -65,7 +66,7 @@ def generate_clean_slug(parts):
         if w and w not in seen:
             seen.add(w)
             deduped.append(w)
-            
+
     return "-".join(deduped)
 
 def get_dive_site_slug(site):
@@ -180,8 +181,8 @@ def download_from_r2(client):
     return success
 
 def generate_content(db: Session, r2_client=None):
-    BASE_URL = "https://divemap.gr"
-    
+    BASE_URL = CANONICAL_BASE_URL.rstrip("/")
+
     # Data gathering
     sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
@@ -207,9 +208,9 @@ def generate_content(db: Session, r2_client=None):
         # Standardized Metadata Block (Bulleted for LLM readability)
         if site.latitude is not None and site.longitude is not None:
             content_sites.append(f"- **Coordinates**: {float(site.latitude):.6f}, {float(site.longitude):.6f}\n")
-        if site.max_depth: 
+        if site.max_depth:
             content_sites.append(f"- **Max Depth**: {site.max_depth}m\n")
-        if site.difficulty: 
+        if site.difficulty:
             content_sites.append(f"- **Difficulty**: {site.difficulty.label}\n")
 
         # Description & Details
@@ -231,16 +232,16 @@ def generate_content(db: Session, r2_client=None):
     content_routes = ["# Dive Routes\n\n> Specific underwater navigation paths and routes for dive sites.\n\n"]
     for route in routes:
         content_routes.append(f"## {route.name}\n\n")
-        
+
         slug = slugify(route.name)
         url = f"{BASE_URL}/dive-routes/{route.id}/{slug}" if slug else f"{BASE_URL}/dive-routes/{route.id}"
         content_routes.append(f"**Link**: {url}\n")
-        
-        if route.dive_site: 
+
+        if route.dive_site:
             content_routes.append(f"- **Dive Site**: {route.dive_site.name}\n")
         content_routes.append(f"- **Type**: {route.route_type.name if route.route_type else 'Unknown'}\n\n")
-        
-        if route.description: 
+
+        if route.description:
             content_routes.append(f"{route.description}\n\n")
         content_routes.append("---\n\n")
 
@@ -261,9 +262,9 @@ def generate_content(db: Session, r2_client=None):
         url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
         content_centers.append(f"**Link**: {url}\n")
 
-        if center.address: 
+        if center.address:
             content_centers.append(f"- **Address**: {center.address}\n")
-        if center.website: 
+        if center.website:
             content_centers.append(f"- **Website**: {center.website}\n")
 
         if center.description:
@@ -316,12 +317,12 @@ def generate_content(db: Session, r2_client=None):
         "- [Privacy Policy](/privacy): Data handling and user privacy guidelines.\n",
         "- [Changelog](/changelog): Recent updates and feature releases.\n",
         "- [GitHub Repository](https://github.com/kargig/divemap): Source code, issue tracker, and contribution guidelines.\n\n",
-        
+
         "## Platform Features\n",
         "- [Leaderboard](/leaderboard): Ranking of active divers based on logged dives.\n",
         "- [Interactive Map](/map): Global map view of all registered dive sites and centers.\n",
         "- [Diving Organizations](/resources/diving-organizations): Directory of recognized scuba certification agencies.\n\n",
-        
+
         "## Diving Tools & Calculators\n",
         "- [MOD Calculator](/resources/tools/mod): Maximum Operating Depth calculator for nitrox/trimix.\n",
         "- [Best Mix Calculator](/resources/tools/best-mix): Determine the optimal gas mix for a target depth.\n",
@@ -341,11 +342,11 @@ def generate_content(db: Session, r2_client=None):
 
     # Static pages
     static_paths = [
-        "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips", 
+        "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips",
         "/dive-routes", "/map", "/leaderboard", "/changelog",
-        "/resources/tags", "/resources/diving-organizations", 
-        "/resources/tools/mod", "/resources/tools/best-mix", "/resources/tools/sac", 
-        "/resources/tools/gas-planning", "/resources/tools/min-gas", "/resources/tools/icd", 
+        "/resources/tags", "/resources/diving-organizations",
+        "/resources/tools/mod", "/resources/tools/best-mix", "/resources/tools/sac",
+        "/resources/tools/gas-planning", "/resources/tools/min-gas", "/resources/tools/icd",
         "/resources/tools/gas-fill", "/resources/tools/buoyancy", "/resources/tools/weight",
         "/api-docs", "/help", "/privacy", "/register", "/login"
     ]
@@ -358,7 +359,7 @@ def generate_content(db: Session, r2_client=None):
         # User profile
         url = f"{BASE_URL}/users/{user.username}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
-        
+
         # User analytics
         url_analytics = f"{BASE_URL}/users/{user.username}/analytics"
         sitemap_entries.append(f"  <url>\n    <loc>{url_analytics}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>")
