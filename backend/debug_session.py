@@ -6,7 +6,7 @@ import sys
 
 # Configuration
 # NOTE: This targets the production API as requested
-BASE_URL = "https://divemap.gr"
+BASE_URL = "https://divemap.blue"
 API_PREFIX = "/api/v1"
 SESSION_ID = "52af2018-515b-4f46-bfab-45c044638115"
 

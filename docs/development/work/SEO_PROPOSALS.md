@@ -57,7 +57,7 @@ Reuse and rename the "LLM Content" generation pattern to a more general "Static 
 
 **Priority:** Medium | **Status:** Done
 
-- Updated `robots.txt` to include `Sitemap: https://divemap.gr/sitemap.xml` and block `/api/`, `/admin/`.
+- Updated `robots.txt` to include `Sitemap: https://divemap.blue/sitemap.xml` and block `/api/`, `/admin/`.
 
 ---
 

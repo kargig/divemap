@@ -78,7 +78,7 @@ The `feature/nginx-proxy-implementation` branch is now **100% production-ready**
 
 #### **Key Benefits** 🚀
 
-- **Unified Domain**: Single domain (divemap.gr) for frontend and backend
+- **Unified Domain**: Single domain (divemap.blue) for frontend and backend
 - **No CORS Issues**: Same-origin requests eliminate cross-origin cookie problems
 - **Enterprise Security**: Comprehensive security headers and rate limiting
 - **Simplified Deployment**: No SSL certificate management required
@@ -92,7 +92,7 @@ Internet (HTTPS)
     ▼
 ┌─────────────────┐
 │  Fly.io Proxy   │  ← TLS termination happens here
-│  (divemap.gr)   │
+│  (divemap.blue) │
 └─────────────────┘
     │ (HTTP internally)
     ▼
@@ -124,7 +124,7 @@ fly deploy -a divemap-nginx-proxy
 ```
 
 #### Nginx Proxy Features
-- **SSL Termination**: Handles HTTPS for divemap.gr
+- **SSL Termination**: Handles HTTPS for divemap.blue
 - **Unified Domain**: Single domain for frontend and backend
 - **Security Headers**: Comprehensive security protection
 - **Rate Limiting**: API protection and abuse prevention
@@ -132,12 +132,12 @@ fly deploy -a divemap-nginx-proxy
 - **Performance**: Gzip compression and caching
 
 #### Production URLs
-- **Main Application**: https://divemap.gr/
-- **API Endpoints**: https://divemap.gr/api/
-- **Documentation**: https://divemap.gr/docs
+- **Main Application**: https://divemap.blue/
+- **API Endpoints**: https://divemap.blue/api/
+- **Documentation**: https://divemap.blue/docs
 
 #### Prerequisites
-- SSL certificates for divemap.gr
+- SSL certificates for divemap.blue
 - Existing Fly.io apps (db, backend, frontend) running
 - Domain DNS configured
 

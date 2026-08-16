@@ -614,7 +614,7 @@ Internet (HTTPS)
     ▼
 ┌─────────────────┐
 │  Fly.io Proxy   │  ← TLS termination happens here
-│  (divemap.gr)   │
+│  (divemap.blue) │
 └─────────────────┘
     │ (HTTP internally)
     ▼
@@ -629,7 +629,7 @@ Internet (HTTPS)
 
 ### Key Features
 
-- **Unified Domain**: Single domain (divemap.gr) for frontend and backend
+- **Unified Domain**: Single domain (divemap.blue) for frontend and backend
 - **No CORS Issues**: Same-origin requests eliminate cross-origin cookie problems
 - **Security Headers**: Comprehensive security protection
 - **Rate Limiting**: API protection and abuse prevention
@@ -663,10 +663,10 @@ fly deploy -a divemap-nginx-proxy
 
 ```bash
 # Add your domain to the app
-fly domains add divemap.gr -a divemap-nginx-proxy
+fly domains add divemap.blue -a divemap-nginx-proxy
 
 # Add www subdomain
-fly domains add www.divemap.gr -a divemap-nginx-proxy
+fly domains add www.divemap.blue -a divemap-nginx-proxy
 ```
 
 #### Step 4: Verify Deployment
@@ -679,7 +679,7 @@ fly status -a divemap-nginx-proxy
 fly logs -a divemap-nginx-proxy
 
 # Test health endpoint
-curl https://divemap.gr/health
+curl https://divemap.blue/health
 ```
 
 ### Configuration Details
@@ -739,7 +739,7 @@ The backend app (`divemap-backend`) should be configured with:
 
 ```bash
 # CORS origins
-fly secrets set ALLOWED_ORIGINS="https://divemap.gr" -a divemap-backend
+fly secrets set ALLOWED_ORIGINS="https://divemap.blue" -a divemap-backend
 
 # Security configuration for production proxy chain
 fly secrets set SUSPICIOUS_PROXY_CHAIN_LENGTH="6" -a divemap-backend
@@ -754,7 +754,7 @@ The frontend app (`divemap-frontend`) should be configured with:
 
 ```bash
 # API URL pointing to nginx proxy
-fly secrets set VITE_API_URL="https://divemap.gr/api" -a divemap-frontend
+fly secrets set VITE_API_URL="https://divemap.blue/api" -a divemap-frontend
 ```
 
 ### Monitoring and Health Checks
@@ -763,7 +763,7 @@ fly secrets set VITE_API_URL="https://divemap.gr/api" -a divemap-frontend
 
 ```bash
 # Health check URL
-GET https://divemap.gr/health
+GET https://divemap.blue/health
 
 # Expected response
 HTTP/1.1 200 OK

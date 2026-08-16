@@ -11,7 +11,7 @@ Currently, we maintain two active workers:
 ## 1. Presentations Worker (`divemap-presentations-worker`)
 
 ### Purpose
-Intercepts any request to `https://divemap.gr/presentations/*` and serves the file directly from the `divemap-presentations` R2 bucket. It applies an aggressive 1-year cache control header (`max-age=31536000, immutable`), which is ideal for published PDFs and slide decks.
+Intercepts any request to `https://divemap.blue/presentations/*` and serves the file directly from the `divemap-presentations` R2 bucket. It applies an aggressive 1-year cache control header (`max-age=31536000, immutable`), which is ideal for published PDFs and slide decks.
 
 ### How to Upload a New Presentation
 To host a new presentation (e.g., `my_slides.pdf`), you must upload it to the R2 bucket using the Wrangler CLI.
@@ -29,7 +29,7 @@ To host a new presentation (e.g., `my_slides.pdf`), you must upload it to the R2
      --content-type "application/pdf" \
      --remote
    ```
-3. The file is instantly available at: `https://divemap.gr/presentations/my_slides.pdf`
+3. The file is instantly available at: `https://divemap.blue/presentations/my_slides.pdf`
 
 *Note: The `--remote` flag is critical. Without it, Wrangler will default to uploading to a local development emulator instead of the actual Cloudflare cloud.*
 
@@ -91,4 +91,4 @@ To manually refresh the data served by the worker:
 
 - **404 Not Found on R2 Uploads:** Ensure you used the `--remote` flag when running `wrangler r2 object put`.
 - **PWA Interception:** If the Divemap PWA is installed on a device, the Service Worker might try to intercept the request and return the React app (`index.html`) instead of the PDF. Ensure the path (e.g., `/^\/presentations\/?.*$/`) is included in the `navigateFallbackDenylist` array within `frontend/vite.config.mjs`.
-- **Worker Not Intercepting:** Check the `routes` array in the worker's `wrangler.toml`/`wrangler.jsonc` file. It must exactly match the domain (e.g., `divemap.gr/presentations/*`).
+- **Worker Not Intercepting:** Check the `routes` array in the worker's `wrangler.toml`/`wrangler.jsonc` file. It must exactly match the domain (e.g., `divemap.blue/presentations/*`).

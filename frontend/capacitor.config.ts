@@ -5,11 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Divemap',
   webDir: 'dist',
   server: {
-    url: 'https://divemap.gr',
-    hostname: 'divemap.gr',
+    url: 'https://divemap.blue',
+    hostname: 'divemap.blue',
     androidScheme: 'https',
     allowNavigation: [
-      'divemap.gr',
+      'divemap.blue',
       'accounts.google.com',
       'challenges.cloudflare.com'
     ],

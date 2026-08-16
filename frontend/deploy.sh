@@ -78,4 +78,4 @@ fly deploy -a divemap-frontend \
   $GA_BUILD_ARG
 
 echo "Deployment completed successfully!"
-echo "Visit your app at: https://divemap.gr/" 
+echo "Visit your app at: https://divemap.blue/"

@@ -2,7 +2,7 @@ export interface Env {
 	LLM_CONTENT: R2Bucket;
 }
 
-const HARDCODED_ORIGIN = 'https://divemap.gr';
+const HARDCODED_ORIGIN = 'https://divemap.blue';
 
 export default {
 	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

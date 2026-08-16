@@ -1,7 +1,7 @@
 # https://www.robotstxt.org/robotstxt.html
 
 # 1. Point to the sitemap (CRITICAL for discovery)
-Sitemap: https://divemap.gr/sitemap.xml
+Sitemap: https://divemap.blue/sitemap.xml
 
 # 2. General bot optimization
 User-agent: *
