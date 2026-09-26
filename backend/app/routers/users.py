@@ -21,6 +21,8 @@ from app.services.image_processing import image_processing
 from app.limiter import skip_rate_limit_for_admin
 from app.utils import utcnow, populate_avatar_full_url
 from sqlalchemy import func, extract, desc, distinct
+from pydantic import BaseModel, Field
+from app.facebook_auth import verify_facebook_token, is_facebook_auth_configured, FacebookAuthError
 import secrets
 import base64
 import re
@@ -1983,10 +1985,15 @@ async def remove_avatar(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Reset avatar to Google or None"""
-    if current_user.google_avatar_url:
+    """Reset avatar to Facebook, Google or None"""
+    if current_user.facebook_avatar_url and current_user.avatar_type == AvatarType.facebook:
+        current_user.avatar_url = current_user.facebook_avatar_url
+    elif current_user.google_avatar_url:
         current_user.avatar_url = current_user.google_avatar_url
         current_user.avatar_type = AvatarType.google
+    elif current_user.facebook_avatar_url:
+        current_user.avatar_url = current_user.facebook_avatar_url
+        current_user.avatar_type = AvatarType.facebook
     else:
         current_user.avatar_url = None
         current_user.avatar_type = None
@@ -1994,6 +2001,66 @@ async def remove_avatar(
     db.commit()
     db.refresh(current_user)
     
+    response_dict = UserResponse.model_validate(current_user).model_dump()
+    return populate_avatar_full_url(current_user, response_dict)
+
+class FacebookLinkRequest(BaseModel):
+    token: str = Field(..., min_length=1, description="Facebook user access token")
+
+@router.post("/me/facebook/link", response_model=UserResponse)
+async def link_facebook(
+    link_data: FacebookLinkRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Link Facebook account to the current user."""
+    if not is_facebook_auth_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Facebook authentication is not configured on this server"
+        )
+
+    try:
+        fb_info = verify_facebook_token(link_data.token)
+        fb_id = fb_info["id"]
+
+        existing = db.query(User).filter(User.facebook_id == fb_id, User.id != current_user.id).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This Facebook account is already linked to another user."
+            )
+
+        current_user.facebook_id = fb_id
+        current_user.facebook_avatar_url = fb_info.get("picture_url")
+        db.commit()
+        db.refresh(current_user)
+
+        response_dict = UserResponse.model_validate(current_user).model_dump()
+        return populate_avatar_full_url(current_user, response_dict)
+    except FacebookAuthError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.delete("/me/facebook/unlink", response_model=UserResponse)
+async def unlink_facebook(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Unlink Facebook account from current user."""
+    if not current_user.password_hash and not current_user.google_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot unlink Facebook because you have no other login method configured."
+        )
+
+    current_user.facebook_id = None
+    if current_user.avatar_type == AvatarType.facebook:
+        current_user.avatar_url = None
+        current_user.avatar_type = None
+    current_user.facebook_avatar_url = None
+    db.commit()
+    db.refresh(current_user)
+
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 

@@ -59,9 +59,11 @@ import { getSocialMediaIcon } from '../components/SocialMediaIcons';
 import Button from '../components/ui/Button';
 import DepthIcon from '../components/ui/DepthIcon';
 import { useAuth } from '../contexts/AuthContext';
+import * as authService from '../services/auth';
 import { getDivingCenters } from '../services/divingCenters';
 import { getFullAvatarUrl } from '../utils/avatarHelpers';
 import { formatDate } from '../utils/dateHelpers';
+import { facebookAuth } from '../utils/facebookAuth';
 import {
   profileSchema,
   certificationSchema,
@@ -78,6 +80,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [facebookActionLoading, setFacebookActionLoading] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isAddingCertification, setIsAddingCertification] = useState(false);
   const [editingCertification, setEditingCertification] = useState(null);
@@ -352,6 +355,35 @@ const Profile = () => {
       )
     ) {
       deleteAccountMutation.mutate();
+    }
+  };
+
+  const handleLinkFacebook = async () => {
+    setFacebookActionLoading(true);
+    try {
+      const token = await facebookAuth.signIn();
+      const updatedUser = await authService.linkFacebook(token);
+      updateUser(updatedUser);
+      toast.success('Facebook account connected successfully!');
+    } catch (error) {
+      console.error('Failed to link Facebook:', error);
+      toast.error(error.response?.data?.detail || 'Failed to connect Facebook account');
+    } finally {
+      setFacebookActionLoading(false);
+    }
+  };
+
+  const handleUnlinkFacebook = async () => {
+    setFacebookActionLoading(true);
+    try {
+      const updatedUser = await authService.unlinkFacebook();
+      updateUser(updatedUser);
+      toast.success('Facebook account disconnected.');
+    } catch (error) {
+      console.error('Failed to unlink Facebook:', error);
+      toast.error(error.response?.data?.detail || 'Failed to disconnect Facebook account');
+    } finally {
+      setFacebookActionLoading(false);
     }
   };
 
@@ -1908,6 +1940,54 @@ const Profile = () => {
                   <Key size={18} className='mr-3 text-gray-400' />
                   API Tokens
                 </Link>
+
+                {/* Facebook Account Linking */}
+                {!user?.google_id &&
+                  import.meta.env.VITE_FACEBOOK_APP_ID &&
+                  import.meta.env.VITE_FACEBOOK_APP_ID !== 'undefined' && (
+                    <div className='pt-2'>
+                      {user?.facebook_id ? (
+                        <div className='flex items-center justify-between w-full px-3 py-2 text-sm border rounded-md dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'>
+                          <div className='flex items-center min-w-0 mr-2'>
+                            <svg
+                              className='w-4 h-4 mr-2.5 fill-[#1877F2] shrink-0'
+                              viewBox='0 0 24 24'
+                            >
+                              <path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' />
+                            </svg>
+                            <span className='truncate font-medium text-gray-700 dark:text-gray-300'>
+                              Facebook Connected
+                            </span>
+                          </div>
+                          <button
+                            type='button'
+                            onClick={handleUnlinkFacebook}
+                            disabled={facebookActionLoading}
+                            className='text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50 shrink-0'
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type='button'
+                          onClick={handleLinkFacebook}
+                          disabled={facebookActionLoading}
+                          className='flex items-center w-full px-3 py-2 text-sm border rounded-md border-gray-200 dark:border-gray-700 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50'
+                        >
+                          <svg
+                            className='w-4 h-4 mr-2.5 fill-[#1877F2] shrink-0'
+                            viewBox='0 0 24 24'
+                          >
+                            <path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' />
+                          </svg>
+                          <span className='font-medium'>
+                            {facebookActionLoading ? 'Connecting...' : 'Connect Facebook'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
               </div>
 
               <div className='mt-8 pt-4 border-t'>
@@ -2010,6 +2090,7 @@ const Profile = () => {
           currentType={user.avatar_type}
           username={user.username}
           googleAvatarUrl={user.google_avatar_url}
+          facebookAvatarUrl={user.facebook_avatar_url}
           onAvatarUpdated={updatedUser => updateUser(updatedUser)}
         />
       </div>

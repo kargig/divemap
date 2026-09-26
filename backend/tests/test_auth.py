@@ -1029,3 +1029,61 @@ class TestDivingCenterAuthorization:
         # Verify the factory function returns a callable
         factory_result = create_can_manage_diving_center_dep(123)
         assert callable(factory_result)
+
+    @patch('app.routers.auth.verify_facebook_token')
+    @patch('app.routers.auth.get_or_create_facebook_user')
+    def test_facebook_login_success(self, mock_get_or_create, mock_verify, client, db_session, monkeypatch):
+        """Test Facebook login success."""
+        monkeypatch.setenv("FACEBOOK_APP_ID", "mock_fb_id")
+        mock_verify.return_value = {
+            "id": "fb_123",
+            "name": "FB User",
+            "picture_url": "https://avatar.url"
+        }
+        user = User(
+            username="fb_user",
+            email="fb_user@facebook.divemap.invalid",
+            password_hash="dummy",
+            facebook_id="fb_123",
+            enabled=True
+        )
+        db_session.add(user)
+        db_session.commit()
+        mock_get_or_create.return_value = user
+
+        response = client.post("/api/v1/auth/facebook-login", json={"token": "valid_fb_token"})
+        assert response.status_code == 200
+        assert "access_token" in response.json()
+        assert response.json()["user"]["username"] == "fb_user"
+
+    def test_facebook_login_disabled_when_app_id_not_set(self, client, monkeypatch):
+        """Test Facebook login returns 503 when FACEBOOK_APP_ID is not set."""
+        monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
+        response = client.post("/api/v1/auth/facebook-login", json={"token": "valid_fb_token"})
+        assert response.status_code == 503
+        assert "not configured" in response.json()["detail"].lower()
+
+    def test_password_reset_blocked_for_facebook_user(self, client, db_session):
+        """Test that password reset is blocked for Facebook users."""
+        from app.models import AuthAuditLog
+        user = User(
+            username="fb_reset_user",
+            email="fb_reset_user@facebook.divemap.invalid",
+            password_hash="dummy",
+            facebook_id="fb_999",
+            enabled=True
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        response = client.post("/api/v1/auth/forgot-password", json={"email_or_username": "fb_reset_user"})
+        assert response.status_code == 200
+        
+        # Verify that audit log records that it was blocked
+        log = db_session.query(AuthAuditLog).filter(
+            AuthAuditLog.user_id == user.id,
+            AuthAuditLog.action == "password_reset_request_facebook"
+        ).first()
+        assert log is not None
+        assert log.success is False
+        assert "Blocked: Facebook account" in log.details

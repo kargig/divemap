@@ -25,6 +25,7 @@ from app.auth import (
 )
 from app.token_service import token_service
 from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
+from app.facebook_auth import verify_facebook_token, get_or_create_facebook_user, is_facebook_auth_configured, FacebookAuthError
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
 from app.services.email_verification_service import email_verification_service
@@ -44,6 +45,9 @@ router = APIRouter()
 turnstile_service = TurnstileService()
 
 class GoogleLoginRequest(BaseModel):
+    token: str
+
+class FacebookLoginRequest(BaseModel):
     token: str
 
 @router.get("/me", response_model=UserResponse)
@@ -350,6 +354,94 @@ async def google_login(
                 detail="Google authentication failed"
             )
 
+@router.post("/facebook-login", response_model=Token)
+@skip_rate_limit_for_admin("30/minute")
+async def facebook_login(
+    request: Request,
+    response: Response,
+    facebook_data: FacebookLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Facebook OAuth login endpoint
+
+    Args:
+        facebook_data: Contains the Facebook access token from frontend
+        db: Database session
+
+    Returns:
+        JWT access token for authenticated user
+    """
+    if not is_facebook_auth_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Facebook authentication is not configured on this server"
+        )
+
+    try:
+        fb_user_info = verify_facebook_token(facebook_data.token)
+        user = get_or_create_facebook_user(db, fb_user_info)
+
+        if user:
+            if not user.enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Account is disabled"
+                )
+
+            # Update last_accessed_at
+            try:
+                user.last_accessed_at = func.now()
+                db.commit()
+            except Exception:
+                db.rollback()
+
+            # Notify admins about new user registration
+            try:
+                notification_service = NotificationService()
+                await notification_service.notify_admins_for_user_registration(user.id, db)
+            except Exception as e:
+                logger.warning(f"Failed to send admin notifications for Facebook user {user.id}: {e}")
+
+            # Create token pair
+            token_data = token_service.create_token_pair(user, request, db)
+
+            # Set refresh token as HTTP-only cookie
+            response.set_cookie(
+                "refresh_token",
+                token_data["refresh_token"],
+                max_age=int(token_service.refresh_token_expire.total_seconds()),
+                httponly=True,
+                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
+                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+            )
+
+            user_dict = UserResponse.model_validate(user).model_dump()
+            return {
+                "access_token": token_data["access_token"],
+                "token_type": "bearer",
+                "expires_in": token_data["expires_in"],
+                "user": populate_avatar_full_url(user, user_dict)
+            }
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Facebook authentication failed"
+            )
+    except FacebookAuthError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Facebook login error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Facebook authentication failed"
+        )
+
 @router.get("/verify-email")
 async def verify_email(
     token: str = Query(..., description="Email verification token from email link"),
@@ -653,19 +745,19 @@ async def request_password_reset(
         # Note: We rely on slowapi for rate limiting invalid requests too
         return {"message": success_message}
 
-    # Check if user uses Google auth
-    if user.google_id:
-        # Log that google user attempted reset
-        logger.info(f"Password reset requested for Google user {user.id}")
+    # Check if user uses social auth (Google or Facebook)
+    if user.google_id or user.facebook_id:
+        provider = "Google" if user.google_id else "Facebook"
+        logger.info(f"Password reset requested for {provider} user {user.id}")
 
         # Log attempt
         audit_log = AuthAuditLog(
             user_id=user.id,
-            action="password_reset_request_google",
+            action=f"password_reset_request_{provider.lower()}",
             ip_address=ip_address,
             user_agent=request.headers.get("user-agent"),
             success=False,
-            details="Blocked: Google account"
+            details=f"Blocked: {provider} account"
         )
         db.add(audit_log)
         db.commit()

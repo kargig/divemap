@@ -199,5 +199,11 @@ divemap-android/releases/
 # Cloudflare Workers
 .wrangler/
 
+# Google Indexing & Service Accounts
+*service_account*.json
+google_credentials*.json
+.google_indexing_state.json
+
 #nanobanana
 nanobanana-output/
+.worktrees/

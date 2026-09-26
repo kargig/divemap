@@ -227,6 +227,35 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithFacebook = async facebookToken => {
+    try {
+      const data = await authService.facebookLogin(facebookToken);
+
+      const { access_token, user: userData } = data;
+
+      localStorage.setItem('access_token', access_token);
+      setToken(access_token);
+
+      if (userData) {
+        setUser(userData);
+        if (userData.id) {
+          localStorage.setItem('user_id', userData.id.toString());
+        }
+      }
+
+      if (!userData) {
+        await fetchUser();
+      }
+      toast.success(`Welcome, ${userData?.name || userData?.username || 'diver'}!`);
+      return true;
+    } catch (error) {
+      console.error('Facebook login error:', error);
+      const message = error.response?.data?.detail || 'Facebook login failed';
+      toast.error(message);
+      return false;
+    }
+  };
+
   const register = async (username, email, password, turnstileToken) => {
     try {
       // Only include Turnstile token if it's enabled and provided
@@ -352,6 +381,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: Boolean(user?.is_admin),
     login,
     loginWithGoogle,
+    loginWithFacebook,
     register,
     registerWithGoogle,
     logout,

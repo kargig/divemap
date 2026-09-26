@@ -44,9 +44,10 @@ def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
-    email: EmailStr
+    email: Union[EmailStr, str]
 
 class UserCreate(UserBase):
+    email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
     turnstile_token: Optional[str] = Field(None, description="Cloudflare Turnstile token")
 
@@ -59,6 +60,7 @@ class UserUpdate(BaseModel):
 
 class AvatarType(str, enum.Enum):
     google = "google"
+    facebook = "facebook"
     custom = "custom"
     library = "library"
 
@@ -151,6 +153,7 @@ class UserResponse(UserBase):
     avatar_type: Optional[AvatarType] = AvatarType.google
     avatar_full_url: Optional[str] = None
     google_avatar_url: Optional[str] = None
+    facebook_avatar_url: Optional[str] = None
     buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime

@@ -482,12 +482,18 @@ def create_notification_preference(
             detail=f"Preference for category '{preference.category}' already exists"
         )
     
-    # Check global opt-out before enabling email notifications
-    if preference.enable_email and current_user.email_notifications_opted_out:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot enable email notifications: you have globally opted out of all email notifications. Please clear your global opt-out first."
-        )
+    # Check synthetic email and global opt-out before enabling email notifications
+    if preference.enable_email:
+        if current_user.email and current_user.email.endswith('.invalid'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot enable email notifications: You are using a synthetic/social account without a real email. Please add a valid email address to your profile first."
+            )
+        if current_user.email_notifications_opted_out:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot enable email notifications: you have globally opted out of all email notifications. Please clear your global opt-out first."
+            )
     
     # Create new preference
     new_preference = NotificationPreference(
@@ -537,8 +543,13 @@ def update_notification_preference(
             detail=f"Preference for category '{category}' not found"
         )
     
-    # Check global opt-out before enabling email notifications
+    # Check synthetic email and global opt-out before enabling email notifications
     if preference_update.enable_email is not None and preference_update.enable_email:
+        if current_user.email and current_user.email.endswith('.invalid'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot enable email notifications: You are using a synthetic/social account without a real email. Please add a valid email address to your profile first."
+            )
         if current_user.email_notifications_opted_out:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

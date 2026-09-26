@@ -117,13 +117,22 @@ class GoogleAuth {
       ux_mode: 'popup', // Web ALWAYS uses popup
     });
 
-    this.google.accounts.id.renderButton(document.getElementById(buttonId), {
+    const targetElement = document.getElementById(buttonId);
+    if (!targetElement) return;
+
+    const containerWidth = targetElement.parentElement
+      ? targetElement.parentElement.offsetWidth
+      : targetElement.offsetWidth;
+    const buttonWidth = containerWidth ? Math.min(Math.max(containerWidth, 200), 400) : 400;
+
+    this.google.accounts.id.renderButton(targetElement, {
       theme: 'outline',
       size: 'large',
       type: 'standard',
       text: 'signin_with',
       shape: 'rectangular',
       logo_alignment: 'left',
+      width: buttonWidth,
     });
   }
 
