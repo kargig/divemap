@@ -284,6 +284,7 @@ def _paragraph_block(label: str, value: str) -> str:
 
 def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> str:
     from app.seo_geo import geo_hub_path
+    from generate_static_content import get_diving_center_slug, slugify
 
     crumbs = [("Home", "/"), ("Dive Sites", "/dive-sites")]
     if site.country:
@@ -305,6 +306,12 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
     if location:
         lines.append(f"<p><strong>Location:</strong> {escape_text(location)}</p>")
 
+    aliases = getattr(site, "aliases", None) or []
+    if aliases:
+        alias_names = [getattr(a, "alias", str(a)) for a in aliases if getattr(a, "alias", str(a))]
+        if alias_names:
+            lines.append(f"<p><strong>Also known as:</strong> {escape_text(', '.join(alias_names))}</p>")
+
     meta_bits = []
     if site.max_depth:
         meta_bits.append(f"Max depth: {format_depth(site.max_depth)}m")
@@ -314,6 +321,18 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
         meta_bits.append(f"Coordinates: {float(site.latitude):.6f}, {float(site.longitude):.6f}")
     if meta_bits:
         lines.append(f"<p>{escape_text(' · '.join(meta_bits))}</p>")
+
+    tags = getattr(site, "tags", None) or []
+    if tags:
+        tag_names = []
+        for t in tags:
+            tag_obj = getattr(t, "tag", None)
+            if tag_obj and getattr(tag_obj, "name", None):
+                tag_names.append(tag_obj.name)
+            elif isinstance(t, str):
+                tag_names.append(t)
+        if tag_names:
+            lines.append(f"<p><strong>Tags:</strong> {escape_text(', '.join(tag_names))}</p>")
 
     if total_ratings > 0 and avg_rating is not None:
         lines.append(
@@ -329,6 +348,33 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
         lines.append(_paragraph_block("Access", site.access_instructions))
     if site.safety_information:
         lines.append(_paragraph_block("Safety", site.safety_information))
+
+    center_rels = getattr(site, "center_relationships", None) or []
+    if center_rels:
+        centers = [getattr(rel, "diving_center", None) for rel in center_rels if getattr(rel, "diving_center", None)]
+        if centers:
+            lines.append("<h2>Associated Diving Centers</h2><ul>")
+            for center in centers:
+                c_slug = get_diving_center_slug(center)
+                c_href = f"/diving-centers/{center.id}/{c_slug}" if c_slug else f"/diving-centers/{center.id}"
+                c_name = escape_text(center.name)
+                c_location = ", ".join(filter(None, [getattr(center, "city", None), getattr(center, "country", None)]))
+                extra = f" ({escape_text(c_location)})" if c_location else ""
+                lines.append(f'<li><a href="{escape_text(c_href)}">{c_name}</a>{extra}</li>')
+            lines.append("</ul>")
+
+    routes = getattr(site, "routes", None) or []
+    active_routes = [r for r in routes if not getattr(r, "deleted_at", None)]
+    if active_routes:
+        lines.append("<h2>Dive Routes</h2><ul>")
+        for route in active_routes:
+            r_slug = slugify(route.name) if getattr(route, "name", None) else ""
+            r_href = f"/dive-routes/{route.id}/{r_slug}" if r_slug else f"/dive-routes/{route.id}"
+            r_name = escape_text(route.name or f"Route #{route.id}")
+            r_type_obj = getattr(route, "route_type", None)
+            r_type = f" ({escape_text(r_type_obj.name)})" if r_type_obj and getattr(r_type_obj, "name", None) else ""
+            lines.append(f'<li><a href="{escape_text(r_href)}">{r_name}</a>{r_type}</li>')
+        lines.append("</ul>")
 
     lines.extend([
         '<nav aria-label="Related pages">',

@@ -10,10 +10,20 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 import httpx
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
-from app.models import Dive, DiveRoute, DiveSite, DivingCenter, DivingOrganization, User, MediaType
+from app.models import (
+    Dive,
+    DiveRoute,
+    DiveSite,
+    DivingCenter,
+    DivingOrganization,
+    User,
+    MediaType,
+    DiveSiteTag,
+    CenterDiveSite,
+)
 
 def make_absolute_url(url: str, base_url: str) -> str:
     if not url:
@@ -278,7 +288,15 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 site = (
                     db.query(DiveSite)
                     .filter(DiveSite.id == site_id, DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
-                    .options(joinedload(DiveSite.difficulty), joinedload(DiveSite.ratings), joinedload(DiveSite.media))
+                    .options(
+                        joinedload(DiveSite.difficulty),
+                        joinedload(DiveSite.ratings),
+                        joinedload(DiveSite.media),
+                        selectinload(DiveSite.aliases),
+                        selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag),
+                        selectinload(DiveSite.routes),
+                        selectinload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
+                    )
                     .first()
                 )
                 if not site:

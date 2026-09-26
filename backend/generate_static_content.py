@@ -12,9 +12,20 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from app.database import SessionLocal
-from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
+from app.models import (
+    DiveSite,
+    DiveRoute,
+    DivingCenter,
+    Dive,
+    ParsedDiveTrip,
+    User,
+    DivingOrganization,
+    CertificationLevel,
+    DiveSiteTag,
+    CenterDiveSite,
+)
 from app.seo_geo import (
     distinct_approved_countries,
     distinct_approved_regions_by_country,
@@ -192,7 +203,19 @@ def generate_content(db: Session, r2_client=None):
     BASE_URL = CANONICAL_BASE_URL.rstrip("/")
 
     # Data gathering
-    sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
+    sites = (
+        db.query(DiveSite)
+        .filter(DiveSite.status == 'approved', DiveSite.deleted_at.is_(None))
+        .options(
+            joinedload(DiveSite.difficulty),
+            joinedload(DiveSite.ratings),
+            selectinload(DiveSite.aliases),
+            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag),
+            selectinload(DiveSite.routes),
+            selectinload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
+        )
+        .all()
+    )
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
     centers = db.query(DivingCenter).all()
     # LLM markdown: all public logs; sitemap uses the substantial subset below
@@ -222,6 +245,17 @@ def generate_content(db: Session, r2_client=None):
             content_sites.append(f"- **Max Depth**: {site.max_depth}m\n")
         if site.difficulty:
             content_sites.append(f"- **Difficulty**: {site.difficulty.label}\n")
+        if site.ratings:
+            avg_score = sum(r.score for r in site.ratings) / len(site.ratings)
+            content_sites.append(f"- **Rating**: {avg_score:.1f}/10 ({len(site.ratings)} reviews)\n")
+        if site.aliases:
+            alias_list = [a.alias for a in site.aliases if getattr(a, "alias", None)]
+            if alias_list:
+                content_sites.append(f"- **Also Known As**: {', '.join(alias_list)}\n")
+        if site.tags:
+            tag_list = [t.tag.name for t in site.tags if getattr(t, "tag", None) and getattr(t.tag, "name", None)]
+            if tag_list:
+                content_sites.append(f"- **Tags**: {', '.join(tag_list)}\n")
 
         # Description & Details
         if site.description:
@@ -235,6 +269,27 @@ def generate_content(db: Session, r2_client=None):
 
         if site.access_instructions:
             content_sites.append(f"\n**Access**:\n{site.access_instructions}\n")
+
+        if site.center_relationships:
+            centers_list = [rel.diving_center for rel in site.center_relationships if getattr(rel, "diving_center", None)]
+            if centers_list:
+                content_sites.append("\n**Associated Diving Centers**:\n")
+                for center in centers_list:
+                    c_slug = get_diving_center_slug(center)
+                    c_url = f"{BASE_URL}/diving-centers/{center.id}/{c_slug}" if c_slug else f"{BASE_URL}/diving-centers/{center.id}"
+                    c_loc = ", ".join(filter(None, [getattr(center, "city", None), getattr(center, "country", None)]))
+                    extra = f" ({c_loc})" if c_loc else ""
+                    content_sites.append(f"- [{center.name}]({c_url}){extra}\n")
+
+        if site.routes:
+            active_routes = [r for r in site.routes if not getattr(r, "deleted_at", None)]
+            if active_routes:
+                content_sites.append("\n**Dive Routes**:\n")
+                for route in active_routes:
+                    r_slug = slugify(route.name) if getattr(route, "name", None) else ""
+                    r_url = f"{BASE_URL}/dive-routes/{route.id}/{r_slug}" if r_slug else f"{BASE_URL}/dive-routes/{route.id}"
+                    r_type = f" ({route.route_type.name})" if getattr(route, "route_type", None) and getattr(route.route_type, "name", None) else ""
+                    content_sites.append(f"- [{route.name or f'Route #{route.id}'}]({r_url}){r_type}\n")
 
         content_sites.append("\n---\n\n")
 
