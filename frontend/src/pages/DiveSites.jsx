@@ -115,6 +115,9 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
   };
 
   const [filters, setFilters] = useState(getInitialFilters);
+  // Path hubs remount DiveSites via DiveSitePathGate with empty query filters.
+  // Block URL sync until the geo slug is applied so mount effects cannot wipe /dive-sites/:country.
+  const [geoHydrated, setGeoHydrated] = useState(() => !geoCountrySlug);
   const [viewport, setViewport] = useState({
     longitude: 0,
     latitude: 0,
@@ -282,7 +285,9 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
   );
   const countriesList = useMemo(() => {
     if (Array.isArray(countryOptions)) {
-      return countryOptions.map(c => (typeof c === 'string' ? c : c?.name || c?.country)).filter(Boolean);
+      return countryOptions
+        .map(c => (typeof c === 'string' ? c : c?.name || c?.country))
+        .filter(Boolean);
     }
     return [];
   }, [countryOptions]);
@@ -292,14 +297,16 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
     [countriesList, geoCountrySlug]
   );
 
-  const { data: regionOptions = [] } = useQuery(
+  const { data: regionOptions = [], isFetched: regionsFetched } = useQuery(
     ['dive-site-regions-geo', resolvedGeoCountry],
     () => getUniqueRegions(resolvedGeoCountry),
     { enabled: !!resolvedGeoCountry, staleTime: 10 * 60 * 1000 }
   );
   const regionsList = useMemo(() => {
     if (Array.isArray(regionOptions)) {
-      return regionOptions.map(r => (typeof r === 'string' ? r : r?.name || r?.region)).filter(Boolean);
+      return regionOptions
+        .map(r => (typeof r === 'string' ? r : r?.name || r?.region))
+        .filter(Boolean);
     }
     return [];
   }, [regionOptions]);
@@ -310,25 +317,33 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
   );
 
   useEffect(() => {
-    if (!geoCountrySlug) return;
+    if (!geoCountrySlug) {
+      setGeoHydrated(true);
+      return;
+    }
     if (!countriesList.length) return;
-    if (geoCountrySlug && !resolvedGeoCountry) {
+    if (!resolvedGeoCountry) {
       toast.error('Unknown country in URL');
       navigate('/dive-sites', { replace: true });
       return;
     }
+    // Wait for regions when the path includes a region segment
+    if (geoRegionSlug && !regionsFetched) return;
+
     setFilters(prev => {
       const nextCountry = resolvedGeoCountry || '';
       const nextRegion = geoRegionSlug ? resolvedGeoRegion || '' : '';
       if (prev.country === nextCountry && prev.region === nextRegion) return prev;
       return { ...prev, country: nextCountry, region: nextRegion };
     });
+    setGeoHydrated(true);
   }, [
     geoCountrySlug,
     geoRegionSlug,
     resolvedGeoCountry,
     resolvedGeoRegion,
     countriesList.length,
+    regionsFetched,
     navigate,
   ]);
 
@@ -349,6 +364,8 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
 
   // Debounced URL update for search inputs
   useEffect(() => {
+    // Avoid wiping /dive-sites/:country before path → filter hydration finishes
+    if (geoCountrySlug && !geoHydrated) return;
     debouncedUpdateURL(filters, viewMode);
   }, [
     filters.name,
@@ -358,10 +375,16 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
     filters.location,
     debouncedUpdateURL,
     viewMode,
+    geoCountrySlug,
+    geoHydrated,
   ]);
+
+  // Cancel pending debounced navigations on unmount (avoids post-remount URL races)
+  useEffect(() => () => debouncedUpdateURL.cancel(), [debouncedUpdateURL]);
 
   // Immediate URL update for non-search filters
   useEffect(() => {
+    if (geoCountrySlug && !geoHydrated) return;
     immediateUpdateURL(filters, viewMode);
   }, [
     filters.difficulty_code,
@@ -373,6 +396,8 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
     filters.my_dive_sites,
     immediateUpdateURL,
     viewMode,
+    geoCountrySlug,
+    geoHydrated,
   ]);
 
   // Debounce search terms for React Query key
@@ -635,8 +660,13 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
     return count;
   };
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  const handleFilterChange = (keyOrUpdates, value) => {
+    // Batch update: handleFilterChange({ country, region })
+    if (keyOrUpdates && typeof keyOrUpdates === 'object' && value === undefined) {
+      setFilters(prev => ({ ...prev, ...keyOrUpdates }));
+      return;
+    }
+    setFilters(prev => ({ ...prev, [keyOrUpdates]: value }));
   };
 
   const getMediaLink = site => {
@@ -655,31 +685,40 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
 
   // Error handling is now done within the content area to preserve hero section
 
-  const seoTitle = filters.region && filters.country
-    ? `Dive Sites in ${filters.region}, ${filters.country} | Divemap`
-    : filters.country
-      ? `Dive Sites in ${filters.country} | Divemap`
-      : 'Explore Top Scuba Dive Sites Worldwide | Divemap';
-  const seoDescription = filters.region && filters.country
-    ? `Browse scuba dive sites in ${filters.region}, ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
-    : filters.country
-      ? `Browse scuba dive sites in ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
-      : 'Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.';
+  const seoTitle =
+    filters.region && filters.country
+      ? `Dive Sites in ${filters.region}, ${filters.country} | Divemap`
+      : filters.country
+        ? `Dive Sites in ${filters.country} | Divemap`
+        : 'Explore Top Scuba Dive Sites Worldwide | Divemap';
+  const seoDescription =
+    filters.region && filters.country
+      ? `Browse scuba dive sites in ${filters.region}, ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
+      : filters.country
+        ? `Browse scuba dive sites in ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
+        : 'Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.';
   const seoCanonicalPath =
     filters.country && filters.country.trim()
       ? buildGeoHubPath(filters.country, filters.region)
       : '/dive-sites';
-  const pageHeading = filters.region && filters.country
-    ? `Dive Sites in ${filters.region}, ${filters.country}`
-    : filters.country
-      ? `Dive Sites in ${filters.country}`
-      : 'Dive Sites';
-  const breadcrumbItems = [{ label: 'Dive Sites', to: '/dive-sites' }];
+  const pageHeading =
+    filters.region && filters.country
+      ? `Dive Sites in ${filters.region}, ${filters.country}`
+      : filters.country
+        ? `Dive Sites in ${filters.country}`
+        : 'Dive Sites';
+  const breadcrumbItems = filters.country
+    ? [{ label: 'Dive Sites', to: '/dive-sites' }]
+    : [{ label: 'Dive Sites' }];
   if (filters.country) {
-    breadcrumbItems.push({
-      label: filters.country,
-      to: buildGeoHubPath(filters.country),
-    });
+    breadcrumbItems.push(
+      filters.region
+        ? {
+            label: filters.country,
+            to: buildGeoHubPath(filters.country),
+          }
+        : { label: filters.country }
+    );
   }
   if (filters.region && filters.country) {
     breadcrumbItems.push({ label: filters.region });

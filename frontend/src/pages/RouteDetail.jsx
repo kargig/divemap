@@ -38,7 +38,7 @@ import { formatDate } from '../utils/dateHelpers';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { MARKER_TYPES } from '../utils/markerTypes';
 import { getRouteTypeLabel, calculateRouteBearings, formatBearing } from '../utils/routeUtils';
-import { slugify } from '../utils/slugify';
+import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { renderTextWithLinks } from '../utils/textHelpers';
 import { isYouTubeUrl, extractYouTubeVideoId, getYouTubeEmbedUrl } from '../utils/youtubeHelpers';
 
@@ -561,22 +561,29 @@ const RouteDetail = () => {
         name: 'Home',
         item: window.location.origin,
       },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Dive Sites',
-        item: `${window.location.origin}/dive-sites`,
-      },
     ];
 
-    let currentPosition = 3;
+    let currentPosition = 2;
 
     if (diveSite) {
       itemListElement.push({
         '@type': 'ListItem',
         position: currentPosition++,
+        name: 'Dive Sites',
+        item: `${window.location.origin}/dive-sites`,
+      });
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
         name: diveSite.name,
-        item: `${window.location.origin}/dive-sites/${diveSite.id}`,
+        item: `${window.location.origin}/dive-sites/${diveSite.id}/${getDiveSiteSlug(diveSite)}`,
+      });
+    } else {
+      itemListElement.push({
+        '@type': 'ListItem',
+        position: currentPosition++,
+        name: 'Dive Routes',
+        item: `${window.location.origin}/dive-routes`,
       });
     }
 
@@ -849,11 +856,21 @@ const RouteDetail = () => {
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         {/* Breadcrumbs */}
         <Breadcrumbs
-          items={[
-            { label: 'Dive Sites', to: '/dive-sites' },
-            ...(diveSite ? [{ label: diveSite.name, to: `/dive-sites/${diveSite.id}` }] : []),
-            { label: 'Dive Routes', to: '/dive-routes' },
-          ]}
+          items={
+            diveSite
+              ? [
+                  { label: 'Dive Sites', to: '/dive-sites' },
+                  {
+                    label: diveSite.name,
+                    to: `/dive-sites/${diveSite.id}/${getDiveSiteSlug(diveSite)}`,
+                  },
+                  { label: route?.name || 'Dive Route' },
+                ]
+              : [
+                  { label: 'Dive Routes', to: '/dive-routes' },
+                  { label: route?.name || 'Dive Route' },
+                ]
+          }
         />
 
         {/* Archived Site Banner */}

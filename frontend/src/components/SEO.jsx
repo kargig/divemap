@@ -25,9 +25,7 @@ const SEO = ({
   const pathForCanonical = canonicalPath || location.pathname;
   const canonicalUrl = `${window.location.origin}${pathForCanonical}`;
   const fullTitle = title.includes('Divemap') ? title : `${title} - Divemap`;
-  const robotsContent = noindex
-    ? 'noindex, follow'
-    : 'index, follow, max-image-preview:large';
+  const robotsContent = noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large';
 
   return (
     <Helmet>

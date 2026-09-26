@@ -190,7 +190,7 @@ def test_seo_dive_route_detail(client, sample_data):
 def test_seo_dives_listing(client, sample_data):
     response = client.get("/api/v1/seo/html/dives")
     assert response.status_code == 200
-    assert "<h1>Public Dives</h1>" in response.text
+    assert "<h1>Dive Log</h1>" in response.text
     assert "seotester&#x27;s dive" in response.text
 
 

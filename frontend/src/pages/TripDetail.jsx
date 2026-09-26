@@ -529,7 +529,11 @@ const TripDetail = () => {
           schema={getSchema()}
         />
       )}
-      {trip && <Breadcrumbs items={[{ label: 'Dive Trips', to: '/dive-trips' }]} />}
+      {trip && (
+        <Breadcrumbs
+          items={[{ label: 'Dive Trips', to: '/dive-trips' }, { label: generateTripName(trip) }]}
+        />
+      )}
 
       <div className='flex justify-end items-center space-x-2 mb-4'>
         {/* Share Button (everyone can see) */}

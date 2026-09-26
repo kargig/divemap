@@ -684,7 +684,7 @@ const DiveSiteDetail = () => {
           <div className='flex-1 min-w-0'>
             <Breadcrumbs
               items={[
-                { label: 'Sites', to: '/dive-sites' },
+                { label: 'Dive Sites', to: '/dive-sites' },
                 ...(diveSite.country
                   ? [
                       {
@@ -701,6 +701,7 @@ const DiveSiteDetail = () => {
                       },
                     ]
                   : []),
+                { label: diveSite.name },
               ]}
             />
           </div>

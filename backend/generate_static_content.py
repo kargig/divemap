@@ -14,12 +14,13 @@ if current_dir not in sys.path:
 
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
-from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel, DiveSiteList
+from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
 from app.seo_geo import (
     distinct_approved_countries,
     distinct_approved_regions,
     geo_hub_path,
     query_substantial_public_dives,
+    query_substantial_public_lists,
 )
 
 # R2 Configuration
@@ -436,11 +437,8 @@ def generate_content(db: Session, r2_client=None):
         url = f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}" if slug else f"{BASE_URL}/resources/diving-organizations/{org.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
-    # Curated Dive Site Lists (Only include public lists flagged to be shown on public profiles)
-    curated_lists = db.query(DiveSiteList).filter(
-        DiveSiteList.is_public == True,
-        DiveSiteList.show_on_profile == True
-    ).options(joinedload(DiveSiteList.user)).all()
+    # High-quality public curated lists only (non-empty; see seo_geo)
+    curated_lists = query_substantial_public_lists(db)
     for lst in curated_lists:
         lastmod = lst.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(lst, 'updated_at') and lst.updated_at else now
         username = lst.user.username if lst.user else "unknown"

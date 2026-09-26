@@ -5,9 +5,10 @@ import re
 import unicodedata
 from typing import Iterable, Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Dive, DiveSite, User
+from app.models import Dive, DiveSite, DiveSiteList, DiveSiteListItem, User
 
 
 def geo_slug(text: Optional[str]) -> str:
@@ -114,3 +115,43 @@ def query_substantial_public_dives(db: Session) -> list[Dive]:
         .all()
     )
     return [d for d in dives if is_substantial_public_dive(d)]
+
+
+# Minimum dive sites for a public list to earn a sitemap entry (excludes empty
+# default "My Favorites" and other thin collections).
+MIN_SITEMAP_LIST_ITEMS = 3
+
+
+def is_substantial_public_list(lst: DiveSiteList) -> bool:
+    """
+    High-quality public list for sitemap:
+    public + shown on profile + at least MIN_SITEMAP_LIST_ITEMS sites.
+    Caller must ensure the owner is enabled / not deleted when querying.
+    """
+    if not lst.is_public or not lst.show_on_profile:
+        return False
+    item_count = len(lst.items) if lst.items is not None else 0
+    return item_count >= MIN_SITEMAP_LIST_ITEMS
+
+
+def query_substantial_public_lists(db: Session) -> list[DiveSiteList]:
+    """Public profile lists with enough sites for sitemap inclusion."""
+    qualifying_ids = (
+        db.query(DiveSiteListItem.list_id)
+        .group_by(DiveSiteListItem.list_id)
+        .having(func.count(DiveSiteListItem.id) >= MIN_SITEMAP_LIST_ITEMS)
+        .subquery()
+    )
+    return (
+        db.query(DiveSiteList)
+        .join(User, DiveSiteList.user_id == User.id)
+        .filter(
+            DiveSiteList.is_public == True,  # noqa: E712
+            DiveSiteList.show_on_profile == True,  # noqa: E712
+            DiveSiteList.id.in_(qualifying_ids),
+            User.enabled == True,  # noqa: E712
+            User.deleted_at.is_(None),
+        )
+        .options(joinedload(DiveSiteList.user), joinedload(DiveSiteList.items))
+        .all()
+    )

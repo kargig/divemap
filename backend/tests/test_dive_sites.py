@@ -1092,25 +1092,32 @@ class TestDiveSitesAuthorization:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 3
-        assert "Attica" in data
-        assert "Crete" in data
-        assert "Sicily" in data
+        regions = {item["region"] for item in data}
+        assert "Attica" in regions
+        assert "Crete" in regions
+        assert "Sicily" in regions
+        by_region = {item["region"]: item["country"] for item in data}
+        assert by_region["Attica"] == "Greece"
+        assert by_region["Crete"] == "Greece"
+        assert by_region["Sicily"] == "Italy"
 
         # Test filtering by country
         response = client.get("/api/v1/dive-sites/regions?country=Greece")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 2
-        assert "Attica" in data
-        assert "Crete" in data
-        assert "Sicily" not in data
+        regions = {item["region"] for item in data}
+        assert "Attica" in regions
+        assert "Crete" in regions
+        assert "Sicily" not in regions
 
         # Test with search
         response = client.get("/api/v1/dive-sites/regions?search=Atti")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 1
-        assert data[0] == "Attica"
+        assert data[0]["region"] == "Attica"
+        assert data[0]["country"] == "Greece"
 
     def test_add_diving_center_to_dive_site_admin_authorization(self, client, db_session, test_dive_site, test_diving_center, admin_headers):
         """Test that admins can add any diving center to dive sites."""

@@ -229,25 +229,35 @@ def diving_center_schema(base_url: str, path: str, center: DivingCenter) -> dict
 
 
 def dive_route_schema(base_url: str, path: str, route: DiveRoute) -> dict:
-    item_list = [
-        {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-        {"@type": "ListItem", "position": 2, "name": "Dive Routes", "item": f"{base_url}/dive-routes"},
-    ]
-    pos = 3
+    # Prefer site hierarchy when a dive site is known (matches nested route URLs).
     if route.dive_site:
-        item_list.append({
-            "@type": "ListItem",
-            "position": pos,
-            "name": route.dive_site.name,
-            "item": f"{base_url}/dive-sites/{route.dive_site.id}",
-        })
-        pos += 1
-    item_list.append({
-        "@type": "ListItem",
-        "position": pos,
-        "name": route.name,
-        "item": f"{base_url}{path}",
-    })
+        item_list = [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
+            {"@type": "ListItem", "position": 2, "name": "Dive Sites", "item": f"{base_url}/dive-sites"},
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": route.dive_site.name,
+                "item": f"{base_url}/dive-sites/{route.dive_site.id}",
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": route.name,
+                "item": f"{base_url}{path}",
+            },
+        ]
+    else:
+        item_list = [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
+            {"@type": "ListItem", "position": 2, "name": "Dive Routes", "item": f"{base_url}/dive-routes"},
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": route.name,
+                "item": f"{base_url}{path}",
+            },
+        ]
 
     schema: dict[str, Any] = {
         "@context": "https://schema.org",
@@ -266,7 +276,10 @@ def _breadcrumb_nav(items: list[tuple[str, str]]) -> str:
     for idx, (label, href) in enumerate(items):
         if idx:
             parts.append(" &rsaquo; ")
-        parts.append(f'<a href="{escape_text(href)}">{escape_text(label)}</a>')
+        if href:
+            parts.append(f'<a href="{escape_text(href)}">{escape_text(label)}</a>')
+        else:
+            parts.append(f'<span aria-current="page">{escape_text(label)}</span>')
     return f'<nav aria-label="Breadcrumb">{"".join(parts)}</nav>'
 
 
@@ -287,6 +300,7 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
             site.region,
             geo_hub_path(site.country, site.region) or "/dive-sites",
         ))
+    crumbs.append((site.name, ""))
 
     lines = [
         '<main class="seo-prerender">',
@@ -347,12 +361,13 @@ def render_geo_hub_main(
     from app.seo_geo import geo_hub_path
 
     country_path = geo_hub_path(country) or "/dive-sites"
-    crumbs.append((country, country_path))
     heading = f"Dive Sites in {country}"
     if region:
-        region_path = geo_hub_path(country, region) or country_path
-        crumbs.append((region, region_path))
+        crumbs.append((country, country_path))
+        crumbs.append((region, ""))
         heading = f"Dive Sites in {region}, {country}"
+    else:
+        crumbs.append((country, ""))
 
     lines = [
         '<main class="seo-prerender">',
@@ -426,6 +441,7 @@ def render_diving_center_main(center: DivingCenter) -> str:
             center.city,
             f"/diving-centers?country={center.country or ''}&city={center.city}",
         ))
+    crumbs.append((center.name, ""))
 
     lines = [
         '<main class="seo-prerender">',
@@ -452,11 +468,21 @@ def render_diving_center_main(center: DivingCenter) -> str:
 
 
 def render_dive_route_main(route: DiveRoute, *, get_dive_site_slug=None) -> str:
-    crumbs = [("Home", "/"), ("Dive Routes", "/dive-routes")]
     if route.dive_site:
         site_slug = get_dive_site_slug(route.dive_site) if get_dive_site_slug else ""
-        site_path = f"/dive-sites/{route.dive_site.id}/{site_slug}" if site_slug else f"/dive-sites/{route.dive_site.id}"
-        crumbs.append((route.dive_site.name, site_path))
+        site_path = (
+            f"/dive-sites/{route.dive_site.id}/{site_slug}"
+            if site_slug
+            else f"/dive-sites/{route.dive_site.id}"
+        )
+        crumbs = [
+            ("Home", "/"),
+            ("Dive Sites", "/dive-sites"),
+            (route.dive_site.name, site_path),
+            (route.name, ""),
+        ]
+    else:
+        crumbs = [("Home", "/"), ("Dive Routes", "/dive-routes"), (route.name, "")]
 
     lines = [
         '<main class="seo-prerender">',

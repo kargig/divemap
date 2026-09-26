@@ -528,8 +528,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
 
         elif parts[0] == "dives":
             if len(parts) == 1:
-                # Public Dives Directory Listing
-                # Fetch dives only associated with active, non-deleted users
+                # Dive Log directory listing
                 dives = (
                     db.query(Dive)
                     .join(User, Dive.user_id == User.id)
@@ -552,11 +551,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     link_path = f"/dives/{d.id}/{slug}" if slug else f"/dives/{d.id}"
                     dive_links.append((label, link_path))
 
-                page_title = "Divemap - Public Dives"
+                page_title = "Divemap - Dive Log"
                 description = "Browse public scuba diving logs, profiles, and dive activities shared by the Divemap community."
                 canonical = f"{base_url}/dives"
                 main_content = render_listing_main(
-                    "Public Dives",
+                    "Dive Log",
                     "Explore recent diving activities and public logbooks shared by the community.",
                     dive_links,
                 )
@@ -622,8 +621,8 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 main_content = f"""<main class="seo-prerender">
                     <nav class="breadcrumbs">
                         <a href="/">Home</a> &rsaquo; 
-                        <a href="/dives">Dives</a> &rsaquo; 
-                        <span>{escape_text(diver)}'s Log</span>
+                        <a href="/dives">Dive Log</a> &rsaquo; 
+                        <span>{escape_text(dive.name or f"{diver}'s dive at {site_name}")}</span>
                     </nav>
                     <h1>{escape_text(diver)}'s dive at {escape_text(site_name)}</h1>
                     <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
