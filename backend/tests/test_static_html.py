@@ -43,6 +43,47 @@ class MockRating:
         self.score = score
 
 
+class MockAlias:
+    def __init__(self, alias):
+        self.alias = alias
+
+
+class MockAvailableTag:
+    def __init__(self, name):
+        self.name = name
+
+
+class MockSiteTag:
+    def __init__(self, name):
+        self.tag = MockAvailableTag(name)
+
+
+class MockCenter:
+    def __init__(self, id, name, city="Anavissos", country="Greece"):
+        self.id = id
+        self.name = name
+        self.city = city
+        self.country = country
+
+
+class MockCenterRel:
+    def __init__(self, center):
+        self.diving_center = center
+
+
+class MockRouteType:
+    def __init__(self, name):
+        self.name = name
+
+
+class MockRoute:
+    def __init__(self, id, name, route_type_name="Scenic", deleted_at=None):
+        self.id = id
+        self.name = name
+        self.route_type = MockRouteType(route_type_name)
+        self.deleted_at = deleted_at
+
+
 class MockSite:
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Agia Anna")
@@ -57,6 +98,10 @@ class MockSite:
         self.safety_information = kwargs.get("safety_information")
         self.difficulty = kwargs.get("difficulty", MockDifficulty())
         self.ratings = kwargs.get("ratings", [MockRating(9), MockRating(8)])
+        self.aliases = kwargs.get("aliases", [])
+        self.tags = kwargs.get("tags", [])
+        self.center_relationships = kwargs.get("center_relationships", [])
+        self.routes = kwargs.get("routes", [])
 
 
 def test_strip_html_tags():
@@ -166,3 +211,24 @@ def test_dive_site_schema_omits_aggregate_rating_when_unrated():
     )
     assert schema["@type"] == "TouristAttraction"
     assert "aggregateRating" not in schema
+
+
+def test_render_dive_site_main_includes_aliases_tags_centers_routes():
+    site = MockSite(
+        aliases=[MockAlias("Fish Farm"), MockAlias("Ιχθυοτροφείο")],
+        tags=[MockSiteTag("Deep"), MockSiteTag("Wall")],
+        center_relationships=[MockCenterRel(MockCenter(54, "Aqualized", city="Anavissos", country="Greece"))],
+        routes=[MockRoute(12, "Canyon Traverse", "Wall Dive")],
+    )
+    html = render_dive_site_main(site, 8.5, 2)
+    assert "Also known as:" in html
+    assert "Fish Farm, Ιχθυοτροφείο" in html
+    assert "Tags:" in html
+    assert "Deep, Wall" in html
+    assert "Associated Diving Centers" in html
+    assert "/diving-centers/54/" in html
+    assert "Aqualized" in html
+    assert "Dive Routes" in html
+    assert "/dive-routes/12/" in html
+    assert "Canyon Traverse" in html
+

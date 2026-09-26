@@ -17,7 +17,6 @@ import {
   Globe,
   TrendingUp,
   RotateCcw,
-  Clock,
   Info,
   CloudSun,
   Route,
@@ -105,7 +104,6 @@ const DiveSiteDetail = () => {
   // Collapse states for lazy loading
   const [isMarineExpanded, setIsMarineExpanded] = useState(false);
   const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
-  const [isTopDivesExpanded, setIsTopDivesExpanded] = useState(false);
   const [isRoutesExpanded, setIsRoutesExpanded] = useState(false);
 
   // Helper to check if URL is video
@@ -209,9 +207,9 @@ const DiveSiteDetail = () => {
     }
   );
 
-  const { data: topDives } = useQuery(
+  const { data: recentDives } = useQuery(
     ['dive-site-dives', id],
-    () => api.get(`/api/v1/dive-sites/${id}/dives?limit=10`),
+    () => api.get(`/api/v1/dive-sites/${id}/dives?limit=5&sort_by=recent`),
     {
       select: response => response.data,
       enabled: !!diveSite,
@@ -535,111 +533,6 @@ const DiveSiteDetail = () => {
     rateMutation.mutate({ score });
     setRating(score);
   };
-
-  const renderTopDivesList = () => (
-    <>
-      <div className='space-y-3'>
-        {topDives.map(dive => (
-          <div
-            key={dive.id}
-            className='border border-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors bg-gray-50/30'
-          >
-            <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 mb-2'>
-              <RouterLink
-                to={`/dives/${dive.id}/${slugify(`${dive.name || dive.dive_site?.name || diveSite?.name || 'dive'}-${dive.dive_date}-dive-${dive.id}`)}`}
-                className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-sm sm:text-base leading-tight'
-              >
-                {dive.name || dive.dive_site?.name || 'Unnamed Dive'}
-              </RouterLink>
-              {dive.user_rating && (
-                <div className='flex items-center bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100 shrink-0'>
-                  <Star className='h-3 w-3 text-yellow-500 mr-1 fill-current' />
-                  <span className='text-[11px] font-bold text-yellow-700'>
-                    {dive.user_rating}/10
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className='text-[11px] sm:text-sm text-gray-500 space-y-1.5 mb-2'>
-              <div className='flex flex-wrap items-center gap-x-3 gap-y-1'>
-                <div className='flex items-center gap-1'>
-                  <span className='font-semibold text-gray-400 uppercase text-[9px]'>Date:</span>
-                  <span className='text-gray-700'>{formatDate(dive.dive_date)}</span>
-                </div>
-
-                {dive.user_username && (
-                  <div className='flex items-center gap-1'>
-                    <span className='font-semibold text-gray-400 uppercase text-[9px]'>By:</span>
-                    <RouterLink
-                      to={`/users/${dive.user_username}`}
-                      className='text-blue-500 hover:text-blue-700 font-medium'
-                    >
-                      {dive.user_username}
-                    </RouterLink>
-                  </div>
-                )}
-              </div>
-
-              <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5'>
-                {dive.max_depth && (
-                  <div className='flex items-center gap-1'>
-                    <DepthIcon className='text-divemap-blue font-bold' size={14} />
-                    <span className='text-gray-700 font-medium'>{dive.max_depth}m</span>
-                  </div>
-                )}
-
-                {dive.duration && (
-                  <div className='flex items-center gap-1'>
-                    <Clock className='w-3 h-3 text-gray-300' />
-                    <span className='text-gray-700 font-medium'>{dive.duration}min</span>
-                  </div>
-                )}
-
-                {dive.difficulty_code && (
-                  <div className='flex items-center gap-1'>
-                    <DifficultyBadge
-                      code={dive.difficulty_code}
-                      label={dive.difficulty_label}
-                      size='xs'
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {dive.dive_information && (
-              <p className='text-[13px] text-gray-600 line-clamp-2 leading-relaxed border-t border-gray-100 pt-2'>
-                {decodeHtmlEntities(dive.dive_information)}
-              </p>
-            )}
-
-            {dive.tags && dive.tags.length > 0 && (
-              <div className='flex flex-wrap gap-1 mt-2'>
-                {dive.tags.map(tag => (
-                  <span
-                    key={tag.id}
-                    className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full ${getTagColor(tag.name)}`}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className='mt-3 sm:mt-4 text-center'>
-        <RouterLink
-          to={`/dives?dive_site_id=${id}`}
-          className='inline-block px-3 py-1.5 text-blue-600 hover:text-blue-800 transition-colors text-xs sm:text-sm font-medium rounded-md'
-        >
-          View All Dives at This Site →
-        </RouterLink>
-      </div>
-    </>
-  );
 
   return (
     <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
@@ -1020,9 +913,8 @@ const DiveSiteDetail = () => {
           </a>
           <a
             href='#dives'
-            onClick={() => setIsTopDivesExpanded(true)}
             className='flex flex-col items-center justify-center p-1.5 rounded-xl bg-white border border-gray-200 shadow-sm active:scale-95 transition-transform flex-1 min-w-0 group'
-            title='Top Dives'
+            title='Recent Dives'
           >
             <TrendingUp className='w-4 h-4 sm:w-5 sm:h-5 text-blue-600 group-hover:text-blue-800' />
             <span className='text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-tight mt-0.5 truncate max-w-full'>
@@ -1297,108 +1189,13 @@ const DiveSiteDetail = () => {
             </div>
           </div>
 
-          {/* Nearby Dive Sites - Mobile View Only */}
-          {diveSite.latitude && diveSite.longitude && (
-            <div
-              id='nearby'
-              className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
-            >
-              <Collapse
-                ghost
-                activeKey={isNearbyExpanded ? ['nearby'] : []}
-                onChange={keys => {
-                  setIsNearbyExpanded(keys.includes('nearby'));
-                }}
-                items={[
-                  {
-                    key: 'nearby',
-                    label: (
-                      <span className='text-base sm:text-lg font-bold text-gray-900'>
-                        Nearby Dive Sites
-                      </span>
-                    ),
-                    children: (
-                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
-                        {isNearbyLoading ? (
-                          <div className='text-center py-4 text-[10px] text-gray-400 font-bold uppercase tracking-wider'>
-                            Loading nearby sites...
-                          </div>
-                        ) : nearbyDiveSites && nearbyDiveSites.length > 0 ? (
-                          nearbyDiveSites.slice(0, 6).map(site => (
-                            <button
-                              key={site.id}
-                              onClick={() =>
-                                navigate(`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`)
-                              }
-                              className='flex items-center p-2 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors text-left w-full shadow-sm'
-                            >
-                              <MapPin className='w-3.5 h-3.5 mr-2 flex-shrink-0 text-blue-500' />
-                              <div className='min-w-0 flex-1'>
-                                <div className='font-bold text-gray-900 text-xs truncate leading-tight'>
-                                  {site.name}
-                                </div>
-                                <div className='text-[10px] text-gray-400 font-medium'>
-                                  {site.distance_km} km away
-                                </div>
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className='text-center py-4 text-xs text-gray-500 italic'>
-                            No nearby dive sites found.
-                          </div>
-                        )}
-                      </div>
-                    ),
-                  },
-                ]}
-              />
-            </div>
-          )}
-
-          {/* Top Dives */}
-          {topDives && topDives.length > 0 && (
-            <>
-              {/* Desktop View */}
-              <div className='hidden lg:block bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100 scroll-mt-16'>
-                <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4'>
-                  Top Dives
-                </h2>
-                {renderTopDivesList()}
-              </div>
-
-              {/* Mobile View */}
-              <div
-                id='dives'
-                className='lg:hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden scroll-mt-16'
-              >
-                <Collapse
-                  ghost
-                  activeKey={isTopDivesExpanded ? ['top-dives-mobile'] : []}
-                  onChange={keys => setIsTopDivesExpanded(keys.includes('top-dives-mobile'))}
-                  items={[
-                    {
-                      key: 'top-dives-mobile',
-                      label: (
-                        <span className='text-base sm:text-xl font-bold text-gray-900'>
-                          Top Dives
-                        </span>
-                      ),
-                      children: <div className='-mt-2'>{renderTopDivesList()}</div>,
-                    },
-                  ]}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Access Instructions - Mobile View Only */}
-          {diveSite.access_instructions && (
-            <div className='lg:hidden bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+          {/* Marine Life */}
+          {diveSite.marine_life && (
+            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
               <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
-                Access Instructions
+                Marine Life
               </h2>
-              <RichText content={diveSite.access_instructions} className='text-xs sm:text-base' />
+              <RichText content={diveSite.marine_life} className='text-xs sm:text-base' />
             </div>
           )}
 
@@ -1412,13 +1209,13 @@ const DiveSiteDetail = () => {
             </div>
           )}
 
-          {/* Marine Life */}
-          {diveSite.marine_life && (
-            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
+          {/* Access Instructions - Mobile View Only */}
+          {diveSite.access_instructions && (
+            <div className='lg:hidden bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
               <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
-                Marine Life
+                Access Instructions
               </h2>
-              <RichText content={diveSite.marine_life} className='text-xs sm:text-base' />
+              <RichText content={diveSite.access_instructions} className='text-xs sm:text-base' />
             </div>
           )}
 
@@ -1523,8 +1320,10 @@ const DiveSiteDetail = () => {
           isWindLoading={isWindLoading}
           setIsMarineExpanded={setIsMarineExpanded}
           divingCenters={divingCenters}
+          recentDives={recentDives}
           nearbyDiveSites={nearbyDiveSites}
           isNearbyLoading={isNearbyLoading}
+          isNearbyExpanded={isNearbyExpanded}
           setIsNearbyExpanded={setIsNearbyExpanded}
         />
       </div>

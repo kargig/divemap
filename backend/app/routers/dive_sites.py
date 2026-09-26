@@ -3680,12 +3680,12 @@ async def get_dive_site_dives(
     request: Request,
     dive_site_id: int,
     limit: int = Query(10, ge=1, le=50),
+    sort_by: str = Query("recent", description="Sort order: 'recent' (dive date desc) or 'rating' (rating desc, then date desc)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional)
 ):
     """
-    Get top dives for a specific dive site, ordered by rating (descending).
-    If no rating is available, returns the first 10 dives.
+    Get dives for a specific dive site, ordered by recent date (descending) or rating (descending).
     """
     # Check if dive site exists
     dive_site = db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
@@ -3710,13 +3710,18 @@ async def get_dive_site_dives(
             )
         )
 
-    # Order by rating (descending) first, then by dive date (descending)
-    # Dives with no rating will be ordered by dive date
-    query = query.order_by(
-        desc(Dive.user_rating),  # Highest rating first
-        desc(Dive.dive_date),    # Most recent first
-        desc(Dive.dive_time)     # Most recent time first
-    )
+    # Order by rating or recent date
+    if sort_by == "rating":
+        query = query.order_by(
+            desc(Dive.user_rating),  # Highest rating first
+            desc(Dive.dive_date),    # Most recent first
+            desc(Dive.dive_time)     # Most recent time first
+        )
+    else:
+        query = query.order_by(
+            desc(Dive.dive_date),    # Most recent first
+            desc(Dive.dive_time)     # Most recent time first
+        )
 
     # Limit results
     dives = query.limit(limit).all()

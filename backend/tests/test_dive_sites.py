@@ -968,6 +968,43 @@ class TestDiveSitesDives:
         data = response.json()
         assert len(data) == 0
 
+    def test_get_dive_site_dives_sorting(self, client, db_session, test_user, test_dive_site):
+        """Test getting dives sorted by recent (default) vs rating."""
+        from app.models import Dive
+        from datetime import date
+
+        dive_older_high_rated = Dive(
+            name="Older Top Rated Dive",
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            dive_date=date(2023, 5, 1),
+            user_rating=10
+        )
+        dive_newer_low_rated = Dive(
+            name="Newer Low Rated Dive",
+            user_id=test_user.id,
+            dive_site_id=test_dive_site.id,
+            dive_date=date(2024, 6, 1),
+            user_rating=5
+        )
+
+        db_session.add_all([dive_older_high_rated, dive_newer_low_rated])
+        db_session.commit()
+
+        # Default / recent sort: Newer dive comes first
+        response_recent = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=recent")
+        assert response_recent.status_code == status.HTTP_200_OK
+        data_recent = response_recent.json()
+        assert len(data_recent) >= 2
+        assert data_recent[0]["name"] == "Newer Low Rated Dive"
+
+        # Rating sort: Higher rated dive comes first
+        response_rating = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=rating")
+        assert response_rating.status_code == status.HTTP_200_OK
+        data_rating = response_rating.json()
+        assert len(data_rating) >= 2
+        assert data_rating[0]["name"] == "Older Top Rated Dive"
+
 class TestDiveSitesAdvancedFeatures:
     """Test advanced dive site features and edge cases."""
 
