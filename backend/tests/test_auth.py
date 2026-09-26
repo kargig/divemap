@@ -1035,6 +1035,7 @@ class TestDivingCenterAuthorization:
     def test_facebook_login_success(self, mock_get_or_create, mock_verify, client, db_session, monkeypatch):
         """Test Facebook login success."""
         monkeypatch.setenv("FACEBOOK_APP_ID", "mock_fb_id")
+        monkeypatch.setenv("FACEBOOK_APP_SECRET", "mock_fb_secret")
         mock_verify.return_value = {
             "id": "fb_123",
             "name": "FB User",
@@ -1055,16 +1056,26 @@ class TestDivingCenterAuthorization:
         assert response.status_code == 200
         assert "access_token" in response.json()
         assert response.json()["user"]["username"] == "fb_user"
+        assert response.json()["user"]["facebook_id"] == "fb_123"
 
     def test_facebook_login_disabled_when_app_id_not_set(self, client, monkeypatch):
         """Test Facebook login returns 503 when FACEBOOK_APP_ID is not set."""
         monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
+        monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+        response = client.post("/api/v1/auth/facebook-login", json={"token": "valid_fb_token"})
+        assert response.status_code == 503
+        assert "not configured" in response.json()["detail"].lower()
+
+    def test_facebook_login_disabled_when_app_secret_not_set(self, client, monkeypatch):
+        """Test Facebook login returns 503 when FACEBOOK_APP_SECRET is not set."""
+        monkeypatch.setenv("FACEBOOK_APP_ID", "mock_fb_id")
+        monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
         response = client.post("/api/v1/auth/facebook-login", json={"token": "valid_fb_token"})
         assert response.status_code == 503
         assert "not configured" in response.json()["detail"].lower()
 
     def test_password_reset_blocked_for_facebook_user(self, client, db_session):
-        """Test that password reset is blocked for Facebook users."""
+        """Test that password reset is blocked for synthetic Facebook emails."""
         from app.models import AuthAuditLog
         user = User(
             username="fb_reset_user",
@@ -1078,12 +1089,36 @@ class TestDivingCenterAuthorization:
 
         response = client.post("/api/v1/auth/forgot-password", json={"email_or_username": "fb_reset_user"})
         assert response.status_code == 200
-        
-        # Verify that audit log records that it was blocked
+
         log = db_session.query(AuthAuditLog).filter(
             AuthAuditLog.user_id == user.id,
             AuthAuditLog.action == "password_reset_request_facebook"
         ).first()
         assert log is not None
         assert log.success is False
-        assert "Blocked: Facebook account" in log.details
+        assert "synthetic" in log.details.lower()
+
+    def test_password_reset_allowed_for_facebook_linked_real_email(self, client, db_session):
+        """Password users who linked Facebook can still reset via their real email."""
+        from app.models import PasswordResetToken
+        user = User(
+            username="linked_fb_reset",
+            email="linked_fb@example.com",
+            password_hash="dummy",
+            facebook_id="fb_linked_reset",
+            enabled=True
+        )
+        db_session.add(user)
+        db_session.commit()
+
+        with patch('app.services.email_service.EmailService.send_password_reset_email') as mock_send:
+            mock_send.return_value = True
+            response = client.post(
+                "/api/v1/auth/forgot-password",
+                json={"email_or_username": "linked_fb@example.com"},
+            )
+        assert response.status_code == 200
+        token = db_session.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id
+        ).first()
+        assert token is not None

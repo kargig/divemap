@@ -745,19 +745,19 @@ async def request_password_reset(
         # Note: We rely on slowapi for rate limiting invalid requests too
         return {"message": success_message}
 
-    # Check if user uses social auth (Google or Facebook)
-    if user.google_id or user.facebook_id:
-        provider = "Google" if user.google_id else "Facebook"
-        logger.info(f"Password reset requested for {provider} user {user.id}")
+    # Block password reset when email cannot be delivered (synthetic social emails).
+    # Users with a real email may reset even if Google/Facebook is linked.
+    if user.email and user.email.endswith('.invalid'):
+        provider = "Facebook" if user.facebook_id else "social"
+        logger.info(f"Password reset blocked for synthetic-email {provider} user {user.id}")
 
-        # Log attempt
         audit_log = AuthAuditLog(
             user_id=user.id,
             action=f"password_reset_request_{provider.lower()}",
             ip_address=ip_address,
             user_agent=request.headers.get("user-agent"),
             success=False,
-            details=f"Blocked: {provider} account"
+            details=f"Blocked: synthetic {provider} email"
         )
         db.add(audit_log)
         db.commit()

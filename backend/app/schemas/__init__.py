@@ -54,6 +54,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
     name: Optional[str] = Field(None, min_length=1, max_length=255)
+    email: Optional[EmailStr] = Field(None, description="Real email (allowed when upgrading from a synthetic social email)")
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     number_of_dives: Optional[int] = Field(None, ge=0)
     buddy_visibility: Optional[str] = Field(None, pattern=r"^(public|private)$", description="Control whether user can be added as buddy: 'public' or 'private'")
@@ -154,6 +155,8 @@ class UserResponse(UserBase):
     avatar_full_url: Optional[str] = None
     google_avatar_url: Optional[str] = None
     facebook_avatar_url: Optional[str] = None
+    google_id: Optional[str] = None
+    facebook_id: Optional[str] = None
     buddy_visibility: str = 'public'
     created_at: datetime
     updated_at: datetime

@@ -78,6 +78,7 @@ import { formatGases } from '../utils/textHelpers';
 const Profile = () => {
   const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
+  const isSyntheticEmail = Boolean(user?.email?.endsWith('.invalid'));
   const [isEditing, setIsEditing] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [facebookActionLoading, setFacebookActionLoading] = useState(false);
@@ -244,7 +245,13 @@ const Profile = () => {
         navigate('/login');
       } else {
         updateUser(response.data);
-        toast.success('Profile updated successfully!');
+        if (variables.email) {
+          toast.success(
+            'Email updated! Please check your inbox to verify the new address before enabling email notifications.'
+          );
+        } else {
+          toast.success('Profile updated successfully!');
+        }
         setIsEditing(false);
       }
     },
@@ -441,9 +448,12 @@ const Profile = () => {
   );
 
   const onProfileSubmit = data => {
-    // Exclude email as it cannot be changed
+    // Email is immutable except when upgrading from a synthetic social address
     // eslint-disable-next-line no-unused-vars
     const { email, ...rest } = data;
+    if (isSyntheticEmail && email && email !== user.email) {
+      rest.email = email;
+    }
 
     // Check if username has changed
     if (data.username && data.username !== user.username) {
@@ -820,13 +830,17 @@ const Profile = () => {
                               id='email'
                               type='email'
                               {...register(name)}
-                              disabled
-                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed ${
-                                profileErrors.email ? 'border-red-500' : 'border-gray-300'
-                              }`}
+                              disabled={!isSyntheticEmail}
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                                isSyntheticEmail
+                                  ? ''
+                                  : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                              } ${profileErrors.email ? 'border-red-500' : 'border-gray-300'}`}
                             />
                             <p className='mt-1 text-[10px] text-gray-500'>
-                              Email cannot be changed
+                              {isSyntheticEmail
+                                ? 'Add a real email address to enable notifications and account recovery.'
+                                : 'Email cannot be changed'}
                             </p>
                           </>
                         )}

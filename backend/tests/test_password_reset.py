@@ -38,8 +38,7 @@ class TestPasswordReset:
         assert "reset link has been sent" in response.json()["message"]
 
     def test_request_password_reset_google_user(self, client, db_session):
-        """Test password reset request for Google user (Anti-Enumeration)."""
-        # Create Google user
+        """Google users with a real email can request a password reset."""
         google_user = User(
             username="googleuser_reset",
             email="google_reset@example.com",
@@ -49,17 +48,20 @@ class TestPasswordReset:
         )
         db_session.add(google_user)
         db_session.commit()
-        
-        response = client.post("/api/v1/auth/forgot-password", json={
-            "email_or_username": "google_reset@example.com"
-        })
-        
+
+        with patch('app.services.email_service.EmailService.send_password_reset_email') as mock_send:
+            mock_send.return_value = True
+            response = client.post("/api/v1/auth/forgot-password", json={
+                "email_or_username": "google_reset@example.com"
+            })
+
         assert response.status_code == status.HTTP_200_OK
         assert "reset link has been sent" in response.json()["message"]
-        
-        # Verify NO token created
-        token = db_session.query(PasswordResetToken).filter(PasswordResetToken.user_id == google_user.id).first()
-        assert token is None
+
+        token = db_session.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == google_user.id
+        ).first()
+        assert token is not None
 
     def test_request_password_reset_admin_user(self, client, db_session):
         """Test password reset request for any admin user (Security restriction)."""

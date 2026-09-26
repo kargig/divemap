@@ -17,7 +17,11 @@ def test_user_response_accepts_facebook_avatar():
         "is_moderator": False,
         "created_at": now,
         "updated_at": now,
-        "facebook_avatar_url": "https://graph.facebook.com/picture.jpg"
+        "facebook_avatar_url": "https://graph.facebook.com/picture.jpg",
+        "facebook_id": "fb_abc",
+        "google_id": None,
     }
     user = UserResponse(**data)
     assert user.facebook_avatar_url == "https://graph.facebook.com/picture.jpg"
+    assert user.facebook_id == "fb_abc"
+    assert user.google_id is None

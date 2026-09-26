@@ -473,8 +473,12 @@ async def update_current_user_profile(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    import logging
+    logger = logging.getLogger(__name__)
+
     # Update only provided fields
     update_data = user_update.model_dump(exclude_unset=True)
+    email_upgraded = False
 
     # Handle username update separately to enforce uniqueness and restrictions
     if 'username' in update_data:
@@ -496,6 +500,30 @@ async def update_current_user_profile(
                     detail="Username already registered"
                 )
 
+    # Allow upgrading synthetic social emails to a real address only
+    if 'email' in update_data:
+        new_email = update_data.pop('email')
+        if new_email != current_user.email:
+            is_synthetic = bool(
+                current_user.email and current_user.email.endswith('.invalid')
+            )
+            if not is_synthetic:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email cannot be changed"
+                )
+            existing_email = db.query(User).filter(User.email == new_email).first()
+            if existing_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
+            current_user.email = new_email
+            current_user.email_verified = False
+            current_user.email_verified_at = None
+            current_user.email_notifications_opted_out = False
+            email_upgraded = True
+
     # Handle password update separately
     if 'password' in update_data:
         password = update_data.pop('password')
@@ -506,6 +534,21 @@ async def update_current_user_profile(
 
     db.commit()
     db.refresh(current_user)
+
+    if email_upgraded:
+        try:
+            from app.services.email_verification_service import email_verification_service
+            from app.services.email_service import EmailService
+            verification_token_obj = email_verification_service.create_verification_token(
+                current_user.id, db
+            )
+            EmailService().send_verification_email(
+                current_user.email, verification_token_obj.token
+            )
+        except Exception as e:
+            logger.warning(
+                f"Failed to send verification email after upgrade for user {current_user.id}: {e}"
+            )
 
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
@@ -2047,7 +2090,13 @@ async def unlink_facebook(
     db: Session = Depends(get_db)
 ):
     """Unlink Facebook account from current user."""
-    if not current_user.password_hash and not current_user.google_id:
+    # password_hash is always set for Facebook signups (random), so do not use it
+    # as proof of another login method. Require Google or a real (non-synthetic) email.
+    has_google = bool(current_user.google_id)
+    has_real_email = bool(
+        current_user.email and not current_user.email.endswith('.invalid')
+    )
+    if not has_google and not has_real_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot unlink Facebook because you have no other login method configured."
