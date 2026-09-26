@@ -114,6 +114,10 @@ class SESService:
         Returns:
             True if email was sent successfully, False otherwise
         """
+        if to_email and to_email.endswith('.invalid'):
+            logger.warning(f"Bypassing email delivery to synthetic/invalid address: {to_email}")
+            return False
+
         if not self.ses_available or not self.ses_client:
             logger.warning("SES not available - cannot send email")
             return False
@@ -185,6 +189,8 @@ class SESService:
         Returns:
             Dict with 'success_count' and 'failed_count'
         """
+        destinations = [d for d in destinations if not d.get('email', '').endswith('.invalid')]
+
         if not self.ses_available or not self.ses_client:
             logger.warning("SES not available - cannot send bulk emails")
             return {'success_count': 0, 'failed_count': len(destinations)}

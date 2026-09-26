@@ -62,6 +62,39 @@ export const googleLogin = async token => {
 };
 
 /**
+ * Log in or register with Facebook
+ * @param {string} token - Facebook access token
+ * @returns {Promise<Object>} Response data containing access_token
+ */
+export const facebookLogin = async token => {
+  const response = await api.post('/api/v1/auth/facebook-login', {
+    token,
+  });
+  return response.data;
+};
+
+/**
+ * Link Facebook account to current user
+ * @param {string} token - Facebook access token
+ * @returns {Promise<Object>} Updated user profile
+ */
+export const linkFacebook = async token => {
+  const response = await api.post('/api/v1/users/me/facebook/link', {
+    token,
+  });
+  return response.data;
+};
+
+/**
+ * Unlink Facebook account from current user
+ * @returns {Promise<Object>} Updated user profile
+ */
+export const unlinkFacebook = async () => {
+  const response = await api.delete('/api/v1/users/me/facebook/unlink');
+  return response.data;
+};
+
+/**
  * Log out the current user
  * @returns {Promise<Object>} Response data
  */

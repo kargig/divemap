@@ -24,6 +24,7 @@ const urlBase64ToUint8Array = base64String => {
 
 const NotificationPreferencesPage = () => {
   const { user } = useAuth();
+  const isSyntheticEmail = Boolean(user?.email?.endsWith('.invalid'));
   const { createPreference, updatePreference, deletePreference } = useNotifications();
   const { data: preferences = [], isLoading } = useQuery(
     ['notifications', 'preferences'],
@@ -144,6 +145,11 @@ const NotificationPreferencesPage = () => {
   };
 
   const handleToggle = (category, field, value) => {
+    if (field === 'enable_email' && value && isSyntheticEmail) {
+      toast.error('To enable email notifications, please add a valid email to your profile first.');
+      return;
+    }
+
     const preference = getPreference(category);
     if (preference) {
       // Update existing preference
@@ -209,6 +215,11 @@ const NotificationPreferencesPage = () => {
   // 'moderation' handles its own admin check later
 
   const handleBulkUpdate = (field, value) => {
+    if (field === 'enable_email' && value && isSyntheticEmail) {
+      toast.error('To enable email notifications, please add a valid email to your profile first.');
+      return;
+    }
+
     categories.forEach(category => {
       const catValue = category.value;
       const preference = getPreference(catValue);
@@ -364,6 +375,24 @@ const NotificationPreferencesPage = () => {
           </div>
         </div>
 
+        {isSyntheticEmail && (
+          <div className='mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3'>
+            <div className='flex items-center space-x-2'>
+              <Mail className='h-5 w-5 text-blue-600 shrink-0' />
+              <span>
+                You are currently signed in with a social account without an email. To enable email
+                notifications, please add a valid email address to your profile.
+              </span>
+            </div>
+            <Link
+              to='/profile'
+              className='px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors shrink-0'
+            >
+              Add Email
+            </Link>
+          </div>
+        )}
+
         <div className='bg-white rounded-lg shadow-md p-6 mb-8'>
           <div className='flex items-center justify-between mb-4'>
             <h2 className='text-lg font-bold text-gray-900'>Bulk Actions</h2>
@@ -438,21 +467,44 @@ const NotificationPreferencesPage = () => {
               </div>
             </label>
             {/* All Email */}
-            <label className='flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50 cursor-pointer group'>
+            <label
+              className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg ${
+                isSyntheticEmail
+                  ? 'bg-gray-100 opacity-75 cursor-not-allowed'
+                  : 'bg-gray-50 cursor-pointer group'
+              }`}
+            >
               <div className='flex items-center space-x-2'>
-                <Mail className='h-5 w-5 text-gray-500 group-hover:text-blue-600 transition-colors' />
-                <span className='text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors'>
+                <Mail
+                  className={`h-5 w-5 ${
+                    isSyntheticEmail
+                      ? 'text-gray-400'
+                      : 'text-gray-500 group-hover:text-blue-600 transition-colors'
+                  }`}
+                />
+                <span
+                  className={`text-sm font-medium ${
+                    isSyntheticEmail
+                      ? 'text-gray-500'
+                      : 'text-gray-700 group-hover:text-gray-900 transition-colors'
+                  }`}
+                >
                   All Email
                 </span>
               </div>
               <div className='relative inline-flex items-center'>
                 <input
                   type='checkbox'
-                  checked={isAllEmailEnabled}
+                  checked={!isSyntheticEmail && isAllEmailEnabled}
+                  disabled={isSyntheticEmail}
                   onChange={e => handleBulkUpdate('enable_email', e.target.checked)}
                   className='sr-only peer'
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div
+                  className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 ${
+                    isSyntheticEmail ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                ></div>
               </div>
             </label>
           </div>
@@ -583,20 +635,22 @@ const NotificationPreferencesPage = () => {
                     {/* Email Notifications */}
                     <label
                       className={`flex items-center justify-between ${
-                        enableWebsite ? 'cursor-pointer group' : 'cursor-not-allowed opacity-50'
+                        enableWebsite && !isSyntheticEmail
+                          ? 'cursor-pointer group'
+                          : 'cursor-not-allowed opacity-50'
                       }`}
                     >
                       <div className='flex items-center space-x-2'>
                         <Mail
                           className={`h-5 w-5 ${
-                            enableWebsite
+                            enableWebsite && !isSyntheticEmail
                               ? 'text-gray-500 group-hover:text-blue-600'
                               : 'text-gray-300'
                           } transition-colors`}
                         />
                         <span
                           className={`text-sm font-medium ${
-                            enableWebsite
+                            enableWebsite && !isSyntheticEmail
                               ? 'text-gray-700 group-hover:text-gray-900'
                               : 'text-gray-400'
                           } transition-colors`}
@@ -607,12 +661,12 @@ const NotificationPreferencesPage = () => {
                       <div className='relative inline-flex items-center'>
                         <input
                           type='checkbox'
-                          checked={enableEmail}
+                          checked={!isSyntheticEmail && enableEmail}
                           onChange={e =>
                             handleToggle(category.value, 'enable_email', e.target.checked)
                           }
                           className='sr-only peer'
-                          disabled={!enableWebsite}
+                          disabled={!enableWebsite || isSyntheticEmail}
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </div>

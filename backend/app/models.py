@@ -161,6 +161,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     google_id = Column(String(255), unique=True, index=True, nullable=True)  # Google OAuth ID
+    facebook_id = Column(String(255), unique=True, index=True, nullable=True)  # Facebook OAuth ID
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     is_admin = Column(Boolean, default=False, nullable=False)
@@ -170,6 +171,7 @@ class User(Base):
     avatar_url = Column(String(500), nullable=True)  # User avatar URL
     avatar_type = Column(String(20), default='google', nullable=True)  # 'google', 'custom', 'library'
     google_avatar_url = Column(String(500), nullable=True)  # Original Google avatar URL
+    facebook_avatar_url = Column(String(500), nullable=True)  # Original Facebook avatar URL
     turnstile_verified_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when Turnstile was verified
     buddy_visibility = Column(String(20), default='public', nullable=False)  # Control whether user can be added as buddy ('public' or 'private')
     last_notification_check = Column(DateTime(timezone=True), nullable=True)  # Track when user last checked notifications

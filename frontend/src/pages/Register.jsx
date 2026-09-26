@@ -11,6 +11,7 @@ import Logo from '../components/Logo';
 import SEO from '../components/SEO';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
+import { facebookAuth } from '../utils/facebookAuth';
 import { commonSchemas, createResolver, getErrorMessage } from '../utils/formHelpers';
 import googleAuth from '../utils/googleAuth';
 import { isTurnstileEnabled, getTurnstileConfig } from '../utils/turnstileConfig';
@@ -33,11 +34,12 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState(null);
   const [turnstileError, setTurnstileError] = useState(false);
   const [isBackendReady, setIsBackendReady] = useState(false);
 
-  const { register: authRegister, loginWithGoogle, user } = useAuth();
+  const { register: authRegister, loginWithGoogle, loginWithFacebook, user } = useAuth();
   const navigate = useNavigate();
 
   const methods = useForm({
@@ -93,6 +95,25 @@ const Register = () => {
     toast.error('Google Sign-In failed. Please try again.');
     setGoogleLoading(false);
   }, []);
+
+  const handleFacebookRegister = useCallback(async () => {
+    setFacebookLoading(true);
+    try {
+      const token = await facebookAuth.signIn();
+      const success = await loginWithFacebook(token);
+      if (success) {
+        toast.success(
+          'Facebook registration successful! Your account is now active and ready to use.',
+          { duration: 6000 }
+        );
+        navigate('/', { replace: true });
+      }
+    } catch (error) {
+      console.error('Facebook registration failed:', error);
+    } finally {
+      setFacebookLoading(false);
+    }
+  }, [loginWithFacebook, navigate]);
 
   const handleTurnstileVerify = token => {
     setTurnstileToken(token);
@@ -216,33 +237,61 @@ const Register = () => {
           </div>
           <FormProvider {...methods}>
             <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
-              {/* Google Sign-In/Up Button */}
-              {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
-                import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
-                  <div
-                    className={`transition-opacity duration-200 ${
-                      !isBackendReady ? 'opacity-50 pointer-events-none' : ''
-                    }`}
-                  >
-                    <div id='google-signup-button' className='w-full flex justify-center'></div>
-                    {googleLoading && (
-                      <div className='mt-2 text-center text-sm text-gray-600'>
-                        Creating account with Google... (Account will be immediately active)
+              {/* Social Sign-In/Up Options */}
+              {((import.meta.env.VITE_GOOGLE_CLIENT_ID &&
+                import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined') ||
+                (import.meta.env.VITE_FACEBOOK_APP_ID &&
+                  import.meta.env.VITE_FACEBOOK_APP_ID !== 'undefined')) && (
+                <div
+                  className={`w-full max-w-[400px] mx-auto space-y-3 transition-opacity duration-200 ${
+                    !isBackendReady ? 'opacity-50 pointer-events-none' : ''
+                  }`}
+                >
+                  {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
+                    import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
+                      <div
+                        id='google-signup-button'
+                        className='w-full flex justify-center'
+                        style={{ minHeight: '40px' }}
+                      ></div>
+                    )}
+                  {googleLoading && (
+                    <div className='mt-2 text-center text-sm text-gray-600'>
+                      Creating account with Google... (Account will be immediately active)
+                    </div>
+                  )}
+
+                  {import.meta.env.VITE_FACEBOOK_APP_ID &&
+                    import.meta.env.VITE_FACEBOOK_APP_ID !== 'undefined' && (
+                      <div className='w-full flex justify-center'>
+                        <button
+                          type='button'
+                          onClick={handleFacebookRegister}
+                          disabled={!isBackendReady || facebookLoading}
+                          className='w-full max-w-[400px] h-[40px] flex items-center justify-center gap-3 px-4 border border-transparent rounded-[4px] shadow-sm text-sm font-medium text-white bg-[#1877F2] hover:bg-[#166FE5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1877F2] transition-colors'
+                        >
+                          <svg className='w-5 h-5 fill-current shrink-0' viewBox='0 0 24 24'>
+                            <path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' />
+                          </svg>
+                          <span>
+                            {facebookLoading ? 'Connecting...' : 'Continue with Facebook'}
+                          </span>
+                        </button>
                       </div>
                     )}
 
-                    <div className='relative flex items-center justify-center mt-4 mb-2'>
-                      <div className='absolute inset-0 flex items-center'>
-                        <div className='w-full border-t border-gray-300' />
-                      </div>
-                      <div className='relative flex justify-center text-sm'>
-                        <span className='px-2 bg-gray-50 text-gray-500'>
-                          Or register with credentials
-                        </span>
-                      </div>
+                  <div className='relative flex items-center justify-center mt-4 mb-2'>
+                    <div className='absolute inset-0 flex items-center'>
+                      <div className='w-full border-t border-gray-300' />
+                    </div>
+                    <div className='relative flex justify-center text-sm'>
+                      <span className='px-2 bg-gray-50 text-gray-500'>
+                        Or register with credentials
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
+              )}
 
               <div className='space-y-4'>
                 <FormField name='username' label='Username'>

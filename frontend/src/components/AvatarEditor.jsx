@@ -17,6 +17,7 @@ const AvatarEditor = ({
   currentType,
   username,
   googleAvatarUrl,
+  facebookAvatarUrl,
   onAvatarUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState('gallery');
@@ -94,11 +95,13 @@ const AvatarEditor = ({
   };
 
   const hasGoogleAvatar = Boolean(googleAvatarUrl);
-  // Show reset button if user has a custom/library avatar, OR if current avatar doesn't match google avatar
+  const hasFacebookAvatar = Boolean(facebookAvatarUrl);
+  // Show reset button if user has a custom/library avatar, OR if current avatar doesn't match google/facebook avatar
   const showResetButton =
     currentType === 'custom' ||
     currentType === 'library' ||
-    (hasGoogleAvatar && currentAvatarUrl !== googleAvatarUrl);
+    (hasGoogleAvatar && currentAvatarUrl !== googleAvatarUrl) ||
+    (hasFacebookAvatar && currentAvatarUrl !== facebookAvatarUrl);
 
   return (
     <Modal
@@ -237,7 +240,11 @@ const AvatarEditor = ({
                     isLoading={removeMutation.isLoading}
                   >
                     <Trash2 className='h-4 w-4 mr-2' />
-                    {hasGoogleAvatar ? 'Reset to Google Photo' : 'Remove Photo'}
+                    {hasFacebookAvatar && (currentType === 'facebook' || !hasGoogleAvatar)
+                      ? 'Reset to Facebook Photo'
+                      : hasGoogleAvatar
+                        ? 'Reset to Google Photo'
+                        : 'Remove Photo'}
                   </Button>
                 )}
               </div>
