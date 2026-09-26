@@ -20,6 +20,18 @@ def test_geo_slug_basic():
     assert geo_slug(None) == ""
 
 
+def test_geo_slug_diacritics_nfkd():
+    """Must match frontend geoHubs.geoSlug (NFKD→ASCII) for hub round-trips."""
+    assert geo_slug("São Tomé and Príncipe") == "sao-tome-and-principe"
+    assert geo_slug("Côte d'Ivoire") == "cote-d-ivoire"
+    assert geo_slug("Réunion") == "reunion"
+    assert geo_hub_path("São Tomé and Príncipe") == "/dive-sites/sao-tome-and-principe"
+    assert (
+        resolve_label_from_slug(["São Tomé and Príncipe"], "sao-tome-and-principe")
+        == "São Tomé and Príncipe"
+    )
+
+
 def test_geo_hub_path():
     assert geo_hub_path("Greece") == "/dive-sites/greece"
     assert geo_hub_path("Greece", "East Attica") == "/dive-sites/greece/east-attica"
@@ -105,6 +117,101 @@ def test_substantial_dive_with_media(db_session):
     db_session.refresh(dive)
 
     assert is_substantial_public_dive(dive)
+
+
+def test_query_substantial_public_dives_filters_in_sql(db_session):
+    """Thin public dives must not be loaded just to discard them in Python."""
+    from app.seo_geo import query_substantial_public_dives
+
+    user = User(
+        username="sitemapdives",
+        email="sitemapdives@test.com",
+        password_hash="x",
+        enabled=True,
+    )
+    db_session.add(user)
+    db_session.commit()
+
+    thin = Dive(
+        user_id=user.id,
+        name="Thin sitemap",
+        is_private=False,
+        dive_information="short",
+        dive_date=date(2026, 2, 1),
+    )
+    rich = Dive(
+        user_id=user.id,
+        name="Rich sitemap",
+        is_private=False,
+        dive_information="y" * 100,
+        dive_date=date(2026, 2, 2),
+    )
+    private_rich = Dive(
+        user_id=user.id,
+        name="Private rich",
+        is_private=True,
+        dive_information="z" * 100,
+        dive_date=date(2026, 2, 3),
+    )
+    db_session.add_all([thin, rich, private_rich])
+    db_session.commit()
+
+    names = {d.name for d in query_substantial_public_dives(db_session)}
+    assert "Rich sitemap" in names
+    assert "Thin sitemap" not in names
+    assert "Private rich" not in names
+
+
+def test_distinct_approved_regions_by_country(db_session):
+    from app.models import DiveSite
+    from app.seo_geo import distinct_approved_regions_by_country
+
+    db_session.add_all(
+        [
+            DiveSite(
+                name="Attica Site",
+                latitude=37.9,
+                longitude=23.7,
+                country="Greece",
+                region="East Attica",
+                status="approved",
+                location="POINT(23.7 37.9)",
+            ),
+            DiveSite(
+                name="Crete Site",
+                latitude=35.3,
+                longitude=25.1,
+                country="Greece",
+                region="Crete",
+                status="approved",
+                location="POINT(25.1 35.3)",
+            ),
+            DiveSite(
+                name="Egypt Site",
+                latitude=27.2,
+                longitude=33.8,
+                country="Egypt",
+                region="Red Sea",
+                status="approved",
+                location="POINT(33.8 27.2)",
+            ),
+            DiveSite(
+                name="Pending Greece",
+                latitude=37.0,
+                longitude=23.0,
+                country="Greece",
+                region="Ignored",
+                status="pending",
+                location="POINT(23.0 37.0)",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    by_country = distinct_approved_regions_by_country(db_session)
+    assert by_country["Greece"] == ["Crete", "East Attica"]
+    assert by_country["Egypt"] == ["Red Sea"]
+    assert "Ignored" not in by_country.get("Greece", [])
 
 
 def test_substantial_public_list_quality(db_session):

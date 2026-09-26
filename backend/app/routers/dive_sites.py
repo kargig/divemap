@@ -2172,8 +2172,17 @@ async def get_unique_countries(request: Request, search: Optional[str] = Query(N
 @router.get("/regions", response_model=List[DiveSiteRegionOption])
 @skip_rate_limit_for_admin("100/minute")
 @cache(expire=3600)
-async def get_unique_regions(request: Request, country: Optional[str] = Query(None, max_length=100), search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
-    """Get unique regions (with country) from dive sites with optional country and search filtering."""
+async def get_unique_region_options(
+    request: Request,
+    country: Optional[str] = Query(None, max_length=100),
+    search: Optional[str] = Query(None, max_length=100),
+    db: Session = Depends(get_db),
+):
+    """Get unique regions (with country) from dive sites with optional country and search filtering.
+
+    Function renamed from get_unique_regions so rolling deploys do not serve the
+    old string[] response shape from the previous 1h cache key.
+    """
     query = db.query(DiveSite.region, DiveSite.country).filter(DiveSite.region.isnot(None))
 
     if country:

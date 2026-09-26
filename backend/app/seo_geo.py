@@ -5,10 +5,10 @@ import re
 import unicodedata
 from typing import Iterable, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Dive, DiveSite, DiveSiteList, DiveSiteListItem, User
+from app.models import Dive, DiveMedia, DiveSite, DiveSiteList, DiveSiteListItem, User
 
 
 def geo_slug(text: Optional[str]) -> str:
@@ -74,6 +74,28 @@ def distinct_approved_regions(db: Session, country: str) -> list[str]:
     return sorted({r[0] for r in rows if r[0]})
 
 
+def distinct_approved_regions_by_country(db: Session) -> dict[str, list[str]]:
+    """All approved (country → regions) in one query (avoids N+1 in sitemap gen)."""
+    rows = (
+        db.query(DiveSite.country, DiveSite.region)
+        .filter(
+            DiveSite.status == "approved",
+            DiveSite.deleted_at.is_(None),
+            DiveSite.country.isnot(None),
+            DiveSite.country != "",
+            DiveSite.region.isnot(None),
+            DiveSite.region != "",
+        )
+        .distinct()
+        .all()
+    )
+    by_country: dict[str, set[str]] = {}
+    for country, region in rows:
+        if country and region:
+            by_country.setdefault(country, set()).add(region)
+    return {country: sorted(regions) for country, regions in sorted(by_country.items())}
+
+
 def dive_has_profile(dive: Dive) -> bool:
     if dive.profile_xml_path:
         return True
@@ -102,11 +124,11 @@ def is_substantial_public_dive(dive: Dive) -> bool:
     return False
 
 
-def query_substantial_public_dives(db: Session) -> list[Dive]:
-    """Public dives from enabled users that meet substance criteria (for sitemap)."""
-    dives = (
+def query_public_dives(db: Session) -> list[Dive]:
+    """All public dives from enabled users (LLM markdown / non-sitemap consumers)."""
+    return (
         db.query(Dive)
-        .options(joinedload(Dive.media), joinedload(Dive.user), joinedload(Dive.dive_site))
+        .options(joinedload(Dive.user), joinedload(Dive.dive_site))
         .join(User, Dive.user_id == User.id)
         .filter(
             Dive.is_private == False,  # noqa: E712
@@ -114,7 +136,38 @@ def query_substantial_public_dives(db: Session) -> list[Dive]:
         )
         .all()
     )
-    return [d for d in dives if is_substantial_public_dive(d)]
+
+
+def query_substantial_public_dives(db: Session) -> list[Dive]:
+    """Public dives from enabled users that meet substance criteria (for sitemap).
+
+    Substance filters run in SQL so sitemap generation does not load every
+    public dive (plus media) into memory.
+    """
+    has_media = (
+        db.query(DiveMedia.id)
+        .filter(DiveMedia.dive_id == Dive.id)
+        .exists()
+    )
+    # Match is_substantial_public_dive: profile OR notes >= 100 chars OR media.
+    # CHAR_LENGTH matches Python len() on Unicode text under MySQL.
+    substantial = or_(
+        Dive.profile_xml_path.isnot(None),
+        Dive.profile_sample_count > 0,
+        func.char_length(func.trim(Dive.dive_information)) >= 100,
+        has_media,
+    )
+    return (
+        db.query(Dive)
+        .options(joinedload(Dive.user), joinedload(Dive.dive_site))
+        .join(User, Dive.user_id == User.id)
+        .filter(
+            Dive.is_private == False,  # noqa: E712
+            User.enabled == True,  # noqa: E712
+            substantial,
+        )
+        .all()
+    )
 
 
 # Minimum dive sites for a public list to earn a sitemap entry (excludes empty

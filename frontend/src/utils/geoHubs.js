@@ -1,10 +1,20 @@
-import { slugify } from './slugify';
-
 /**
- * Geo hub path helpers (keep in sync with backend/app/seo_geo.py).
+ * Geo hub path helpers (keep in sync with backend/app/seo_geo.py geo_slug).
+ * Uses NFKD→ASCII so diacritics match sitemap/prerender paths
+ * (do not reuse slugify() here — it strips accents as non-word chars).
  */
 
-export const geoSlug = text => slugify(text || '');
+export const geoSlug = text => {
+  if (!text) return '';
+  const ascii = String(text)
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+  return ascii
+    .toLowerCase()
+    .trim()
+    .replace(/[\s\W-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 
 export const buildGeoHubPath = (country, region) => {
   const c = geoSlug(country);

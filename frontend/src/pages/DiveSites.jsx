@@ -329,10 +329,16 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
     }
     // Wait for regions when the path includes a region segment
     if (geoRegionSlug && !regionsFetched) return;
+    // Unknown region slug: do not hydrate with region cleared (URL would lie)
+    if (geoRegionSlug && !resolvedGeoRegion) {
+      toast.error('Unknown region in URL');
+      navigate(buildGeoHubPath(resolvedGeoCountry), { replace: true });
+      return;
+    }
 
     setFilters(prev => {
       const nextCountry = resolvedGeoCountry || '';
-      const nextRegion = geoRegionSlug ? resolvedGeoRegion || '' : '';
+      const nextRegion = geoRegionSlug ? resolvedGeoRegion : '';
       if (prev.country === nextCountry && prev.region === nextRegion) return prev;
       return { ...prev, country: nextCountry, region: nextRegion };
     });
@@ -663,10 +669,19 @@ const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
   const handleFilterChange = (keyOrUpdates, value) => {
     // Batch update: handleFilterChange({ country, region })
     if (keyOrUpdates && typeof keyOrUpdates === 'object' && value === undefined) {
-      setFilters(prev => ({ ...prev, ...keyOrUpdates }));
+      setFilters(prev => {
+        const next = { ...prev, ...keyOrUpdates };
+        // Region is only URL-durable with a country (path hub); clear orphan region
+        if (!next.country) next.region = '';
+        return next;
+      });
       return;
     }
-    setFilters(prev => ({ ...prev, [keyOrUpdates]: value }));
+    setFilters(prev => {
+      const next = { ...prev, [keyOrUpdates]: value };
+      if (keyOrUpdates === 'country' && !value) next.region = '';
+      return next;
+    });
   };
 
   const getMediaLink = site => {

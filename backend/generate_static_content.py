@@ -17,8 +17,9 @@ from app.database import SessionLocal
 from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
 from app.seo_geo import (
     distinct_approved_countries,
-    distinct_approved_regions,
+    distinct_approved_regions_by_country,
     geo_hub_path,
+    query_public_dives,
     query_substantial_public_dives,
     query_substantial_public_lists,
 )
@@ -194,8 +195,9 @@ def generate_content(db: Session, r2_client=None):
     sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
     centers = db.query(DivingCenter).all()
-    # Substantial public logs only (profile OR notes>=100 OR media) — crawl-budget trim
-    dives = query_substantial_public_dives(db)
+    # LLM markdown: all public logs; sitemap uses the substantial subset below
+    dives = query_public_dives(db)
+    sitemap_dives = query_substantial_public_dives(db)
 
     # 1. Dive Sites
     content_sites = ["# Dive Sites\n\n> Comprehensive registry of dive sites including GPS coordinates, depth profiles, difficulty, and marine life.\n\n"]
@@ -374,11 +376,12 @@ def generate_content(db: Session, r2_client=None):
         sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.7"))
 
     # Path-based geo hubs (never query-string country/region URLs)
+    regions_by_country = distinct_approved_regions_by_country(db)
     for country in distinct_approved_countries(db):
         path = geo_hub_path(country)
         if path:
             sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.85"))
-        for region in distinct_approved_regions(db, country):
+        for region in regions_by_country.get(country, []):
             rpath = geo_hub_path(country, region)
             if rpath:
                 sitemap_entries.append(_url_entry(f"{BASE_URL}{rpath}", now, "weekly", "0.85"))
@@ -405,8 +408,8 @@ def generate_content(db: Session, r2_client=None):
         url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
         sitemap_entries.append(_url_entry(url, lastmod, "weekly", "0.9"))
 
-    # Substantial public dive logs only
-    for dive in dives:
+    # Substantial public dive logs only (crawl-budget; not the full dives.md set)
+    for dive in sitemap_dives:
         lastmod = dive.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(dive, 'updated_at') and dive.updated_at else now
         name_candidate = dive.name or (dive.dive_site.name if dive.dive_site else "dive")
         slug = slugify(name_candidate)
