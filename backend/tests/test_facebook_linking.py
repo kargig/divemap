@@ -134,11 +134,12 @@ def test_cannot_change_non_synthetic_email(client, db_session):
 
     res = client.put(
         "/api/v1/users/me",
-        json={"email": "new@example.com"},
+        json={"email": "new@example.com", "name": "Still Locked"},
         headers=headers,
     )
-    assert res.status_code == 400
-    assert "cannot be changed" in res.json()["detail"].lower()
+    assert res.status_code == 200
+    assert res.json()["email"] == "locked@example.com"
+    assert res.json()["name"] == "Still Locked"
 
 def test_remove_avatar_resets_to_facebook_photo(client, db_session):
     user = User(

@@ -500,29 +500,26 @@ async def update_current_user_profile(
                     detail="Username already registered"
                 )
 
-    # Allow upgrading synthetic social emails to a real address only
+    # Allow upgrading synthetic social emails to a real address only.
+    # For normal accounts, ignore email in the payload (immutable).
     if 'email' in update_data:
         new_email = update_data.pop('email')
         if new_email != current_user.email:
             is_synthetic = bool(
                 current_user.email and current_user.email.endswith('.invalid')
             )
-            if not is_synthetic:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email cannot be changed"
-                )
-            existing_email = db.query(User).filter(User.email == new_email).first()
-            if existing_email:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email already registered"
-                )
-            current_user.email = new_email
-            current_user.email_verified = False
-            current_user.email_verified_at = None
-            current_user.email_notifications_opted_out = False
-            email_upgraded = True
+            if is_synthetic:
+                existing_email = db.query(User).filter(User.email == new_email).first()
+                if existing_email:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Email already registered"
+                    )
+                current_user.email = new_email
+                current_user.email_verified = False
+                current_user.email_verified_at = None
+                current_user.email_notifications_opted_out = False
+                email_upgraded = True
 
     # Handle password update separately
     if 'password' in update_data:
