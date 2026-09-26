@@ -116,25 +116,29 @@ def dive_route_meta_description(route: DiveRoute) -> str:
 
 
 def dive_site_schema(base_url: str, path: str, site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> dict:
+    from app.seo_geo import geo_hub_path
+
     item_list = [
         {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
         {"@type": "ListItem", "position": 2, "name": "Dive Sites", "item": f"{base_url}/dive-sites"},
     ]
     pos = 3
     if site.country:
+        country_path = geo_hub_path(site.country) or "/dive-sites"
         item_list.append({
             "@type": "ListItem",
             "position": pos,
             "name": site.country,
-            "item": f"{base_url}/dive-sites?country={site.country}",
+            "item": f"{base_url}{country_path}",
         })
         pos += 1
     if site.region:
+        region_path = geo_hub_path(site.country, site.region) or "/dive-sites"
         item_list.append({
             "@type": "ListItem",
             "position": pos,
             "name": site.region,
-            "item": f"{base_url}/dive-sites?country={site.country or ''}&region={site.region}",
+            "item": f"{base_url}{region_path}",
         })
         pos += 1
     item_list.append({
@@ -225,25 +229,35 @@ def diving_center_schema(base_url: str, path: str, center: DivingCenter) -> dict
 
 
 def dive_route_schema(base_url: str, path: str, route: DiveRoute) -> dict:
-    item_list = [
-        {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
-        {"@type": "ListItem", "position": 2, "name": "Dive Routes", "item": f"{base_url}/dive-routes"},
-    ]
-    pos = 3
+    # Prefer site hierarchy when a dive site is known (matches nested route URLs).
     if route.dive_site:
-        item_list.append({
-            "@type": "ListItem",
-            "position": pos,
-            "name": route.dive_site.name,
-            "item": f"{base_url}/dive-sites/{route.dive_site.id}",
-        })
-        pos += 1
-    item_list.append({
-        "@type": "ListItem",
-        "position": pos,
-        "name": route.name,
-        "item": f"{base_url}{path}",
-    })
+        item_list = [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
+            {"@type": "ListItem", "position": 2, "name": "Dive Sites", "item": f"{base_url}/dive-sites"},
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": route.dive_site.name,
+                "item": f"{base_url}/dive-sites/{route.dive_site.id}",
+            },
+            {
+                "@type": "ListItem",
+                "position": 4,
+                "name": route.name,
+                "item": f"{base_url}{path}",
+            },
+        ]
+    else:
+        item_list = [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": base_url},
+            {"@type": "ListItem", "position": 2, "name": "Dive Routes", "item": f"{base_url}/dive-routes"},
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": route.name,
+                "item": f"{base_url}{path}",
+            },
+        ]
 
     schema: dict[str, Any] = {
         "@context": "https://schema.org",
@@ -262,7 +276,10 @@ def _breadcrumb_nav(items: list[tuple[str, str]]) -> str:
     for idx, (label, href) in enumerate(items):
         if idx:
             parts.append(" &rsaquo; ")
-        parts.append(f'<a href="{escape_text(href)}">{escape_text(label)}</a>')
+        if href:
+            parts.append(f'<a href="{escape_text(href)}">{escape_text(label)}</a>')
+        else:
+            parts.append(f'<span aria-current="page">{escape_text(label)}</span>')
     return f'<nav aria-label="Breadcrumb">{"".join(parts)}</nav>'
 
 
@@ -273,14 +290,17 @@ def _paragraph_block(label: str, value: str) -> str:
 
 
 def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_ratings: int) -> str:
+    from app.seo_geo import geo_hub_path
+
     crumbs = [("Home", "/"), ("Dive Sites", "/dive-sites")]
     if site.country:
-        crumbs.append((site.country, f"/dive-sites?country={site.country}"))
+        crumbs.append((site.country, geo_hub_path(site.country) or "/dive-sites"))
     if site.region:
         crumbs.append((
             site.region,
-            f"/dive-sites?country={site.country or ''}&region={site.region}",
+            geo_hub_path(site.country, site.region) or "/dive-sites",
         ))
+    crumbs.append((site.name, ""))
 
     lines = [
         '<main class="seo-prerender">',
@@ -322,8 +342,93 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
         '<a href="/dive-sites">All Dive Sites</a>',
     ])
     if site.country:
-        lines.append(f' · <a href="/dive-sites?country={escape_text(site.country)}">Dive Sites in {escape_text(site.country)}</a>')
+        country_href = geo_hub_path(site.country) or "/dive-sites"
+        lines.append(
+            f' · <a href="{escape_text(country_href)}">Dive Sites in {escape_text(site.country)}</a>'
+        )
     lines.append("</nav></main>")
+    return "\n".join(lines)
+
+
+def render_geo_hub_main(
+    country: str,
+    region: Optional[str],
+    site_links: list[tuple[str, str]],
+    region_links: Optional[list[tuple[str, str]]] = None,
+) -> str:
+    """Prerender HTML for /dive-sites/{country}[/region] hubs."""
+    crumbs = [("Home", "/"), ("Dive Sites", "/dive-sites")]
+    from app.seo_geo import geo_hub_path
+
+    country_path = geo_hub_path(country) or "/dive-sites"
+    heading = f"Dive Sites in {country}"
+    if region:
+        crumbs.append((country, country_path))
+        crumbs.append((region, ""))
+        heading = f"Dive Sites in {region}, {country}"
+    else:
+        crumbs.append((country, ""))
+
+    lines = [
+        '<main class="seo-prerender">',
+        _breadcrumb_nav(crumbs),
+        f"<h1>{escape_text(heading)}</h1>",
+        f"<p>Browse scuba dive sites in {escape_text(heading.replace('Dive Sites in ', ''))}. "
+        "Depths, difficulty ratings, and community reviews.</p>",
+    ]
+    if region_links and not region:
+        lines.append("<h2>Regions</h2><ul>")
+        for label, href in region_links:
+            lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
+        lines.append("</ul>")
+    lines.append("<h2>Dive sites</h2><ul>")
+    for label, href in site_links:
+        lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
+    lines.append("</ul>")
+    lines.append('<nav aria-label="Related pages"><a href="/dive-sites">All Dive Sites</a>')
+    if region:
+        lines.append(f' · <a href="{escape_text(country_path)}">All sites in {escape_text(country)}</a>')
+    lines.append(' · <a href="/map">Interactive Map</a></nav></main>')
+    return "\n".join(lines)
+
+
+def geo_hub_schema(base_url: str, path: str, heading: str, description: str, site_links: list[tuple[str, str]]) -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": heading,
+        "description": description,
+        "url": f"{base_url}{path}",
+        "mainEntity": {
+            "@type": "ItemList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": i + 1,
+                    "name": name,
+                    "url": f"{base_url}{href}",
+                }
+                for i, (name, href) in enumerate(site_links[:50])
+            ],
+        },
+    }
+
+
+def render_map_main(country_links: list[tuple[str, str]]) -> str:
+    lines = [
+        '<main class="seo-prerender">',
+        _breadcrumb_nav([("Home", "/"), ("Map", "/map")]),
+        "<h1>Global Interactive Dive Map</h1>",
+        "<p>Explore dive sites and diving centers on an interactive world map. "
+        "Jump into country directories below, or open the full map experience in your browser.</p>",
+        '<p><a href="/dive-sites">Browse all dive sites</a> · <a href="/diving-centers">Diving centers</a></p>',
+    ]
+    if country_links:
+        lines.append("<h2>Dive sites by country</h2><ul>")
+        for label, href in country_links:
+            lines.append(f'<li><a href="{escape_text(href)}">{escape_text(label)}</a></li>')
+        lines.append("</ul>")
+    lines.append("</main>")
     return "\n".join(lines)
 
 
@@ -336,6 +441,7 @@ def render_diving_center_main(center: DivingCenter) -> str:
             center.city,
             f"/diving-centers?country={center.country or ''}&city={center.city}",
         ))
+    crumbs.append((center.name, ""))
 
     lines = [
         '<main class="seo-prerender">',
@@ -362,11 +468,21 @@ def render_diving_center_main(center: DivingCenter) -> str:
 
 
 def render_dive_route_main(route: DiveRoute, *, get_dive_site_slug=None) -> str:
-    crumbs = [("Home", "/"), ("Dive Routes", "/dive-routes")]
     if route.dive_site:
         site_slug = get_dive_site_slug(route.dive_site) if get_dive_site_slug else ""
-        site_path = f"/dive-sites/{route.dive_site.id}/{site_slug}" if site_slug else f"/dive-sites/{route.dive_site.id}"
-        crumbs.append((route.dive_site.name, site_path))
+        site_path = (
+            f"/dive-sites/{route.dive_site.id}/{site_slug}"
+            if site_slug
+            else f"/dive-sites/{route.dive_site.id}"
+        )
+        crumbs = [
+            ("Home", "/"),
+            ("Dive Sites", "/dive-sites"),
+            (route.dive_site.name, site_path),
+            (route.name, ""),
+        ]
+    else:
+        crumbs = [("Home", "/"), ("Dive Routes", "/dive-routes"), (route.name, "")]
 
     lines = [
         '<main class="seo-prerender">',
@@ -655,7 +771,7 @@ def render_seo_page(
         )
         page = page.replace("</title>", f"</title>\n    {head_injection}", 1)
         page = re.sub(
-            r"(<div id=\"root\">).*?(</div>)",
+            r"(<div id=[\"']root[\"']>).*?(</div>)",
             rf"\1\n{styled_content}\n      \2",
             page,
             count=1,

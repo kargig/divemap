@@ -372,6 +372,11 @@ class DiveSiteListResponse(BaseModel):
     has_next_page: bool
     has_prev_page: bool
 
+class DiveSiteRegionOption(BaseModel):
+    """Unique region with its country (for geo-hub URL resolution)."""
+    region: str
+    country: Optional[str] = None
+
 # Site Rating Schemas
 class SiteRatingCreate(BaseModel):
     score: float = Field(..., ge=1, le=10)

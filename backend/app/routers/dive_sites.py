@@ -22,6 +22,7 @@ from fastapi.responses import JSONResponse
 
 from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, DiveSiteListResponse,
+    DiveSiteRegionOption,
     SiteRatingCreate, SiteRatingResponse,
     SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
@@ -2168,12 +2169,21 @@ async def get_unique_countries(request: Request, search: Optional[str] = Query(N
     countries = query.distinct().order_by(DiveSite.country).all()
     return [c[0] for c in countries]
 
-@router.get("/regions", response_model=List[str])
+@router.get("/regions", response_model=List[DiveSiteRegionOption])
 @skip_rate_limit_for_admin("100/minute")
 @cache(expire=3600)
-async def get_unique_regions(request: Request, country: Optional[str] = Query(None, max_length=100), search: Optional[str] = Query(None, max_length=100), db: Session = Depends(get_db)):
-    """Get unique regions from dive sites with optional country and search filtering"""
-    query = db.query(DiveSite.region).filter(DiveSite.region.isnot(None))
+async def get_unique_region_options(
+    request: Request,
+    country: Optional[str] = Query(None, max_length=100),
+    search: Optional[str] = Query(None, max_length=100),
+    db: Session = Depends(get_db),
+):
+    """Get unique regions (with country) from dive sites with optional country and search filtering.
+
+    Function renamed from get_unique_regions so rolling deploys do not serve the
+    old string[] response shape from the previous 1h cache key.
+    """
+    query = db.query(DiveSite.region, DiveSite.country).filter(DiveSite.region.isnot(None))
 
     if country:
         query = query.filter(DiveSite.country == country)
@@ -2181,8 +2191,8 @@ async def get_unique_regions(request: Request, country: Optional[str] = Query(No
     if search:
         query = query.filter(DiveSite.region.ilike(f"%{search}%"))
 
-    regions = query.distinct().order_by(DiveSite.region).all()
-    return [r[0] for r in regions]
+    rows = query.distinct().order_by(DiveSite.country, DiveSite.region).all()
+    return [{"region": region, "country": country_name} for region, country_name in rows]
 
 @router.get("/{dive_site_id}", response_model=DiveSiteResponse)
 @skip_rate_limit_for_admin("300/minute")

@@ -803,6 +803,7 @@ const DivingCenterDetail = () => {
                       },
                     ]
                   : []),
+                { label: center.name },
               ]}
             />
           </div>

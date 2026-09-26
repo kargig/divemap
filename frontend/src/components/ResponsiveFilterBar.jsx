@@ -792,7 +792,13 @@ const ResponsiveFilterBar = ({
                   <RegionSearchDropdown
                     value={filters.region || ''}
                     countryFilter={filters.country || ''}
-                    onChange={val => onFilterChange('region', val)}
+                    onChange={(region, country) => {
+                      if (country && !filters.country) {
+                        onFilterChange({ country, region: region || '' });
+                      } else {
+                        onFilterChange('region', region || '');
+                      }
+                    }}
                   />
                 )}
 
@@ -1312,9 +1318,15 @@ const ResponsiveFilterBar = ({
 
               {pageType !== 'dives' && (
                 <RegionSearchDropdown
-                  country={filters.country}
+                  countryFilter={filters.country || ''}
                   value={filters.region}
-                  onChange={region => onFilterChange('region', region)}
+                  onChange={(region, country) => {
+                    if (country && !filters.country) {
+                      onFilterChange({ country, region: region || '' });
+                    } else {
+                      onFilterChange('region', region || '');
+                    }
+                  }}
                 />
               )}
 

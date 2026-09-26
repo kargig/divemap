@@ -14,7 +14,15 @@ if current_dir not in sys.path:
 
 from sqlalchemy.orm import Session, joinedload
 from app.database import SessionLocal
-from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel, DiveSiteList
+from app.models import DiveSite, DiveRoute, DivingCenter, Dive, ParsedDiveTrip, User, DivingOrganization, CertificationLevel
+from app.seo_geo import (
+    distinct_approved_countries,
+    distinct_approved_regions_by_country,
+    geo_hub_path,
+    query_public_dives,
+    query_substantial_public_dives,
+    query_substantial_public_lists,
+)
 
 # R2 Configuration
 R2_ACCOUNT_ID = os.getenv("R2_ACCOUNT_ID")
@@ -187,7 +195,9 @@ def generate_content(db: Session, r2_client=None):
     sites = db.query(DiveSite).filter(DiveSite.status == 'approved').all()
     routes = db.query(DiveRoute).filter(DiveRoute.deleted_at == None).all()
     centers = db.query(DivingCenter).all()
-    dives = db.query(Dive).filter(Dive.is_private == False).all()
+    # LLM markdown: all public logs; sitemap uses the substantial subset below
+    dives = query_public_dives(db)
+    sitemap_dives = query_substantial_public_dives(db)
 
     # 1. Dive Sites
     content_sites = ["# Dive Sites\n\n> Comprehensive registry of dive sites including GPS coordinates, depth profiles, difficulty, and marine life.\n\n"]
@@ -340,51 +350,71 @@ def generate_content(db: Session, r2_client=None):
 
     sitemap_entries = []
 
-    # Static pages
-    static_paths = [
+    def _url_entry(loc: str, lastmod: str, changefreq: str, priority: str) -> str:
+        return (
+            f"  <url>\n    <loc>{loc}</loc>\n    <lastmod>{lastmod}</lastmod>\n"
+            f"    <changefreq>{changefreq}</changefreq>\n    <priority>{priority}</priority>\n  </url>"
+        )
+
+    # High-value static hubs (no login/register — thin auth pages)
+    high_priority_paths = [
         "/", "/about", "/dive-sites", "/diving-centers", "/dives", "/dive-trips",
-        "/dive-routes", "/map", "/leaderboard", "/changelog",
+        "/dive-routes", "/help", "/privacy",
+    ]
+    for path in high_priority_paths:
+        sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "daily", "0.9"))
+
+    mid_priority_paths = [
+        "/map", "/leaderboard", "/changelog",
         "/resources/tags", "/resources/diving-organizations",
         "/resources/tools/mod", "/resources/tools/best-mix", "/resources/tools/sac",
         "/resources/tools/gas-planning", "/resources/tools/min-gas", "/resources/tools/icd",
         "/resources/tools/gas-fill", "/resources/tools/buoyancy", "/resources/tools/weight",
-        "/api-docs", "/help", "/privacy", "/register", "/login"
+        "/api-docs",
     ]
-    for path in static_paths:
-        sitemap_entries.append(f"  <url>\n    <loc>{BASE_URL}{path}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.8</priority>\n  </url>")
+    for path in mid_priority_paths:
+        sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.7"))
+
+    # Path-based geo hubs (never query-string country/region URLs)
+    regions_by_country = distinct_approved_regions_by_country(db)
+    for country in distinct_approved_countries(db):
+        path = geo_hub_path(country)
+        if path:
+            sitemap_entries.append(_url_entry(f"{BASE_URL}{path}", now, "weekly", "0.85"))
+        for region in regions_by_country.get(country, []):
+            rpath = geo_hub_path(country, region)
+            if rpath:
+                sitemap_entries.append(_url_entry(f"{BASE_URL}{rpath}", now, "weekly", "0.85"))
 
     # Users - Only include public, enabled users
     users = db.query(User).filter(User.enabled == True, User.buddy_visibility == 'public').all()
     for user in users:
-        # User profile
         url = f"{BASE_URL}/users/{user.username}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>")
-
-        # User analytics
+        sitemap_entries.append(_url_entry(url, now, "weekly", "0.5"))
         url_analytics = f"{BASE_URL}/users/{user.username}/analytics"
-        sitemap_entries.append(f"  <url>\n    <loc>{url_analytics}</loc>\n    <lastmod>{now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.5</priority>\n  </url>")
+        sitemap_entries.append(_url_entry(url_analytics, now, "weekly", "0.4"))
 
     # Dive Sites
     for site in sites:
         lastmod = site.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(site, 'updated_at') and site.updated_at else now
         slug = get_dive_site_slug(site)
         url = f"{BASE_URL}/dive-sites/{site.id}/{slug}" if slug else f"{BASE_URL}/dive-sites/{site.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        sitemap_entries.append(_url_entry(url, lastmod, "weekly", "0.9"))
 
     # Diving Centers
     for center in centers:
         lastmod = center.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(center, 'updated_at') and center.updated_at else now
         slug = get_diving_center_slug(center)
         url = f"{BASE_URL}/diving-centers/{center.id}/{slug}" if slug else f"{BASE_URL}/diving-centers/{center.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>")
+        sitemap_entries.append(_url_entry(url, lastmod, "weekly", "0.9"))
 
-    # Public Dives
-    for dive in dives:
+    # Substantial public dive logs only (crawl-budget; not the full dives.md set)
+    for dive in sitemap_dives:
         lastmod = dive.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(dive, 'updated_at') and dive.updated_at else now
         name_candidate = dive.name or (dive.dive_site.name if dive.dive_site else "dive")
         slug = slugify(name_candidate)
         url = f"{BASE_URL}/dives/{dive.id}/{slug}" if slug else f"{BASE_URL}/dives/{dive.id}"
-        sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
+        sitemap_entries.append(_url_entry(url, lastmod, "monthly", "0.3"))
 
     # Dive Routes
     for route in routes:
@@ -410,11 +440,8 @@ def generate_content(db: Session, r2_client=None):
         url = f"{BASE_URL}/resources/diving-organizations/{org.id}/{slug}" if slug else f"{BASE_URL}/resources/diving-organizations/{org.id}"
         sitemap_entries.append(f"  <url>\n    <loc>{url}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>")
 
-    # Curated Dive Site Lists (Only include public lists flagged to be shown on public profiles)
-    curated_lists = db.query(DiveSiteList).filter(
-        DiveSiteList.is_public == True,
-        DiveSiteList.show_on_profile == True
-    ).options(joinedload(DiveSiteList.user)).all()
+    # High-quality public curated lists only (non-empty; see seo_geo)
+    curated_lists = query_substantial_public_lists(db)
     for lst in curated_lists:
         lastmod = lst.updated_at.strftime("%Y-%m-%dT%H:%M:%SZ") if hasattr(lst, 'updated_at') and lst.updated_at else now
         username = lst.user.username if lst.user else "unknown"

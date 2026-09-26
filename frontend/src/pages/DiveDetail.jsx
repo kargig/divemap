@@ -377,13 +377,13 @@ const DiveDetail = () => {
           {
             '@type': 'ListItem',
             position: 2,
-            name: 'Public Dives',
+            name: 'Dive Log',
             item: `${window.location.origin}/dives`,
           },
           {
             '@type': 'ListItem',
             position: 3,
-            name: `Dive at ${dive.name || dive.dive_site?.name}`,
+            name: dive.name || `Dive at ${dive.dive_site?.name || 'Unnamed Site'}`,
             item: window.location.href,
           },
         ],
@@ -615,7 +615,14 @@ const DiveDetail = () => {
         />
       )}
       {/* Breadcrumbs - Always visible as the primary title source */}
-      {dive && <Breadcrumbs items={[{ label: 'Public Dives', to: '/dives' }]} />}
+      {dive && (
+        <Breadcrumbs
+          items={[
+            { label: 'Dive Log', to: '/dives' },
+            { label: dive.name || `Dive at ${dive.dive_site?.name || 'Unnamed Site'}` },
+          ]}
+        />
+      )}
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4'>
         <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
