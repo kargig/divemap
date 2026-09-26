@@ -509,9 +509,9 @@ const DiveSiteDetail = () => {
       item: window.location.href,
     });
 
-    const schema = {
+    return {
       '@context': 'https://schema.org',
-      '@type': ['Place', 'BodyOfWater', 'TouristAttraction'],
+      '@type': 'TouristAttraction',
       name: diveSite.name,
       description: decodeHtmlEntities(diveSite.description),
       geo: {
@@ -529,18 +529,6 @@ const DiveSiteDetail = () => {
         itemListElement: itemListElement,
       },
     };
-
-    if (diveSite.total_ratings > 0) {
-      schema.aggregateRating = {
-        '@type': 'AggregateRating',
-        ratingValue: diveSite.average_rating,
-        reviewCount: diveSite.total_ratings,
-        bestRating: '10',
-        worstRating: '1',
-      };
-    }
-
-    return schema;
   };
 
   const handleQuickRate = score => {

@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from static_html import (
     dive_site_meta_description,
+    dive_site_schema,
     render_dive_site_main,
     render_homepage_main,
     render_listing_main,
@@ -136,3 +137,32 @@ def test_json_ld_is_valid_in_output():
     end = page.index("</script>", start)
     payload = json.loads(page[start:end])
     assert payload["@type"] == "Place"
+
+
+def test_dive_site_schema_type_is_tourist_attraction_only():
+    site = MockSite()
+    schema = dive_site_schema(
+        "https://divemap.blue",
+        "/dive-sites/104/agia-anna",
+        site,
+        avg_rating=8.5,
+        total_ratings=2,
+    )
+    assert schema["@type"] == "TouristAttraction"
+    assert "aggregateRating" not in schema
+    assert schema["name"] == "Agia Anna"
+    assert schema["geo"]["@type"] == "GeoCoordinates"
+    assert schema["breadcrumb"]["@type"] == "BreadcrumbList"
+
+
+def test_dive_site_schema_omits_aggregate_rating_when_unrated():
+    site = MockSite(ratings=[])
+    schema = dive_site_schema(
+        "https://divemap.blue",
+        "/dive-sites/104/agia-anna",
+        site,
+        avg_rating=None,
+        total_ratings=0,
+    )
+    assert schema["@type"] == "TouristAttraction"
+    assert "aggregateRating" not in schema

@@ -148,9 +148,11 @@ def dive_site_schema(base_url: str, path: str, site: DiveSite, avg_rating: Optio
         "item": f"{base_url}{path}",
     })
 
-    schema: dict[str, Any] = {
+    # avg_rating / total_ratings kept for call-site stability; not emitted in JSON-LD
+    # (Google does not allow AggregateRating on TouristAttraction).
+    return {
         "@context": "https://schema.org",
-        "@type": ["Place", "BodyOfWater", "TouristAttraction"],
+        "@type": "TouristAttraction",
         "name": site.name,
         "description": strip_html_tags(site.description or ""),
         "geo": {
@@ -165,15 +167,6 @@ def dive_site_schema(base_url: str, path: str, site: DiveSite, avg_rating: Optio
         },
         "breadcrumb": {"@type": "BreadcrumbList", "itemListElement": item_list},
     }
-    if total_ratings > 0 and avg_rating is not None:
-        schema["aggregateRating"] = {
-            "@type": "AggregateRating",
-            "ratingValue": round(avg_rating, 1),
-            "reviewCount": total_ratings,
-            "bestRating": "10",
-            "worstRating": "1",
-        }
-    return schema
 
 
 def diving_center_schema(base_url: str, path: str, center: DivingCenter) -> dict:
