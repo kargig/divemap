@@ -67,6 +67,7 @@ import { extractErrorMessage } from '../utils/apiErrors';
 import { formatCost, DEFAULT_CURRENCY } from '../utils/currency';
 import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel } from '../utils/difficultyHelpers';
+import { buildGeoHubPath } from '../utils/geoHubs';
 import { decodeHtmlEntities, stripHtmlTags } from '../utils/htmlDecode';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
@@ -488,7 +489,7 @@ const DiveSiteDetail = () => {
         '@type': 'ListItem',
         position: currentPosition++,
         name: diveSite.country,
-        item: `${window.location.origin}/dive-sites?country=${encodeURIComponent(diveSite.country)}`,
+        item: `${window.location.origin}${buildGeoHubPath(diveSite.country)}`,
       });
     }
 
@@ -497,9 +498,7 @@ const DiveSiteDetail = () => {
         '@type': 'ListItem',
         position: currentPosition++,
         name: diveSite.region,
-        item: `${window.location.origin}/dive-sites?country=${encodeURIComponent(
-          diveSite.country || ''
-        )}&region=${encodeURIComponent(diveSite.region)}`,
+        item: `${window.location.origin}${buildGeoHubPath(diveSite.country, diveSite.region)}`,
       });
     }
 
@@ -690,7 +689,7 @@ const DiveSiteDetail = () => {
                   ? [
                       {
                         label: diveSite.country,
-                        to: `/dive-sites?country=${encodeURIComponent(diveSite.country)}`,
+                        to: buildGeoHubPath(diveSite.country),
                       },
                     ]
                   : []),
@@ -698,7 +697,7 @@ const DiveSiteDetail = () => {
                   ? [
                       {
                         label: diveSite.region,
-                        to: `/dive-sites?country=${encodeURIComponent(diveSite.country || '')}&region=${encodeURIComponent(diveSite.region)}`,
+                        to: buildGeoHubPath(diveSite.country, diveSite.region),
                       },
                     ]
                   : []),

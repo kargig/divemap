@@ -92,15 +92,24 @@ from static_html import (
     dive_site_schema,
     diving_center_meta_description,
     diving_center_schema,
+    geo_hub_schema,
     render_dive_route_main,
     render_dive_site_main,
     render_diving_center_main,
+    render_geo_hub_main,
     render_homepage_main,
     render_listing_main,
+    render_map_main,
     render_seo_page,
     resolve_html_template,
     escape_text,
     format_depth,
+)
+from app.seo_geo import (
+    distinct_approved_countries,
+    distinct_approved_regions,
+    geo_hub_path,
+    resolve_label_from_slug,
 )
 
 logger = logging.getLogger("divemap.seo")
@@ -259,11 +268,10 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     "Comprehensive registry of dive sites including coordinates, depth profiles, difficulty, and marine life.",
                     site_links,
                 )
-            else:
-                # Dive Site Detail
+            elif parts[1].isdigit():
+                # Dive Site Detail (numeric id)
                 try:
-                    site_id_str = re.sub(r"\D", "", parts[1])
-                    site_id = int(site_id_str)
+                    site_id = int(parts[1])
                 except ValueError:
                     raise HTTPException(status_code=404, detail="Invalid Dive Site ID")
 
@@ -329,6 +337,82 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 description = dive_site_meta_description(site, avg, total)
                 json_ld = dive_site_schema(base_url, detail_path, site, avg, total)
                 canonical = f"{base_url}{detail_path}"
+            else:
+                # Geo hub: /dive-sites/{country-slug}[/region-slug]
+                countries = distinct_approved_countries(db)
+                country = resolve_label_from_slug(countries, parts[1])
+                if not country:
+                    raise HTTPException(status_code=404, detail="Country not found")
+
+                region = None
+                if len(parts) >= 3 and parts[2]:
+                    regions = distinct_approved_regions(db, country)
+                    region = resolve_label_from_slug(regions, parts[2])
+                    if not region:
+                        raise HTTPException(status_code=404, detail="Region not found")
+                    # Canonicalize slug spelling
+                    expected = geo_hub_path(country, region)
+                    actual = f"/dive-sites/{parts[1]}/{parts[2]}"
+                    if expected and actual != expected:
+                        return RedirectResponse(url=f"{base_url}{expected}", status_code=301)
+                else:
+                    expected = geo_hub_path(country)
+                    actual = f"/dive-sites/{parts[1]}"
+                    if expected and actual != expected:
+                        return RedirectResponse(url=f"{base_url}{expected}", status_code=301)
+
+                q = db.query(DiveSite).filter(
+                    DiveSite.status == "approved",
+                    DiveSite.deleted_at.is_(None),
+                    DiveSite.country == country,
+                )
+                if region:
+                    q = q.filter(DiveSite.region == region)
+                sites = q.limit(100).all()
+                site_links = []
+                for s in sites:
+                    slug = get_dive_site_slug(s)
+                    link_path = f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                    site_links.append((s.name, link_path))
+
+                region_links = None
+                if not region:
+                    region_links = [
+                        (r, geo_hub_path(country, r))
+                        for r in distinct_approved_regions(db, country)
+                        if geo_hub_path(country, r)
+                    ]
+
+                hub_path = geo_hub_path(country, region)
+                heading = f"Dive Sites in {region}, {country}" if region else f"Dive Sites in {country}"
+                description = (
+                    f"Browse scuba dive sites in {heading.replace('Dive Sites in ', '')}. "
+                    "Depths, difficulty ratings, and community reviews on Divemap."
+                )
+                page_title = f"{heading} | Divemap"
+                canonical = f"{base_url}{hub_path}"
+                main_content = render_geo_hub_main(country, region, site_links, region_links)
+                json_ld = geo_hub_schema(base_url, hub_path, heading, description, site_links)
+
+        elif parts[0] == "map":
+            countries = distinct_approved_countries(db)
+            country_links = [
+                (c, geo_hub_path(c)) for c in countries[:40] if geo_hub_path(c)
+            ]
+            page_title = "Global Interactive Dive Map | Divemap"
+            description = (
+                "Explore scuba dive sites and diving centers on an interactive world map. "
+                "Browse by country or open the full map experience."
+            )
+            canonical = f"{base_url}/map"
+            main_content = render_map_main(country_links)
+            json_ld = {
+                "@context": "https://schema.org",
+                "@type": "WebPage",
+                "name": page_title,
+                "description": description,
+                "url": canonical,
+            }
 
         elif parts[0] == "diving-centers":
             if len(parts) == 1:

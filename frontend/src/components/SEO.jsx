@@ -18,10 +18,16 @@ const SEO = ({
   locale = 'en_US',
   schema,
   location: geo, // { lat: number, lon: number }
+  noindex = false,
+  canonicalPath,
 }) => {
   const location = useLocation();
-  const canonicalUrl = `${window.location.origin}${location.pathname}`;
+  const pathForCanonical = canonicalPath || location.pathname;
+  const canonicalUrl = `${window.location.origin}${pathForCanonical}`;
   const fullTitle = title.includes('Divemap') ? title : `${title} - Divemap`;
+  const robotsContent = noindex
+    ? 'noindex, follow'
+    : 'index, follow, max-image-preview:large';
 
   return (
     <Helmet>
@@ -29,7 +35,7 @@ const SEO = ({
       <title>{fullTitle}</title>
       <meta name='description' content={description} />
       <link rel='canonical' href={canonicalUrl} />
-      <meta name='robots' content='index, follow, max-image-preview:large' />
+      <meta name='robots' content={robotsContent} />
 
       {/* Open Graph / Facebook */}
       <meta property='og:locale' content={locale} />
@@ -98,6 +104,8 @@ SEO.propTypes = {
     lat: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     lon: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   }),
+  noindex: PropTypes.bool,
+  canonicalPath: PropTypes.string,
 };
 
 export default SEO;

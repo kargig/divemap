@@ -59,8 +59,8 @@ const DiveRoutes = lazy(() => import('./pages/DiveRoutes'));
 const DiveProfileFullView = lazy(() => import('./pages/DiveProfileFullView'));
 const DiveSocialShare = lazy(() => import('./pages/DiveSocialShare'));
 const Dives = lazy(() => import('./pages/Dives'));
-const DiveSiteDetail = lazy(() => import('./pages/DiveSiteDetail'));
 const DiveSiteMap = lazy(() => import('./pages/DiveSiteMap'));
+const DiveSitePathGate = lazy(() => import('./components/DiveSitePathGate'));
 const DiveSites = lazy(() => import('./pages/DiveSites'));
 const DiveTrips = lazy(() => import('./pages/DiveTrips'));
 const DivingCenterDetail = lazy(() => import('./pages/DivingCenterDetail'));
@@ -365,8 +365,6 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/dive-sites/:id' element={<DiveSiteDetail />} />
-            <Route path='/dive-sites/:id/:slug' element={<DiveSiteDetail />} />
             <Route
               path='/dive-sites/:id/edit'
               element={
@@ -376,6 +374,9 @@ function AppContent() {
               }
             />
             <Route path='/dive-sites/:id/map' element={<DiveSiteMap />} />
+            {/* Numeric id → detail; country/region slug → geo hub (DiveSitePathGate) */}
+            <Route path='/dive-sites/:id' element={<DiveSitePathGate />} />
+            <Route path='/dive-sites/:id/:slug' element={<DiveSitePathGate />} />
             <Route path='/diving-centers' element={<DivingCenters />} />
             <Route
               path='/diving-centers/create'

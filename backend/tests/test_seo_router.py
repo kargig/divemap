@@ -347,3 +347,43 @@ async def test_get_spa_template_ttl_and_stale_fallback(monkeypatch):
             template = await seo.get_spa_template()
             assert template == new_html  # returns stale cache instead of None
 
+
+
+def test_seo_geo_hub_country(client, sample_data):
+    import app.routers.seo as seo
+    seo._spa_template_cache = None
+    seo._spa_template_fetched_at = 0.0
+
+    response = client.get("/api/v1/seo/html/dive-sites/greece")
+    assert response.status_code == 200
+    assert response.headers.get("X-Prerendered") == "1"
+    assert "Dive Sites in Greece" in response.text
+    assert "SEO Test Site" in response.text
+    assert 'rel="canonical" href="https://localhost/dive-sites/greece"' in response.text
+    assert "CollectionPage" in response.text
+
+
+def test_seo_geo_hub_region(client, sample_data):
+    response = client.get("/api/v1/seo/html/dive-sites/greece/cyclades")
+    assert response.status_code == 200
+    assert "Dive Sites in Cyclades, Greece" in response.text
+    assert 'rel="canonical" href="https://localhost/dive-sites/greece/cyclades"' in response.text
+
+
+def test_seo_geo_hub_unknown_country(client, sample_data):
+    response = client.get("/api/v1/seo/html/dive-sites/atlantis")
+    assert response.status_code == 404
+
+
+def test_seo_map_landing(client, sample_data):
+    import app.routers.seo as seo
+    seo._spa_template_cache = None
+    seo._spa_template_fetched_at = 0.0
+
+    response = client.get("/api/v1/seo/html/map")
+    assert response.status_code == 200
+    assert response.headers.get("X-Prerendered") == "1"
+    assert "<h1>Global Interactive Dive Map</h1>" in response.text
+    assert 'rel="canonical" href="https://localhost/map"' in response.text
+    assert 'href="/dive-sites"' in response.text
+    assert "/dive-sites/greece" in response.text

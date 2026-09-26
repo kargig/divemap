@@ -21,6 +21,7 @@ import {
   Route,
   Search,
 } from 'lucide-react';
+import PropTypes from 'prop-types';
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from 'react-query';
@@ -46,6 +47,8 @@ import { useCompactLayout } from '../hooks/useCompactLayout';
 import useFlickrImages from '../hooks/useFlickrImages';
 import { useResponsive } from '../hooks/useResponsive';
 import useSorting from '../hooks/useSorting';
+import { getUniqueCountries, getUniqueRegions } from '../services/diveSites';
+import { buildGeoHubPath, resolveLabelFromSlug } from '../utils/geoHubs';
 import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { getPromoEligibility } from '../utils/promoStorage';
 import { handleRateLimitError } from '../utils/rateLimitHandler';
@@ -54,7 +57,7 @@ import { getSortOptions } from '../utils/sortOptions';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
 
-const DiveSites = () => {
+const DiveSites = ({ geoCountrySlug = null, geoRegionSlug = null }) => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -144,28 +147,24 @@ const DiveSites = () => {
     setViewMode(newViewMode);
   }, [searchParams]);
 
-  // Debounced URL update for search inputs
+  // Debounced URL update for search inputs — country/region live in the path (geo hubs)
   const debouncedUpdateURL = useCallback(
     debounce((newFilters, newViewMode) => {
       const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
 
-      // Preserve compact_layout parameter
       const compactLayoutParam = currentParams.get('compact_layout');
       if (compactLayoutParam === 'true') {
         newSearchParams.set('compact_layout', 'true');
       }
 
-      // Preserve current view mode if not explicitly changing it
       if (newViewMode) {
         if (newViewMode === 'map') {
           newSearchParams.set('view', 'map');
         } else if (newViewMode === 'grid' && !isMobile) {
           newSearchParams.set('view', 'grid');
         }
-        // List view is default, so no need to set it
       } else {
-        // Preserve existing view mode if not changing
         const currentView = currentParams.get('view');
         if (currentView === 'map') {
           newSearchParams.set('view', 'map');
@@ -178,14 +177,7 @@ const DiveSites = () => {
         newSearchParams.set('search', newFilters.search_query.trim());
       }
 
-      if (newFilters.country && newFilters.country.trim()) {
-        newSearchParams.set('country', newFilters.country.trim());
-      }
-
-      if (newFilters.region && newFilters.region.trim()) {
-        newSearchParams.set('region', newFilters.region.trim());
-      }
-
+      // Country/region encoded in path — never in query (avoids duplicate canonicals)
       if (newFilters.difficulty_code && newFilters.difficulty_code.trim()) {
         newSearchParams.set('difficulty_code', newFilters.difficulty_code.trim());
       }
@@ -209,7 +201,12 @@ const DiveSites = () => {
         });
       }
 
-      navigate(`?${newSearchParams.toString()}`, { replace: true });
+      const path =
+        newFilters.country && newFilters.country.trim()
+          ? buildGeoHubPath(newFilters.country, newFilters.region)
+          : '/dive-sites';
+      const qs = newSearchParams.toString();
+      navigate(qs ? `${path}?${qs}` : path, { replace: true });
     }, 500),
     [navigate, isMobile]
   );
@@ -220,22 +217,18 @@ const DiveSites = () => {
       const currentParams = new URLSearchParams(window.location.search);
       const newSearchParams = new URLSearchParams();
 
-      // Preserve compact_layout parameter
       const compactLayoutParam = currentParams.get('compact_layout');
       if (compactLayoutParam === 'true') {
         newSearchParams.set('compact_layout', 'true');
       }
 
-      // Preserve current view mode if not explicitly changing it
       if (newViewMode) {
         if (newViewMode === 'map') {
           newSearchParams.set('view', 'map');
         } else if (newViewMode === 'grid' && !isMobile) {
           newSearchParams.set('view', 'grid');
         }
-        // List view is default, so no need to set it
       } else {
-        // Preserve existing view mode if not changing
         const currentView = currentParams.get('view');
         if (currentView === 'map') {
           newSearchParams.set('view', 'map');
@@ -246,18 +239,6 @@ const DiveSites = () => {
 
       if (newFilters.search_query && newFilters.search_query.trim()) {
         newSearchParams.set('search', newFilters.search_query.trim());
-      }
-
-      if (newFilters.location && newFilters.location.trim()) {
-        newSearchParams.set('location', newFilters.location.trim());
-      }
-
-      if (newFilters.country && newFilters.country.trim()) {
-        newSearchParams.set('country', newFilters.country.trim());
-      }
-
-      if (newFilters.region && newFilters.region.trim()) {
-        newSearchParams.set('region', newFilters.region.trim());
       }
 
       if (newFilters.difficulty_code && newFilters.difficulty_code.trim()) {
@@ -283,10 +264,88 @@ const DiveSites = () => {
         });
       }
 
-      navigate(`?${newSearchParams.toString()}`, { replace: true });
+      const path =
+        newFilters.country && newFilters.country.trim()
+          ? buildGeoHubPath(newFilters.country, newFilters.region)
+          : '/dive-sites';
+      const qs = newSearchParams.toString();
+      navigate(qs ? `${path}?${qs}` : path, { replace: true });
     },
     [navigate, isMobile]
   );
+
+  // Resolve path geo hubs → filter country/region (search & list API stay the same)
+  const { data: countryOptions = [] } = useQuery(
+    ['dive-site-countries-geo'],
+    () => getUniqueCountries(),
+    { staleTime: 10 * 60 * 1000 }
+  );
+  const countriesList = useMemo(() => {
+    if (Array.isArray(countryOptions)) {
+      return countryOptions.map(c => (typeof c === 'string' ? c : c?.name || c?.country)).filter(Boolean);
+    }
+    return [];
+  }, [countryOptions]);
+
+  const resolvedGeoCountry = useMemo(
+    () => resolveLabelFromSlug(countriesList, geoCountrySlug),
+    [countriesList, geoCountrySlug]
+  );
+
+  const { data: regionOptions = [] } = useQuery(
+    ['dive-site-regions-geo', resolvedGeoCountry],
+    () => getUniqueRegions(resolvedGeoCountry),
+    { enabled: !!resolvedGeoCountry, staleTime: 10 * 60 * 1000 }
+  );
+  const regionsList = useMemo(() => {
+    if (Array.isArray(regionOptions)) {
+      return regionOptions.map(r => (typeof r === 'string' ? r : r?.name || r?.region)).filter(Boolean);
+    }
+    return [];
+  }, [regionOptions]);
+
+  const resolvedGeoRegion = useMemo(
+    () => resolveLabelFromSlug(regionsList, geoRegionSlug),
+    [regionsList, geoRegionSlug]
+  );
+
+  useEffect(() => {
+    if (!geoCountrySlug) return;
+    if (!countriesList.length) return;
+    if (geoCountrySlug && !resolvedGeoCountry) {
+      toast.error('Unknown country in URL');
+      navigate('/dive-sites', { replace: true });
+      return;
+    }
+    setFilters(prev => {
+      const nextCountry = resolvedGeoCountry || '';
+      const nextRegion = geoRegionSlug ? resolvedGeoRegion || '' : '';
+      if (prev.country === nextCountry && prev.region === nextRegion) return prev;
+      return { ...prev, country: nextCountry, region: nextRegion };
+    });
+  }, [
+    geoCountrySlug,
+    geoRegionSlug,
+    resolvedGeoCountry,
+    resolvedGeoRegion,
+    countriesList.length,
+    navigate,
+  ]);
+
+  // Migrate legacy ?country=&region= on /dive-sites to path hubs (canonical-safe)
+  useEffect(() => {
+    if (geoCountrySlug) return;
+    if (location.pathname !== '/dive-sites') return;
+    const qCountry = searchParams.get('country');
+    if (!qCountry) return;
+    const qRegion = searchParams.get('region') || '';
+    const params = new URLSearchParams(searchParams);
+    params.delete('country');
+    params.delete('region');
+    const qs = params.toString();
+    const path = buildGeoHubPath(qCountry, qRegion);
+    navigate(qs ? `${path}?${qs}` : path, { replace: true });
+  }, [geoCountrySlug, location.pathname, searchParams, navigate]);
 
   // Debounced URL update for search inputs
   useEffect(() => {
@@ -500,19 +559,7 @@ const DiveSites = () => {
     }
 
     setViewMode(newViewMode);
-
-    // Update URL with new view mode
-    const urlParams = new URLSearchParams(window.location.search);
-    if (newViewMode === 'map') {
-      urlParams.set('view', 'map');
-    } else if (newViewMode === 'grid' && !isMobile) {
-      urlParams.set('view', 'grid');
-    } else {
-      urlParams.delete('view'); // Default to list view
-    }
-
-    // Update URL without triggering a page reload
-    navigate(`?${urlParams.toString()}`, { replace: true });
+    immediateUpdateURL(filters, newViewMode);
   };
 
   const handleQuickFilter = filterType => {
@@ -608,19 +655,57 @@ const DiveSites = () => {
 
   // Error handling is now done within the content area to preserve hero section
 
+  const seoTitle = filters.region && filters.country
+    ? `Dive Sites in ${filters.region}, ${filters.country} | Divemap`
+    : filters.country
+      ? `Dive Sites in ${filters.country} | Divemap`
+      : 'Explore Top Scuba Dive Sites Worldwide | Divemap';
+  const seoDescription = filters.region && filters.country
+    ? `Browse scuba dive sites in ${filters.region}, ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
+    : filters.country
+      ? `Browse scuba dive sites in ${filters.country}. Depths, difficulty, ratings, and community reviews on Divemap.`
+      : 'Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.';
+  const seoCanonicalPath =
+    filters.country && filters.country.trim()
+      ? buildGeoHubPath(filters.country, filters.region)
+      : '/dive-sites';
+  const pageHeading = filters.region && filters.country
+    ? `Dive Sites in ${filters.region}, ${filters.country}`
+    : filters.country
+      ? `Dive Sites in ${filters.country}`
+      : 'Dive Sites';
+  const breadcrumbItems = [{ label: 'Dive Sites', to: '/dive-sites' }];
+  if (filters.country) {
+    breadcrumbItems.push({
+      label: filters.country,
+      to: buildGeoHubPath(filters.country),
+    });
+  }
+  if (filters.region && filters.country) {
+    breadcrumbItems.push({ label: filters.region });
+  }
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <SEO
-        title='Explore Top Scuba Dive Sites Worldwide | Divemap'
-        description='Discover, search, and explore thousands of scuba dive sites. View GPS coordinates, depth profiles, difficulty levels, and marine life reports for locations globally.'
+        title={seoTitle}
+        description={seoDescription}
+        canonicalPath={seoCanonicalPath}
+        schema={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: pageHeading,
+          description: seoDescription,
+          url: `${typeof window !== 'undefined' ? window.location.origin : ''}${seoCanonicalPath}`,
+        }}
       />
       {/* Mobile-First Responsive Container */}
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         <PageHeader
-          title='Dive Sites'
+          title={pageHeading}
           titleIcon={Map}
           badge={isLoading ? null : totalCount}
-          breadcrumbItems={[{ label: 'Dive Sites' }]}
+          breadcrumbItems={breadcrumbItems}
           actions={[
             {
               label: 'Explore on Map',
@@ -808,6 +893,11 @@ const DiveSites = () => {
       */}
     </div>
   );
+};
+
+DiveSites.propTypes = {
+  geoCountrySlug: PropTypes.string,
+  geoRegionSlug: PropTypes.string,
 };
 
 export default DiveSites;
