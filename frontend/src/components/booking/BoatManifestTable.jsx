@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Hourglass,
   Stethoscope,
+  Lock,
 } from 'lucide-react';
 import React from 'react';
 
@@ -197,46 +198,63 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
-                    <button
-                      type='button'
-                      onClick={() => {
-                        if (isMedicalBlocked) {
-                          onViewDetails(p);
-                          return;
-                        }
-                        onToggleCheckin(p.id);
-                      }}
-                      disabled={isMedicalBlocked}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        isMedicalBlocked
-                          ? 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed opacity-80'
-                          : p.onboard_checkin_status
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                      }`}
-                      title={
-                        isMedicalBlocked
-                          ? 'Boarding Blocked: Diver has an unresolved medical flag. Click to review & approve physician clearance.'
-                          : p.onboard_checkin_status
-                            ? 'Click to revoke boarding'
-                            : 'Click to confirm diver has boarded'
-                      }
-                    >
-                      {isMedicalBlocked ? (
-                        <AlertTriangle size={12} className='text-red-600' />
-                      ) : p.onboard_checkin_status ? (
-                        <Check size={13} className='text-white' />
-                      ) : (
-                        <Hourglass size={12} className='text-amber-600 shrink-0' />
-                      )}
-                      <span>
-                        {isMedicalBlocked
+                    {(() => {
+                      const isGearCheckPending = !p.gear_checked;
+                      const isBoardingBlocked =
+                        !p.onboard_checkin_status && (isMedicalBlocked || isGearCheckPending);
+
+                      const blockedTitle = isBoardingBlocked
+                        ? isMedicalBlocked && isGearCheckPending
+                          ? 'Boarding Disabled: Both Gear Check and Medical Clearance are required before boarding.'
+                          : isGearCheckPending
+                            ? 'Boarding Disabled: Equipment handover and inspection (Gear Check) must be completed before boarding.'
+                            : 'Boarding Disabled: Diver requires medical clearance / physician review before boarding.'
+                        : p.onboard_checkin_status
+                          ? 'Click to revoke boarding'
+                          : 'Click to confirm diver has boarded';
+
+                      const buttonText = p.onboard_checkin_status
+                        ? 'Boarded'
+                        : isMedicalBlocked
                           ? 'Medical Hold'
-                          : p.onboard_checkin_status
-                            ? 'Boarded'
-                            : 'Check In'}
-                      </span>
-                    </button>
+                          : isGearCheckPending
+                            ? 'Gear Pending'
+                            : 'Check In';
+
+                      return (
+                        <button
+                          type='button'
+                          onClick={() => {
+                            if (isMedicalBlocked) {
+                              onViewDetails(p);
+                              return;
+                            }
+                            if (isGearCheckPending && !p.onboard_checkin_status) {
+                              return;
+                            }
+                            onToggleCheckin(p.id);
+                          }}
+                          disabled={isBoardingBlocked}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                            isBoardingBlocked
+                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
+                              : p.onboard_checkin_status
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                          }`}
+                          title={blockedTitle}
+                        >
+                          {isBoardingBlocked ? (
+                            <Lock size={12} className='text-amber-500 shrink-0' />
+                          ) : p.onboard_checkin_status ? (
+                            <Check size={13} className='text-white' />
+                          ) : (
+                            <Hourglass size={12} className='text-amber-600 shrink-0' />
+                          )}
+                          <span>{buttonText}</span>
+                        </button>
+                      );
+                    })()}
                   </td>
 
                   <td className='py-3.5 px-3 text-right pr-4'>
@@ -371,46 +389,63 @@ const BoatManifestTable = ({
               {/* Mobile Actions Footer */}
               <div className='flex items-center justify-between pt-2.5 border-t border-gray-100 dark:border-gray-700/60'>
                 {/* Boarding Roll-Call Toggle */}
-                <button
-                  type='button'
-                  onClick={() => {
-                    if (isMedicalBlocked) {
-                      onViewDetails(p);
-                      return;
-                    }
-                    onToggleCheckin(p.id);
-                  }}
-                  disabled={isMedicalBlocked}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                    isMedicalBlocked
-                      ? 'bg-red-50 text-red-700 border border-red-200 cursor-not-allowed opacity-80'
-                      : p.onboard_checkin_status
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-                  }`}
-                  title={
-                    isMedicalBlocked
-                      ? 'Boarding Blocked: Diver has an unresolved medical flag. Click to review & approve physician clearance.'
-                      : p.onboard_checkin_status
-                        ? 'Click to revoke boarding'
-                        : 'Click to confirm diver has boarded'
-                  }
-                >
-                  {isMedicalBlocked ? (
-                    <AlertTriangle size={14} className='text-red-600' />
-                  ) : p.onboard_checkin_status ? (
-                    <Check size={14} className='text-white' />
-                  ) : (
-                    <Hourglass size={13} className='text-amber-600' />
-                  )}
-                  <span>
-                    {isMedicalBlocked
+                {(() => {
+                  const isGearCheckPending = !p.gear_checked;
+                  const isBoardingBlocked =
+                    !p.onboard_checkin_status && (isMedicalBlocked || isGearCheckPending);
+
+                  const blockedTitle = isBoardingBlocked
+                    ? isMedicalBlocked && isGearCheckPending
+                      ? 'Boarding Disabled: Both Gear Check and Medical Clearance are required before boarding.'
+                      : isGearCheckPending
+                        ? 'Boarding Disabled: Equipment handover and inspection (Gear Check) must be completed before boarding.'
+                        : 'Boarding Disabled: Diver requires medical clearance / physician review before boarding.'
+                    : p.onboard_checkin_status
+                      ? 'Click to revoke boarding'
+                      : 'Click to confirm diver has boarded';
+
+                  const buttonText = p.onboard_checkin_status
+                    ? 'Boarded'
+                    : isMedicalBlocked
                       ? 'Medical Hold'
-                      : p.onboard_checkin_status
-                        ? 'Boarded'
-                        : 'Board Boat'}
-                  </span>
-                </button>
+                      : isGearCheckPending
+                        ? 'Gear Pending'
+                        : 'Board Boat';
+
+                  return (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (isMedicalBlocked) {
+                          onViewDetails(p);
+                          return;
+                        }
+                        if (isGearCheckPending && !p.onboard_checkin_status) {
+                          return;
+                        }
+                        onToggleCheckin(p.id);
+                      }}
+                      disabled={isBoardingBlocked}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                        isBoardingBlocked
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
+                          : p.onboard_checkin_status
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                      }`}
+                      title={blockedTitle}
+                    >
+                      {isBoardingBlocked ? (
+                        <Lock size={13} className='text-amber-500' />
+                      ) : p.onboard_checkin_status ? (
+                        <Check size={14} className='text-white' />
+                      ) : (
+                        <Hourglass size={13} className='text-amber-600' />
+                      )}
+                      <span>{buttonText}</span>
+                    </button>
+                  );
+                })()}
 
                 {/* Payment & Options */}
                 <div className='flex items-center gap-2'>

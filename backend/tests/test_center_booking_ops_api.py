@@ -272,7 +272,7 @@ def test_update_participant_equipment(client: TestClient, center_ops_setup):
     assert lead_bd["total_lead_kg"] == 8.5
 
 
-def test_toggle_participant_checkin(client: TestClient, center_ops_setup):
+def test_toggle_participant_checkin(client: TestClient, center_ops_setup, db_session):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]
     owner = center_ops_setup["owner"]
@@ -280,21 +280,56 @@ def test_toggle_participant_checkin(client: TestClient, center_ops_setup):
     token = create_access_token(data={"sub": owner.username})
     headers = {"Authorization": f"Bearer {token}"}
 
-    # part-item-2 started as onboard_checkin_status=False
-    res1 = client.post(
+    # 1. Gate 1: part-item-2 has gear_checked=False -> must fail with 400
+    res_gear_blocked = client.post(
         f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-checkin",
         headers=headers,
     )
-    assert res1.status_code == 200
-    assert res1.json()["onboard_checkin_status"] is True
+    assert res_gear_blocked.status_code == 400
+    assert "Gear Check" in res_gear_blocked.json()["detail"]
 
-    # Toggle again -> False
-    res2 = client.post(
+    # Toggle gear_checked to True
+    res_gear = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-gear-check",
+        headers=headers,
+    )
+    assert res_gear.status_code == 200
+    assert res_gear.json()["gear_checked"] is True
+
+    # 2. Gate 2: part-item-2 has no cleared medical record -> must fail with 400
+    res_med_blocked = client.post(
         f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-checkin",
         headers=headers,
     )
-    assert res2.status_code == 200
-    assert res2.json()["onboard_checkin_status"] is False
+    assert res_med_blocked.status_code == 400
+    assert "medical check" in res_med_blocked.json()["detail"]
+
+    # Provide cleared medical record
+    med_rec = DiverMedicalRecord(
+        booking_unit_item_id="part-item-2",
+        status="CLEARED",
+        encrypted_dek="fake_dek",
+        encrypted_answers=b"fake_encrypted_answers",
+        audit_signature_hash="fake_audit_hash",
+    )
+    db_session.add(med_rec)
+    db_session.commit()
+
+    # 3. Now that BOTH Gear Check and Medical Check are verified -> Boarding succeeds
+    res_board = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-checkin",
+        headers=headers,
+    )
+    assert res_board.status_code == 200
+    assert res_board.json()["onboard_checkin_status"] is True
+
+    # 4. Revoking boarding is permitted without gates
+    res_revoke = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-checkin",
+        headers=headers,
+    )
+    assert res_revoke.status_code == 200
+    assert res_revoke.json()["onboard_checkin_status"] is False
 
 
 def test_toggle_booking_payment(client: TestClient, center_ops_setup):

@@ -1149,15 +1149,27 @@ def toggle_participant_checkin(
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
 
-    # Scuba Safety Gate: Diver with unresolved medical condition CANNOT be boarded
-    if not item.onboard_checkin_status: # Diver is currently not boarded, attempting to board
+    # Scuba Safety Gates: Nobody can board without both a verified Gear Check and Medical Check
+    if not item.onboard_checkin_status:  # Attempting to board diver
+        # 1. Gear Check Gate
+        eq = dict(item.equipment_sizing or {})
+        if not bool(eq.get("gear_checked", False)):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Safety Gate: Diver '{item.diver_full_name}' cannot board without completing equipment handover inspection (Gear Check).",
+            )
+
+        # 2. Medical Clearance Gate
         med = db.query(DiverMedicalRecord).filter(
             DiverMedicalRecord.booking_unit_item_id == item.id
         ).first()
-        if med and med.status == "FLAGGED_CONTACT_CENTER":
+        is_med_cleared = (med is not None) and (
+            med.status in ("CLEARED", "PHYSICIAN_APPROVED")
+        )
+        if not is_med_cleared:
             raise HTTPException(
                 status_code=400,
-                detail=f"Safety Gate: Diver '{item.diver_full_name}' has an unresolved medical flag. Verified physician clearance must be approved before boarding."
+                detail=f"Safety Gate: Diver '{item.diver_full_name}' cannot board without a verified medical check (Status: {med.status if med else 'Missing Questionnaire'}).",
             )
 
     item.onboard_checkin_status = not item.onboard_checkin_status
