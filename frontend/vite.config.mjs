@@ -164,13 +164,16 @@ export default defineConfig(({ mode }) => {
   return {
     plugins,
     server: {
-    host: true, // Needed for Docker
-    port: 3000, // Maintain existing port
-    allowedHosts: ['dev.divemap.gr','dev.divemap.blue'], // Fix DNS rebinding block
-    watch: {
-      usePolling: true, // Needed for some Docker environments
+      host: true, // Needed for Docker
+      port: 3000, // Maintain existing port
+      allowedHosts: ['dev.divemap.gr', 'dev.divemap.blue', 'localhost'], // Fix DNS rebinding block
+      hmr: {
+        clientPort: 80,
+      },
+      watch: {
+        usePolling: true, // Needed for some Docker environments
+      },
     },
-  },
   build: {
     outDir: 'dist',
     // Increase chunk size limit slightly to avoid unnecessary warnings

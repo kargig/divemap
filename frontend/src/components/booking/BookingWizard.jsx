@@ -24,6 +24,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../api';
 import SEO from '../SEO';
 
+import DateOfBirthPicker from './DateOfBirthPicker';
 import MedicalQuestionnaireModal from './MedicalQuestionnaireModal';
 import WaiverSigningModal from './WaiverSigningModal';
 
@@ -100,9 +101,14 @@ const BookingWizard = () => {
     const fetchContext = async () => {
       try {
         setLoading(true);
+        const authToken = localStorage.getItem('token');
+        const profilesPromise = authToken
+          ? api.get('/api/v1/bookings/gear-profiles').catch(() => ({ data: [] }))
+          : Promise.resolve({ data: [] });
+
         const [contextRes, profilesRes, orgsRes] = await Promise.all([
           api.get(`/api/v1/bookings/checkout-context/${slotId}`),
-          api.get('/api/v1/bookings/gear-profiles').catch(() => ({ data: [] })),
+          profilesPromise,
           api.get('/api/v1/diving-organizations/?limit=100').catch(() => ({ data: [] })),
         ]);
 
@@ -850,20 +856,12 @@ const BookingWizard = () => {
                         className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
                       />
                     </div>
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Date of Birth *
-                      </label>
-                      <input
-                        type='date'
-                        required
-                        value={dateOfBirth}
-                        onChange={e => setDateOfBirth(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                          !dateOfBirth ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
-                        }`}
-                      />
-                    </div>
+                    <DateOfBirthPicker
+                      value={dateOfBirth}
+                      onChange={setDateOfBirth}
+                      required
+                      label='Date of Birth *'
+                    />
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
                         Nationality

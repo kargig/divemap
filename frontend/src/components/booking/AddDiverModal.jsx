@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 
 import api from '../../api';
 
+import DateOfBirthPicker from './DateOfBirthPicker';
+
 const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [loading, setLoading] = useState(false);
   const [organizations, setOrganizations] = useState([]);
@@ -246,17 +248,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               className='w-full px-3 py-2 border rounded-lg text-xs'
             />
           </div>
-          <div>
-            <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-              Date of Birth
-            </label>
-            <input
-              type='date'
-              value={dob}
-              onChange={e => setDob(e.target.value)}
-              className='w-full px-3 py-2 border rounded-lg text-xs'
-            />
-          </div>
+          <DateOfBirthPicker value={dob} onChange={setDob} label='Date of Birth' />
         </div>
 
         {/* Certification Details */}
