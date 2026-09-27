@@ -1,7 +1,20 @@
-import { Package, Printer, Compass, Gauge, Anchor, Sparkles, LifeBuoy, Layers } from 'lucide-react';
+import {
+  Package,
+  Compass,
+  Gauge,
+  Anchor,
+  Sparkles,
+  LifeBuoy,
+  Layers,
+  Download,
+  Loader2,
+} from 'lucide-react';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
-const GearPackingManifest = ({ summary, participants = [] }) => {
+import api from '../../api';
+
+const GearPackingManifest = ({ summary, participants = [], centerId, tripId }) => {
   const [numCrates, setNumCrates] = useState(3); // 1 | 2 | 3 | 4 | 5
 
   const cylinders = summary?.cylinders || {};
@@ -266,6 +279,30 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
     </div>
   );
 
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      toast.loading('Generating Crate Packing PDF...', { id: 'crate-pdf' });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/crate-packing/pdf`,
+        { responseType: 'blob' }
+      );
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      toast.success('Crate Packing PDF ready!', { id: 'crate-pdf' });
+    } catch (err) {
+      console.error('Failed to export crate packing PDF:', err);
+      toast.error(err.response?.data?.detail || 'Failed to export crate packing PDF.', {
+        id: 'crate-pdf',
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className='space-y-6'>
       {/* Crate Loadout Top Bar */}
@@ -284,11 +321,13 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
         <div className='flex items-center gap-2'>
           <button
             type='button'
-            onClick={() => window.print()}
-            className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all'
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className='flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all disabled:opacity-50'
+            title='Download dedicated dockside crate packing & cylinder loadout PDF'
           >
-            <Printer size={13} />
-            <span>Print Crate Sheet</span>
+            {exportingPdf ? <Loader2 size={13} className='animate-spin' /> : <Download size={13} />}
+            <span>Export Crate Sheet (PDF)</span>
           </button>
         </div>
       </div>

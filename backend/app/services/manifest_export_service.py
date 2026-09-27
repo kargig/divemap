@@ -825,3 +825,276 @@ class ManifestExportService:
 
         doc.build(story)
         return buffer.getvalue()
+
+    @staticmethod
+    def generate_crate_packing_pdf(manifest_data: Dict[str, Any]) -> bytes:
+        """
+        Generates a dedicated Dockside Crate Packing & Tank Loadout Sheet PDF.
+        Designed for dock staff to load transport crates and stage cylinders onto the boat.
+        """
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError("ReportLab is required for PDF crate sheet generation.")
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=30,
+            rightMargin=30,
+            topMargin=30,
+            bottomMargin=30,
+        )
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CrateTitle',
+            parent=styles['Heading1'],
+            fontSize=15,
+            leading=18,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+        sub_style = ParagraphStyle(
+            'CrateSubtitle',
+            parent=styles['Normal'],
+            fontSize=8.5,
+            leading=12,
+            textColor=colors.HexColor('#475569'),
+            fontName='Helvetica',
+        )
+        h2_style = ParagraphStyle(
+            'CrateH2',
+            parent=styles['Heading2'],
+            fontSize=10.5,
+            leading=14,
+            textColor=colors.HexColor('#1E3A8A'),
+            fontName='Helvetica-Bold',
+            spaceBefore=8,
+            spaceAfter=4,
+            keepWithNext=True,
+        )
+        body_style = ParagraphStyle(
+            'CrateBody',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#334155'),
+            fontName='Helvetica',
+        )
+        body_bold = ParagraphStyle(
+            'CrateBodyBold',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+
+        story = []
+
+        center = manifest_data.get("center") or {}
+        vessel = manifest_data.get("vessel") or {}
+        slot = manifest_data.get("slot") or {}
+        staff = manifest_data.get("staff") or {}
+        participants = manifest_data.get("participants") or []
+        summary = manifest_data.get("crate_packing_summary") or {}
+
+        center_name = center.get("name", "Diving Center")
+        trip_title = slot.get("product_title", "Dive Trip")
+        dep_date = slot.get("departure_date", "")
+        dep_time = slot.get("departure_time", "")
+        meet_time = slot.get("meeting_time", "")
+        vessel_name = vessel.get("name", "Dive Vessel")
+        dives_count = summary.get("dives_count", 2)
+
+        # Header Block
+        story.append(Paragraph(f"<b>{center_name}</b> — Dockside Crate Packing & Tank Loadout Sheet", title_style))
+        story.append(Paragraph(
+            f"Trip: <b>{trip_title}</b> ({dives_count} Dives Planned) &nbsp;|&nbsp; "
+            f"Departure: <b>{dep_date} @ {dep_time}</b> (Meet: {meet_time}) &nbsp;|&nbsp; "
+            f"Vessel: <b>{vessel_name}</b> &nbsp;|&nbsp; "
+            f"Divers: <b>{len(participants)}</b>",
+            sub_style
+        ))
+        story.append(Spacer(1, 8))
+
+        # 1. Cylinders & Gas Staging Section
+        cylinders = summary.get("cylinders") or {}
+        spare_cyl = summary.get("spare_tanks") or {}
+        total_diver_tanks = summary.get("total_diver_tanks", sum(cylinders.values()))
+        total_vessel_tanks = summary.get("total_vessel_tanks", total_diver_tanks + sum(spare_cyl.values()))
+        valve_fittings = summary.get("valve_fittings") or {}
+
+        story.append(Paragraph(f"1. Vessel Cylinders Loadout ({total_vessel_tanks} Tanks Total)", h2_style))
+
+        cyl_rows = [[
+            Paragraph("<b>Type / Specification</b>", body_bold),
+            Paragraph("<b>Valve Requirement</b>", body_bold),
+            Paragraph("<b>Quantity</b>", body_bold),
+            Paragraph("<b>Staging Destination</b>", body_bold),
+        ]]
+
+        for tank, count in cylinders.items():
+            is_yoke = "YOKE" in tank
+            spec_parts = tank.split(" — ")
+            spec_name = spec_parts[0]
+            valve_info = spec_parts[1] if len(spec_parts) > 1 else "DIN"
+
+            v_color = "#D97706" if is_yoke else "#1E40AF"
+            v_text = f"<font color='{v_color}'><b>{'⚠️ ' if is_yoke else '✓ '}{valve_info}</b></font>"
+
+            cyl_rows.append([
+                Paragraph(f"<b>{spec_name}</b>", body_style),
+                Paragraph(v_text, body_style),
+                Paragraph(f"<b>{count}x</b>", body_bold),
+                Paragraph("Main Boat Tank Rack", body_style),
+            ])
+
+        for st, count in spare_cyl.items():
+            cyl_rows.append([
+                Paragraph(f"<b>{st}</b>", body_style),
+                Paragraph("<font color='#059669'><b>✓ DIN Native</b></font>", body_style),
+                Paragraph(f"<b>{count}x</b>", body_bold),
+                Paragraph("<font color='#D97706'><b>Boat Emergency / Deco Hang Bar</b></font>", body_style),
+            ])
+
+        cyl_table = Table(cyl_rows, colWidths=[200, 165, 55, 115])
+        cyl_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#EFF6FF')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(cyl_table)
+
+        if valve_fittings.get("yoke_count", 0) > 0:
+            tool_p = Paragraph(
+                f"<font color='#B45309'><b>⚠️ Valve Adapter Alert:</b> {valve_fittings.get('tool_notes', 'Pack DIN-to-Yoke inserts in boat tool box.')}</font>",
+                body_style
+            )
+            story.append(Spacer(1, 3))
+            story.append(tool_p)
+
+        story.append(Spacer(1, 8))
+
+        # 2. Lead Ballast & Weight Belts
+        lead_bd = summary.get("lead_breakdown") or {}
+        story.append(Paragraph(f"2. Lead Ballast & Rigging ({lead_bd.get('total_lead_kg', 0)} kg / {lead_bd.get('total_lead_lbs', 0)} lbs)", h2_style))
+
+        lead_rows = [
+            [
+                Paragraph("<b>2 kg Blocks:</b>", body_style),
+                Paragraph(f"<b>{lead_bd.get('blocks_2kg', 0)}x</b> (~4.4 lbs ea)", body_style),
+                Paragraph("<b>1 kg Blocks:</b>", body_style),
+                Paragraph(f"<b>{lead_bd.get('blocks_1kg', 0)}x</b> (~2.2 lbs ea)", body_style),
+                Paragraph("<b>0.5 kg Trim:</b>", body_style),
+                Paragraph(f"<b>{lead_bd.get('blocks_05kg', 0)}x</b>", body_style),
+            ],
+            [
+                Paragraph("<b>Nylon Belts:</b>", body_style),
+                Paragraph(f"<b>{lead_bd.get('belts_needed', 0)}x</b> (belt divers)", body_style),
+                Paragraph("<b>BCD Pockets:</b>", body_style),
+                Paragraph(f"<b>{lead_bd.get('integrated_weight_divers', 0)}x</b> (integrated divers)", body_style),
+                Paragraph("<b>Spare Buffer:</b>", body_style),
+                Paragraph(f"+{lead_bd.get('spare_buffer_kg', 4.0)} kg buffer", body_style),
+            ]
+        ]
+        lead_table = Table(lead_rows, colWidths=[90, 95, 90, 95, 80, 85])
+        lead_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#F1F5F9')),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(lead_table)
+        story.append(Spacer(1, 8))
+
+        # 3. Transport Crates Packing Layout
+        wetsuits = summary.get("wetsuits") or {}
+        bcds = summary.get("bcds") or {}
+        regulators = summary.get("regulators") or {}
+        fins = summary.get("fins") or {}
+        boots = summary.get("boots") or {}
+        spare_reg = summary.get("spare_regulators") or {}
+
+        story.append(Paragraph("3. Partitioned Transport Crates Loadout", h2_style))
+
+        suit_items = ", ".join([f"{count}x {sz}" for sz, count in wetsuits.items()]) if wetsuits else "No rental suits"
+        hood_items = ", ".join([f"{count}x Size {sz}" for sz, count in (summary.get("hoods") or {}).items()])
+        crate1_text = f"<b>Suits:</b> {suit_items}"
+        if hood_items:
+            crate1_text += f"<br/><b>Hoods:</b> {hood_items}"
+
+        bcd_items = ", ".join([f"{count}x {sz}" for sz, count in bcds.items()]) if bcds else "No rental BCDs"
+        reg_items = f"{regulators.get('DIN', 0)}x DIN, {regulators.get('Yoke', 0)}x Yoke"
+        spare_reg_desc = spare_reg.get("description", "1x Spare Regulator System + Yoke insert")
+        crate2_text = (
+            f"<b>BCDs:</b> {bcd_items}<br/>"
+            f"<b>Rental Regulators:</b> {reg_items}<br/>"
+            f"<font color='#B45309'><b>Emergency Boat Asset:</b> {spare_reg_desc}</font>"
+        )
+
+        fin_items = ", ".join([f"{count}x {sz}" for sz, count in fins.items()]) if fins else "No rental fins"
+        boot_items = ", ".join([f"{count}x {sz}" for sz, count in boots.items()]) if boots else "No rental boots"
+        tech_items = []
+        if summary.get("computers_count", 0) > 0:
+            tech_items.append(f"{summary['computers_count']}x Dive Computers")
+        if summary.get("torches_count", 0) > 0:
+            tech_items.append(f"{summary['torches_count']}x Dive Torches")
+        if summary.get("masks_count", 0) > 0:
+            tech_items.append(f"{summary['masks_count']}x Masks")
+        if summary.get("scooters_count", 0) > 0:
+            tech_items.append(f"{summary['scooters_count']}x DPV Scooters")
+
+        crate3_text = f"<b>Fins:</b> {fin_items}<br/><b>Booties:</b> {boot_items}"
+        if tech_items:
+            crate3_text += f"<br/><b>Tech & Small Gear:</b> {', '.join(tech_items)}"
+
+        crate_rows = [
+            [
+                Paragraph("<b>CRATE 1: Thermal Exposure</b>", body_bold),
+                Paragraph(crate1_text, body_style),
+            ],
+            [
+                Paragraph("<b>CRATE 2: BCDs & Regulators</b>", body_bold),
+                Paragraph(crate2_text, body_style),
+            ],
+            [
+                Paragraph("<b>CRATE 3: Fins, Boots & Tech</b>", body_bold),
+                Paragraph(crate3_text, body_style),
+            ],
+        ]
+        crate_table = Table(crate_rows, colWidths=[150, 385])
+        crate_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F1F5F9')),
+            ('BACKGROUND', (1, 0), (1, -1), colors.white),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(crate_table)
+        story.append(Spacer(1, 12))
+
+        # 4. Dockmaster Sign-off Footer
+        sign_rows = [
+            [
+                Paragraph("<b>Packed & Loaded by (Staff):</b> ___________________________", body_style),
+                Paragraph("<b>Verified by Skipper:</b> ___________________________", body_style),
+                Paragraph("<b>Time:</b> ____________", body_style),
+            ]
+        ]
+        sign_table = Table(sign_rows, colWidths=[205, 230, 100])
+        sign_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 2),
+        ]))
+        story.append(sign_table)
+
+        doc.build(story)
+        return buffer.getvalue()

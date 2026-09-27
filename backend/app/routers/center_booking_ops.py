@@ -1869,3 +1869,52 @@ def download_equipment_checklist_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/trips/{trip_id}/crate-packing/pdf")
+def download_crate_packing_pdf(
+    center_id: int,
+    trip_id: str,
+    token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """
+    Download dockside crate packing & tank loadout sheet PDF.
+    Features detailed cylinder breakdown, lead ballast allocations, and partitioned crate contents.
+    """
+    user = current_user
+    if not user and token:
+        try:
+            token_data = verify_token(token)
+            if token_data and token_data.username:
+                user = db.query(User).filter(User.username == token_data.username).first()
+        except Exception:
+            pass
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    if not is_center_manager(db, center_id, user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip slot not found")
+
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+
+    manifest_data = get_slot_manifest_data(db, center, slot)
+    pdf_bytes = ManifestExportService.generate_crate_packing_pdf(manifest_data)
+
+    clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', slot.product.title if slot.product else "trip")
+    date_str = slot.start_datetime.strftime("%Y%m%d")
+    filename = f"crate_packing_loadout_{clean_title}_{date_str}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

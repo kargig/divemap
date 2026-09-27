@@ -5,7 +5,6 @@ import {
   Calendar,
   Clock,
   Download,
-  Printer,
   UserPlus,
   Loader2,
   ChevronLeft,
@@ -571,15 +570,6 @@ const TripOperationsDashboard = () => {
                   <span>Port CSV</span>
                 </button>
               </div>
-
-              <button
-                type='button'
-                onClick={() => window.print()}
-                className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700'
-                title='Print Manifest Page'
-              >
-                <Printer size={15} />
-              </button>
             </div>
           </div>
         </div>
@@ -612,7 +602,12 @@ const TripOperationsDashboard = () => {
             tripId={tripId}
           />
         ) : (
-          <GearPackingManifest summary={crate_packing_summary} participants={participants} />
+          <GearPackingManifest
+            summary={crate_packing_summary}
+            participants={participants}
+            centerId={centerId}
+            tripId={tripId}
+          />
         )}
 
         {/* Modals */}

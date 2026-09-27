@@ -3,7 +3,6 @@ import {
   Circle,
   PackageCheck,
   Search,
-  Printer,
   Sparkles,
   Edit,
   Shield,
@@ -108,15 +107,6 @@ const DiverEquipmentChecklist = ({
           >
             {exportingPdf ? <Loader2 size={13} className='animate-spin' /> : <Download size={13} />}
             <span>Export Checklist (PDF)</span>
-          </button>
-
-          <button
-            type='button'
-            onClick={() => window.print()}
-            className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all'
-          >
-            <Printer size={13} />
-            <span>Print Sheet</span>
           </button>
         </div>
       </div>
