@@ -742,3 +742,21 @@ def test_center_rental_pricing_endpoints(client: TestClient, center_ops_setup):
     assert res_get.status_code == 200
     assert res_get.json()["full_kit_package"] == 35.0
     assert res_get.json()["items"]["bcd"] == 12.0
+
+
+def test_download_equipment_checklist_pdf(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/equipment-checklist/pdf",
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    assert res.content.startswith(b"%PDF-")
+    assert len(res.content) > 1000

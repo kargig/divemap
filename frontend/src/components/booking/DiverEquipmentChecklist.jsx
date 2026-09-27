@@ -12,10 +12,21 @@ import {
   Compass,
   Gauge,
   Flame,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
+import toast from 'react-hot-toast';
 
-const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditDiver }) => {
+import api from '../../api';
+
+const DiverEquipmentChecklist = ({
+  participants = [],
+  onToggleGearCheck,
+  onEditDiver,
+  centerId,
+  tripId,
+}) => {
   const [filter, setFilter] = useState('ALL'); // ALL | CHECKED | PENDING
   const [search, setSearch] = useState('');
 
@@ -39,6 +50,30 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
     });
   }, [participants, filter, search]);
 
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    try {
+      setExportingPdf(true);
+      toast.loading('Generating Equipment Checklist PDF...', { id: 'gear-pdf' });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/equipment-checklist/pdf`,
+        { responseType: 'blob' }
+      );
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      toast.success('Equipment Checklist PDF ready!', { id: 'gear-pdf' });
+    } catch (err) {
+      console.error('Failed to export equipment checklist PDF:', err);
+      toast.error(err.response?.data?.detail || 'Failed to export equipment checklist PDF.', {
+        id: 'gear-pdf',
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   return (
     <div className='space-y-6'>
       {/* Header Toolbar */}
@@ -54,7 +89,7 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
           </p>
         </div>
 
-        <div className='flex items-center gap-3'>
+        <div className='flex items-center gap-2'>
           <div className='flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs'>
             <span className='text-emerald-700 dark:text-emerald-300 font-bold'>
               Equipment Verified:
@@ -66,11 +101,22 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
 
           <button
             type='button'
+            onClick={handleExportPdf}
+            disabled={exportingPdf}
+            className='flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all disabled:opacity-50'
+            title='Export spreadsheet-style printable checklist PDF for clipboard checks'
+          >
+            {exportingPdf ? <Loader2 size={13} className='animate-spin' /> : <Download size={13} />}
+            <span>Export Checklist (PDF)</span>
+          </button>
+
+          <button
+            type='button'
             onClick={() => window.print()}
             className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all'
           >
             <Printer size={13} />
-            <span>Print Checklist</span>
+            <span>Print Sheet</span>
           </button>
         </div>
       </div>

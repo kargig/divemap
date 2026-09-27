@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from datetime import datetime
 
 try:
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -518,6 +518,310 @@ class ManifestExportService:
             ('PADDING', (0, 0), (-1, -1), 2),
         ]))
         story.append(sig_table)
+
+        doc.build(story)
+        return buffer.getvalue()
+
+    @staticmethod
+    def generate_equipment_checklist_pdf(manifest_data: Dict[str, Any]) -> bytes:
+        """
+        Generates a spreadsheet-style, clipboard-ready equipment inspection & bench handover checklist PDF.
+        Designed for diving center staff to quickly walk around equipment boxes/benches and verify each piece of gear.
+        Uses Landscape A4 layout with clean [  ] checkboxes for staff marking.
+        """
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError("ReportLab is required for PDF checklist generation.")
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=landscape(A4),
+            leftMargin=20,
+            rightMargin=20,
+            topMargin=20,
+            bottomMargin=20,
+        )
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'ChecklistTitle',
+            parent=styles['Heading1'],
+            fontSize=13,
+            leading=16,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+        sub_style = ParagraphStyle(
+            'ChecklistSubtitle',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#475569'),
+            fontName='Helvetica',
+        )
+        th_style = ParagraphStyle(
+            'ChecklistTH',
+            parent=styles['Normal'],
+            fontSize=7,
+            leading=9,
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+            alignment=1,
+        )
+        cell_bold = ParagraphStyle(
+            'CellBold',
+            parent=styles['Normal'],
+            fontSize=7,
+            leading=9,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+        cell_normal = ParagraphStyle(
+            'CellNormal',
+            parent=styles['Normal'],
+            fontSize=6.5,
+            leading=8.5,
+            textColor=colors.HexColor('#334155'),
+            fontName='Helvetica',
+        )
+        cell_rental = ParagraphStyle(
+            'CellRental',
+            parent=styles['Normal'],
+            fontSize=6.5,
+            leading=8.5,
+            textColor=colors.HexColor('#1E40AF'),
+            fontName='Helvetica-Bold',
+        )
+        cell_own = ParagraphStyle(
+            'CellOwn',
+            parent=styles['Normal'],
+            fontSize=6.5,
+            leading=8.5,
+            textColor=colors.HexColor('#64748B'),
+            fontName='Helvetica',
+        )
+        cell_center = ParagraphStyle(
+            'CellCenter',
+            parent=styles['Normal'],
+            fontSize=7,
+            leading=9,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica',
+            alignment=1,
+        )
+
+        story = []
+
+        center = manifest_data.get("center") or {}
+        vessel = manifest_data.get("vessel") or {}
+        slot = manifest_data.get("slot") or {}
+        staff = manifest_data.get("staff") or {}
+        participants = manifest_data.get("participants") or []
+        summary = manifest_data.get("crate_packing_summary") or {}
+
+        # 1. Header Block
+        center_name = center.get("name", "Diving Center")
+        trip_title = slot.get("product_title", "Dive Trip")
+        dep_date = slot.get("departure_date", "")
+        dep_time = slot.get("departure_time", "")
+        meet_time = slot.get("meeting_time", "")
+        vessel_name = vessel.get("name", "Dive Vessel")
+        skipper = staff.get("skipper_name", "Staff Skipper")
+        lead_pro = staff.get("lead_guide_name", "Lead Pro")
+        dives_count = summary.get("dives_count", 2)
+
+        header_text = f"<b>{center_name}</b> — Dockside Equipment Inspection & Bench Handover Checklist"
+        sub_text = (
+            f"Trip: <b>{trip_title} ({dives_count} Dives Planned)</b> &nbsp;|&nbsp; "
+            f"Date: <b>{dep_date}</b> (Meet: {meet_time} / Dep: {dep_time}) &nbsp;|&nbsp; "
+            f"Vessel: <b>{vessel_name}</b> &nbsp;|&nbsp; "
+            f"Master/Skipper: <b>{skipper}</b> &nbsp;|&nbsp; "
+            f"Lead Pro: <b>{lead_pro}</b> &nbsp;|&nbsp; "
+            f"Divers: <b>{len(participants)}</b>"
+        )
+        story.append(Paragraph(header_text, title_style))
+        story.append(Paragraph(sub_text, sub_style))
+        story.append(Spacer(1, 6))
+
+        # 2. Vessel Emergency & Safety Spare Equipment Row (Checked before departure)
+        spare_cyl = summary.get("spare_tanks", {})
+        spare_cyl_txt = ", ".join([f"{count}x {name}" for name, count in spare_cyl.items()]) if spare_cyl else "2x 12L Air Safety Spares"
+        spare_reg_txt = "1x Backup Regulator System (DIN + Yoke insert)"
+
+        safety_row = [
+            [
+                Paragraph("<b>VESSEL SAFETY ASSETS:</b>", cell_bold),
+                Paragraph(f"[ &nbsp; ] <b>Spare Cylinders:</b> {spare_cyl_txt}", cell_normal),
+                Paragraph(f"[ &nbsp; ] <b>Spare Reg:</b> {spare_reg_txt}", cell_normal),
+                Paragraph("[ &nbsp; ] <b>Tool Kit:</b> DIN/Yoke Inserts + 8mm Hex", cell_normal),
+                Paragraph("[ &nbsp; ] <b>Life Support:</b> 100% O2 Unit + 1st Aid Kit", cell_normal),
+            ]
+        ]
+        safety_table = Table(safety_row, colWidths=[110, 200, 200, 150, 140])
+        safety_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF3C7')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#D97706')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#FDE68A')),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(safety_table)
+        story.append(Spacer(1, 6))
+
+        # 3. Main Spreadsheet Table
+        # Columns: # (18), Diver & Level (105), Crate/Box (52), Cylinders (85), Regulator (75), BCD (80), Suit (85), Fins/Boots (90), Lead (80), Tech/Safety (85), OK Check (45)
+        col_widths = [18, 105, 52, 85, 75, 80, 85, 90, 80, 85, 45]
+        table_data = [[
+            Paragraph("<b>#</b>", th_style),
+            Paragraph("<b>Diver Name & Cert</b>", th_style),
+            Paragraph("<b>Box / Bench</b>", th_style),
+            Paragraph("<b>Cylinders</b>", th_style),
+            Paragraph("<b>Regulator</b>", th_style),
+            Paragraph("<b>BCD</b>", th_style),
+            Paragraph("<b>Thermal Suit</b>", th_style),
+            Paragraph("<b>Fins & Boots</b>", th_style),
+            Paragraph("<b>Ballast Lead</b>", th_style),
+            Paragraph("<b>Safety / Lights</b>", th_style),
+            Paragraph("<b>Verified</b>", th_style),
+        ]]
+
+        for idx, p in enumerate(participants, start=1):
+            eq = p.get("equipment_sizing") or {}
+            is_checked = p.get("gear_checked", False)
+
+            # Diver Name & Cert
+            name = p.get("diver_full_name", "Diver")
+            cert = f"{p.get('certification_agency', '')} {p.get('certification_level', '')}".strip()
+            diver_cell = Paragraph(f"<b>{name}</b><br/><font color='#64748B'>{cert}</font>", cell_normal)
+
+            # Box / Bench # (Empty write-in bracket)
+            box_cell = Paragraph("<font color='#94A3B8'>[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</font>", cell_center)
+
+            # Cylinders
+            t_count = p.get("tanks_count", dives_count)
+            t_sz = p.get("selected_tank_id", "12")
+            t_gas = (p.get("selected_gas_mix_id") or "AIR").upper()
+            t_fitting = eq.get("regulator_fitting", "DIN")
+            cyl_cell = Paragraph(f"[ &nbsp; ] <b>{t_count}x {t_sz}L {t_gas}</b><br/><font color='#64748B'>Fitting: {t_fitting}</font>", cell_normal)
+
+            # Regulator
+            is_reg_rental = eq.get("rental_regulator", False)
+            if is_reg_rental:
+                reg_cell = Paragraph(f"[ &nbsp; ] <font color='#1E40AF'><b>RENTAL {t_fitting}</b></font>", cell_rental)
+            else:
+                reg_cell = Paragraph("[ &nbsp; ] Diver Own Reg", cell_own)
+
+            # BCD
+            bcd_sz = eq.get("bcd_size")
+            is_bcd_rental = bcd_sz and bcd_sz != "None"
+            if is_bcd_rental:
+                bcd_gender = eq.get("bcd_gender", "MEN")
+                g_lbl = "Women's" if bcd_gender == "WOMEN" else "Men's"
+                bcd_cell = Paragraph(f"[ &nbsp; ] <font color='#1E40AF'><b>RENTAL {bcd_sz}</b></font><br/><font color='#64748B'>{g_lbl}</font>", cell_rental)
+            else:
+                bcd_cell = Paragraph("[ &nbsp; ] Diver Own BCD", cell_own)
+
+            # Thermal Suit
+            suit_sz = eq.get("wetsuit_size")
+            is_suit_rental = suit_sz and suit_sz != "None"
+            if is_suit_rental:
+                s_thk = eq.get("wetsuit_thickness", "5mm")
+                suit_cell = Paragraph(f"[ &nbsp; ] <font color='#1E40AF'><b>RENTAL {suit_sz}</b></font><br/><font color='#64748B'>{s_thk}</font>", cell_rental)
+            else:
+                suit_cell = Paragraph("[ &nbsp; ] Diver Own Suit", cell_own)
+
+            # Fins & Boots
+            fin_sz = eq.get("fin_size")
+            boot_sz = eq.get("boot_size")
+            is_fin_rental = fin_sz and fin_sz != "None"
+            is_boot_rental = boot_sz and boot_sz != "None"
+
+            fin_lines = []
+            if is_fin_rental:
+                fin_lines.append(f"<font color='#1E40AF'><b>Fins: {fin_sz}</b></font>")
+            else:
+                fin_lines.append("Fins: Own")
+
+            if is_boot_rental:
+                fin_lines.append(f"<font color='#1E40AF'><b>Boots: EU {boot_sz}</b></font>")
+            else:
+                fin_lines.append("Boots: Own")
+            fin_cell = Paragraph(f"[ &nbsp; ] {'<br/>[ &nbsp; ] '.join(fin_lines)}", cell_normal)
+
+            # Lead
+            lead_kg = p.get("estimated_lead_kg") or 0.0
+            wsys = eq.get("weight_system", "INTEGRATED")
+            w_type = "Belt" if wsys == "BELT" else "Pockets"
+            lead_cell = Paragraph(f"[ &nbsp; ] <b>{lead_kg} kg</b> ({w_type})", cell_normal)
+
+            # Tech / Accessories
+            acc_lines = []
+            if eq.get("rental_dive_computer") or not eq.get("has_own_dive_computer", True):
+                acc_lines.append("<font color='#1E40AF'><b>Rent Computer</b></font>")
+            else:
+                acc_lines.append("Own Computer")
+
+            if eq.get("rental_torch"):
+                acc_lines.append("<font color='#1E40AF'><b>Rent Torch</b></font>")
+            if eq.get("has_own_smb"):
+                acc_lines.append("Own SMB")
+            if eq.get("rental_scooter"):
+                acc_lines.append("<font color='#D97706'><b>DPV Scooter</b></font>")
+            if eq.get("stage_tank") and eq.get("stage_tank") != "None":
+                acc_lines.append(f"<font color='#7E22CE'><b>Stage: {eq.get('stage_tank')}</b></font>")
+
+            acc_cell = Paragraph("[ &nbsp; ] " + "<br/>[ &nbsp; ] ".join(acc_lines), cell_normal)
+
+            # Verified OK Checkbox
+            ver_text = "<b>[ X ] OK</b>" if is_checked else "[ &nbsp; ] OK"
+            ver_cell = Paragraph(ver_text, cell_center)
+
+            table_data.append([
+                Paragraph(str(idx), cell_center),
+                diver_cell,
+                box_cell,
+                cyl_cell,
+                reg_cell,
+                bcd_cell,
+                suit_cell,
+                fin_cell,
+                lead_cell,
+                acc_cell,
+                ver_cell,
+            ])
+
+        chk_table = Table(table_data, colWidths=col_widths, repeatRows=1)
+        chk_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#94A3B8')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 3),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        story.append(chk_table)
+        story.append(Spacer(1, 10))
+
+        # 4. Sign-Off Footer
+        footer_data = [
+            [
+                Paragraph("<b>Equipment Bench Inspection Completed By (Staff Name):</b> ___________________________________", cell_normal),
+                Paragraph("<b>Staff Signature:</b> ___________________________", cell_normal),
+                Paragraph("<b>Date / Time:</b> ___________________________", cell_normal),
+            ]
+        ]
+        footer_table = Table(footer_data, colWidths=[360, 240, 200])
+        footer_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('PADDING', (0, 0), (-1, -1), 2),
+        ]))
+        story.append(footer_table)
 
         doc.build(story)
         return buffer.getvalue()

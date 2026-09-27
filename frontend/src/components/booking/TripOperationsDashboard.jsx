@@ -608,6 +608,8 @@ const TripOperationsDashboard = () => {
               setDetailsDiver(diver);
               setModalEditMode(true);
             }}
+            centerId={centerId}
+            tripId={tripId}
           />
         ) : (
           <GearPackingManifest summary={crate_packing_summary} participants={participants} />
