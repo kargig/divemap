@@ -608,10 +608,38 @@ When a lead booker books multiple slots:
   * **Quick Modal (`DiverDetailsModal.jsx`):** Employs `DiverGearConfigForm` for rapid, in-place dockside adjustments during roll-call without losing scroll position on the manifest table.
   * **Dedicated Operations Page (`TripParticipantDetailsPage.jsx`):** Full-screen two-column workspace at `/manage/centers/:centerId/trips/:tripId/participants/:participantId` featuring breadcrumbs back to the trip manifest, complete credentials, DMSC 2020 medical review with physician clearance approval, executed liability waiver with audit hash, emergency incident dossier export, and the full gear configuration editor.
 
-### 5.7 Dive Insurance Verification & Short-Term Coverage Flow
-* In jurisdictions where dive insurance covering hyperbaric chamber evacuation is legally required (e.g., Spain, Egypt, Maldives):
-  * The intake requires `insurance_provider`, `insurance_policy_number`, and `insurance_expiry_date`.
-  * If the diver does not have insurance or it has expired, the checkout offers a **1-Day or 1-Week Dive Insurance Add-on** (partnered with DAN Europe or DiveAssure), generating instant temporary proof on the manifest.
+### 5.8 5-Step Guided Booking Wizard Flow & Wide Container Architecture (`BookingWizard.jsx`)
+* **Responsive Wide Container Standard:**
+  * Aligned with Divemap's established UI standards (`max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-6`), eliminating cramped containers.
+  * Desktop 12-column grid layout dividing the screen into an 8-column primary stepped form pane and a 4-column persistent sticky booking summary.
+* **5-Step Progressive Guided Flow:**
+  * **Step 1: Diver Credentials & Identification:**
+    * Equipment Tier selection (`Certified Diver (Own Gear)` vs `Certified Diver (Full Equipment Rental)`).
+    * Diver identity: Full Legal Name, Date of Birth (mandatory for maritime compliance), Nationality, Email, Phone, Passport/ID #.
+    * Official Certification Credentials: Organization Agency (filtered to core progression tracks), Qualification Level, and C-Card #.
+  * **Step 2: Equipment Needed for Rent & Sizing:**
+    * Saved gear profile quick-loader.
+    * Primary Cylinder (10L, 12L, 15L, AL80), Gas Mix (Air 21% vs EAN32 Nitrox with qualification validation), Regulator Valve fitting (DIN vs Yoke).
+    * Ballast Lead (kg) & Weight System (`INTEGRATED` pockets vs `BELT` webbing).
+    * Thermal Suit: Anatomical Cut (`Men's / Unisex` vs `Women's Cut`), Size (`XS`–`XXL`), Thickness (`3mm Shorty`, `3mm Full`, `5mm Full`, `7mm Semi-Dry`).
+    * BCD: Anatomical Cut (`Men's / Unisex` vs `Women's Cut`), Size (`XXS`–`XL`).
+    * Footwear: Fin Style (`OPEN_HEEL` with booties vs `FULL_FOOT` barefoot), Shoe / Fin Size (EU).
+    * Auxiliary Rental Gear: **`Rent Primary Dive Torch / Light (Opt)`** checkbox.
+  * **Step 3: Emergency Contact & Dive Insurance:**
+    * Emergency Contact (Next of Kin): Full Legal Name, Phone / WhatsApp (with international prefix), Relationship.
+    * Dive Accident & Hyperbaric Evacuation Insurance:
+      * Option A: *"I have my own active dive insurance"* (Provider e.g. DAN Europe/DiveAssure, Policy #, Expiration Date).
+      * Option B: *"I need daily insurance from the dive center"* (automatic daily hyperbaric evacuation coverage arranged on morning check-in).
+  * **Step 4: Diver Medical Screening (DMSC 2020):**
+    * Standardized 10-point WRSTC / UHMS / EUBS self-declaration protected with GDPR Article 9 envelope encryption.
+    * Real-time clearance evaluation (`✓ CLEARED` vs `⚠️ FLAGGED FOR REVIEW`).
+  * **Step 5: Liability Waiver, Risk Release & Final Review:**
+    * Complete pre-flight reservation summary card.
+    * Digital Express Assumption of Risk & Liability Release with typed electronic signature and audit hash.
+    * Pay on arrival confirmation (zero charges online, pay at center counter).
+* **Interactive Stepper Bar & Validation:**
+  * Top progress bar with visual step numbers, labels, active highlights, and green completed checkmarks.
+  * Strict validation gating step transitions (preventing progression without required name, D.O.B., certification credentials, or emergency contact).
 
 ---
 
@@ -675,30 +703,54 @@ In strict compliance with Divemap UX guidelines, horizontal scrolling (`overflow
 | **Certification & Safety** | Agency badge (PADI, SSI, GUE), cert #, depth qualification check (🟢 In Limits / 🔴 Exceeds Depth). |
 | **Dive Currency & Refresher** | Total dives count, days since last dive badge (🟢 < 180d, 🟡 180-365d, 🔴 > 365d alert / Refresher needed). |
 | **No-Fly Alert** | Outbound flight time badge: 🟢 Safe (>24h) \| 🔴 **DCS Risk: Flight in 14h!** |
-| **Medical Status** | 🟢 **Self-Cleared** (DMSC 10-No) \| 🔵 **Doctor Approved** (view certificate) \| 🔴 **Medical Hold**. |
-| **Equipment & Tank** | Assigned tank (`12L Steel Air`, `15L EAN32`), rental package status, lead weight (in center's unit), personal computer check. |
+| **Gear Check** | Boolean verification badge: 🟢 **OK** (All equipment verified present at bench) \| 🟡 **Pending** (Awaiting equipment check). |
+| **Medical Status** | 🟢 **Self-Cleared** (DMSC 10-No) \| 🔵 **Doctor Approved** (view certificate) \| 🔴 **Medical Hold** (Boarding Gate Blocked). |
+| **Equipment & Tank** | Assigned tank (`12L Steel Air`, `15L EAN32`), valve adapter alerts, rental package status, personal computer check. |
 | **Nitrox Sign-Off** | Status badge: 🟢 **Analyzed & Signed (32.1% / MOD 33m)** \| 🟡 **Pending dockside analysis**. |
 | **Buddy & Guide** | Drag-and-drop selector: Buddy pair assignment (e.g. `Buddy: Jane Doe`) & assigned Divemaster (`Guide: Elena`). |
 | **Payment Status** | Paid online, Card Guaranteed, or *"Due on Arrival: €80.00"* with 1-click **"Mark Paid"** toggle. |
 | **Onboard Roll-Call** | Interactive checkmark toggle: **"Checked-In / On Board"** for boat boarding control. |
 | **Actions** | Dropdown: **View Details** \| **Edit Participant** \| **Move to Another Trip** \| **Remove / Cancel**. |
 
-### 7.3 Equipment Crate Packing Manifest & Inventory Protection
-An aggregated operational tab designed specifically for dive shop equipment technicians and boat crew packing the vessel:
+### 7.3 Multi-View Operational Architecture (Manifest, Gear Inspection & Crate Loadout)
+Dive operations are organized into three dedicated, URL-driven view tabs (`/manage/centers/:centerId/trips/:tripId/:tab`):
+
+#### 1. Tab 1: Boat Manifest & Roll Call (`/manifest`)
+* Official maritime and harbor master manifest view.
+* Tracks legal identity, DOB, certifications, medical boarding safety gate, payment collection, and boat boarding roll-call.
+* Displays the **Gear Check** boolean column (`✓ OK` vs `⚠️ Pending`).
+
+#### 2. Tab 2: Individual Diver Gear Inspection & Handover Checklist (`/gear-check`)
+* Dedicated view for equipment counter and dive bench staff conducting the pre-boarding equipment handover with each diver.
+* Ensures no diver boards the boat without all essential equipment (mask, booties, weights, dive torch).
+* **Per-Diver Inspection Cards:** Detailed top-to-bottom equipment breakdown:
+  * Primary Cylinder & Valve (`12L Air DIN` vs `15L EAN32 Yoke insert required`) + Stage cylinders.
+  * Regulators (Rental DIN/Yoke vs Diver's own regulator).
+  * BCD (`Men's / Unisex` vs `Women's Cut`, Size, or Own BCD).
+  * Lead Ballast: Exact kg, system (`Integrated Pockets` vs `Nylon Belt`), and block breakdown (`2x2kg + 1x1kg + 1x0.5kg`).
+  * Thermal Suit: Cut (`Women's` vs `Men's`), thickness (`3mm Shorty`, `5mm Full`, `Drysuit`), Hood, Gloves, Socks.
+  * Footwear & Fins: Style (`Open-Heel` vs `Full-Foot`), Booties EU size.
+  * Kit Accessories: Rental/Own Mask, Snorkel, **Rental Dive Torch**, DPV Scooter, Dive Computer, SMB & Spool, and Emergency Contact.
+* **1-Click Master Handover Toggle:**
+  * Staff click **"Confirm All Gear Present" $\leftrightarrow$ "✓ All Gear Verified Present"** to certify the diver has their complete kit before boat transfer.
+  * Backed by `POST /api/v1/centers/{center_id}/booking-ops/trips/{trip_id}/participants/{participant_id}/toggle-gear-check`.
+
+#### 3. Tab 3: Dockside Crate Packing Loadout (`/crates`)
+An aggregated logistical tab designed specifically for dive shop equipment technicians and boat crew packing the vessel:
 * **Top-to-Bottom Scuba Equipment Breakdown (Must vs Opt):**
   * **Head & Face:** Dive Mask (Must), Snorkel (Opt), Neoprene Thermal Hood (Opt: S–XL).
   * **Breathing & Regulators:** Primary Cylinders (Must), Stage / Decompression Cylinders (Opt: 7L, AL80, EAN50, 100% O2), First & Second Stage Regulators (Must: DIN vs Yoke).
   * **Buoyancy & Ballast:** BCD (Must: Men's/Unisex vs Women's Cut, XXS–XL), Lead Ballast (Must: 2kg, 1kg, 0.5kg trim blocks), Weight System (Must: Integrated Pockets vs Traditional Webbing Belt).
   * **Thermal & Exposure:** Wetsuits / Semi-Dry / Drysuit (Must: Men's/Unisex vs Women's Anatomical Cut, 3mm/5mm/7mm, XS–XXL), Dive Gloves (Opt: S–XL), Neoprene Socks / Fin Liners (Opt).
   * **Footwear & Fins:** Fins (Must: Open-Heel with Booties vs Full-Foot Barefoot), Neoprene Booties (Must with open-heel fins: EU size).
-  * **Specialty & Propulsion:** Diver Propulsion Vehicle / Scooter (Opt).
+  * **Specialty & Propulsion:** Rental Dive Torch (Opt), Diver Propulsion Vehicle / Scooter (Opt).
 * **Configurable Crate / Bag Partitioning (1 to 5 Crates):**
   * Center managers can dynamically configure the number of transport crates (1 to 5) to match their boat deck layout:
     * **1 Crate (Master All-in-One):** All rental suits, BCDs, regulators, fins, and small accessories in a single container (for small RIBs or private charters).
     * **2 Crates:** Crate 1 (Suits & BCDs), Crate 2 (Regulators, Fins, Boots, Masks & Small Gear).
     * **3 Crates (Standard Center Ops):** Crate 1 (Suits & Hoods), Crate 2 (BCDs & Regulators), Crate 3 (Fins, Boots, Masks & Small Gear).
     * **4 Crates:** Crate 1 (Suits & Hoods), Crate 2 (BCDs), Crate 3 (Regulators & DPV Tech), Crate 4 (Fins, Boots, Masks & Snorkels).
-    * **5 Crates (Dedicated Compartments):** Crate 1 (Suits), Crate 2 (BCDs), Crate 3 (Regulators), Crate 4 (Fins & Boots), Crate 5 (Masks, Snorkels, Hoods, Gloves & Tech).
+    * **5 Crates (Dedicated Compartments):** Crate 1 (Suits), Crate 2 (BCDs), Crate 3 (Regulators), Crate 4 (Fins & Boots), Crate 5 (Masks, Snorkels, Hoods, Gloves, Torches & Tech).
   * *Note:* Cylinders and Lead Weight buckets are always staged separately outside the crates in boat racks and ballast bins.
 * **Emergency Contact & Dive Insurance Compliance:**
   * Every diver manifest includes verified emergency contact (next of kin name, phone, relationship) and dive accident insurance status (Own active policy details vs Dive center daily hyperbaric evacuation coverage).

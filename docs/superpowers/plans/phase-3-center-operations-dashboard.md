@@ -105,6 +105,7 @@ Implements endpoints protected by `is_center_manager(db, center_id, current_user
 - `PUT /participants/{id}` (equipment & cylinder modifications)
 - `DELETE /participants/{id}` (seat release)
 - `POST /participants/{id}/toggle-checkin` (with Scuba Safety Gate blocking unresolved medical flags)
+- `POST /participants/{id}/toggle-gear-check` (equipment handover verification toggle before boarding)
 - `POST /bookings/{id}/toggle-payment` (bidirectional payment toggle)
 - `POST /staff-assignment` (skipper, lead guide, crew list)
 - `POST /participants/{id}/clear-medical` (manager clearance override with physician details and audit trail)
@@ -146,30 +147,40 @@ Expected: `All tests passed!`.
 - [x] **Step 1: Implement `BoatManifestTable.jsx` with mobile-first card-stack view**
 
 Build dual responsive views adhering strictly to the "No Horizontal Scrolling" mandate:
-* **Desktop / Tablet (`hidden md:block`):** Full multi-column data table with diver credentials, medical clearance badge, currency status, unit system translation with tooltip of original submission, roll-call check-in switch, and payment status toggle.
-* **Mobile Viewports (`block md:hidden`):** Vertical card-stack (`rounded-none sm:rounded-2xl border-y sm:border p-3.5 sm:p-5`) with wrapped badge clusters (`flex-wrap gap-1.5`), prominent single-touch boarding and payment checkmarks, and tap-to-expand details without any horizontal scrolling.
+* **Desktop / Tablet (`hidden md:block`):** Full multi-column data table with diver credentials, assigned cylinder/gas, **Gear Check boolean column** (green `✓ OK` vs amber `⚠️ Pending`), medical clearance badge, payment status toggle, roll-call boarding switch, and popover action menu.
+* **Mobile Viewports (`block md:hidden`):** Vertical card-stack (`rounded-none sm:rounded-2xl border-y sm:border p-3.5 sm:p-5`) with wrapped badge clusters (`flex-wrap gap-1.5`), prominent single-touch boarding and payment checkmarks, and responsive **Gear OK / Gear Pending** badges without horizontal scrolling.
 * **Scuba Safety Gate:** Flags divers with unresolved medical conditions with a prominent `🚫 Medical Hold` badge, disabling boarding until physician clearance is approved.
 
 - [x] **Step 2: Implement `GearPackingManifest.jsx`**
 
 Aggregates cylinders by size, gas mix, and explicit valve adapter requirement (`✓ DIN Native Valve` vs `⚠️ YOKE (Fit DIN-to-Yoke Insert)`), total lead weights (with 2kg, 1kg, and 0.5kg block count denominations), and weight system breakdown (`Integrated BCD Pockets` vs `Nylon Weight Belts`).
-* **Complete Top-to-Bottom Scuba Checklist:** Masks, snorkels, hoods, regulators, stage cylinders, BCDs, thermal suits, gloves, socks, booties, fins, and DPV scooters.
+* **Complete Top-to-Bottom Scuba Checklist:** Masks, snorkels, hoods, regulators, stage cylinders, BCDs, thermal suits, gloves, socks, booties, fins, rental dive torches, and DPV scooters.
 * **Anatomical Cut Sizing:** Wetsuits and BCDs explicitly differentiate `Women's Cut` (pink/rose badges) vs `Men's / Unisex` (blue badges).
 * **Configurable Crate Partitioning (1 to 5 Crates):** Center managers can select from 1 to 5 transport containers to dynamically group equipment according to their vessel deck space.
 * **Official Requirements:** Verified emergency contact (next of kin name, phone, relationship) and dive accident insurance status (Own active policy vs Dive center daily hyperbaric evacuation coverage).
 * **Main Certification Tracks:** Filtered diving organization levels strictly to core qualification progression tracks.
 
-- [x] **Step 3: Implement `AddDiverModal.jsx` & `DiverDetailsModal.jsx`**
+- [x] **Step 3: Implement `DiverEquipmentChecklist.jsx` (3rd Operational View)**
+
+Dedicated per-diver gear inspection and handover checklist view (`/manage/centers/:centerId/trips/:tripId/gear-check`):
+* Equipment counter staff can inspect every diver's complete kit at the bench before boat departure.
+* Displays cylinders, regulators, BCD cut/size, ballast blocks breakdown, suits, booties, fins, and accessories (torches, scooters, computers).
+* Interactive 1-click **"Confirm All Gear Present" $\leftrightarrow$ "✓ All Gear Verified Present"** toggle button.
+
+- [x] **Step 4: Implement `AddDiverModal.jsx` & `DiverDetailsModal.jsx`**
 
 Modal to search Divemap users or create guest walk-in divers on the fly; details modal to view verified C-Cards, inspect physician certificates, override medical clearance, immediately synchronize and update equipment preferences, and export the official Emergency Incident Dossier PDF.
 
-- [x] **Step 4: Implement `TripOperationsDashboard.jsx`**
+- [x] **Step 5: Implement `TripOperationsDashboard.jsx`**
 
-Assemble header, capacity gauge, action buttons (Export Manifest, Print Packing Sheet, Add Diver), and tabs for Roster vs. Gear Crates.
+Assemble header, capacity gauge, staff assignment, action buttons (Export Manifest, Print Packing Sheet, Add Diver), and dedicated 3-view tabs:
+1. `Boat Manifest & Roll Call` (`/manifest`)
+2. `Diver Gear Check` (`/gear-check`)
+3. `Crate Packing Loadout` (`/crates`)
 
-- [x] **Step 5: Register route in `frontend/src/App.jsx`**
+- [x] **Step 6: Register routes in `frontend/src/App.jsx`**
 
-Added `/manage/centers/:centerId/trips/:tripId`.
+Added `/manage/centers/:centerId/trips/:tripId` and `/manage/centers/:centerId/trips/:tripId/:tab`.
 
 - [x] **Step 6: Run frontend lint and browser verification**
 

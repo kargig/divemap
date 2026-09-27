@@ -31,19 +31,20 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 │  • OCTO 1.0 Supplier Core Models (OctoProduct, Option, Unit, Booking)  │
 │  • Center settings model (DivingCenterBookingSettings: PAY_ON_ARRIVAL) │
 │  • OCTO 1.0 Supplier API (Catalog, Availability, Hold, Confirm, Cancel)│
-│  • Diver booking checkout wizard with automated profile pre-fill       │
-│  • Interactive DMSC medical modal & touch waiver signing               │
+│  • 5-Step Guided Booking Wizard (Credentials, Equipment, Insurance,    │
+│    Medical DMSC 2020, Liability Waiver) with live wide summary         │
+│  • Dive accident insurance & mandatory emergency contact integration   │
 │  • Digital booking voucher with QR code                                │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
                                     ▼ (Provides confirmed bookings & unit items)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  Phase 3: Center Trip Operations Dashboard & Daily Manifest            │
-│  • Operations Dashboard (/manage/centers/:id/trips/:trip_id)           │
-│  • Live boat roster with medical status badges and dive currency flags │
-│  • Participant management: walk-in add, edit sizing/tank, remove, move │
-│  • Onboard roll-call boarding toggle & "Mark Paid" check-in button     │
-│  • Equipment crate packing checklist & tank volume tally               │
+│  • Multi-View Operations Dashboard: /manifest, /gear-check, /crates    │
+│  • Tab 1: Live boat roster with Gear Check column & medical safety gate│
+│  • Tab 2: Individual diver equipment inspection & handover checklist   │
+│  • Tab 3: Dockside crate packing with configurable 1 to 5 crates       │
+│  • Top-to-bottom gear: Torches, scooters, stages, hoods, boots, fins   │
 │  • One-click Maritime Port Authority / Coast Guard manifest export     │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │

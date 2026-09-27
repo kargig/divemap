@@ -252,6 +252,14 @@ download QR-code booking vouchers.
 - [x] **Step 1: Implement `MedicalQuestionnaireModal.jsx`**
 - [x] **Step 2: Implement `WaiverSigningModal.jsx`**
 - [x] **Step 3: Implement `BookingWizard.jsx` & `BookingVoucherPage.jsx`**
+  * **Wide Container Layout:** Conforms to `max-w-[95vw] xl:max-w-[1600px]` with 12-column grid (8 columns for form, 4 columns for sticky live summary).
+  * **5-Step Progressive Guided Flow:**
+    * Step 1: Diver Credentials & Identification (Tier, Full Legal Name, DOB, Nationality, Email, Phone, Passport/ID, Agency with main qualification filter, Level, C-Card #).
+    * Step 2: Equipment Needed for Rent & Sizing (Cylinder, Gas Mix with Nitrox validation, DIN/Yoke valve, Ballast kg, Weight System, Wetsuit Cut/Size/Thickness, BCD Cut/Size, Fins Style, Booties EU size, Rental Dive Torch).
+    * Step 3: Emergency Contact (Next of Kin Legal Name, Phone, Relationship) & Dive Accident Insurance (Own Policy vs Center Daily Coverage).
+    * Step 4: Diver Medical Screening (DMSC 2020) with envelope-encrypted 10-point evaluation.
+    * Step 5: Liability Waiver & Final Review with typed signature audit hash and pay-on-arrival voucher generation.
+  * **Step Transition Validation & Progress Bar:** Interactive 5-step stepper bar with past-step navigation and strict validation preventing progression without mandatory data.
 - [x] **Step 4: Register routes in `frontend/src/App.jsx`**
 - [x] **Step 5: Run frontend lint check (`make lint-frontend`)**
 - [x] **Step 6: Verify in browser with Chrome DevTools MCP (0 console errors)**
