@@ -249,47 +249,18 @@ download QR-code booking vouchers.
 - Consumes: `/api/v1/octo/...` and `/api/v1/bookings/...`.
 - Produces: Complete responsive booking flow.
 
-- [ ] **Step 1: Implement `MedicalQuestionnaireModal.jsx`**
-
-Interactive 10-question DMSC screening form with diagnostic box expansion on "Yes" answers.
-
-- [ ] **Step 2: Implement `WaiverSigningModal.jsx`**
-
-HTML waiver display with touchscreen/mouse canvas signature capture.
-
-- [ ] **Step 3: Implement `BookingWizard.jsx` & `BookingVoucherPage.jsx`**
-
-Step-by-step wizard:
-1. Trip selection & date picker
-2. Diver details (auto-filled from profile)
-3. Medical screening & waiver signature
-4. Confirmation & voucher display with QR code
-
-- [ ] **Step 4: Register routes in `frontend/src/App.jsx`**
-
-- [ ] **Step 5: Run frontend lint check and verify in browser**
-
-Run:
-```bash
-make lint-frontend
-```
-Verify complete booking flow in browser using Chrome DevTools MCP, checking for zero console errors.
-
-- [ ] **Step 6: Prepare commit draft**
-
-Write commit message to `commit-message.txt`:
-```
-Add frontend booking wizard, DMSC medical modal, and voucher page
-
-Delivers complete client-side booking flow with profile pre-fill, touch signature
-canvas, and voucher rendering.
-```
+- [x] **Step 1: Implement `MedicalQuestionnaireModal.jsx`**
+- [x] **Step 2: Implement `WaiverSigningModal.jsx`**
+- [x] **Step 3: Implement `BookingWizard.jsx` & `BookingVoucherPage.jsx`**
+- [x] **Step 4: Register routes in `frontend/src/App.jsx`**
+- [x] **Step 5: Run frontend lint check (`make lint-frontend`)**
+- [x] **Step 6: Verify in browser with Chrome DevTools MCP (0 console errors)**
 
 ---
 
 ### Phase 2 Verification Checklist
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_octo_core_models.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_octo_api.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_bookings_router.py` passes.
-- [ ] `make lint-frontend` passes with zero errors.
-- [ ] Complete booking lifecycle tested in browser via Chrome DevTools MCP with zero console errors.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_octo_core_models.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_octo_api.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_bookings_router.py` passes.
+- [x] `make lint-frontend` passes with zero errors.
+- [x] Complete booking lifecycle tested in browser via Chrome DevTools MCP with zero console errors.

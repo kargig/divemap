@@ -82,6 +82,8 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage'));
+const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
+const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
 const MyComments = lazy(() => import('./pages/MyComments'));
 const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
@@ -320,6 +322,8 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route path='/book/:slotId' element={<BookingWizard />} />
+            <Route path='/bookings/:uuid/voucher' element={<BookingVoucherPage />} />
             <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
             <Route path='/users/:username/lists/:id' element={<UserListDetail />} />

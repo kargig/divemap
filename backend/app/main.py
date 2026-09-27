@@ -417,6 +417,14 @@ def load_routers():
     from app.routers import diver_gear_profile
     app.include_router(diver_gear_profile.router)
 
+    # Import OCTO 1.0 supplier router
+    from app.routers import octo
+    app.include_router(octo.router)
+
+    # Import Diver bookings and checkout router
+    from app.routers import bookings
+    app.include_router(bookings.router)
+
     # Moved to lazy loading:
     # - dive_sites (already implemented)
     # - newsletters (heavy AI/ML dependencies)

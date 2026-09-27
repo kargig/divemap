@@ -1332,3 +1332,212 @@ class UserGearProfile(Base):
 
     user = relationship("User", backref=sa.orm.backref("gear_profiles", cascade="all, delete-orphan"))
 
+
+class DivingCenterBookingSettings(Base):
+    __tablename__ = "diving_center_booking_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    is_booking_enabled = Column(Boolean, default=True, nullable=False)
+    default_currency = Column(String(3), default="EUR", nullable=False)
+    payment_mode = Column(String(30), default="PAY_ON_ARRIVAL", nullable=False) # PAY_ON_ARRIVAL, DEPOSIT_ONLY, FULL_ONLINE
+    deposit_percentage = Column(DECIMAL(5, 2), default=0.00, nullable=False)
+    default_agency_bundle = Column(String(50), default="UNIVERSAL_DMSC", nullable=False) # PADI, SSI, GUE, UNIVERSAL_DMSC
+    preferred_unit_system = Column(String(10), default="METRIC", nullable=False) # METRIC vs IMPERIAL
+    preferred_shoe_system = Column(String(10), default="EU", nullable=False)     # EU, US, UK
+    hold_duration_minutes = Column(Integer, default=20, nullable=False)
+    briefing_lead_hours = Column(Integer, default=24, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    center = relationship("DivingCenter", backref=sa.orm.backref("booking_settings", uselist=False, cascade="all, delete-orphan"))
+
+
+class DivingCenterVessel(Base):
+    __tablename__ = "diving_center_vessels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    registration_number = Column(String(100), nullable=True)
+    port_of_registry = Column(String(100), nullable=True)
+    call_sign = Column(String(50), nullable=True)
+    licensed_capacity = Column(Integer, default=12, nullable=False)
+
+    has_emergency_oxygen = Column(Boolean, default=True, nullable=False)
+    has_first_aid_kit = Column(Boolean, default=True, nullable=False)
+    has_vhf_radio = Column(Boolean, default=True, nullable=False)
+    has_lifejackets = Column(Boolean, default=True, nullable=False)
+    has_liferaft = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    center = relationship("DivingCenter", backref=sa.orm.backref("vessels", cascade="all, delete-orphan"))
+
+
+class OctoProduct(Base):
+    __tablename__ = "octo_products"
+
+    id = Column(String(36), primary_key=True) # UUID
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="SET NULL"), nullable=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    product_type = Column(String(50), default="GUIDED_BOAT_TRIP", nullable=False) # GUIDED_BOAT_TRIP, GUIDED_SHORE_TRIP, COURSE, TRY_DIVE_DSD
+    agency_code = Column(String(50), nullable=True) # PADI, SSI, GUE, CMAS (optional override)
+    waiver_bundle_id = Column(String(50), default="dmsc_recreational", nullable=False)
+    min_certification_level_id = Column(Integer, ForeignKey("certification_levels.id", ondelete="SET NULL"), nullable=True)
+    min_logged_dives = Column(Integer, default=0, nullable=False)
+    max_depth_meters = Column(DECIMAL(5, 2), nullable=True)
+    min_participants = Column(Integer, default=1, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    center = relationship("DivingCenter", backref=sa.orm.backref("octo_products", cascade="all, delete-orphan"))
+    dive_site = relationship("DiveSite", backref=sa.orm.backref("octo_products", cascade="all, delete-orphan"))
+    min_certification = relationship("CertificationLevel")
+
+
+class OctoOption(Base):
+    __tablename__ = "octo_options"
+
+    id = Column(String(36), primary_key=True) # UUID
+    product_id = Column(String(36), ForeignKey("octo_products.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False) # e.g. "08:30 Departure"
+    meeting_time = Column(Time, nullable=False)
+    departure_time = Column(Time, nullable=False)
+    duration_minutes = Column(Integer, default=240, nullable=False)
+    max_capacity = Column(Integer, default=12, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    product = relationship("OctoProduct", backref=sa.orm.backref("options", cascade="all, delete-orphan"))
+
+
+class OctoUnit(Base):
+    __tablename__ = "octo_units"
+
+    id = Column(String(36), primary_key=True) # UUID
+    product_id = Column(String(36), ForeignKey("octo_products.id", ondelete="CASCADE"), nullable=False, index=True)
+    unit_type = Column(String(50), nullable=False) # DIVER_OWN_GEAR, DIVER_RENTAL_GEAR, PASSENGER_SNORKELER
+    title = Column(String(255), nullable=False)
+    retail_price = Column(DECIMAL(10, 2), nullable=False)
+    net_price = Column(DECIMAL(10, 2), nullable=True)
+    currency = Column(String(3), default="EUR", nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    product = relationship("OctoProduct", backref=sa.orm.backref("units", cascade="all, delete-orphan"))
+
+
+class OctoAvailabilitySlot(Base):
+    __tablename__ = "octo_availability_slots"
+
+    id = Column(String(36), primary_key=True) # UUID
+    product_id = Column(String(36), ForeignKey("octo_products.id", ondelete="CASCADE"), nullable=False, index=True)
+    option_id = Column(String(36), ForeignKey("octo_options.id", ondelete="CASCADE"), nullable=False, index=True)
+    vessel_id = Column(Integer, ForeignKey("diving_center_vessels.id", ondelete="SET NULL"), nullable=True, index=True)
+    assigned_guide_user_ids = Column(sa.JSON, nullable=True) # List of user IDs
+    start_datetime = Column(DateTime(timezone=True), nullable=False, index=True)
+    end_datetime = Column(DateTime(timezone=True), nullable=False)
+    seats_total = Column(Integer, nullable=False)
+    seats_available = Column(Integer, nullable=False)
+    is_closed = Column(Boolean, default=False, nullable=False)
+
+    product = relationship("OctoProduct", backref=sa.orm.backref("availability_slots", cascade="all, delete-orphan"))
+    option = relationship("OctoOption", backref=sa.orm.backref("availability_slots", cascade="all, delete-orphan"))
+    vessel = relationship("DivingCenterVessel", backref=sa.orm.backref("availability_slots"))
+
+
+class OctoBooking(Base):
+    __tablename__ = "octo_bookings"
+
+    uuid = Column(String(36), primary_key=True) # OCTO UUID
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(String(36), ForeignKey("octo_products.id", ondelete="CASCADE"), nullable=False, index=True)
+    option_id = Column(String(36), ForeignKey("octo_options.id", ondelete="CASCADE"), nullable=False, index=True)
+    availability_id = Column(String(36), ForeignKey("octo_availability_slots.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True) # Lead booker (nullable for guest/walk-in)
+
+    contact_full_name = Column(String(255), nullable=True)
+    contact_email = Column(String(255), nullable=True)
+    contact_phone = Column(String(50), nullable=True)
+
+    status = Column(String(30), default="ON_HOLD", nullable=False, index=True) # ON_HOLD, CONFIRMED, CANCELLED, COMPLETED
+    utc_hold_expiration = Column(DateTime(timezone=True), nullable=True)
+    payment_mode = Column(String(30), default="PAY_ON_ARRIVAL", nullable=False)
+    payment_status = Column(String(30), default="PENDING_AT_CHECKIN", nullable=False) # PENDING_AT_CHECKIN, PAID_IN_FULL, REFUNDED
+    total_amount = Column(DECIMAL(10, 2), nullable=False)
+    currency = Column(String(3), default="EUR", nullable=False)
+    booking_notes = Column(Text, nullable=True)
+    cancellation_reason = Column(Text, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    center = relationship("DivingCenter", backref=sa.orm.backref("octo_bookings", cascade="all, delete-orphan"))
+    product = relationship("OctoProduct", backref=sa.orm.backref("bookings", cascade="all, delete-orphan"))
+    option = relationship("OctoOption", backref=sa.orm.backref("bookings", cascade="all, delete-orphan"))
+    slot = relationship("OctoAvailabilitySlot", backref=sa.orm.backref("bookings", cascade="all, delete-orphan"))
+    user = relationship("User", backref=sa.orm.backref("octo_bookings"))
+
+
+class OctoBookingUnitItem(Base):
+    __tablename__ = "octo_booking_unit_items"
+
+    id = Column(String(36), primary_key=True) # UUID
+    booking_uuid = Column(String(36), ForeignKey("octo_bookings.uuid", ondelete="CASCADE"), nullable=False, index=True)
+    unit_id = Column(String(36), ForeignKey("octo_units.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    diver_full_name = Column(String(255), nullable=False)
+    diver_email = Column(String(255), nullable=True)
+    diver_phone = Column(String(50), nullable=True)
+    diver_nationality = Column(String(100), nullable=True)
+    passport_number = Column(String(100), nullable=True)
+    date_of_birth = Column(Date, nullable=True)
+
+    certification_agency = Column(String(50), nullable=True)
+    certification_level = Column(String(100), nullable=True)
+    certification_number = Column(String(100), nullable=True)
+    total_logged_dives = Column(Integer, default=0, nullable=False)
+    date_of_last_dive = Column(Date, nullable=True)
+
+    selected_tank_id = Column(String(20), default="12", nullable=True)
+    selected_gas_mix_id = Column(String(20), default="air", nullable=True)
+    equipment_sizing = Column(sa.JSON, nullable=True)
+
+    waiver_id = Column(String(100), nullable=True)
+    waivers_complete = Column(Boolean, default=False, nullable=False)
+    signed_waiver_path = Column(String(500), nullable=True)
+    signed_at = Column(DateTime(timezone=True), nullable=True)
+    onboard_checkin_status = Column(Boolean, default=False, nullable=False)
+
+    booking = relationship("OctoBooking", backref=sa.orm.backref("unit_items", cascade="all, delete-orphan"))
+    unit = relationship("OctoUnit", backref=sa.orm.backref("booking_items"))
+    user = relationship("User", backref=sa.orm.backref("booking_items"))
+
+
+class DiverMedicalRecord(Base):
+    __tablename__ = "diver_medical_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_unit_item_id = Column(String(36), ForeignKey("octo_booking_unit_items.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+
+    status = Column(String(30), default="PENDING", nullable=False) # CLEARED, FLAGGED_CONTACT_CENTER, PHYSICIAN_APPROVED
+    encrypted_dek = Column(Text, nullable=False)
+    encrypted_answers = Column(LargeBinary, nullable=False)
+    physician_clearance_file_path = Column(String(500), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)
+    audit_signature_hash = Column(String(64), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    unit_item = relationship("OctoBookingUnitItem", backref=sa.orm.backref("medical_record", uselist=False, cascade="all, delete-orphan"))
+    user = relationship("User", backref=sa.orm.backref("medical_records"))
+
