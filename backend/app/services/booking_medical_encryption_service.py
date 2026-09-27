@@ -18,7 +18,12 @@ class BookingMedicalEncryptionService:
         if self._explicit_keys is not None:
             keys = self._explicit_keys
         else:
-            raw_keys = os.environ.get("BOOKING_MEDICAL_MASTER_KEYS", "")
+            raw_keys = (
+                os.environ.get("BOOKING_MEDICAL_MASTER_KEYS")
+                or os.environ.get("BOOKING_MEDICAL_MASTER_KEY", "")
+            ).strip()
+            if not raw_keys:
+                raise MedicalEncryptionError("Missing master encryption keys in environment (BOOKING_MEDICAL_MASTER_KEYS)")
             keys = [k.strip() for k in raw_keys.split(",") if k.strip()]
 
         if not keys:

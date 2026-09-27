@@ -68,6 +68,7 @@ def test_multifernet_key_rotation(monkeypatch):
 
 def test_missing_master_keys(monkeypatch):
     monkeypatch.delenv("BOOKING_MEDICAL_MASTER_KEYS", raising=False)
+    monkeypatch.delenv("BOOKING_MEDICAL_MASTER_KEY", raising=False)
     service = BookingMedicalEncryptionService()
 
     with pytest.raises(MedicalEncryptionError, match="Missing master encryption keys"):
@@ -93,3 +94,15 @@ def test_invalid_tokens_raise_medical_encryption_error(monkeypatch):
     encrypted_dek, _ = service.encrypt_answers({"q1": False})
     with pytest.raises(MedicalEncryptionError):
         service.decrypt_answers(encrypted_dek, b"corrupted_encrypted_payload")
+
+
+def test_singular_master_key_env_support(monkeypatch):
+    key = Fernet.generate_key().decode()
+    monkeypatch.delenv("BOOKING_MEDICAL_MASTER_KEYS", raising=False)
+    monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEY", key)
+    service = BookingMedicalEncryptionService()
+
+    payload = {"clean": True}
+    dek, encrypted = service.encrypt_answers(payload)
+    decrypted = service.decrypt_answers(dek, encrypted)
+    assert decrypted == payload
