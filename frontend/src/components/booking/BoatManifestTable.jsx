@@ -9,6 +9,7 @@ import {
   Phone,
   Mail,
   ShieldCheck,
+  Hourglass,
 } from 'lucide-react';
 import React from 'react';
 
@@ -138,17 +139,23 @@ const BoatManifestTable = ({
                     <button
                       type='button'
                       onClick={() => onToggleCheckin(p.id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
                         p.onboard_checkin_status
                           ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                          : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
                       }`}
+                      title={
+                        p.onboard_checkin_status
+                          ? 'Click to revoke boarding'
+                          : 'Click to confirm diver has boarded'
+                      }
                     >
-                      <Check
-                        size={13}
-                        className={p.onboard_checkin_status ? 'opacity-100' : 'opacity-40'}
-                      />
-                      {p.onboard_checkin_status ? 'Boarded' : 'Check In'}
+                      {p.onboard_checkin_status ? (
+                        <Check size={13} className='text-white' />
+                      ) : (
+                        <Hourglass size={12} className='text-amber-600 shrink-0' />
+                      )}
+                      <span>{p.onboard_checkin_status ? 'Boarded' : 'Check In'}</span>
                     </button>
                   </td>
 
@@ -274,14 +281,15 @@ const BoatManifestTable = ({
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
                     p.onboard_checkin_status
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
                   }`}
                 >
-                  <Check
-                    size={14}
-                    className={p.onboard_checkin_status ? 'opacity-100' : 'opacity-40'}
-                  />
-                  {p.onboard_checkin_status ? 'Boarded' : 'Board Boat'}
+                  {p.onboard_checkin_status ? (
+                    <Check size={14} className='text-white' />
+                  ) : (
+                    <Hourglass size={13} className='text-amber-600' />
+                  )}
+                  <span>{p.onboard_checkin_status ? 'Boarded' : 'Board Boat'}</span>
                 </button>
 
                 {/* Payment & Options */}

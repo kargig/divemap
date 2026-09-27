@@ -26,6 +26,7 @@ class ManifestExportService:
         vessel = manifest_data.get("vessel") or {}
         center = manifest_data.get("center") or {}
         slot = manifest_data.get("slot") or {}
+        staff = manifest_data.get("staff") or {}
 
         writer.writerow(["PORT AUTHORITY PASSENGER & DIVER MANIFEST"])
         writer.writerow(["Diving Center:", center.get("name", "Diving Center")])
@@ -34,6 +35,10 @@ class ManifestExportService:
         writer.writerow(["Registration / IMO #:", vessel.get("registration_number", "N/A")])
         writer.writerow(["Departure Date:", slot.get("departure_date", "")])
         writer.writerow(["Meeting / Departure:", f"{slot.get('meeting_time', '')} / {slot.get('departure_time', '')}"])
+        writer.writerow(["Master / Skipper:", f"{staff.get('skipper_name', 'N/A')} (Lic: {staff.get('skipper_license', 'N/A')})"])
+        writer.writerow(["Dive Staff in Charge:", f"{staff.get('lead_guide_name', 'N/A')} ({staff.get('lead_guide_cert', 'N/A')})"])
+        if staff.get("crew_names"):
+            writer.writerow(["Deck Crew:", ", ".join(staff.get("crew_names"))])
         writer.writerow([])
 
         # Table Header
@@ -149,6 +154,7 @@ class ManifestExportService:
         center = manifest_data.get("center") or {}
         vessel = manifest_data.get("vessel") or {}
         slot = manifest_data.get("slot") or {}
+        staff = manifest_data.get("staff") or {}
 
         meta_data = [
             [
@@ -166,6 +172,10 @@ class ManifestExportService:
             [
                 Paragraph(f"<b>Schedule:</b> Meet: {slot.get('meeting_time', '')} | Dep: {slot.get('departure_time', '')}", normal_style),
                 Paragraph(f"<b>Safety Gear:</b> O2 Kit: {'YES' if vessel.get('has_emergency_oxygen') else 'NO'} | First Aid: {'YES' if vessel.get('has_first_aid_kit') else 'NO'}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Master / Skipper:</b> {staff.get('skipper_name', 'N/A')} (Lic: {staff.get('skipper_license', 'N/A')})", normal_style),
+                Paragraph(f"<b>Lead Divemaster / Guide:</b> {staff.get('lead_guide_name', 'N/A')} ({staff.get('lead_guide_cert', 'N/A')})", normal_style),
             ],
         ]
 

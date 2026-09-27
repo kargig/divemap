@@ -1,3 +1,4 @@
+import { Modal } from 'antd';
 import {
   Ship,
   Users,
@@ -9,8 +10,9 @@ import {
   Loader2,
   ChevronLeft,
   Package,
-  Layers,
   FileSpreadsheet,
+  UserCheck,
+  Check,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -33,12 +35,28 @@ const TripOperationsDashboard = () => {
   // Modals
   const [addDiverOpen, setAddDiverOpen] = useState(false);
   const [detailsDiver, setDetailsDiver] = useState(null);
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
+
+  // Staff state
+  const [skipperName, setSkipperName] = useState('');
+  const [skipperLicense, setSkipperLicense] = useState('');
+  const [leadGuideName, setLeadGuideName] = useState('');
+  const [leadGuideCert, setLeadGuideCert] = useState('');
+  const [crewText, setCrewText] = useState('');
+  const [savingStaff, setSavingStaff] = useState(false);
 
   const fetchManifest = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get(`/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/manifest`);
       setManifestData(res.data);
+      if (res.data?.staff) {
+        setSkipperName(res.data.staff.skipper_name || '');
+        setSkipperLicense(res.data.staff.skipper_license || '');
+        setLeadGuideName(res.data.staff.lead_guide_name || '');
+        setLeadGuideCert(res.data.staff.lead_guide_cert || '');
+        setCrewText((res.data.staff.crew_names || []).join(', '));
+      }
     } catch (err) {
       console.error('Failed to load trip operations manifest:', err);
       toast.error(err.response?.data?.detail || 'Failed to load trip manifest.');
@@ -52,6 +70,38 @@ const TripOperationsDashboard = () => {
       fetchManifest();
     }
   }, [centerId, tripId, fetchManifest]);
+
+  const handleSaveStaff = async e => {
+    e.preventDefault();
+    try {
+      setSavingStaff(true);
+      const crewList = crewText
+        .split(',')
+        .map(c => c.trim())
+        .filter(Boolean);
+
+      const res = await api.put(`/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/staff`, {
+        skipper_name: skipperName.trim() || 'Captain',
+        skipper_license: skipperLicense.trim() || 'N/A',
+        lead_guide_name: leadGuideName.trim() || 'Lead Divemaster',
+        lead_guide_cert: leadGuideCert.trim() || 'N/A',
+        crew_names: crewList,
+      });
+
+      setManifestData(prev => {
+        if (!prev) return prev;
+        return { ...prev, staff: res.data.staff };
+      });
+
+      toast.success('Boat crew and dive staff assignments updated!');
+      setStaffModalOpen(false);
+    } catch (err) {
+      console.error('Failed to update trip staff:', err);
+      toast.error('Failed to update trip staff assignments.');
+    } finally {
+      setSavingStaff(false);
+    }
+  };
 
   // Actions
   const handleToggleCheckin = async partId => {
@@ -295,6 +345,59 @@ const TripOperationsDashboard = () => {
             </div>
           </div>
 
+          {/* Boat Crew & Dive Staff Assignment Bar */}
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-100 dark:border-gray-700 text-xs'>
+            <div className='flex flex-wrap items-center gap-x-5 gap-y-2'>
+              <div>
+                <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+                  Master / Skipper
+                </span>
+                <strong className='text-gray-900 dark:text-white font-medium'>
+                  {manifestData.staff?.skipper_name || 'Captain (Center Staff)'}
+                </strong>
+                {manifestData.staff?.skipper_license &&
+                  manifestData.staff.skipper_license !== 'N/A' && (
+                    <span className='text-[10px] text-gray-400 font-mono ml-1'>
+                      (Lic: {manifestData.staff.skipper_license})
+                    </span>
+                  )}
+              </div>
+              <div className='border-l pl-4 border-gray-200 dark:border-gray-700'>
+                <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+                  Dive Staff in Charge
+                </span>
+                <strong className='text-gray-900 dark:text-white font-medium'>
+                  {manifestData.staff?.lead_guide_name || 'Lead Instructor'}
+                </strong>
+                {manifestData.staff?.lead_guide_cert &&
+                  manifestData.staff.lead_guide_cert !== 'N/A' && (
+                    <span className='text-[10px] text-gray-400 font-mono ml-1'>
+                      ({manifestData.staff.lead_guide_cert})
+                    </span>
+                  )}
+              </div>
+              {manifestData.staff?.crew_names && manifestData.staff.crew_names.length > 0 && (
+                <div className='border-l pl-4 border-gray-200 dark:border-gray-700'>
+                  <span className='text-[10px] text-gray-400 uppercase font-bold block'>
+                    Deck Crew
+                  </span>
+                  <span className='text-gray-700 dark:text-gray-300 font-medium'>
+                    {manifestData.staff.crew_names.join(', ')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <button
+              type='button'
+              onClick={() => setStaffModalOpen(true)}
+              className='text-xs text-blue-600 hover:underline font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto'
+            >
+              <UserCheck size={13} />
+              <span>Assign Staff & Crew</span>
+            </button>
+          </div>
+
           {/* Action Toolbar */}
           <div className='flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700'>
             {/* View Tabs */}
@@ -404,6 +507,114 @@ const TripOperationsDashboard = () => {
           tripId={tripId}
           onUpdated={fetchManifest}
         />
+
+        {/* Staff Assignment Modal */}
+        <Modal
+          open={staffModalOpen}
+          onCancel={() => setStaffModalOpen(false)}
+          footer={null}
+          width={540}
+          title={
+            <div className='flex items-center gap-2 pb-2 border-b'>
+              <UserCheck className='h-5 w-5 text-blue-600' />
+              <div>
+                <h3 className='text-base font-bold text-gray-900 dark:text-white'>
+                  Assign Boat Crew & Dive Staff
+                </h3>
+                <p className='text-xs text-gray-500 font-normal'>
+                  Designate the vessel Master / Skipper and Lead Divemaster for Port Authority
+                  compliance.
+                </p>
+              </div>
+            </div>
+          }
+        >
+          <form onSubmit={handleSaveStaff} className='pt-3 space-y-4 text-xs'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+              <div>
+                <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                  Master / Skipper Name *
+                </label>
+                <input
+                  type='text'
+                  value={skipperName}
+                  onChange={e => setSkipperName(e.target.value)}
+                  placeholder='e.g. Capt. Kostas'
+                  required
+                  className='w-full px-3 py-2 border rounded-lg text-xs'
+                />
+              </div>
+              <div>
+                <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                  Skipper License #
+                </label>
+                <input
+                  type='text'
+                  value={skipperLicense}
+                  onChange={e => setSkipperLicense(e.target.value)}
+                  placeholder='e.g. GR-SK-4491'
+                  className='w-full px-3 py-2 border rounded-lg text-xs'
+                />
+              </div>
+              <div>
+                <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                  Lead Divemaster / Guide *
+                </label>
+                <input
+                  type='text'
+                  value={leadGuideName}
+                  onChange={e => setLeadGuideName(e.target.value)}
+                  placeholder='e.g. Elena M.'
+                  required
+                  className='w-full px-3 py-2 border rounded-lg text-xs'
+                />
+              </div>
+              <div>
+                <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                  Staff Cert / License #
+                </label>
+                <input
+                  type='text'
+                  value={leadGuideCert}
+                  onChange={e => setLeadGuideCert(e.target.value)}
+                  placeholder='e.g. PADI MSDT #284910'
+                  className='w-full px-3 py-2 border rounded-lg text-xs'
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                Deck Crew & Assistants (comma separated)
+              </label>
+              <input
+                type='text'
+                value={crewText}
+                onChange={e => setCrewText(e.target.value)}
+                placeholder='e.g. Nikos (Deckhand), Anna (Safety Diver)'
+                className='w-full px-3 py-2 border rounded-lg text-xs'
+              />
+            </div>
+
+            <div className='flex items-center justify-end gap-2 pt-3 border-t'>
+              <button
+                type='button'
+                onClick={() => setStaffModalOpen(false)}
+                className='px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md font-medium'
+              >
+                Cancel
+              </button>
+              <button
+                type='submit'
+                disabled={savingStaff}
+                className='flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-sm'
+              >
+                {savingStaff ? <Loader2 size={13} className='animate-spin' /> : <Check size={13} />}
+                Save Assignments
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

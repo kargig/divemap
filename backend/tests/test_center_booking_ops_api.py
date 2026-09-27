@@ -287,6 +287,32 @@ def test_toggle_booking_payment(client: TestClient, center_ops_setup):
     assert res2.json()["payment_status"] == "PENDING_AT_CHECKIN"
 
 
+def test_update_trip_staff(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    staff_payload = {
+        "skipper_name": "Capt. Nikos",
+        "skipper_license": "GR-SK-9988",
+        "lead_guide_name": "Maria K.",
+        "lead_guide_cert": "PADI OWSI #112233",
+        "crew_names": ["Yiannis (Deckhand)"]
+    }
+    res = client.put(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/staff",
+        json=staff_payload,
+        headers=headers,
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["staff"]["skipper_name"] == "Capt. Nikos"
+    assert data["staff"]["lead_guide_name"] == "Maria K."
+
+
 def test_delete_participant_releases_seat(client: TestClient, center_ops_setup):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]

@@ -59,6 +59,14 @@ class ParticipantUpdateRequest(BaseModel):
     equipment_sizing: Optional[Dict[str, Any]] = None
 
 
+class StaffUpdateRequest(BaseModel):
+    skipper_name: Optional[str] = "Captain"
+    skipper_license: Optional[str] = None
+    lead_guide_name: Optional[str] = "Lead Divemaster"
+    lead_guide_cert: Optional[str] = None
+    crew_names: Optional[List[str]] = []
+
+
 # --- Helper ---
 
 def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabilitySlot) -> Dict[str, Any]:
@@ -94,12 +102,30 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "product_title": slot.product.title if slot.product else "Dive Trip",
     }
 
+    # Staff / Crew metadata
+    staff_meta = slot.assigned_guide_user_ids if isinstance(slot.assigned_guide_user_ids, dict) else {}
+    staff_data = {
+        "skipper_name": staff_meta.get("skipper_name", "Captain (Center Staff)"),
+        "skipper_license": staff_meta.get("skipper_license", "N/A"),
+        "lead_guide_name": staff_meta.get("lead_guide_name", "Lead Instructor / DM"),
+        "lead_guide_cert": staff_meta.get("lead_guide_cert", "N/A"),
+        "crew_names": staff_meta.get("crew_names", []),
+    }
+
     participants = []
     tanks_summary = {}
     suits_summary = {}
     bcds_summary = {}
     fins_summary = {}
     total_lead_kg = 0.0
+
+    # Denomination tallies for weights & valve fittings
+    blocks_1kg = 0
+    blocks_2kg = 0
+    belts_needed = 0
+    integrated_divers = 0
+    din_count = 0
+    yoke_count = 0
 
     for b in slot.bookings:
         if b.status == "CANCELLED":
@@ -114,6 +140,30 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             eq = item.equipment_sizing or {}
             lead = float(eq.get("estimated_lead_kg") or 0.0)
             total_lead_kg += lead
+
+            # Valve fitting analysis
+            fitting = str(eq.get("regulator_fitting", "DIN")).upper()
+            if "YOKE" in fitting or "INT" in fitting:
+                yoke_count += 1
+            else:
+                din_count += 1
+
+            # Weight distribution analysis
+            if eq.get("weight_system") == "BELT" or not eq.get("bcd_size"):
+                belts_needed += 1
+            else:
+                integrated_divers += 1
+
+            # Symmetry weight pocket distribution:
+            if lead > 0:
+                twos = int(lead // 2)
+                ones = int(round(lead % 2))
+                # For 2kg, prefer 2x 1kg for balance if small
+                if twos == 1 and ones == 0 and eq.get("bcd_size") in ("XS", "S"):
+                    blocks_1kg += 2
+                else:
+                    blocks_2kg += twos
+                    blocks_1kg += ones
 
             # Cylinder breakdown
             tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()}"
@@ -156,10 +206,39 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 "booking_status": b.status,
             })
 
+    # Spare lead buffer calculation (+15% extra ballast)
+    spare_kg = max(4.0, round(total_lead_kg * 0.15, 1))
+    spare_2kg = int(spare_kg // 2)
+    spare_1kg = int(round(spare_kg % 2))
+
+    lead_breakdown = {
+        "total_lead_kg": total_lead_kg,
+        "total_lead_lbs": round(total_lead_kg * 2.20462, 1),
+        "blocks_1kg": blocks_1kg,
+        "blocks_2kg": blocks_2kg,
+        "spare_buffer_kg": spare_kg,
+        "spare_blocks_1kg": spare_1kg,
+        "spare_blocks_2kg": spare_2kg,
+        "belts_needed": belts_needed,
+        "integrated_weight_divers": integrated_divers,
+    }
+
+    valve_fittings = {
+        "din_count": din_count,
+        "yoke_count": yoke_count,
+        "yoke_inserts_needed": yoke_count,
+        "tool_notes": (
+            f"Pack {yoke_count}x DIN-to-Yoke threaded insert(s) + 8mm hex key in boat tool box."
+            if yoke_count > 0
+            else "All divers using native DIN first stages."
+        ),
+    }
+
     return {
         "center": center_data,
         "vessel": vessel_data,
         "slot": slot_data,
+        "staff": staff_data,
         "participants": participants,
         "crate_packing_summary": {
             "cylinders": tanks_summary,
@@ -168,6 +247,8 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             "fins": fins_summary,
             "total_lead_kg": total_lead_kg,
             "total_participants": len(participants),
+            "lead_breakdown": lead_breakdown,
+            "valve_fittings": valve_fittings,
         },
     }
 
@@ -194,6 +275,34 @@ def get_trip_manifest(
         raise HTTPException(status_code=404, detail="Trip availability slot not found")
 
     return get_slot_manifest_data(db, center, slot)
+
+
+@router.put("/trips/{trip_id}/staff")
+def update_trip_staff(
+    center_id: int,
+    trip_id: str,
+    req: StaffUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Updates skipper, lead instructor, and crew assignments for the trip."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+
+    staff_dict = {
+        "skipper_name": req.skipper_name or "Captain",
+        "skipper_license": req.skipper_license or "N/A",
+        "lead_guide_name": req.lead_guide_name or "Lead Divemaster",
+        "lead_guide_cert": req.lead_guide_cert or "N/A",
+        "crew_names": req.crew_names or [],
+    }
+    slot.assigned_guide_user_ids = staff_dict
+    db.commit()
+    return {"trip_id": slot.id, "staff": staff_dict}
 
 
 @router.post("/trips/{trip_id}/participants", status_code=status.HTTP_201_CREATED)

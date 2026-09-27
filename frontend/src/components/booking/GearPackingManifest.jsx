@@ -1,4 +1,4 @@
-import { Gauge, Anchor, Package, Printer } from 'lucide-react';
+import { Gauge, Anchor, Package, Printer, Wrench, AlertCircle, ShieldAlert } from 'lucide-react';
 import React from 'react';
 
 const GearPackingManifest = ({ summary = {}, participants = [] }) => {
@@ -6,12 +6,16 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
   const wetsuits = summary.wetsuits || {};
   const bcds = summary.bcds || {};
   const fins = summary.fins || {};
-  const totalLead = summary.total_lead_kg || 0;
+  const leadBreakdown = summary.lead_breakdown || {};
+  const valveFittings = summary.valve_fittings || {};
 
   const totalCylinders = Object.values(cylinders).reduce((a, b) => a + b, 0);
   const totalWetsuits = Object.values(wetsuits).reduce((a, b) => a + b, 0);
   const totalBcds = Object.values(bcds).reduce((a, b) => a + b, 0);
   const totalFins = Object.values(fins).reduce((a, b) => a + b, 0);
+
+  const totalLeadKg = leadBreakdown.total_lead_kg || 0;
+  const totalLeadLbs = leadBreakdown.total_lead_lbs || 0;
 
   return (
     <div className='space-y-6'>
@@ -23,7 +27,8 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             Dockside Crate Packing & Tank Loadout
           </h3>
           <p className='text-xs text-blue-800/80 dark:text-blue-300 mt-0.5'>
-            Aggregated equipment manifest for boat crew and compressor room staff.
+            Aggregated equipment manifest, valve connections, and lead ballast pack breakdown for
+            boat crew and compressor room.
           </p>
         </div>
         <button
@@ -38,8 +43,8 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         {/* 1. Breathing Gas & Cylinders Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
-          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 mb-3'>
+        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
             <div className='flex items-center gap-2'>
               <Gauge className='text-blue-600 h-5 w-5' />
               <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
@@ -68,40 +73,145 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
               ))}
             </div>
           )}
+
+          {/* Valve Fitting & Tool Bag Box */}
+          <div className='pt-3 border-t border-gray-100 dark:border-gray-700'>
+            <h5 className='text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5'>
+              <Wrench size={13} className='text-blue-600' />
+              Valve Connections & Inserts
+            </h5>
+            <div className='grid grid-cols-2 gap-2 text-xs mb-2.5'>
+              <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+                <span className='text-gray-500 block text-[10px]'>DIN (G 5/8"):</span>
+                <strong className='text-gray-900 dark:text-white font-mono'>
+                  {valveFittings.din_count || 0} Native
+                </strong>
+              </div>
+              <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+                <span className='text-gray-500 block text-[10px]'>Yoke (INT / A-clamp):</span>
+                <strong className='text-gray-900 dark:text-white font-mono'>
+                  {valveFittings.yoke_count || 0} Divers
+                </strong>
+              </div>
+            </div>
+
+            {valveFittings.yoke_count > 0 ? (
+              <div className='p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2'>
+                <AlertCircle size={14} className='text-amber-600 shrink-0 mt-0.5' />
+                <span>
+                  <strong>Tool Box Alert:</strong> Pack{' '}
+                  <strong>
+                    {valveFittings.yoke_inserts_needed}x DIN-to-Yoke threaded insert(s)
+                  </strong>{' '}
+                  and an <strong>8mm hex key</strong> in the boat tool kit to adapt cylinders for
+                  Yoke first stages.
+                </span>
+              </div>
+            ) : (
+              <div className='text-[11px] text-gray-500 flex items-center gap-1'>
+                <span>✓ All divers using native DIN first stages (no yoke inserts required).</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 2. Lead Ballast Weights Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
-          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 mb-3'>
+        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
             <div className='flex items-center gap-2'>
               <Anchor className='text-indigo-600 h-5 w-5' />
               <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
-                Lead Ballast Weights
+                Lead Ballast & Belts
               </h4>
             </div>
             <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'>
-              {totalLead} kg Total
+              {totalLeadKg} kg ({totalLeadLbs} lbs)
             </span>
           </div>
 
-          <p className='text-xs text-gray-500 mb-3'>
-            Estimated diver weight distribution for weight pocket crates:
-          </p>
+          {/* Lead Blocks Breakdown (1kg vs 2kg) */}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs'>
+            <div className='p-2 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40'>
+              <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
+                2 kg Blocks
+              </span>
+              <strong className='text-base font-bold font-mono text-indigo-700 dark:text-indigo-300'>
+                {leadBreakdown.blocks_2kg || 0}x
+              </strong>
+              <span className='text-[9px] text-gray-400 block'>~4.4 lbs ea</span>
+            </div>
+            <div className='p-2 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40'>
+              <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
+                1 kg Blocks
+              </span>
+              <strong className='text-base font-bold font-mono text-indigo-700 dark:text-indigo-300'>
+                {leadBreakdown.blocks_1kg || 0}x
+              </strong>
+              <span className='text-[9px] text-gray-400 block'>~2.2 lbs ea</span>
+            </div>
+            <div className='p-2 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40'>
+              <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
+                Nylon Belts
+              </span>
+              <strong className='text-base font-bold font-mono text-blue-700 dark:text-blue-300'>
+                {leadBreakdown.belts_needed || 0}
+              </strong>
+              <span className='text-[9px] text-gray-400 block'>for non-int.</span>
+            </div>
+            <div className='p-2 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40'>
+              <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
+                BCD Pockets
+              </span>
+              <strong className='text-base font-bold font-mono text-emerald-700 dark:text-emerald-300'>
+                {leadBreakdown.integrated_weight_divers || 0}
+              </strong>
+              <span className='text-[9px] text-gray-400 block'>integrated</span>
+            </div>
+          </div>
 
-          <div className='max-h-48 overflow-y-auto space-y-1.5 pr-1'>
-            {participants.map(p => (
-              <div
-                key={p.id}
-                className='flex items-center justify-between text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-750 rounded-lg'
-              >
-                <span className='font-medium text-gray-700 dark:text-gray-300 truncate max-w-[180px]'>
-                  {p.diver_full_name}
-                </span>
-                <span className='font-mono font-bold text-gray-900 dark:text-white'>
-                  {p.estimated_lead_kg || 0} kg
-                </span>
-              </div>
-            ))}
+          {/* Spare Buffer Callout */}
+          <div className='p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-300 flex items-start gap-2'>
+            <ShieldAlert size={14} className='text-blue-600 shrink-0 mt-0.5' />
+            <span>
+              <strong>Check-Dive Safety Buffer (+15%):</strong> Add{' '}
+              <strong>+{leadBreakdown.spare_buffer_kg || 4} kg spare lead</strong> (
+              {leadBreakdown.spare_blocks_2kg || 2}x 2kg + {leadBreakdown.spare_blocks_1kg || 2}x
+              1kg blocks) to the boat bucket for buoyancy fine-tuning.
+            </span>
+          </div>
+
+          {/* Diver Distribution List */}
+          <div>
+            <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>
+              Per-Diver Weight Distribution & Symmetry
+            </span>
+            <div className='max-h-36 overflow-y-auto space-y-1.5 pr-1'>
+              {participants.map(p => {
+                const lead = p.estimated_lead_kg || 0;
+                const twos = Math.floor(lead / 2);
+                const ones = Math.round(lead % 2);
+
+                return (
+                  <div
+                    key={p.id}
+                    className='flex items-center justify-between text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-750 rounded-lg'
+                  >
+                    <span className='font-medium text-gray-700 dark:text-gray-300 truncate max-w-[160px]'>
+                      {p.diver_full_name}
+                    </span>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-[10px] text-gray-400 font-mono'>
+                        {twos > 0 ? `${twos}x2kg ` : ''}
+                        {ones > 0 ? `${ones}x1kg` : ''}
+                      </span>
+                      <span className='font-mono font-bold text-gray-900 dark:text-white'>
+                        {lead} kg
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
