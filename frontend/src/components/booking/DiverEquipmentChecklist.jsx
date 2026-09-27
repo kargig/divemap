@@ -75,8 +75,8 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+      {/* Filter, Search & Color Legend Bar */}
+      <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
         <div className='flex items-center gap-1.5'>
           <button
             type='button'
@@ -113,7 +113,32 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
           </button>
         </div>
 
-        <div className='relative w-full sm:w-64'>
+        {/* Visual Color Distinction Legend */}
+        <div className='flex flex-wrap items-center gap-3 text-xs bg-white dark:bg-gray-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xs'>
+          <span className='font-bold text-gray-400 uppercase text-[10px] tracking-wider'>
+            Gear Origin:
+          </span>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2.5 h-2.5 rounded-full bg-blue-600 ring-2 ring-blue-100 dark:ring-blue-900'></span>
+            <span className='font-bold text-blue-900 dark:text-blue-200 text-[11px]'>
+              Rental (Center Handover)
+            </span>
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2.5 h-2.5 rounded-full bg-slate-400 ring-2 ring-slate-100 dark:ring-slate-700'></span>
+            <span className='font-semibold text-slate-700 dark:text-gray-300 text-[11px]'>
+              Diver-Owned (Customer Kit)
+            </span>
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2.5 h-2.5 rounded-full bg-indigo-600 ring-2 ring-indigo-100 dark:ring-indigo-900'></span>
+            <span className='font-semibold text-indigo-900 dark:text-indigo-200 text-[11px]'>
+              Boat Asset (Tank & Lead)
+            </span>
+          </div>
+        </div>
+
+        <div className='relative w-full sm:w-60'>
           <Search size={14} className='absolute left-3 top-2.5 text-gray-400' />
           <input
             type='text'
@@ -135,6 +160,21 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
           {filteredParticipants.map(diver => {
             const eq = diver.equipment_sizing || {};
             const isChecked = Boolean(diver.gear_checked);
+            const isFullRentalTier =
+              diver.unit_id === 'certified-diver-full-rental' ||
+              diver.unit_id === 'demo-unit-2' ||
+              Boolean(eq.is_rental_package);
+
+            // Item-by-item Rental vs Own evaluation
+            const isRegRental =
+              isFullRentalTier || eq.rental_regulator || eq.has_own_regulator === false;
+            const isBcdRental = Boolean(eq.bcd_size && eq.bcd_size !== 'None');
+            const isSuitRental = Boolean(eq.wetsuit_size && eq.wetsuit_size !== 'None');
+            const isFinsRental = isFullRentalTier || eq.rental_fins || eq.has_own_fins === false;
+            const isMaskRental = isFullRentalTier || eq.rental_mask || eq.has_own_mask === false;
+            const isTorchRental = Boolean(eq.rental_torch);
+            const isScooterRental = Boolean(eq.rental_scooter || eq.has_scooter);
+
             const isWomenSuit = eq.wetsuit_gender === 'WOMEN';
             const isWomenBcd = (eq.bcd_gender || eq.wetsuit_gender) === 'WOMEN';
 
@@ -179,6 +219,15 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                         </h4>
                         <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'>
                           {diver.certification_agency} {diver.certification_level}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isFullRentalTier
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                              : 'bg-slate-100 text-slate-700 dark:bg-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {isFullRentalTier ? 'Full Rental Package' : 'Own Gear Diver'}
                         </span>
                       </div>
                       <span className='text-[11px] text-gray-400'>
@@ -227,12 +276,17 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
 
                 {/* Top-to-Bottom Equipment Checklist Grid */}
                 <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 text-xs'>
-                  {/* 1. Primary Cylinder & Valve */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <Gauge size={12} className='text-blue-600' />
-                      Cylinder
-                    </span>
+                  {/* 1. Primary Cylinder & Valve (Facility Boat Asset) */}
+                  <div className='p-2.5 rounded-xl space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <Gauge size={12} className='text-indigo-600' />
+                        Cylinder
+                      </span>
+                      <span className='text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200'>
+                        Boat Asset
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block'>
                       {diver.selected_tank_id}L • {diver.selected_gas_mix_id?.toUpperCase()}
                     </strong>
@@ -247,14 +301,34 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     </span>
                   </div>
 
-                  {/* 2. Regulator Setup */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <Compass size={12} className='text-cyan-600' />
-                      Regulator
-                    </span>
+                  {/* 2. Regulator Setup (Rental vs Own) */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isRegRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <Compass
+                          size={12}
+                          className={isRegRental ? 'text-blue-600' : 'text-slate-500'}
+                        />
+                        Regulator
+                      </span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          isRegRental
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                            : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isRegRental ? 'Rental' : 'Own'}
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block'>
-                      {eq.rental_regulator || !eq.has_own_regulator
+                      {isRegRental
                         ? `Rental Reg (${eq.regulator_fitting || 'DIN'})`
                         : 'Diver Own Reg'}
                     </strong>
@@ -265,16 +339,36 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     )}
                   </div>
 
-                  {/* 3. BCD & Buoyancy */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <LifeBuoy size={12} className='text-emerald-600' />
-                      BCD
-                    </span>
+                  {/* 3. BCD & Buoyancy (Rental vs Own) */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isBcdRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <LifeBuoy
+                          size={12}
+                          className={isBcdRental ? 'text-blue-600' : 'text-slate-500'}
+                        />
+                        BCD
+                      </span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          isBcdRental
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                            : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isBcdRental ? 'Rental' : 'Own'}
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block'>
-                      {eq.bcd_size && eq.bcd_size !== 'None' ? `Size ${eq.bcd_size}` : 'Own BCD'}
+                      {isBcdRental ? `Size ${eq.bcd_size}` : 'Diver Own BCD'}
                     </strong>
-                    {eq.bcd_size && eq.bcd_size !== 'None' && (
+                    {isBcdRental && (
                       <span
                         className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           isWomenBcd ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'
@@ -285,32 +379,57 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     )}
                   </div>
 
-                  {/* 4. Lead Ballast & Weights */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <Anchor size={12} className='text-indigo-600' />
-                      Ballast ({lead} kg)
-                    </span>
+                  {/* 4. Lead Ballast & Weights (Facility Boat Asset) */}
+                  <div className='p-2.5 rounded-xl space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40'>
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <Anchor size={12} className='text-indigo-600' />
+                        Ballast
+                      </span>
+                      <span className='text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200'>
+                        Boat Asset
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block font-mono'>
-                      {blocksStr}
+                      {lead} kg ({blocksStr})
                     </strong>
                     <span className='inline-block text-[10px] text-gray-500 font-medium'>
                       {eq.weight_system === 'BELT' ? 'Nylon Belt' : 'Integrated Pockets'}
                     </span>
                   </div>
 
-                  {/* 5. Thermal Suit & Protection */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <Shield size={12} className='text-blue-600' />
-                      Thermal Suit
-                    </span>
+                  {/* 5. Thermal Suit & Protection (Rental vs Own) */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isSuitRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <Shield
+                          size={12}
+                          className={isSuitRental ? 'text-blue-600' : 'text-slate-500'}
+                        />
+                        Thermal Suit
+                      </span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          isSuitRental
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                            : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isSuitRental ? 'Rental' : 'Own'}
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block'>
-                      {eq.wetsuit_size && eq.wetsuit_size !== 'None'
+                      {isSuitRental
                         ? `${eq.wetsuit_size} (${eq.wetsuit_thickness || '5mm'})`
-                        : 'Own Suit'}
+                        : 'Diver Own Suit'}
                     </strong>
-                    {eq.wetsuit_size && eq.wetsuit_size !== 'None' && (
+                    {isSuitRental && (
                       <span
                         className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
                           isWomenSuit ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'
@@ -321,86 +440,114 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     )}
                   </div>
 
-                  {/* 6. Footwear & Fins */}
-                  <div className='p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl space-y-1'>
-                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1'>
-                      <Compass size={12} className='text-cyan-600' />
-                      Fins & Boots
-                    </span>
+                  {/* 6. Footwear & Fins (Rental vs Own) */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isFinsRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
+                    <div className='flex items-center justify-between'>
+                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
+                        <Compass
+                          size={12}
+                          className={isFinsRental ? 'text-blue-600' : 'text-slate-500'}
+                        />
+                        Fins & Boots
+                      </span>
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          isFinsRental
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                            : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isFinsRental ? 'Rental' : 'Own'}
+                      </span>
+                    </div>
                     <strong className='text-gray-900 dark:text-white block'>
-                      {eq.fin_type === 'OPEN_HEEL' ? 'Open-Heel Fins' : 'Full-Foot Fins'}
+                      {isFinsRental
+                        ? `Rental ${eq.fin_type === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'}`
+                        : 'Diver Own Fins'}
                     </strong>
                     <span className='text-[10px] text-gray-500 block'>
-                      Booties: EU {eq.shoe_size_eu || '43'}
+                      Booties: EU {eq.shoe_size_eu || '43'} ({eq.rental_boots ? 'Rental' : 'Own'})
                     </span>
                   </div>
                 </div>
 
-                {/* Accessories, Lights & Safety Gear Bar */}
+                {/* Accessories, Lights & Safety Gear Bar with Consistent Colors */}
                 <div className='mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2 text-xs'>
                   <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>
                     Kit Accessories:
                   </span>
 
+                  {/* Mask: Rental (Blue) vs Own (Slate) */}
                   <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                      eq.rental_mask
-                        ? 'bg-cyan-100 text-cyan-900 font-bold'
-                        : 'bg-gray-100 text-gray-700'
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold border flex items-center gap-1 ${
+                      isMaskRental
+                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
+                        : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border-slate-300 dark:border-gray-600'
                     }`}
                   >
-                    Mask: {eq.rental_mask ? 'Rental Mask' : 'Own Mask'}
+                    <span>Mask:</span>
+                    <span>{isMaskRental ? 'Rental Mask' : 'Own Mask'}</span>
                   </span>
 
+                  {/* Snorkel */}
                   {eq.rental_snorkel && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-cyan-50 text-cyan-800 font-medium'>
-                      Snorkel
+                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
+                      Rental Snorkel
                     </span>
                   )}
 
+                  {/* Hood */}
                   {eq.hood_size && eq.hood_size !== 'None' && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-indigo-50 text-indigo-900 font-medium'>
-                      Hood: Size {eq.hood_size}
+                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
+                      Rental Hood: Size {eq.hood_size}
                     </span>
                   )}
 
+                  {/* Gloves */}
                   {eq.gloves_size && eq.gloves_size !== 'None' && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-indigo-50 text-indigo-900 font-medium'>
-                      Gloves: Size {eq.gloves_size}
+                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
+                      Rental Gloves: Size {eq.gloves_size}
                     </span>
                   )}
 
-                  {/* Dive Torch / Light */}
-                  {eq.rental_torch && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-amber-100 text-amber-900 font-bold flex items-center gap-1'>
+                  {/* Dive Torch / Light: Rental (Amber/Blue) */}
+                  {isTorchRental && (
+                    <span className='px-2 py-0.5 rounded text-[11px] bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-bold flex items-center gap-1'>
                       <Flame size={11} className='text-amber-600' />
                       Rental Dive Torch
                     </span>
                   )}
 
                   {/* DPV Scooter */}
-                  {eq.rental_scooter && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-purple-100 text-purple-900 font-bold flex items-center gap-1'>
+                  {isScooterRental && (
+                    <span className='px-2 py-0.5 rounded text-[11px] bg-purple-100 dark:bg-purple-900/50 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-700 font-bold flex items-center gap-1'>
                       <Sparkles size={11} className='text-purple-600' />
-                      DPV Scooter Reserved
+                      Rental DPV Scooter
                     </span>
                   )}
 
+                  {/* Diver-Owned Personal Safety Assets (Slate) */}
                   {eq.has_own_dive_computer && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-emerald-50 text-emerald-800'>
+                    <span className='px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600 font-medium'>
                       ✓ Own Computer
                     </span>
                   )}
 
                   {eq.has_own_smb && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-emerald-50 text-emerald-800'>
+                    <span className='px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600 font-medium'>
                       ✓ Own SMB & Spool
                     </span>
                   )}
 
                   {eq.emergency_contact_name && (
                     <span className='text-[11px] text-gray-400 ml-auto'>
-                      Emergency Contact: {eq.emergency_contact_name} ({eq.emergency_contact_phone})
+                      Emergency: {eq.emergency_contact_name} ({eq.emergency_contact_phone})
                     </span>
                   )}
                 </div>
