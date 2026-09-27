@@ -1,5 +1,5 @@
 import { Modal } from 'antd';
-import { Shield, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Lock, Phone, Mail, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 
 const QUESTIONS = [
@@ -57,6 +57,7 @@ const MedicalQuestionnaireModal = ({
   onCompleted,
   onComplete,
   initialAnswers,
+  center,
 }) => {
   const [answers, setAnswers] = useState(() => initialAnswers || {});
   const [boxAnswers, setBoxAnswers] = useState({});
@@ -172,13 +173,32 @@ const MedicalQuestionnaireModal = ({
                 </div>
 
                 {val === true && (
-                  <div className='mt-2.5 pt-2 border-t border-amber-200 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5'>
-                    <AlertTriangle size={13} className='shrink-0 text-amber-600' />
-                    <span>
-                      {q.directFlag
-                        ? 'Requires written physician evaluation before participating in scuba diving.'
-                        : 'Diagnostic screening flagged. Your seat will be placed on hold while you contact the dive center.'}
-                    </span>
+                  <div className='mt-2.5 pt-2 border-t border-amber-200/80 text-xs text-amber-800 dark:text-amber-300 space-y-1'>
+                    <div className='flex items-center gap-1.5 font-medium'>
+                      <AlertTriangle size={13} className='shrink-0 text-amber-600' />
+                      <span>
+                        Answering YES requires an official physician report allowing you to dive.
+                      </span>
+                    </div>
+                    <p className='text-[11px] text-amber-700/90 dark:text-amber-400 pl-4'>
+                      Not sure? Contact {center?.name || 'the dive center'} first before answering:
+                      {center?.phone && (
+                        <a
+                          href={`tel:${center.phone}`}
+                          className='inline-flex items-center gap-1 mx-1 font-semibold text-blue-700 dark:text-blue-300 hover:underline'
+                        >
+                          <Phone size={10} /> {center.phone}
+                        </a>
+                      )}
+                      {center?.email && (
+                        <a
+                          href={`mailto:${center.email}`}
+                          className='inline-flex items-center gap-1 mx-1 font-semibold text-blue-700 dark:text-blue-300 hover:underline'
+                        >
+                          <Mail size={10} /> {center.email}
+                        </a>
+                      )}
+                    </p>
                   </div>
                 )}
               </div>
@@ -188,16 +208,52 @@ const MedicalQuestionnaireModal = ({
 
         {/* Screening Result Banner */}
         {hasAnyYes ? (
-          <div className='p-3.5 rounded-xl border bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-3'>
-            <AlertTriangle className='h-5 w-5 text-amber-600 shrink-0 mt-0.5' />
-            <div className='text-xs'>
-              <strong className='block font-bold text-sm text-amber-900 dark:text-amber-200 mb-0.5'>
-                Physician Clearance Required (Seat Will Be Held on Medical Review)
-              </strong>
-              You answered YES to one or more medical conditions. Under DMSC 2020 rules, your
-              reservation will be placed on <strong>Medical Hold</strong>. You can proceed now to
-              complete your reservation, and contact the diving center to arrange physician
-              clearance before the dive.
+          <div className='p-4 rounded-xl border bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200 space-y-3'>
+            <div className='flex items-start gap-3'>
+              <AlertTriangle className='h-5 w-5 text-amber-600 shrink-0 mt-0.5' />
+              <div className='text-xs space-y-1'>
+                <strong className='block font-bold text-sm text-amber-900 dark:text-amber-200'>
+                  Physician Clearance Required (Seat Will Be Held on Medical Review)
+                </strong>
+                <p className='text-xs text-amber-800 dark:text-amber-300 leading-relaxed'>
+                  You answered YES to one or more medical conditions. Under international diving
+                  safety regulations (DMSC 2020), you will need an official written physician report
+                  allowing you to dive before you can board the boat.
+                </p>
+              </div>
+            </div>
+
+            {/* Unsure Contact Box */}
+            <div className='p-3 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-900/60 text-xs text-gray-700 dark:text-gray-300 space-y-1.5'>
+              <span className='font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs'>
+                <HelpCircle size={14} className='text-blue-600 shrink-0' />
+                Not sure about an answer? Contact the dive center before answering!
+              </span>
+              <p className='text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed'>
+                If you are unsure whether your situation flags this condition, please contact{' '}
+                <strong>{center?.name || 'the diving center'}</strong> first so staff can advise you
+                before placing your booking on medical hold:
+              </p>
+              <div className='flex flex-wrap items-center gap-3 pt-1'>
+                {center?.phone && (
+                  <a
+                    href={`tel:${center.phone}`}
+                    className='inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md font-semibold text-xs hover:bg-blue-100 transition-colors'
+                  >
+                    <Phone size={12} className='text-blue-600' />
+                    <span>{center.phone}</span>
+                  </a>
+                )}
+                {center?.email && (
+                  <a
+                    href={`mailto:${center.email}`}
+                    className='inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-md font-semibold text-xs hover:bg-blue-100 transition-colors'
+                  >
+                    <Mail size={12} className='text-blue-600' />
+                    <span>{center.email}</span>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         ) : isComplete ? (

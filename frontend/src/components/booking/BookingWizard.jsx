@@ -2015,6 +2015,7 @@ const BookingWizard = () => {
         onClose={() => setMedicalModalOpen(false)}
         initialAnswers={dmscAnswers}
         onComplete={handleMedicalComplete}
+        center={contextData?.center}
       />
 
       <WaiverSigningModal
