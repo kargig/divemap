@@ -425,6 +425,10 @@ def load_routers():
     from app.routers import bookings
     app.include_router(bookings.router)
 
+    # Import Center booking operations router
+    from app.routers import center_booking_ops
+    app.include_router(center_booking_ops.router)
+
     # Moved to lazy loading:
     # - dive_sites (already implemented)
     # - newsletters (heavy AI/ML dependencies)
