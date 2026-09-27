@@ -13,8 +13,9 @@ import {
   FileSpreadsheet,
   UserCheck,
   Check,
+  PackageCheck,
 } from 'lucide-react';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
@@ -24,6 +25,7 @@ import SEO from '../SEO';
 import AddDiverModal from './AddDiverModal';
 import BoatManifestTable from './BoatManifestTable';
 import DiverDetailsModal from './DiverDetailsModal';
+import DiverEquipmentChecklist from './DiverEquipmentChecklist';
 import GearPackingManifest from './GearPackingManifest';
 
 const TripOperationsDashboard = () => {
@@ -32,8 +34,13 @@ const TripOperationsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [manifestData, setManifestData] = useState(null);
 
-  // Dedicated URL-driven view tab: 'manifest' vs 'crates'
-  const activeTab = tab === 'crates' || tab === 'loadout' ? 'crates' : 'manifest';
+  // Dedicated URL-driven view tab: 'manifest' vs 'gear-check' vs 'crates'
+  const activeTab =
+    tab === 'crates' || tab === 'loadout'
+      ? 'crates'
+      : tab === 'gear-check' || tab === 'equipment' || tab === 'checklist'
+        ? 'gear-check'
+        : 'manifest';
 
   const handleTabChange = newTab => {
     navigate(`/manage/centers/${centerId}/trips/${tripId}/${newTab}`);
@@ -182,6 +189,31 @@ const TripOperationsDashboard = () => {
     }
   };
 
+  const handleToggleGearCheck = async participantId => {
+    try {
+      const res = await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participantId}/toggle-gear-check`
+      );
+      setManifestData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          participants: prev.participants.map(p =>
+            p.id === participantId ? { ...p, gear_checked: res.data.gear_checked } : p
+          ),
+        };
+      });
+      toast.success(
+        res.data.gear_checked
+          ? 'Equipment handover verified present!'
+          : 'Equipment verification status reset.'
+      );
+    } catch (err) {
+      console.error('Failed to toggle equipment verification:', err);
+      toast.error(err.response?.data?.detail || 'Failed to update equipment check status.');
+    }
+  };
+
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async (format = 'csv') => {
@@ -252,6 +284,7 @@ const TripOperationsDashboard = () => {
   const bookedCount = slot.seats_total - slot.seats_available;
   const bookedPercent = Math.min(100, Math.round((bookedCount / slot.seats_total) * 100));
   const boardedCount = participants.filter(p => p.onboard_checkin_status).length;
+  const gearCheckedCount = participants.filter(p => p.gear_checked).length;
 
   return (
     <div className='min-h-screen bg-gray-50/50 dark:bg-gray-900/50'>
@@ -429,6 +462,21 @@ const TripOperationsDashboard = () => {
 
               <button
                 type='button'
+                onClick={() => handleTabChange('gear-check')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'gear-check'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                }`}
+              >
+                <PackageCheck size={14} />
+                <span>
+                  Diver Gear Check ({gearCheckedCount}/{participants.length})
+                </span>
+              </button>
+
+              <button
+                type='button'
                 onClick={() => handleTabChange('crates')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === 'crates'
@@ -502,6 +550,15 @@ const TripOperationsDashboard = () => {
             onViewDetails={diver => {
               setDetailsDiver(diver);
               setModalEditMode(false);
+            }}
+          />
+        ) : activeTab === 'gear-check' ? (
+          <DiverEquipmentChecklist
+            participants={participants}
+            onToggleGearCheck={handleToggleGearCheck}
+            onEditDiver={diver => {
+              setDetailsDiver(diver);
+              setModalEditMode(true);
             }}
           />
         ) : (

@@ -616,3 +616,45 @@ def test_export_emergency_dossier_pdf(client: TestClient, center_ops_setup):
     assert "application/pdf" in res.headers["content-type"]
     assert res.content[:4] == b"%PDF"
     assert len(res.content) > 1000
+
+
+def test_toggle_participant_gear_check(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Initially gear_checked is False
+    res_man = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
+    assert res_man.status_code == 200
+    p1 = next(p for p in res_man.json()["participants"] if p["id"] == "part-item-1")
+    assert p1["gear_checked"] is False
+
+    # 2. Toggle gear check to True
+    res_toggle = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/toggle-gear-check",
+        headers=headers,
+    )
+    assert res_toggle.status_code == 200
+    assert res_toggle.json()["gear_checked"] is True
+
+    # 3. Verify in manifest
+    res_man2 = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
+    p1_updated = next(p for p in res_man2.json()["participants"] if p["id"] == "part-item-1")
+    assert p1_updated["gear_checked"] is True
+
+    # 4. Toggle back to False
+    res_toggle2 = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/toggle-gear-check",
+        headers=headers,
+    )
+    assert res_toggle2.status_code == 200
+    assert res_toggle2.json()["gear_checked"] is False

@@ -152,6 +152,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     boots_summary = {}
     fins_summary = {}
     scooters_count = 0
+    torches_count = 0
     total_lead_kg = 0.0
 
     # Denomination tallies for weights & valve fittings
@@ -275,9 +276,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 f_label = f"{f_style_label} (EU {shoe_sz})" if shoe_sz else f_style_label
                 fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
 
-            # 6. DPV Scooter & Stage Tanks
+            # 6. DPV Scooter, Torches & Stage Tanks
             if eq.get("rental_scooter", False) or eq.get("has_scooter", False):
                 scooters_count += 1
+            if eq.get("rental_torch", False) or eq.get("has_torch", False):
+                torches_count += 1
             if eq.get("stage_tank") and eq.get("stage_tank") != "None":
                 st_label = str(eq.get("stage_tank"))
                 stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
@@ -298,6 +301,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 "selected_gas_mix_id": item.selected_gas_mix_id or "air",
                 "estimated_lead_kg": lead,
                 "equipment_sizing": eq,
+                "gear_checked": bool(eq.get("gear_checked", False)),
                 "medical_status": med_status,
                 "medical_clearance_audit": med_audit,
                 "waivers_complete": item.waivers_complete,
@@ -356,6 +360,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             "boots": boots_summary,
             "fins": fins_summary,
             "scooters_count": scooters_count,
+            "torches_count": torches_count,
             "total_lead_kg": round(total_lead_kg, 1),
             "total_participants": len(participants),
             "lead_breakdown": lead_breakdown,
@@ -1101,6 +1106,30 @@ def toggle_participant_checkin(
     item.onboard_checkin_status = not item.onboard_checkin_status
     db.commit()
     return {"participant_id": item.id, "onboard_checkin_status": item.onboard_checkin_status}
+
+
+@router.post("/trips/{trip_id}/participants/{participant_id}/toggle-gear-check")
+def toggle_participant_gear_check(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Toggles verified equipment handover / presence check for a diver before boarding/boat transfer."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    eq = dict(item.equipment_sizing or {})
+    eq["gear_checked"] = not bool(eq.get("gear_checked", False))
+    item.equipment_sizing = eq
+    db.commit()
+
+    return {"participant_id": item.id, "gear_checked": eq["gear_checked"]}
 
 
 @router.post("/bookings/{booking_id}/mark-paid")

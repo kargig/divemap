@@ -79,6 +79,7 @@ const DiverGearConfigForm = ({
 
   // 6. Specialty / Propulsion
   const [rentalScooter, setRentalScooter] = useState(false);
+  const [rentalTorch, setRentalTorch] = useState(false);
 
   // 7. Safety Gear
   const [hasOwnComputer, setHasOwnComputer] = useState(false);
@@ -154,6 +155,7 @@ const DiverGearConfigForm = ({
 
     // Specialty
     setRentalScooter(Boolean(eq.rental_scooter || eq.has_scooter));
+    setRentalTorch(Boolean(eq.rental_torch || eq.has_torch));
 
     // Safety gear
     setHasOwnComputer(Boolean(eq.has_own_dive_computer));
@@ -318,6 +320,7 @@ const DiverGearConfigForm = ({
         rental_fins: rentalFins,
         rental_boots: rentalBoots,
         rental_scooter: rentalScooter,
+        rental_torch: rentalTorch,
         has_own_dive_computer: hasOwnComputer,
         has_own_smb: hasOwnSmb,
         emergency_contact_name: emergencyContactName.trim() || undefined,
@@ -825,7 +828,19 @@ const DiverGearConfigForm = ({
           </h4>
         </div>
 
-        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1'>
+        <div className='grid grid-cols-1 sm:grid-cols-4 gap-4 pt-1'>
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
+              checked={rentalTorch}
+              onChange={e => setRentalTorch(e.target.checked)}
+              className='rounded text-blue-600'
+            />
+            <span className='font-bold text-amber-700 dark:text-amber-300'>
+              Rent Dive Torch (Opt)
+            </span>
+          </label>
+
           <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
             <input
               type='checkbox'

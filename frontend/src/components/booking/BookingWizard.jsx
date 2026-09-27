@@ -64,6 +64,7 @@ const BookingWizard = () => {
   const [bcdSize, setBcdSize] = useState('M');
   const [finType, setFinType] = useState('OPEN_HEEL');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
+  const [rentalTorch, setRentalTorch] = useState(false);
   const [leadKg, setLeadKg] = useState('4.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
@@ -120,6 +121,7 @@ const BookingWizard = () => {
           if (pg.bcd_size) setBcdSize(pg.bcd_size);
           if (pg.fin_type) setFinType(pg.fin_type);
           if (pg.shoe_size_eu) setShoeSizeEu(pg.shoe_size_eu.toString());
+          if (pg.rental_torch) setRentalTorch(pg.rental_torch);
           if (pg.estimated_lead_kg) setLeadKg(pg.estimated_lead_kg.toString());
           if (pg.emergency_contact_name) setEmergencyContactName(pg.emergency_contact_name);
           if (pg.emergency_contact_phone) setEmergencyContactPhone(pg.emergency_contact_phone);
@@ -231,6 +233,7 @@ const BookingWizard = () => {
     if (prof.bcd_size) setBcdSize(prof.bcd_size);
     if (prof.fin_type) setFinType(prof.fin_type);
     if (prof.shoe_size_eu) setShoeSizeEu(prof.shoe_size_eu.toString());
+    if (prof.rental_torch) setRentalTorch(prof.rental_torch);
     if (prof.estimated_lead_kg) setLeadKg(prof.estimated_lead_kg.toString());
     if (prof.emergency_contact_name) setEmergencyContactName(prof.emergency_contact_name);
     if (prof.emergency_contact_phone) setEmergencyContactPhone(prof.emergency_contact_phone);
@@ -355,6 +358,7 @@ const BookingWizard = () => {
               bcd_size: bcdSize === 'None' ? null : bcdSize,
               fin_type: finType,
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
+              rental_torch: rentalTorch,
               regulator_fitting: regulatorFitting,
               weight_system: weightSystem,
               estimated_lead_kg: parseFloat(leadKg) || 4.0,
@@ -400,6 +404,7 @@ const BookingWizard = () => {
           bcd_size: bcdSize === 'None' ? null : bcdSize,
           fin_type: finType,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
+          rental_torch: rentalTorch,
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
           estimated_lead_kg: parseFloat(leadKg) || 4.0,
@@ -1036,6 +1041,24 @@ const BookingWizard = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Auxiliary Rental Items: Torch */}
+                  <div className='mt-2.5 pt-2.5 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
+                    <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+                      <input
+                        type='checkbox'
+                        checked={rentalTorch}
+                        onChange={e => setRentalTorch(e.target.checked)}
+                        className='rounded text-blue-600'
+                      />
+                      <span className='font-bold text-amber-700 dark:text-amber-300'>
+                        Rent Primary Dive Torch / Light (Opt)
+                      </span>
+                    </label>
+                    <span className='text-[11px] text-gray-400'>
+                      Recommended for caverns, swim-throughs & wrecks
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1324,6 +1347,14 @@ const BookingWizard = () => {
                       : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`}
                   </span>
                 </div>
+                {rentalTorch && (
+                  <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                    <span>Rental Light:</span>
+                    <span className='font-semibold text-amber-600 dark:text-amber-400'>
+                      Primary Dive Torch Included
+                    </span>
+                  </div>
+                )}
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Date of Birth:</span>
                   <span
