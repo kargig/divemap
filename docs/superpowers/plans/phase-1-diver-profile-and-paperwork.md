@@ -27,7 +27,7 @@
 
 ---
 
-### Task 1.1: Canonical Cylinder Definitions & Bidirectional Unit Conversion Engine
+### Task 1: Canonical Cylinder Definitions & Bidirectional Unit Conversion Engine
 
 **Files:**
 - Create: `backend/app/constants/cylinders.py`
@@ -239,7 +239,7 @@ backend/app/utils/unit_conversion.py.
 
 ---
 
-### Task 1.2: `UserGearProfile` Database Model & Sequential Alembic Migration
+### Task 2: `UserGearProfile` Database Model & Sequential Alembic Migration
 
 **Files:**
 - Modify: `backend/app/models.py`
@@ -355,7 +355,7 @@ canonically in metric SI units.
 
 ---
 
-### Task 1.3: Sensitive Medical Envelope Encryption Service with MultiFernet Key Rotation
+### Task 3: Sensitive Medical Envelope Encryption Service with MultiFernet Key Rotation
 
 **Files:**
 - Create: `backend/app/services/booking_medical_encryption_service.py`
@@ -396,7 +396,7 @@ and zero-downtime MultiFernet key rotation.
 
 ---
 
-### Task 1.4: Local Agency Questionnaire Schemas & Legal Waivers Engine
+### Task 4: Local Agency Questionnaire Schemas & Legal Waivers Engine
 
 **Files:**
 - Create: `backend/app/templates/booking/questionnaires/dmsc_2020_medical.json`
@@ -444,7 +444,7 @@ and universal dive waivers.
 
 ---
 
-### Task 1.5: Diver Gear Profile API Endpoints
+### Task 5: Diver Gear Profile API Endpoints
 
 **Files:**
 - Create: `backend/app/routers/diver_gear_profile.py`
@@ -485,7 +485,7 @@ preferred tank, and insurance details.
 
 ---
 
-### Task 1.6: Frontend User Gear Profile Editor Component
+### Task 6: Frontend User Gear Profile Editor Component
 
 **Files:**
 - Create: `frontend/src/components/UserGearProfileEditor.jsx`

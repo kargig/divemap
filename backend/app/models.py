@@ -1284,3 +1284,45 @@ class DivingCenterFollower(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), primary_key=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class UserGearProfile(Base):
+    __tablename__ = "user_gear_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+
+    preferred_unit_system = Column(String(10), default="METRIC", nullable=False) # METRIC vs IMPERIAL
+    preferred_shoe_system = Column(String(10), default="EU", nullable=False)     # EU, US_MEN, US_WOMEN, UK
+
+    height_cm = Column(Integer, nullable=True) # Stored canonically in cm
+    weight_kg = Column(Integer, nullable=True) # Stored canonically in kg
+    shoe_size_eu = Column(DECIMAL(3, 1), nullable=True) # Stored canonically in EU
+
+    wetsuit_gender = Column(String(10), nullable=True)   # MEN, WOMEN, UNISEX
+    wetsuit_size = Column(String(10), nullable=True)     # XS, S, M, ML, L, XL, XXL
+    wetsuit_thickness = Column(String(10), default="5mm", nullable=True) # 3mm, 5mm, 7mm
+    bcd_size = Column(String(10), nullable=True)         # XS, S, M, L, XL
+    fin_type = Column(String(20), default="OPEN_HEEL", nullable=True)   # FULL_FOOT, OPEN_HEEL
+    regulator_fitting = Column(String(10), default="DIN", nullable=True) # DIN, YOKE
+
+    preferred_tank_id = Column(String(20), default="12", nullable=True) # Re-uses TANK_SIZES ID
+    preferred_gas_mix_id = Column(String(20), default="air", nullable=True) # Re-uses GAS_MIXES ID
+    estimated_lead_kg = Column(DECIMAL(4, 1), nullable=True)
+
+    has_own_dive_computer = Column(Boolean, default=False, nullable=False)
+    has_own_smb = Column(Boolean, default=False, nullable=False)
+
+    insurance_provider = Column(String(100), nullable=True)
+    insurance_policy_number = Column(String(100), nullable=True)
+    insurance_expiry_date = Column(Date, nullable=True)
+
+    emergency_contact_name = Column(String(255), nullable=True)
+    emergency_contact_phone = Column(String(50), nullable=True)
+    emergency_contact_relation = Column(String(100), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user = relationship("User", backref=sa.orm.backref("gear_profile", uselist=False, cascade="all, delete-orphan"))
+

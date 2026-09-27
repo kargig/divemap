@@ -1,0 +1,117 @@
+{
+  "id": "dmsc_2020_medical",
+  "title": "Diver Medical Participant Questionnaire",
+  "version": "2020.1",
+  "standard": "DMSC / UHMS / DAN / WRSTC",
+  "description": "Standard recreational diving medical screening questionnaire designed to identify potential hyperbaric medical contraindications.",
+  "primary_questions": [
+    {
+      "id": "q1",
+      "text": "I have had problems with my lungs/breathing, heart, or blood affecting my normal physical or mental performance.",
+      "triggers_box": "box_a"
+    },
+    {
+      "id": "q2",
+      "text": "I am over 45 years of age and can answer YES to any of the following: I smoke, have high cholesterol, high blood pressure, or a family history of heart disease.",
+      "triggers_box": "box_b"
+    },
+    {
+      "id": "q3",
+      "text": "I struggle to perform moderate exercise (for example, walking 1.6 kilometers / one mile in 14 minutes or swimming 200 meters / yards without resting).",
+      "direct_physician_flag": true
+    },
+    {
+      "id": "q4",
+      "text": "I have had problems with my eyes, ears, or nasal passages/sinuses.",
+      "triggers_box": "box_f"
+    },
+    {
+      "id": "q5",
+      "text": "I have had surgery within the last 12 months, or have ongoing problems related to past surgery.",
+      "direct_physician_flag": true
+    },
+    {
+      "id": "q6",
+      "text": "I have lost consciousness, had migraine headaches, seizures, stroke, significant head injury, or suffer from persistent neurological injury or disease.",
+      "triggers_box": "box_d"
+    },
+    {
+      "id": "q7",
+      "text": "I am currently undergoing treatment (or have required treatment within the last five years) for psychological problems, personality disorder, panic attacks, or an addiction to drugs or alcohol; or, I have been diagnosed with a learning or developmental disability.",
+      "triggers_box": "box_e"
+    },
+    {
+      "id": "q8",
+      "text": "I have had back problems, hernia, ulcers, or diabetes.",
+      "triggers_box": "box_c"
+    },
+    {
+      "id": "q9",
+      "text": "I have had stomach or intestine problems, including recent diarrhea.",
+      "triggers_box": "box_g"
+    },
+    {
+      "id": "q10",
+      "text": "I am taking prescription medications (with the exception of birth control or anti-malarial drugs other than mefloquine/Lariam).",
+      "direct_physician_flag": true
+    }
+  ],
+  "diagnostic_boxes": {
+    "box_a": {
+      "title": "Box A - Lungs / Breathing",
+      "questions": [
+        {"id": "box_a_1", "text": "Chest surgery, heart surgery, heart attack, or heart disease."},
+        {"id": "box_a_2", "text": "Persistent chest pain or discomfort with exertion."},
+        {"id": "box_a_3", "text": "Asthma, wheezing, severe allergies, or reactive airway disease within the last 12 months."},
+        {"id": "box_a_4", "text": "Recurrent bronchitis, persistent cough, or emphysema."},
+        {"id": "box_a_5", "text": "Collapsed lung (pneumothorax) or chest trauma."}
+      ]
+    },
+    "box_b": {
+      "title": "Box B - Cardiovascular / Age 45+",
+      "questions": [
+        {"id": "box_b_1", "text": "High blood pressure or taking blood pressure medication."},
+        {"id": "box_b_2", "text": "Elevated cholesterol or taking cholesterol medication."},
+        {"id": "box_b_3", "text": "Current cigarette, cigar, or pipe smoker."}
+      ]
+    },
+    "box_c": {
+      "title": "Box C - Physical / Surgeries / Diabetes",
+      "questions": [
+        {"id": "box_c_1", "text": "Back surgery or persistent back/joint problems affecting movement."},
+        {"id": "box_c_2", "text": "Hernia repair or uncorrected hernia."},
+        {"id": "box_c_3", "text": "Type 1 or Type 2 Diabetes."}
+      ]
+    },
+    "box_d": {
+      "title": "Box D - Neurological",
+      "questions": [
+        {"id": "box_d_1", "text": "Epilepsy, seizures, convulsions, or taking anti-seizure medication."},
+        {"id": "box_d_2", "text": "Recurrent fainting episodes, blackouts, or transient ischemic attack (TIA)."},
+        {"id": "box_d_3", "text": "Severe migraines or cluster headaches within the last 12 months."}
+      ]
+    },
+    "box_e": {
+      "title": "Box E - Psychological",
+      "questions": [
+        {"id": "box_e_1", "text": "Depression, anxiety, panic disorder, or bipolar disorder requiring medication."},
+        {"id": "box_e_2", "text": "ADHD, autism spectrum, or learning differences affecting safety instructions."}
+      ]
+    },
+    "box_f": {
+      "title": "Box F - Ears / Sinuses",
+      "questions": [
+        {"id": "box_f_1", "text": "Difficulty equalizing ears in airplanes or underwater."},
+        {"id": "box_f_2", "text": "Frequent sinus infections or sinus surgery."},
+        {"id": "box_f_3", "text": "Perforated eardrum or ear surgery."}
+      ]
+    },
+    "box_g": {
+      "title": "Box G - Gastrointestinal / Bleeding",
+      "questions": [
+        {"id": "box_g_1", "text": "Bleeding or blood disorder (e.g. hemophilia, anemia, taking blood thinners)."},
+        {"id": "box_g_2", "text": "Active stomach or duodenal ulcer."}
+      ]
+    }
+  }
+}
