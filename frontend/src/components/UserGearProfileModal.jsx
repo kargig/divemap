@@ -148,12 +148,19 @@ const UserGearProfileModal = ({
     const roundedKg = Math.round(totalLead * 2) / 2; // 0.5 kg steps
     const roundedLbs = Math.round(roundedKg * 2.20462 * 2) / 2; // 0.5 lb steps
 
+    const suitLeadLbs = Math.round(suitLead * 2.20462 * 10) / 10;
+    const tankAdjustmentLbs = Math.round(tankAdjustment * 2.20462 * 10) / 10;
+    const waterAdjustmentLbs = Math.round(waterAdjustment * 2.20462 * 10) / 10;
+
     return {
       kg: roundedKg,
       lbs: roundedLbs,
-      suitLead: Math.round(suitLead * 10) / 10,
-      tankAdjustment: Math.round(tankAdjustment * 10) / 10,
-      waterAdjustment: Math.round(waterAdjustment * 10) / 10,
+      suitLeadKg: Math.round(suitLead * 10) / 10,
+      suitLeadLbs,
+      tankAdjustmentKg: Math.round(tankAdjustment * 10) / 10,
+      tankAdjustmentLbs,
+      waterAdjustmentKg: Math.round(waterAdjustment * 10) / 10,
+      waterAdjustmentLbs,
       waterLabel: waterType.label,
     };
   }, [weightKg, weightLbs, unitSystem, wetsuitThickness, preferredTankId, waterTypeIdx]);
@@ -636,14 +643,23 @@ const UserGearProfileModal = ({
                 <div className='bg-white p-2.5 rounded-lg border border-blue-100 flex flex-col justify-center'>
                   <span className='text-[11px] text-gray-500'>Physics Breakdown:</span>
                   <div className='text-xs text-gray-700 flex justify-between mt-0.5'>
-                    <span>Suit: +{calculatedLead.suitLead}kg</span>
                     <span>
-                      Tank: {calculatedLead.tankAdjustment >= 0 ? '+' : ''}
-                      {calculatedLead.tankAdjustment}kg
+                      Suit: +
+                      {unitSystem === 'METRIC'
+                        ? `${calculatedLead.suitLeadKg} kg`
+                        : `${calculatedLead.suitLeadLbs} lbs`}
                     </span>
                     <span>
-                      Water: {calculatedLead.waterAdjustment >= 0 ? '+' : ''}
-                      {calculatedLead.waterAdjustment}kg
+                      Tank:{' '}
+                      {unitSystem === 'METRIC'
+                        ? `${calculatedLead.tankAdjustmentKg >= 0 ? '+' : ''}${calculatedLead.tankAdjustmentKg} kg`
+                        : `${calculatedLead.tankAdjustmentLbs >= 0 ? '+' : ''}${calculatedLead.tankAdjustmentLbs} lbs`}
+                    </span>
+                    <span>
+                      Water:{' '}
+                      {unitSystem === 'METRIC'
+                        ? `${calculatedLead.waterAdjustmentKg >= 0 ? '+' : ''}${calculatedLead.waterAdjustmentKg} kg`
+                        : `${calculatedLead.waterAdjustmentLbs >= 0 ? '+' : ''}${calculatedLead.waterAdjustmentLbs} lbs`}
                     </span>
                   </div>
                 </div>
