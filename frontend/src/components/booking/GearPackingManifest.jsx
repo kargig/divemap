@@ -60,17 +60,49 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             <p className='text-xs text-gray-400 italic py-4 text-center'>No cylinders requested.</p>
           ) : (
             <div className='space-y-2'>
-              {Object.entries(cylinders).map(([tank, count]) => (
-                <div
-                  key={tank}
-                  className='flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-100 dark:border-gray-700'
-                >
-                  <span className='text-xs font-bold text-gray-800 dark:text-gray-200'>{tank}</span>
-                  <span className='px-2.5 py-1 bg-white dark:bg-gray-800 border rounded-lg text-xs font-mono font-bold text-blue-600'>
-                    {count}x
-                  </span>
-                </div>
-              ))}
+              {Object.entries(cylinders).map(([tank, count]) => {
+                const isYoke = tank.includes('YOKE');
+                const [spec, ...valveParts] = tank.split(' — ');
+                const valveInfo = valveParts.join(' — ');
+
+                return (
+                  <div
+                    key={tank}
+                    className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                      isYoke
+                        ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+                        : 'bg-gray-50 dark:bg-gray-750 border-gray-100 dark:border-gray-700'
+                    }`}
+                  >
+                    <div>
+                      <span className='text-xs font-bold text-gray-800 dark:text-gray-200 block'>
+                        {spec}
+                      </span>
+                      {valveInfo && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold mt-1 px-2 py-0.5 rounded ${
+                            isYoke
+                              ? 'bg-amber-200/90 text-amber-950 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                          }`}
+                        >
+                          {isYoke ? '⚠️ ' : '✓ '}
+                          {valveInfo}
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`px-3 py-1.5 border rounded-lg text-sm font-mono font-bold ${
+                        isYoke
+                          ? 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 border-amber-300'
+                          : 'bg-white dark:bg-gray-800 text-blue-600 border-gray-200'
+                      }`}
+                    >
+                      {count}x
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
 

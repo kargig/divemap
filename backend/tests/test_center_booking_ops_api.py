@@ -173,8 +173,8 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
 
     # Check crate packing summary aggregation
     summary = data["crate_packing_summary"]
-    assert "15L EAN32" in summary["cylinders"]
-    assert "12L AIR" in summary["cylinders"]
+    assert any("15L EAN32" in k for k in summary["cylinders"])
+    assert any("12L AIR" in k for k in summary["cylinders"])
     assert summary["total_lead_kg"] == 10.0 # 4.0 + 6.0
     assert summary["total_participants"] == 2
     assert "M (5mm)" in summary["wetsuits"]
@@ -459,6 +459,14 @@ def test_medical_review_and_physician_clearance_override(client: TestClient, db_
     assert review_data["status"] == "FLAGGED_CONTACT_CENTER"
     assert len(review_data["flagged_questions"]) == 1
     assert "lungs/breathing" in review_data["flagged_questions"][0]["text"]
+
+    # Safety Gate test: Attempting to board diver with FLAGGED_CONTACT_CENTER must fail with 400
+    res_blocked = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/toggle-checkin",
+        headers=headers,
+    )
+    assert res_blocked.status_code == 400
+    assert "Safety Gate" in res_blocked.json()["detail"]
 
     # 2. Perform physician clearance override
     clear_payload = {

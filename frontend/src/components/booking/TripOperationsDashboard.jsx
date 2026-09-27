@@ -35,6 +35,7 @@ const TripOperationsDashboard = () => {
   // Modals
   const [addDiverOpen, setAddDiverOpen] = useState(false);
   const [detailsDiver, setDetailsDiver] = useState(null);
+  const [modalEditMode, setModalEditMode] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
 
   // Staff state
@@ -483,8 +484,14 @@ const TripOperationsDashboard = () => {
             onToggleCheckin={handleToggleCheckin}
             onTogglePayment={handleTogglePayment}
             onDeleteDiver={handleDeleteDiver}
-            onEditDiver={diver => setDetailsDiver(diver)}
-            onViewDetails={diver => setDetailsDiver(diver)}
+            onEditDiver={diver => {
+              setDetailsDiver(diver);
+              setModalEditMode(true);
+            }}
+            onViewDetails={diver => {
+              setDetailsDiver(diver);
+              setModalEditMode(false);
+            }}
           />
         ) : (
           <GearPackingManifest summary={crate_packing_summary} participants={participants} />
@@ -506,6 +513,7 @@ const TripOperationsDashboard = () => {
           centerId={centerId}
           tripId={tripId}
           onUpdated={fetchManifest}
+          initialEditMode={modalEditMode}
         />
 
         {/* Staff Assignment Modal */}

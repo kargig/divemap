@@ -197,8 +197,13 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                     blocks_2kg += twos
                     blocks_1kg += ones
 
-            # Cylinder breakdown
-            tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()}"
+            # Cylinder breakdown with explicit valve and adapter requirement
+            valve_desc = (
+                "YOKE (Fit DIN-to-Yoke Insert)"
+                if ("YOKE" in fitting or "INT" in fitting)
+                else "DIN (Native Valve)"
+            )
+            tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} — {valve_desc}"
             tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + 1
 
             # Rental gear breakdown
@@ -654,6 +659,17 @@ def toggle_participant_checkin(
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
+
+    # Scuba Safety Gate: Diver with unresolved medical condition CANNOT be boarded
+    if not item.onboard_checkin_status: # Diver is currently not boarded, attempting to board
+        med = db.query(DiverMedicalRecord).filter(
+            DiverMedicalRecord.booking_unit_item_id == item.id
+        ).first()
+        if med and med.status == "FLAGGED_CONTACT_CENTER":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Safety Gate: Diver '{item.diver_full_name}' has an unresolved medical flag. Verified physician clearance must be approved before boarding."
+            )
 
     item.onboard_checkin_status = not item.onboard_checkin_status
     db.commit()

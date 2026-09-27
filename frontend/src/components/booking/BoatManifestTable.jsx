@@ -60,6 +60,8 @@ const BoatManifestTable = ({
               const isPaid =
                 p.payment_status === 'PAID_IN_FULL' || p.payment_status === 'PAID_ONLINE';
               const isCleared = p.medical_status === 'CLEARED';
+              const isMedicalBlocked =
+                p.medical_status === 'FLAGGED_CONTACT_CENTER' || p.medical_status === 'FLAGGED';
 
               return (
                 <tr
@@ -163,24 +165,43 @@ const BoatManifestTable = ({
                   <td className='py-3.5 px-3 text-center'>
                     <button
                       type='button'
-                      onClick={() => onToggleCheckin(p.id)}
+                      onClick={() => {
+                        if (isMedicalBlocked) {
+                          onViewDetails(p);
+                          return;
+                        }
+                        onToggleCheckin(p.id);
+                      }}
+                      disabled={isMedicalBlocked}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        p.onboard_checkin_status
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                        isMedicalBlocked
+                          ? 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed opacity-80'
+                          : p.onboard_checkin_status
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
                       }`}
                       title={
-                        p.onboard_checkin_status
-                          ? 'Click to revoke boarding'
-                          : 'Click to confirm diver has boarded'
+                        isMedicalBlocked
+                          ? 'Boarding Blocked: Diver has an unresolved medical flag. Click to review & approve physician clearance.'
+                          : p.onboard_checkin_status
+                            ? 'Click to revoke boarding'
+                            : 'Click to confirm diver has boarded'
                       }
                     >
-                      {p.onboard_checkin_status ? (
+                      {isMedicalBlocked ? (
+                        <AlertTriangle size={12} className='text-red-600' />
+                      ) : p.onboard_checkin_status ? (
                         <Check size={13} className='text-white' />
                       ) : (
                         <Hourglass size={12} className='text-amber-600 shrink-0' />
                       )}
-                      <span>{p.onboard_checkin_status ? 'Boarded' : 'Check In'}</span>
+                      <span>
+                        {isMedicalBlocked
+                          ? 'Medical Hold'
+                          : p.onboard_checkin_status
+                            ? 'Boarded'
+                            : 'Check In'}
+                      </span>
                     </button>
                   </td>
 
@@ -244,6 +265,8 @@ const BoatManifestTable = ({
         {participants.map((p, index) => {
           const isPaid = p.payment_status === 'PAID_IN_FULL' || p.payment_status === 'PAID_ONLINE';
           const isCleared = p.medical_status === 'CLEARED';
+          const isMedicalBlocked =
+            p.medical_status === 'FLAGGED_CONTACT_CENTER' || p.medical_status === 'FLAGGED';
 
           return (
             <div
@@ -320,19 +343,43 @@ const BoatManifestTable = ({
                 {/* Boarding Roll-Call Toggle */}
                 <button
                   type='button'
-                  onClick={() => onToggleCheckin(p.id)}
+                  onClick={() => {
+                    if (isMedicalBlocked) {
+                      onViewDetails(p);
+                      return;
+                    }
+                    onToggleCheckin(p.id);
+                  }}
+                  disabled={isMedicalBlocked}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                    p.onboard_checkin_status
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                    isMedicalBlocked
+                      ? 'bg-red-50 text-red-700 border border-red-200 cursor-not-allowed opacity-80'
+                      : p.onboard_checkin_status
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
                   }`}
+                  title={
+                    isMedicalBlocked
+                      ? 'Boarding Blocked: Diver has an unresolved medical flag. Click to review & approve physician clearance.'
+                      : p.onboard_checkin_status
+                        ? 'Click to revoke boarding'
+                        : 'Click to confirm diver has boarded'
+                  }
                 >
-                  {p.onboard_checkin_status ? (
+                  {isMedicalBlocked ? (
+                    <AlertTriangle size={14} className='text-red-600' />
+                  ) : p.onboard_checkin_status ? (
                     <Check size={14} className='text-white' />
                   ) : (
                     <Hourglass size={13} className='text-amber-600' />
                   )}
-                  <span>{p.onboard_checkin_status ? 'Boarded' : 'Board Boat'}</span>
+                  <span>
+                    {isMedicalBlocked
+                      ? 'Medical Hold'
+                      : p.onboard_checkin_status
+                        ? 'Boarded'
+                        : 'Board Boat'}
+                  </span>
                 </button>
 
                 {/* Payment & Options */}

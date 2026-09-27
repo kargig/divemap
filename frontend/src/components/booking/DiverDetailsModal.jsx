@@ -16,8 +16,16 @@ import toast from 'react-hot-toast';
 
 import api from '../../api';
 
-const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onUpdated }) => {
-  const [isEditing, setIsEditing] = useState(false);
+const DiverDetailsModal = ({
+  isOpen,
+  onClose,
+  participant,
+  centerId,
+  tripId,
+  onUpdated,
+  initialEditMode = false,
+}) => {
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [loading, setLoading] = useState(false);
 
   // Medical Review & Clearance state
@@ -30,33 +38,35 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
   const [clearingMedical, setClearingMedical] = useState(false);
 
   // Edit fields
-  const [tankId, setTankId] = useState(participant?.selected_tank_id || '12');
-  const [gasMixId, setGasMixId] = useState(participant?.selected_gas_mix_id || 'air');
-  const [regulatorFitting, setRegulatorFitting] = useState(
-    participant?.equipment_sizing?.regulator_fitting || 'DIN'
-  );
-  const [leadKg, setLeadKg] = useState(participant?.estimated_lead_kg?.toString() || '4.0');
-  const [wetsuitSize, setWetsuitSize] = useState(
-    participant?.equipment_sizing?.wetsuit_size || 'L'
-  );
-  const [wetsuitThickness, setWetsuitThickness] = useState(
-    participant?.equipment_sizing?.wetsuit_thickness || '5mm'
-  );
-  const [bcdSize, setBcdSize] = useState(participant?.equipment_sizing?.bcd_size || 'M');
-  const [shoeSizeEu, setShoeSizeEu] = useState(
-    participant?.equipment_sizing?.shoe_size_eu?.toString() || '43'
-  );
+  const [tankId, setTankId] = useState('12');
+  const [gasMixId, setGasMixId] = useState('air');
+  const [regulatorFitting, setRegulatorFitting] = useState('DIN');
+  const [leadKg, setLeadKg] = useState('0');
+  const [wetsuitSize, setWetsuitSize] = useState('None');
+  const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
+  const [bcdSize, setBcdSize] = useState('None');
+  const [shoeSizeEu, setShoeSizeEu] = useState('');
+
+  const syncFieldsWithParticipant = React.useCallback((p, editMode = false) => {
+    if (!p) return;
+    setIsEditing(editMode);
+    setTankId(p.selected_tank_id || '12');
+    setGasMixId(p.selected_gas_mix_id || 'air');
+    setRegulatorFitting(p.equipment_sizing?.regulator_fitting || 'DIN');
+    setLeadKg(
+      p.estimated_lead_kg !== undefined && p.estimated_lead_kg !== null
+        ? p.estimated_lead_kg.toString()
+        : '0'
+    );
+    setWetsuitSize(p.equipment_sizing?.wetsuit_size || 'None');
+    setWetsuitThickness(p.equipment_sizing?.wetsuit_thickness || '5mm');
+    setBcdSize(p.equipment_sizing?.bcd_size || 'None');
+    setShoeSizeEu(p.equipment_sizing?.shoe_size_eu?.toString() || '');
+  }, []);
 
   useEffect(() => {
     if (isOpen && participant) {
-      setTankId(participant.selected_tank_id || '12');
-      setGasMixId(participant.selected_gas_mix_id || 'air');
-      setRegulatorFitting(participant.equipment_sizing?.regulator_fitting || 'DIN');
-      setLeadKg(participant.estimated_lead_kg?.toString() || '4.0');
-      setWetsuitSize(participant.equipment_sizing?.wetsuit_size || 'L');
-      setWetsuitThickness(participant.equipment_sizing?.wetsuit_thickness || '5mm');
-      setBcdSize(participant.equipment_sizing?.bcd_size || 'M');
-      setShoeSizeEu(participant.equipment_sizing?.shoe_size_eu?.toString() || '43');
+      syncFieldsWithParticipant(participant, initialEditMode);
       setShowClearanceForm(false);
 
       api
@@ -66,7 +76,7 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
         .then(res => setMedicalReview(res.data))
         .catch(err => console.error('Failed to load medical review:', err));
     }
-  }, [isOpen, participant, centerId, tripId]);
+  }, [isOpen, participant, initialEditMode, centerId, tripId, syncFieldsWithParticipant]);
 
   if (!participant) return null;
 
@@ -84,10 +94,10 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
         selected_gas_mix_id: gasMixId,
         equipment_sizing: {
           regulator_fitting: regulatorFitting,
-          wetsuit_size: wetsuitSize,
+          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
-          bcd_size: bcdSize,
-          shoe_size_eu: parseFloat(shoeSizeEu) || 43,
+          bcd_size: bcdSize === 'None' ? null : bcdSize,
+          shoe_size_eu: parseFloat(shoeSizeEu) || null,
           estimated_lead_kg: parseFloat(leadKg) || 0,
         },
       };
@@ -174,7 +184,13 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
           </div>
           <button
             type='button'
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={() => {
+              if (!isEditing && participant) {
+                syncFieldsWithParticipant(participant, true);
+              } else {
+                setIsEditing(false);
+              }
+            }}
             className='flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold'
           >
             <Edit2 size={13} />
@@ -500,6 +516,7 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
                   onChange={e => setWetsuitSize(e.target.value)}
                   className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
                 >
+                  <option value='None'>None (Own Suit)</option>
                   <option value='XS'>XS</option>
                   <option value='S'>S</option>
                   <option value='M'>M</option>
@@ -527,6 +544,7 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
                   onChange={e => setBcdSize(e.target.value)}
                   className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
                 >
+                  <option value='None'>None (Own BCD)</option>
                   <option value='XS'>XS</option>
                   <option value='S'>S</option>
                   <option value='M'>M</option>
