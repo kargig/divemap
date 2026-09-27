@@ -1,20 +1,7 @@
-import {
-  Package,
-  Compass,
-  Gauge,
-  Anchor,
-  Sparkles,
-  LifeBuoy,
-  Layers,
-  Download,
-  Loader2,
-} from 'lucide-react';
+import { Compass, Gauge, Anchor, Sparkles, LifeBuoy, Layers } from 'lucide-react';
 import React, { useState } from 'react';
-import toast from 'react-hot-toast';
 
-import api from '../../api';
-
-const GearPackingManifest = ({ summary, participants = [], centerId, tripId }) => {
+const GearPackingManifest = ({ summary, participants = [] }) => {
   const [numCrates, setNumCrates] = useState(3); // 1 | 2 | 3 | 4 | 5
 
   const cylinders = summary?.cylinders || {};
@@ -279,59 +266,8 @@ const GearPackingManifest = ({ summary, participants = [], centerId, tripId }) =
     </div>
   );
 
-  const [exportingPdf, setExportingPdf] = useState(false);
-
-  const handleExportPdf = async () => {
-    try {
-      setExportingPdf(true);
-      toast.loading('Generating Crate Packing PDF...', { id: 'crate-pdf' });
-      const res = await api.get(
-        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/crate-packing/pdf`,
-        { responseType: 'blob' }
-      );
-      const blob = new window.Blob([res.data], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      toast.success('Crate Packing PDF ready!', { id: 'crate-pdf' });
-    } catch (err) {
-      console.error('Failed to export crate packing PDF:', err);
-      toast.error(err.response?.data?.detail || 'Failed to export crate packing PDF.', {
-        id: 'crate-pdf',
-      });
-    } finally {
-      setExportingPdf(false);
-    }
-  };
-
   return (
     <div className='space-y-6'>
-      {/* Crate Loadout Top Bar */}
-      <div className='bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4'>
-        <div>
-          <h3 className='text-base font-bold text-gray-900 dark:text-white flex items-center gap-2'>
-            <Package className='h-5 w-5 text-blue-600' />
-            Dockside Crate Packing & Tank Loadout
-          </h3>
-          <p className='text-xs text-gray-500 mt-0.5'>
-            Top-to-bottom equipment checklist, valve configurations, and partitionable transport
-            crates.
-          </p>
-        </div>
-
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={handleExportPdf}
-            disabled={exportingPdf}
-            className='flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all disabled:opacity-50'
-            title='Download dedicated dockside crate packing & cylinder loadout PDF'
-          >
-            {exportingPdf ? <Loader2 size={13} className='animate-spin' /> : <Download size={13} />}
-            <span>Export Crate Sheet (PDF)</span>
-          </button>
-        </div>
-      </div>
-
       {/* Crate Partitioning Bar (1 to 5 Crates) */}
       <div className='bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
         <div className='flex items-center gap-2'>
