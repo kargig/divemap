@@ -6,6 +6,8 @@ from app.models import User, UserGearProfile
 def test_create_and_retrieve_user_gear_profile(db_session: Session, test_user: User):
     profile = UserGearProfile(
         user_id=test_user.id,
+        name="Mediterranean 5mm",
+        is_default=True,
         preferred_unit_system="METRIC",
         preferred_shoe_system="EU",
         height_cm=180,
@@ -35,9 +37,11 @@ def test_create_and_retrieve_user_gear_profile(db_session: Session, test_user: U
     
     assert profile.id is not None
     assert profile.user_id == test_user.id
+    assert profile.name == "Mediterranean 5mm"
+    assert profile.is_default is True
     assert profile.preferred_tank_id == "12"
     assert profile.insurance_provider == "DAN Europe"
     assert profile.has_own_dive_computer is True
     assert profile.has_own_smb is True
-    assert test_user.gear_profile is not None
-    assert test_user.gear_profile.id == profile.id
+    assert len(test_user.gear_profiles) == 1
+    assert test_user.gear_profiles[0].id == profile.id

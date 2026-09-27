@@ -81,6 +81,7 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
+const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage'));
 const MyComments = lazy(() => import('./pages/MyComments'));
 const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
@@ -292,6 +293,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/gear'
+              element={
+                <ProtectedRoute>
+                  <DiverGearProfilesPage />
                 </ProtectedRoute>
               }
             />

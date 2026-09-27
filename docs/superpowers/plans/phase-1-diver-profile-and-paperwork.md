@@ -454,88 +454,47 @@ and universal dive waivers.
 **Interfaces:**
 - Consumes: Current authenticated `User` dependency, `UserGearProfile`.
 - Produces: 
-  - `GET /api/v1/bookings/my-gear-profile`
-  - `PUT /api/v1/bookings/my-gear-profile`
+  - `GET /api/v1/bookings/gear-profiles` & `POST /gear-profiles`
+  - `GET/PUT/DELETE /api/v1/bookings/gear-profiles/{id}`
+  - `POST /api/v1/bookings/gear-profiles/{id}/set-default`
+  - `GET /api/v1/bookings/my-gear-profile` & `PUT /my-gear-profile`
+  - `GET /api/v1/bookings/cylinders` & `GET /api/v1/bookings/gas-mixes`
 
-- [ ] **Step 1: Write API tests**
-
-Create `backend/tests/test_diver_gear_profile_api.py` testing GET and PUT of gear profile, verifying that input in imperial is stored canonically in metric SI units.
-
-- [ ] **Step 2: Implement router in `backend/app/routers/diver_gear_profile.py`**
-
-- [ ] **Step 3: Register router in `backend/app/main.py`**
-
-- [ ] **Step 4: Run tests in isolated Docker**
-
-Run:
-```bash
-cd backend && ./docker-test-github-actions.sh tests/test_diver_gear_profile_api.py
-```
-Expected: `All tests passed!`.
-
-- [ ] **Step 5: Prepare commit draft**
-
-Write commit message to `commit-message.txt`:
-```
-Add diver gear profile API endpoints
-
-Enables authenticated divers to fetch and update their saved sizing,
-preferred tank, and insurance details.
-```
+- [x] **Step 1: Write API tests**
+- [x] **Step 2: Implement router in `backend/app/routers/diver_gear_profile.py`**
+- [x] **Step 3: Register router in `backend/app/main.py`**
+- [x] **Step 4: Run tests in isolated Docker**
+- [x] **Step 5: Prepare commit draft**
 
 ---
 
-### Task 6: Frontend User Gear Profile Editor Component
+### Task 6: Frontend Diver Gear Configurations Page & Modal
 
 **Files:**
-- Create: `frontend/src/components/UserGearProfileEditor.jsx`
-- Modify: `frontend/src/pages/ProfilePage.jsx`
+- Create: `frontend/src/pages/DiverGearProfilesPage.jsx`
+- Create: `frontend/src/components/UserGearProfileModal.jsx`
+- Modify: `frontend/src/App.jsx`
+- Modify: `frontend/src/pages/Profile.jsx`
 - Test: Frontend verification via Chrome DevTools MCP & unit tests
 
 **Interfaces:**
-- Consumes: `/api/v1/bookings/my-gear-profile`.
-- Produces: Interactive React gear profile tab with live Metric/Imperial switcher.
+- Consumes: `/api/v1/bookings/gear-profiles/...`.
+- Produces: Multi-profile management page at `/profile/gear` with presets, live Metric/Imperial switcher, and primary profile selection.
 
-- [ ] **Step 1: Implement `UserGearProfileEditor.jsx`**
-
-Build responsive UI with Tailwind CSS:
-- Unit toggle: `[ Metric (cm / kg / EU) | Imperial (ft-in / lbs / US) ]`
-- Dynamic conversion on toggle without precision loss
-- Tank size selector from `TANK_SIZES`
-- DIN vs Yoke toggle
-- Save button with toast notification
-
-- [ ] **Step 2: Integrate into `frontend/src/pages/ProfilePage.jsx`**
-
-- [ ] **Step 3: Run frontend lint**
-
-Run:
-```bash
-make lint-frontend
-```
-Expected: 0 errors in `frontend-lint-errors.log`.
-
-- [ ] **Step 4: Verify in browser with Chrome DevTools MCP**
-
-Navigate to profile page, check layout, toggle units, save profile, and confirm 0 console errors via `list_console_messages`.
-
-- [ ] **Step 5: Prepare commit draft**
-
-Write commit message to `commit-message.txt`:
-```
-Add diver gear profile editor to user profile page
-
-Provides interactive biometrics and gear preferences editing with
-instant Metric/Imperial conversion and zero console errors.
-```
+- [x] **Step 1: Implement `UserGearProfileModal.jsx` with presets and live conversion**
+- [x] **Step 2: Implement `DiverGearProfilesPage.jsx` with card grid and default toggle**
+- [x] **Step 3: Register `/profile/gear` route in `frontend/src/App.jsx`**
+- [x] **Step 4: Add Gear Configurations card and sidebar link to `frontend/src/pages/Profile.jsx`**
+- [x] **Step 5: Run frontend lint (`make lint-frontend`)**
+- [x] **Step 6: Verify in browser with Chrome DevTools MCP (0 console errors)**
 
 ---
 
 ### Phase 1 Verification Checklist
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_unit_conversion_and_cylinders.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_user_gear_profile_model.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_medical_encryption_service.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_waiver_service.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_diver_gear_profile_api.py` passes.
-- [ ] `make lint-frontend` passes with zero errors.
-- [ ] Chrome DevTools browser verification passes with zero console errors.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_unit_conversion_and_cylinders.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_user_gear_profile_model.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_medical_encryption_service.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_waiver_service.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_diver_gear_profile_api.py` passes.
+- [x] `make lint-frontend` passes with zero errors.
+- [x] Chrome DevTools browser verification passes with zero console errors.

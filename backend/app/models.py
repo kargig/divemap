@@ -1290,7 +1290,9 @@ class UserGearProfile(Base):
     __tablename__ = "user_gear_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False, default="Default") # e.g. "Default", "Tropical 3mm", "Cold Water 7mm"
+    is_default = Column(Boolean, default=False, nullable=False)
 
     preferred_unit_system = Column(String(10), default="METRIC", nullable=False) # METRIC vs IMPERIAL
     preferred_shoe_system = Column(String(10), default="EU", nullable=False)     # EU, US_MEN, US_WOMEN, UK
@@ -1324,5 +1326,9 @@ class UserGearProfile(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    user = relationship("User", backref=sa.orm.backref("gear_profile", uselist=False, cascade="all, delete-orphan"))
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "name", name="uq_user_gear_profiles_user_name"),
+    )
+
+    user = relationship("User", backref=sa.orm.backref("gear_profiles", cascade="all, delete-orphan"))
 

@@ -19,6 +19,8 @@ def upgrade():
         'user_gear_profiles',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(length=100), server_default='Default', nullable=False),
+        sa.Column('is_default', sa.Boolean(), server_default=sa.text('0'), nullable=False),
         sa.Column('preferred_unit_system', sa.String(length=10), server_default='METRIC', nullable=False),
         sa.Column('preferred_shoe_system', sa.String(length=10), server_default='EU', nullable=False),
         sa.Column('height_cm', sa.Integer(), nullable=True),
@@ -45,10 +47,10 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
-        sa.UniqueConstraint('user_id', name='uq_user_gear_profiles_user_id')
+        sa.UniqueConstraint('user_id', 'name', name='uq_user_gear_profiles_user_name')
     )
     op.create_index(op.f('ix_user_gear_profiles_id'), 'user_gear_profiles', ['id'], unique=False)
-    op.create_index(op.f('ix_user_gear_profiles_user_id'), 'user_gear_profiles', ['user_id'], unique=True)
+    op.create_index(op.f('ix_user_gear_profiles_user_id'), 'user_gear_profiles', ['user_id'], unique=False)
 
 def downgrade():
     op.drop_index(op.f('ix_user_gear_profiles_user_id'), table_name='user_gear_profiles')

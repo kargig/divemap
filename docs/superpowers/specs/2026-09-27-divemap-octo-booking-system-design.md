@@ -235,9 +235,14 @@ Real-time rental equipment stock availability is computed dynamically against `C
 
 ### 3.2 Diver Biometrics & Booking Records
 
-#### `UserGearProfile`
+#### `UserGearProfile` (Named Multi-Configuration Equipment Profiles)
+Divers can maintain multiple named gear configurations (e.g., "Default", "Tropical Travel 3mm", "Cold Water 7mm", "Technical Twins") with one designated as primary (`is_default`). During checkout, the diver can switch configurations with a single click, instantly updating all rental sizing, cylinder choices, and lead weights for that trip.
+
 * `id` (Integer, Primary Key)
-* `user_id` (Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True)
+* `user_id` (Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+* `name` (String(100), nullable=False, default="Default") # Configuration name
+* `is_default` (Boolean, default=False, nullable=False) # Flags the primary/default configuration
+* UniqueConstraint: `("user_id", "name")`
 * `date_of_birth` (Date, nullable=True)
 * `preferred_unit_system` (String(10), default="METRIC") # METRIC (cm, kg, m, bar, °C) vs IMPERIAL (ft/in, lbs, ft, psi, °F)
 * `preferred_shoe_system` (String(10), default="EU") # EU, US_MEN, US_WOMEN, UK

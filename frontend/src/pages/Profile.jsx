@@ -1748,6 +1748,33 @@ const Profile = () => {
                 </div>
               )}
             </div>
+
+            {/* Diving Gear & Equipment Configurations Section */}
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                <div className='flex items-start gap-3'>
+                  <div className='p-2.5 bg-blue-50 text-blue-600 rounded-xl mt-0.5 shrink-0'>
+                    <Gauge className='h-6 w-6' />
+                  </div>
+                  <div>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                      Diving Gear Configurations
+                    </h2>
+                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                      Manage tailored equipment profiles, cylinder preferences, wetsuit sizing, and
+                      ballast weights for tropical, cold water, or technical dives.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to='/profile/gear'
+                  className='inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold shadow-sm transition-all text-sm shrink-0'
+                >
+                  Manage Gear Profiles
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -1953,6 +1980,14 @@ const Profile = () => {
                     </span>
                   </div>
                 )}
+
+                <Link
+                  to='/profile/gear'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                >
+                  <Gauge size={18} className='mr-3 text-gray-400' />
+                  Gear Configurations
+                </Link>
 
                 <Link
                   to='/profile/pats'
