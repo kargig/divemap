@@ -10,6 +10,7 @@ import {
   Mail,
   ShieldCheck,
   Hourglass,
+  Stethoscope,
 } from 'lucide-react';
 import React from 'react';
 
@@ -124,16 +125,39 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        isCleared
-                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                    <button
+                      type='button'
+                      onClick={() => onViewDetails(p)}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-all hover:opacity-80 ${
+                        p.medical_status === 'PHYSICIAN_APPROVED'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+                          : isCleared
+                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 animate-pulse'
                       }`}
+                      title={
+                        p.medical_status === 'PHYSICIAN_APPROVED'
+                          ? `Physician Approved: Dr. ${p.medical_clearance_audit?.physician_name || ''}`
+                          : isCleared
+                            ? 'Diver medically cleared'
+                            : 'Click to review flagged conditions & approve physician clearance'
+                      }
                     >
-                      {isCleared ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />}
-                      {isCleared ? 'CLEARED' : 'FLAGGED'}
-                    </span>
+                      {p.medical_status === 'PHYSICIAN_APPROVED' ? (
+                        <Stethoscope size={11} />
+                      ) : isCleared ? (
+                        <ShieldCheck size={11} />
+                      ) : (
+                        <AlertTriangle size={11} />
+                      )}
+                      <span>
+                        {p.medical_status === 'PHYSICIAN_APPROVED'
+                          ? 'PHYSICIAN'
+                          : isCleared
+                            ? 'CLEARED'
+                            : 'FLAGGED'}
+                      </span>
+                    </button>
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
@@ -245,15 +269,32 @@ const BoatManifestTable = ({
                   </button>
                 </div>
                 <div className='flex items-center gap-1.5 shrink-0'>
-                  <span
+                  <button
+                    type='button'
+                    onClick={() => onViewDetails(p)}
                     className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      isCleared
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      p.medical_status === 'PHYSICIAN_APPROVED'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : isCleared
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200 animate-pulse'
                     }`}
                   >
-                    {isCleared ? 'CLEARED' : 'FLAGGED'}
-                  </span>
+                    {p.medical_status === 'PHYSICIAN_APPROVED' ? (
+                      <Stethoscope size={11} />
+                    ) : isCleared ? (
+                      <ShieldCheck size={11} />
+                    ) : (
+                      <AlertTriangle size={11} />
+                    )}
+                    <span>
+                      {p.medical_status === 'PHYSICIAN_APPROVED'
+                        ? 'PHYSICIAN'
+                        : isCleared
+                          ? 'CLEARED'
+                          : 'FLAGGED'}
+                    </span>
+                  </button>
                 </div>
               </div>
 

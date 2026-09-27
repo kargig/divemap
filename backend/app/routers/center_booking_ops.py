@@ -20,13 +20,35 @@ from app.models import (
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
+from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
+from app.services.nitrox_service import check_nitrox_eligibility
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/centers/{center_id}/booking-ops", tags=["Center Booking Operations"])
 
+DMSC_QUESTION_TEXTS = {
+    "q1": "1. Problems with lungs/breathing, heart, or blood affecting normal performance.",
+    "q2": "2. Over 45 years of age and smoke, high cholesterol, high blood pressure, or family history of heart disease.",
+    "q3": "3. Struggle to perform moderate exercise (e.g. walk 1 mile in 14 mins or swim 200m).",
+    "q4": "4. Problems with eyes, ears, or nasal passages/sinuses.",
+    "q5": "5. Surgery within the last 12 months, or ongoing problems related to past surgery.",
+    "q6": "6. Lost consciousness, migraines, seizures, stroke, significant head injury, or neurological disease.",
+    "q7": "7. Currently undergoing treatment for psychological problems, panic attacks, anxiety, or addiction.",
+    "q8": "8. Back problems, hernia, ulcers, or diabetes.",
+    "q9": "9. Stomach or intestine problems, including recent diarrhea.",
+    "q10": "10. Taking prescription medications (excluding standard birth control or malaria prophylaxis).",
+}
+
 
 # --- Schemas ---
+
+class ClearMedicalOverrideRequest(BaseModel):
+    physician_name: str
+    physician_clinic: Optional[str] = None
+    clearance_date: Optional[date] = None
+    notes: Optional[str] = None
+    confirmed_physical_form_inspected: bool = True
 
 class WalkInParticipantCreate(BaseModel):
     diver_full_name: str
@@ -137,6 +159,16 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             ).first()
             med_status = med.status if med else ("CLEARED" if b.status == "CONFIRMED" else "PENDING")
 
+            med_audit = None
+            if med and med.status == "PHYSICIAN_APPROVED":
+                med_audit = {
+                    "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+                    "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
+                    "physician_name": med.cleared_physician_name,
+                    "physician_clinic": med.cleared_physician_clinic,
+                    "reason": med.cleared_reason,
+                }
+
             eq = item.equipment_sizing or {}
             lead = float(eq.get("estimated_lead_kg") or 0.0)
             total_lead_kg += lead
@@ -199,6 +231,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 "estimated_lead_kg": lead,
                 "equipment_sizing": eq,
                 "medical_status": med_status,
+                "medical_clearance_audit": med_audit,
                 "waivers_complete": item.waivers_complete,
                 "onboard_checkin_status": item.onboard_checkin_status,
                 "payment_status": b.payment_status,
@@ -328,6 +361,14 @@ def add_walkin_participant(
     if slot.seats_available <= 0:
         raise HTTPException(status_code=400, detail="Trip is fully booked. No seats available.")
 
+    # Check Nitrox Eligibility
+    if req.selected_gas_mix_id and req.selected_gas_mix_id.lower() != "air":
+        if not check_nitrox_eligibility(req.certification_level, req.selected_gas_mix_id, db):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Diver holds '{req.certification_level or 'Unspecified'}', which is not certified for Nitrox."
+            )
+
     # Find default product unit for pricing
     unit = db.query(OctoUnit).filter(OctoUnit.product_id == slot.product_id).first()
     unit_id = unit.id if unit else "walkin_unit"
@@ -428,6 +469,13 @@ def update_participant(
     if req.selected_tank_id is not None:
         item.selected_tank_id = req.selected_tank_id
     if req.selected_gas_mix_id is not None:
+        if req.selected_gas_mix_id.lower() != "air":
+            cert_to_check = req.certification_level or item.certification_level
+            if not check_nitrox_eligibility(cert_to_check, req.selected_gas_mix_id, db, user_id=item.user_id):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification."
+                )
         item.selected_gas_mix_id = req.selected_gas_mix_id
     if req.equipment_sizing is not None:
         item.equipment_sizing = req.equipment_sizing
@@ -435,6 +483,128 @@ def update_participant(
     db.commit()
     db.refresh(item)
     return {"id": item.id, "diver_full_name": item.diver_full_name, "updated": True}
+
+
+@router.get("/trips/{trip_id}/participants/{participant_id}/medical-review")
+def get_participant_medical_review(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Allows authorized center managers to inspect flagged medical screening conditions."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+    if not med:
+        return {
+            "participant_id": participant_id,
+            "diver_full_name": item.diver_full_name,
+            "status": "CLEARED" if item.booking.status == "CONFIRMED" else "PENDING",
+            "flagged_questions": [],
+            "clearance_audit": None,
+        }
+
+    flagged_questions = []
+    if med.encrypted_answers and med.encrypted_dek:
+        try:
+            encryption_svc = BookingMedicalEncryptionService()
+            decrypted = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+            for q_id, is_yes in decrypted.items():
+                if is_yes is True:
+                    flagged_questions.append({
+                        "id": q_id,
+                        "text": DMSC_QUESTION_TEXTS.get(q_id, f"Condition: {q_id}"),
+                        "answered_yes": True,
+                    })
+        except Exception as e:
+            logger.error(f"Failed to decrypt medical review answers: {e}")
+
+    audit_info = None
+    if med.status == "PHYSICIAN_APPROVED":
+        audit_info = {
+            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+            "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
+            "physician_name": med.cleared_physician_name,
+            "physician_clinic": med.cleared_physician_clinic,
+            "reason": med.cleared_reason,
+        }
+
+    return {
+        "participant_id": participant_id,
+        "diver_full_name": item.diver_full_name,
+        "status": med.status,
+        "flagged_questions": flagged_questions,
+        "clearance_audit": audit_info,
+    }
+
+
+@router.post("/trips/{trip_id}/participants/{participant_id}/clear-medical")
+def clear_participant_medical(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    req: ClearMedicalOverrideRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Formally clears a diver's medical condition prior to boarding upon verification of signed physician clearance.
+    Creates an immutable audit record documenting which staff member cleared the diver and on what date.
+    """
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    if not req.confirmed_physical_form_inspected:
+        raise HTTPException(
+            status_code=400,
+            detail="Staff must confirm physical verification of the signed physician medical clearance form."
+        )
+
+    if not req.physician_name or not req.physician_name.strip():
+        raise HTTPException(status_code=400, detail="Physician name is required.")
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+    if not med:
+        raise HTTPException(status_code=404, detail="Medical record not found for this participant")
+
+    med.status = "PHYSICIAN_APPROVED"
+    med.cleared_by_user_id = current_user.id
+    med.cleared_at = datetime.now(timezone.utc)
+    med.cleared_physician_name = req.physician_name.strip()
+    med.cleared_physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
+    med.cleared_reason = req.notes or f"Physician clearance by Dr. {req.physician_name.strip()} verified by {current_user.username}"
+
+    db.commit()
+    db.refresh(med)
+
+    logger.info(
+        f"[MEDICAL_CLEARANCE_AUDIT] Diver '{item.diver_full_name}' (item_id={item.id}) cleared by manager "
+        f"'{current_user.username}' (user_id={current_user.id}). Physician: Dr. {med.cleared_physician_name}."
+    )
+
+    return {
+        "participant_id": item.id,
+        "diver_full_name": item.diver_full_name,
+        "status": med.status,
+        "cleared_by": current_user.username,
+        "cleared_at": med.cleared_at.isoformat(),
+        "physician_name": med.cleared_physician_name,
+    }
 
 
 @router.delete("/trips/{trip_id}/participants/{participant_id}")

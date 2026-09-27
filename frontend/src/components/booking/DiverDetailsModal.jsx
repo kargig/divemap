@@ -9,8 +9,9 @@ import {
   Edit2,
   Check,
   Loader2,
+  Stethoscope,
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 import api from '../../api';
@@ -18,6 +19,15 @@ import api from '../../api';
 const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onUpdated }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Medical Review & Clearance state
+  const [medicalReview, setMedicalReview] = useState(null);
+  const [showClearanceForm, setShowClearanceForm] = useState(false);
+  const [physicianName, setPhysicianName] = useState('');
+  const [physicianClinic, setPhysicianClinic] = useState('');
+  const [clearanceNotes, setClearanceNotes] = useState('');
+  const [confirmedInspected, setConfirmedInspected] = useState(false);
+  const [clearingMedical, setClearingMedical] = useState(false);
 
   // Edit fields
   const [tankId, setTankId] = useState(participant?.selected_tank_id || '12');
@@ -37,8 +47,30 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
     participant?.equipment_sizing?.shoe_size_eu?.toString() || '43'
   );
 
+  useEffect(() => {
+    if (isOpen && participant) {
+      setTankId(participant.selected_tank_id || '12');
+      setGasMixId(participant.selected_gas_mix_id || 'air');
+      setRegulatorFitting(participant.equipment_sizing?.regulator_fitting || 'DIN');
+      setLeadKg(participant.estimated_lead_kg?.toString() || '4.0');
+      setWetsuitSize(participant.equipment_sizing?.wetsuit_size || 'L');
+      setWetsuitThickness(participant.equipment_sizing?.wetsuit_thickness || '5mm');
+      setBcdSize(participant.equipment_sizing?.bcd_size || 'M');
+      setShoeSizeEu(participant.equipment_sizing?.shoe_size_eu?.toString() || '43');
+      setShowClearanceForm(false);
+
+      api
+        .get(
+          `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/medical-review`
+        )
+        .then(res => setMedicalReview(res.data))
+        .catch(err => console.error('Failed to load medical review:', err));
+    }
+  }, [isOpen, participant, centerId, tripId]);
+
   if (!participant) return null;
 
+  const isPhysicianApproved = participant.medical_status === 'PHYSICIAN_APPROVED';
   const isCleared = participant.medical_status === 'CLEARED';
   const isPaid =
     participant.payment_status === 'PAID_IN_FULL' || participant.payment_status === 'PAID_ONLINE';
@@ -70,9 +102,49 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
       onUpdated();
     } catch (err) {
       console.error('Failed to update equipment:', err);
-      toast.error('Failed to update equipment sizing.');
+      toast.error(err.response?.data?.detail || 'Failed to update equipment sizing.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearMedical = async e => {
+    e.preventDefault();
+    if (!confirmedInspected) {
+      toast.error('You must confirm physical inspection of the physician clearance form.');
+      return;
+    }
+    if (!physicianName.trim()) {
+      toast.error('Please enter the physician full name.');
+      return;
+    }
+
+    try {
+      setClearingMedical(true);
+      await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/clear-medical`,
+        {
+          physician_name: physicianName.trim(),
+          physician_clinic: physicianClinic.trim() || undefined,
+          notes: clearanceNotes.trim() || undefined,
+          confirmed_physical_form_inspected: true,
+        }
+      );
+
+      toast.success(`Physician clearance approved for ${participant.diver_full_name}!`);
+      setShowClearanceForm(false);
+      onUpdated();
+
+      // Refresh review
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/medical-review`
+      );
+      setMedicalReview(res.data);
+    } catch (err) {
+      console.error('Failed to clear medical condition:', err);
+      toast.error(err.response?.data?.detail || 'Failed to clear medical condition.');
+    } finally {
+      setClearingMedical(false);
     }
   };
 
@@ -81,10 +153,11 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
       open={isOpen}
       onCancel={() => {
         setIsEditing(false);
+        setShowClearanceForm(false);
         onClose();
       }}
       footer={null}
-      width={600}
+      width={640}
       title={
         <div className='flex items-center justify-between pb-2 border-b pr-6'>
           <div className='flex items-center gap-2.5'>
@@ -119,13 +192,21 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
             </span>
             <span
               className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                isCleared
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                isPhysicianApproved
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : isCleared
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
               }`}
             >
-              {isCleared ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />}
-              {isCleared ? 'CLEARED' : 'FLAGGED'}
+              {isPhysicianApproved ? (
+                <Stethoscope size={11} />
+              ) : isCleared ? (
+                <ShieldCheck size={11} />
+              ) : (
+                <AlertTriangle size={11} />
+              )}
+              {isPhysicianApproved ? 'PHYSICIAN CLEARED' : isCleared ? 'CLEARED' : 'FLAGGED'}
             </span>
           </div>
 
@@ -159,6 +240,157 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
             </span>
           </div>
         </div>
+
+        {/* Flagged Medical Conditions & Manager Clearance Box */}
+        {medicalReview?.flagged_questions && medicalReview.flagged_questions.length > 0 && (
+          <div className='p-3.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-300 dark:border-amber-800 space-y-2.5'>
+            <div className='flex items-center justify-between'>
+              <h4 className='font-bold text-[11px] text-amber-900 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5'>
+                <AlertTriangle size={14} className='text-amber-600 shrink-0' />
+                Flagged Medical Conditions ({medicalReview.flagged_questions.length})
+              </h4>
+              {!isPhysicianApproved && !showClearanceForm && (
+                <button
+                  type='button'
+                  onClick={() => setShowClearanceForm(true)}
+                  className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all'
+                >
+                  Verify Physician Clearance
+                </button>
+              )}
+            </div>
+
+            <p className='text-[11px] text-amber-800 dark:text-amber-300'>
+              The diver answered YES to the following clinical screening question(s). Dive center
+              managers can inspect these items to evaluate physician clearance:
+            </p>
+
+            <div className='space-y-1.5 pt-0.5'>
+              {medicalReview.flagged_questions.map(q => (
+                <div
+                  key={q.id}
+                  className='text-xs text-amber-950 dark:text-amber-100 bg-white/70 dark:bg-gray-800/80 p-2 rounded-lg border border-amber-200 dark:border-amber-700/60 font-medium'
+                >
+                  {q.text}
+                </div>
+              ))}
+            </div>
+
+            {/* Clearance Audit Banner (If already approved by physician) */}
+            {isPhysicianApproved && medicalReview.clearance_audit && (
+              <div className='mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-800 rounded-lg text-xs text-emerald-900 dark:text-emerald-200 space-y-1'>
+                <div className='flex items-center gap-1.5 font-bold'>
+                  <ShieldCheck size={14} className='text-emerald-600' />
+                  <span>Physician Clearance Form Inspected & Approved</span>
+                </div>
+                <div className='text-[11px]'>
+                  <strong>Physician:</strong> Dr. {medicalReview.clearance_audit.physician_name}{' '}
+                  {medicalReview.clearance_audit.physician_clinic &&
+                    `(${medicalReview.clearance_audit.physician_clinic})`}
+                </div>
+                <div className='text-[10px] text-emerald-700 dark:text-emerald-300'>
+                  Verified by staff:{' '}
+                  <strong>{medicalReview.clearance_audit.cleared_by_name}</strong> on{' '}
+                  {medicalReview.clearance_audit.cleared_at
+                    ? new Date(medicalReview.clearance_audit.cleared_at).toLocaleString()
+                    : 'N/A'}
+                  {medicalReview.clearance_audit.reason &&
+                    ` • ${medicalReview.clearance_audit.reason}`}
+                </div>
+              </div>
+            )}
+
+            {/* Inline Clearance Approval Sub-Form */}
+            {showClearanceForm && (
+              <form
+                onSubmit={handleClearMedical}
+                className='mt-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-amber-300 dark:border-amber-700 space-y-2.5'
+              >
+                <div className='flex items-center gap-1.5 pb-1 border-b border-gray-100 font-bold text-gray-900 dark:text-white text-xs'>
+                  <Stethoscope size={13} className='text-blue-600' />
+                  Record Physician Clearance (Port Authority Compliance)
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
+                  <div>
+                    <label className='block font-semibold mb-1 text-[11px]'>
+                      Physician Full Name *
+                    </label>
+                    <input
+                      type='text'
+                      value={physicianName}
+                      onChange={e => setPhysicianName(e.target.value)}
+                      placeholder='e.g. Dr. A. Smith, MD'
+                      required
+                      className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                    />
+                  </div>
+                  <div>
+                    <label className='block font-semibold mb-1 text-[11px]'>
+                      Clinic / Hospital
+                    </label>
+                    <input
+                      type='text'
+                      value={physicianClinic}
+                      onChange={e => setPhysicianClinic(e.target.value)}
+                      placeholder='e.g. Athens Hyperbaric Center'
+                      className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className='block font-semibold mb-1 text-[11px]'>
+                    Clearance Notes / Restrictions
+                  </label>
+                  <input
+                    type='text'
+                    value={clearanceNotes}
+                    onChange={e => setClearanceNotes(e.target.value)}
+                    placeholder='e.g. Form dated 2026-09-28 physically reviewed. Cleared for recreational diving.'
+                    className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  />
+                </div>
+
+                <label className='flex items-start gap-2 cursor-pointer pt-1'>
+                  <input
+                    type='checkbox'
+                    checked={confirmedInspected}
+                    onChange={e => setConfirmedInspected(e.target.checked)}
+                    required
+                    className='rounded text-blue-600 h-4 w-4 mt-0.5 shrink-0'
+                  />
+                  <span className='text-[11px] font-semibold text-gray-800 dark:text-gray-200'>
+                    I confirm that I have physically inspected the signed DMSC / WRSTC Physician
+                    Evaluation Form certifying this diver medically fit for hyperbaric exposure.
+                  </span>
+                </label>
+
+                <div className='flex items-center justify-end gap-2 pt-2 border-t'>
+                  <button
+                    type='button'
+                    onClick={() => setShowClearanceForm(false)}
+                    className='px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded'
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type='submit'
+                    disabled={clearingMedical || !confirmedInspected || !physicianName.trim()}
+                    className='px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs flex items-center gap-1 shadow-sm disabled:opacity-50'
+                  >
+                    {clearingMedical ? (
+                      <Loader2 size={13} className='animate-spin' />
+                    ) : (
+                      <Check size={13} />
+                    )}
+                    Formally Clear Diver for Boarding
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         {/* Credentials & Identification Strip */}
         <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2'>

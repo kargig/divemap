@@ -197,6 +197,30 @@ const BookingWizard = () => {
   const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
   const hasCertDetails = Boolean(certAgency && certLevel.trim() && certNumber.trim());
 
+  const isNitroxEligible = Boolean(
+    !selectedGasMixId ||
+      selectedGasMixId.toLowerCase() === 'air' ||
+      (certLevel &&
+        [
+          'nitrox',
+          'ean',
+          'enriched air',
+          'tec',
+          'trimix',
+          'advanced open water',
+          'aowd',
+          'rescue',
+          'divemaster',
+          'instructor',
+          'owsi',
+          'msdt',
+          'fundies',
+          'fundamentals',
+          'extended range',
+          'xr',
+        ].some(k => certLevel.toLowerCase().includes(k)))
+  );
+
   const handleConfirmBooking = async () => {
     if (!diverName.trim()) {
       toast.error('Please enter diver full legal name.');
@@ -210,6 +234,12 @@ const BookingWizard = () => {
     }
     if (!hasCertDetails) {
       toast.error('Please provide your Certification Agency, Level, and C-Card Number.');
+      return;
+    }
+    if (selectedGasMixId.toLowerCase() !== 'air' && !isNitroxEligible) {
+      toast.error(
+        'Enriched Air Nitrox requires an Enriched Air (Nitrox) or qualifying certification. Please select Air (21%) or update your certification.'
+      );
       return;
     }
     if (!dmscAnswers) {
@@ -711,6 +741,20 @@ const BookingWizard = () => {
                     </span>
                   )}
                 </div>
+
+                {/* Nitrox Eligibility Warning */}
+                {selectedGasMixId.toLowerCase() !== 'air' && !isNitroxEligible && (
+                  <div className='mt-2.5 p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-lg text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2'>
+                    <AlertTriangle size={15} className='text-amber-600 shrink-0 mt-0.5' />
+                    <div>
+                      <strong>Nitrox Certification Required:</strong> Breathing Enriched Air (EANx)
+                      requires an <em>Enriched Air Diver (Nitrox)</em> specialty or qualifying
+                      Advanced/Technical certification. Your selected credential (
+                      {certLevel || 'Entry level'}) only permits Air (21%). Please select Air or
+                      update your certification.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -893,6 +937,7 @@ const BookingWizard = () => {
                   !diverName.trim() ||
                   !hasContactOrId ||
                   !hasCertDetails ||
+                  !isNitroxEligible ||
                   !dmscAnswers ||
                   !waiverSignature
                 }

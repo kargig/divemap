@@ -379,3 +379,112 @@ def test_unauthorized_user_forbidden(client: TestClient, db_session: Session, ce
     res = client.get(f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest", headers=headers)
     assert res.status_code == 403
     assert "Not authorized" in res.json()["detail"]
+
+
+def test_nitrox_requires_qualifying_certification(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Attempt walk-in with Scuba Diver (no nitrox) requesting ean32 -> 400
+    invalid_walkin = {
+        "diver_full_name": "Novice Diver",
+        "diver_email": "novice@test.com",
+        "certification_agency": "PADI",
+        "certification_level": "Scuba Diver", # Not nitrox
+        "selected_tank_id": "12",
+        "selected_gas_mix_id": "ean32",
+    }
+    res_fail = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants",
+        json=invalid_walkin,
+        headers=headers,
+    )
+    assert res_fail.status_code == 400
+    assert "requires an Enriched Air Diver" in res_fail.json()["detail"]
+
+    # Now with Enriched Air Diver (Nitrox) -> 201
+    valid_walkin = {
+        "diver_full_name": "Nitrox Diver",
+        "diver_email": "nitrox@test.com",
+        "certification_agency": "PADI",
+        "certification_level": "Enriched Air Diver (Nitrox)",
+        "selected_tank_id": "12",
+        "selected_gas_mix_id": "ean32",
+    }
+    res_ok = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants",
+        json=valid_walkin,
+        headers=headers,
+    )
+    assert res_ok.status_code == 201
+
+
+def test_medical_review_and_physician_clearance_override(client: TestClient, db_session: Session, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Create encrypted medical record with a flagged condition for part-item-2
+    from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
+    from app.models import DiverMedicalRecord
+    encryption_svc = BookingMedicalEncryptionService()
+    flagged_answers = {"q1": True, "q2": False, "q3": False}
+    enc_dek, enc_answers = encryption_svc.encrypt_answers(flagged_answers)
+
+    med_rec = DiverMedicalRecord(
+        booking_unit_item_id="part-item-2",
+        user_id=owner.id,
+        status="FLAGGED_CONTACT_CENTER",
+        encrypted_dek=enc_dek,
+        encrypted_answers=enc_answers,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+    )
+    db_session.add(med_rec)
+    db_session.commit()
+
+    # 1. Fetch medical review
+    res_review = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/medical-review",
+        headers=headers,
+    )
+    assert res_review.status_code == 200
+    review_data = res_review.json()
+    assert review_data["status"] == "FLAGGED_CONTACT_CENTER"
+    assert len(review_data["flagged_questions"]) == 1
+    assert "lungs/breathing" in review_data["flagged_questions"][0]["text"]
+
+    # 2. Perform physician clearance override
+    clear_payload = {
+        "physician_name": "Dr. Sofia Karra",
+        "physician_clinic": "Santorini General Hospital",
+        "notes": "ECG normal, cleared for diving down to 30m.",
+        "confirmed_physical_form_inspected": True,
+    }
+    res_clear = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-2/clear-medical",
+        json=clear_payload,
+        headers=headers,
+    )
+    assert res_clear.status_code == 200
+    clear_data = res_clear.json()
+    assert clear_data["status"] == "PHYSICIAN_APPROVED"
+    assert clear_data["cleared_by"] == owner.username
+    assert clear_data["physician_name"] == "Dr. Sofia Karra"
+
+    # 3. Verify manifest reflects PHYSICIAN_APPROVED with audit info
+    res_manifest = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
+    assert res_manifest.status_code == 200
+    p2 = [p for p in res_manifest.json()["participants"] if p["id"] == "part-item-2"][0]
+    assert p2["medical_status"] == "PHYSICIAN_APPROVED"
+    assert p2["medical_clearance_audit"]["physician_name"] == "Dr. Sofia Karra"
+    assert p2["medical_clearance_audit"]["cleared_by_name"] == owner.username

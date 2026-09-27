@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 from app.services.waiver_service import WaiverService
+from app.services.nitrox_service import check_nitrox_eligibility
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +236,13 @@ def submit_diver_paperwork(
         db.add(med_rec)
 
     # 2. Update unit item with gear sizing and waiver completion
+    if req.selectedGasMixId and req.selectedGasMixId.lower() != "air":
+        if not check_nitrox_eligibility(unit_item.certification_level, req.selectedGasMixId, db, user_id=unit_item.user_id):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Gas mix '{req.selectedGasMixId.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Your current level '{unit_item.certification_level or 'Unspecified'}' does not permit Nitrox."
+            )
+
     unit_item.selected_tank_id = req.selectedTankId or "12"
     unit_item.selected_gas_mix_id = req.selectedGasMixId or "air"
     if req.equipmentSizing:

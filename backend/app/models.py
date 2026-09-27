@@ -1535,9 +1535,16 @@ class DiverMedicalRecord(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     audit_signature_hash = Column(String(64), nullable=True)
 
+    cleared_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    cleared_at = Column(DateTime(timezone=True), nullable=True)
+    cleared_reason = Column(Text, nullable=True)
+    cleared_physician_name = Column(String(255), nullable=True)
+    cleared_physician_clinic = Column(String(255), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     unit_item = relationship("OctoBookingUnitItem", backref=sa.orm.backref("medical_record", uselist=False, cascade="all, delete-orphan"))
-    user = relationship("User", backref=sa.orm.backref("medical_records"))
+    user = relationship("User", foreign_keys=[user_id], backref=sa.orm.backref("medical_records"))
+    cleared_by_user = relationship("User", foreign_keys=[cleared_by_user_id])
 
