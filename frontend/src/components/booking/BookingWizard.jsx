@@ -111,7 +111,8 @@ const BookingWizard = () => {
         if (data.user_certifications && data.user_certifications.length > 0) {
           const primaryCert = data.user_certifications[0];
           setCertAgency(primaryCert.agency || '');
-          setCertLevel(primaryCert.level || '');
+          // Keep certification level empty by default so diver explicitly selects their qualifying level
+          setCertLevel('');
           setCertNumber(primaryCert.number || '');
         }
       } catch (err) {

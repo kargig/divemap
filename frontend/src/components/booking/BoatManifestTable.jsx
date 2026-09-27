@@ -50,8 +50,8 @@ const BoatManifestTable = ({
               <th className='py-3 px-3'>Assigned Tank / Gas</th>
               <th className='py-3 px-3'>Lead</th>
               <th className='py-3 px-3 text-center'>Medical</th>
-              <th className='py-3 px-3 text-center'>Boarded</th>
               <th className='py-3 px-3 text-center'>Payment</th>
+              <th className='py-3 px-3 text-center'>Boarded</th>
               <th className='py-3 px-3 text-right pr-4'>Actions</th>
             </tr>
           </thead>
@@ -168,6 +168,26 @@ const BoatManifestTable = ({
                   <td className='py-3.5 px-3 text-center'>
                     <button
                       type='button'
+                      onClick={() => onTogglePayment(p.booking_id)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                        isPaid
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                      }`}
+                      title={
+                        isPaid
+                          ? 'Click to revert payment to Due at Desk'
+                          : 'Click to mark counter payment received'
+                      }
+                    >
+                      {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
+                      <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
+                    </button>
+                  </td>
+
+                  <td className='py-3.5 px-3 text-center'>
+                    <button
+                      type='button'
                       onClick={() => {
                         if (isMedicalBlocked) {
                           onViewDetails(p);
@@ -205,26 +225,6 @@ const BoatManifestTable = ({
                             ? 'Boarded'
                             : 'Check In'}
                       </span>
-                    </button>
-                  </td>
-
-                  <td className='py-3.5 px-3 text-center'>
-                    <button
-                      type='button'
-                      onClick={() => onTogglePayment(p.booking_id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        isPaid
-                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                      }`}
-                      title={
-                        isPaid
-                          ? 'Click to revert payment to Due at Desk'
-                          : 'Click to mark counter payment received'
-                      }
-                    >
-                      {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
-                      <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
                     </button>
                   </td>
 
