@@ -51,7 +51,13 @@ const QUESTIONS = [
   },
 ];
 
-const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswers }) => {
+const MedicalQuestionnaireModal = ({
+  isOpen,
+  onClose,
+  onCompleted,
+  onComplete,
+  initialAnswers,
+}) => {
   const [answers, setAnswers] = useState(() => initialAnswers || {});
   const [boxAnswers, setBoxAnswers] = useState({});
 
@@ -77,7 +83,10 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
     });
 
     const fullAnswers = { ...finalAnswers, boxes: boxAnswers };
-    onCompleted(fullAnswers, hasAnyYes ? 'FLAGGED_CONTACT_CENTER' : 'CLEARED');
+    const cb = onCompleted || onComplete;
+    if (cb) {
+      cb(fullAnswers, hasAnyYes ? 'FLAGGED_CONTACT_CENTER' : 'CLEARED');
+    }
     onClose();
   };
 

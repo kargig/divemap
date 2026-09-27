@@ -1,6 +1,7 @@
 import {
   User,
   Check,
+  CheckCircle2,
   AlertTriangle,
   CreditCard,
   Trash2,
@@ -48,7 +49,7 @@ const BoatManifestTable = ({
               <th className='py-3 px-3'>Diver & Contact</th>
               <th className='py-3 px-3'>Certification</th>
               <th className='py-3 px-3'>Assigned Tank / Gas</th>
-              <th className='py-3 px-3'>Lead</th>
+              <th className='py-3 px-3 text-center'>Gear Check</th>
               <th className='py-3 px-3 text-center'>Medical</th>
               <th className='py-3 px-3 text-center'>Payment</th>
               <th className='py-3 px-3 text-center'>Boarded</th>
@@ -122,11 +123,21 @@ const BoatManifestTable = ({
                     </span>
                   </td>
 
-                  <td className='py-3.5 px-3 font-mono font-medium'>
-                    <div>{p.estimated_lead_kg || 0} kg</div>
-                    <span className='text-[10px] text-gray-400 font-sans block'>
-                      {p.equipment_sizing?.weight_system === 'BELT' ? 'Weight Belt' : 'Pockets'}
-                    </span>
+                  <td className='py-3.5 px-3 text-center'>
+                    {p.gear_checked ? (
+                      <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'>
+                        <CheckCircle2
+                          size={12}
+                          className='text-emerald-600 dark:text-emerald-400'
+                        />
+                        <span>OK</span>
+                      </span>
+                    ) : (
+                      <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800'>
+                        <AlertTriangle size={12} className='text-amber-600 dark:text-amber-400' />
+                        <span>Pending</span>
+                      </span>
+                    )}
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
@@ -333,9 +344,24 @@ const BoatManifestTable = ({
                   {p.selected_tank_id}L • {p.selected_gas_mix_id.toUpperCase()} •{' '}
                   {p.equipment_sizing?.regulator_fitting || 'DIN'}
                 </span>
-                <span className='px-2 py-0.5 bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 rounded font-mono'>
-                  {p.estimated_lead_kg || 0} kg (
-                  {p.equipment_sizing?.weight_system === 'BELT' ? 'Belt' : 'Pockets'})
+                <span
+                  className={`px-2 py-0.5 rounded font-bold text-[11px] flex items-center gap-1 ${
+                    p.gear_checked
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-300'
+                      : 'bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-300'
+                  }`}
+                >
+                  {p.gear_checked ? (
+                    <>
+                      <CheckCircle2 size={11} className='text-emerald-600' />
+                      <span>Gear OK</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={11} className='text-amber-600' />
+                      <span>Gear Pending</span>
+                    </>
+                  )}
                 </span>
                 {p.diver_nationality && (
                   <span className='text-gray-400 text-[11px]'>({p.diver_nationality})</span>
