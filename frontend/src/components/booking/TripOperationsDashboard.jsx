@@ -287,7 +287,7 @@ const TripOperationsDashboard = () => {
   }
 
   const { slot, vessel, center, participants, crate_packing_summary } = manifestData;
-  const bookedCount = slot.seats_total - slot.seats_available;
+  const bookedCount = participants.length;
   const bookedPercent = Math.min(100, Math.round((bookedCount / slot.seats_total) * 100));
   const boardedCount = participants.filter(p => p.onboard_checkin_status).length;
   const gearCheckedCount = participants.filter(p => p.gear_checked).length;

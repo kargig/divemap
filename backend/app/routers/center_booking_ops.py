@@ -98,7 +98,47 @@ class StaffUpdateRequest(BaseModel):
 
 # --- Helper ---
 
+def reconcile_slot_seats(db: Session, slot: OctoAvailabilitySlot) -> int:
+    """Expire stale ON_HOLD bookings past their expiration time and accurately compute available seats."""
+    now_naive = datetime.utcnow()
+    # 1. Mark expired holds
+    expired_holds = (
+        db.query(OctoBooking)
+        .filter(
+            OctoBooking.availability_id == slot.id,
+            OctoBooking.status == "ON_HOLD",
+            OctoBooking.utc_hold_expiration != None,
+            OctoBooking.utc_hold_expiration < now_naive,
+        )
+        .all()
+    )
+    for hold in expired_holds:
+        hold.status = "EXPIRED"
+
+    # 2. Count confirmed participants
+    confirmed_count = sum(
+        len(b.unit_items) for b in slot.bookings if b.status in ("CONFIRMED", "COMPLETED")
+    )
+
+    # 3. Count active (unexpired) holds
+    active_holds_count = sum(
+        len(b.unit_items) if b.unit_items else 1
+        for b in slot.bookings
+        if b.status == "ON_HOLD"
+    )
+
+    total_booked = confirmed_count + active_holds_count
+    correct_seats_available = max(0, slot.seats_total - total_booked)
+
+    if slot.seats_available != correct_seats_available or expired_holds:
+        slot.seats_available = correct_seats_available
+        db.commit()
+
+    return correct_seats_available
+
+
 def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabilitySlot) -> Dict[str, Any]:
+    reconcile_slot_seats(db, slot)
     vessel = slot.vessel
     vessel_data = {
         "id": vessel.id if vessel else None,
