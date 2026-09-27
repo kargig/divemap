@@ -14,6 +14,7 @@ import {
   CreditCard,
   MapPin,
   Layers,
+  Ship,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -368,6 +369,20 @@ const BookingWizard = () => {
                   {contextData.option.departure_time})
                 </span>
               </div>
+              {contextData.vessel && (
+                <div className='flex items-center gap-1.5'>
+                  <Ship size={16} className='text-blue-600' />
+                  <span>
+                    Boat: <strong>{contextData.vessel.name}</strong>
+                    {contextData.vessel.licensed_capacity && (
+                      <span className='text-gray-400 font-normal'>
+                        {' '}
+                        ({contextData.vessel.licensed_capacity} max)
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -625,53 +640,76 @@ const BookingWizard = () => {
               </div>
 
               {/* Equipment Specifications (Cylinder & Ballast) */}
-              <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t'>
-                <div>
-                  <label className='block text-xs font-medium text-gray-600 mb-1'>Cylinder</label>
-                  <select
-                    value={selectedTankId}
-                    onChange={e => setSelectedTankId(e.target.value)}
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                  >
-                    <option value='12'>12L Steel</option>
-                    <option value='15'>15L Steel</option>
-                    <option value='al80'>AL80 (11L) Alu</option>
-                    <option value='10'>10L Steel</option>
-                  </select>
+              <div className='pt-3 border-t'>
+                <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Cylinder *
+                    </label>
+                    <select
+                      value={selectedTankId}
+                      onChange={e => setSelectedTankId(e.target.value)}
+                      className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                    >
+                      <option value='12'>12L Steel</option>
+                      <option value='15'>15L Steel</option>
+                      <option value='al80'>AL80 (11L) Alu</option>
+                      <option value='10'>10L Steel</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Gas Mix *
+                    </label>
+                    <select
+                      value={selectedGasMixId}
+                      onChange={e => setSelectedGasMixId(e.target.value)}
+                      className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                    >
+                      <option value='air'>Air (21%)</option>
+                      <option value='ean32'>EAN32 (Nitrox)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Regulator Valve *
+                    </label>
+                    <select
+                      value={regulatorFitting}
+                      onChange={e => setRegulatorFitting(e.target.value)}
+                      className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                    >
+                      <option value='DIN'>DIN (G 5/8" Threaded)</option>
+                      <option value='YOKE'>Yoke (INT / A-clamp)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Lead Ballast (kg)
+                    </label>
+                    <input
+                      type='number'
+                      step='0.5'
+                      value={leadKg}
+                      onChange={e => setLeadKg(e.target.value)}
+                      className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs'
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className='block text-xs font-medium text-gray-600 mb-1'>Gas</label>
-                  <select
-                    value={selectedGasMixId}
-                    onChange={e => setSelectedGasMixId(e.target.value)}
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                  >
-                    <option value='air'>Air (21%)</option>
-                    <option value='ean32'>EAN32 (Nitrox)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className='block text-xs font-medium text-gray-600 mb-1'>Valve</label>
-                  <select
-                    value={regulatorFitting}
-                    onChange={e => setRegulatorFitting(e.target.value)}
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                  >
-                    <option value='DIN'>DIN</option>
-                    <option value='YOKE'>Yoke / INT</option>
-                  </select>
-                </div>
-                <div>
-                  <label className='block text-xs font-medium text-gray-600 mb-1'>
-                    Lead Ballast
-                  </label>
-                  <input
-                    type='number'
-                    step='0.5'
-                    value={leadKg}
-                    onChange={e => setLeadKg(e.target.value)}
-                    className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs'
-                  />
+
+                {/* Valve Explanation Note */}
+                <div className='mt-2 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-750 px-2.5 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700'>
+                  {regulatorFitting === 'DIN' ? (
+                    <span>
+                      ✓ <strong>DIN Tank Valve:</strong> Your cylinder will be configured with a
+                      native 5/8" DIN valve (yoke insert removed) to connect your DIN regulator.
+                    </span>
+                  ) : (
+                    <span>
+                      ✓ <strong>Yoke / INT Tank Valve:</strong> Your cylinder will be fitted with a
+                      standard international Yoke insert to clamp your A-clamp regulator.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -776,7 +814,7 @@ const BookingWizard = () => {
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Tank / Gas:</span>
                   <span className='font-semibold text-gray-900 dark:text-white'>
-                    {selectedTankId}L • {selectedGasMixId.toUpperCase()}
+                    {selectedTankId}L • {selectedGasMixId.toUpperCase()} ({regulatorFitting})
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>

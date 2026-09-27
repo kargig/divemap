@@ -114,7 +114,8 @@ const BoatManifestTable = ({
 
                   <td className='py-3.5 px-3'>
                     <span className='inline-flex items-center px-2 py-0.5 rounded font-mono font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] border border-blue-200 dark:border-blue-800'>
-                      {p.selected_tank_id}L • {p.selected_gas_mix_id.toUpperCase()}
+                      {p.selected_tank_id}L • {p.selected_gas_mix_id.toUpperCase()} •{' '}
+                      {p.equipment_sizing?.regulator_fitting || 'DIN'}
                     </span>
                   </td>
 
@@ -262,7 +263,8 @@ const BoatManifestTable = ({
                   {p.certification_agency} {p.certification_level}
                 </span>
                 <span className='px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded font-mono font-medium'>
-                  {p.selected_tank_id}L • {p.selected_gas_mix_id.toUpperCase()}
+                  {p.selected_tank_id}L • {p.selected_gas_mix_id.toUpperCase()} •{' '}
+                  {p.equipment_sizing?.regulator_fitting || 'DIN'}
                 </span>
                 <span className='px-2 py-0.5 bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 rounded font-mono'>
                   {p.estimated_lead_kg || 0} kg lead

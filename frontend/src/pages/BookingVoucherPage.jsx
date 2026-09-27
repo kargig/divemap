@@ -12,6 +12,7 @@ import {
   Gauge,
   CreditCard,
   FileCheck,
+  Ship,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -120,7 +121,7 @@ const BookingVoucherPage = () => {
 
           <div className='p-6 space-y-6'>
             {/* Booking Reference & Schedule Strip */}
-            <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-750 p-4 rounded-xl border border-gray-100 dark:border-gray-700'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 dark:bg-gray-750 p-4 rounded-xl border border-gray-100 dark:border-gray-700'>
               <div>
                 <span className='text-xs text-gray-400 block font-medium uppercase tracking-wider'>
                   Booking Reference
@@ -147,6 +148,21 @@ const BookingVoucherPage = () => {
                 <span className='text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-0.5'>
                   <Clock size={14} className='text-blue-600' />
                   {voucher.meetingTime} (Dep: {voucher.departureTime})
+                </span>
+              </div>
+
+              <div>
+                <span className='text-xs text-gray-400 block font-medium uppercase tracking-wider'>
+                  Dive Vessel
+                </span>
+                <span className='text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1 mt-0.5'>
+                  <Ship size={14} className='text-blue-600' />
+                  {voucher.vesselName || 'Dive Boat'}
+                  {voucher.vesselRegistration && (
+                    <span className='text-xs text-gray-400 font-mono font-normal'>
+                      ({voucher.vesselRegistration})
+                    </span>
+                  )}
                 </span>
               </div>
             </div>

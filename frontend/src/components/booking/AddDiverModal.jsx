@@ -24,6 +24,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
 
   const [tankId, setTankId] = useState('12');
   const [gasMixId, setGasMixId] = useState('air');
+  const [regulatorFitting, setRegulatorFitting] = useState('DIN');
   const [leadKg, setLeadKg] = useState('4.0');
 
   const [wetsuitSize, setWetsuitSize] = useState('L');
@@ -85,6 +86,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
         selected_tank_id: tankId,
         selected_gas_mix_id: gasMixId,
         equipment_sizing: {
+          regulator_fitting: regulatorFitting,
           wetsuit_size: wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_size: bcdSize,
@@ -305,6 +307,17 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               >
                 <option value='air'>Air (21%)</option>
                 <option value='ean32'>EAN32 (Nitrox)</option>
+              </select>
+            </div>
+            <div>
+              <label className='block font-medium text-gray-600 mb-1'>Valve Fitting</label>
+              <select
+                value={regulatorFitting}
+                onChange={e => setRegulatorFitting(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+              >
+                <option value='DIN'>DIN (5/8" Threaded)</option>
+                <option value='YOKE'>Yoke (INT / A-clamp)</option>
               </select>
             </div>
             <div>

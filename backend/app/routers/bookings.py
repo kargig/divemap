@@ -63,6 +63,9 @@ class BookingVoucherResponse(BaseModel):
     centerName: str
     centerAddress: Optional[str] = None
     centerPhone: Optional[str] = None
+    vesselName: Optional[str] = None
+    vesselRegistration: Optional[str] = None
+    vesselCapacity: Optional[int] = None
     departureDate: str
     meetingTime: str
     departureTime: str
@@ -168,6 +171,12 @@ def get_checkout_context(
             "phone": center.phone,
             "email": center.email,
         },
+        "vessel": {
+            "id": slot.vessel.id,
+            "name": slot.vessel.name,
+            "registration_number": slot.vessel.registration_number,
+            "licensed_capacity": slot.vessel.licensed_capacity,
+        } if slot.vessel else None,
         "prefill_gear": prefill_gear,
         "user_certifications": user_certifications,
         "dmsc_schema": dmsc_schema,
@@ -273,6 +282,7 @@ def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
         ) for item in booking.unit_items
     ]
 
+    vessel = slot.vessel if slot else None
     return BookingVoucherResponse(
         bookingUuid=booking.uuid,
         status=booking.status,
@@ -284,6 +294,9 @@ def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
         centerName=center.name,
         centerAddress=getattr(center, "address", None) or f"{center.latitude}, {center.longitude}",
         centerPhone=center.phone,
+        vesselName=vessel.name if vessel else None,
+        vesselRegistration=vessel.registration_number if vessel else None,
+        vesselCapacity=vessel.licensed_capacity if vessel else None,
         departureDate=slot.start_datetime.strftime("%Y-%m-%d"),
         meetingTime=option.meeting_time.strftime("%H:%M"),
         departureTime=option.departure_time.strftime("%H:%M"),

@@ -22,6 +22,9 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
   // Edit fields
   const [tankId, setTankId] = useState(participant?.selected_tank_id || '12');
   const [gasMixId, setGasMixId] = useState(participant?.selected_gas_mix_id || 'air');
+  const [regulatorFitting, setRegulatorFitting] = useState(
+    participant?.equipment_sizing?.regulator_fitting || 'DIN'
+  );
   const [leadKg, setLeadKg] = useState(participant?.estimated_lead_kg?.toString() || '4.0');
   const [wetsuitSize, setWetsuitSize] = useState(
     participant?.equipment_sizing?.wetsuit_size || 'L'
@@ -48,6 +51,7 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
         selected_tank_id: tankId,
         selected_gas_mix_id: gasMixId,
         equipment_sizing: {
+          regulator_fitting: regulatorFitting,
           wetsuit_size: wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_size: bcdSize,
@@ -237,6 +241,17 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
                 </select>
               </div>
               <div>
+                <label className='block font-semibold mb-1 text-[11px]'>Valve Fitting</label>
+                <select
+                  value={regulatorFitting}
+                  onChange={e => setRegulatorFitting(e.target.value)}
+                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                >
+                  <option value='DIN'>DIN (5/8" Threaded)</option>
+                  <option value='YOKE'>Yoke (INT / A-clamp)</option>
+                </select>
+              </div>
+              <div>
                 <label className='block font-semibold mb-1 text-[11px]'>Lead (kg)</label>
                 <input
                   type='number'
@@ -332,6 +347,12 @@ const DiverDetailsModal = ({ isOpen, onClose, participant, centerId, tripId, onU
                 <span className='text-gray-400 block text-[10px]'>Breathing Gas:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
                   {participant.selected_gas_mix_id?.toUpperCase()}
+                </strong>
+              </div>
+              <div>
+                <span className='text-gray-400 block text-[10px]'>Valve Connection:</span>
+                <strong className='text-gray-800 dark:text-gray-200 font-mono'>
+                  {participant.equipment_sizing?.regulator_fitting || 'DIN'}
                 </strong>
               </div>
               <div>
