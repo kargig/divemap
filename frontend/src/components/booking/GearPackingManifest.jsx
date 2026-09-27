@@ -92,15 +92,34 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
       {Object.keys(bcds).length === 0 ? (
         <p className='text-xs text-gray-400 italic py-1'>No rental BCDs.</p>
       ) : (
-        <div className='flex flex-wrap gap-1.5'>
-          {Object.entries(bcds).map(([size, count]) => (
-            <span
-              key={size}
-              className='px-2.5 py-1 bg-gray-50 dark:bg-gray-750 rounded-lg text-xs font-semibold'
-            >
-              Size {size}: <strong className='text-blue-600'>{count}x</strong>
-            </span>
-          ))}
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-1.5'>
+          {Object.entries(bcds).map(([size, count]) => {
+            const isWomen = size.startsWith("Women's");
+            return (
+              <div
+                key={size}
+                className={`p-2 rounded-lg border flex items-center justify-between text-xs ${
+                  isWomen
+                    ? 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/40'
+                    : 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40'
+                }`}
+              >
+                <div>
+                  <span className='font-bold text-gray-800 dark:text-gray-200 block text-[11px]'>
+                    {size}
+                  </span>
+                  <span
+                    className={`text-[9px] font-bold px-1 py-0.2 rounded inline-block ${
+                      isWomen ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
+                    {isWomen ? "Women's Cut" : "Men's / Unisex"}
+                  </span>
+                </div>
+                <strong className='font-mono text-sm text-blue-600'>{count}x</strong>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

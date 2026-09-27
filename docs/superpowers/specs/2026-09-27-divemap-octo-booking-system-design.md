@@ -684,17 +684,26 @@ In strict compliance with Divemap UX guidelines, horizontal scrolling (`overflow
 | **Actions** | Dropdown: **View Details** \| **Edit Participant** \| **Move to Another Trip** \| **Remove / Cancel**. |
 
 ### 7.3 Equipment Crate Packing Manifest & Inventory Protection
-An aggregated tab designed specifically for dive shop technicians and boat crew packing the vessel:
-* **Cylinder Breakdown (Reusing `TANK_SIZES`):**
-  * e.g., `8x 12L Steel (Air)`, `3x 15L Steel (Air)`, `2x AL80 Alu (EAN32 Nitrox)`, `1x 15L Steel (EAN32 Nitrox)`.
-* **Lead Ballast Total:** Automatically summed in the center manager's preferred unit (e.g., `Total: 48 kg / 106 lbs`).
-* **Rental Gear Allocation Tally:**
-  * `Wetsuits: 2x Men L (5mm), 1x Men M (5mm), 2x Women S (5mm)`
-  * `BCDs: 1x XS, 2x M, 2x L`
-  * `Computers: 3x Suunto Zoop Rental Units`
-* **Labeled Crate Cards:**
-  * Crate #1 (John Doe): Wetsuit Men's L (5mm), BCD M, Boots EU 43, Fins L, DIN Reg, 12L Tank, 4 kg lead, Rental Computer #4.
-  * Crate #2 (Jane Smith): Own Gear, Rental 15L Tank (DIN), 6 kg lead.
+An aggregated operational tab designed specifically for dive shop equipment technicians and boat crew packing the vessel:
+* **Top-to-Bottom Scuba Equipment Breakdown (Must vs Opt):**
+  * **Head & Face:** Dive Mask (Must), Snorkel (Opt), Neoprene Thermal Hood (Opt: S–XL).
+  * **Breathing & Regulators:** Primary Cylinders (Must), Stage / Decompression Cylinders (Opt: 7L, AL80, EAN50, 100% O2), First & Second Stage Regulators (Must: DIN vs Yoke).
+  * **Buoyancy & Ballast:** BCD (Must: Men's/Unisex vs Women's Cut, XXS–XL), Lead Ballast (Must: 2kg, 1kg, 0.5kg trim blocks), Weight System (Must: Integrated Pockets vs Traditional Webbing Belt).
+  * **Thermal & Exposure:** Wetsuits / Semi-Dry / Drysuit (Must: Men's/Unisex vs Women's Anatomical Cut, 3mm/5mm/7mm, XS–XXL), Dive Gloves (Opt: S–XL), Neoprene Socks / Fin Liners (Opt).
+  * **Footwear & Fins:** Fins (Must: Open-Heel with Booties vs Full-Foot Barefoot), Neoprene Booties (Must with open-heel fins: EU size).
+  * **Specialty & Propulsion:** Diver Propulsion Vehicle / Scooter (Opt).
+* **Configurable Crate / Bag Partitioning (1 to 5 Crates):**
+  * Center managers can dynamically configure the number of transport crates (1 to 5) to match their boat deck layout:
+    * **1 Crate (Master All-in-One):** All rental suits, BCDs, regulators, fins, and small accessories in a single container (for small RIBs or private charters).
+    * **2 Crates:** Crate 1 (Suits & BCDs), Crate 2 (Regulators, Fins, Boots, Masks & Small Gear).
+    * **3 Crates (Standard Center Ops):** Crate 1 (Suits & Hoods), Crate 2 (BCDs & Regulators), Crate 3 (Fins, Boots, Masks & Small Gear).
+    * **4 Crates:** Crate 1 (Suits & Hoods), Crate 2 (BCDs), Crate 3 (Regulators & DPV Tech), Crate 4 (Fins, Boots, Masks & Snorkels).
+    * **5 Crates (Dedicated Compartments):** Crate 1 (Suits), Crate 2 (BCDs), Crate 3 (Regulators), Crate 4 (Fins & Boots), Crate 5 (Masks, Snorkels, Hoods, Gloves & Tech).
+  * *Note:* Cylinders and Lead Weight buckets are always staged separately outside the crates in boat racks and ballast bins.
+* **Emergency Contact & Dive Insurance Compliance:**
+  * Every diver manifest includes verified emergency contact (next of kin name, phone, relationship) and dive accident insurance status (Own active policy details vs Dive center daily hyperbaric evacuation coverage).
+* **Main Certifications Progression:**
+  * Official certification levels are filtered strictly to core qualification progression tracks (e.g. Scuba Diver, OWD, AOWD, Rescue Diver, Master Scuba Diver, Divemaster, OWSI, Tec 40/45/50/Trimix), omitting non-core specialty cards and non-certification intro experiences.
 
 ### 7.4 One-Click Coast Guard / Port Authority Export (Vessel & Crew Compliant)
 Generates an official maritime passenger and crew manifest PDF/CSV compliant with Mediterranean port laws (e.g. Greece Law 3409/2005 & 4688/2020, Spain, Italy) and Egypt CDWS:

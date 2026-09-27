@@ -59,6 +59,7 @@ const DiverGearConfigForm = ({
   const [stageTank, setStageTank] = useState('None');
 
   // 3. Buoyancy & Ballast
+  const [bcdGender, setBcdGender] = useState('MEN');
   const [bcdSize, setBcdSize] = useState('M');
   const [leadKg, setLeadKg] = useState('4.0');
   const [leadLbs, setLeadLbs] = useState('9.0');
@@ -141,6 +142,7 @@ const DiverGearConfigForm = ({
     setWetsuitGender(eq.wetsuit_gender || 'MEN');
     setWetsuitSize(eq.wetsuit_size || 'None');
     setWetsuitThickness(eq.wetsuit_thickness || '5mm');
+    setBcdGender(eq.bcd_gender || eq.wetsuit_gender || 'MEN');
     setBcdSize(eq.bcd_size || 'None');
     setGlovesSize(eq.gloves_size || 'None');
     setRentalSocks(Boolean(eq.rental_socks));
@@ -308,6 +310,7 @@ const DiverGearConfigForm = ({
         wetsuit_gender: wetsuitGender,
         wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
         wetsuit_thickness: wetsuitThickness,
+        bcd_gender: bcdGender,
         bcd_size: bcdSize === 'None' ? null : bcdSize,
         gloves_size: glovesSize === 'None' ? null : glovesSize,
         rental_socks: rentalSocks,
@@ -679,6 +682,20 @@ const DiverGearConfigForm = ({
 
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              BCD Cut *
+            </label>
+            <select
+              value={bcdGender}
+              onChange={e => setBcdGender(e.target.value)}
+              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='MEN'>Men's / Unisex</option>
+              <option value='WOMEN'>Women's Cut</option>
+            </select>
+          </div>
+
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
               BCD Size *
             </label>
             <select
@@ -687,6 +704,7 @@ const DiverGearConfigForm = ({
               className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750'
             >
               <option value='None'>None (Own BCD)</option>
+              <option value='XXS'>XXS</option>
               <option value='XS'>XS</option>
               <option value='S'>S</option>
               <option value='M'>M</option>

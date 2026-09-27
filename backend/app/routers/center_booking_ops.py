@@ -251,7 +251,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 regulators_summary[reg_type] = regulators_summary.get(reg_type, 0) + 1
 
             if eq.get("bcd_size") and eq.get("bcd_size") != "None":
-                bcd_label = str(eq.get("bcd_size"))
+                bcd_gender = str(eq.get("bcd_gender") or eq.get("wetsuit_gender") or "MEN").upper()
+                bcd_prefix = "Women's" if bcd_gender == "WOMEN" else "Men's"
+                bcd_label = f"{bcd_prefix} {eq.get('bcd_size')}"
                 bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
 
             # 4. Gloves & Socks

@@ -31,6 +31,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [wetsuitGender, setWetsuitGender] = useState('MEN');
   const [wetsuitSize, setWetsuitSize] = useState('L');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
+  const [bcdGender, setBcdGender] = useState('MEN');
   const [bcdSize, setBcdSize] = useState('M');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
 
@@ -119,6 +120,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
           wetsuit_gender: wetsuitGender,
           wetsuit_size: wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
+          bcd_gender: bcdGender,
           bcd_size: bcdSize,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43,
           estimated_lead_kg: parseFloat(leadKg) || 0,
@@ -408,6 +410,17 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 <option value='3mm'>3mm</option>
                 <option value='5mm'>5mm</option>
                 <option value='7mm'>7mm</option>
+              </select>
+            </div>
+            <div>
+              <label className='block font-medium text-gray-600 mb-1'>BCD Cut</label>
+              <select
+                value={bcdGender}
+                onChange={e => setBcdGender(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+              >
+                <option value='MEN'>Men's / Unisex</option>
+                <option value='WOMEN'>Women's</option>
               </select>
             </div>
             <div>

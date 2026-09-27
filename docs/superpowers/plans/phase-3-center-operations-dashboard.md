@@ -152,7 +152,12 @@ Build dual responsive views adhering strictly to the "No Horizontal Scrolling" m
 
 - [x] **Step 2: Implement `GearPackingManifest.jsx`**
 
-Aggregates cylinders by size, gas mix, and explicit valve adapter requirement (`✓ DIN Native Valve` vs `⚠️ YOKE (Fit DIN-to-Yoke Insert)`), total lead weights (with 1kg/2kg block count denominations), and weight system breakdown (`Integrated BCD Pockets` vs `Nylon Weight Belts`).
+Aggregates cylinders by size, gas mix, and explicit valve adapter requirement (`✓ DIN Native Valve` vs `⚠️ YOKE (Fit DIN-to-Yoke Insert)`), total lead weights (with 2kg, 1kg, and 0.5kg block count denominations), and weight system breakdown (`Integrated BCD Pockets` vs `Nylon Weight Belts`).
+* **Complete Top-to-Bottom Scuba Checklist:** Masks, snorkels, hoods, regulators, stage cylinders, BCDs, thermal suits, gloves, socks, booties, fins, and DPV scooters.
+* **Anatomical Cut Sizing:** Wetsuits and BCDs explicitly differentiate `Women's Cut` (pink/rose badges) vs `Men's / Unisex` (blue badges).
+* **Configurable Crate Partitioning (1 to 5 Crates):** Center managers can select from 1 to 5 transport containers to dynamically group equipment according to their vessel deck space.
+* **Official Requirements:** Verified emergency contact (next of kin name, phone, relationship) and dive accident insurance status (Own active policy vs Dive center daily hyperbaric evacuation coverage).
+* **Main Certification Tracks:** Filtered diving organization levels strictly to core qualification progression tracks.
 
 - [x] **Step 3: Implement `AddDiverModal.jsx` & `DiverDetailsModal.jsx`**
 
