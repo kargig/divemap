@@ -8,6 +8,7 @@ import {
   Gauge,
   LifeBuoy,
   HeartPulse,
+  Compass,
 } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -45,28 +46,44 @@ const DiverGearConfigForm = ({
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
   const [shoeSizeUs, setShoeSizeUs] = useState('9.5');
 
-  // Cylinder & Gas
+  // 1. Head & Face
+  const [rentalMask, setRentalMask] = useState(false);
+  const [rentalSnorkel, setRentalSnorkel] = useState(false);
+  const [hoodSize, setHoodSize] = useState('None');
+
+  // 2. Breathing & Regulators
   const [selectedTankId, setSelectedTankId] = useState('12');
   const [selectedGasMixId, setSelectedGasMixId] = useState('air');
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
+  const [rentalRegulator, setRentalRegulator] = useState(true);
+  const [stageTank, setStageTank] = useState('None');
 
-  // Ballast
+  // 3. Buoyancy & Ballast
+  const [bcdSize, setBcdSize] = useState('M');
   const [leadKg, setLeadKg] = useState('4.0');
   const [leadLbs, setLeadLbs] = useState('9.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
-  // Thermal & BCD
+  // 4. Thermal & Exposure
   const [wetsuitGender, setWetsuitGender] = useState('MEN');
   const [wetsuitSize, setWetsuitSize] = useState('L');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
-  const [bcdSize, setBcdSize] = useState('M');
-  const [finType, setFinType] = useState('OPEN_HEEL');
+  const [glovesSize, setGlovesSize] = useState('None');
+  const [rentalSocks, setRentalSocks] = useState(false);
 
-  // Safety Gear
+  // 5. Footwear & Fins
+  const [finType, setFinType] = useState('OPEN_HEEL');
+  const [rentalFins, setRentalFins] = useState(true);
+  const [rentalBoots, setRentalBoots] = useState(true);
+
+  // 6. Specialty / Propulsion
+  const [rentalScooter, setRentalScooter] = useState(false);
+
+  // 7. Safety Gear
   const [hasOwnComputer, setHasOwnComputer] = useState(false);
   const [hasOwnSmb, setHasOwnSmb] = useState(false);
 
-  // Insurance & Emergency
+  // 8. Insurance & Emergency
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
@@ -88,6 +105,13 @@ const DiverGearConfigForm = ({
     // Regulator & weight system
     if (eq.regulator_fitting) setRegulatorFitting(eq.regulator_fitting);
     if (eq.weight_system) setWeightSystem(eq.weight_system);
+    setRentalRegulator(eq.rental_regulator !== undefined ? Boolean(eq.rental_regulator) : true);
+    setStageTank(eq.stage_tank || 'None');
+
+    // Head & face
+    setRentalMask(Boolean(eq.rental_mask));
+    setRentalSnorkel(Boolean(eq.rental_snorkel));
+    setHoodSize(eq.hood_size || 'None');
 
     // Ballast
     const rawLead = initialData.estimated_lead_kg ?? eq.estimated_lead_kg ?? eq.lead_kg;
@@ -118,7 +142,16 @@ const DiverGearConfigForm = ({
     setWetsuitSize(eq.wetsuit_size || 'None');
     setWetsuitThickness(eq.wetsuit_thickness || '5mm');
     setBcdSize(eq.bcd_size || 'None');
+    setGlovesSize(eq.gloves_size || 'None');
+    setRentalSocks(Boolean(eq.rental_socks));
+
+    // Footwear & Fins
     setFinType(eq.fin_type || 'OPEN_HEEL');
+    setRentalFins(eq.rental_fins !== undefined ? Boolean(eq.rental_fins) : true);
+    setRentalBoots(eq.rental_boots !== undefined ? Boolean(eq.rental_boots) : true);
+
+    // Specialty
+    setRentalScooter(Boolean(eq.rental_scooter || eq.has_scooter));
 
     // Safety gear
     setHasOwnComputer(Boolean(eq.has_own_dive_computer));
@@ -264,6 +297,11 @@ const DiverGearConfigForm = ({
         weight_kg: finalWeightKg,
         shoe_size_eu: finalShoeEu,
         regulator_fitting: regulatorFitting,
+        rental_regulator: rentalRegulator,
+        stage_tank: stageTank === 'None' ? null : stageTank,
+        rental_mask: rentalMask,
+        rental_snorkel: rentalSnorkel,
+        hood_size: hoodSize === 'None' ? null : hoodSize,
         weight_system: weightSystem,
         estimated_lead_kg: finalLeadKg,
         lead_kg: finalLeadKg,
@@ -271,7 +309,12 @@ const DiverGearConfigForm = ({
         wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
         wetsuit_thickness: wetsuitThickness,
         bcd_size: bcdSize === 'None' ? null : bcdSize,
+        gloves_size: glovesSize === 'None' ? null : glovesSize,
+        rental_socks: rentalSocks,
         fin_type: finType,
+        rental_fins: rentalFins,
+        rental_boots: rentalBoots,
+        rental_scooter: rentalScooter,
         has_own_dive_computer: hasOwnComputer,
         has_own_smb: hasOwnSmb,
         emergency_contact_name: emergencyContactName.trim() || undefined,
@@ -321,19 +364,70 @@ const DiverGearConfigForm = ({
         </div>
       </div>
 
-      {/* 1. Cylinder & Breathing Gas */}
+      {/* 1. Head & Face (Mask, Snorkel, Hood) */}
       <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
         <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
-          <Gauge className='text-blue-600 h-4 w-4' />
+          <Compass className='text-cyan-600 h-4 w-4' />
           <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
-            Cylinder, Breathing Gas & Regulator Valve
+            Head & Face: Mask, Snorkel & Thermal Hood
           </h4>
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Cylinder Size *
+              Thermal Hood (Opt)
+            </label>
+            <select
+              value={hoodSize}
+              onChange={e => setHoodSize(e.target.value)}
+              className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='None'>None (No Hood / Own Hood)</option>
+              <option value='S'>Size S (Small)</option>
+              <option value='M'>Size M (Medium)</option>
+              <option value='L'>Size L (Large)</option>
+              <option value='XL'>Size XL (Extra Large)</option>
+            </select>
+          </div>
+
+          <div className='flex items-center gap-4 sm:col-span-2 pt-2 sm:pt-5'>
+            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={rentalMask}
+                onChange={e => setRentalMask(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Renting Dive Mask (Must)</span>
+            </label>
+
+            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={rentalSnorkel}
+                onChange={e => setRentalSnorkel(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Renting Snorkel (Opt)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Breathing, Regulators & Stage Cylinders */}
+      <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+        <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
+          <Gauge className='text-blue-600 h-4 w-4' />
+          <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
+            Cylinders, Gas & Life-Support Regulators
+          </h4>
+        </div>
+
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Primary Cylinder *
             </label>
             <select
               value={selectedTankId}
@@ -377,22 +471,39 @@ const DiverGearConfigForm = ({
           </div>
         </div>
 
-        <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg text-[11px] text-gray-600 dark:text-gray-300'>
-          {regulatorFitting === 'DIN' ? (
-            <span>
-              ✓ <strong>Native DIN:</strong> Cylinder will be configured with a native 5/8" threaded
-              DIN valve without adapter inserts.
-            </span>
-          ) : (
-            <span>
-              ⚠️ <strong>Yoke Clamp:</strong> Cylinder will be fitted with a standard DIN-to-Yoke
-              insert to clamp an A-clamp regulator.
-            </span>
-          )}
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1'>
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Decompression / Stage Cylinder (Opt)
+            </label>
+            <select
+              value={stageTank}
+              onChange={e => setStageTank(e.target.value)}
+              className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='None'>None (Standard Dive)</option>
+              <option value='7L Stage (EAN50)'>7L Stage (EAN50)</option>
+              <option value='AL80 Stage (EAN50)'>AL80 (11.1L) Stage (EAN50)</option>
+              <option value='7L Stage (100% O2)'>7L Stage (100% O2 Deco)</option>
+              <option value='AL80 Stage (Air)'>AL80 Stage (Air / Bottom Gas)</option>
+            </select>
+          </div>
+
+          <div className='flex items-center pt-4'>
+            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={rentalRegulator}
+                onChange={e => setRentalRegulator(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Renting Center Regulator Setup (Must)</span>
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* 2. Ballast & Physics Calculator */}
+      {/* 3. Ballast, Lead & Physics Calculator */}
       <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
         <div className='flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700'>
           <div className='flex items-center gap-2'>
@@ -505,19 +616,34 @@ const DiverGearConfigForm = ({
         </div>
       </div>
 
-      {/* 3. Thermal Protection, BCD & Fins */}
+      {/* 4. Thermal Suit, BCD, Gloves & Socks */}
       <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
         <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
           <LifeBuoy className='text-emerald-600 h-4 w-4' />
           <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
-            Thermal Suit, Buoyancy & Fins
+            Thermal Exposure, BCD & Gloves
           </h4>
         </div>
 
         <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Wetsuit Size
+              Wetsuit Cut *
+            </label>
+            <select
+              value={wetsuitGender}
+              onChange={e => setWetsuitGender(e.target.value)}
+              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='MEN'>Men's / Unisex</option>
+              <option value='WOMEN'>Women's</option>
+              <option value='OTHER'>Other / Custom</option>
+            </select>
+          </div>
+
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Wetsuit Size *
             </label>
             <select
               value={wetsuitSize}
@@ -536,7 +662,7 @@ const DiverGearConfigForm = ({
 
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Suit Thickness / Type
+              Suit Thickness
             </label>
             <select
               value={wetsuitThickness}
@@ -553,7 +679,7 @@ const DiverGearConfigForm = ({
 
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              BCD Size
+              BCD Size *
             </label>
             <select
               value={bcdSize}
@@ -568,26 +694,67 @@ const DiverGearConfigForm = ({
               <option value='XL'>XL</option>
             </select>
           </div>
+        </div>
 
+        <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100 dark:border-gray-700'>
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Fin Style
+              Gloves (Opt)
+            </label>
+            <select
+              value={glovesSize}
+              onChange={e => setGlovesSize(e.target.value)}
+              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='None'>None / Own</option>
+              <option value='S'>Size S</option>
+              <option value='M'>Size M</option>
+              <option value='L'>Size L</option>
+              <option value='XL'>Size XL</option>
+            </select>
+          </div>
+
+          <div className='flex items-center pt-4'>
+            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={rentalSocks}
+                onChange={e => setRentalSocks(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Neoprene Socks / Fin Liners (Opt)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Footwear & Fins */}
+      <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+        <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
+          <Compass className='text-blue-600 h-4 w-4' />
+          <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
+            Fins & Neoprene Boots
+          </h4>
+        </div>
+
+        <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Fin Style *
             </label>
             <select
               value={finType}
               onChange={e => setFinType(e.target.value)}
               className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
             >
-              <option value='OPEN_HEEL'>Open-Heel (With Booties)</option>
+              <option value='OPEN_HEEL'>Open-Heel (Requires Booties)</option>
               <option value='FULL_FOOT'>Full-Foot (Barefoot)</option>
             </select>
           </div>
-        </div>
 
-        <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-gray-100 dark:border-gray-700'>
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Shoe / Fin Size (EU)
+              Shoe / Boot Size (EU)
             </label>
             <input
               type='number'
@@ -605,45 +772,77 @@ const DiverGearConfigForm = ({
             />
           </div>
 
-          <div>
-            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Wetsuit Cut
+          <div className='flex items-center pt-4'>
+            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+              <input
+                type='checkbox'
+                checked={rentalBoots}
+                onChange={e => setRentalBoots(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Renting Neoprene Booties ({finType === 'OPEN_HEEL' ? 'Must' : 'Opt'})</span>
             </label>
-            <select
-              value={wetsuitGender}
-              onChange={e => setWetsuitGender(e.target.value)}
-              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750'
-            >
-              <option value='MEN'>Men / Unisex</option>
-              <option value='WOMEN'>Women</option>
-            </select>
           </div>
 
-          <div className='col-span-2 flex items-center gap-4 pt-4'>
+          <div className='flex items-center pt-4'>
             <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
               <input
                 type='checkbox'
-                checked={hasOwnComputer}
-                onChange={e => setHasOwnComputer(e.target.checked)}
+                checked={rentalFins}
+                onChange={e => setRentalFins(e.target.checked)}
                 className='rounded text-blue-600'
               />
-              <span>Has own Dive Computer</span>
-            </label>
-
-            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={hasOwnSmb}
-                onChange={e => setHasOwnSmb(e.target.checked)}
-                className='rounded text-blue-600'
-              />
-              <span>Has own SMB & Spool</span>
+              <span>Renting Fins (Must)</span>
             </label>
           </div>
         </div>
       </div>
 
-      {/* 4. Optional Emergency Contact & Insurance */}
+      {/* 6. Specialty, Propulsion & Personal Safety Gear */}
+      <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+        <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
+          <Sparkles className='text-amber-500 h-4 w-4' />
+          <h4 className='font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider'>
+            Specialty Propulsion & Personal Safety Gear
+          </h4>
+        </div>
+
+        <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1'>
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
+              checked={rentalScooter}
+              onChange={e => setRentalScooter(e.target.checked)}
+              className='rounded text-blue-600'
+            />
+            <span className='font-bold text-blue-900 dark:text-blue-300'>
+              Reserve DPV Scooter (Opt)
+            </span>
+          </label>
+
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
+              checked={hasOwnComputer}
+              onChange={e => setHasOwnComputer(e.target.checked)}
+              className='rounded text-blue-600'
+            />
+            <span>Has own Dive Computer</span>
+          </label>
+
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
+              checked={hasOwnSmb}
+              onChange={e => setHasOwnSmb(e.target.checked)}
+              className='rounded text-blue-600'
+            />
+            <span>Has own SMB & Spool</span>
+          </label>
+        </div>
+      </div>
+
+      {/* 7. Optional Emergency Contact & Insurance */}
       {showEmergencyAndInsurance && (
         <div className='p-3.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
           <div className='flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-700'>
@@ -702,14 +901,14 @@ const DiverGearConfigForm = ({
                   type='text'
                   value={insurancePolicyNumber}
                   onChange={e => setInsurancePolicyNumber(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs'
                   placeholder='Policy #'
                 />
                 <input
                   type='date'
                   value={insuranceExpiryDate}
                   onChange={e => setInsuranceExpiryDate(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs'
                 />
               </div>
             </div>

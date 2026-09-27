@@ -140,9 +140,18 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     participants = []
     tanks_summary = {}
+    stage_tanks_summary = {}
     suits_summary = {}
     bcds_summary = {}
+    regulators_summary = {"DIN": 0, "Yoke": 0}
+    masks_count = 0
+    snorkels_count = 0
+    hoods_summary = {}
+    gloves_summary = {}
+    socks_count = 0
+    boots_summary = {}
     fins_summary = {}
+    scooters_count = 0
     total_lead_kg = 0.0
 
     # Denomination tallies for weights & valve fittings
@@ -223,13 +232,53 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
                 suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
 
-            if eq.get("bcd_size"):
+            is_rental_pkg = item.unit_id == "certified-diver-full-rental" or eq.get("is_rental_package", False)
+
+            # 1. Mask & Snorkel
+            if is_rental_pkg or eq.get("rental_mask", False) or not eq.get("has_own_mask", True):
+                masks_count += 1
+            if eq.get("rental_snorkel", False):
+                snorkels_count += 1
+
+            # 2. Hood
+            if eq.get("hood_size") and eq.get("hood_size") != "None":
+                h_label = f"Size {eq.get('hood_size')}"
+                hoods_summary[h_label] = hoods_summary.get(h_label, 0) + 1
+
+            # 3. Regulator
+            if is_rental_pkg or eq.get("rental_regulator", False) or not eq.get("has_own_regulator", True):
+                reg_type = "Yoke" if ("YOKE" in fitting or "INT" in fitting) else "DIN"
+                regulators_summary[reg_type] = regulators_summary.get(reg_type, 0) + 1
+
+            if eq.get("bcd_size") and eq.get("bcd_size") != "None":
                 bcd_label = str(eq.get("bcd_size"))
                 bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
 
-            if eq.get("shoe_size_eu"):
-                shoe_label = f"EU {eq.get('shoe_size_eu')}"
-                fins_summary[shoe_label] = fins_summary.get(shoe_label, 0) + 1
+            # 4. Gloves & Socks
+            if eq.get("gloves_size") and eq.get("gloves_size") != "None":
+                g_label = f"Size {eq.get('gloves_size')}"
+                gloves_summary[g_label] = gloves_summary.get(g_label, 0) + 1
+            if eq.get("rental_socks", False):
+                socks_count += 1
+
+            # 5. Boots & Fins
+            shoe_sz = eq.get("shoe_size_eu")
+            fin_style = eq.get("fin_type", "OPEN_HEEL")
+            if eq.get("rental_boots", False) or (is_rental_pkg and fin_style == "OPEN_HEEL" and shoe_sz):
+                b_label = f"EU {shoe_sz}" if shoe_sz else "Standard"
+                boots_summary[b_label] = boots_summary.get(b_label, 0) + 1
+
+            if eq.get("rental_fins", False) or is_rental_pkg or (shoe_sz and not eq.get("has_own_fins", False)):
+                f_style_label = "Open-Heel" if fin_style == "OPEN_HEEL" else "Full-Foot"
+                f_label = f"{f_style_label} (EU {shoe_sz})" if shoe_sz else f_style_label
+                fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
+
+            # 6. DPV Scooter & Stage Tanks
+            if eq.get("rental_scooter", False) or eq.get("has_scooter", False):
+                scooters_count += 1
+            if eq.get("stage_tank") and eq.get("stage_tank") != "None":
+                st_label = str(eq.get("stage_tank"))
+                stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
 
             participants.append({
                 "id": item.id,
@@ -293,10 +342,19 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "participants": participants,
         "crate_packing_summary": {
             "cylinders": tanks_summary,
+            "stage_tanks": stage_tanks_summary,
             "wetsuits": suits_summary,
             "bcds": bcds_summary,
+            "regulators": regulators_summary,
+            "masks_count": masks_count,
+            "snorkels_count": snorkels_count,
+            "hoods": hoods_summary,
+            "gloves": gloves_summary,
+            "socks_count": socks_count,
+            "boots": boots_summary,
             "fins": fins_summary,
-            "total_lead_kg": total_lead_kg,
+            "scooters_count": scooters_count,
+            "total_lead_kg": round(total_lead_kg, 1),
             "total_participants": len(participants),
             "lead_breakdown": lead_breakdown,
             "valve_fittings": valve_fittings,

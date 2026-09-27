@@ -1,63 +1,316 @@
-import { Gauge, Anchor, Package, Printer, Wrench, AlertCircle, ShieldAlert } from 'lucide-react';
-import React from 'react';
+import { Package, Printer, Compass, Gauge, Anchor, Sparkles, LifeBuoy, Layers } from 'lucide-react';
+import React, { useState } from 'react';
 
-const GearPackingManifest = ({ summary = {}, participants = [] }) => {
-  const cylinders = summary.cylinders || {};
-  const wetsuits = summary.wetsuits || {};
-  const bcds = summary.bcds || {};
-  const fins = summary.fins || {};
-  const leadBreakdown = summary.lead_breakdown || {};
-  const valveFittings = summary.valve_fittings || {};
+const GearPackingManifest = ({ summary, participants = [] }) => {
+  const [numCrates, setNumCrates] = useState(3); // 1 | 2 | 3 | 4 | 5
+
+  const cylinders = summary?.cylinders || {};
+  const stageTanks = summary?.stage_tanks || {};
+  const wetsuits = summary?.wetsuits || {};
+  const bcds = summary?.bcds || {};
+  const fins = summary?.fins || {};
+  const boots = summary?.boots || {};
+  const hoods = summary?.hoods || {};
+  const gloves = summary?.gloves || {};
+  const regulators = summary?.regulators || { DIN: 0, Yoke: 0 };
+  const masksCount = summary?.masks_count || 0;
+  const snorkelsCount = summary?.snorkels_count || 0;
+  const socksCount = summary?.socks_count || 0;
+  const scootersCount = summary?.scooters_count || 0;
+
+  const leadBreakdown = summary?.lead_breakdown || {};
+  const valveFittings = summary?.valve_fittings || {};
 
   const totalCylinders = Object.values(cylinders).reduce((a, b) => a + b, 0);
+  const totalStageTanks = Object.values(stageTanks).reduce((a, b) => a + b, 0);
   const totalWetsuits = Object.values(wetsuits).reduce((a, b) => a + b, 0);
   const totalBcds = Object.values(bcds).reduce((a, b) => a + b, 0);
   const totalFins = Object.values(fins).reduce((a, b) => a + b, 0);
+  const totalBoots = Object.values(boots).reduce((a, b) => a + b, 0);
+  const totalHoods = Object.values(hoods).reduce((a, b) => a + b, 0);
+  const totalGloves = Object.values(gloves).reduce((a, b) => a + b, 0);
+  const totalRegs = (regulators.DIN || 0) + (regulators.Yoke || 0);
 
-  const totalLeadKg = leadBreakdown.total_lead_kg || 0;
-  const totalLeadLbs = leadBreakdown.total_lead_lbs || 0;
+  // Sub-renderers for modular crate assembly
+  const renderWetsuitsBlock = () => (
+    <div>
+      <div className='flex items-center justify-between pb-1 border-b mb-1.5'>
+        <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+          Thermal Suits ({totalWetsuits})
+        </span>
+      </div>
+      {Object.keys(wetsuits).length === 0 ? (
+        <p className='text-xs text-gray-400 italic py-1'>No rental suits requested.</p>
+      ) : (
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-1.5'>
+          {Object.entries(wetsuits).map(([size, count]) => {
+            const isWomen = size.startsWith("Women's");
+            const isMen = size.startsWith("Men's");
+            return (
+              <div
+                key={size}
+                className={`p-2 rounded-lg border flex items-center justify-between text-xs ${
+                  isWomen
+                    ? 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/40'
+                    : isMen
+                      ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40'
+                      : 'bg-gray-50 dark:bg-gray-750 border-gray-100 dark:border-gray-700'
+                }`}
+              >
+                <div>
+                  <span className='font-bold text-gray-800 dark:text-gray-200 block text-[11px]'>
+                    {size}
+                  </span>
+                  <span
+                    className={`text-[9px] font-bold px-1 py-0.2 rounded inline-block ${
+                      isWomen
+                        ? 'bg-pink-100 text-pink-800'
+                        : isMen
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {isWomen ? "Women's" : isMen ? "Men's / Unisex" : 'Other'}
+                  </span>
+                </div>
+                <strong className='font-mono text-sm text-blue-600'>{count}x</strong>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderBcdsBlock = () => (
+    <div>
+      <div className='flex items-center justify-between pb-1 border-b mb-1.5'>
+        <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+          BCDs ({totalBcds})
+        </span>
+      </div>
+      {Object.keys(bcds).length === 0 ? (
+        <p className='text-xs text-gray-400 italic py-1'>No rental BCDs.</p>
+      ) : (
+        <div className='flex flex-wrap gap-1.5'>
+          {Object.entries(bcds).map(([size, count]) => (
+            <span
+              key={size}
+              className='px-2.5 py-1 bg-gray-50 dark:bg-gray-750 rounded-lg text-xs font-semibold'
+            >
+              Size {size}: <strong className='text-blue-600'>{count}x</strong>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderRegulatorsBlock = () => (
+    <div>
+      <div className='flex items-center justify-between pb-1 border-b mb-1.5'>
+        <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+          Regulator Sets ({totalRegs})
+        </span>
+      </div>
+      {totalRegs === 0 ? (
+        <p className='text-xs text-gray-400 italic py-1'>All divers using own regulators.</p>
+      ) : (
+        <div className='grid grid-cols-2 gap-2 text-center text-xs'>
+          <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+            <span className='text-[10px] text-gray-500 block uppercase'>DIN Regulators</span>
+            <strong className='text-sm font-mono text-blue-600'>{regulators.DIN || 0}x</strong>
+          </div>
+          <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+            <span className='text-[10px] text-gray-500 block uppercase'>Yoke Regulators</span>
+            <strong className='text-sm font-mono text-amber-600'>{regulators.Yoke || 0}x</strong>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderFootwearAndFinsBlock = () => (
+    <div className='space-y-2'>
+      <div className='flex items-center justify-between pb-1 border-b mb-1'>
+        <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+          Fins ({totalFins}) & Boots ({totalBoots})
+        </span>
+      </div>
+
+      <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
+        <div>
+          <span className='text-[10px] text-gray-400 uppercase font-bold block mb-1'>
+            Fins by Size / Style
+          </span>
+          {Object.keys(fins).length === 0 ? (
+            <p className='text-xs text-gray-400 italic'>Own fins.</p>
+          ) : (
+            <div className='flex flex-wrap gap-1'>
+              {Object.entries(fins).map(([f, count]) => (
+                <span
+                  key={f}
+                  className='px-2 py-0.5 bg-gray-50 dark:bg-gray-750 rounded text-[11px]'
+                >
+                  {f}: <strong className='text-blue-600'>{count}x</strong>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <span className='text-[10px] text-gray-400 uppercase font-bold block mb-1'>
+            Neoprene Booties
+          </span>
+          {Object.keys(boots).length === 0 ? (
+            <p className='text-xs text-gray-400 italic'>None.</p>
+          ) : (
+            <div className='flex flex-wrap gap-1'>
+              {Object.entries(boots).map(([b, count]) => (
+                <span
+                  key={b}
+                  className='px-2 py-0.5 bg-gray-50 dark:bg-gray-750 rounded text-[11px]'
+                >
+                  {b}: <strong className='text-blue-600'>{count}x</strong>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAccessoriesBlock = () => (
+    <div className='space-y-2'>
+      <div className='flex items-center justify-between pb-1 border-b mb-1'>
+        <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+          Small Gear, Masks, Hoods & Tech
+        </span>
+      </div>
+
+      <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs'>
+        <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+          <span className='text-[10px] text-gray-500 block uppercase'>Dive Masks</span>
+          <strong className='text-sm font-mono text-cyan-700'>{masksCount}x</strong>
+        </div>
+        <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+          <span className='text-[10px] text-gray-500 block uppercase'>Snorkels</span>
+          <strong className='text-sm font-mono text-cyan-700'>{snorkelsCount}x</strong>
+        </div>
+        <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+          <span className='text-[10px] text-gray-500 block uppercase'>Thermal Hoods</span>
+          <strong className='text-sm font-mono text-indigo-700'>{totalHoods}x</strong>
+        </div>
+        <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
+          <span className='text-[10px] text-gray-500 block uppercase'>Dive Gloves</span>
+          <strong className='text-sm font-mono text-indigo-700'>{totalGloves}x</strong>
+        </div>
+      </div>
+
+      {(socksCount > 0 || scootersCount > 0 || totalStageTanks > 0) && (
+        <div className='pt-1.5 flex flex-wrap gap-2 text-xs'>
+          {socksCount > 0 && (
+            <span className='px-2 py-0.5 bg-indigo-50 text-indigo-900 rounded font-semibold text-[11px]'>
+              Socks / Liners: {socksCount}x
+            </span>
+          )}
+          {scootersCount > 0 && (
+            <span className='px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-bold text-[11px] flex items-center gap-1'>
+              <Sparkles size={11} /> DPV Scooters: {scootersCount}x
+            </span>
+          )}
+          {totalStageTanks > 0 && (
+            <span className='px-2 py-0.5 bg-purple-100 text-purple-900 rounded font-bold text-[11px]'>
+              Stage Cylinders: {totalStageTanks}x
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className='space-y-6'>
-      {/* Top Banner with Quick Totals */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800'>
+      {/* Crate Loadout Top Bar */}
+      <div className='bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4'>
         <div>
-          <h3 className='text-sm sm:text-base font-bold text-blue-950 dark:text-blue-100 flex items-center gap-2'>
-            <Package className='text-blue-600 h-5 w-5' />
+          <h3 className='text-base font-bold text-gray-900 dark:text-white flex items-center gap-2'>
+            <Package className='h-5 w-5 text-blue-600' />
             Dockside Crate Packing & Tank Loadout
           </h3>
-          <p className='text-xs text-blue-800/80 dark:text-blue-300 mt-0.5'>
-            Aggregated equipment manifest, valve connections, and lead ballast pack breakdown for
-            boat crew and compressor room.
+          <p className='text-xs text-gray-500 mt-0.5'>
+            Top-to-bottom equipment checklist, valve configurations, and partitionable transport
+            crates.
           </p>
         </div>
-        <button
-          type='button'
-          onClick={() => window.print()}
-          className='flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold border border-blue-200 dark:border-blue-700 shadow-sm hover:bg-blue-50 transition-all self-start sm:self-auto'
-        >
-          <Printer size={14} />
-          Print Crate List
-        </button>
+
+        <div className='flex items-center gap-2'>
+          <button
+            type='button'
+            onClick={() => window.print()}
+            className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-lg transition-all'
+          >
+            <Printer size={13} />
+            <span>Print Crate Sheet</span>
+          </button>
+        </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        {/* 1. Breathing Gas & Cylinders Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+      {/* Crate Partitioning Bar (1 to 5 Crates) */}
+      <div className='bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+        <div className='flex items-center gap-2'>
+          <Layers className='h-4 w-4 text-blue-600' />
+          <span className='font-bold text-gray-800 dark:text-gray-200 text-xs uppercase tracking-wider'>
+            Crate / Bag Partitioning:
+          </span>
+        </div>
+
+        <div className='flex items-center gap-1.5'>
+          {[1, 2, 3, 4, 5].map(n => (
+            <button
+              key={n}
+              type='button'
+              onClick={() => setNumCrates(n)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
+                numCrates === n
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100'
+              }`}
+            >
+              {n} {n === 1 ? 'Crate' : 'Crates'}
+            </button>
+          ))}
+        </div>
+
+        <span className='text-[11px] text-gray-400 italic hidden lg:inline'>
+          Configures packing layout across {numCrates} transport containers for boat deck loading.
+        </span>
+      </div>
+
+      {/* Cylinders & Lead Staging (Outside Crates) */}
+      <div className='grid grid-cols-1 lg:grid-cols-12 gap-6'>
+        {/* 1. Primary Cylinders & Stage Tanks Card (6 Cols) */}
+        <div className='lg:col-span-6 p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
           <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
-            <div className='flex items-center gap-2'>
-              <Gauge className='text-blue-600 h-5 w-5' />
-              <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
-                Cylinders to Load
+            <div>
+              <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2'>
+                <Gauge size={16} className='text-blue-600' />
+                Cylinders to Load (Primary & Stages)
               </h4>
+              <span className='text-[11px] text-gray-400'>
+                Stage on boat racks according to valve specifications.
+              </span>
             </div>
-            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'>
-              {totalCylinders} Tanks
+            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'>
+              {totalCylinders + totalStageTanks} Tanks
             </span>
           </div>
 
+          {/* Primary Cylinders */}
           {Object.keys(cylinders).length === 0 ? (
-            <p className='text-xs text-gray-400 italic py-4 text-center'>No cylinders requested.</p>
+            <p className='text-xs text-gray-400 italic py-2 text-center'>No primary cylinders.</p>
           ) : (
             <div className='space-y-2'>
               {Object.entries(cylinders).map(([tank, count]) => {
@@ -106,58 +359,52 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             </div>
           )}
 
-          {/* Valve Fitting & Tool Bag Box */}
-          <div className='pt-3 border-t border-gray-100 dark:border-gray-700'>
-            <h5 className='text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-1.5'>
-              <Wrench size={13} className='text-blue-600' />
-              Valve Connections & Inserts
-            </h5>
-            <div className='grid grid-cols-2 gap-2 text-xs mb-2.5'>
-              <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
-                <span className='text-gray-500 block text-[10px]'>DIN (G 5/8"):</span>
-                <strong className='text-gray-900 dark:text-white font-mono'>
-                  {valveFittings.din_count || 0} Native
-                </strong>
-              </div>
-              <div className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg'>
-                <span className='text-gray-500 block text-[10px]'>Yoke (INT / A-clamp):</span>
-                <strong className='text-gray-900 dark:text-white font-mono'>
-                  {valveFittings.yoke_count || 0} Divers
-                </strong>
-              </div>
+          {/* Stage & Decompression Cylinders (If any) */}
+          {totalStageTanks > 0 && (
+            <div className='pt-2 border-t border-gray-100 dark:border-gray-700 space-y-1.5'>
+              <span className='text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider block'>
+                Stage & Decompression Cylinders ({totalStageTanks})
+              </span>
+              {Object.entries(stageTanks).map(([st, count]) => (
+                <div
+                  key={st}
+                  className='flex items-center justify-between p-2 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 text-xs'
+                >
+                  <span className='font-bold text-purple-900 dark:text-purple-200'>{st}</span>
+                  <strong className='font-mono text-purple-700'>{count}x</strong>
+                </div>
+              ))}
             </div>
+          )}
 
-            {valveFittings.yoke_count > 0 ? (
-              <div className='p-2.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-900 dark:text-amber-200 flex items-start gap-2'>
-                <AlertCircle size={14} className='text-amber-600 shrink-0 mt-0.5' />
-                <span>
-                  <strong>Tool Box Alert:</strong> Pack{' '}
-                  <strong>
-                    {valveFittings.yoke_inserts_needed}x DIN-to-Yoke threaded insert(s)
-                  </strong>{' '}
-                  and an <strong>8mm hex key</strong> in the boat tool kit to adapt cylinders for
-                  Yoke first stages.
-                </span>
-              </div>
-            ) : (
-              <div className='text-[11px] text-gray-500 flex items-center gap-1'>
-                <span>✓ All divers using native DIN first stages (no yoke inserts required).</span>
-              </div>
-            )}
+          {/* Valve Fitting Summary Box */}
+          <div className='pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-xs'>
+            <div>
+              <span className='text-gray-500'>Fittings: </span>
+              <strong className='text-gray-900 dark:text-white'>
+                {valveFittings.din_count || 0} Native DIN
+              </strong>
+              {' • '}
+              <strong className='text-amber-600'>{valveFittings.yoke_count || 0} Yoke</strong>
+            </div>
+            <span className='text-[11px] text-gray-500 font-mono'>{valveFittings.tool_notes}</span>
           </div>
         </div>
 
-        {/* 2. Lead Ballast Weights Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+        {/* 2. Lead Ballast & Belts Card (6 Cols) */}
+        <div className='lg:col-span-6 p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
           <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>
-            <div className='flex items-center gap-2'>
-              <Anchor className='text-indigo-600 h-5 w-5' />
-              <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
-                Lead Ballast & Belts
+            <div>
+              <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2'>
+                <Anchor size={16} className='text-indigo-600' />
+                Lead Ballast & Weight Belts
               </h4>
+              <span className='text-[11px] text-gray-400'>
+                Stage in weight bucket with 15% check-dive buffer.
+              </span>
             </div>
-            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300'>
-              {totalLeadKg} kg ({totalLeadLbs} lbs)
+            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200'>
+              {leadBreakdown.total_lead_kg || 0} kg ({leadBreakdown.total_lead_lbs || 0} lbs)
             </span>
           </div>
 
@@ -210,20 +457,9 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             </div>
           </div>
 
-          {/* Spare Buffer Callout */}
-          <div className='p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-300 flex items-start gap-2'>
-            <ShieldAlert size={14} className='text-blue-600 shrink-0 mt-0.5' />
-            <span>
-              <strong>Check-Dive Safety Buffer (+15%):</strong> Add{' '}
-              <strong>+{leadBreakdown.spare_buffer_kg || 4} kg spare lead</strong> (
-              {leadBreakdown.spare_blocks_2kg || 2}x 2kg + {leadBreakdown.spare_blocks_1kg || 2}x
-              1kg blocks) to the boat bucket for buoyancy fine-tuning.
-            </span>
-          </div>
-
-          {/* Diver Distribution List */}
-          <div>
-            <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5'>
+          {/* Per-Diver Weight Distribution Breakdown */}
+          <div className='pt-2 border-t border-gray-100 dark:border-gray-700 space-y-1.5'>
+            <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1'>
               Per-Diver Weight Distribution & Symmetry
             </span>
             <div className='max-h-36 overflow-y-auto space-y-1.5 pr-1'>
@@ -270,118 +506,193 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* 3. Rental Wetsuits Crate Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
-          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 mb-3'>
-            <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
-              Crate A: Rental Wetsuits
-            </h4>
-            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'>
-              {totalWetsuits} Suits
-            </span>
-          </div>
+      {/* Dynamic Partitioned Crates Grid (1 to 5 Crates) */}
+      <div>
+        <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight mb-3 flex items-center gap-2'>
+          <Layers size={16} className='text-blue-600' />
+          Partitioned Transport Crates ({numCrates} {numCrates === 1 ? 'Crate' : 'Crates'} Layout)
+        </h4>
 
-          {Object.keys(wetsuits).length === 0 ? (
-            <p className='text-xs text-gray-400 italic py-4 text-center'>
-              No rental wetsuits requested. All divers using own suits.
-            </p>
-          ) : (
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
-              {Object.entries(wetsuits).map(([size, count]) => {
-                const isWomen = size.startsWith("Women's");
-                const isMen = size.startsWith("Men's");
-
-                return (
-                  <div
-                    key={size}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between ${
-                      isWomen
-                        ? 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/40'
-                        : isMen
-                          ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40'
-                          : 'bg-gray-50 dark:bg-gray-750 border-gray-100 dark:border-gray-700'
-                    }`}
-                  >
-                    <div>
-                      <span className='text-xs font-bold text-gray-800 dark:text-gray-200 block'>
-                        {size}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 inline-block ${
-                          isWomen
-                            ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/60 dark:text-pink-200'
-                            : isMen
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
-                              : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {isWomen ? "Women's Cut" : isMen ? "Men's / Unisex" : 'Custom / Other'}
-                      </span>
-                    </div>
-                    <span className='text-base font-mono font-bold text-blue-600 dark:text-blue-400'>
-                      {count}x
-                    </span>
-                  </div>
-                );
-              })}
+        {/* 1 Crate Layout */}
+        {numCrates === 1 && (
+          <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+            <div className='flex items-center justify-between pb-2 border-b'>
+              <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                Master Crate 1: All Rental Gear & Accessories
+              </h5>
+              <span className='text-xs text-gray-500 font-mono'>Single Master Loadout</span>
             </div>
-          )}
-        </div>
-
-        {/* 4. Rental BCDs & Fins Crates Card */}
-        <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm'>
-          <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 mb-3'>
-            <h4 className='font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight'>
-              Crate B: BCDs & Fins
-            </h4>
-            <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'>
-              {totalBcds + totalFins} Items
-            </span>
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+              {renderWetsuitsBlock()}
+              {renderBcdsBlock()}
+              {renderRegulatorsBlock()}
+              {renderFootwearAndFinsBlock()}
+              <div className='md:col-span-2'>{renderAccessoriesBlock()}</div>
+            </div>
           </div>
+        )}
 
-          <div className='space-y-3'>
-            <div>
-              <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1'>
-                BCDs ({totalBcds})
-              </span>
-              {Object.keys(bcds).length === 0 ? (
-                <span className='text-xs text-gray-400 italic'>None</span>
-              ) : (
-                <div className='flex flex-wrap gap-2'>
-                  {Object.entries(bcds).map(([size, count]) => (
-                    <span
-                      key={size}
-                      className='px-2.5 py-1 bg-gray-50 dark:bg-gray-750 rounded-lg text-xs font-semibold'
-                    >
-                      Size {size}: <strong className='text-blue-600'>{count}x</strong>
-                    </span>
-                  ))}
+        {/* 2 Crates Layout */}
+        {numCrates === 2 && (
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
+            <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+              <div className='flex items-center justify-between pb-2 border-b'>
+                <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                  Crate 1 of 2: Thermal Suits, Hoods & BCDs
+                </h5>
+                <span className='text-xs text-gray-500 font-mono'>
+                  {totalWetsuits + totalBcds} Items
+                </span>
+              </div>
+              <div className='space-y-4'>
+                {renderWetsuitsBlock()}
+                {renderBcdsBlock()}
+              </div>
+            </div>
+
+            <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+              <div className='flex items-center justify-between pb-2 border-b'>
+                <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                  Crate 2 of 2: Regulators, Fins, Boots & Small Gear
+                </h5>
+                <span className='text-xs text-gray-500 font-mono'>
+                  {totalRegs + totalFins + totalBoots} Items
+                </span>
+              </div>
+              <div className='space-y-4'>
+                {renderRegulatorsBlock()}
+                {renderFootwearAndFinsBlock()}
+                {renderAccessoriesBlock()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3 Crates Layout (Standard Center Ops) */}
+        {numCrates === 3 && (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'>
+            <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+              <div className='flex items-center justify-between pb-2 border-b'>
+                <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                  Crate 1 of 3: Thermal Suits & Hoods
+                </h5>
+                <span className='text-xs font-mono text-gray-500'>{totalWetsuits} Suits</span>
+              </div>
+              {renderWetsuitsBlock()}
+            </div>
+
+            <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+              <div className='flex items-center justify-between pb-2 border-b'>
+                <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                  Crate 2 of 3: BCDs & Life-Support Regs
+                </h5>
+                <span className='text-xs font-mono text-gray-500'>
+                  {totalBcds + totalRegs} Items
+                </span>
+              </div>
+              <div className='space-y-3'>
+                {renderBcdsBlock()}
+                {renderRegulatorsBlock()}
+              </div>
+            </div>
+
+            <div className='p-5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4'>
+              <div className='flex items-center justify-between pb-2 border-b'>
+                <h5 className='font-bold text-sm text-gray-900 dark:text-white'>
+                  Crate 3 of 3: Fins, Boots, Masks & Small Gear
+                </h5>
+                <span className='text-xs font-mono text-gray-500'>
+                  {totalFins + totalBoots} Items
+                </span>
+              </div>
+              <div className='space-y-3'>
+                {renderFootwearAndFinsBlock()}
+                {renderAccessoriesBlock()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 4 Crates Layout */}
+        {numCrates === 4 && (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <div className='p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+              <h5 className='font-bold text-xs text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 1: Wetsuits & Hoods
+              </h5>
+              {renderWetsuitsBlock()}
+            </div>
+
+            <div className='p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+              <h5 className='font-bold text-xs text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 2: Rental BCDs
+              </h5>
+              {renderBcdsBlock()}
+            </div>
+
+            <div className='p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+              <h5 className='font-bold text-xs text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 3: Regulators & Tech
+              </h5>
+              {renderRegulatorsBlock()}
+              {scootersCount > 0 && (
+                <div className='p-2 bg-amber-50 dark:bg-amber-950/20 rounded text-[11px] font-bold text-amber-900'>
+                  DPV Scooters: {scootersCount}x
                 </div>
               )}
             </div>
 
-            <div className='pt-2 border-t border-gray-100 dark:border-gray-700'>
-              <span className='text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1'>
-                Fins & Booties ({totalFins})
-              </span>
-              {Object.keys(fins).length === 0 ? (
-                <span className='text-xs text-gray-400 italic'>None</span>
-              ) : (
-                <div className='flex flex-wrap gap-2'>
-                  {Object.entries(fins).map(([size, count]) => (
-                    <span
-                      key={size}
-                      className='px-2.5 py-1 bg-gray-50 dark:bg-gray-750 rounded-lg text-xs font-semibold'
-                    >
-                      {size}: <strong className='text-blue-600'>{count}x</strong>
-                    </span>
-                  ))}
-                </div>
-              )}
+            <div className='p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3'>
+              <h5 className='font-bold text-xs text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 4: Fins, Boots & Masks
+              </h5>
+              {renderFootwearAndFinsBlock()}
+              {renderAccessoriesBlock()}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* 5 Crates Layout (Dedicated Compartments) */}
+        {numCrates === 5 && (
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3'>
+            <div className='p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2'>
+              <h5 className='font-bold text-[11px] text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 1: Suits
+              </h5>
+              {renderWetsuitsBlock()}
+            </div>
+
+            <div className='p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2'>
+              <h5 className='font-bold text-[11px] text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 2: BCDs
+              </h5>
+              {renderBcdsBlock()}
+            </div>
+
+            <div className='p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2'>
+              <h5 className='font-bold text-[11px] text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 3: Regulators
+              </h5>
+              {renderRegulatorsBlock()}
+            </div>
+
+            <div className='p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2'>
+              <h5 className='font-bold text-[11px] text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 4: Fins & Boots
+              </h5>
+              {renderFootwearAndFinsBlock()}
+            </div>
+
+            <div className='p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-2'>
+              <h5 className='font-bold text-[11px] text-gray-900 dark:text-white pb-1 border-b uppercase'>
+                Crate 5: Small Gear & DPV
+              </h5>
+              {renderAccessoriesBlock()}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
