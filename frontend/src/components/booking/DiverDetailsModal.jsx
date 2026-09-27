@@ -38,6 +38,10 @@ const DiverDetailsModal = ({
   // Medical Review & Clearance state
   const [medicalReview, setMedicalReview] = useState(null);
   const [showClearanceForm, setShowClearanceForm] = useState(false);
+  const [showEditAnswers, setShowEditAnswers] = useState(false);
+  const [editableAnswers, setEditableAnswers] = useState({});
+  const [modificationReason, setModificationReason] = useState('');
+  const [savingMedicalAnswers, setSavingMedicalAnswers] = useState(false);
   const [physicianName, setPhysicianName] = useState('');
   const [physicianClinic, setPhysicianClinic] = useState('');
   const [clearanceNotes, setClearanceNotes] = useState('');
@@ -50,15 +54,67 @@ const DiverDetailsModal = ({
       setDiver(participant);
       setIsEditing(initialEditMode);
       setShowClearanceForm(false);
+      setShowEditAnswers(false);
+      setModificationReason('');
 
       api
         .get(
           `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/medical-review`
         )
-        .then(res => setMedicalReview(res.data))
+        .then(res => {
+          setMedicalReview(res.data);
+          if (res.data?.all_questions) {
+            const ansObj = {};
+            res.data.all_questions.forEach(q => {
+              ansObj[q.id] = q.answered_yes;
+            });
+            setEditableAnswers(ansObj);
+          }
+        })
         .catch(err => console.error('Failed to load medical review:', err));
     }
   }, [isOpen, participant, initialEditMode, centerId, tripId]);
+
+  useEffect(() => {
+    if (medicalReview?.all_questions) {
+      const ansObj = {};
+      medicalReview.all_questions.forEach(q => {
+        ansObj[q.id] = q.answered_yes;
+      });
+      setEditableAnswers(ansObj);
+    }
+  }, [medicalReview]);
+
+  const handleSaveMedicalAnswers = async e => {
+    e.preventDefault();
+    if (!modificationReason.trim()) {
+      toast.error('Please provide an audit reason for modifying questionnaire answers.');
+      return;
+    }
+
+    try {
+      setSavingMedicalAnswers(true);
+      const res = await api.put(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/medical-answers`,
+        {
+          answers: editableAnswers,
+          reason: modificationReason.trim(),
+        }
+      );
+
+      toast.success('Medical questionnaire updated & audited!');
+      setMedicalReview(res.data);
+      setDiver(prev => ({ ...(prev || participant), medical_status: res.data.status }));
+      setShowEditAnswers(false);
+      setModificationReason('');
+      onUpdated();
+    } catch (err) {
+      console.error('Failed to update medical answers:', err);
+      toast.error(err.response?.data?.detail || 'Failed to update medical answers.');
+    } finally {
+      setSavingMedicalAnswers(false);
+    }
+  };
 
   if (!participant) return null;
 
@@ -287,148 +343,277 @@ const DiverDetailsModal = ({
           </div>
         </div>
 
-        {/* Medical Alerts & Physician Clearance Form */}
-        {isPhysicianApproved && currentDiver.medical_clearance_audit && (
-          <div className='p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl space-y-1 text-xs'>
-            <div className='flex items-center gap-1.5 text-blue-900 dark:text-blue-200 font-bold'>
+        {/* Medical Status & Review Section */}
+        <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2.5 text-xs'>
+          <div className='flex items-center justify-between pb-1.5 border-b border-gray-200/60 dark:border-gray-700'>
+            <div className='flex items-center gap-1.5'>
               <Stethoscope size={14} className='text-blue-600' />
-              <span>Physician Clearance on Record</span>
+              <h4 className='font-bold uppercase tracking-wider text-[11px] text-gray-900 dark:text-white'>
+                DMSC Medical Screening & Audit Trail
+              </h4>
             </div>
-            <p className='text-gray-600 dark:text-gray-300 text-[11px]'>
-              Examining Physician:{' '}
-              <strong>Dr. {currentDiver.medical_clearance_audit.physician_name}</strong>
-              {currentDiver.medical_clearance_audit.physician_clinic &&
-                ` (${currentDiver.medical_clearance_audit.physician_clinic})`}
-            </p>
-            {currentDiver.medical_clearance_audit.reason && (
-              <p className='text-[10px] text-gray-500 italic'>
-                Notes: {currentDiver.medical_clearance_audit.reason}
-              </p>
-            )}
-            <p className='text-[10px] text-gray-400 font-mono'>
-              Cleared by {currentDiver.medical_clearance_audit.cleared_by_name} at{' '}
-              {currentDiver.medical_clearance_audit.cleared_at?.slice(0, 16)}
-            </p>
-          </div>
-        )}
-
-        {isMedicalBlocked && (
-          <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2 text-xs'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center gap-1.5 text-amber-900 dark:text-amber-200 font-bold'>
-                <AlertTriangle size={14} className='text-amber-600' />
-                <span>Flagged Medical Conditions</span>
-              </div>
+            <div className='flex items-center gap-2'>
               <button
                 type='button'
-                onClick={() => setShowClearanceForm(!showClearanceForm)}
-                className='text-blue-600 underline font-semibold text-[11px]'
+                onClick={() => {
+                  setShowEditAnswers(!showEditAnswers);
+                  setShowClearanceForm(false);
+                }}
+                className='text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px] flex items-center gap-1'
               >
-                {showClearanceForm ? 'Cancel Form' : 'Verify Physician Clearance'}
+                <Edit2 size={12} />
+                <span>{showEditAnswers ? 'Cancel Edit' : 'Modify Answers (Audited)'}</span>
               </button>
+              {isMedicalBlocked && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setShowClearanceForm(!showClearanceForm);
+                    setShowEditAnswers(false);
+                  }}
+                  className='text-emerald-600 dark:text-emerald-400 hover:underline font-semibold text-[11px] flex items-center gap-1'
+                >
+                  <ShieldCheck size={12} />
+                  <span>{showClearanceForm ? 'Cancel Form' : 'Verify Clearance'}</span>
+                </button>
+              )}
             </div>
+          </div>
 
-            {medicalReview?.flagged_questions && (
-              <div className='space-y-1 text-[11px] text-gray-600 dark:text-gray-300'>
-                <p className='font-semibold text-gray-700 dark:text-gray-200'>
-                  Diver indicated "YES" on the following DMSC screening question(s):
+          {/* Audit Log Banner */}
+          {medicalReview?.modification_audit && (
+            <div className='p-2 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] text-blue-900 dark:text-blue-200'>
+              <div className='flex items-center justify-between'>
+                <span className='font-bold'>
+                  Audit Log: Modified by {medicalReview.modification_audit.modified_by_name}
+                </span>
+                <span className='text-[10px] text-gray-400 font-mono'>
+                  {medicalReview.modification_audit.modified_at?.slice(0, 16).replace('T', ' ')}
+                </span>
+              </div>
+              <p className='text-[10px] text-gray-600 dark:text-gray-400 mt-0.5 italic'>
+                Reason: "{medicalReview.modification_audit.modification_reason}"
+              </p>
+            </div>
+          )}
+
+          {/* Physician Approved Banner */}
+          {isPhysicianApproved && currentDiver.medical_clearance_audit && (
+            <div className='p-2.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl space-y-1 text-xs'>
+              <div className='flex items-center gap-1.5 text-blue-900 dark:text-blue-200 font-bold'>
+                <Stethoscope size={14} className='text-blue-600' />
+                <span>Physician Clearance on Record</span>
+              </div>
+              <p className='text-gray-600 dark:text-gray-300 text-[11px]'>
+                Examining Physician:{' '}
+                <strong>Dr. {currentDiver.medical_clearance_audit.physician_name}</strong>
+                {currentDiver.medical_clearance_audit.physician_clinic &&
+                  ` (${currentDiver.medical_clearance_audit.physician_clinic})`}
+              </p>
+              {currentDiver.medical_clearance_audit.reason && (
+                <p className='text-[10px] text-gray-500 italic'>
+                  Notes: {currentDiver.medical_clearance_audit.reason}
                 </p>
-                <ul className='list-disc pl-4 space-y-0.5'>
+              )}
+            </div>
+          )}
+
+          {/* Flagged Medical Conditions Notice */}
+          {isMedicalBlocked && !showEditAnswers && !showClearanceForm && (
+            <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1.5'>
+              <div className='flex items-center gap-1.5 text-amber-900 dark:text-amber-200 font-bold'>
+                <AlertTriangle size={14} className='text-amber-600' />
+                <span>Flagged Clinical Conditions (Boarding Blocked)</span>
+              </div>
+              {medicalReview?.flagged_questions && (
+                <ul className='list-disc pl-4 space-y-0.5 text-[11px] text-gray-700 dark:text-gray-300'>
                   {medicalReview.flagged_questions.map(q => (
                     <li key={q.id}>
-                      <span className='font-medium'>{q.text}</span>
+                      <span className='font-medium'>{q.text}</span>: Diver answered YES.
                     </li>
                   ))}
                 </ul>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        {showClearanceForm && (
-          <form
-            onSubmit={handleClearMedical}
-            className='p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3'
-          >
-            <h4 className='font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs'>
-              <Stethoscope size={14} className='text-blue-600' />
-              Physician Clearance Approval Form
-            </h4>
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
+          {/* Audited Medical Answers Editor */}
+          {showEditAnswers && (
+            <form
+              onSubmit={handleSaveMedicalAnswers}
+              className='p-3 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3'
+            >
+              <div className='flex items-center justify-between pb-1.5 border-b'>
+                <span className='font-bold text-gray-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center gap-1'>
+                  <Stethoscope size={13} className='text-blue-600' />
+                  Audited Medical Answers Editor
+                </span>
+                <span className='text-[10px] text-amber-600 font-semibold'>
+                  * Modifications are permanently logged
+                </span>
+              </div>
+
+              <div className='space-y-2 max-h-56 overflow-y-auto pr-1'>
+                {(medicalReview?.all_questions || []).map(q => (
+                  <div
+                    key={q.id}
+                    className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg flex items-center justify-between gap-2'
+                  >
+                    <span className='text-[11px] text-gray-800 dark:text-gray-200 leading-tight'>
+                      {q.text}
+                    </span>
+                    <div className='flex items-center gap-1 shrink-0'>
+                      <button
+                        type='button'
+                        onClick={() => setEditableAnswers(prev => ({ ...prev, [q.id]: false }))}
+                        className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                          editableAnswers[q.id] === false
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        NO
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => setEditableAnswers(prev => ({ ...prev, [q.id]: true }))}
+                        className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                          editableAnswers[q.id] === true
+                            ? 'bg-red-600 text-white shadow-sm'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        YES
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div>
-                <label className='block font-semibold mb-1 text-[11px]'>
-                  Examining Physician Name *
+                <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+                  Manager Audit Reason *
                 </label>
                 <input
                   type='text'
                   required
-                  value={physicianName}
-                  onChange={e => setPhysicianName(e.target.value)}
-                  placeholder='Dr. Sofia Karra, M.D.'
-                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                  value={modificationReason}
+                  onChange={e => setModificationReason(e.target.value)}
+                  placeholder='e.g. Diver confirmed no history of cardiovascular issues; misclick on mobile questionnaire'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-700'
                 />
               </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Clinic / Hospital</label>
+
+              <div className='flex justify-end gap-2 pt-2 border-t'>
+                <button
+                  type='button'
+                  onClick={() => setShowEditAnswers(false)}
+                  className='px-3 py-1.5 text-gray-600 rounded-lg text-xs'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  disabled={savingMedicalAnswers}
+                  className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm'
+                >
+                  {savingMedicalAnswers ? (
+                    <Loader2 size={12} className='animate-spin' />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  <span>Save & Audit Answers</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Physician Clearance Approval Form */}
+          {showClearanceForm && (
+            <form
+              onSubmit={handleClearMedical}
+              className='p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3'
+            >
+              <h4 className='font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs'>
+                <Stethoscope size={14} className='text-blue-600' />
+                Physician Clearance Approval Form
+              </h4>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
+                <div>
+                  <label className='block font-semibold mb-1 text-[11px]'>
+                    Examining Physician Name *
+                  </label>
+                  <input
+                    type='text'
+                    required
+                    value={physicianName}
+                    onChange={e => setPhysicianName(e.target.value)}
+                    placeholder='Dr. Sofia Karra, M.D.'
+                    className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                  />
+                </div>
+                <div>
+                  <label className='block font-semibold mb-1 text-[11px]'>Clinic / Hospital</label>
+                  <input
+                    type='text'
+                    value={physicianClinic}
+                    onChange={e => setPhysicianClinic(e.target.value)}
+                    placeholder='e.g. Athens Hyperbaric Center'
+                    className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                  />
+                </div>
+                <div className='sm:col-span-2'>
+                  <label className='block font-semibold mb-1 text-[11px]'>
+                    Clinical Notes / Approval Reason
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={clearanceNotes}
+                    onChange={e => setClearanceNotes(e.target.value)}
+                    placeholder='e.g. Signed medical evaluation form verified; cleared for diving down to 30m.'
+                    className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                  />
+                </div>
+              </div>
+
+              <label className='flex items-start gap-2 pt-1 cursor-pointer'>
                 <input
-                  type='text'
-                  value={physicianClinic}
-                  onChange={e => setPhysicianClinic(e.target.value)}
-                  placeholder='e.g. Athens Hyperbaric Center'
-                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                  type='checkbox'
+                  required
+                  checked={confirmedInspected}
+                  onChange={e => setConfirmedInspected(e.target.checked)}
+                  className='mt-0.5 rounded text-blue-600'
                 />
-              </div>
-              <div className='sm:col-span-2'>
-                <label className='block font-semibold mb-1 text-[11px]'>
-                  Clinical Notes / Approval Reason
-                </label>
-                <textarea
-                  rows={2}
-                  value={clearanceNotes}
-                  onChange={e => setClearanceNotes(e.target.value)}
-                  placeholder='e.g. Signed medical evaluation form verified; cleared for diving down to 30m.'
-                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
-                />
-              </div>
-            </div>
+                <span className='text-[11px] text-gray-600 dark:text-gray-400 leading-tight'>
+                  I certify under penalty of center policy that I have physically inspected and
+                  verified the signed diving medical evaluation form.
+                </span>
+              </label>
 
-            <label className='flex items-start gap-2 pt-1 cursor-pointer'>
-              <input
-                type='checkbox'
-                required
-                checked={confirmedInspected}
-                onChange={e => setConfirmedInspected(e.target.checked)}
-                className='mt-0.5 rounded text-blue-600'
-              />
-              <span className='text-[11px] text-gray-600 dark:text-gray-400 leading-tight'>
-                I certify under penalty of center policy that I have physically inspected and
-                verified the signed diving medical evaluation form.
-              </span>
-            </label>
-
-            <div className='flex justify-end gap-2 pt-2 border-t'>
-              <button
-                type='button'
-                onClick={() => setShowClearanceForm(false)}
-                className='px-3 py-1.5 text-gray-600 rounded-lg text-xs font-semibold'
-              >
-                Cancel
-              </button>
-              <button
-                type='submit'
-                disabled={clearingMedical}
-                className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm'
-              >
-                {clearingMedical ? (
-                  <Loader2 size={12} className='animate-spin' />
-                ) : (
-                  <Check size={12} />
-                )}
-                <span>Approve & Clear Diver</span>
-              </button>
-            </div>
-          </form>
-        )}
+              <div className='flex justify-end gap-2 pt-2 border-t'>
+                <button
+                  type='button'
+                  onClick={() => setShowClearanceForm(false)}
+                  className='px-3 py-1.5 text-gray-600 rounded-lg text-xs font-semibold'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  disabled={clearingMedical}
+                  className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm'
+                >
+                  {clearingMedical ? (
+                    <Loader2 size={12} className='animate-spin' />
+                  ) : (
+                    <Check size={12} />
+                  )}
+                  <span>Approve & Clear Diver</span>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
 
         {/* Credentials & Contact Box */}
         <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2'>

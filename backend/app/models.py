@@ -1541,10 +1541,16 @@ class DiverMedicalRecord(Base):
     cleared_physician_name = Column(String(255), nullable=True)
     cleared_physician_clinic = Column(String(255), nullable=True)
 
+    modified_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    modified_at = Column(DateTime(timezone=True), nullable=True)
+    modification_reason = Column(Text, nullable=True)
+    modification_history = Column(sa.JSON, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     unit_item = relationship("OctoBookingUnitItem", backref=sa.orm.backref("medical_record", uselist=False, cascade="all, delete-orphan"))
     user = relationship("User", foreign_keys=[user_id], backref=sa.orm.backref("medical_records"))
     cleared_by_user = relationship("User", foreign_keys=[cleared_by_user_id])
+    modified_by_user = relationship("User", foreign_keys=[modified_by_user_id])
 

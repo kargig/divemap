@@ -50,6 +50,10 @@ class ClearMedicalOverrideRequest(BaseModel):
     notes: Optional[str] = None
     confirmed_physical_form_inspected: bool = True
 
+class UpdateMedicalAnswersRequest(BaseModel):
+    answers: Dict[str, bool]
+    reason: str
+
 class WalkInParticipantCreate(BaseModel):
     diver_full_name: str
     diver_email: Optional[str] = None
@@ -593,24 +597,38 @@ def get_participant_medical_review(
             "participant_id": participant_id,
             "diver_full_name": item.diver_full_name,
             "status": "CLEARED" if item.booking.status == "CONFIRMED" else "PENDING",
+            "all_questions": [
+                {"id": f"q{i}", "number": i, "text": DMSC_QUESTION_TEXTS.get(f"q{i}", f"Question {i}"), "answered_yes": False}
+                for i in range(1, 11)
+            ],
             "flagged_questions": [],
             "clearance_audit": None,
+            "modification_audit": None,
+            "modification_history": [],
         }
 
-    flagged_questions = []
+    decrypted = {}
     if med.encrypted_answers and med.encrypted_dek:
         try:
             encryption_svc = BookingMedicalEncryptionService()
             decrypted = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
-            for q_id, is_yes in decrypted.items():
-                if is_yes is True:
-                    flagged_questions.append({
-                        "id": q_id,
-                        "text": DMSC_QUESTION_TEXTS.get(q_id, f"Condition: {q_id}"),
-                        "answered_yes": True,
-                    })
         except Exception as e:
             logger.error(f"Failed to decrypt medical review answers: {e}")
+
+    all_questions = []
+    flagged_questions = []
+    for q_idx in range(1, 11):
+        q_id = f"q{q_idx}"
+        is_yes = decrypted.get(q_id, False) is True
+        q_obj = {
+            "id": q_id,
+            "number": q_idx,
+            "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+            "answered_yes": is_yes,
+        }
+        all_questions.append(q_obj)
+        if is_yes:
+            flagged_questions.append(q_obj)
 
     audit_info = None
     if med.status == "PHYSICIAN_APPROVED":
@@ -622,12 +640,156 @@ def get_participant_medical_review(
             "reason": med.cleared_reason,
         }
 
+    modification_audit = None
+    if med.modified_at and med.modified_by_user:
+        modification_audit = {
+            "modified_by_name": med.modified_by_user.username,
+            "modified_at": med.modified_at.isoformat(),
+            "modification_reason": med.modification_reason,
+        }
+
     return {
         "participant_id": participant_id,
         "diver_full_name": item.diver_full_name,
         "status": med.status,
+        "all_questions": all_questions,
         "flagged_questions": flagged_questions,
         "clearance_audit": audit_info,
+        "modification_audit": modification_audit,
+        "modification_history": med.modification_history or [],
+    }
+
+
+@router.put("/trips/{trip_id}/participants/{participant_id}/medical-answers")
+def update_participant_medical_answers(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    req: UpdateMedicalAnswersRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Allows authorized center managers to modify DMSC medical questionnaire answers.
+    Re-encrypts answers with master encryption keys and records an immutable audit log
+    capturing who modified the record, at what timestamp, and the clinical/operational reason.
+    """
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    if not req.reason or not req.reason.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="A specific audit reason for modifying medical questionnaire answers is required."
+        )
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+
+    encryption_svc = BookingMedicalEncryptionService()
+
+    # If diver has no medical record yet (e.g. walk-in), create one
+    previous_answers = {}
+    prev_status = med.status if med else "PENDING"
+
+    if med and med.encrypted_answers and med.encrypted_dek:
+        try:
+            previous_answers = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+        except Exception as e:
+            logger.error(f"Failed to decrypt previous answers for audit: {e}")
+
+    # Identify changed questions
+    changed_questions = []
+    for q_idx in range(1, 11):
+        q_id = f"q{q_idx}"
+        old_val = previous_answers.get(q_id, False)
+        new_val = req.answers.get(q_id, False)
+        if old_val != new_val:
+            changed_questions.append({
+                "id": q_id,
+                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+                "from": old_val,
+                "to": new_val,
+            })
+
+    # Re-encrypt updated answers
+    clean_answers = {f"q{i}": bool(req.answers.get(f"q{i}", False)) for i in range(1, 11)}
+    new_dek, new_encrypted = encryption_svc.encrypt_answers(clean_answers)
+
+    has_any_yes = any(clean_answers.values())
+
+    now = datetime.now(timezone.utc)
+    if not med:
+        med = DiverMedicalRecord(
+            booking_unit_item_id=participant_id,
+            user_id=item.user_id,
+            encrypted_dek=new_dek,
+            encrypted_answers=new_encrypted,
+            expires_at=now + timedelta(days=365),
+        )
+        db.add(med)
+
+    med.encrypted_dek = new_dek
+    med.encrypted_answers = new_encrypted
+
+    # Recalculate status
+    if has_any_yes:
+        if med.status != "PHYSICIAN_APPROVED":
+            med.status = "FLAGGED_CONTACT_CENTER"
+    else:
+        med.status = "CLEARED"
+
+    # Audit logging
+    med.modified_by_user_id = current_user.id
+    med.modified_at = now
+    med.modification_reason = req.reason.strip()
+
+    history_entry = {
+        "modified_by_id": current_user.id,
+        "modified_by_name": current_user.username,
+        "modified_at": now.isoformat(),
+        "reason": req.reason.strip(),
+        "changed_questions": changed_questions,
+        "previous_status": prev_status,
+        "new_status": med.status,
+    }
+    history = list(med.modification_history or [])
+    history.append(history_entry)
+    med.modification_history = history
+
+    db.commit()
+    db.refresh(med)
+
+    all_questions = []
+    flagged_questions = []
+    for q_idx in range(1, 11):
+        q_id = f"q{q_idx}"
+        is_yes = clean_answers.get(q_id, False)
+        q_obj = {
+            "id": q_id,
+            "number": q_idx,
+            "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+            "answered_yes": is_yes,
+        }
+        all_questions.append(q_obj)
+        if is_yes:
+            flagged_questions.append(q_obj)
+
+    return {
+        "participant_id": participant_id,
+        "diver_full_name": item.diver_full_name,
+        "status": med.status,
+        "modified_by": current_user.username,
+        "modified_at": med.modified_at.isoformat(),
+        "modification_reason": med.modification_reason,
+        "modification_history": med.modification_history,
+        "all_questions": all_questions,
+        "flagged_questions": flagged_questions,
     }
 
 

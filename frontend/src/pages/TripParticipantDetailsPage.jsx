@@ -10,6 +10,7 @@ import {
   Shield,
   Stethoscope,
   HeartPulse,
+  Edit2,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
@@ -30,6 +31,10 @@ const TripParticipantDetailsPage = () => {
 
   // Physician clearance form state
   const [showClearanceForm, setShowClearanceForm] = useState(false);
+  const [showEditAnswers, setShowEditAnswers] = useState(false);
+  const [editableAnswers, setEditableAnswers] = useState({});
+  const [modificationReason, setModificationReason] = useState('');
+  const [savingMedicalAnswers, setSavingMedicalAnswers] = useState(false);
   const [physicianName, setPhysicianName] = useState('');
   const [physicianClinic, setPhysicianClinic] = useState('');
   const [clearanceNotes, setClearanceNotes] = useState('');
@@ -62,6 +67,47 @@ const TripParticipantDetailsPage = () => {
   useEffect(() => {
     fetchDiver();
   }, [fetchDiver]);
+
+  useEffect(() => {
+    if (medicalReview?.all_questions) {
+      const ansObj = {};
+      medicalReview.all_questions.forEach(q => {
+        ansObj[q.id] = q.answered_yes;
+      });
+      setEditableAnswers(ansObj);
+    }
+  }, [medicalReview]);
+
+  const handleSaveMedicalAnswers = async e => {
+    e.preventDefault();
+    if (!modificationReason.trim()) {
+      toast.error('Please provide an audit reason for modifying questionnaire answers.');
+      return;
+    }
+
+    try {
+      setSavingMedicalAnswers(true);
+      const res = await api.put(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participantId}/medical-answers`,
+        {
+          answers: editableAnswers,
+          reason: modificationReason.trim(),
+        }
+      );
+
+      toast.success('Medical questionnaire updated & audited!');
+      setMedicalReview(res.data);
+      setDiver(prev => ({ ...prev, medical_status: res.data.status }));
+      setShowEditAnswers(false);
+      setModificationReason('');
+      fetchDiver();
+    } catch (err) {
+      console.error('Failed to update medical answers:', err);
+      toast.error(err.response?.data?.detail || 'Failed to update medical answers.');
+    } finally {
+      setSavingMedicalAnswers(false);
+    }
+  };
 
   const handleSaveGear = async payload => {
     try {
@@ -399,18 +445,48 @@ const TripParticipantDetailsPage = () => {
                     DMSC Medical Screening
                   </h3>
                 </div>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                    isPhysicianApproved
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
-                      : isCleared
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                        : 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200'
-                  }`}
-                >
-                  {diver.medical_status}
-                </span>
+                <div className='flex items-center gap-2'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setShowEditAnswers(!showEditAnswers);
+                      setShowClearanceForm(false);
+                    }}
+                    className='text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[11px] flex items-center gap-1'
+                  >
+                    <Edit2 size={12} />
+                    <span>{showEditAnswers ? 'Cancel Edit' : 'Modify Answers (Audited)'}</span>
+                  </button>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      isPhysicianApproved
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                        : isCleared
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                          : 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200'
+                    }`}
+                  >
+                    {diver.medical_status}
+                  </span>
+                </div>
               </div>
+
+              {/* Audit Log Banner */}
+              {medicalReview?.modification_audit && (
+                <div className='p-2 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg text-[11px] text-blue-900 dark:text-blue-200'>
+                  <div className='flex items-center justify-between'>
+                    <span className='font-bold'>
+                      Audit Log: Modified by {medicalReview.modification_audit.modified_by_name}
+                    </span>
+                    <span className='text-[10px] text-gray-400 font-mono'>
+                      {medicalReview.modification_audit.modified_at?.slice(0, 16).replace('T', ' ')}
+                    </span>
+                  </div>
+                  <p className='text-[10px] text-gray-600 dark:text-gray-400 mt-0.5 italic'>
+                    Reason: "{medicalReview.modification_audit.modification_reason}"
+                  </p>
+                </div>
+              )}
 
               {/* Physician Approved Banner */}
               {isPhysicianApproved && (
@@ -438,7 +514,7 @@ const TripParticipantDetailsPage = () => {
               )}
 
               {/* Flagged Medical Conditions Alert */}
-              {isMedicalBlocked && (
+              {isMedicalBlocked && !showEditAnswers && !showClearanceForm && (
                 <div className='p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl space-y-2.5 text-xs text-red-900 dark:text-red-200'>
                   <div className='flex items-center justify-between'>
                     <span className='font-bold flex items-center gap-1 text-red-700 dark:text-red-400'>
@@ -464,6 +540,97 @@ const TripParticipantDetailsPage = () => {
                     </ul>
                   )}
                 </div>
+              )}
+
+              {/* Audited Medical Answers Editor */}
+              {showEditAnswers && (
+                <form
+                  onSubmit={handleSaveMedicalAnswers}
+                  className='p-3 bg-white dark:bg-gray-800 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3 text-xs'
+                >
+                  <div className='flex items-center justify-between pb-1.5 border-b'>
+                    <span className='font-bold text-gray-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center gap-1'>
+                      <Stethoscope size={13} className='text-blue-600' />
+                      Audited Medical Answers Editor
+                    </span>
+                    <span className='text-[10px] text-amber-600 font-semibold'>
+                      * Modifications are permanently logged
+                    </span>
+                  </div>
+
+                  <div className='space-y-2 max-h-56 overflow-y-auto pr-1'>
+                    {(medicalReview?.all_questions || []).map(q => (
+                      <div
+                        key={q.id}
+                        className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg flex items-center justify-between gap-2'
+                      >
+                        <span className='text-[11px] text-gray-800 dark:text-gray-200 leading-tight'>
+                          {q.text}
+                        </span>
+                        <div className='flex items-center gap-1 shrink-0'>
+                          <button
+                            type='button'
+                            onClick={() => setEditableAnswers(prev => ({ ...prev, [q.id]: false }))}
+                            className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                              editableAnswers[q.id] === false
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            NO
+                          </button>
+                          <button
+                            type='button'
+                            onClick={() => setEditableAnswers(prev => ({ ...prev, [q.id]: true }))}
+                            className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                              editableAnswers[q.id] === true
+                                ? 'bg-red-600 text-white shadow-sm'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            YES
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+                      Manager Audit Reason *
+                    </label>
+                    <input
+                      type='text'
+                      required
+                      value={modificationReason}
+                      onChange={e => setModificationReason(e.target.value)}
+                      placeholder='e.g. Diver confirmed no history of cardiovascular issues; misclick on mobile questionnaire'
+                      className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750'
+                    />
+                  </div>
+
+                  <div className='flex justify-end gap-2 pt-2 border-t'>
+                    <button
+                      type='button'
+                      onClick={() => setShowEditAnswers(false)}
+                      className='px-3 py-1.5 text-gray-600 rounded-lg text-xs'
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type='submit'
+                      disabled={savingMedicalAnswers}
+                      className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm'
+                    >
+                      {savingMedicalAnswers ? (
+                        <Loader2 size={12} className='animate-spin' />
+                      ) : (
+                        <Check size={12} />
+                      )}
+                      <span>Save & Audit Answers</span>
+                    </button>
+                  </div>
+                </form>
               )}
 
               {/* Physician Clearance Approval Form */}

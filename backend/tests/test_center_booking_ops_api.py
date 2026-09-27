@@ -16,7 +16,9 @@ from app.models import (
     OctoBooking,
     OctoBookingUnitItem,
     DivingCenterVessel,
+    DiverMedicalRecord,
 )
+from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 
 @pytest.fixture(autouse=True)
 def setup_encryption_key(monkeypatch):
@@ -529,6 +531,73 @@ def test_medical_review_and_physician_clearance_override(client: TestClient, db_
     assert p2["medical_status"] == "PHYSICIAN_APPROVED"
     assert p2["medical_clearance_audit"]["physician_name"] == "Dr. Sofia Karra"
     assert p2["medical_clearance_audit"]["cleared_by_name"] == owner.username
+
+
+def test_manager_modify_medical_questionnaire_answers_with_audit(
+    client: TestClient, db_session: Session, center_ops_setup
+):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Setup diver with flagged medical record
+    encryption_svc = BookingMedicalEncryptionService()
+    flagged_answers = {"q1": True, "q2": False}
+    enc_dek, enc_answers = encryption_svc.encrypt_answers(flagged_answers)
+
+    med_rec = DiverMedicalRecord(
+        booking_unit_item_id="part-item-1",
+        user_id=owner.id,
+        status="FLAGGED_CONTACT_CENTER",
+        encrypted_dek=enc_dek,
+        encrypted_answers=enc_answers,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+    )
+    db_session.add(med_rec)
+    db_session.commit()
+
+    # 1. Attempt modification without reason (must fail 400)
+    res_no_reason = client.put(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/medical-answers",
+        json={"answers": {"q1": False}, "reason": ""},
+        headers=headers,
+    )
+    assert res_no_reason.status_code == 400
+
+    # 2. Modify medical answers with audit reason (clear q1 from True to False)
+    mod_payload = {
+        "answers": {f"q{i}": False for i in range(1, 11)},
+        "reason": "Diver confirmed no asthma; misclick during registration.",
+    }
+    res_mod = client.put(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/medical-answers",
+        json=mod_payload,
+        headers=headers,
+    )
+    assert res_mod.status_code == 200
+    mod_data = res_mod.json()
+    assert mod_data["status"] == "CLEARED"
+    assert mod_data["modified_by"] == owner.username
+    assert mod_data["modification_reason"] == "Diver confirmed no asthma; misclick during registration."
+    assert "modified_at" in mod_data
+    assert len(mod_data["modification_history"]) == 1
+    assert mod_data["modification_history"][0]["previous_status"] == "FLAGGED_CONTACT_CENTER"
+    assert mod_data["modification_history"][0]["new_status"] == "CLEARED"
+
+    # 3. Verify medical review endpoint returns modification audit
+    res_review = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/medical-review",
+        headers=headers,
+    )
+    assert res_review.status_code == 200
+    review_data = res_review.json()
+    assert review_data["status"] == "CLEARED"
+    assert review_data["modification_audit"]["modified_by_name"] == owner.username
+    assert review_data["modification_audit"]["modification_reason"] == "Diver confirmed no asthma; misclick during registration."
+    assert len(review_data["flagged_questions"]) == 0
 
 
 def test_export_emergency_dossier_pdf(client: TestClient, center_ops_setup):
