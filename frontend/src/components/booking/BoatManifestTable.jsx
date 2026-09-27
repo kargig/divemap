@@ -178,23 +178,42 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
-                    <button
-                      type='button'
-                      onClick={() => onTogglePayment(p.booking_id)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
-                        isPaid
-                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
-                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                      }`}
-                      title={
-                        isPaid
-                          ? 'Click to revert payment to Due at Desk'
-                          : 'Click to mark counter payment received'
-                      }
-                    >
-                      {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
-                      <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                      <button
+                        type='button'
+                        onClick={() => onTogglePayment(p.booking_id)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                          isPaid
+                            ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                            : 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                        }`}
+                        title={
+                          isPaid
+                            ? `Payment received: ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}. Click to revert.`
+                            : `Outstanding balance: ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}. Click to mark counter payment received.`
+                        }
+                      >
+                        {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
+                        <span className='font-mono'>
+                          {isPaid
+                            ? `${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`} Paid`
+                            : `Collect ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}`}
+                        </span>
+                      </button>
+
+                      {p.financials?.line_items && p.financials.line_items.length > 1 && (
+                        <button
+                          type='button'
+                          onClick={() => onViewDetails(p)}
+                          className='text-[10px] text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 underline decoration-dotted'
+                          title={p.financials.line_items
+                            .map(li => `${li.title}: ${li.formatted}`)
+                            .join('\n')}
+                        >
+                          {p.financials.line_items.length} items breakdown
+                        </button>
+                      )}
+                    </div>
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
@@ -459,12 +478,16 @@ const BoatManifestTable = ({
                     }`}
                     title={
                       isPaid
-                        ? 'Click to revert payment to Due at Desk'
-                        : 'Click to mark counter payment received'
+                        ? `Payment received: ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}. Click to revert.`
+                        : `Outstanding balance: ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}. Click to mark counter payment received.`
                     }
                   >
                     {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
-                    <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
+                    <span className='font-mono'>
+                      {isPaid
+                        ? `${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`} Paid`
+                        : `Collect ${p.formatted_total_due || `€${p.total_due?.toFixed(2)}`}`}
+                    </span>
                   </button>
                   <button
                     type='button'

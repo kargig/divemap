@@ -13,6 +13,7 @@ import {
   FileText,
   ExternalLink,
   LifeBuoy,
+  Coins,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -342,6 +343,63 @@ const DiverDetailsModal = ({
             </span>
           </div>
         </div>
+
+        {/* OCTO Financial Settlement & Line Items Breakdown */}
+        {currentDiver.financials && (
+          <div className='p-3.5 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-200/80 dark:border-blue-900/60 space-y-2.5 text-xs'>
+            <div className='flex items-center justify-between pb-1.5 border-b border-blue-200/60 dark:border-blue-900/40'>
+              <div className='flex items-center gap-1.5'>
+                <Coins size={14} className='text-blue-600' />
+                <h4 className='font-bold uppercase tracking-wider text-[11px] text-gray-900 dark:text-white'>
+                  OCTO Financial Settlement & Rental Breakdown
+                </h4>
+              </div>
+              <div className='flex items-center gap-2'>
+                <span className='font-mono font-bold text-sm text-blue-900 dark:text-blue-200'>
+                  {currentDiver.formatted_total_due || `€${currentDiver.total_due?.toFixed(2)}`}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    isPaid
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+                  }`}
+                >
+                  {isPaid ? 'Paid in Full' : 'Due at Counter'}
+                </span>
+              </div>
+            </div>
+
+            {/* Line items list */}
+            <div className='space-y-1.5 pt-1'>
+              {currentDiver.financials.line_items?.map((item, idx) => (
+                <div
+                  key={idx}
+                  className='flex items-center justify-between text-gray-600 dark:text-gray-300 pl-1'
+                >
+                  <span className='flex items-center gap-1.5'>
+                    <span className='w-1.5 h-1.5 rounded-full bg-blue-500'></span>
+                    <span>{item.title}</span>
+                  </span>
+                  <span className='font-mono font-semibold text-gray-900 dark:text-white'>
+                    {item.formatted}
+                  </span>
+                </div>
+              ))}
+
+              {currentDiver.financials.package_cap?.applied && (
+                <div className='mt-1.5 p-1.5 bg-blue-100/60 dark:bg-blue-900/40 rounded text-[11px] text-blue-900 dark:text-blue-200 font-medium flex items-center justify-between'>
+                  <span>✓ {currentDiver.financials.package_cap.title}</span>
+                  {currentDiver.financials.package_cap.savings > 0 && (
+                    <span className='font-mono text-emerald-700 dark:text-emerald-300'>
+                      Saved {currentDiver.financials.package_cap.formattedSavings}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Medical Status & Review Section */}
         <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2.5 text-xs'>

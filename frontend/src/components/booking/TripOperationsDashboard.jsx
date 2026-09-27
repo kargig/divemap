@@ -286,7 +286,8 @@ const TripOperationsDashboard = () => {
     );
   }
 
-  const { slot, vessel, center, participants, crate_packing_summary } = manifestData;
+  const { slot, vessel, center, participants, crate_packing_summary, financial_summary } =
+    manifestData;
   const bookedCount = participants.length;
   const bookedPercent = Math.min(100, Math.round((bookedCount / slot.seats_total) * 100));
   const boardedCount = participants.filter(p => p.onboard_checkin_status).length;
@@ -393,6 +394,27 @@ const TripOperationsDashboard = () => {
                     : `${participants.length - boardedCount} divers pending boarding`}
                 </span>
               </div>
+
+              {financial_summary && (
+                <div className='border-l pl-4 border-gray-200 dark:border-gray-700 hidden lg:block'>
+                  <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+                    Settlement (OCTO)
+                  </span>
+                  <div className='flex items-baseline gap-1.5 mt-0.5'>
+                    <span className='text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400'>
+                      {financial_summary.formattedCollected}
+                    </span>
+                    <span className='text-xs text-gray-400 font-medium font-mono'>
+                      / {financial_summary.formattedTotal}
+                    </span>
+                  </div>
+                  <span className='text-[10px] text-amber-600 dark:text-amber-400 font-medium block mt-1'>
+                    {financial_summary.totalOutstanding > 0
+                      ? `${financial_summary.formattedOutstanding} due (${financial_summary.pendingDiverCount} pending)`
+                      : 'All divers paid in full'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
