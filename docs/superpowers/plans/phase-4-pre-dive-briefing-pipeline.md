@@ -1,6 +1,6 @@
 # Phase 4: Pre-Dive Briefing Pipeline Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement the automated pre-dive briefing pipeline that merges Divemap's rich dive site data (depths, marine life, access, hazards) with live Open-Meteo marine weather forecasts (waves, wind, water temp) and Emergency Action Plans (EAP / nearest hyperbaric chamber), allowing dive center managers to review, customize, and dispatch a PDF briefing to confirmed divers 24–48 hours prior to departure via AWS SQS.
 
@@ -38,7 +38,7 @@
 - Consumes: `OctoAvailabilitySlot`, `DiveSite`, `fetch_wind_data_single_point`, `SQSService`.
 - Produces: `BriefingService.compile_draft_briefing(db, slot_id) -> TripBriefing`, `BriefingService.dispatch_briefing(db, briefing_id, user_id)`.
 
-- [ ] **Step 1: Write tests for draft compilation and weather synthesis**
+- [x] **Step 1: Write tests for draft compilation and weather synthesis**
 
 Create `backend/tests/test_briefing_service.py`:
 ```python
@@ -62,17 +62,17 @@ def test_compile_draft_briefing_synthesis(mock_fetch_weather, db, test_slot_with
     assert "Zenobia Wreck" in briefing.site_profile_notes
 ```
 
-- [ ] **Step 2: Add `TripBriefing` to `backend/app/models.py` and create migration**
+- [x] **Step 2: Add `TripBriefing` to `backend/app/models.py` and create migration**
 
 Create `backend/migrations/versions/0096_create_trip_briefing_table.py`.
 
-- [ ] **Step 3: Create Jinja2 briefing template `trip_briefing.html.j2` and ReportLab PDF compiler**
+- [x] **Step 3: Create Jinja2 briefing template `trip_briefing.html.j2` and ReportLab PDF compiler**
 
 Include header with boat & meeting time, dive site depth & topography, marine life species icons/photos, live wind/wave forecast, packing checklist, and emergency action plan (hyperbaric chamber phone + VHF 16).
 
-- [ ] **Step 4: Implement `BriefingService`**
+- [x] **Step 4: Implement `BriefingService`**
 
-- [ ] **Step 5: Run tests in isolated Docker**
+- [x] **Step 5: Run tests in isolated Docker**
 
 Run:
 ```bash
@@ -80,7 +80,7 @@ cd backend && ./docker-test-github-actions.sh tests/test_briefing_service.py
 ```
 Expected: `All tests passed!`.
 
-- [ ] **Step 6: Prepare commit draft**
+- [x] **Step 6: Prepare commit draft**
 
 Write commit message to `commit-message.txt`:
 ```
@@ -105,17 +105,17 @@ into automated draft briefings.
   - `PUT /api/v1/centers/{center_id}/booking-ops/trips/{trip_id}/briefing`
   - `POST /api/v1/centers/{center_id}/booking-ops/trips/{trip_id}/briefing/dispatch`
 
-- [ ] **Step 1: Write API tests for briefing editing and dispatch**
+- [x] **Step 1: Write API tests for briefing editing and dispatch**
 
 Create `backend/tests/test_briefing_endpoints.py`.
 
-- [ ] **Step 2: Implement briefing routes in `center_booking_ops.py`**
+- [x] **Step 2: Implement briefing routes in `center_booking_ops.py`**
 
-- [ ] **Step 3: Connect dispatch to `SQSService` queue**
+- [x] **Step 3: Connect dispatch to `SQSService` queue**
 
 Pushes `DISPATCH_TRIP_BRIEFING` task with recipient list and compiled PDF URL.
 
-- [ ] **Step 4: Run tests in isolated Docker**
+- [x] **Step 4: Run tests in isolated Docker**
 
 Run:
 ```bash
@@ -123,7 +123,7 @@ cd backend && ./docker-test-github-actions.sh tests/test_briefing_endpoints.py
 ```
 Expected: `All tests passed!`.
 
-- [ ] **Step 5: Prepare commit draft**
+- [x] **Step 5: Prepare commit draft**
 
 Write commit message to `commit-message.txt`:
 ```
@@ -147,13 +147,13 @@ PDF email dispatch to all confirmed divers on the trip roster.
 - Consumes: Briefing endpoints.
 - Produces: Manager review UI with editable notes and diver PDF viewer.
 
-- [ ] **Step 1: Implement `BriefingReviewModal.jsx`**
+- [x] **Step 1: Implement `BriefingReviewModal.jsx`**
 
 Modal in operations dashboard showing live briefing preview, weather badge, editable meeting notes textarea, skipper selector, and "Approve & Dispatch" button.
 
-- [ ] **Step 2: Add "View Briefing" download button in `BookingVoucherPage.jsx`**
+- [x] **Step 2: Add "View Briefing" download button in `BookingVoucherPage.jsx`**
 
-- [ ] **Step 3: Run frontend lint and browser verification**
+- [x] **Step 3: Run frontend lint and browser verification**
 
 Run:
 ```bash
@@ -161,7 +161,7 @@ make lint-frontend
 ```
 Verify via Chrome DevTools MCP and check for zero console errors.
 
-- [ ] **Step 4: Prepare commit draft**
+- [x] **Step 4: Prepare commit draft**
 
 Write commit message to `commit-message.txt`:
 ```
@@ -174,7 +174,7 @@ and divers to download the PDF briefing directly from their vouchers.
 ---
 
 ### Phase 4 Verification Checklist
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_briefing_service.py` passes.
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_briefing_endpoints.py` passes.
-- [ ] `make lint-frontend` passes with zero errors.
-- [ ] Browser verification passes via Chrome DevTools MCP with zero console errors.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_briefing_service.py` passes.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_briefing_endpoints.py` passes.
+- [x] `make lint-frontend` passes with zero errors.
+- [x] Browser verification passes via Chrome DevTools MCP with zero console errors.
