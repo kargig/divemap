@@ -152,6 +152,7 @@ const BookingWizard = () => {
 
   // Final Confirmation
   const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
+  const hasCertDetails = Boolean(certAgency && certLevel.trim() && certNumber.trim());
 
   const handleConfirmBooking = async () => {
     if (!diverName.trim()) {
@@ -162,6 +163,10 @@ const BookingWizard = () => {
       toast.error(
         'Please provide at least one of: Email, Phone/WhatsApp, or Passport/National ID.'
       );
+      return;
+    }
+    if (!hasCertDetails) {
+      toast.error('Please provide your Certification Agency, Level, and C-Card Number.');
       return;
     }
     if (!dmscAnswers) {
@@ -467,16 +472,32 @@ const BookingWizard = () => {
               </div>
 
               {/* Certification Details */}
-              <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 pt-3 border-t'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2 pt-3 border-t'>
+                <span className='text-xs font-bold text-gray-500 uppercase tracking-wider'>
+                  Certification Credentials *
+                </span>
+                <span
+                  className={`text-[11px] font-medium ${
+                    !hasCertDetails ? 'text-amber-600 font-semibold' : 'text-emerald-600'
+                  }`}
+                >
+                  * Agency, Level, and C-Card # are required to verify diver qualification
+                </span>
+              </div>
+              <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4'>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Agency
+                    Agency *
                   </label>
                   <select
                     value={certAgency}
                     onChange={e => setCertAgency(e.target.value)}
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white'
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg text-sm bg-white ${
+                      !certAgency ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   >
+                    <option value=''>Select Agency...</option>
                     <option value='PADI'>PADI</option>
                     <option value='SSI'>SSI</option>
                     <option value='CMAS'>CMAS</option>
@@ -484,30 +505,37 @@ const BookingWizard = () => {
                     <option value='NAUI'>NAUI</option>
                     <option value='TDI/SDI'>TDI / SDI</option>
                     <option value='BSAC'>BSAC</option>
+                    <option value='OTHER'>Other</option>
                   </select>
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Certification Level
+                    Certification Level *
                   </label>
                   <input
                     type='text'
                     value={certLevel}
                     onChange={e => setCertLevel(e.target.value)}
                     placeholder='e.g. Advanced Open Water'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                      !certLevel.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    C-Card #
+                    C-Card # *
                   </label>
                   <input
                     type='text'
                     value={certNumber}
                     onChange={e => setCertNumber(e.target.value)}
-                    placeholder='Cert number'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    placeholder='Certificate number'
+                    required
+                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                      !certNumber.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   />
                 </div>
               </div>
@@ -598,13 +626,26 @@ const BookingWizard = () => {
             </div>
 
             {/* Step 3: Liability Waiver */}
-            <div className='bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700'>
+            <div
+              className={`p-5 sm:p-6 rounded-2xl shadow-sm border transition-all ${
+                !dmscAnswers
+                  ? 'bg-gray-50/60 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700 opacity-75'
+                  : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
+              }`}
+            >
               <div className='flex items-center justify-between gap-4'>
                 <div>
-                  <h2 className='text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2'>
-                    <FileText className='h-5 w-5 text-blue-600' />
-                    3. Liability Waiver & Risk Release
-                  </h2>
+                  <div className='flex items-center gap-2'>
+                    <h2 className='text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-2'>
+                      <FileText className='h-5 w-5 text-blue-600' />
+                      3. Liability Waiver & Risk Release
+                    </h2>
+                    {!dmscAnswers && (
+                      <span className='text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold'>
+                        Complete Medical First
+                      </span>
+                    )}
+                  </div>
                   <p className='text-xs text-gray-500 mt-0.5'>
                     Digital signature and assumption of hyperbaric scuba risks.
                   </p>
@@ -612,11 +653,20 @@ const BookingWizard = () => {
 
                 <button
                   type='button'
-                  onClick={() => setWaiverModalOpen(true)}
+                  onClick={() => {
+                    if (!dmscAnswers) {
+                      toast('Please complete the medical questionnaire first.', { icon: 'ℹ️' });
+                      return;
+                    }
+                    setWaiverModalOpen(true);
+                  }}
+                  disabled={!dmscAnswers}
                   className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
                     waiverSignature
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                      : !dmscAnswers
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-gray-200 dark:border-gray-600'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
                   }`}
                 >
                   {waiverSignature ? '✓ Signed (Edit)' : 'Review & Sign'}
@@ -655,6 +705,21 @@ const BookingWizard = () => {
                     className={`font-semibold ${hasContactOrId ? 'text-emerald-600' : 'text-amber-600'}`}
                   >
                     {hasContactOrId ? 'Provided' : '1 Required'}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Certification:</span>
+                  <span
+                    className={`font-semibold ${
+                      hasCertDetails ? 'text-emerald-600 truncate max-w-[140px]' : 'text-amber-600'
+                    }`}
+                    title={
+                      hasCertDetails
+                        ? `${certAgency} ${certLevel} (#${certNumber})`
+                        : 'Missing details'
+                    }
+                  >
+                    {hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
@@ -705,6 +770,7 @@ const BookingWizard = () => {
                   submitting ||
                   !diverName.trim() ||
                   !hasContactOrId ||
+                  !hasCertDetails ||
                   !dmscAnswers ||
                   !waiverSignature
                 }

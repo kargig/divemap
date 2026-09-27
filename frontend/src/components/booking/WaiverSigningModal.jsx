@@ -1,6 +1,6 @@
 import { Modal } from 'antd';
 import { FileText, Check, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 const WaiverSigningModal = ({
@@ -14,6 +14,16 @@ const WaiverSigningModal = ({
   const [agreed, setAgreed] = useState(false);
 
   const isEu = bundleId?.includes('eu');
+  const cleanDiver = diverName.trim();
+  const nameMatches = Boolean(
+    cleanDiver && typedName.trim().toLowerCase() === cleanDiver.toLowerCase()
+  );
+
+  useEffect(() => {
+    if (isOpen && cleanDiver) {
+      setTypedName(cleanDiver);
+    }
+  }, [isOpen, cleanDiver]);
 
   const handleSign = e => {
     e.preventDefault();
@@ -21,13 +31,18 @@ const WaiverSigningModal = ({
       toast.error('You must affirm that you have read and agree to the waiver terms.');
       return;
     }
-    if (!typedName.trim()) {
+    const cleanTyped = typedName.trim();
+    if (!cleanTyped) {
       toast.error('Please type your full legal name to execute the digital signature.');
+      return;
+    }
+    if (cleanDiver && cleanTyped.toLowerCase() !== cleanDiver.toLowerCase()) {
+      toast.error(`Digital signature must match diver full legal name: "${cleanDiver}"`);
       return;
     }
 
     onSigned({
-      signatureName: typedName.trim(),
+      signatureName: cleanDiver || cleanTyped,
       signedAt: new Date().toISOString(),
     });
     onClose();
@@ -43,12 +58,12 @@ const WaiverSigningModal = ({
         <div className='flex items-center gap-2.5 pb-2 border-b'>
           <FileText className='h-5 w-5 text-blue-600' />
           <div>
-            <h3 className='text-base font-bold text-gray-900'>
+            <h3 className='text-base font-bold text-gray-900 dark:text-white'>
               {isEu
                 ? 'Statement of Risk & Liability (EU Version)'
                 : 'Certified Diver Activity Release & Liability Waiver'}
             </h3>
-            <p className='text-xs text-gray-500 font-normal'>
+            <p className='text-xs text-gray-500 dark:text-gray-400 font-normal'>
               Legal agreement and assumption of inherent hyperbaric scuba risks.
             </p>
           </div>
@@ -62,7 +77,7 @@ const WaiverSigningModal = ({
             PLEASE READ CAREFULLY AND AFFIRM BEFORE SIGNING.
           </p>
           <p>
-            I, <strong>{diverName || '[Participant Name]'}</strong>, hereby affirm that I am a
+            I, <strong>{cleanDiver || '[Participant Name]'}</strong>, hereby affirm that I am a
             certified scuba diver trained in safe diving practices by a recognized certification
             agency (or am enrolled in authorized scuba instruction).
           </p>
@@ -88,7 +103,7 @@ const WaiverSigningModal = ({
         </div>
 
         {/* Affirmation Checkbox */}
-        <div className='p-3 bg-blue-50/50 rounded-lg border border-blue-200'>
+        <div className='p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>
           <label className='flex items-start gap-2.5 cursor-pointer'>
             <input
               type='checkbox'
@@ -97,7 +112,7 @@ const WaiverSigningModal = ({
               required
               className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mt-0.5 shrink-0'
             />
-            <span className='text-xs sm:text-sm text-gray-800 font-medium'>
+            <span className='text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium'>
               I have read, understood, and voluntarily agree to this Statement of Risk, Liability
               Release, and Assumption of Scuba Diving Hazards.
             </span>
@@ -106,20 +121,40 @@ const WaiverSigningModal = ({
 
         {/* Typed Digital Signature */}
         <div>
-          <label className='block text-xs font-semibold text-gray-700 mb-1'>
-            Type Full Legal Name as Digital Signature *
-          </label>
+          <div className='flex items-center justify-between mb-1'>
+            <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300'>
+              Digital Signature * (Must match:{' '}
+              <span className='text-blue-600 font-bold'>{cleanDiver || 'Full Name'}</span>)
+            </label>
+            {cleanDiver && typedName !== cleanDiver && (
+              <button
+                type='button'
+                onClick={() => setTypedName(cleanDiver)}
+                className='text-xs text-blue-600 hover:underline font-medium'
+              >
+                Sign as {cleanDiver}
+              </button>
+            )}
+          </div>
           <input
             type='text'
             value={typedName}
             onChange={e => setTypedName(e.target.value)}
-            placeholder={diverName || 'e.g. John Doe'}
+            placeholder={cleanDiver || 'e.g. John Doe'}
             required
-            className='w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-medium'
+            className={`w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm font-medium ${
+              cleanDiver && !nameMatches ? 'border-red-300 bg-red-50/20' : 'border-gray-300'
+            }`}
           />
+          {cleanDiver && typedName.trim() && !nameMatches && (
+            <p className='text-xs text-red-600 mt-1 flex items-center gap-1'>
+              <AlertCircle size={13} />
+              Signature name must match diver legal name: "{cleanDiver}"
+            </p>
+          )}
           <span className='text-[11px] text-gray-400 mt-1 block'>
-            By typing your full name, you execute an enforceable electronic signature capturing your
-            timestamp and audit hash.
+            By typing your full legal name, you execute an enforceable electronic signature
+            capturing your timestamp and audit hash.
           </span>
         </div>
 
@@ -134,7 +169,7 @@ const WaiverSigningModal = ({
           </button>
           <button
             type='submit'
-            disabled={!agreed || !typedName.trim()}
+            disabled={!agreed || !nameMatches}
             className='flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed'
           >
             <Check size={16} />

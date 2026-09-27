@@ -1,5 +1,5 @@
 import { Modal } from 'antd';
-import { Shield, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
 import { useState } from 'react';
 
 const QUESTIONS = [
@@ -59,15 +59,24 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
     setAnswers(prev => ({ ...prev, [qId]: value }));
   };
 
+  const answeredCount = QUESTIONS.filter(q => answers[q.id] !== undefined).length;
+  const isComplete = answeredCount === QUESTIONS.length;
   const hasAnyYes = Object.values(answers).some(v => v === true);
-  const isComplete = QUESTIONS.every(q => answers[q.id] !== undefined);
+  const canProceed = isComplete || hasAnyYes;
 
   const handleSubmit = e => {
     e.preventDefault();
-    if (!isComplete) return;
+    if (!canProceed) return;
 
-    // Combine primary and box answers
-    const fullAnswers = { ...answers, boxes: boxAnswers };
+    // Fill remaining unanswered questions as unconfirmed/false if hasAnyYes
+    const finalAnswers = { ...answers };
+    QUESTIONS.forEach(q => {
+      if (finalAnswers[q.id] === undefined) {
+        finalAnswers[q.id] = false;
+      }
+    });
+
+    const fullAnswers = { ...finalAnswers, boxes: boxAnswers };
     onCompleted(fullAnswers, hasAnyYes ? 'FLAGGED_CONTACT_CENTER' : 'CLEARED');
     onClose();
   };
@@ -82,10 +91,10 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
         <div className='flex items-center gap-2.5 pb-2 border-b'>
           <Shield className='h-5 w-5 text-blue-600' />
           <div>
-            <h3 className='text-base font-bold text-gray-900'>
+            <h3 className='text-base font-bold text-gray-900 dark:text-white'>
               Diver Medical Screening (DMSC 2020)
             </h3>
-            <p className='text-xs text-gray-500 font-normal'>
+            <p className='text-xs text-gray-500 dark:text-gray-400 font-normal'>
               Standardized international diver screening (UHMS / DAN / WRSTC). Encrypted under GDPR
               Article 9.
             </p>
@@ -112,10 +121,10 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
                 key={q.id}
                 className={`p-3.5 rounded-xl border transition-all ${
                   val === true
-                    ? 'border-amber-300 bg-amber-50/50'
+                    ? 'border-amber-300 bg-amber-50/50 dark:bg-amber-900/10'
                     : val === false
-                      ? 'border-gray-200 bg-white'
-                      : 'border-gray-200 bg-gray-50/50'
+                      ? 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                      : 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/40'
                 }`}
               >
                 <div className='flex items-start justify-between gap-3'>
@@ -123,7 +132,7 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
                     <span className='font-bold text-xs text-gray-400 font-mono mt-0.5'>
                       {idx + 1}.
                     </span>
-                    <p className='text-xs sm:text-sm text-gray-800 font-medium leading-relaxed'>
+                    <p className='text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium leading-relaxed'>
                       {q.text}
                     </p>
                   </div>
@@ -134,7 +143,7 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
                       className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
                         val === false
                           ? 'bg-emerald-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
                       }`}
                     >
                       NO
@@ -145,7 +154,7 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
                       className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
                         val === true
                           ? 'bg-amber-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
                       }`}
                     >
                       YES
@@ -154,12 +163,12 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
                 </div>
 
                 {val === true && (
-                  <div className='mt-2.5 pt-2 border-t border-amber-200 text-xs text-amber-800 flex items-center gap-1.5'>
+                  <div className='mt-2.5 pt-2 border-t border-amber-200 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5'>
                     <AlertTriangle size={13} className='shrink-0 text-amber-600' />
                     <span>
                       {q.directFlag
                         ? 'Requires written physician evaluation before participating in scuba diving.'
-                        : 'Diagnostic screening flagged. Your seat will be held while you contact the dive center.'}
+                        : 'Diagnostic screening flagged. Your seat will be placed on hold while you contact the dive center.'}
                     </span>
                   </div>
                 )}
@@ -169,55 +178,53 @@ const MedicalQuestionnaireModal = ({ isOpen, onClose, onCompleted, initialAnswer
         </div>
 
         {/* Screening Result Banner */}
-        {isComplete && (
-          <div
-            className={`p-3.5 rounded-xl border flex items-center gap-3 ${
-              hasAnyYes
-                ? 'bg-amber-50 border-amber-300 text-amber-900'
-                : 'bg-emerald-50 border-emerald-300 text-emerald-900'
-            }`}
-          >
-            {hasAnyYes ? (
-              <>
-                <AlertTriangle className='h-5 w-5 text-amber-600 shrink-0' />
-                <div className='text-xs'>
-                  <strong className='block font-bold text-sm'>
-                    Physician / Center Review Required
-                  </strong>
-                  Your answers indicate a medical flag. Your reservation will be placed on hold, and
-                  you will be asked to contact the dive center or upload a physician approval form.
-                </div>
-              </>
-            ) : (
-              <>
-                <CheckCircle className='h-5 w-5 text-emerald-600 shrink-0' />
-                <div className='text-xs'>
-                  <strong className='block font-bold text-sm'>
-                    Instant Digital Clearance (Clean)
-                  </strong>
-                  All 10 screening questions answered negatively. You are clinically cleared for
-                  immediate participation.
-                </div>
-              </>
-            )}
+        {hasAnyYes ? (
+          <div className='p-3.5 rounded-xl border bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-3'>
+            <AlertTriangle className='h-5 w-5 text-amber-600 shrink-0 mt-0.5' />
+            <div className='text-xs'>
+              <strong className='block font-bold text-sm text-amber-900 dark:text-amber-200 mb-0.5'>
+                Physician Clearance Required (Seat Will Be Held on Medical Review)
+              </strong>
+              You answered YES to one or more medical conditions. Under DMSC 2020 rules, your
+              reservation will be placed on <strong>Medical Hold</strong>. You can proceed now to
+              complete your reservation, and contact the diving center to arrange physician
+              clearance before the dive.
+            </div>
           </div>
-        )}
+        ) : isComplete ? (
+          <div className='p-3.5 rounded-xl border bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 flex items-center gap-3'>
+            <CheckCircle className='h-5 w-5 text-emerald-600 shrink-0' />
+            <div className='text-xs'>
+              <strong className='block font-bold text-sm text-emerald-900 dark:text-emerald-200'>
+                Instant Digital Clearance (Clean)
+              </strong>
+              All 10 screening questions answered negatively. You are clinically cleared for
+              immediate participation.
+            </div>
+          </div>
+        ) : null}
 
         {/* Modal Actions */}
         <div className='flex items-center justify-end gap-3 pt-3 border-t'>
           <button
             type='button'
             onClick={onClose}
-            className='px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors'
+            className='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
           >
             Cancel
           </button>
           <button
             type='submit'
-            disabled={!isComplete}
-            className='px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed'
+            disabled={!canProceed}
+            className={`px-5 py-2 text-white text-sm font-semibold rounded-md shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+              hasAnyYes ? 'bg-amber-600 hover:bg-amber-700' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            Confirm & Proceed to Waiver
+            {hasAnyYes
+              ? 'Acknowledge & Proceed with Medical Hold'
+              : isComplete
+                ? 'Confirm & Proceed to Waiver'
+                : `Answer Questions (${answeredCount}/10)`}
           </button>
         </div>
       </form>
