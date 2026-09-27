@@ -44,7 +44,7 @@ const PRESETS = [
     fin_type: 'OPEN_HEEL',
     regulator_fitting: 'DIN',
     preferred_tank_id: '24', // Double 12s
-    preferred_gas_mix_id: 'tx2135',
+    preferred_gas_mix_id: 'ean32',
     estimated_lead_kg: 6.0,
     has_own_dive_computer: true,
     has_own_smb: true,
