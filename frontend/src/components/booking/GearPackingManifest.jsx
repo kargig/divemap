@@ -161,8 +161,8 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             </span>
           </div>
 
-          {/* Lead Blocks Breakdown (1kg vs 2kg) */}
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs'>
+          {/* Lead Blocks Breakdown (2kg, 1kg, 0.5kg trim, Belts, Pockets) */}
+          <div className='grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs'>
             <div className='p-2 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40'>
               <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
                 2 kg Blocks
@@ -181,6 +181,15 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
               </strong>
               <span className='text-[9px] text-gray-400 block'>~2.2 lbs ea</span>
             </div>
+            <div className='p-2 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40'>
+              <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
+                0.5 kg Blocks
+              </span>
+              <strong className='text-base font-bold font-mono text-indigo-700 dark:text-indigo-300'>
+                {leadBreakdown.blocks_05kg || 0}x
+              </strong>
+              <span className='text-[9px] text-gray-400 block'>~1.1 lbs trim</span>
+            </div>
             <div className='p-2 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40'>
               <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
                 Nylon Belts
@@ -188,7 +197,7 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
               <strong className='text-base font-bold font-mono text-blue-700 dark:text-blue-300'>
                 {leadBreakdown.belts_needed || 0}
               </strong>
-              <span className='text-[9px] text-gray-400 block'>for non-int.</span>
+              <span className='text-[9px] text-gray-400 block'>belt system</span>
             </div>
             <div className='p-2 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-xl border border-emerald-100 dark:border-emerald-900/40'>
               <span className='text-[10px] text-gray-500 uppercase font-semibold block'>
@@ -220,22 +229,37 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
             <div className='max-h-36 overflow-y-auto space-y-1.5 pr-1'>
               {participants.map(p => {
                 const lead = p.estimated_lead_kg || 0;
-                const twos = Math.floor(lead / 2);
-                const ones = Math.round(lead % 2);
+                const hasHalf = lead % 1.0 >= 0.4;
+                const whole = Math.floor(lead);
+                const twos = Math.floor(whole / 2);
+                const ones = whole % 2;
+
+                const blocksStr =
+                  [
+                    twos > 0 ? `${twos}x2kg` : null,
+                    ones > 0 ? `${ones}x1kg` : null,
+                    hasHalf ? `1x0.5kg` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' + ') || '0kg';
+
+                const isBelt = p.equipment_sizing?.weight_system === 'BELT';
 
                 return (
                   <div
                     key={p.id}
                     className='flex items-center justify-between text-xs py-1.5 px-2 bg-gray-50 dark:bg-gray-750 rounded-lg'
                   >
-                    <span className='font-medium text-gray-700 dark:text-gray-300 truncate max-w-[160px]'>
-                      {p.diver_full_name}
-                    </span>
-                    <div className='flex items-center gap-2'>
-                      <span className='text-[10px] text-gray-400 font-mono'>
-                        {twos > 0 ? `${twos}x2kg ` : ''}
-                        {ones > 0 ? `${ones}x1kg` : ''}
+                    <div className='flex items-center gap-1.5 truncate max-w-[170px]'>
+                      <span className='font-medium text-gray-700 dark:text-gray-300 truncate'>
+                        {p.diver_full_name}
                       </span>
+                      <span className='text-[10px] text-gray-400 font-sans shrink-0'>
+                        ({isBelt ? 'Belt' : 'Pockets'})
+                      </span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-[10px] text-gray-500 font-mono'>{blocksStr}</span>
                       <span className='font-mono font-bold text-gray-900 dark:text-white'>
                         {lead} kg
                       </span>

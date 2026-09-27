@@ -142,6 +142,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     total_lead_kg = 0.0
 
     # Denomination tallies for weights & valve fittings
+    blocks_05kg = 0
     blocks_1kg = 0
     blocks_2kg = 0
     belts_needed = 0
@@ -186,11 +187,16 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             else:
                 integrated_divers += 1
 
-            # Symmetry weight pocket distribution:
+            # Ballast block allocation (2kg main blocks, 1kg standard blocks, 0.5kg precision trim blocks):
             if lead > 0:
-                twos = int(lead // 2)
-                ones = int(round(lead % 2))
-                # For 2kg, prefer 2x 1kg for balance if small
+                if (lead % 1.0) >= 0.4:
+                    blocks_05kg += 1
+
+                whole_lead = int(lead)
+                twos = whole_lead // 2
+                ones = whole_lead % 2
+
+                # For 2kg, prefer 2x 1kg for balance if small BCD
                 if twos == 1 and ones == 0 and eq.get("bcd_size") in ("XS", "S"):
                     blocks_1kg += 2
                 else:
@@ -250,10 +256,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     spare_1kg = int(round(spare_kg % 2))
 
     lead_breakdown = {
-        "total_lead_kg": total_lead_kg,
+        "total_lead_kg": round(total_lead_kg, 1),
         "total_lead_lbs": round(total_lead_kg * 2.20462, 1),
-        "blocks_1kg": blocks_1kg,
         "blocks_2kg": blocks_2kg,
+        "blocks_1kg": blocks_1kg,
+        "blocks_05kg": blocks_05kg,
         "spare_buffer_kg": spare_kg,
         "spare_blocks_1kg": spare_1kg,
         "spare_blocks_2kg": spare_2kg,

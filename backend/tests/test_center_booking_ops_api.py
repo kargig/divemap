@@ -178,6 +178,7 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
     assert summary["total_lead_kg"] == 10.0 # 4.0 + 6.0
     assert summary["total_participants"] == 2
     assert "M (5mm)" in summary["wetsuits"]
+    assert "blocks_05kg" in summary["lead_breakdown"]
 
 
 def test_add_walkin_participant(client: TestClient, center_ops_setup):
@@ -225,7 +226,7 @@ def test_update_participant_equipment(client: TestClient, center_ops_setup):
     update_payload = {
         "selected_tank_id": "15",
         "selected_gas_mix_id": "ean32",
-        "equipment_sizing": {"estimated_lead_kg": 8.0, "wetsuit_size": "XXL"},
+        "equipment_sizing": {"estimated_lead_kg": 4.5, "wetsuit_size": "XXL"},
     }
 
     res = client.put(
@@ -235,6 +236,18 @@ def test_update_participant_equipment(client: TestClient, center_ops_setup):
     )
     assert res.status_code == 200
     assert res.json()["updated"] is True
+
+    # Verify 4.5kg denomination: 4.0 (2x2kg) + 4.5 (2x2kg + 1x0.5kg) = 4x 2kg, 0x 1kg, 1x 0.5kg
+    res_manifest = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/manifest",
+        headers=headers,
+    )
+    assert res_manifest.status_code == 200
+    lead_bd = res_manifest.json()["crate_packing_summary"]["lead_breakdown"]
+    assert lead_bd["blocks_05kg"] == 1
+    assert lead_bd["blocks_2kg"] == 4
+    assert lead_bd["blocks_1kg"] == 0
+    assert lead_bd["total_lead_kg"] == 8.5
 
 
 def test_toggle_participant_checkin(client: TestClient, center_ops_setup):
