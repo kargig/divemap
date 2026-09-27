@@ -402,6 +402,26 @@ class BriefingService:
 
         logger.info(f"Dispatched briefing {briefing.id} for slot {slot_id} to {len(recipients)} recipients")
 
+        # Asynchronously queue email notifications via SQSService
+        try:
+            from app.services.sqs_service import SQSService
+            sqs = SQSService()
+            if sqs.sqs_available:
+                slot_date = slot.start_datetime.strftime("%Y-%m-%d") if slot else "Upcoming"
+                for email in recipients:
+                    sqs.send_email_task(
+                        notification_id=briefing.id,
+                        user_email=email,
+                        notification_data={
+                            "type": "TRIP_BRIEFING",
+                            "title": f"Pre-Dive Briefing: {slot.product.title if (slot and slot.product) else 'Upcoming Dive Trip'}",
+                            "message": f"Your pre-dive briefing for {slot_date} is ready. Review weather, dive profile, and logistics.",
+                            "link_url": f"/api/v1/centers/{slot.product.diving_center_id if (slot and slot.product) else 0}/booking-ops/trips/{slot_id}/briefing/pdf",
+                        },
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to queue SQS briefing notification: {e}")
+
         db.commit()
         db.refresh(briefing)
         return briefing
