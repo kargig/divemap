@@ -222,112 +222,178 @@ const TripOperationsDashboard = () => {
 
   const [exporting, setExporting] = useState(false);
 
-  const handleExport = async (format = 'csv') => {
+  const triggerDownload = (blob, filename) => {
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+  };
+
+  const getCleanTitle = () => {
+    return (manifestData?.slot?.product_title || 'trip').replace(/[^a-zA-Z0-9_-]/g, '_');
+  };
+
+  const handleExportManifest = async (format = 'csv') => {
     try {
       setExporting(true);
       toast.loading(`Generating Port Authority ${format.toUpperCase()}...`, {
-        id: 'export-manifest',
+        id: 'export-dossier',
       });
       const res = await api.get(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/manifest/export-port-authority?format=${format}`,
         { responseType: 'blob' }
       );
-
       const mimeType = format === 'pdf' ? 'application/pdf' : 'text/csv';
       const blob = new window.Blob([res.data], { type: mimeType });
-      const blobUrl = window.URL.createObjectURL(blob);
-
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      const cleanTitle = (manifestData?.slot?.product_title || 'manifest').replace(
-        /[^a-zA-Z0-9_-]/g,
-        '_'
-      );
-      link.setAttribute('download', `port_manifest_${cleanTitle}.${format}`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-      toast.success(`Port Authority ${format.toUpperCase()} downloaded!`, {
-        id: 'export-manifest',
-      });
+      triggerDownload(blob, `port_manifest_${getCleanTitle()}.${format}`);
+      toast.success(`Manifest (${format}) downloaded!`, { id: 'export-dossier' });
     } catch (err) {
-      console.error('Failed to export manifest:', err);
-      toast.error(`Failed to export ${format.toUpperCase()} manifest.`, { id: 'export-manifest' });
+      console.error(`Failed to export manifest (${format}):`, err);
+      toast.error(`Failed to export manifest (${format}).`, { id: 'export-dossier' });
     } finally {
       setExporting(false);
     }
   };
 
-  const manifestExportItems = [
-    {
-      key: 'pdf',
-      label: (
-        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
-          <Download size={13} className='text-red-600' />
-          <span>Port Authority PDF</span>
-        </span>
-      ),
-      onClick: () => handleExport('pdf'),
-    },
-    {
-      key: 'csv',
-      label: (
-        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
-          <FileSpreadsheet size={13} className='text-emerald-600' />
-          <span>Port Authority CSV</span>
-        </span>
-      ),
-      onClick: () => handleExport('csv'),
-    },
-  ];
-
-  const [exportingChecklist, setExportingChecklist] = useState(false);
-  const handleExportGearChecklistPdf = async () => {
+  const handleExportChecklistPdf = async () => {
     try {
-      setExportingChecklist(true);
-      toast.loading('Generating Equipment Checklist PDF...', { id: 'gear-pdf' });
+      setExporting(true);
+      toast.loading('Generating Checklist (pdf)...', { id: 'export-dossier' });
       const res = await api.get(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/equipment-checklist/pdf`,
         { responseType: 'blob' }
       );
       const blob = new window.Blob([res.data], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      toast.success('Equipment Checklist PDF ready!', { id: 'gear-pdf' });
+      triggerDownload(blob, `equipment_checklist_${getCleanTitle()}.pdf`);
+      toast.success('Checklist (pdf) downloaded!', { id: 'export-dossier' });
     } catch (err) {
-      console.error('Failed to export equipment checklist PDF:', err);
-      toast.error(err.response?.data?.detail || 'Failed to export equipment checklist PDF.', {
-        id: 'gear-pdf',
-      });
+      console.error('Failed to export checklist PDF:', err);
+      toast.error('Failed to export checklist PDF.', { id: 'export-dossier' });
     } finally {
-      setExportingChecklist(false);
+      setExporting(false);
     }
   };
 
-  const [exportingCrates, setExportingCrates] = useState(false);
   const handleExportCratePdf = async () => {
     try {
-      setExportingCrates(true);
-      toast.loading('Generating Crate Packing PDF...', { id: 'crate-pdf' });
+      setExporting(true);
+      toast.loading('Generating Crate Sheet (pdf)...', { id: 'export-dossier' });
       const res = await api.get(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/crate-packing/pdf`,
         { responseType: 'blob' }
       );
       const blob = new window.Blob([res.data], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      toast.success('Crate Packing PDF ready!', { id: 'crate-pdf' });
+      triggerDownload(blob, `crate_sheet_${getCleanTitle()}.pdf`);
+      toast.success('Crate Sheet (pdf) downloaded!', { id: 'export-dossier' });
     } catch (err) {
-      console.error('Failed to export crate packing PDF:', err);
-      toast.error(err.response?.data?.detail || 'Failed to export crate packing PDF.', {
-        id: 'crate-pdf',
-      });
+      console.error('Failed to export crate sheet PDF:', err);
+      toast.error('Failed to export crate sheet PDF.', { id: 'export-dossier' });
     } finally {
-      setExportingCrates(false);
+      setExporting(false);
     }
   };
+
+  const handleExportAllPdfs = async () => {
+    try {
+      setExporting(true);
+      toast.loading('Downloading All PDFs...', { id: 'export-dossier' });
+      const [resManifest, resChecklist, resCrate] = await Promise.all([
+        api.get(
+          `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/manifest/export-port-authority?format=pdf`,
+          { responseType: 'blob' }
+        ),
+        api.get(`/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/equipment-checklist/pdf`, {
+          responseType: 'blob',
+        }),
+        api.get(`/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/crate-packing/pdf`, {
+          responseType: 'blob',
+        }),
+      ]);
+
+      const title = getCleanTitle();
+      triggerDownload(
+        new window.Blob([resManifest.data], { type: 'application/pdf' }),
+        `port_manifest_${title}.pdf`
+      );
+      triggerDownload(
+        new window.Blob([resChecklist.data], { type: 'application/pdf' }),
+        `equipment_checklist_${title}.pdf`
+      );
+      triggerDownload(
+        new window.Blob([resCrate.data], { type: 'application/pdf' }),
+        `crate_sheet_${title}.pdf`
+      );
+      toast.success('All PDFs downloaded successfully!', { id: 'export-dossier' });
+    } catch (err) {
+      console.error('Failed to download all PDFs:', err);
+      toast.error('Failed to download all PDFs.', { id: 'export-dossier' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const exportMenuItems = [
+    {
+      key: 'manifest-pdf',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <FileText size={13} className='text-red-600' />
+          <span>Manifest (pdf)</span>
+        </span>
+      ),
+      onClick: () => handleExportManifest('pdf'),
+    },
+    {
+      key: 'checklist-pdf',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <PackageCheck size={13} className='text-blue-600' />
+          <span>Checklist (pdf)</span>
+        </span>
+      ),
+      onClick: handleExportChecklistPdf,
+    },
+    {
+      key: 'crates-pdf',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <Package size={13} className='text-indigo-600' />
+          <span>Crate Sheet (pdf)</span>
+        </span>
+      ),
+      onClick: handleExportCratePdf,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'all-pdf',
+      label: (
+        <span className='flex items-center gap-2 font-bold text-xs py-0.5 text-blue-700 dark:text-blue-400'>
+          <Download size={13} className='text-blue-600' />
+          <span>All PDF</span>
+        </span>
+      ),
+      onClick: handleExportAllPdfs,
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'manifest-csv',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <FileSpreadsheet size={13} className='text-emerald-600' />
+          <span>Manifest (csv)</span>
+        </span>
+      ),
+      onClick: () => handleExportManifest('csv'),
+    },
+  ];
 
   if (loading && !manifestData) {
     return (
@@ -618,59 +684,27 @@ const TripOperationsDashboard = () => {
                 <span>+ Add Walk-In</span>
               </button>
 
-              {/* Context-Aware Export Action based on activeTab */}
-              {activeTab === 'manifest' ? (
-                <Dropdown
-                  menu={{ items: manifestExportItems }}
-                  placement='bottomRight'
-                  trigger={['click']}
-                >
-                  <button
-                    type='button'
-                    disabled={exporting}
-                    className='flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-semibold text-xs rounded-lg shadow-xs transition-all disabled:opacity-50'
-                    title='Export Port Authority Manifest as PDF or CSV'
-                  >
-                    {exporting ? (
-                      <Loader2 size={13} className='animate-spin' />
-                    ) : (
-                      <Download size={13} className='text-blue-600' />
-                    )}
-                    <span>Export Manifest</span>
-                    <ChevronDown size={12} className='text-gray-400' />
-                  </button>
-                </Dropdown>
-              ) : activeTab === 'gear-check' ? (
+              {/* Single Unified Export Dropdown */}
+              <Dropdown
+                menu={{ items: exportMenuItems }}
+                placement='bottomRight'
+                trigger={['click']}
+              >
                 <button
                   type='button'
-                  onClick={handleExportGearChecklistPdf}
-                  disabled={exportingChecklist}
-                  className='flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all disabled:opacity-50'
-                  title='Export spreadsheet-style printable checklist PDF for clipboard checks'
+                  disabled={exporting}
+                  className='flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-semibold text-xs rounded-lg shadow-xs transition-all disabled:opacity-50'
+                  title='Export trip documents'
                 >
-                  {exportingChecklist ? (
+                  {exporting ? (
                     <Loader2 size={13} className='animate-spin' />
                   ) : (
-                    <Download size={13} />
+                    <Download size={13} className='text-blue-600' />
                   )}
-                  <span>Export Checklist (PDF)</span>
+                  <span>Export</span>
+                  <ChevronDown size={12} className='text-gray-400' />
                 </button>
-              ) : (
-                <button
-                  type='button'
-                  onClick={handleExportCratePdf}
-                  disabled={exportingCrates}
-                  className='flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all disabled:opacity-50'
-                  title='Download dedicated dockside crate packing & cylinder loadout PDF'
-                >
-                  {exportingCrates ? (
-                    <Loader2 size={13} className='animate-spin' />
-                  ) : (
-                    <Download size={13} />
-                  )}
-                  <span>Export Crate Sheet (PDF)</span>
-                </button>
-              )}
+              </Dropdown>
             </div>
           </div>
         </div>
