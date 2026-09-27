@@ -365,7 +365,7 @@ const DiverDetailsModal = ({
                       : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
                   }`}
                 >
-                  {isPaid ? 'Paid in Full' : 'Due at Counter'}
+                  {isPaid ? 'Paid in Full' : 'Due at Desk'}
                 </span>
               </div>
             </div>

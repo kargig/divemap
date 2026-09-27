@@ -1390,6 +1390,7 @@ class OctoProduct(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     product_type = Column(String(50), default="GUIDED_BOAT_TRIP", nullable=False) # GUIDED_BOAT_TRIP, GUIDED_SHORE_TRIP, COURSE, TRY_DIVE_DSD
+    dives_count = Column(Integer, default=2, nullable=False) # Number of dives / tanks per diver
     agency_code = Column(String(50), nullable=True) # PADI, SSI, GUE, CMAS (optional override)
     waiver_bundle_id = Column(String(50), default="dmsc_recreational", nullable=False)
     min_certification_level_id = Column(Integer, ForeignKey("certification_levels.id", ondelete="SET NULL"), nullable=True)

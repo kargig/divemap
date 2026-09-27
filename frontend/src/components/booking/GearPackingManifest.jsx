@@ -339,7 +339,14 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
               </span>
             </div>
             <span className='px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'>
-              {totalCylinders + totalStageTanks} Tanks
+              {summary?.total_vessel_tanks || totalCylinders + totalStageTanks + 2} Tanks Total
+            </span>
+          </div>
+
+          <div className='flex items-center justify-between pb-1'>
+            <span className='text-[11px] font-bold text-gray-500 uppercase tracking-wider'>
+              Primary Diver Cylinders ({summary?.tanks_per_diver || 2} Dives / Diver •{' '}
+              {summary?.total_diver_tanks || totalCylinders} Tanks)
             </span>
           </div>
 
@@ -393,6 +400,65 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
               })}
             </div>
           )}
+
+          {/* Emergency Safety Spare Cylinders */}
+          <div className='pt-2.5 border-t border-gray-100 dark:border-gray-700 space-y-2'>
+            <div className='flex items-center justify-between'>
+              <span className='text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5'>
+                <LifeBuoy size={13} className='text-amber-600' />
+                Vessel Emergency Safety Spares (+2 Tanks)
+              </span>
+              <span className='px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300'>
+                Safety Reserve
+              </span>
+            </div>
+            {Object.entries(
+              summary?.spare_tanks || {
+                '12L AIR — DIN (Emergency Boat Hang / Safety Spare)': 2,
+              }
+            ).map(([st, count]) => (
+              <div
+                key={st}
+                className='flex items-center justify-between p-2.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 text-xs'
+              >
+                <div>
+                  <span className='font-bold text-amber-950 dark:text-amber-200 block'>{st}</span>
+                  <span className='text-[10px] text-amber-800 dark:text-amber-400'>
+                    Mandatory boat safety asset for surface hang bar & emergency reserve
+                  </span>
+                </div>
+                <span className='px-3 py-1.5 border border-amber-300 rounded-lg text-sm font-mono font-bold bg-white dark:bg-gray-800 text-amber-700'>
+                  {count}x
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Vessel Emergency Spare Regulator */}
+          <div className='p-3 bg-indigo-50/70 dark:bg-indigo-950/30 rounded-xl border border-indigo-200 dark:border-indigo-900/60 flex items-center justify-between gap-3 text-xs'>
+            <div className='flex items-start gap-2.5'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center shrink-0 mt-0.5'>
+                <Compass size={16} />
+              </div>
+              <div>
+                <div className='flex items-center gap-1.5'>
+                  <span className='font-bold text-indigo-950 dark:text-indigo-200'>
+                    1x Emergency Spare Regulator System
+                  </span>
+                  <span className='px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-800 uppercase'>
+                    Boat Safety Asset
+                  </span>
+                </div>
+                <p className='text-[11px] text-indigo-900/80 dark:text-indigo-300 mt-0.5'>
+                  Complete backup setup (1st & 2nd Stage, Octo, SPG) + DIN-to-Yoke threaded insert
+                  staged in boat emergency kit.
+                </p>
+              </div>
+            </div>
+            <span className='px-3 py-1.5 border border-indigo-300 rounded-lg font-mono font-bold text-sm bg-white dark:bg-gray-800 text-indigo-700 shrink-0'>
+              1x Setup
+            </span>
+          </div>
 
           {/* Stage & Decompression Cylinders (If any) */}
           {totalStageTanks > 0 && (

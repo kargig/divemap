@@ -415,6 +415,13 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "crew_names": staff_meta.get("crew_names", []),
     }
 
+    # Dives count determination (e.g. 2-tank boat dive = 2 tanks per diver)
+    dives_count = 2
+    if slot.product and hasattr(slot.product, "dives_count") and slot.product.dives_count:
+        dives_count = int(slot.product.dives_count)
+    elif slot.product and "1-tank" in (slot.product.title or "").lower():
+        dives_count = 1
+
     participants = []
     tanks_summary = {}
     stage_tanks_summary = {}
@@ -495,14 +502,14 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                     blocks_2kg += twos
                     blocks_1kg += ones
 
-            # Cylinder breakdown with explicit valve and adapter requirement
+            # Cylinder breakdown with explicit valve and adapter requirement (multiplied by dives_count)
             valve_desc = (
                 "YOKE (Fit DIN-to-Yoke Insert)"
                 if ("YOKE" in fitting or "INT" in fitting)
                 else "DIN (Native Valve)"
             )
             tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} — {valve_desc}"
-            tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + 1
+            tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + dives_count
 
             # Rental gear breakdown (distinguish Men's, Women's, and Unisex/Other cuts)
             if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
@@ -600,6 +607,8 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 "certification_number": item.certification_number,
                 "selected_tank_id": item.selected_tank_id or "12",
                 "selected_gas_mix_id": item.selected_gas_mix_id or "air",
+                "tanks_count": dives_count,
+                "tank_label": f"{dives_count}x {item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} ({valve_desc.split(' ')[0]})",
                 "estimated_lead_kg": lead,
                 "equipment_sizing": eq,
                 "gear_checked": bool(eq.get("gear_checked", False)),
@@ -672,6 +681,18 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "formattedOutstanding": f"€{total_outstanding:.2f}",
     }
 
+    # Vessel emergency spares
+    spare_tanks = {
+        "12L AIR — DIN (Emergency Boat Hang / Safety Spare)": 2,
+    }
+    spare_regulators = {
+        "count": 1,
+        "type": "DIN with Yoke Adapter",
+        "description": "1x Complete Emergency Spare Regulator Setup (1st & 2nd Stage, Octo, SPG) + Yoke Adapter",
+    }
+    total_diver_tanks = sum(tanks_summary.values())
+    total_vessel_tanks = total_diver_tanks + sum(spare_tanks.values())
+
     return {
         "center": center_data,
         "vessel": vessel_data,
@@ -680,7 +701,13 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "participants": participants,
         "financial_summary": financial_summary,
         "crate_packing_summary": {
+            "dives_count": dives_count,
+            "tanks_per_diver": dives_count,
             "cylinders": tanks_summary,
+            "spare_tanks": spare_tanks,
+            "total_diver_tanks": total_diver_tanks,
+            "total_vessel_tanks": total_vessel_tanks,
+            "spare_regulators": spare_regulators,
             "stage_tanks": stage_tanks_summary,
             "wetsuits": suits_summary,
             "bcds": bcds_summary,

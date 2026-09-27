@@ -75,6 +75,61 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
         </div>
       </div>
 
+      {/* Vessel Safety Assets: Spare Cylinders & Spare Regulator */}
+      <div className='p-4 bg-indigo-50/60 dark:bg-indigo-950/20 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 space-y-2.5'>
+        <div className='flex items-center justify-between'>
+          <span className='font-bold text-xs text-indigo-950 dark:text-indigo-200 uppercase tracking-wider flex items-center gap-1.5'>
+            <LifeBuoy size={15} className='text-indigo-600' />
+            Vessel Safety & Emergency Spare Assets (Organized for Trip)
+          </span>
+          <span className='text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-300 uppercase'>
+            Boat Inventory
+          </span>
+        </div>
+
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs'>
+          {/* Spare Cylinders */}
+          <div className='p-3 bg-white dark:bg-gray-800 rounded-xl border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between'>
+            <div className='flex items-center gap-2.5'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 flex items-center justify-center'>
+                <Gauge size={16} />
+              </div>
+              <div>
+                <strong className='text-gray-900 dark:text-white block text-xs'>
+                  2x 12L Air (DIN) Safety Spares
+                </strong>
+                <span className='text-[10px] text-gray-500'>
+                  Safety buffer for deco hang bar & emergency reserve
+                </span>
+              </div>
+            </div>
+            <span className='px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px] rounded-lg border border-emerald-200'>
+              ✓ Loaded on Boat
+            </span>
+          </div>
+
+          {/* Spare Regulator */}
+          <div className='p-3 bg-white dark:bg-gray-800 rounded-xl border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between'>
+            <div className='flex items-center gap-2.5'>
+              <div className='w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 flex items-center justify-center'>
+                <Compass size={16} />
+              </div>
+              <div>
+                <strong className='text-gray-900 dark:text-white block text-xs'>
+                  1x Spare Regulator Setup
+                </strong>
+                <span className='text-[10px] text-gray-500'>
+                  Complete system (1st & 2nd, Octo, SPG) + Yoke insert
+                </span>
+              </div>
+            </div>
+            <span className='px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px] rounded-lg border border-emerald-200'>
+              ✓ Staged in Boat Box
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Filter, Search & Color Legend Bar */}
       <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
         <div className='flex items-center gap-1.5'>
@@ -288,7 +343,8 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                       </span>
                     </div>
                     <strong className='text-gray-900 dark:text-white block'>
-                      {diver.selected_tank_id}L • {diver.selected_gas_mix_id?.toUpperCase()}
+                      {diver.tanks_count || 2}x {diver.selected_tank_id}L •{' '}
+                      {diver.selected_gas_mix_id?.toUpperCase()}
                     </strong>
                     <span
                       className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
