@@ -91,6 +91,7 @@ class OctoBookingUnitItemCreate(BaseModel):
     diverPhone: Optional[str] = None
     diverNationality: Optional[str] = None
     passportNumber: Optional[str] = None
+    dateOfBirth: Optional[str] = None
     certificationAgency: Optional[str] = None
     certificationLevel: Optional[str] = None
     certificationNumber: Optional[str] = None
@@ -112,6 +113,7 @@ class OctoBookingUnitItemResponse(BaseModel):
     diverFullName: str
     diverEmail: Optional[str] = None
     diverPhone: Optional[str] = None
+    dateOfBirth: Optional[str] = None
     certificationAgency: Optional[str] = None
     certificationLevel: Optional[str] = None
     waiversComplete: bool = False
@@ -354,6 +356,13 @@ def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
     response_items = []
     for item in req.unitItems:
         item_id = str(uuid.uuid4())
+        parsed_dob = None
+        if item.dateOfBirth:
+            try:
+                parsed_dob = datetime.strptime(item.dateOfBirth.strip(), "%Y-%m-%d").date()
+            except Exception:
+                pass
+
         unit_item = OctoBookingUnitItem(
             id=item_id,
             booking_uuid=booking.uuid,
@@ -363,6 +372,7 @@ def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
             diver_phone=item.diverPhone,
             diver_nationality=item.diverNationality,
             passport_number=item.passportNumber,
+            date_of_birth=parsed_dob,
             certification_agency=item.certificationAgency,
             certification_level=item.certificationLevel,
             certification_number=item.certificationNumber,
@@ -377,6 +387,7 @@ def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
             diverFullName=unit_item.diver_full_name,
             diverEmail=unit_item.diver_email,
             diverPhone=unit_item.diver_phone,
+            dateOfBirth=str(unit_item.date_of_birth) if unit_item.date_of_birth else None,
             certificationAgency=unit_item.certification_agency,
             certificationLevel=unit_item.certification_level,
             waiversComplete=False,

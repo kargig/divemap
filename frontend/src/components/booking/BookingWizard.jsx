@@ -37,6 +37,7 @@ const BookingWizard = () => {
 
   // Form State: Step 1 Diver & Gear
   const [diverName, setDiverName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [diverEmail, setDiverEmail] = useState('');
   const [diverPhone, setDiverPhone] = useState('');
   const [diverNationality, setDiverNationality] = useState('');
@@ -230,6 +231,10 @@ const BookingWizard = () => {
       toast.error('Please enter diver full legal name.');
       return;
     }
+    if (!dateOfBirth) {
+      toast.error('Please enter your date of birth for maritime manifest compliance.');
+      return;
+    }
     if (!hasContactOrId) {
       toast.error(
         'Please provide at least one of: Email, Phone/WhatsApp, or Passport/National ID.'
@@ -271,6 +276,7 @@ const BookingWizard = () => {
             diverPhone: diverPhone.trim() || undefined,
             diverNationality: diverNationality.trim() || undefined,
             passportNumber: passportNumber.trim() || undefined,
+            dateOfBirth: dateOfBirth || undefined,
             certificationAgency: certAgency,
             certificationLevel: certLevel,
             certificationNumber: certNumber.trim() || undefined,
@@ -507,62 +513,94 @@ const BookingWizard = () => {
                   * At least one of Email, Phone, or Passport/National ID is required
                 </span>
               </div>
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
-                <div>
-                  <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Full Legal Name *
-                  </label>
-                  <input
-                    type='text'
-                    value={diverName}
-                    onChange={e => setDiverName(e.target.value)}
-                    placeholder='As shown on passport'
-                    required
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
-                  />
+              <div className='space-y-3 mb-4'>
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Full Legal Name *
+                    </label>
+                    <input
+                      type='text'
+                      value={diverName}
+                      onChange={e => setDiverName(e.target.value)}
+                      placeholder='As shown on passport'
+                      required
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Date of Birth *
+                    </label>
+                    <input
+                      type='date'
+                      required
+                      value={dateOfBirth}
+                      onChange={e => setDateOfBirth(e.target.value)}
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        !dateOfBirth ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Nationality
+                    </label>
+                    <input
+                      type='text'
+                      value={diverNationality}
+                      onChange={e => setDiverNationality(e.target.value)}
+                      placeholder='e.g. French / Greek / German'
+                      className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Email Address {!hasContactOrId && <span className='text-amber-600'>*</span>}
-                  </label>
-                  <input
-                    type='email'
-                    value={diverEmail}
-                    onChange={e => setDiverEmail(e.target.value)}
-                    placeholder='diver@example.com'
-                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Phone / WhatsApp {!hasContactOrId && <span className='text-amber-600'>*</span>}
-                  </label>
-                  <input
-                    type='tel'
-                    value={diverPhone}
-                    onChange={e => setDiverPhone(e.target.value)}
-                    placeholder='+30 ...'
-                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Passport / National ID #{' '}
-                    {!hasContactOrId && <span className='text-amber-600'>*</span>}
-                  </label>
-                  <input
-                    type='text'
-                    value={passportNumber}
-                    onChange={e => setPassportNumber(e.target.value)}
-                    placeholder='For Port Authority manifest'
-                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
-                    }`}
-                  />
+
+                <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Email Address {!hasContactOrId && <span className='text-amber-600'>*</span>}
+                    </label>
+                    <input
+                      type='email'
+                      value={diverEmail}
+                      onChange={e => setDiverEmail(e.target.value)}
+                      placeholder='diver@example.com'
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Phone / WhatsApp{' '}
+                      {!hasContactOrId && <span className='text-amber-600'>*</span>}
+                    </label>
+                    <input
+                      type='tel'
+                      value={diverPhone}
+                      onChange={e => setDiverPhone(e.target.value)}
+                      placeholder='+30 ...'
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Passport / National ID #{' '}
+                      {!hasContactOrId && <span className='text-amber-600'>*</span>}
+                    </label>
+                    <input
+                      type='text'
+                      value={passportNumber}
+                      onChange={e => setPassportNumber(e.target.value)}
+                      placeholder='For Port Authority manifest'
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -901,6 +939,14 @@ const BookingWizard = () => {
                   <span>Lead Ballast:</span>
                   <span className='font-semibold text-gray-900 dark:text-white'>
                     {leadKg} kg ({weightSystem === 'BELT' ? 'Belt' : 'Pockets'})
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Date of Birth:</span>
+                  <span
+                    className={`font-semibold ${dateOfBirth ? 'text-gray-900 dark:text-white' : 'text-amber-600'}`}
+                  >
+                    {dateOfBirth || 'Required'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
