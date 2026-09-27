@@ -29,10 +29,12 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
   const [wetsuitGender, setWetsuitGender] = useState('MEN');
-  const [wetsuitSize, setWetsuitSize] = useState('L');
+  const [wetsuitSize, setWetsuitSize] = useState('None');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [bcdGender, setBcdGender] = useState('MEN');
-  const [bcdSize, setBcdSize] = useState('M');
+  const [bcdSize, setBcdSize] = useState('None');
+  const [finSize, setFinSize] = useState('None');
+  const [bootSize, setBootSize] = useState('None');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
   const [rentalComputer, setRentalComputer] = useState(false);
   const [rentalTorch, setRentalTorch] = useState(false);
@@ -120,10 +122,16 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
           wetsuit_gender: wetsuitGender,
-          wetsuit_size: wetsuitSize,
+          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_gender: bcdGender,
-          bcd_size: bcdSize,
+          bcd_size: bcdSize === 'None' ? null : bcdSize,
+          fin_size: finSize === 'None' ? null : finSize,
+          boot_size: bootSize === 'None' ? null : bootSize,
+          rental_fins: finSize !== 'None',
+          has_own_fins: finSize === 'None',
+          rental_boots: bootSize !== 'None',
+          has_own_boots: bootSize === 'None',
           shoe_size_eu: parseFloat(shoeSizeEu) || 43,
           rental_dive_computer: rentalComputer,
           has_own_dive_computer: !rentalComputer,
@@ -397,6 +405,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 onChange={e => setWetsuitSize(e.target.value)}
                 className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
               >
+                <option value='None'>None (Own Suit)</option>
                 <option value='XS'>XS</option>
                 <option value='S'>S</option>
                 <option value='M'>M</option>
@@ -435,6 +444,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 onChange={e => setBcdSize(e.target.value)}
                 className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
               >
+                <option value='None'>None (Own BCD)</option>
                 <option value='XS'>XS</option>
                 <option value='S'>S</option>
                 <option value='M'>M</option>
@@ -443,13 +453,40 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               </select>
             </div>
             <div>
-              <label className='block font-medium text-gray-600 mb-1'>Fins (EU Shoe)</label>
-              <input
-                type='number'
-                value={shoeSizeEu}
-                onChange={e => setShoeSizeEu(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs'
-              />
+              <label className='block font-medium text-gray-600 mb-1'>Rental Fins</label>
+              <select
+                value={finSize}
+                onChange={e => setFinSize(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+              >
+                <option value='None'>None (Own Fins)</option>
+                <option value='XS'>XS (EU 35-37)</option>
+                <option value='S'>S (EU 38-40)</option>
+                <option value='M'>M (EU 41-43)</option>
+                <option value='L'>L (EU 44-46)</option>
+                <option value='XL'>XL (EU 47+)</option>
+              </select>
+            </div>
+            <div>
+              <label className='block font-medium text-gray-600 mb-1'>Booties Size</label>
+              <select
+                value={bootSize}
+                onChange={e => setBootSize(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+              >
+                <option value='None'>None (Own Booties)</option>
+                <option value='36'>EU 36</option>
+                <option value='37'>EU 37</option>
+                <option value='38'>EU 38</option>
+                <option value='39'>EU 39</option>
+                <option value='40'>EU 40</option>
+                <option value='41'>EU 41</option>
+                <option value='42'>EU 42</option>
+                <option value='43'>EU 43</option>
+                <option value='44'>EU 44</option>
+                <option value='45'>EU 45</option>
+                <option value='46'>EU 46</option>
+              </select>
             </div>
           </div>
 

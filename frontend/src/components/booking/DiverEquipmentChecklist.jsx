@@ -468,11 +468,14 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     </div>
                     <strong className='text-gray-900 dark:text-white block'>
                       {isFinsRental
-                        ? `Rental ${eq.fin_type === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'}`
+                        ? `Rental Fins ${eq.fin_size && eq.fin_size !== 'None' ? `(${eq.fin_size})` : ''}`
                         : 'Diver Own Fins'}
                     </strong>
                     <span className='text-[10px] text-gray-500 block'>
-                      Booties: EU {eq.shoe_size_eu || '43'} ({eq.rental_boots ? 'Rental' : 'Own'})
+                      Booties:{' '}
+                      {eq.rental_boots || (eq.boot_size && eq.boot_size !== 'None')
+                        ? `Rental EU ${eq.boot_size || eq.shoe_size_eu || '43'}`
+                        : 'Own Boots'}
                     </span>
                   </div>
                 </div>

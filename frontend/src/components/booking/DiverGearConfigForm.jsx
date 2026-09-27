@@ -60,22 +60,24 @@ const DiverGearConfigForm = ({
 
   // 3. Buoyancy & Ballast
   const [bcdGender, setBcdGender] = useState('MEN');
-  const [bcdSize, setBcdSize] = useState('M');
+  const [bcdSize, setBcdSize] = useState('None');
   const [leadKg, setLeadKg] = useState('4.0');
   const [leadLbs, setLeadLbs] = useState('9.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
   // 4. Thermal & Exposure
   const [wetsuitGender, setWetsuitGender] = useState('MEN');
-  const [wetsuitSize, setWetsuitSize] = useState('L');
+  const [wetsuitSize, setWetsuitSize] = useState('None');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [glovesSize, setGlovesSize] = useState('None');
   const [rentalSocks, setRentalSocks] = useState(false);
 
   // 5. Footwear & Fins
   const [finType, setFinType] = useState('OPEN_HEEL');
-  const [rentalFins, setRentalFins] = useState(true);
-  const [rentalBoots, setRentalBoots] = useState(true);
+  const [finSize, setFinSize] = useState('None');
+  const [bootSize, setBootSize] = useState('None');
+  const [rentalFins, setRentalFins] = useState(false);
+  const [rentalBoots, setRentalBoots] = useState(false);
 
   // 6. Specialty / Propulsion
   const [rentalScooter, setRentalScooter] = useState(false);
@@ -151,8 +153,16 @@ const DiverGearConfigForm = ({
 
     // Footwear & Fins
     setFinType(eq.fin_type || 'OPEN_HEEL');
-    setRentalFins(eq.rental_fins !== undefined ? Boolean(eq.rental_fins) : true);
-    setRentalBoots(eq.rental_boots !== undefined ? Boolean(eq.rental_boots) : true);
+    setFinSize(eq.fin_size || 'None');
+    setBootSize(eq.boot_size || 'None');
+    setRentalFins(
+      eq.rental_fins !== undefined ? Boolean(eq.rental_fins) : eq.fin_size && eq.fin_size !== 'None'
+    );
+    setRentalBoots(
+      eq.rental_boots !== undefined
+        ? Boolean(eq.rental_boots)
+        : eq.boot_size && eq.boot_size !== 'None'
+    );
 
     // Specialty
     setRentalScooter(Boolean(eq.rental_scooter || eq.has_scooter));
@@ -323,8 +333,10 @@ const DiverGearConfigForm = ({
         gloves_size: glovesSize === 'None' ? null : glovesSize,
         rental_socks: rentalSocks,
         fin_type: finType,
-        rental_fins: rentalFins,
-        rental_boots: rentalBoots,
+        fin_size: finSize === 'None' ? null : finSize,
+        boot_size: bootSize === 'None' ? null : bootSize,
+        rental_fins: finSize !== 'None' || rentalFins,
+        rental_boots: bootSize !== 'None' || rentalBoots,
         rental_scooter: rentalScooter,
         rental_torch: rentalTorch,
         rental_dive_computer: rentalComputer,
@@ -782,7 +794,55 @@ const DiverGearConfigForm = ({
 
           <div>
             <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
-              Shoe / Boot Size (EU)
+              Rental Fins
+            </label>
+            <select
+              value={finSize}
+              onChange={e => {
+                setFinSize(e.target.value);
+                setRentalFins(e.target.value !== 'None');
+              }}
+              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='None'>None (Own Fins)</option>
+              <option value='XS'>XS (EU 35-37)</option>
+              <option value='S'>S (EU 38-40)</option>
+              <option value='M'>M (EU 41-43)</option>
+              <option value='L'>L (EU 44-46)</option>
+              <option value='XL'>XL (EU 47+)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Neoprene Booties
+            </label>
+            <select
+              value={bootSize}
+              onChange={e => {
+                setBootSize(e.target.value);
+                setRentalBoots(e.target.value !== 'None');
+              }}
+              className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
+            >
+              <option value='None'>None (Own Booties)</option>
+              <option value='36'>EU 36</option>
+              <option value='37'>EU 37</option>
+              <option value='38'>EU 38</option>
+              <option value='39'>EU 39</option>
+              <option value='40'>EU 40</option>
+              <option value='41'>EU 41</option>
+              <option value='42'>EU 42</option>
+              <option value='43'>EU 43</option>
+              <option value='44'>EU 44</option>
+              <option value='45'>EU 45</option>
+              <option value='46'>EU 46</option>
+            </select>
+          </div>
+
+          <div>
+            <label className='block font-semibold mb-1 text-[11px] text-gray-700 dark:text-gray-300'>
+              Shoe Size EU (Biometric)
             </label>
             <input
               type='number'
@@ -798,30 +858,6 @@ const DiverGearConfigForm = ({
               className='w-full px-2 py-1.5 border rounded-lg text-xs'
               placeholder='e.g. 43'
             />
-          </div>
-
-          <div className='flex items-center pt-4'>
-            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={rentalBoots}
-                onChange={e => setRentalBoots(e.target.checked)}
-                className='rounded text-blue-600'
-              />
-              <span>Renting Neoprene Booties ({finType === 'OPEN_HEEL' ? 'Must' : 'Opt'})</span>
-            </label>
-          </div>
-
-          <div className='flex items-center pt-4'>
-            <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={rentalFins}
-                onChange={e => setRentalFins(e.target.checked)}
-                className='rounded text-blue-600'
-              />
-              <span>Renting Fins (Must)</span>
-            </label>
           </div>
         </div>
       </div>

@@ -266,16 +266,26 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             if eq.get("rental_socks", False):
                 socks_count += 1
 
-            # 5. Boots & Fins
+            # 5. Boots & Fins (Check explicit rental vs None)
             shoe_sz = eq.get("shoe_size_eu")
             fin_style = eq.get("fin_type", "OPEN_HEEL")
-            if eq.get("rental_boots", False) or (is_rental_pkg and fin_style == "OPEN_HEEL" and shoe_sz):
-                b_label = f"EU {shoe_sz}" if shoe_sz else "Standard"
+            fin_sz = eq.get("fin_size")
+            boot_sz = eq.get("boot_size")
+
+            is_boot_rental = eq.get("rental_boots", False) or (boot_sz and boot_sz != "None")
+            if is_boot_rental:
+                b_label = f"EU {boot_sz or shoe_sz or 'Standard'}"
                 boots_summary[b_label] = boots_summary.get(b_label, 0) + 1
 
-            if eq.get("rental_fins", False) or is_rental_pkg or (shoe_sz and not eq.get("has_own_fins", False)):
+            is_fin_rental = (
+                eq.get("rental_fins", False)
+                or (fin_sz and fin_sz != "None")
+                or (is_rental_pkg and not eq.get("has_own_fins", False))
+            )
+            if is_fin_rental and fin_sz != "None":
                 f_style_label = "Open-Heel" if fin_style == "OPEN_HEEL" else "Full-Foot"
-                f_label = f"{f_style_label} (EU {shoe_sz})" if shoe_sz else f_style_label
+                sz_str = fin_sz if (fin_sz and fin_sz != "None") else (f"EU {shoe_sz}" if shoe_sz else "")
+                f_label = f"{f_style_label} ({sz_str})" if sz_str else f_style_label
                 fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
 
             # 6. DPV Scooter, Torches & Stage Tanks

@@ -62,11 +62,13 @@ const BookingWizard = () => {
   const [selectedGasMixId, setSelectedGasMixId] = useState('air');
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
   const [wetsuitGender, setWetsuitGender] = useState('MEN');
-  const [wetsuitSize, setWetsuitSize] = useState('L');
+  const [wetsuitSize, setWetsuitSize] = useState('None');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [bcdGender, setBcdGender] = useState('MEN');
-  const [bcdSize, setBcdSize] = useState('M');
+  const [bcdSize, setBcdSize] = useState('None');
   const [finType, setFinType] = useState('OPEN_HEEL');
+  const [finSize, setFinSize] = useState('None');
+  const [bootSize, setBootSize] = useState('None');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
   const [rentalTorch, setRentalTorch] = useState(false);
   const [rentalComputer, setRentalComputer] = useState(false);
@@ -130,12 +132,15 @@ const BookingWizard = () => {
           if (pg.regulator_fitting) setRegulatorFitting(pg.regulator_fitting);
           if (pg.weight_system) setWeightSystem(pg.weight_system);
           if (pg.wetsuit_gender) setWetsuitGender(pg.wetsuit_gender);
-          if (pg.wetsuit_size) setWetsuitSize(pg.wetsuit_size);
           if (pg.wetsuit_thickness) setWetsuitThickness(pg.wetsuit_thickness);
           if (pg.bcd_gender) setBcdGender(pg.bcd_gender);
           else if (pg.wetsuit_gender) setBcdGender(pg.wetsuit_gender);
-          if (pg.bcd_size) setBcdSize(pg.bcd_size);
           if (pg.fin_type) setFinType(pg.fin_type);
+          // Default rental equipment sizes to 'None' (Own Gear)
+          setWetsuitSize('None');
+          setBcdSize('None');
+          setFinSize('None');
+          setBootSize('None');
           if (pg.shoe_size_eu) setShoeSizeEu(pg.shoe_size_eu.toString());
           if (pg.rental_torch) setRentalTorch(pg.rental_torch);
           if (pg.rental_dive_computer) setRentalComputer(pg.rental_dive_computer);
@@ -280,6 +285,8 @@ const BookingWizard = () => {
 
   const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
 
+  const selectedUnit = contextData?.units?.find(u => u.id === selectedUnitId);
+
   // Dynamic Equipment Rental Calculation (Itemized vs Package)
   const rentalCalculation = useMemo(() => {
     const pricing = contextData?.rental_pricing;
@@ -331,6 +338,11 @@ const BookingWizard = () => {
     if (bcdSize !== 'None' && items.bcd) {
       coreItems.push({ label: `Rental BCD (${bcdSize})`, price: items.bcd });
     }
+    if (finSize !== 'None' && items.fins_boots) {
+      coreItems.push({ label: `Rental Fins (${finSize})`, price: items.fins_boots });
+    } else if (bootSize !== 'None') {
+      coreItems.push({ label: `Rental Booties (EU ${bootSize})`, price: 5.0 });
+    }
     if (rentalComputer && items.dive_computer) {
       coreItems.push({ label: 'Rental Dive Computer', price: items.dive_computer });
     }
@@ -364,6 +376,8 @@ const BookingWizard = () => {
     selectedUnitId,
     wetsuitSize,
     bcdSize,
+    finSize,
+    bootSize,
     rentalComputer,
     rentalTorch,
   ]);
@@ -385,6 +399,28 @@ const BookingWizard = () => {
       l.includes('trimix')
     );
   })();
+
+  // Handle unit selection with smart rental defaults
+  const handleUnitSelection = unitId => {
+    setSelectedUnitId(unitId);
+    const unit = contextData?.units?.find(u => u.id === unitId);
+    const isRental =
+      unitId === 'demo-unit-2' ||
+      unitId === 'certified-diver-full-rental' ||
+      unit?.title?.toLowerCase().includes('rental');
+
+    if (isRental) {
+      if (wetsuitSize === 'None') setWetsuitSize('L');
+      if (bcdSize === 'None') setBcdSize('M');
+      if (finSize === 'None') setFinSize('M');
+      if (bootSize === 'None') setBootSize('43');
+    } else {
+      setWetsuitSize('None');
+      setBcdSize('None');
+      setFinSize('None');
+      setBootSize('None');
+    }
+  };
 
   // Step Validation Handlers
   const validateStep1 = () => {
@@ -491,6 +527,12 @@ const BookingWizard = () => {
               bcd_gender: bcdGender,
               bcd_size: bcdSize === 'None' ? null : bcdSize,
               fin_type: finType,
+              fin_size: finSize === 'None' ? null : finSize,
+              boot_size: bootSize === 'None' ? null : bootSize,
+              rental_fins: finSize !== 'None',
+              has_own_fins: finSize === 'None',
+              rental_boots: bootSize !== 'None',
+              has_own_boots: bootSize === 'None',
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
               rental_torch: rentalTorch,
               rental_dive_computer: rentalComputer,
@@ -538,6 +580,12 @@ const BookingWizard = () => {
           bcd_gender: bcdGender,
           bcd_size: bcdSize === 'None' ? null : bcdSize,
           fin_type: finType,
+          fin_size: finSize === 'None' ? null : finSize,
+          boot_size: bootSize === 'None' ? null : bootSize,
+          rental_fins: finSize !== 'None',
+          has_own_fins: finSize === 'None',
+          rental_boots: bootSize !== 'None',
+          has_own_boots: bootSize === 'None',
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
           rental_torch: rentalTorch,
           rental_dive_computer: rentalComputer,
@@ -596,7 +644,6 @@ const BookingWizard = () => {
     );
   }
 
-  const selectedUnit = contextData.units.find(u => u.id === selectedUnitId);
   const hasCertDetails = Boolean(certAgency && certLevel && certNumber.trim());
 
   return (
@@ -759,7 +806,7 @@ const BookingWizard = () => {
                             type='radio'
                             name='unit_selection'
                             checked={selectedUnitId === u.id}
-                            onChange={() => setSelectedUnitId(u.id)}
+                            onChange={() => handleUnitSelection(u.id)}
                             className='h-4 w-4 text-blue-600'
                           />
                           <span className='text-xs sm:text-sm font-bold text-gray-900 dark:text-white'>
@@ -1215,16 +1262,44 @@ const BookingWizard = () => {
 
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Shoe / Fins (EU)
+                        Rental Fins
                       </label>
-                      <input
-                        type='number'
-                        step='0.5'
-                        value={shoeSizeEu}
-                        onChange={e => setShoeSizeEu(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs'
-                        placeholder='e.g. 42'
-                      />
+                      <select
+                        value={finSize}
+                        onChange={e => setFinSize(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                      >
+                        <option value='None'>None (Own Fins)</option>
+                        <option value='XS'>XS (EU 35-37)</option>
+                        <option value='S'>S (EU 38-40)</option>
+                        <option value='M'>M (EU 41-43)</option>
+                        <option value='L'>L (EU 44-46)</option>
+                        <option value='XL'>XL (EU 47+)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        Neoprene Booties
+                      </label>
+                      <select
+                        value={bootSize}
+                        onChange={e => setBootSize(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                      >
+                        <option value='None'>None (Own Booties)</option>
+                        <option value='36'>EU 36</option>
+                        <option value='37'>EU 37</option>
+                        <option value='38'>EU 38</option>
+                        <option value='39'>EU 39</option>
+                        <option value='40'>EU 40</option>
+                        <option value='41'>EU 41</option>
+                        <option value='42'>EU 42</option>
+                        <option value='43'>EU 43</option>
+                        <option value='44'>EU 44</option>
+                        <option value='45'>EU 45</option>
+                        <option value='46'>EU 46</option>
+                      </select>
                     </div>
                   </div>
 
@@ -1743,6 +1818,16 @@ const BookingWizard = () => {
                     {bcdSize === 'None'
                       ? 'Own BCD'
                       : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Fins & Boots:</span>
+                  <span className='font-semibold text-gray-900 dark:text-white text-right'>
+                    {finSize === 'None' && bootSize === 'None'
+                      ? 'Own Fins & Boots'
+                      : `${finSize === 'None' ? 'Own Fins' : `Fins ${finSize}`} • ${
+                          bootSize === 'None' ? 'Own Boots' : `Boots EU ${bootSize}`
+                        }`}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
