@@ -134,7 +134,8 @@ const BookingWizard = () => {
         if (data.prefill_gear) {
           const pg = data.prefill_gear;
           if (pg.preferred_tank_id) setSelectedTankId(pg.preferred_tank_id);
-          if (pg.preferred_gas_mix_id) setSelectedGasMixId(pg.preferred_gas_mix_id);
+          // Default gas mix for dive trips is strictly Air (21%) unless explicitly changed by diver
+          setSelectedGasMixId('air');
           if (pg.regulator_fitting) setRegulatorFitting(pg.regulator_fitting);
           if (pg.weight_system) setWeightSystem(pg.weight_system);
           if (pg.wetsuit_gender) setWetsuitGender(pg.wetsuit_gender);
@@ -1097,10 +1098,10 @@ const BookingWizard = () => {
                       <select
                         value={selectedGasMixId}
                         onChange={e => setSelectedGasMixId(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
                       >
-                        <option value='air'>Air (21%)</option>
-                        <option value='ean32'>EAN32 (Nitrox)</option>
+                        <option value='air'>Air (21% O2) — Standard</option>
+                        <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert</option>
                       </select>
                     </div>
 

@@ -340,10 +340,10 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               <select
                 value={gasMixId}
                 onChange={e => setGasMixId(e.target.value)}
-                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
               >
-                <option value='air'>Air (21%)</option>
-                <option value='ean32'>EAN32 (Nitrox)</option>
+                <option value='air'>Air (21% O2) — Standard</option>
+                <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert</option>
               </select>
             </div>
             <div>

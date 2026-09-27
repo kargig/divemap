@@ -476,8 +476,8 @@ const DiverGearConfigForm = ({
               onChange={e => setSelectedGasMixId(e.target.value)}
               className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-750 font-medium'
             >
-              <option value='air'>Air (21% O2)</option>
-              <option value='ean32'>EAN32 (Enriched Air Nitrox)</option>
+              <option value='air'>Air (21% O2) — Standard</option>
+              <option value='ean32'>EAN32 (32% O2 Nitrox) — Requires Cert</option>
             </select>
           </div>
 
