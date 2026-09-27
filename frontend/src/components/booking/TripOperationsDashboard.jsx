@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import api from '../../api';
 import SEO from '../SEO';
@@ -27,10 +27,17 @@ import DiverDetailsModal from './DiverDetailsModal';
 import GearPackingManifest from './GearPackingManifest';
 
 const TripOperationsDashboard = () => {
-  const { centerId, tripId } = useParams();
+  const { centerId, tripId, tab } = useParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [manifestData, setManifestData] = useState(null);
-  const [activeTab, setActiveTab] = useState('manifest'); // manifest | crates
+
+  // Dedicated URL-driven view tab: 'manifest' vs 'crates'
+  const activeTab = tab === 'crates' || tab === 'loadout' ? 'crates' : 'manifest';
+
+  const handleTabChange = newTab => {
+    navigate(`/manage/centers/${centerId}/trips/${tripId}/${newTab}`);
+  };
 
   // Modals
   const [addDiverOpen, setAddDiverOpen] = useState(false);
@@ -249,7 +256,11 @@ const TripOperationsDashboard = () => {
   return (
     <div className='min-h-screen bg-gray-50/50 dark:bg-gray-900/50'>
       <SEO
-        title={`Trip Ops: ${slot.product_title} - Divemap`}
+        title={
+          activeTab === 'crates'
+            ? `Crate Packing Loadout: ${slot.product_title} - Divemap`
+            : `Trip Ops: ${slot.product_title} - Divemap`
+        }
         description='Center operations dashboard and boat manifest roll-call.'
       />
 
@@ -405,7 +416,7 @@ const TripOperationsDashboard = () => {
             <div className='flex items-center gap-1.5'>
               <button
                 type='button'
-                onClick={() => setActiveTab('manifest')}
+                onClick={() => handleTabChange('manifest')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === 'manifest'
                     ? 'bg-blue-600 text-white shadow-sm'
@@ -418,7 +429,7 @@ const TripOperationsDashboard = () => {
 
               <button
                 type='button'
-                onClick={() => setActiveTab('crates')}
+                onClick={() => handleTabChange('crates')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                   activeTab === 'crates'
                     ? 'bg-blue-600 text-white shadow-sm'

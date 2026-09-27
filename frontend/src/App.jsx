@@ -333,6 +333,14 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/manage/centers/:centerId/trips/:tripId/:tab'
+              element={
+                <ProtectedRoute>
+                  <TripOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
             <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
             <Route path='/users/:username/lists/:id' element={<UserListDetail />} />
