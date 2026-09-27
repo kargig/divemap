@@ -222,8 +222,25 @@ def test_booking_capacity_overflow_rejected(client: TestClient, octo_setup):
         "productId": prod_id,
         "optionId": opt_id,
         "availabilityId": slot_id,
-        "unitItems": [{"unitId": unit_id, "diverFullName": f"Diver {i}"} for i in range(5)]
+        "unitItems": [{"unitId": unit_id, "diverFullName": f"Diver {i}", "diverEmail": f"diver{i}@example.com"} for i in range(5)]
     }
     res_overflow = client.post("/api/v1/octo/bookings", json=hold_payload)
     assert res_overflow.status_code == 400
     assert "Not enough seats" in res_overflow.json()["detail"]
+
+def test_booking_missing_contact_and_id_rejected(client: TestClient, octo_setup):
+    prod_id = octo_setup["product"].id
+    opt_id = octo_setup["option"].id
+    slot_id = octo_setup["slot"].id
+    unit_id = octo_setup["unit_own"].id
+
+    # Attempt to hold seat without email, phone, or passport
+    hold_payload = {
+        "productId": prod_id,
+        "optionId": opt_id,
+        "availabilityId": slot_id,
+        "unitItems": [{"unitId": unit_id, "diverFullName": "Nameless Diver"}]
+    }
+    res = client.post("/api/v1/octo/bookings", json=hold_payload)
+    assert res.status_code == 400
+    assert "At least one of Email, Phone, or Passport/National ID is required" in res.json()["detail"]

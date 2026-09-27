@@ -151,9 +151,17 @@ const BookingWizard = () => {
   };
 
   // Final Confirmation
+  const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
+
   const handleConfirmBooking = async () => {
     if (!diverName.trim()) {
       toast.error('Please enter diver full legal name.');
+      return;
+    }
+    if (!hasContactOrId) {
+      toast.error(
+        'Please provide at least one of: Email, Phone/WhatsApp, or Passport/National ID.'
+      );
       return;
     }
     if (!dmscAnswers) {
@@ -387,6 +395,18 @@ const BookingWizard = () => {
               </div>
 
               {/* Personal Details */}
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2'>
+                <span className='text-xs font-bold text-gray-500 uppercase tracking-wider'>
+                  Contact & Identification
+                </span>
+                <span
+                  className={`text-[11px] font-medium ${
+                    !hasContactOrId ? 'text-amber-600 font-semibold' : 'text-emerald-600'
+                  }`}
+                >
+                  * At least one of Email, Phone, or Passport/National ID is required
+                </span>
+              </div>
               <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
@@ -403,38 +423,45 @@ const BookingWizard = () => {
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Email Address
+                    Email Address {!hasContactOrId && <span className='text-amber-600'>*</span>}
                   </label>
                   <input
                     type='email'
                     value={diverEmail}
                     onChange={e => setDiverEmail(e.target.value)}
                     placeholder='diver@example.com'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Phone / WhatsApp
+                    Phone / WhatsApp {!hasContactOrId && <span className='text-amber-600'>*</span>}
                   </label>
                   <input
                     type='tel'
                     value={diverPhone}
                     onChange={e => setDiverPhone(e.target.value)}
                     placeholder='+30 ...'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Passport / National ID #
+                    Passport / National ID #{' '}
+                    {!hasContactOrId && <span className='text-amber-600'>*</span>}
                   </label>
                   <input
                     type='text'
                     value={passportNumber}
                     onChange={e => setPassportNumber(e.target.value)}
                     placeholder='For Port Authority manifest'
-                    className='w-full px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                      !hasContactOrId ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                    }`}
                   />
                 </div>
               </div>
@@ -623,6 +650,14 @@ const BookingWizard = () => {
                   <span className='font-semibold text-gray-900 dark:text-white'>{leadKg} kg</span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Contact / ID:</span>
+                  <span
+                    className={`font-semibold ${hasContactOrId ? 'text-emerald-600' : 'text-amber-600'}`}
+                  >
+                    {hasContactOrId ? 'Provided' : '1 Required'}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Medical:</span>
                   <span
                     className={`font-semibold ${medicalStatus === 'CLEARED' ? 'text-emerald-600' : 'text-amber-600'}`}
@@ -666,7 +701,13 @@ const BookingWizard = () => {
               <button
                 type='button'
                 onClick={handleConfirmBooking}
-                disabled={submitting || !diverName.trim() || !dmscAnswers || !waiverSignature}
+                disabled={
+                  submitting ||
+                  !diverName.trim() ||
+                  !hasContactOrId ||
+                  !dmscAnswers ||
+                  !waiverSignature
+                }
                 className='w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed text-sm'
               >
                 {submitting ? (

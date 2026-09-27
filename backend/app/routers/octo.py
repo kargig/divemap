@@ -310,6 +310,20 @@ def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
     units = db.query(OctoUnit).filter(OctoUnit.id.in_(unit_ids)).all()
     unit_map = {u.id: u for u in units}
 
+    # Validate that at least one of email, phone, or passport is provided for each diver
+    for item in req.unitItems:
+        has_contact_or_id = bool(
+            (item.diverEmail and item.diverEmail.strip()) or
+            (item.diverPhone and item.diverPhone.strip()) or
+            (item.passportNumber and item.passportNumber.strip()) or
+            (req.contact and ((req.contact.email and req.contact.email.strip()) or (req.contact.phone and req.contact.phone.strip())))
+        )
+        if not has_contact_or_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"At least one of Email, Phone, or Passport/National ID is required for participant '{item.diverFullName or 'Guest Diver'}'."
+            )
+
     total_amount = sum(float(unit_map[item.unitId].retail_price) for item in req.unitItems if item.unitId in unit_map)
     currency = units[0].currency if units else "EUR"
 
