@@ -7,7 +7,7 @@ import uuid
 import logging
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_optional, verify_token
 from app.models import (
     User,
     DivingCenter,
@@ -1432,11 +1432,24 @@ def dispatch_trip_briefing(
 def download_trip_briefing_pdf(
     center_id: int,
     trip_id: str,
-    current_user: User = Depends(get_current_user),
+    token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Download compiled pre-dive briefing PDF."""
-    if not is_center_manager(db, center_id, current_user):
+    user = current_user
+    if not user and token:
+        try:
+            token_data = verify_token(token)
+            if token_data and token_data.username:
+                user = db.query(User).filter(User.username == token_data.username).first()
+        except Exception:
+            pass
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    if not is_center_manager(db, center_id, user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
     briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()

@@ -21,6 +21,7 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dispatching, setDispatching] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [briefingData, setBriefingData] = useState(null);
 
   // Editable fields
@@ -95,8 +96,26 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
     }
   };
 
-  const handleDownloadPdf = () => {
-    window.open(`/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/briefing/pdf`, '_blank');
+  const handleDownloadPdf = async () => {
+    try {
+      setDownloadingPdf(true);
+      toast.loading('Generating Pre-Dive Briefing PDF...', { id: 'briefing-pdf' });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/briefing/pdf`,
+        { responseType: 'blob' }
+      );
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      toast.success('Briefing PDF generated!', { id: 'briefing-pdf' });
+    } catch (err) {
+      console.error('Failed to preview briefing PDF:', err);
+      toast.error(err.response?.data?.detail || 'Failed to preview briefing PDF.', {
+        id: 'briefing-pdf',
+      });
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -299,10 +318,15 @@ const BriefingReviewModal = ({ isOpen, onClose, centerId, tripId, onBriefingDisp
               <button
                 type='button'
                 onClick={handleDownloadPdf}
-                className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-xs transition-all'
+                disabled={downloadingPdf}
+                className='flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-xs transition-all disabled:opacity-50'
                 title='Preview generated briefing PDF'
               >
-                <Download size={13} />
+                {downloadingPdf ? (
+                  <Loader2 size={13} className='animate-spin' />
+                ) : (
+                  <Download size={13} />
+                )}
                 <span>Preview PDF</span>
               </button>
 
