@@ -12,6 +12,7 @@ import {
   Layers,
   Droplet,
   Compass,
+  Calculator,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -173,6 +174,31 @@ const DiverGearProfilesPage = () => {
               New Configuration
             </button>
           </div>
+        </div>
+
+        {/* Weight Calculator Prompt Banner */}
+        <div className='bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800/80 border border-blue-200 dark:border-blue-900/40 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shadow-sm'>
+          <div className='flex items-start sm:items-center gap-3'>
+            <div className='p-2.5 bg-blue-600 text-white rounded-xl shrink-0'>
+              <Calculator size={20} />
+            </div>
+            <div>
+              <h4 className='text-sm font-bold text-gray-900 dark:text-white'>
+                Need help calculating your required lead ballast?
+              </h4>
+              <p className='text-xs text-gray-600 dark:text-gray-300 mt-0.5'>
+                Calculate exact lead requirements based on suit thickness, cylinder buoyancy (empty
+                vs full), and local saltwater salinity.
+              </p>
+            </div>
+          </div>
+          <Link
+            to='/resources/tools/weight'
+            className='inline-flex items-center justify-center px-4 py-2 bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-650 border border-blue-200 dark:border-gray-600 rounded-lg text-xs font-bold transition-all shrink-0'
+          >
+            <Calculator size={14} className='mr-1.5' />
+            Weight Calculator
+          </Link>
         </div>
 
         {/* Content Loading State */}

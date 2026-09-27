@@ -1,9 +1,20 @@
 import { Modal } from 'antd';
-import { Loader2, Save, X } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Loader2, Save, X, Calculator, Sparkles, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 import api from '../api';
+import { TANK_SIZES } from '../utils/diveConstants';
+import { calculateTankBuoyancy, WATER_TYPES } from '../utils/TankBuoyancy';
+
+const SUIT_FACTORS = {
+  '3mm-shorty': { multiplier: 0.03, offset: 0, label: '3mm Shorty' },
+  '3mm': { multiplier: 0.05, offset: 0, label: '3mm Full' },
+  '5mm': { multiplier: 0.08, offset: 0, label: '5mm Full' },
+  '7mm': { multiplier: 0.1, offset: 2, label: '7mm Semi-Dry' },
+  drysuit: { multiplier: 0.1, offset: 4, label: 'Drysuit' },
+};
 
 const PRESETS = [
   {
@@ -89,6 +100,71 @@ const UserGearProfileModal = ({
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [emergencyContactRelation, setEmergencyContactRelation] = useState('');
+
+  // Integrated Weight Calculator State
+  const [showEstimator, setShowEstimator] = useState(false);
+  const [waterTypeIdx, setWaterTypeIdx] = useState(6); // Default: Aegean / Eastern Med (1.029)
+
+  // Dynamically compute recommended lead ballast using Divemap's buoyancy physics
+  const calculatedLead = useMemo(() => {
+    let effectiveWeightKg = 75; // Default if not filled
+    if (unitSystem === 'METRIC' && weightKg) {
+      effectiveWeightKg = parseFloat(weightKg) || 75;
+    } else if (unitSystem === 'IMPERIAL' && weightLbs) {
+      effectiveWeightKg = (parseFloat(weightLbs) || 165) / 2.20462;
+    }
+
+    const suitFactor = SUIT_FACTORS[wetsuitThickness] || SUIT_FACTORS['5mm'];
+    const suitLead = effectiveWeightKg * suitFactor.multiplier + suitFactor.offset;
+
+    // Tank Buoyancy
+    const waterType = WATER_TYPES[waterTypeIdx] || WATER_TYPES[6];
+    const tankDef =
+      TANK_SIZES.find(t => t.id === preferredTankId) || TANK_SIZES.find(t => t.id === '12');
+
+    let tankAdjustment = 0;
+    if (tankDef) {
+      const isDoubles = tankDef.isDoubles || false;
+      const bProps = {
+        liters: isDoubles ? tankDef.size / 2 : tankDef.size,
+        weight: isDoubles ? tankDef.emptyWeight / 2 : tankDef.emptyWeight,
+        material: tankDef.material,
+        waterDensity: waterType.density,
+        isDoubles,
+        includeValve: true,
+        o2: 21,
+        he: 0,
+        bar: 200,
+        checkPressure: 50,
+      };
+      const bRes = calculateTankBuoyancy(bProps);
+      tankAdjustment = bRes.buoyancyEmpty;
+    }
+
+    // Water type adjustment (relative to 1.025 ocean base)
+    const waterAdjustment = effectiveWeightKg * (waterType.density - 1.025);
+
+    const totalLead = Math.max(0, suitLead + tankAdjustment + waterAdjustment);
+    const roundedKg = Math.round(totalLead * 2) / 2; // 0.5 kg steps
+    const roundedLbs = Math.round(roundedKg * 2.20462 * 2) / 2; // 0.5 lb steps
+
+    return {
+      kg: roundedKg,
+      lbs: roundedLbs,
+      suitLead: Math.round(suitLead * 10) / 10,
+      tankAdjustment: Math.round(tankAdjustment * 10) / 10,
+      waterAdjustment: Math.round(waterAdjustment * 10) / 10,
+      waterLabel: waterType.label,
+    };
+  }, [weightKg, weightLbs, unitSystem, wetsuitThickness, preferredTankId, waterTypeIdx]);
+
+  const handleApplyCalculatedLead = () => {
+    setLeadKg(calculatedLead.kg.toString());
+    setLeadLbs(calculatedLead.lbs.toString());
+    toast.success(
+      `Applied recommended ballast: ${unitSystem === 'METRIC' ? `${calculatedLead.kg} kg` : `${calculatedLead.lbs} lbs`}`
+    );
+  };
 
   // Initialize or reset form
   useEffect(() => {
@@ -493,9 +569,20 @@ const UserGearProfileModal = ({
             </div>
 
             <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
-                Lead Weight ({unitSystem === 'METRIC' ? 'kg' : 'lbs'})
-              </label>
+              <div className='flex items-center justify-between mb-1'>
+                <label className='block text-xs font-medium text-gray-700'>
+                  Lead Weight ({unitSystem === 'METRIC' ? 'kg' : 'lbs'})
+                </label>
+                <button
+                  type='button'
+                  onClick={() => setShowEstimator(!showEstimator)}
+                  className='text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors'
+                  title='Estimate lead ballast based on suit, body weight, and cylinder'
+                >
+                  <Calculator size={12} />
+                  {showEstimator ? 'Hide' : 'Calculate'}
+                </button>
+              </div>
               <input
                 type='number'
                 step='0.5'
@@ -508,6 +595,82 @@ const UserGearProfileModal = ({
               />
             </div>
           </div>
+
+          {/* Integrated Weight Estimator Card */}
+          {showEstimator && (
+            <div className='mt-3 p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl'>
+              <div className='flex items-start justify-between gap-3 mb-2.5'>
+                <div className='flex items-center gap-1.5 text-blue-900 font-bold text-xs'>
+                  <Sparkles size={14} className='text-blue-600' />
+                  <span>Divemap Buoyancy & Weight Estimator</span>
+                </div>
+                <Link
+                  to='/resources/tools/weight'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1'
+                >
+                  Open Full Tool
+                  <ExternalLink size={11} />
+                </Link>
+              </div>
+
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3'>
+                <div>
+                  <label className='block text-[11px] font-medium text-gray-600 mb-1'>
+                    Water Body / Salinity
+                  </label>
+                  <select
+                    value={waterTypeIdx}
+                    onChange={e => setWaterTypeIdx(parseInt(e.target.value, 10))}
+                    className='w-full px-2.5 py-1 text-xs border border-blue-200 rounded-md bg-white'
+                  >
+                    {WATER_TYPES.map((w, idx) => (
+                      <option key={w.id} value={idx}>
+                        {w.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className='bg-white p-2.5 rounded-lg border border-blue-100 flex flex-col justify-center'>
+                  <span className='text-[11px] text-gray-500'>Physics Breakdown:</span>
+                  <div className='text-xs text-gray-700 flex justify-between mt-0.5'>
+                    <span>Suit: +{calculatedLead.suitLead}kg</span>
+                    <span>
+                      Tank: {calculatedLead.tankAdjustment >= 0 ? '+' : ''}
+                      {calculatedLead.tankAdjustment}kg
+                    </span>
+                    <span>
+                      Water: {calculatedLead.waterAdjustment >= 0 ? '+' : ''}
+                      {calculatedLead.waterAdjustment}kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between pt-2 border-t border-blue-200/60'>
+                <div>
+                  <span className='text-xs text-gray-600'>Recommended Lead: </span>
+                  <span className='text-sm font-bold text-blue-900'>
+                    {unitSystem === 'METRIC'
+                      ? `${calculatedLead.kg} kg`
+                      : `${calculatedLead.lbs} lbs`}
+                  </span>
+                </div>
+                <button
+                  type='button'
+                  onClick={handleApplyCalculatedLead}
+                  className='px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md shadow-sm transition-colors'
+                >
+                  Apply{' '}
+                  {unitSystem === 'METRIC'
+                    ? `${calculatedLead.kg} kg`
+                    : `${calculatedLead.lbs} lbs`}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Section 2: Equipment Sizing */}
