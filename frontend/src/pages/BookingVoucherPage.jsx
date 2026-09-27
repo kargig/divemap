@@ -1,3 +1,4 @@
+import { QRCode } from 'antd';
 import {
   CheckCircle2,
   Calendar,
@@ -8,7 +9,6 @@ import {
   Printer,
   ChevronLeft,
   Loader2,
-  QrCode,
   Gauge,
   CreditCard,
   FileCheck,
@@ -109,8 +109,8 @@ const BookingVoucherPage = () => {
               </div>
 
               {/* QR Token Box */}
-              <div className='bg-white p-3 rounded-xl shadow-md text-gray-900 flex flex-col items-center shrink-0'>
-                <QrCode size={52} className='text-gray-800' />
+              <div className='bg-white p-2.5 rounded-xl shadow-md text-gray-900 flex flex-col items-center shrink-0'>
+                <QRCode value={window.location.href} size={76} bordered={false} errorLevel='M' />
                 <span className='text-[9px] font-mono font-bold text-gray-500 mt-1 tracking-tighter'>
                   SCAN AT DESK
                 </span>

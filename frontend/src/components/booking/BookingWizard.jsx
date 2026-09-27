@@ -40,9 +40,14 @@ const BookingWizard = () => {
   const [diverPhone, setDiverPhone] = useState('');
   const [diverNationality, setDiverNationality] = useState('');
   const [passportNumber, setPassportNumber] = useState('');
-  const [certAgency, setCertAgency] = useState('PADI');
-  const [certLevel, setCertLevel] = useState('Open Water');
+  const [certAgency, setCertAgency] = useState('');
+  const [certLevel, setCertLevel] = useState('');
   const [certNumber, setCertNumber] = useState('');
+
+  // Authoritative Diving Organizations & Levels from Divemap
+  const [organizations, setOrganizations] = useState([]);
+  const [availableLevels, setAvailableLevels] = useState([]);
+  const [isCustomLevel, setIsCustomLevel] = useState(false);
 
   // Unit / Gear Selection
   const [selectedUnitId, setSelectedUnitId] = useState('');
@@ -69,14 +74,16 @@ const BookingWizard = () => {
     const fetchContext = async () => {
       try {
         setLoading(true);
-        const [contextRes, profilesRes] = await Promise.all([
+        const [contextRes, profilesRes, orgsRes] = await Promise.all([
           api.get(`/api/v1/bookings/checkout-context/${slotId}`),
           api.get('/api/v1/bookings/gear-profiles').catch(() => ({ data: [] })),
+          api.get('/api/v1/diving-organizations/?limit=100').catch(() => ({ data: [] })),
         ]);
 
         const data = contextRes.data;
         setContextData(data);
         setSavedProfiles(profilesRes.data || []);
+        setOrganizations(orgsRes.data || []);
 
         // Default Unit Selection
         if (data.units && data.units.length > 0) {
@@ -100,8 +107,8 @@ const BookingWizard = () => {
         // Auto-fill from certifications
         if (data.user_certifications && data.user_certifications.length > 0) {
           const primaryCert = data.user_certifications[0];
-          setCertAgency(primaryCert.agency || 'PADI');
-          setCertLevel(primaryCert.level || 'Open Water');
+          setCertAgency(primaryCert.agency || '');
+          setCertLevel(primaryCert.level || '');
           setCertNumber(primaryCert.number || '');
         }
       } catch (err) {
@@ -116,6 +123,41 @@ const BookingWizard = () => {
       fetchContext();
     }
   }, [slotId]);
+
+  // Load official certification levels when agency changes
+  useEffect(() => {
+    if (!certAgency || organizations.length === 0) {
+      setAvailableLevels([]);
+      return;
+    }
+
+    const matchedOrg = organizations.find(
+      o =>
+        o.acronym?.toLowerCase() === certAgency.toLowerCase() ||
+        o.name?.toLowerCase() === certAgency.toLowerCase()
+    );
+
+    if (matchedOrg) {
+      api
+        .get(`/api/v1/diving-organizations/${matchedOrg.id}/levels`)
+        .then(res => {
+          const levels = res.data || [];
+          setAvailableLevels(levels);
+          if (certLevel && !levels.some(l => l.name.toLowerCase() === certLevel.toLowerCase())) {
+            setIsCustomLevel(true);
+          } else {
+            setIsCustomLevel(false);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load certification levels:', err);
+          setAvailableLevels([]);
+        });
+    } else {
+      setAvailableLevels([]);
+      setIsCustomLevel(true);
+    }
+  }, [certAgency, organizations]);
 
   // Handle switching gear profiles
   const handleSelectProfilePreset = profId => {
@@ -491,37 +533,79 @@ const BookingWizard = () => {
                   </label>
                   <select
                     value={certAgency}
-                    onChange={e => setCertAgency(e.target.value)}
+                    onChange={e => {
+                      setCertAgency(e.target.value);
+                      setCertLevel('');
+                      setIsCustomLevel(false);
+                    }}
                     required
                     className={`w-full px-3 py-2 border rounded-lg text-sm bg-white ${
                       !certAgency ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
                     }`}
                   >
                     <option value=''>Select Agency...</option>
-                    <option value='PADI'>PADI</option>
-                    <option value='SSI'>SSI</option>
-                    <option value='CMAS'>CMAS</option>
-                    <option value='GUE'>GUE</option>
-                    <option value='NAUI'>NAUI</option>
-                    <option value='TDI/SDI'>TDI / SDI</option>
-                    <option value='BSAC'>BSAC</option>
-                    <option value='OTHER'>Other</option>
+                    {organizations.map(org => (
+                      <option key={org.id} value={org.acronym || org.name}>
+                        {org.acronym} — {org.name}
+                      </option>
+                    ))}
+                    <option value='Other'>Other / Non-Listed Agency</option>
                   </select>
                 </div>
                 <div>
-                  <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                    Certification Level *
-                  </label>
-                  <input
-                    type='text'
-                    value={certLevel}
-                    onChange={e => setCertLevel(e.target.value)}
-                    placeholder='e.g. Advanced Open Water'
-                    required
-                    className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                      !certLevel.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className='flex items-center justify-between mb-1'>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300'>
+                      Certification Level *
+                    </label>
+                    {isCustomLevel && availableLevels.length > 0 && (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setIsCustomLevel(false);
+                          setCertLevel('');
+                        }}
+                        className='text-[10px] text-blue-600 hover:underline font-medium'
+                      >
+                        Pick from list
+                      </button>
+                    )}
+                  </div>
+                  {!isCustomLevel && availableLevels.length > 0 ? (
+                    <select
+                      value={certLevel}
+                      onChange={e => {
+                        if (e.target.value === '__custom__') {
+                          setIsCustomLevel(true);
+                          setCertLevel('');
+                        } else {
+                          setCertLevel(e.target.value);
+                        }
+                      }}
+                      required
+                      className={`w-full px-3 py-2 border rounded-lg text-sm bg-white ${
+                        !certLevel.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value=''>Select Level...</option>
+                      {availableLevels.map(lvl => (
+                        <option key={lvl.id} value={lvl.name}>
+                          {lvl.name}
+                        </option>
+                      ))}
+                      <option value='__custom__'>Other / Custom Level...</option>
+                    </select>
+                  ) : (
+                    <input
+                      type='text'
+                      value={certLevel}
+                      onChange={e => setCertLevel(e.target.value)}
+                      placeholder='e.g. Advanced Open Water'
+                      required
+                      className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                        !certLevel.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
+                      }`}
+                    />
+                  )}
                 </div>
                 <div>
                   <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
