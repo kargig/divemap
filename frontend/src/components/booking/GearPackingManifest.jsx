@@ -18,6 +18,7 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
   const socksCount = summary?.socks_count || 0;
   const scootersCount = summary?.scooters_count || 0;
   const torchesCount = summary?.torches_count || 0;
+  const computersCount = summary?.computers_count || 0;
 
   const leadBreakdown = summary?.lead_breakdown || {};
   const valveFittings = summary?.valve_fittings || {};
@@ -229,8 +230,17 @@ const GearPackingManifest = ({ summary, participants = [] }) => {
         </div>
       </div>
 
-      {(socksCount > 0 || scootersCount > 0 || torchesCount > 0 || totalStageTanks > 0) && (
+      {(socksCount > 0 ||
+        scootersCount > 0 ||
+        torchesCount > 0 ||
+        computersCount > 0 ||
+        totalStageTanks > 0) && (
         <div className='pt-1.5 flex flex-wrap gap-2 text-xs'>
+          {computersCount > 0 && (
+            <span className='px-2 py-0.5 bg-blue-100 text-blue-900 rounded font-bold text-[11px] flex items-center gap-1 border border-blue-300'>
+              <Sparkles size={11} className='text-blue-600' /> Dive Computers: {computersCount}x
+            </span>
+          )}
           {torchesCount > 0 && (
             <span className='px-2 py-0.5 bg-amber-100 text-amber-900 rounded font-bold text-[11px] flex items-center gap-1'>
               <Sparkles size={11} /> Dive Torches: {torchesCount}x

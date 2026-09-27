@@ -34,6 +34,8 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [bcdGender, setBcdGender] = useState('MEN');
   const [bcdSize, setBcdSize] = useState('M');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
+  const [rentalComputer, setRentalComputer] = useState(false);
+  const [rentalTorch, setRentalTorch] = useState(false);
 
   const [markPaid, setMarkPaid] = useState(true);
   const [boarded, setBoarded] = useState(false);
@@ -123,6 +125,9 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
           bcd_gender: bcdGender,
           bcd_size: bcdSize,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43,
+          rental_dive_computer: rentalComputer,
+          has_own_dive_computer: !rentalComputer,
+          rental_torch: rentalTorch,
           estimated_lead_kg: parseFloat(leadKg) || 0,
         },
         mark_as_paid: markPaid,
@@ -446,6 +451,28 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 className='w-full px-2 py-1.5 border rounded-lg text-xs'
               />
             </div>
+          </div>
+
+          <div className='flex flex-wrap items-center gap-4 pt-2 border-t border-gray-100 text-xs text-gray-700'>
+            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-blue-700'>
+              <input
+                type='checkbox'
+                checked={rentalComputer}
+                onChange={e => setRentalComputer(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Rent Dive Computer (Wrist Unit)</span>
+            </label>
+
+            <label className='flex items-center gap-1.5 cursor-pointer font-medium text-amber-700'>
+              <input
+                type='checkbox'
+                checked={rentalTorch}
+                onChange={e => setRentalTorch(e.target.checked)}
+                className='rounded text-blue-600'
+              />
+              <span>Rent Primary Dive Torch</span>
+            </label>
           </div>
         </div>
 

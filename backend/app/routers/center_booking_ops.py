@@ -153,6 +153,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     fins_summary = {}
     scooters_count = 0
     torches_count = 0
+    computers_count = 0
     total_lead_kg = 0.0
 
     # Denomination tallies for weights & valve fittings
@@ -281,6 +282,8 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 scooters_count += 1
             if eq.get("rental_torch", False) or eq.get("has_torch", False):
                 torches_count += 1
+            if eq.get("rental_dive_computer", False) or is_rental_pkg or not eq.get("has_own_dive_computer", True):
+                computers_count += 1
             if eq.get("stage_tank") and eq.get("stage_tank") != "None":
                 st_label = str(eq.get("stage_tank"))
                 stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
@@ -361,6 +364,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             "fins": fins_summary,
             "scooters_count": scooters_count,
             "torches_count": torches_count,
+            "computers_count": computers_count,
             "total_lead_kg": round(total_lead_kg, 1),
             "total_participants": len(participants),
             "lead_breakdown": lead_breakdown,

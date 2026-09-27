@@ -81,8 +81,9 @@ const DiverGearConfigForm = ({
   const [rentalScooter, setRentalScooter] = useState(false);
   const [rentalTorch, setRentalTorch] = useState(false);
 
-  // 7. Safety Gear
-  const [hasOwnComputer, setHasOwnComputer] = useState(false);
+  // 7. Safety Gear & Dive Computer
+  const [rentalComputer, setRentalComputer] = useState(false);
+  const [hasOwnComputer, setHasOwnComputer] = useState(true);
   const [hasOwnSmb, setHasOwnSmb] = useState(false);
 
   // 8. Insurance & Emergency
@@ -157,8 +158,13 @@ const DiverGearConfigForm = ({
     setRentalScooter(Boolean(eq.rental_scooter || eq.has_scooter));
     setRentalTorch(Boolean(eq.rental_torch || eq.has_torch));
 
-    // Safety gear
-    setHasOwnComputer(Boolean(eq.has_own_dive_computer));
+    // Safety gear & Dive computer
+    setRentalComputer(Boolean(eq.rental_dive_computer));
+    setHasOwnComputer(
+      eq.has_own_dive_computer !== undefined
+        ? Boolean(eq.has_own_dive_computer)
+        : !eq.rental_dive_computer
+    );
     setHasOwnSmb(Boolean(eq.has_own_smb));
 
     // Emergency & Insurance
@@ -321,6 +327,7 @@ const DiverGearConfigForm = ({
         rental_boots: rentalBoots,
         rental_scooter: rentalScooter,
         rental_torch: rentalTorch,
+        rental_dive_computer: rentalComputer,
         has_own_dive_computer: hasOwnComputer,
         has_own_smb: hasOwnSmb,
         emergency_contact_name: emergencyContactName.trim() || undefined,
@@ -856,8 +863,26 @@ const DiverGearConfigForm = ({
           <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
             <input
               type='checkbox'
+              checked={rentalComputer}
+              onChange={e => {
+                setRentalComputer(e.target.checked);
+                if (e.target.checked) setHasOwnComputer(false);
+              }}
+              className='rounded text-blue-600'
+            />
+            <span className='font-bold text-blue-700 dark:text-blue-300'>
+              Rent Dive Computer (Must)
+            </span>
+          </label>
+
+          <label className='flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+            <input
+              type='checkbox'
               checked={hasOwnComputer}
-              onChange={e => setHasOwnComputer(e.target.checked)}
+              onChange={e => {
+                setHasOwnComputer(e.target.checked);
+                if (e.target.checked) setRentalComputer(false);
+              }}
               className='rounded text-blue-600'
             />
             <span>Has own Dive Computer</span>

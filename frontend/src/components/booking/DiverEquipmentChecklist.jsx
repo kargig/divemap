@@ -532,10 +532,18 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     </span>
                   )}
 
-                  {/* Diver-Owned Personal Safety Assets (Slate) */}
-                  {eq.has_own_dive_computer && (
+                  {/* Dive Computer: Rental (Blue) vs Own (Slate) */}
+                  {eq.rental_dive_computer || (isFullRentalTier && !eq.has_own_dive_computer) ? (
+                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700 flex items-center gap-1'>
+                      Rental Dive Computer
+                    </span>
+                  ) : eq.has_own_dive_computer ? (
                     <span className='px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600 font-medium'>
                       ✓ Own Computer
+                    </span>
+                  ) : (
+                    <span className='px-2 py-0.5 rounded text-[11px] bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 font-bold'>
+                      ⚠️ Computer Required
                     </span>
                   )}
 

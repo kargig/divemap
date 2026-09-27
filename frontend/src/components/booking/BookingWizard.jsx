@@ -69,6 +69,7 @@ const BookingWizard = () => {
   const [finType, setFinType] = useState('OPEN_HEEL');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
   const [rentalTorch, setRentalTorch] = useState(false);
+  const [rentalComputer, setRentalComputer] = useState(false);
   const [leadKg, setLeadKg] = useState('4.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
@@ -137,6 +138,7 @@ const BookingWizard = () => {
           if (pg.fin_type) setFinType(pg.fin_type);
           if (pg.shoe_size_eu) setShoeSizeEu(pg.shoe_size_eu.toString());
           if (pg.rental_torch) setRentalTorch(pg.rental_torch);
+          if (pg.rental_dive_computer) setRentalComputer(pg.rental_dive_computer);
           if (pg.estimated_lead_kg) setLeadKg(pg.estimated_lead_kg.toString());
           if (pg.emergency_contact_name) setEmergencyContactName(pg.emergency_contact_name);
           if (pg.emergency_contact_phone) setEmergencyContactPhone(pg.emergency_contact_phone);
@@ -247,6 +249,7 @@ const BookingWizard = () => {
     if (prof.fin_type) setFinType(prof.fin_type);
     if (prof.shoe_size_eu) setShoeSizeEu(prof.shoe_size_eu.toString());
     if (prof.rental_torch) setRentalTorch(prof.rental_torch);
+    if (prof.rental_dive_computer) setRentalComputer(prof.rental_dive_computer);
     if (prof.estimated_lead_kg) setLeadKg(prof.estimated_lead_kg.toString());
     if (prof.emergency_contact_name) setEmergencyContactName(prof.emergency_contact_name);
     if (prof.emergency_contact_phone) setEmergencyContactPhone(prof.emergency_contact_phone);
@@ -402,6 +405,8 @@ const BookingWizard = () => {
               fin_type: finType,
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
               rental_torch: rentalTorch,
+              rental_dive_computer: rentalComputer,
+              has_own_dive_computer: !rentalComputer,
               regulator_fitting: regulatorFitting,
               weight_system: weightSystem,
               estimated_lead_kg: parseFloat(leadKg) || 4.0,
@@ -447,6 +452,8 @@ const BookingWizard = () => {
           fin_type: finType,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
           rental_torch: rentalTorch,
+          rental_dive_computer: rentalComputer,
+          has_own_dive_computer: !rentalComputer,
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
           estimated_lead_kg: parseFloat(leadKg) || 4.0,
@@ -1133,23 +1140,43 @@ const BookingWizard = () => {
                     </div>
                   </div>
 
-                  {/* Auxiliary Rental Items: Torch */}
-                  <div className='mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
-                    <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
-                      <input
-                        type='checkbox'
-                        checked={rentalTorch}
-                        onChange={e => setRentalTorch(e.target.checked)}
-                        className='rounded text-blue-600'
-                      />
-                      <span className='font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1'>
-                        <Flame size={13} className='text-amber-600' />
-                        Rent Primary Dive Torch / Light (Opt)
+                  {/* Auxiliary Rental Items: Computer & Torch */}
+                  <div className='mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2'>
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
+                      <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={rentalComputer}
+                          onChange={e => setRentalComputer(e.target.checked)}
+                          className='rounded text-blue-600'
+                        />
+                        <span className='font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1'>
+                          Rent Dive Computer (Must - Wrist Unit)
+                        </span>
+                      </label>
+                      <span className='text-[11px] text-gray-400'>
+                        * Mandatory Safety: Every diver must carry an individual computer (no
+                        sharing)
                       </span>
-                    </label>
-                    <span className='text-[11px] text-gray-400'>
-                      Recommended for caverns, swim-throughs & twilight dives
-                    </span>
+                    </div>
+
+                    <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1.5 border-t border-gray-100 dark:border-gray-700/60'>
+                      <label className='flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer'>
+                        <input
+                          type='checkbox'
+                          checked={rentalTorch}
+                          onChange={e => setRentalTorch(e.target.checked)}
+                          className='rounded text-blue-600'
+                        />
+                        <span className='font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1'>
+                          <Flame size={13} className='text-amber-600' />
+                          Rent Primary Dive Torch / Light (Opt)
+                        </span>
+                      </label>
+                      <span className='text-[11px] text-gray-400'>
+                        Recommended for caverns, swim-throughs & twilight dives
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1628,6 +1655,18 @@ const BookingWizard = () => {
                     {bcdSize === 'None'
                       ? 'Own BCD'
                       : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Dive Computer:</span>
+                  <span
+                    className={`font-semibold text-right ${
+                      rentalComputer
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-gray-900 dark:text-white'
+                    }`}
+                  >
+                    {rentalComputer ? 'Rental Wrist Unit' : 'Own Computer'}
                   </span>
                 </div>
                 {rentalTorch && (
