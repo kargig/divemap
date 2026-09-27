@@ -85,6 +85,7 @@ const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage')
 const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
 const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
 const TripOperationsDashboard = lazy(() => import('./components/booking/TripOperationsDashboard'));
+const TripParticipantDetailsPage = lazy(() => import('./pages/TripParticipantDetailsPage'));
 const MyComments = lazy(() => import('./pages/MyComments'));
 const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
@@ -338,6 +339,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <TripOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:centerId/trips/:tripId/participants/:participantId'
+              element={
+                <ProtectedRoute>
+                  <TripParticipantDetailsPage />
                 </ProtectedRoute>
               }
             />

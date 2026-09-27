@@ -11,11 +11,16 @@ import {
   Loader2,
   Stethoscope,
   FileText,
+  ExternalLink,
+  LifeBuoy,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 import api from '../../api';
+
+import DiverGearConfigForm from './DiverGearConfigForm';
 
 const DiverDetailsModal = ({
   isOpen,
@@ -40,70 +45,10 @@ const DiverDetailsModal = ({
   const [clearingMedical, setClearingMedical] = useState(false);
   const [downloadingDossier, setDownloadingDossier] = useState(false);
 
-  // Edit fields
-  const [tankId, setTankId] = useState('12');
-  const [gasMixId, setGasMixId] = useState('air');
-  const [regulatorFitting, setRegulatorFitting] = useState('DIN');
-  const [leadKg, setLeadKg] = useState('0');
-  const [weightSystem, setWeightSystem] = useState('INTEGRATED');
-  const [wetsuitSize, setWetsuitSize] = useState('None');
-  const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
-  const [bcdSize, setBcdSize] = useState('None');
-  const [shoeSizeEu, setShoeSizeEu] = useState('');
-
-  const syncFieldsWithParticipant = React.useCallback((p, editMode = false) => {
-    if (!p) return;
-    setDiver(p);
-    setIsEditing(editMode);
-    setTankId(p.selected_tank_id || '12');
-    setGasMixId(p.selected_gas_mix_id || 'air');
-    setRegulatorFitting(p.equipment_sizing?.regulator_fitting || 'DIN');
-    setLeadKg(
-      p.estimated_lead_kg !== undefined && p.estimated_lead_kg !== null
-        ? p.estimated_lead_kg.toString()
-        : '0'
-    );
-    setWeightSystem(p.equipment_sizing?.weight_system || 'INTEGRATED');
-    setWetsuitSize(p.equipment_sizing?.wetsuit_size || 'None');
-    setWetsuitThickness(p.equipment_sizing?.wetsuit_thickness || '5mm');
-    setBcdSize(p.equipment_sizing?.bcd_size || 'None');
-    setShoeSizeEu(p.equipment_sizing?.shoe_size_eu?.toString() || '');
-  }, []);
-
-  const handleDownloadEmergencyDossier = async () => {
-    try {
-      setDownloadingDossier(true);
-      toast.loading('Generating Emergency Medical Dossier PDF...', { id: 'emerg-dossier' });
-      const res = await api.get(
-        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/emergency-dossier`,
-        { responseType: 'blob' }
-      );
-      const blob = new window.Blob([res.data], { type: 'application/pdf' });
-      const blobUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      const cleanName = (diver?.diver_full_name || participant.diver_full_name).replace(
-        /\s+/g,
-        '_'
-      );
-      link.setAttribute('download', `emergency_dossier_${cleanName}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
-      toast.success('Emergency Dossier downloaded!', { id: 'emerg-dossier' });
-    } catch (err) {
-      console.error('Failed to download emergency dossier:', err);
-      toast.error('Failed to download emergency dossier.', { id: 'emerg-dossier' });
-    } finally {
-      setDownloadingDossier(false);
-    }
-  };
-
   useEffect(() => {
     if (isOpen && participant) {
       setDiver(participant);
-      syncFieldsWithParticipant(participant, initialEditMode);
+      setIsEditing(initialEditMode);
       setShowClearanceForm(false);
 
       api
@@ -113,7 +58,7 @@ const DiverDetailsModal = ({
         .then(res => setMedicalReview(res.data))
         .catch(err => console.error('Failed to load medical review:', err));
     }
-  }, [isOpen, participant, initialEditMode, centerId, tripId, syncFieldsWithParticipant]);
+  }, [isOpen, participant, initialEditMode, centerId, tripId]);
 
   if (!participant) return null;
 
@@ -122,25 +67,13 @@ const DiverDetailsModal = ({
   const isCleared = currentDiver.medical_status === 'CLEARED';
   const isPaid =
     currentDiver.payment_status === 'PAID_IN_FULL' || currentDiver.payment_status === 'PAID_ONLINE';
+  const isMedicalBlocked =
+    currentDiver.medical_status === 'FLAGGED_CONTACT_CENTER' ||
+    currentDiver.medical_status === 'FLAGGED';
 
-  const handleSaveEquipment = async e => {
-    e.preventDefault();
+  const handleSaveGear = async payload => {
     try {
       setLoading(true);
-      const payload = {
-        selected_tank_id: tankId,
-        selected_gas_mix_id: gasMixId,
-        equipment_sizing: {
-          regulator_fitting: regulatorFitting,
-          weight_system: weightSystem,
-          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
-          wetsuit_thickness: wetsuitThickness,
-          bcd_size: bcdSize === 'None' ? null : bcdSize,
-          shoe_size_eu: parseFloat(shoeSizeEu) || null,
-          estimated_lead_kg: parseFloat(leadKg) || 0,
-        },
-      };
-
       await api.put(
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}`,
         payload
@@ -149,18 +82,12 @@ const DiverDetailsModal = ({
       // Instantly reflect updated equipment in local diver view
       setDiver(prev => ({
         ...(prev || participant),
-        selected_tank_id: tankId,
-        selected_gas_mix_id: gasMixId,
-        estimated_lead_kg: parseFloat(leadKg) || 0,
+        selected_tank_id: payload.selected_tank_id,
+        selected_gas_mix_id: payload.selected_gas_mix_id,
+        estimated_lead_kg: payload.equipment_sizing?.estimated_lead_kg || 0,
         equipment_sizing: {
           ...((prev || participant)?.equipment_sizing || {}),
-          regulator_fitting: regulatorFitting,
-          weight_system: weightSystem,
-          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
-          wetsuit_thickness: wetsuitThickness,
-          bcd_size: bcdSize === 'None' ? null : bcdSize,
-          shoe_size_eu: parseFloat(shoeSizeEu) || null,
-          estimated_lead_kg: parseFloat(leadKg) || 0,
+          ...payload.equipment_sizing,
         },
       }));
 
@@ -169,7 +96,7 @@ const DiverDetailsModal = ({
       onUpdated();
     } catch (err) {
       console.error('Failed to update equipment:', err);
-      toast.error(err.response?.data?.detail || 'Failed to update equipment sizing.');
+      toast.error(err.response?.data?.detail || 'Failed to update equipment.');
     } finally {
       setLoading(false);
     }
@@ -198,8 +125,19 @@ const DiverDetailsModal = ({
         }
       );
 
-      toast.success(`Physician clearance approved for ${participant.diver_full_name}!`);
+      toast.success(`Physician clearance approved for ${currentDiver.diver_full_name}!`);
       setShowClearanceForm(false);
+      setDiver(prev => ({
+        ...(prev || participant),
+        medical_status: 'PHYSICIAN_APPROVED',
+        medical_clearance_audit: {
+          physician_name: physicianName.trim(),
+          physician_clinic: physicianClinic.trim() || undefined,
+          cleared_by_name: 'Manager',
+          cleared_at: new Date().toISOString(),
+          reason: clearanceNotes.trim() || undefined,
+        },
+      }));
       onUpdated();
 
       // Refresh review
@@ -215,6 +153,35 @@ const DiverDetailsModal = ({
     }
   };
 
+  const handleDownloadEmergencyDossier = async () => {
+    try {
+      setDownloadingDossier(true);
+      toast.loading('Generating Emergency Medical Dossier PDF...', { id: 'emerg-dossier' });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/emergency-dossier`,
+        { responseType: 'blob' }
+      );
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const cleanName = currentDiver.diver_full_name.replace(/\s+/g, '_');
+      link.setAttribute('download', `emergency_dossier_${cleanName}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      toast.success('Emergency Dossier downloaded!', { id: 'emerg-dossier' });
+    } catch (err) {
+      console.error('Failed to download emergency dossier:', err);
+      toast.error('Failed to download emergency dossier.', { id: 'emerg-dossier' });
+    } finally {
+      setDownloadingDossier(false);
+    }
+  };
+
+  const eq = currentDiver.equipment_sizing || {};
+
   return (
     <Modal
       open={isOpen}
@@ -224,7 +191,7 @@ const DiverDetailsModal = ({
         onClose();
       }}
       footer={null}
-      width={640}
+      width={720}
       title={
         <div className='flex items-center justify-between pb-2 border-b pr-6'>
           <div className='flex items-center gap-2.5'>
@@ -239,20 +206,24 @@ const DiverDetailsModal = ({
               </p>
             </div>
           </div>
-          <button
-            type='button'
-            onClick={() => {
-              if (!isEditing && currentDiver) {
-                syncFieldsWithParticipant(currentDiver, true);
-              } else {
-                setIsEditing(false);
-              }
-            }}
-            className='flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold'
-          >
-            <Edit2 size={13} />
-            {isEditing ? 'Cancel Edit' : 'Edit Gear'}
-          </button>
+          <div className='flex items-center gap-3'>
+            <Link
+              to={`/manage/centers/${centerId}/trips/${tripId}/participants/${currentDiver.id}`}
+              className='flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 hover:text-blue-600 font-semibold'
+              title='Open full dedicated page'
+            >
+              <span>Full Page</span>
+              <ExternalLink size={12} />
+            </Link>
+            <button
+              type='button'
+              onClick={() => setIsEditing(!isEditing)}
+              className='flex items-center gap-1 text-xs text-blue-600 hover:underline font-semibold'
+            >
+              <Edit2 size={13} />
+              {isEditing ? 'Cancel Edit' : 'Edit Gear'}
+            </button>
+          </div>
         </div>
       }
     >
@@ -279,33 +250,35 @@ const DiverDetailsModal = ({
               ) : (
                 <AlertTriangle size={11} />
               )}
-              {isPhysicianApproved ? 'PHYSICIAN CLEARED' : isCleared ? 'CLEARED' : 'FLAGGED'}
-            </span>
-          </div>
-
-          <div className='p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-center'>
-            <span className='text-[10px] text-gray-400 uppercase font-bold block mb-1'>Waiver</span>
-            <span
-              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                participant.waivers_complete
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              <FileCheck size={11} />
-              {participant.waivers_complete ? 'SIGNED' : 'PENDING'}
+              {isPhysicianApproved ? 'PHYSICIAN' : isCleared ? 'CLEARED' : 'FLAGGED'}
             </span>
           </div>
 
           <div className='p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-center'>
             <span className='text-[10px] text-gray-400 uppercase font-bold block mb-1'>
-              Payment
+              Boarding Status
+            </span>
+            <span
+              className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                currentDiver.onboard_checkin_status
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+              }`}
+            >
+              <FileCheck size={11} />
+              {currentDiver.onboard_checkin_status ? 'BOARDED' : 'NOT BOARDED'}
+            </span>
+          </div>
+
+          <div className='p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 text-center'>
+            <span className='text-[10px] text-gray-400 uppercase font-bold block mb-1'>
+              Payment Status
             </span>
             <span
               className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                 isPaid
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-amber-100 text-amber-800'
+                  : 'bg-amber-50 text-amber-700 border border-amber-200'
               }`}
             >
               <CreditCard size={11} />
@@ -314,345 +287,217 @@ const DiverDetailsModal = ({
           </div>
         </div>
 
-        {/* Flagged Medical Conditions & Manager Clearance Box */}
-        {medicalReview?.flagged_questions && medicalReview.flagged_questions.length > 0 && (
-          <div className='p-3.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-300 dark:border-amber-800 space-y-2.5'>
-            <div className='flex items-center justify-between'>
-              <h4 className='font-bold text-[11px] text-amber-900 dark:text-amber-200 uppercase tracking-wider flex items-center gap-1.5'>
-                <AlertTriangle size={14} className='text-amber-600 shrink-0' />
-                Flagged Medical Conditions ({medicalReview.flagged_questions.length})
-              </h4>
-              {!isPhysicianApproved && !showClearanceForm && (
-                <button
-                  type='button'
-                  onClick={() => setShowClearanceForm(true)}
-                  className='px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all'
-                >
-                  Verify Physician Clearance
-                </button>
-              )}
+        {/* Medical Alerts & Physician Clearance Form */}
+        {isPhysicianApproved && currentDiver.medical_clearance_audit && (
+          <div className='p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl space-y-1 text-xs'>
+            <div className='flex items-center gap-1.5 text-blue-900 dark:text-blue-200 font-bold'>
+              <Stethoscope size={14} className='text-blue-600' />
+              <span>Physician Clearance on Record</span>
             </div>
-
-            <p className='text-[11px] text-amber-800 dark:text-amber-300'>
-              The diver answered YES to the following clinical screening question(s). Dive center
-              managers can inspect these items to evaluate physician clearance:
+            <p className='text-gray-600 dark:text-gray-300 text-[11px]'>
+              Examining Physician:{' '}
+              <strong>Dr. {currentDiver.medical_clearance_audit.physician_name}</strong>
+              {currentDiver.medical_clearance_audit.physician_clinic &&
+                ` (${currentDiver.medical_clearance_audit.physician_clinic})`}
             </p>
+            {currentDiver.medical_clearance_audit.reason && (
+              <p className='text-[10px] text-gray-500 italic'>
+                Notes: {currentDiver.medical_clearance_audit.reason}
+              </p>
+            )}
+            <p className='text-[10px] text-gray-400 font-mono'>
+              Cleared by {currentDiver.medical_clearance_audit.cleared_by_name} at{' '}
+              {currentDiver.medical_clearance_audit.cleared_at?.slice(0, 16)}
+            </p>
+          </div>
+        )}
 
-            <div className='space-y-1.5 pt-0.5'>
-              {medicalReview.flagged_questions.map(q => (
-                <div
-                  key={q.id}
-                  className='text-xs text-amber-950 dark:text-amber-100 bg-white/70 dark:bg-gray-800/80 p-2 rounded-lg border border-amber-200 dark:border-amber-700/60 font-medium'
-                >
-                  {q.text}
-                </div>
-              ))}
+        {isMedicalBlocked && (
+          <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2 text-xs'>
+            <div className='flex items-center justify-between'>
+              <div className='flex items-center gap-1.5 text-amber-900 dark:text-amber-200 font-bold'>
+                <AlertTriangle size={14} className='text-amber-600' />
+                <span>Flagged Medical Conditions</span>
+              </div>
+              <button
+                type='button'
+                onClick={() => setShowClearanceForm(!showClearanceForm)}
+                className='text-blue-600 underline font-semibold text-[11px]'
+              >
+                {showClearanceForm ? 'Cancel Form' : 'Verify Physician Clearance'}
+              </button>
             </div>
 
-            {/* Clearance Audit Banner (If already approved by physician) */}
-            {isPhysicianApproved && medicalReview.clearance_audit && (
-              <div className='mt-2 p-2.5 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-800 rounded-lg text-xs text-emerald-900 dark:text-emerald-200 space-y-1'>
-                <div className='flex items-center gap-1.5 font-bold'>
-                  <ShieldCheck size={14} className='text-emerald-600' />
-                  <span>Physician Clearance Form Inspected & Approved</span>
-                </div>
-                <div className='text-[11px]'>
-                  <strong>Physician:</strong> Dr. {medicalReview.clearance_audit.physician_name}{' '}
-                  {medicalReview.clearance_audit.physician_clinic &&
-                    `(${medicalReview.clearance_audit.physician_clinic})`}
-                </div>
-                <div className='text-[10px] text-emerald-700 dark:text-emerald-300'>
-                  Verified by staff:{' '}
-                  <strong>{medicalReview.clearance_audit.cleared_by_name}</strong> on{' '}
-                  {medicalReview.clearance_audit.cleared_at
-                    ? new Date(medicalReview.clearance_audit.cleared_at).toLocaleString()
-                    : 'N/A'}
-                  {medicalReview.clearance_audit.reason &&
-                    ` • ${medicalReview.clearance_audit.reason}`}
-                </div>
+            {medicalReview?.flagged_questions && (
+              <div className='space-y-1 text-[11px] text-gray-600 dark:text-gray-300'>
+                <p className='font-semibold text-gray-700 dark:text-gray-200'>
+                  Diver indicated "YES" on the following DMSC screening question(s):
+                </p>
+                <ul className='list-disc pl-4 space-y-0.5'>
+                  {medicalReview.flagged_questions.map(q => (
+                    <li key={q.id}>
+                      <span className='font-medium'>{q.text}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            )}
-
-            {/* Inline Clearance Approval Sub-Form */}
-            {showClearanceForm && (
-              <form
-                onSubmit={handleClearMedical}
-                className='mt-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-amber-300 dark:border-amber-700 space-y-2.5'
-              >
-                <div className='flex items-center gap-1.5 pb-1 border-b border-gray-100 font-bold text-gray-900 dark:text-white text-xs'>
-                  <Stethoscope size={13} className='text-blue-600' />
-                  Record Physician Clearance (Port Authority Compliance)
-                </div>
-
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
-                  <div>
-                    <label className='block font-semibold mb-1 text-[11px]'>
-                      Physician Full Name *
-                    </label>
-                    <input
-                      type='text'
-                      value={physicianName}
-                      onChange={e => setPhysicianName(e.target.value)}
-                      placeholder='e.g. Dr. A. Smith, MD'
-                      required
-                      className='w-full px-2 py-1.5 border rounded-lg text-xs'
-                    />
-                  </div>
-                  <div>
-                    <label className='block font-semibold mb-1 text-[11px]'>
-                      Clinic / Hospital
-                    </label>
-                    <input
-                      type='text'
-                      value={physicianClinic}
-                      onChange={e => setPhysicianClinic(e.target.value)}
-                      placeholder='e.g. Athens Hyperbaric Center'
-                      className='w-full px-2 py-1.5 border rounded-lg text-xs'
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className='block font-semibold mb-1 text-[11px]'>
-                    Clearance Notes / Restrictions
-                  </label>
-                  <input
-                    type='text'
-                    value={clearanceNotes}
-                    onChange={e => setClearanceNotes(e.target.value)}
-                    placeholder='e.g. Form dated 2026-09-28 physically reviewed. Cleared for recreational diving.'
-                    className='w-full px-2 py-1.5 border rounded-lg text-xs'
-                  />
-                </div>
-
-                <label className='flex items-start gap-2 cursor-pointer pt-1'>
-                  <input
-                    type='checkbox'
-                    checked={confirmedInspected}
-                    onChange={e => setConfirmedInspected(e.target.checked)}
-                    required
-                    className='rounded text-blue-600 h-4 w-4 mt-0.5 shrink-0'
-                  />
-                  <span className='text-[11px] font-semibold text-gray-800 dark:text-gray-200'>
-                    I confirm that I have physically inspected the signed DMSC / WRSTC Physician
-                    Evaluation Form certifying this diver medically fit for hyperbaric exposure.
-                  </span>
-                </label>
-
-                <div className='flex items-center justify-end gap-2 pt-2 border-t'>
-                  <button
-                    type='button'
-                    onClick={() => setShowClearanceForm(false)}
-                    className='px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded'
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type='submit'
-                    disabled={clearingMedical || !confirmedInspected || !physicianName.trim()}
-                    className='px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-xs flex items-center gap-1 shadow-sm disabled:opacity-50'
-                  >
-                    {clearingMedical ? (
-                      <Loader2 size={13} className='animate-spin' />
-                    ) : (
-                      <Check size={13} />
-                    )}
-                    Formally Clear Diver for Boarding
-                  </button>
-                </div>
-              </form>
             )}
           </div>
         )}
 
-        {/* Credentials & Identification Strip */}
-        <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2'>
-          <h4 className='font-bold text-[11px] text-gray-900 dark:text-white uppercase tracking-wider'>
-            Credentials & Identification
-          </h4>
-          <div className='grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs'>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>Agency & Level:</span>
-              <strong className='text-gray-800 dark:text-gray-200'>
-                {participant.certification_agency} {participant.certification_level}
-              </strong>
-            </div>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>C-Card #:</span>
-              <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                {participant.certification_number || 'N/A'}
-              </strong>
-            </div>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>Passport / ID:</span>
-              <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                {participant.passport_number || 'N/A'}
-              </strong>
-            </div>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>Date of Birth:</span>
-              <strong className='text-gray-800 dark:text-gray-200'>
-                {participant.date_of_birth || 'N/A'}
-              </strong>
-            </div>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>Email:</span>
-              <strong className='text-gray-800 dark:text-gray-200 truncate block'>
-                {participant.diver_email || 'N/A'}
-              </strong>
-            </div>
-            <div>
-              <span className='text-gray-400 block text-[10px]'>Phone / WhatsApp:</span>
-              <strong className='text-gray-800 dark:text-gray-200'>
-                {participant.diver_phone || 'N/A'}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Assigned Equipment Sizing */}
-        {isEditing ? (
+        {showClearanceForm && (
           <form
-            onSubmit={handleSaveEquipment}
-            className='p-3.5 bg-blue-50/40 dark:bg-blue-900/10 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3'
+            onSubmit={handleClearMedical}
+            className='p-3.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl space-y-3'
           >
-            <h4 className='font-bold text-[11px] text-blue-900 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5'>
-              <Edit2 size={13} />
-              Edit Equipment Sizing & Cylinder
+            <h4 className='font-bold text-gray-900 dark:text-white flex items-center gap-1.5 text-xs'>
+              <Stethoscope size={14} className='text-blue-600' />
+              Physician Clearance Approval Form
             </h4>
-            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs'>
               <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Cylinder</label>
-                <select
-                  value={tankId}
-                  onChange={e => setTankId(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
-                >
-                  <option value='12'>12L Steel</option>
-                  <option value='15'>15L Steel</option>
-                  <option value='al80'>AL80 (11L Alu)</option>
-                  <option value='10'>10L Steel</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Gas Mix</label>
-                <select
-                  value={gasMixId}
-                  onChange={e => setGasMixId(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
-                >
-                  <option value='air'>Air (21%)</option>
-                  <option value='ean32'>EAN32 (Nitrox)</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Valve Fitting</label>
-                <select
-                  value={regulatorFitting}
-                  onChange={e => setRegulatorFitting(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
-                >
-                  <option value='DIN'>DIN (5/8" Threaded)</option>
-                  <option value='YOKE'>Yoke (INT / A-clamp)</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Lead (kg)</label>
+                <label className='block font-semibold mb-1 text-[11px]'>
+                  Examining Physician Name *
+                </label>
                 <input
-                  type='number'
-                  step='0.5'
-                  value={leadKg}
-                  onChange={e => setLeadKg(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  type='text'
+                  required
+                  value={physicianName}
+                  onChange={e => setPhysicianName(e.target.value)}
+                  placeholder='Dr. Sofia Karra, M.D.'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
                 />
               </div>
               <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Weight System</label>
-                <select
-                  value={weightSystem}
-                  onChange={e => setWeightSystem(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
-                >
-                  <option value='INTEGRATED'>Integrated Pockets</option>
-                  <option value='BELT'>Weight Belt (Webbing)</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Wetsuit Size</label>
-                <select
-                  value={wetsuitSize}
-                  onChange={e => setWetsuitSize(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
-                >
-                  <option value='None'>None (Own Suit)</option>
-                  <option value='XS'>XS</option>
-                  <option value='S'>S</option>
-                  <option value='M'>M</option>
-                  <option value='L'>L</option>
-                  <option value='XL'>XL</option>
-                  <option value='XXL'>XXL</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Thickness</label>
-                <select
-                  value={wetsuitThickness}
-                  onChange={e => setWetsuitThickness(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
-                >
-                  <option value='3mm'>3mm</option>
-                  <option value='5mm'>5mm</option>
-                  <option value='7mm'>7mm</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>BCD Size</label>
-                <select
-                  value={bcdSize}
-                  onChange={e => setBcdSize(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white'
-                >
-                  <option value='None'>None (Own BCD)</option>
-                  <option value='XS'>XS</option>
-                  <option value='S'>S</option>
-                  <option value='M'>M</option>
-                  <option value='L'>L</option>
-                  <option value='XL'>XL</option>
-                </select>
-              </div>
-              <div>
-                <label className='block font-semibold mb-1 text-[11px]'>Shoe (EU)</label>
+                <label className='block font-semibold mb-1 text-[11px]'>Clinic / Hospital</label>
                 <input
-                  type='number'
-                  value={shoeSizeEu}
-                  onChange={e => setShoeSizeEu(e.target.value)}
-                  className='w-full px-2 py-1.5 border rounded-lg text-xs'
+                  type='text'
+                  value={physicianClinic}
+                  onChange={e => setPhysicianClinic(e.target.value)}
+                  placeholder='e.g. Athens Hyperbaric Center'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
+                />
+              </div>
+              <div className='sm:col-span-2'>
+                <label className='block font-semibold mb-1 text-[11px]'>
+                  Clinical Notes / Approval Reason
+                </label>
+                <textarea
+                  rows={2}
+                  value={clearanceNotes}
+                  onChange={e => setClearanceNotes(e.target.value)}
+                  placeholder='e.g. Signed medical evaluation form verified; cleared for diving down to 30m.'
+                  className='w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white'
                 />
               </div>
             </div>
-            <div className='flex justify-end gap-2 pt-2'>
+
+            <label className='flex items-start gap-2 pt-1 cursor-pointer'>
+              <input
+                type='checkbox'
+                required
+                checked={confirmedInspected}
+                onChange={e => setConfirmedInspected(e.target.checked)}
+                className='mt-0.5 rounded text-blue-600'
+              />
+              <span className='text-[11px] text-gray-600 dark:text-gray-400 leading-tight'>
+                I certify under penalty of center policy that I have physically inspected and
+                verified the signed diving medical evaluation form.
+              </span>
+            </label>
+
+            <div className='flex justify-end gap-2 pt-2 border-t'>
               <button
                 type='button'
-                onClick={() => setIsEditing(false)}
-                className='px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded'
+                onClick={() => setShowClearanceForm(false)}
+                className='px-3 py-1.5 text-gray-600 rounded-lg text-xs font-semibold'
               >
                 Cancel
               </button>
               <button
                 type='submit'
-                disabled={loading}
-                className='px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold text-xs flex items-center gap-1 shadow-sm'
+                disabled={clearingMedical}
+                className='px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm'
               >
-                {loading ? <Loader2 size={13} className='animate-spin' /> : <Check size={13} />}
-                Save Changes
+                {clearingMedical ? (
+                  <Loader2 size={12} className='animate-spin' />
+                ) : (
+                  <Check size={12} />
+                )}
+                <span>Approve & Clear Diver</span>
               </button>
             </div>
           </form>
+        )}
+
+        {/* Credentials & Contact Box */}
+        <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2'>
+          <h4 className='font-bold text-[11px] text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5'>
+            <ShieldCheck size={13} className='text-blue-600' />
+            Certification & Credentials
+          </h4>
+          <div className='grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs'>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Agency & Level:</span>
+              <strong className='text-gray-800 dark:text-gray-200'>
+                {currentDiver.certification_agency} {currentDiver.certification_level}
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>C-Card #:</span>
+              <strong className='text-gray-800 dark:text-gray-200 font-mono'>
+                {currentDiver.certification_number || 'N/A'}
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Passport / ID:</span>
+              <strong className='text-gray-800 dark:text-gray-200 font-mono'>
+                {currentDiver.passport_number || 'N/A'}
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Date of Birth:</span>
+              <strong className='text-gray-800 dark:text-gray-200'>
+                {currentDiver.date_of_birth || 'N/A'}
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Email:</span>
+              <strong className='text-gray-800 dark:text-gray-200 truncate block'>
+                {currentDiver.diver_email || 'N/A'}
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Phone / WhatsApp:</span>
+              <strong className='text-gray-800 dark:text-gray-200'>
+                {currentDiver.diver_phone || 'N/A'}
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Assigned Equipment Sizing: Toggle between Form and Card */}
+        {isEditing ? (
+          <div className='p-4 bg-white dark:bg-gray-850 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-sm'>
+            <h4 className='font-bold text-xs text-blue-900 dark:text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-1.5'>
+              <Edit2 size={13} />
+              Unified Diver Gear & Ballast Configuration
+            </h4>
+            <DiverGearConfigForm
+              initialData={currentDiver}
+              onSave={handleSaveGear}
+              onCancel={() => setIsEditing(false)}
+              loading={loading}
+              compact={true}
+              showBallastCalculator={true}
+              showEmergencyAndInsurance={true}
+            />
+          </div>
         ) : (
           <div className='p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 space-y-2'>
             <h4 className='font-bold text-[11px] text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5'>
               <Gauge size={13} className='text-blue-600' />
-              Equipment Assignment
+              Equipment Assignment & Sizing
             </h4>
             <div className='grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs'>
               <div>
@@ -670,39 +515,66 @@ const DiverDetailsModal = ({
               <div>
                 <span className='text-gray-400 block text-[10px]'>Valve Connection:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {currentDiver.equipment_sizing?.regulator_fitting || 'DIN'}
+                  {eq.regulator_fitting || 'DIN'}
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Lead Ballast:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
                   {currentDiver.estimated_lead_kg || 0} kg (
-                  {currentDiver.equipment_sizing?.weight_system === 'BELT'
-                    ? 'Weight Belt'
-                    : 'Integrated Pockets'}
-                  )
+                  {eq.weight_system === 'BELT' ? 'Weight Belt' : 'Integrated Pockets'})
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Wetsuit:</span>
                 <strong className='text-gray-800 dark:text-gray-200'>
-                  {currentDiver.equipment_sizing?.wetsuit_size || 'None'} (
-                  {currentDiver.equipment_sizing?.wetsuit_thickness || '5mm'})
+                  {eq.wetsuit_size || 'None'} ({eq.wetsuit_thickness || '5mm'}{' '}
+                  {eq.wetsuit_gender ? `• ${eq.wetsuit_gender}` : ''})
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>BCD Size:</span>
                 <strong className='text-gray-800 dark:text-gray-200'>
-                  {currentDiver.equipment_sizing?.bcd_size || 'None'}
+                  {eq.bcd_size || 'None'}
                 </strong>
               </div>
               <div>
-                <span className='text-gray-400 block text-[10px]'>Fins (EU):</span>
+                <span className='text-gray-400 block text-[10px]'>Fins:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {currentDiver.equipment_sizing?.shoe_size_eu || 'N/A'}
+                  {eq.fin_type === 'FULL_FOOT' ? 'Full-Foot' : 'Open-Heel'} (EU{' '}
+                  {eq.shoe_size_eu || 'N/A'})
                 </strong>
               </div>
+              <div>
+                <span className='text-gray-400 block text-[10px]'>Personal Safety:</span>
+                <span className='text-gray-800 dark:text-gray-200 flex items-center gap-1 text-[11px]'>
+                  {eq.has_own_dive_computer ? '✓ Computer' : 'No Computer'} •{' '}
+                  {eq.has_own_smb ? '✓ SMB' : 'No SMB'}
+                </span>
+              </div>
             </div>
+
+            {/* Insurance & Emergency preview if exists */}
+            {(eq.insurance_provider || eq.emergency_contact_name) && (
+              <div className='pt-2 mt-2 border-t border-gray-200/60 dark:border-gray-700/60 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]'>
+                {eq.insurance_provider && (
+                  <div>
+                    <span className='text-gray-400 block text-[10px]'>Insurance:</span>
+                    <span className='text-gray-700 dark:text-gray-300'>
+                      {eq.insurance_provider} (#{eq.insurance_policy_number || 'N/A'})
+                    </span>
+                  </div>
+                )}
+                {eq.emergency_contact_name && (
+                  <div>
+                    <span className='text-gray-400 block text-[10px]'>Next of Kin:</span>
+                    <span className='text-gray-700 dark:text-gray-300'>
+                      {eq.emergency_contact_name} ({eq.emergency_contact_phone || 'N/A'})
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

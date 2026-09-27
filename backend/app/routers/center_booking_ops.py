@@ -445,6 +445,78 @@ def add_walkin_participant(
     }
 
 
+@router.get("/trips/{trip_id}/participants/{participant_id}")
+def get_participant_details(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retrieves full operational and paperwork details for a single trip participant."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+
+    med_audit = None
+    if med and med.status == "PHYSICIAN_APPROVED":
+        med_audit = {
+            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+            "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
+            "physician_name": med.cleared_physician_name,
+            "physician_clinic": med.cleared_physician_clinic,
+            "reason": med.cleared_reason,
+        }
+
+    eq = item.equipment_sizing or {}
+    lead = float(eq.get("estimated_lead_kg") or 0.0)
+
+    booking = item.booking
+    vessel = slot.vessel
+
+    return {
+        "id": item.id,
+        "booking_id": booking.uuid if booking else None,
+        "payment_status": booking.payment_status if booking else "PENDING_AT_CHECKIN",
+        "diver_full_name": item.diver_full_name,
+        "diver_email": item.diver_email,
+        "diver_phone": item.diver_phone,
+        "diver_nationality": item.diver_nationality,
+        "passport_number": item.passport_number,
+        "date_of_birth": str(item.date_of_birth) if item.date_of_birth else None,
+        "certification_agency": item.certification_agency or "PADI",
+        "certification_level": item.certification_level or "Open Water",
+        "certification_number": item.certification_number,
+        "selected_tank_id": item.selected_tank_id or "12",
+        "selected_gas_mix_id": item.selected_gas_mix_id or "air",
+        "estimated_lead_kg": lead,
+        "equipment_sizing": eq,
+        "medical_status": med.status if med else ("CLEARED" if booking and booking.status == "CONFIRMED" else "PENDING"),
+        "medical_clearance_audit": med_audit,
+        "waivers_complete": item.waivers_complete,
+        "onboard_checkin_status": item.onboard_checkin_status,
+        "signed_at": item.signed_at.isoformat() if item.signed_at else None,
+        "slot": {
+            "id": slot.id,
+            "product_title": slot.product.title if slot.product else "Dive Trip",
+            "departure_date": slot.start_datetime.strftime("%Y-%m-%d"),
+            "meeting_time": slot.start_datetime.strftime("%H:%M"),
+            "vessel_name": vessel.name if vessel else "Dive Boat",
+        },
+    }
+
+
 @router.put("/trips/{trip_id}/participants/{participant_id}")
 def update_participant(
     center_id: int,

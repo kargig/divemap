@@ -215,6 +215,26 @@ def test_add_walkin_participant(client: TestClient, center_ops_setup):
     assert data["seats_available"] == 9 # Was 10, decremented to 9
 
 
+def test_get_single_participant_details(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1",
+        headers=headers,
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["diver_full_name"] == "Sylvia Earle"
+    assert data["selected_tank_id"] == "15"
+    assert data["slot"]["product_title"] == "Volcano & Nea Kameni 2-Tank Dive"
+    assert data["payment_status"] == "PENDING_AT_CHECKIN"
+
+
 def test_update_participant_equipment(client: TestClient, center_ops_setup):
     center = center_ops_setup["center"]
     slot = center_ops_setup["slot"]
