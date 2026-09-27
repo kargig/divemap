@@ -359,6 +359,22 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path='/diving-centers/:id/:slug/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path='/users/:username' element={<UserProfile />} />
             <Route path='/users/:username/analytics' element={<UserAnalytics />} />
             <Route path='/users/:username/lists/:id' element={<UserListDetail />} />

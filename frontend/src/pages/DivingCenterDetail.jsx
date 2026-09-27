@@ -22,6 +22,7 @@ import {
   Users,
   UserPlus,
   Trash2,
+  Coins,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -1273,6 +1274,33 @@ const DivingCenterDetail = () => {
       {/* Management Tab */}
       {activeTab === 'manage' && shouldShowManage && (
         <div className='space-y-4 sm:space-y-6'>
+          {/* Equipment Rental Rates Card */}
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+              <div className='flex items-start gap-3.5'>
+                <div className='w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5'>
+                  <Coins className='h-6 w-6' />
+                </div>
+                <div>
+                  <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                    <span>Equipment Rental Rates & Package Bundling</span>
+                  </h2>
+                  <p className='text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed'>
+                    Configure itemized daily rental rates (regulators, BCDs, wetsuits, computers,
+                    torches, fins) and full equipment package bundles for customer checkout and
+                    dockside check-in.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/diving-centers/${id}/${slug || getDivingCenterSlug(center) || 'center'}/gear-rental`}
+                className='inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors shrink-0 shadow-sm justify-center'
+              >
+                <Coins className='h-4 w-4 mr-1.5' />
+                Manage Rental Pricing
+              </Link>
+            </div>
+          </div>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
               <h2 className='text-2xl font-bold text-gray-900 flex items-center'>

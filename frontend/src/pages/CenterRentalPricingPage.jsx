@@ -1,4 +1,4 @@
-import { Coins, Check, Loader2, Sparkles, ChevronLeft } from 'lucide-react';
+import { Coins, Check, Loader2, Sparkles, ChevronLeft, ShieldAlert } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -26,12 +26,15 @@ const DEFAULT_PRICING = {
 };
 
 const CenterRentalPricingPage = () => {
-  const { centerId } = useParams();
+  const params = useParams();
+  const centerId = params.id || params.centerId;
+  const slug = params.slug;
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [centerName, setCenterName] = useState('');
+  const [unauthorized, setUnauthorized] = useState(false);
 
   const [packagePrice, setPackagePrice] = useState('30.00');
   const [currency, setCurrency] = useState('EUR');
@@ -41,6 +44,7 @@ const CenterRentalPricingPage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setUnauthorized(false);
         // Load center details & current pricing in parallel
         const [centerRes, pricingRes] = await Promise.all([
           api.get(`/api/v1/diving-centers/${centerId}`).catch(() => ({ data: {} })),
@@ -57,7 +61,11 @@ const CenterRentalPricingPage = () => {
         setItems(data.items || DEFAULT_PRICING.items);
       } catch (err) {
         console.error('Failed to load rental pricing:', err);
-        toast.error('Failed to load rental pricing.');
+        if (err.response?.status === 403) {
+          setUnauthorized(true);
+        } else {
+          toast.error('Failed to load rental pricing.');
+        }
       } finally {
         setLoading(false);
       }
@@ -94,6 +102,31 @@ const CenterRentalPricingPage = () => {
     }
   };
 
+  if (unauthorized) {
+    return (
+      <div className='min-h-screen bg-gray-50/50 dark:bg-gray-900/50 py-12 flex flex-col items-center justify-center p-4'>
+        <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full text-center space-y-4'>
+          <div className='w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto'>
+            <ShieldAlert size={24} />
+          </div>
+          <h2 className='text-lg font-bold text-gray-900 dark:text-white'>
+            Manager Access Required
+          </h2>
+          <p className='text-xs text-gray-500 leading-relaxed'>
+            You must be an authorized manager or owner of {centerName || 'this diving center'} to
+            configure equipment rental rates.
+          </p>
+          <button
+            onClick={() => navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}`)}
+            className='w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm'
+          >
+            Back to Diving Center
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='min-h-screen bg-gray-50/50 dark:bg-gray-900/50 py-6'>
       <SEO
@@ -104,11 +137,13 @@ const CenterRentalPricingPage = () => {
       <div className='max-w-[95vw] xl:max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6'>
         {/* Navigation & Header */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={() =>
+            navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}?tab=manage`)
+          }
           className='inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 mb-4'
         >
           <ChevronLeft size={18} className='mr-1' />
-          Back
+          Back to Center Management
         </button>
 
         <div className='bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden'>
@@ -119,24 +154,34 @@ const CenterRentalPricingPage = () => {
               </div>
               <div>
                 <h1 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-white'>
-                  Equipment Rental Pricing
+                  Equipment Rental Rates & Package Bundling
                 </h1>
-                <p className='text-xs text-gray-500 dark:text-gray-400'>
-                  {centerName ? `${centerName} • ` : ''}Configure itemized rental rates and package
-                  bundles for online & desk checkout.
+                <p className='text-xs text-gray-500'>
+                  Managing rental rates for{' '}
+                  <span className='font-semibold text-gray-700 dark:text-gray-300'>
+                    {centerName || `Center #${centerId}`}
+                  </span>
                 </p>
               </div>
             </div>
 
-            <div className='flex items-center gap-2 self-end sm:self-center'>
+            <div className='flex items-center gap-2'>
               <button
                 type='button'
+                onClick={() =>
+                  navigate(`/diving-centers/${centerId}${slug ? `/${slug}` : ''}?tab=manage`)
+                }
+                className='px-4 py-2 border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all'
+              >
+                Cancel
+              </button>
+              <button
                 onClick={handleSave}
                 disabled={saving || loading}
-                className='px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50'
+                className='px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50'
               >
                 {saving ? <Loader2 size={14} className='animate-spin' /> : <Check size={14} />}
-                <span>Save Rental Pricing</span>
+                <span>Save Rental Rates</span>
               </button>
             </div>
           </div>
@@ -147,50 +192,59 @@ const CenterRentalPricingPage = () => {
               Loading rental pricing configuration...
             </div>
           ) : (
-            <form onSubmit={handleSave} className='p-5 sm:p-6 space-y-6 text-xs'>
-              {/* Full Kit Package Rate */}
-              <div className='p-4 sm:p-5 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-900/60 space-y-3'>
+            <form onSubmit={handleSave} className='p-5 sm:p-6 space-y-6'>
+              {/* Full Kit Package Rate Card */}
+              <div className='p-4 sm:p-5 bg-blue-50/70 dark:bg-blue-950/20 rounded-2xl border border-blue-200 dark:border-blue-900/60 space-y-3'>
                 <div className='flex items-center justify-between'>
-                  <span className='font-bold text-blue-950 dark:text-blue-200 flex items-center gap-2 text-sm'>
-                    <Sparkles size={16} className='text-blue-600' />
-                    Full Equipment Rental Package Price (Bundle)
-                  </span>
-                  <span className='text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase tracking-wide'>
-                    Daily Bundle Rate
+                  <div className='flex items-center gap-2'>
+                    <div className='w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 flex items-center justify-center'>
+                      <Sparkles size={16} />
+                    </div>
+                    <div>
+                      <h3 className='font-bold text-blue-950 dark:text-blue-200 text-sm'>
+                        Full Equipment Rental Package Rate
+                      </h3>
+                      <span className='text-[11px] text-gray-500 dark:text-gray-400'>
+                        Bundle covering core gear (Regulator, BCD, Wetsuit, Fins, Boots, Mask)
+                      </span>
+                    </div>
+                  </div>
+                  <span className='text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 uppercase tracking-wider'>
+                    Package Bundle
                   </span>
                 </div>
-                <p className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed max-w-3xl'>
-                  Flat day rate covering the core scuba kit (Wetsuit, BCD, Regulator, Fins &
-                  Booties, Mask/Snorkel). If an own-gear diver selects individual rental items whose
-                  sum reaches or exceeds this price, their surcharge is automatically capped at this
-                  bundle rate.
-                </p>
-                <div className='flex items-center gap-2 pt-1'>
-                  <span className='font-bold text-base text-gray-700 dark:text-gray-300'>€</span>
-                  <input
-                    type='number'
-                    step='0.5'
-                    value={packagePrice}
-                    onChange={e => setPackagePrice(e.target.value)}
-                    className='w-36 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl font-mono font-bold text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
-                    required
-                  />
-                  <span className='text-xs text-gray-500 font-medium'>per diver / day</span>
+
+                <div className='flex items-center gap-3 pt-2'>
+                  <div className='flex items-center gap-1.5 bg-white dark:bg-gray-800 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-600 shadow-2xs'>
+                    <span className='font-bold text-sm text-gray-700 dark:text-gray-300'>€</span>
+                    <input
+                      type='number'
+                      step='0.5'
+                      value={packagePrice}
+                      onChange={e => setPackagePrice(e.target.value)}
+                      className='w-28 font-mono font-bold text-base bg-transparent border-none focus:outline-hidden'
+                      required
+                    />
+                  </div>
+                  <span className='text-xs text-gray-500 font-medium'>
+                    per diver / day (Smart Cap applied if individual rentals exceed this)
+                  </span>
                 </div>
               </div>
 
-              {/* Itemized Pricing */}
-              <div className='space-y-4'>
-                <div>
-                  <h3 className='font-bold text-gray-900 dark:text-white uppercase tracking-wider text-xs mb-1'>
-                    Itemized À La Carte Rates
+              {/* Itemized Rental Rates Grid */}
+              <div className='space-y-3'>
+                <div className='border-b border-gray-100 dark:border-gray-700 pb-2'>
+                  <h3 className='font-bold text-gray-900 dark:text-white text-sm'>
+                    Itemized Daily Rental Rates (€)
                   </h3>
                   <p className='text-xs text-gray-500'>
-                    Rates applied when divers rent individual pieces of equipment à la carte.
+                    Rates charged to divers bringing partial personal equipment who rent specific
+                    items à la carte.
                   </p>
                 </div>
 
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1'>
                   {[
                     { key: 'regulator', label: 'Regulator Setup (1st & 2nd Stage, Octo, SPG)' },
                     { key: 'bcd', label: 'BCD (Buoyancy Compensator Device)' },
@@ -206,36 +260,27 @@ const CenterRentalPricingPage = () => {
                   ].map(item => (
                     <div
                       key={item.key}
-                      className='p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-750 flex items-center justify-between'
+                      className='p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-750 flex items-center justify-between gap-3'
                     >
-                      <span className='font-medium text-gray-700 dark:text-gray-300 text-xs truncate mr-2'>
-                        {item.label}
-                      </span>
-                      <div className='flex items-center gap-1 shrink-0'>
-                        <span className='text-gray-400 text-xs'>€</span>
+                      <div className='min-w-0'>
+                        <span className='font-semibold text-gray-800 dark:text-gray-200 text-xs block truncate'>
+                          {item.label}
+                        </span>
+                        <span className='text-[10px] text-gray-400'>per diver / day</span>
+                      </div>
+                      <div className='flex items-center gap-1.5 shrink-0 bg-white dark:bg-gray-800 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 shadow-2xs'>
+                        <span className='text-gray-400 text-xs font-semibold'>€</span>
                         <input
                           type='number'
                           step='0.5'
                           value={items[item.key] ?? 0}
                           onChange={e => handleItemChange(item.key, e.target.value)}
-                          className='w-20 px-2.5 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-right font-mono font-bold text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-white'
+                          className='w-14 text-right font-mono font-bold text-xs bg-transparent border-none focus:outline-hidden'
                         />
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Bottom Action Bar */}
-              <div className='pt-5 border-t border-gray-100 dark:border-gray-700 flex justify-end'>
-                <button
-                  type='submit'
-                  disabled={saving}
-                  className='px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50'
-                >
-                  {saving ? <Loader2 size={14} className='animate-spin' /> : <Check size={14} />}
-                  <span>Save Rental Pricing Changes</span>
-                </button>
               </div>
             </form>
           )}
