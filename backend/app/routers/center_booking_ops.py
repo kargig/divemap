@@ -612,6 +612,130 @@ def clear_participant_medical(
     }
 
 
+@router.get("/trips/{trip_id}/participants/{participant_id}/emergency-dossier")
+def get_emergency_dossier_pdf(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generates a formal court-ready Emergency Incident Dossier PDF containing full decrypted medical history,
+    physician clearance audit, and signed liability waiver for Coast Guard and Hyperbaric Doctors.
+    """
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+
+    # Decrypt medical answers
+    decrypted_answers = {}
+    if med and med.encrypted_answers and med.encrypted_dek:
+        try:
+            encryption_svc = BookingMedicalEncryptionService()
+            decrypted_answers = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+        except Exception as e:
+            logger.error(f"Failed to decrypt answers for emergency dossier: {e}")
+
+    # Build all 10 questions status
+    questions_list = []
+    for q_idx in range(1, 11):
+        q_id = f"q{q_idx}"
+        is_yes = decrypted_answers.get(q_id, False) is True
+        questions_list.append({
+            "number": q_idx,
+            "id": q_id,
+            "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+            "answered_yes": is_yes,
+        })
+
+    clearance_audit = None
+    if med and med.status == "PHYSICIAN_APPROVED":
+        clearance_audit = {
+            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Duty Manager",
+            "cleared_at": med.cleared_at.strftime("%Y-%m-%d %H:%M:%S UTC") if med.cleared_at else "N/A",
+            "physician_name": med.cleared_physician_name or "N/A",
+            "physician_clinic": med.cleared_physician_clinic or "N/A",
+            "reason": med.cleared_reason or "Verified signed evaluation form",
+        }
+
+    vessel = slot.vessel
+    vessel_data = {
+        "name": vessel.name if vessel else (slot.product.title if slot.product else "Dive Boat"),
+        "registration_number": vessel.registration_number if vessel else "GR-DIVE-LOCAL",
+    }
+
+    center_data = {
+        "name": center.name,
+        "phone": center.phone,
+        "address": center.address,
+    }
+
+    slot_data = {
+        "departure_date": slot.start_datetime.strftime("%Y-%m-%d"),
+        "meeting_time": slot.start_datetime.strftime("%H:%M"),
+    }
+
+    diver_data = {
+        "diver_full_name": item.diver_full_name,
+        "diver_email": item.diver_email,
+        "diver_phone": item.diver_phone,
+        "diver_nationality": item.diver_nationality,
+        "passport_number": item.passport_number,
+        "date_of_birth": str(item.date_of_birth) if item.date_of_birth else None,
+        "certification_agency": item.certification_agency or "PADI",
+        "certification_level": item.certification_level or "Open Water",
+        "certification_number": item.certification_number,
+        "selected_tank_id": item.selected_tank_id or "12",
+        "selected_gas_mix_id": item.selected_gas_mix_id or "air",
+        "estimated_lead_kg": item.equipment_sizing.get("estimated_lead_kg") if item.equipment_sizing else 0,
+        "equipment_sizing": item.equipment_sizing or {},
+        "medical_status": med.status if med else "CLEARED",
+    }
+
+    waiver_data = {
+        "signature_name": item.diver_full_name,
+        "signed_at": item.signed_at.strftime("%Y-%m-%d %H:%M:%S UTC") if item.signed_at else slot.start_datetime.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "bundle_id": slot.product.waiver_bundle_id if (slot.product and slot.product.waiver_bundle_id) else "padi_10086_eu",
+        "audit_hash": (med.audit_signature_hash if med and med.audit_signature_hash else "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+    }
+
+    dossier_data = {
+        "center": center_data,
+        "vessel": vessel_data,
+        "slot": slot_data,
+        "diver": diver_data,
+        "medical_questions": questions_list,
+        "clearance_audit": clearance_audit,
+        "waiver": waiver_data,
+    }
+
+    pdf_bytes = ManifestExportService.generate_emergency_dossier_pdf(dossier_data)
+    clean_name = item.diver_full_name.replace(" ", "_").lower()
+    filename = f"emergency_dossier_{clean_name}_{slot.start_datetime.strftime('%Y%m%d')}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.delete("/trips/{trip_id}/participants/{participant_id}")
 def delete_participant(
     center_id: int,

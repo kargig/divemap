@@ -496,3 +496,21 @@ def test_medical_review_and_physician_clearance_override(client: TestClient, db_
     assert p2["medical_status"] == "PHYSICIAN_APPROVED"
     assert p2["medical_clearance_audit"]["physician_name"] == "Dr. Sofia Karra"
     assert p2["medical_clearance_audit"]["cleared_by_name"] == owner.username
+
+
+def test_export_emergency_dossier_pdf(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    slot = center_ops_setup["slot"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/trips/{slot.id}/participants/part-item-1/emergency-dossier",
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert "application/pdf" in res.headers["content-type"]
+    assert res.content[:4] == b"%PDF"
+    assert len(res.content) > 1000

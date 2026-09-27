@@ -61,6 +61,7 @@ const BookingWizard = () => {
   const [finType, setFinType] = useState('OPEN_HEEL');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
   const [leadKg, setLeadKg] = useState('4.0');
+  const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
   // Step 2 & 3: Medical & Waiver
   const [medicalModalOpen, setMedicalModalOpen] = useState(false);
@@ -97,6 +98,7 @@ const BookingWizard = () => {
           if (pg.preferred_tank_id) setSelectedTankId(pg.preferred_tank_id);
           if (pg.preferred_gas_mix_id) setSelectedGasMixId(pg.preferred_gas_mix_id);
           if (pg.regulator_fitting) setRegulatorFitting(pg.regulator_fitting);
+          if (pg.weight_system) setWeightSystem(pg.weight_system);
           if (pg.wetsuit_size) setWetsuitSize(pg.wetsuit_size);
           if (pg.wetsuit_thickness) setWetsuitThickness(pg.wetsuit_thickness);
           if (pg.bcd_size) setBcdSize(pg.bcd_size);
@@ -168,6 +170,7 @@ const BookingWizard = () => {
     if (prof.preferred_tank_id) setSelectedTankId(prof.preferred_tank_id);
     if (prof.preferred_gas_mix_id) setSelectedGasMixId(prof.preferred_gas_mix_id);
     if (prof.regulator_fitting) setRegulatorFitting(prof.regulator_fitting);
+    if (prof.weight_system) setWeightSystem(prof.weight_system);
     if (prof.wetsuit_size) setWetsuitSize(prof.wetsuit_size);
     if (prof.wetsuit_thickness) setWetsuitThickness(prof.wetsuit_thickness);
     if (prof.bcd_size) setBcdSize(prof.bcd_size);
@@ -279,6 +282,8 @@ const BookingWizard = () => {
               fin_type: finType,
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
               regulator_fitting: regulatorFitting,
+              weight_system: weightSystem,
+              estimated_lead_kg: parseFloat(leadKg) || 4.0,
               lead_kg: parseFloat(leadKg) || 4.0,
             },
           },
@@ -308,6 +313,8 @@ const BookingWizard = () => {
           fin_type: finType,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
           regulator_fitting: regulatorFitting,
+          weight_system: weightSystem,
+          estimated_lead_kg: parseFloat(leadKg) || 4.0,
           lead_kg: parseFloat(leadKg) || 4.0,
         },
       };
@@ -671,7 +678,7 @@ const BookingWizard = () => {
 
               {/* Equipment Specifications (Cylinder & Ballast) */}
               <div className='pt-3 border-t'>
-                <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
+                <div className='grid grid-cols-2 sm:grid-cols-5 gap-3'>
                   <div>
                     <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
                       Cylinder *
@@ -725,21 +732,49 @@ const BookingWizard = () => {
                       className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs'
                     />
                   </div>
+                  <div>
+                    <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                      Weight System *
+                    </label>
+                    <select
+                      value={weightSystem}
+                      onChange={e => setWeightSystem(e.target.value)}
+                      className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                    >
+                      <option value='INTEGRATED'>Integrated BCD Pockets</option>
+                      <option value='BELT'>Traditional Weight Belt</option>
+                    </select>
+                  </div>
                 </div>
 
-                {/* Valve Explanation Note */}
-                <div className='mt-2 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-750 px-2.5 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700'>
-                  {regulatorFitting === 'DIN' ? (
-                    <span>
-                      ✓ <strong>DIN Tank Valve:</strong> Your cylinder will be configured with a
-                      native 5/8" DIN valve (yoke insert removed) to connect your DIN regulator.
-                    </span>
-                  ) : (
-                    <span>
-                      ✓ <strong>Yoke / INT Tank Valve:</strong> Your cylinder will be fitted with a
-                      standard international Yoke insert to clamp your A-clamp regulator.
-                    </span>
-                  )}
+                {/* Valve & Weight Explanation Note */}
+                <div className='mt-2.5 space-y-1.5 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-750 px-3 py-2 rounded-lg border border-gray-100 dark:border-gray-700'>
+                  <div>
+                    {regulatorFitting === 'DIN' ? (
+                      <span>
+                        ✓ <strong>DIN Tank Valve:</strong> Your cylinder will be configured with a
+                        native 5/8" DIN valve (yoke insert removed) to connect your DIN regulator.
+                      </span>
+                    ) : (
+                      <span>
+                        ✓ <strong>Yoke / INT Tank Valve:</strong> Your cylinder will be fitted with
+                        a standard international Yoke insert to clamp your A-clamp regulator.
+                      </span>
+                    )}
+                  </div>
+                  <div className='pt-1 border-t border-gray-200/60 dark:border-gray-700/60'>
+                    {weightSystem === 'INTEGRATED' ? (
+                      <span>
+                        ✓ <strong>Integrated Weight Pockets:</strong> Weights will be prepared in
+                        symmetric pouches to load directly into your BCD weight pockets.
+                      </span>
+                    ) : (
+                      <span>
+                        ✓ <strong>Traditional Weight Belt:</strong> A heavy-duty nylon webbing belt
+                        with stainless/plastic quick-release buckle will be prepared for you.
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Nitrox Eligibility Warning */}
@@ -863,7 +898,9 @@ const BookingWizard = () => {
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Lead Ballast:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white'>{leadKg} kg</span>
+                  <span className='font-semibold text-gray-900 dark:text-white'>
+                    {leadKg} kg ({weightSystem === 'BELT' ? 'Belt' : 'Pockets'})
+                  </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Contact / ID:</span>

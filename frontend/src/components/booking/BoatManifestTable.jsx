@@ -123,7 +123,10 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3 font-mono font-medium'>
-                    {p.estimated_lead_kg || 0} kg
+                    <div>{p.estimated_lead_kg || 0} kg</div>
+                    <span className='text-[10px] text-gray-400 font-sans block'>
+                      {p.equipment_sizing?.weight_system === 'BELT' ? 'Weight Belt' : 'Pockets'}
+                    </span>
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
@@ -331,7 +334,8 @@ const BoatManifestTable = ({
                   {p.equipment_sizing?.regulator_fitting || 'DIN'}
                 </span>
                 <span className='px-2 py-0.5 bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 rounded font-mono'>
-                  {p.estimated_lead_kg || 0} kg lead
+                  {p.estimated_lead_kg || 0} kg (
+                  {p.equipment_sizing?.weight_system === 'BELT' ? 'Belt' : 'Pockets'})
                 </span>
                 {p.diver_nationality && (
                   <span className='text-gray-400 text-[11px]'>({p.diver_nationality})</span>

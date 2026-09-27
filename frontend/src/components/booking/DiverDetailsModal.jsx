@@ -10,6 +10,7 @@ import {
   Check,
   Loader2,
   Stethoscope,
+  FileText,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -36,12 +37,14 @@ const DiverDetailsModal = ({
   const [clearanceNotes, setClearanceNotes] = useState('');
   const [confirmedInspected, setConfirmedInspected] = useState(false);
   const [clearingMedical, setClearingMedical] = useState(false);
+  const [downloadingDossier, setDownloadingDossier] = useState(false);
 
   // Edit fields
   const [tankId, setTankId] = useState('12');
   const [gasMixId, setGasMixId] = useState('air');
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
   const [leadKg, setLeadKg] = useState('0');
+  const [weightSystem, setWeightSystem] = useState('INTEGRATED');
   const [wetsuitSize, setWetsuitSize] = useState('None');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [bcdSize, setBcdSize] = useState('None');
@@ -58,11 +61,39 @@ const DiverDetailsModal = ({
         ? p.estimated_lead_kg.toString()
         : '0'
     );
+    setWeightSystem(p.equipment_sizing?.weight_system || 'INTEGRATED');
     setWetsuitSize(p.equipment_sizing?.wetsuit_size || 'None');
     setWetsuitThickness(p.equipment_sizing?.wetsuit_thickness || '5mm');
     setBcdSize(p.equipment_sizing?.bcd_size || 'None');
     setShoeSizeEu(p.equipment_sizing?.shoe_size_eu?.toString() || '');
   }, []);
+
+  const handleDownloadEmergencyDossier = async () => {
+    try {
+      setDownloadingDossier(true);
+      toast.loading('Generating Emergency Medical Dossier PDF...', { id: 'emerg-dossier' });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/emergency-dossier`,
+        { responseType: 'blob' }
+      );
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const cleanName = participant.diver_full_name.replace(/\s+/g, '_');
+      link.setAttribute('download', `emergency_dossier_${cleanName}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      toast.success('Emergency Dossier downloaded!', { id: 'emerg-dossier' });
+    } catch (err) {
+      console.error('Failed to download emergency dossier:', err);
+      toast.error('Failed to download emergency dossier.', { id: 'emerg-dossier' });
+    } finally {
+      setDownloadingDossier(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen && participant) {
@@ -94,6 +125,7 @@ const DiverDetailsModal = ({
         selected_gas_mix_id: gasMixId,
         equipment_sizing: {
           regulator_fitting: regulatorFitting,
+          weight_system: weightSystem,
           wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_size: bcdSize === 'None' ? null : bcdSize,
@@ -510,6 +542,17 @@ const DiverDetailsModal = ({
                 />
               </div>
               <div>
+                <label className='block font-semibold mb-1 text-[11px]'>Weight System</label>
+                <select
+                  value={weightSystem}
+                  onChange={e => setWeightSystem(e.target.value)}
+                  className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+                >
+                  <option value='INTEGRATED'>Integrated Pockets</option>
+                  <option value='BELT'>Weight Belt (Webbing)</option>
+                </select>
+              </div>
+              <div>
                 <label className='block font-semibold mb-1 text-[11px]'>Wetsuit Size</label>
                 <select
                   value={wetsuitSize}
@@ -608,7 +651,11 @@ const DiverDetailsModal = ({
               <div>
                 <span className='text-gray-400 block text-[10px]'>Lead Ballast:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.estimated_lead_kg || 0} kg
+                  {participant.estimated_lead_kg || 0} kg (
+                  {participant.equipment_sizing?.weight_system === 'BELT'
+                    ? 'Weight Belt'
+                    : 'Integrated Pockets'}
+                  )
                 </strong>
               </div>
               <div>
@@ -634,7 +681,21 @@ const DiverDetailsModal = ({
           </div>
         )}
 
-        <div className='flex justify-end pt-2 border-t'>
+        <div className='flex items-center justify-between pt-2 border-t'>
+          <button
+            type='button'
+            onClick={handleDownloadEmergencyDossier}
+            disabled={downloadingDossier}
+            className='flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs shadow-sm transition-all disabled:opacity-50'
+            title='Export official Court/Coast Guard/Hyperbaric emergency medical record'
+          >
+            {downloadingDossier ? (
+              <Loader2 size={13} className='animate-spin' />
+            ) : (
+              <FileText size={13} />
+            )}
+            <span>Export Emergency Dossier (PDF)</span>
+          </button>
           <button
             type='button'
             onClick={onClose}

@@ -26,6 +26,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [gasMixId, setGasMixId] = useState('air');
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
   const [leadKg, setLeadKg] = useState('4.0');
+  const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
   const [wetsuitSize, setWetsuitSize] = useState('L');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
@@ -87,6 +88,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
         selected_gas_mix_id: gasMixId,
         equipment_sizing: {
           regulator_fitting: regulatorFitting,
+          weight_system: weightSystem,
           wetsuit_size: wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_size: bcdSize,
@@ -329,6 +331,17 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
                 onChange={e => setLeadKg(e.target.value)}
                 className='w-full px-2 py-1.5 border rounded-lg text-xs'
               />
+            </div>
+            <div>
+              <label className='block font-medium text-gray-600 mb-1'>Weight System</label>
+              <select
+                value={weightSystem}
+                onChange={e => setWeightSystem(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+              >
+                <option value='INTEGRATED'>Integrated Pockets</option>
+                <option value='BELT'>Weight Belt</option>
+              </select>
             </div>
             <div>
               <label className='block font-medium text-gray-600 mb-1'>Wetsuit Size</label>

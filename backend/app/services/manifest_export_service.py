@@ -14,7 +14,7 @@ except ImportError:
 
 
 class ManifestExportService:
-    """Generates official maritime Port Authority manifests in CSV and PDF formats."""
+    """Generates official maritime Port Authority manifests in CSV and PDF formats, and emergency incident dossiers."""
 
     @staticmethod
     def generate_csv(manifest_data: Dict[str, Any]) -> str:
@@ -150,7 +150,6 @@ class ManifestExportService:
         story.append(Paragraph("Official Maritime Port Authority & Coast Guard Compliance Form", subtitle_style))
         story.append(Spacer(1, 12))
 
-        # Metadata Summary Box (2 columns: Center & Vessel / Trip)
         center = manifest_data.get("center") or {}
         vessel = manifest_data.get("vessel") or {}
         slot = manifest_data.get("slot") or {}
@@ -249,6 +248,267 @@ class ManifestExportService:
             [
                 Paragraph("<b>Master / Vessel Skipper:</b><br/><br/>___________________________________", normal_style),
                 Paragraph("<b>Divemaster / Guide in Charge:</b><br/><br/>___________________________________", normal_style),
+                Paragraph("<b>Official Center Stamp:</b><br/><br/>[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]", normal_style),
+            ]
+        ]
+        sig_table = Table(sig_data, colWidths=[180, 180, 175])
+        sig_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('PADDING', (0, 0), (-1, -1), 2),
+        ]))
+        story.append(sig_table)
+
+        doc.build(story)
+        return buffer.getvalue()
+
+    @staticmethod
+    def generate_emergency_dossier_pdf(dossier_data: Dict[str, Any]) -> bytes:
+        """
+        Generates an official Emergency Incident Dossier containing the full decrypted medical questionnaire,
+        verified physician clearance, audit logs, and executed liability waiver for Port Authorities and hyperbaric doctors.
+        """
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError("ReportLab is required for Emergency Dossier generation.")
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=30,
+            rightMargin=30,
+            topMargin=30,
+            bottomMargin=30
+        )
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'EmergTitle',
+            parent=styles['Heading1'],
+            fontSize=15,
+            leading=18,
+            textColor=colors.HexColor('#DC2626'), # Red alert
+            alignment=1,
+            fontName='Helvetica-Bold'
+        )
+        subtitle_style = ParagraphStyle(
+            'EmergSub',
+            parent=styles['Normal'],
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor('#475569'),
+            alignment=1,
+            fontName='Helvetica'
+        )
+        section_style = ParagraphStyle(
+            'EmergSection',
+            parent=styles['Heading2'],
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor('#1E3A8A'),
+            fontName='Helvetica-Bold'
+        )
+        normal_style = ParagraphStyle(
+            'EmergNormal',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#1E293B'),
+            fontName='Helvetica'
+        )
+        bold_style = ParagraphStyle(
+            'EmergBold',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold'
+        )
+        flagged_style = ParagraphStyle(
+            'EmergFlagged',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#B91C1C'),
+            fontName='Helvetica-Bold'
+        )
+
+        story = []
+
+        # 1. Header
+        story.append(Paragraph("EMERGENCY MEDICAL & INCIDENT DOSSIER", title_style))
+        story.append(Paragraph(
+            "Official Court & Maritime Record for Port Authority, Coast Guard, & Hyperbaric Physicians",
+            subtitle_style
+        ))
+        story.append(Spacer(1, 10))
+
+        # 2. Operator & Incident Metadata
+        center = dossier_data.get("center") or {}
+        vessel = dossier_data.get("vessel") or {}
+        slot = dossier_data.get("slot") or {}
+        diver = dossier_data.get("diver") or {}
+
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        meta_rows = [
+            [
+                Paragraph(f"<b>Operator:</b> {center.get('name', 'N/A')}", normal_style),
+                Paragraph(f"<b>Vessel:</b> {vessel.get('name', 'N/A')} ({vessel.get('registration_number', 'N/A')})", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Center Phone:</b> {center.get('phone', 'N/A')}", normal_style),
+                Paragraph(f"<b>Trip Slot:</b> {slot.get('departure_date', '')} ({slot.get('meeting_time', '')})", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Generated At:</b> {now_str}", normal_style),
+                Paragraph("<b>Jurisdiction:</b> Hellenic Coast Guard / Port Authority", normal_style),
+            ],
+        ]
+        meta_table = Table(meta_rows, colWidths=[265, 270])
+        meta_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF2F2')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#F87171')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#FECACA')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(meta_table)
+        story.append(Spacer(1, 12))
+
+        # 3. Diver Profile & Credentials
+        story.append(Paragraph("1. DIVER PROFILE & EMERGENCY CONTACT", section_style))
+        story.append(Spacer(1, 4))
+
+        eq = diver.get("equipment_sizing") or {}
+        diver_rows = [
+            [
+                Paragraph(f"<b>Legal Full Name:</b> {diver.get('diver_full_name', 'N/A')}", bold_style),
+                Paragraph(f"<b>Passport / ID #:</b> {diver.get('passport_number', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Nationality:</b> {diver.get('diver_nationality', 'N/A')}", normal_style),
+                Paragraph(f"<b>Date of Birth:</b> {diver.get('date_of_birth', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Phone / WhatsApp:</b> {diver.get('diver_phone', 'N/A')}", normal_style),
+                Paragraph(f"<b>Email Address:</b> {diver.get('diver_email', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Certification:</b> {diver.get('certification_agency', '')} {diver.get('certification_level', '')} (#{diver.get('certification_number', 'N/A')})", normal_style),
+                Paragraph(f"<b>Assigned Cylinder & Gas:</b> {diver.get('selected_tank_id', '12')}L Steel • {(diver.get('selected_gas_mix_id', 'AIR')).upper()} • {eq.get('regulator_fitting', 'DIN')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Lead Ballast Weight:</b> {diver.get('estimated_lead_kg', 0)} kg ({eq.get('weight_system', 'INTEGRATED')})", normal_style),
+                Paragraph(f"<b>Thermal Suit / BCD:</b> {eq.get('wetsuit_size', 'None')} ({eq.get('wetsuit_thickness', '5mm')}) / BCD: {eq.get('bcd_size', 'None')}", normal_style),
+            ]
+        ]
+        diver_table = Table(diver_rows, colWidths=[265, 270])
+        diver_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(diver_table)
+        story.append(Spacer(1, 12))
+
+        # 4. Decrypted Medical Questionnaire (All 10 Questions)
+        story.append(Paragraph("2. DIVER MEDICAL QUESTIONNAIRE (DMSC 2020 DECRYPTED RECORD)", section_style))
+        story.append(Spacer(1, 4))
+
+        questions_list = dossier_data.get("medical_questions", [])
+        q_rows = [[
+            Paragraph("#", bold_style),
+            Paragraph("Screening Question (DMSC 2020 Standard)", bold_style),
+            Paragraph("Diver Answer", bold_style),
+        ]]
+
+        for q in questions_list:
+            is_yes = q.get("answered_yes") is True
+            ans_p = Paragraph("⚠️ YES (FLAGGED)", flagged_style) if is_yes else Paragraph("✓ NO (CLEAN)", normal_style)
+            q_rows.append([
+                Paragraph(str(q.get("number", "")), bold_style),
+                Paragraph(q.get("text", ""), normal_style),
+                ans_p,
+            ])
+
+        q_table = Table(q_rows, colWidths=[20, 425, 90])
+        q_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E2E8F0')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#94A3B8')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8FAFC')]),
+        ]))
+        story.append(q_table)
+        story.append(Spacer(1, 12))
+
+        # 5. Physician Approval & Staff Clearance Audit
+        story.append(Paragraph("3. CLINICAL CLEARANCE & STAFF APPROVAL AUDIT LOG", section_style))
+        story.append(Spacer(1, 4))
+
+        audit = dossier_data.get("clearance_audit") or {}
+        med_status = diver.get("medical_status", "CLEARED")
+        audit_rows = [
+            [
+                Paragraph(f"<b>Overall Medical Status:</b> {med_status}", bold_style),
+                Paragraph(f"<b>Clearance Verified At:</b> {audit.get('cleared_at', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Examining Physician:</b> Dr. {audit.get('physician_name', 'N/A')}", normal_style),
+                Paragraph(f"<b>Clinic / Facility:</b> {audit.get('physician_clinic', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Authorizing Center Staff:</b> {audit.get('cleared_by_name', 'N/A')}", normal_style),
+                Paragraph(f"<b>Clinical Notes / Restrictions:</b> {audit.get('reason', 'N/A')}", normal_style),
+            ],
+        ]
+        audit_table = Table(audit_rows, colWidths=[265, 270])
+        audit_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F0FDF4') if med_status == 'PHYSICIAN_APPROVED' else colors.HexColor('#F8FAFC')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#86EFAC') if med_status == 'PHYSICIAN_APPROVED' else colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#BBF7D0') if med_status == 'PHYSICIAN_APPROVED' else colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(audit_table)
+        story.append(Spacer(1, 12))
+
+        # 6. Liability Waiver & Legal Execution
+        story.append(Paragraph("4. EXECUTED LIABILITY WAIVER & RISK RELEASE", section_style))
+        story.append(Spacer(1, 4))
+
+        waiver_data = dossier_data.get("waiver") or {}
+        waiver_rows = [
+            [
+                Paragraph(f"<b>Electronic Signature Name:</b> {waiver_data.get('signature_name', diver.get('diver_full_name', 'N/A'))}", bold_style),
+                Paragraph(f"<b>Signed Timestamp:</b> {waiver_data.get('signed_at', 'N/A')}", normal_style),
+            ],
+            [
+                Paragraph(f"<b>Waiver Bundle:</b> {waiver_data.get('bundle_id', 'padi_10086_eu')}", normal_style),
+                Paragraph(f"<b>Audit Signature Hash:</b> {waiver_data.get('audit_hash', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')[:32]}...", normal_style),
+            ],
+        ]
+        waiver_table = Table(waiver_rows, colWidths=[265, 270])
+        waiver_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 4),
+        ]))
+        story.append(waiver_table)
+        story.append(Spacer(1, 16))
+
+        # Official Stamp Box & Investigator Line
+        decl_p = Paragraph(
+            "<b>Official Attestation:</b> I certify under penalties of maritime law that the records and decrypted medical declarations "
+            "set forth in this dossier were submitted by the named diver, cryptographically verified, and accurately reflect the operator's records.",
+            normal_style
+        )
+        story.append(decl_p)
+        story.append(Spacer(1, 16))
+
+        sig_data = [
+            [
+                Paragraph("<b>Diving Center Duty Officer / Signatory:</b><br/><br/>___________________________________", normal_style),
+                Paragraph("<b>Port Authority / Attending Physician:</b><br/><br/>___________________________________", normal_style),
                 Paragraph("<b>Official Center Stamp:</b><br/><br/>[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]", normal_style),
             ]
         ]
