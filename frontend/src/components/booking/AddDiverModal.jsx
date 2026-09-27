@@ -58,8 +58,34 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
     );
     if (matched) {
       api
-        .get(`/api/v1/diving-organizations/${matched.id}/levels`)
-        .then(res => setAvailableLevels(res.data || []))
+        .get(`/api/v1/diving-organizations/${matched.id}/levels?main_only=true`)
+        .then(res => {
+          const rawLevels = res.data || [];
+          const levels = rawLevels.filter(lvl => {
+            const cat = (lvl.category || '').toLowerCase();
+            const name = (lvl.name || '').toLowerCase();
+            if (
+              cat.includes('specialt') ||
+              cat.includes('primer') ||
+              cat.includes('skill dev') ||
+              cat.includes('sdc')
+            ) {
+              return false;
+            }
+            if (
+              name.includes('discover scuba') ||
+              name.includes('try scuba') ||
+              name.includes('bubblemaker') ||
+              name.includes('seal team') ||
+              name.includes('snorkel') ||
+              name.includes('skin diver')
+            ) {
+              return false;
+            }
+            return true;
+          });
+          setAvailableLevels(levels);
+        })
         .catch(() => setAvailableLevels([]));
     } else {
       setAvailableLevels([]);

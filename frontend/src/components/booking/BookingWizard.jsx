@@ -146,9 +146,34 @@ const BookingWizard = () => {
 
     if (matchedOrg) {
       api
-        .get(`/api/v1/diving-organizations/${matchedOrg.id}/levels`)
+        .get(`/api/v1/diving-organizations/${matchedOrg.id}/levels?main_only=true`)
         .then(res => {
-          const levels = res.data || [];
+          const rawLevels = res.data || [];
+          // Filter to only main certifications (exclude specialties, primers, and special intro programs)
+          const levels = rawLevels.filter(lvl => {
+            const cat = (lvl.category || '').toLowerCase();
+            const name = (lvl.name || '').toLowerCase();
+            if (
+              cat.includes('specialt') ||
+              cat.includes('primer') ||
+              cat.includes('skill dev') ||
+              cat.includes('sdc')
+            ) {
+              return false;
+            }
+            if (
+              name.includes('discover scuba') ||
+              name.includes('try scuba') ||
+              name.includes('bubblemaker') ||
+              name.includes('seal team') ||
+              name.includes('snorkel') ||
+              name.includes('skin diver')
+            ) {
+              return false;
+            }
+            return true;
+          });
+
           setAvailableLevels(levels);
           if (certLevel && !levels.some(l => l.name.toLowerCase() === certLevel.toLowerCase())) {
             setIsCustomLevel(true);
