@@ -15,6 +15,7 @@ import {
   Check,
   PackageCheck,
   Coins,
+  FileText,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -25,6 +26,7 @@ import SEO from '../SEO';
 
 import AddDiverModal from './AddDiverModal';
 import BoatManifestTable from './BoatManifestTable';
+import BriefingReviewModal from './BriefingReviewModal';
 import CenterRentalPricingModal from './CenterRentalPricingModal';
 import DiverDetailsModal from './DiverDetailsModal';
 import DiverEquipmentChecklist from './DiverEquipmentChecklist';
@@ -54,6 +56,7 @@ const TripOperationsDashboard = () => {
   const [modalEditMode, setModalEditMode] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [rentalPricingModalOpen, setRentalPricingModalOpen] = useState(false);
+  const [briefingModalOpen, setBriefingModalOpen] = useState(false);
 
   // Staff state
   const [skipperName, setSkipperName] = useState('');
@@ -496,6 +499,16 @@ const TripOperationsDashboard = () => {
             <div className='flex flex-wrap items-center gap-2'>
               <button
                 type='button'
+                onClick={() => setBriefingModalOpen(true)}
+                className='flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-semibold text-xs rounded-lg transition-all border border-indigo-200 dark:border-indigo-800'
+                title='Review, customize and dispatch pre-dive briefing'
+              >
+                <FileText size={13} className='text-indigo-600' />
+                <span>Pre-Dive Briefing</span>
+              </button>
+
+              <button
+                type='button'
                 onClick={() => setRentalPricingModalOpen(true)}
                 className='flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-semibold text-xs rounded-lg transition-all border border-blue-200 dark:border-blue-800'
                 title='Configure equipment rental pricing'
@@ -710,6 +723,15 @@ const TripOperationsDashboard = () => {
           isOpen={rentalPricingModalOpen}
           onClose={() => setRentalPricingModalOpen(false)}
           centerId={centerId}
+        />
+
+        {/* Pre-Dive Briefing Review Modal */}
+        <BriefingReviewModal
+          isOpen={briefingModalOpen}
+          onClose={() => setBriefingModalOpen(false)}
+          centerId={centerId}
+          tripId={tripId}
+          onBriefingDispatched={fetchManifest}
         />
       </div>
     </div>

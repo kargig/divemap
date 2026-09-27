@@ -2,7 +2,7 @@ import hashlib
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -21,9 +21,11 @@ from app.models import (
     OctoBooking,
     OctoBookingUnitItem,
     DiverMedicalRecord,
+    TripBriefing,
 )
 from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 from app.services.waiver_service import WaiverService
+from app.services.briefing_service import BriefingService
 from app.services.nitrox_service import check_nitrox_eligibility
 
 logger = logging.getLogger(__name__)
@@ -321,4 +323,28 @@ def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
         meetingInstructions=getattr(center, "meeting_instructions", None) or "Please arrive 15 minutes before meeting time.",
         qrCodeData=qr_payload,
         unitItems=unit_items_res,
+    )
+
+
+@router.get("/{booking_uuid}/briefing")
+def download_booking_briefing_pdf(
+    booking_uuid: str,
+    db: Session = Depends(get_db),
+):
+    """Download pre-dive briefing PDF for a booked trip."""
+    booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    slot_id = booking.availability_id
+    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == slot_id).first()
+    if not briefing:
+        briefing = BriefingService.compile_draft_briefing(db, slot_id)
+
+    pdf_bytes = BriefingService.generate_briefing_pdf(briefing, db)
+    filename = f"pre_dive_briefing_{booking.uuid[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

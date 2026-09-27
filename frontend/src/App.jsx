@@ -86,6 +86,7 @@ const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
 const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
 const TripOperationsDashboard = lazy(() => import('./components/booking/TripOperationsDashboard'));
 const TripParticipantDetailsPage = lazy(() => import('./pages/TripParticipantDetailsPage'));
+const CenterRentalPricingPage = lazy(() => import('./pages/CenterRentalPricingPage'));
 const MyComments = lazy(() => import('./pages/MyComments'));
 const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
@@ -347,6 +348,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <TripParticipantDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:centerId/rental-pricing'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
                 </ProtectedRoute>
               }
             />

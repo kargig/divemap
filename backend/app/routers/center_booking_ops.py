@@ -18,11 +18,13 @@ from app.models import (
     DiverMedicalRecord,
     DivingCenterVessel,
     DivingCenterBookingSettings,
+    TripBriefing,
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
 from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 from app.services.nitrox_service import check_nitrox_eligibility
+from app.services.briefing_service import BriefingService
 
 logger = logging.getLogger(__name__)
 
@@ -1293,3 +1295,158 @@ def update_center_rental_pricing(
     db.commit()
 
     return pricing
+
+
+class BriefingUpdateRequest(BaseModel):
+    active_dive_site_id: Optional[int] = None
+    meeting_notes: Optional[str] = None
+    site_profile_notes: Optional[str] = None
+    hazards_and_safety_notes: Optional[str] = None
+    marine_life_highlights: Optional[List[Dict[str, Any]]] = None
+    crew_manifest: Optional[Dict[str, Any]] = None
+    emergency_action_plan: Optional[Dict[str, Any]] = None
+    contingency_notes: Optional[str] = None
+
+
+@router.get("/trips/{trip_id}/briefing")
+def get_trip_briefing(
+    center_id: int,
+    trip_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retrieve pre-dive briefing for a trip (or compile automated draft if not existing)."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip slot not found")
+
+    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    if not briefing:
+        briefing = BriefingService.compile_draft_briefing(db, trip_id)
+
+    site = briefing.active_dive_site
+    return {
+        "id": briefing.id,
+        "availability_id": briefing.availability_id,
+        "status": briefing.status,
+        "active_dive_site_id": briefing.active_dive_site_id,
+        "active_dive_site_name": site.name if site else "Scheduled Dive Site",
+        "meeting_notes": briefing.meeting_notes,
+        "site_profile_notes": briefing.site_profile_notes,
+        "hazards_and_safety_notes": briefing.hazards_and_safety_notes,
+        "marine_life_highlights": briefing.marine_life_highlights or [],
+        "weather_forecast_data": briefing.weather_forecast_data or {},
+        "crew_manifest": briefing.crew_manifest or {},
+        "emergency_action_plan": briefing.emergency_action_plan or {},
+        "contingency_notes": briefing.contingency_notes,
+        "dispatched_at": briefing.dispatched_at,
+        "dispatched_by_user_id": briefing.dispatched_by_user_id,
+        "created_at": briefing.created_at,
+        "updated_at": briefing.updated_at,
+    }
+
+
+@router.put("/trips/{trip_id}/briefing")
+def update_trip_briefing(
+    center_id: int,
+    trip_id: str,
+    req: BriefingUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update pre-dive briefing customization notes and staff assignments."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    if not briefing:
+        briefing = BriefingService.compile_draft_briefing(db, trip_id)
+
+    if req.active_dive_site_id is not None:
+        briefing.active_dive_site_id = req.active_dive_site_id
+    if req.meeting_notes is not None:
+        briefing.meeting_notes = req.meeting_notes
+    if req.site_profile_notes is not None:
+        briefing.site_profile_notes = req.site_profile_notes
+    if req.hazards_and_safety_notes is not None:
+        briefing.hazards_and_safety_notes = req.hazards_and_safety_notes
+    if req.marine_life_highlights is not None:
+        briefing.marine_life_highlights = req.marine_life_highlights
+    if req.crew_manifest is not None:
+        briefing.crew_manifest = req.crew_manifest
+    if req.emergency_action_plan is not None:
+        briefing.emergency_action_plan = req.emergency_action_plan
+    if req.contingency_notes is not None:
+        briefing.contingency_notes = req.contingency_notes
+
+    db.commit()
+    db.refresh(briefing)
+
+    site = briefing.active_dive_site
+    return {
+        "id": briefing.id,
+        "availability_id": briefing.availability_id,
+        "status": briefing.status,
+        "active_dive_site_id": briefing.active_dive_site_id,
+        "active_dive_site_name": site.name if site else "Scheduled Dive Site",
+        "meeting_notes": briefing.meeting_notes,
+        "site_profile_notes": briefing.site_profile_notes,
+        "hazards_and_safety_notes": briefing.hazards_and_safety_notes,
+        "marine_life_highlights": briefing.marine_life_highlights,
+        "weather_forecast_data": briefing.weather_forecast_data,
+        "crew_manifest": briefing.crew_manifest,
+        "emergency_action_plan": briefing.emergency_action_plan,
+        "contingency_notes": briefing.contingency_notes,
+        "dispatched_at": briefing.dispatched_at,
+        "updated_at": briefing.updated_at,
+    }
+
+
+@router.post("/trips/{trip_id}/briefing/dispatch")
+def dispatch_trip_briefing(
+    center_id: int,
+    trip_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Approve and dispatch pre-dive briefing to confirmed participants."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
+    if not slot:
+        raise HTTPException(status_code=404, detail="Trip slot not found")
+
+    briefing = BriefingService.dispatch_briefing(db, trip_id, dispatched_by_user_id=current_user.id)
+    return {
+        "status": "APPROVED_DISPATCHED",
+        "dispatched_at": briefing.dispatched_at,
+        "message": "Pre-dive briefing approved and dispatched to confirmed trip participants!",
+    }
+
+
+@router.get("/trips/{trip_id}/briefing/pdf")
+def download_trip_briefing_pdf(
+    center_id: int,
+    trip_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Download compiled pre-dive briefing PDF."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    if not briefing:
+        briefing = BriefingService.compile_draft_briefing(db, trip_id)
+
+    pdf_bytes = BriefingService.generate_briefing_pdf(briefing, db)
+    filename = f"pre_dive_briefing_{trip_id}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

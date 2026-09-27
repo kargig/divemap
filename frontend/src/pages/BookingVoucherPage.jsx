@@ -13,6 +13,7 @@ import {
   CreditCard,
   FileCheck,
   Ship,
+  Download,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -84,13 +85,25 @@ const BookingVoucherPage = () => {
             <ChevronLeft size={18} className='mr-1' />
             Back to Home
           </Link>
-          <button
-            onClick={() => window.print()}
-            className='inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-all'
-          >
-            <Printer size={16} className='mr-2' />
-            Print Voucher
-          </button>
+          <div className='flex items-center gap-2'>
+            <a
+              href={`/api/v1/bookings/${uuid}/briefing`}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center px-3.5 py-1.5 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold rounded-lg text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs transition-all'
+              title='Download official Pre-Dive Briefing PDF'
+            >
+              <Download size={14} className='mr-1.5 text-indigo-600 dark:text-indigo-400' />
+              Briefing PDF
+            </a>
+            <button
+              onClick={() => window.print()}
+              className='inline-flex items-center px-3.5 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition-all'
+            >
+              <Printer size={14} className='mr-1.5' />
+              Print Voucher
+            </button>
+          </div>
         </div>
 
         {/* The Voucher Card */}

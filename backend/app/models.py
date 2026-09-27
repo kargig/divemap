@@ -1557,3 +1557,30 @@ class DiverMedicalRecord(Base):
     cleared_by_user = relationship("User", foreign_keys=[cleared_by_user_id])
     modified_by_user = relationship("User", foreign_keys=[modified_by_user_id])
 
+
+class TripBriefing(Base):
+    __tablename__ = "trip_briefings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    availability_id = Column(String(36), ForeignKey("octo_availability_slots.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    status = Column(String(30), default="DRAFT_PENDING_REVIEW", nullable=False) # DRAFT_PENDING_REVIEW, APPROVED_DISPATCHED
+    active_dive_site_id = Column(Integer, ForeignKey("dive_sites.id", ondelete="SET NULL"), nullable=True)
+    meeting_notes = Column(Text, nullable=True)
+    site_profile_notes = Column(Text, nullable=True)
+    hazards_and_safety_notes = Column(Text, nullable=True)
+    marine_life_highlights = Column(sa.JSON, nullable=True) # Species tags & notes
+    weather_forecast_data = Column(sa.JSON, nullable=True) # Wind, waves, sea temp
+    crew_manifest = Column(sa.JSON, nullable=True) # [{"role": "SKIPPER", "name": "Captain Nikos", "license": "GR-89123"}, ...]
+    emergency_action_plan = Column(sa.JSON, nullable=True) # {"hyperbaric_chamber": "...", "coast_guard_vhf": "VHF 16", ...}
+    contingency_notes = Column(Text, nullable=True) # Weather diversion rationale
+    compiled_pdf_path = Column(String(500), nullable=True)
+    dispatched_at = Column(DateTime(timezone=True), nullable=True)
+    dispatched_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    slot = relationship("OctoAvailabilitySlot", backref=sa.orm.backref("briefing", uselist=False, cascade="all, delete-orphan"))
+    active_dive_site = relationship("DiveSite")
+    dispatched_by = relationship("User", foreign_keys=[dispatched_by_user_id])
+
+
