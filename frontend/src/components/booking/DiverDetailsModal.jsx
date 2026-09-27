@@ -28,6 +28,7 @@ const DiverDetailsModal = ({
 }) => {
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [loading, setLoading] = useState(false);
+  const [diver, setDiver] = useState(participant);
 
   // Medical Review & Clearance state
   const [medicalReview, setMedicalReview] = useState(null);
@@ -52,6 +53,7 @@ const DiverDetailsModal = ({
 
   const syncFieldsWithParticipant = React.useCallback((p, editMode = false) => {
     if (!p) return;
+    setDiver(p);
     setIsEditing(editMode);
     setTankId(p.selected_tank_id || '12');
     setGasMixId(p.selected_gas_mix_id || 'air');
@@ -80,7 +82,10 @@ const DiverDetailsModal = ({
       const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      const cleanName = participant.diver_full_name.replace(/\s+/g, '_');
+      const cleanName = (diver?.diver_full_name || participant.diver_full_name).replace(
+        /\s+/g,
+        '_'
+      );
       link.setAttribute('download', `emergency_dossier_${cleanName}.pdf`);
       document.body.appendChild(link);
       link.click();
@@ -97,6 +102,7 @@ const DiverDetailsModal = ({
 
   useEffect(() => {
     if (isOpen && participant) {
+      setDiver(participant);
       syncFieldsWithParticipant(participant, initialEditMode);
       setShowClearanceForm(false);
 
@@ -111,10 +117,11 @@ const DiverDetailsModal = ({
 
   if (!participant) return null;
 
-  const isPhysicianApproved = participant.medical_status === 'PHYSICIAN_APPROVED';
-  const isCleared = participant.medical_status === 'CLEARED';
+  const currentDiver = diver || participant;
+  const isPhysicianApproved = currentDiver.medical_status === 'PHYSICIAN_APPROVED';
+  const isCleared = currentDiver.medical_status === 'CLEARED';
   const isPaid =
-    participant.payment_status === 'PAID_IN_FULL' || participant.payment_status === 'PAID_ONLINE';
+    currentDiver.payment_status === 'PAID_IN_FULL' || currentDiver.payment_status === 'PAID_ONLINE';
 
   const handleSaveEquipment = async e => {
     e.preventDefault();
@@ -138,6 +145,24 @@ const DiverDetailsModal = ({
         `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}`,
         payload
       );
+
+      // Instantly reflect updated equipment in local diver view
+      setDiver(prev => ({
+        ...(prev || participant),
+        selected_tank_id: tankId,
+        selected_gas_mix_id: gasMixId,
+        estimated_lead_kg: parseFloat(leadKg) || 0,
+        equipment_sizing: {
+          ...((prev || participant)?.equipment_sizing || {}),
+          regulator_fitting: regulatorFitting,
+          weight_system: weightSystem,
+          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
+          wetsuit_thickness: wetsuitThickness,
+          bcd_size: bcdSize === 'None' ? null : bcdSize,
+          shoe_size_eu: parseFloat(shoeSizeEu) || null,
+          estimated_lead_kg: parseFloat(leadKg) || 0,
+        },
+      }));
 
       toast.success('Equipment preferences updated!');
       setIsEditing(false);
@@ -206,19 +231,19 @@ const DiverDetailsModal = ({
             <User className='h-5 w-5 text-blue-600' />
             <div>
               <h3 className='text-base font-bold text-gray-900 dark:text-white'>
-                {participant.diver_full_name}
+                {currentDiver.diver_full_name}
               </h3>
               <p className='text-xs text-gray-400'>
-                {participant.diver_nationality || 'Participant'} • Ref:{' '}
-                {participant.booking_id?.slice(0, 8)}...
+                {currentDiver.diver_nationality || 'Participant'} • Ref:{' '}
+                {currentDiver.booking_id?.slice(0, 8)}...
               </p>
             </div>
           </div>
           <button
             type='button'
             onClick={() => {
-              if (!isEditing && participant) {
-                syncFieldsWithParticipant(participant, true);
+              if (!isEditing && currentDiver) {
+                syncFieldsWithParticipant(currentDiver, true);
               } else {
                 setIsEditing(false);
               }
@@ -633,26 +658,26 @@ const DiverDetailsModal = ({
               <div>
                 <span className='text-gray-400 block text-[10px]'>Cylinder:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.selected_tank_id}L Steel
+                  {currentDiver.selected_tank_id}L Steel
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Breathing Gas:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.selected_gas_mix_id?.toUpperCase()}
+                  {currentDiver.selected_gas_mix_id?.toUpperCase()}
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Valve Connection:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.equipment_sizing?.regulator_fitting || 'DIN'}
+                  {currentDiver.equipment_sizing?.regulator_fitting || 'DIN'}
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Lead Ballast:</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.estimated_lead_kg || 0} kg (
-                  {participant.equipment_sizing?.weight_system === 'BELT'
+                  {currentDiver.estimated_lead_kg || 0} kg (
+                  {currentDiver.equipment_sizing?.weight_system === 'BELT'
                     ? 'Weight Belt'
                     : 'Integrated Pockets'}
                   )
@@ -661,20 +686,20 @@ const DiverDetailsModal = ({
               <div>
                 <span className='text-gray-400 block text-[10px]'>Wetsuit:</span>
                 <strong className='text-gray-800 dark:text-gray-200'>
-                  {participant.equipment_sizing?.wetsuit_size || 'None'} (
-                  {participant.equipment_sizing?.wetsuit_thickness || '5mm'})
+                  {currentDiver.equipment_sizing?.wetsuit_size || 'None'} (
+                  {currentDiver.equipment_sizing?.wetsuit_thickness || '5mm'})
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>BCD Size:</span>
                 <strong className='text-gray-800 dark:text-gray-200'>
-                  {participant.equipment_sizing?.bcd_size || 'None'}
+                  {currentDiver.equipment_sizing?.bcd_size || 'None'}
                 </strong>
               </div>
               <div>
                 <span className='text-gray-400 block text-[10px]'>Fins (EU):</span>
                 <strong className='text-gray-800 dark:text-gray-200 font-mono'>
-                  {participant.equipment_sizing?.shoe_size_eu || 'N/A'}
+                  {currentDiver.equipment_sizing?.shoe_size_eu || 'N/A'}
                 </strong>
               </div>
             </div>

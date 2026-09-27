@@ -505,6 +505,24 @@ To ensure divers from any country can enter and view data comfortably without fr
   * **Signed Legal Waivers & Audit Hashes:** Retained for **5 years** in private R2 object storage with immutable versioning, then permanently expunged.
   * If a user requests GDPR account deletion ("Right to be Forgotten"), non-medical user profile data is anonymized, while the historical legal waiver archive is locked in compliance with legal obligation exceptions (GDPR Art. 17(3)(b)).
 
+### 4.5 Emergency Incident Dossier (PDF Export) for Port Authorities & Hyperbaric Doctors
+* **Maritime & Clinical Emergency Protocol:** In the event of a dive accident, decompression illness, or coast guard investigation, center managers must immediately produce the complete emergency docket.
+* **Endpoint:** `GET /api/v1/centers/{center_id}/booking-ops/trips/{trip_id}/participants/{participant_id}/emergency-dossier`
+* **ReportLab Document Architecture:**
+  1. **Official Jurisdiction & Emergency Header:** Port Authority, Coast Guard, and Attending Hyperbaric Physician notification.
+  2. **Diver Identification & Emergency Contacts:** Legal full name, DOB, nationality, passport/ID, email, phone/WhatsApp, and next of kin.
+  3. **Full Decrypted DMSC 2020 Medical Screening:** All 10 clinical questions with explicit status (`✓ NO (CLEAN)` vs `⚠️ YES (FLAGGED)`), decrypted on-the-fly under manager authorization.
+  4. **Physician Approval & Staff Clearance Audit Log:** Examining doctor name, clinic/hospital, physical inspection confirmation, authorizing staff member username, clearance timestamp, and clinical restrictions/notes.
+  5. **Executed Liability Waiver & Risk Release:** Signer name, timestamp, waiver bundle reference, and SHA-256 digital audit hash.
+  6. **Equipment & Gas Configuration:** Assigned cylinder, breathing gas mix, valve fitting (DIN/Yoke), and lead ballast weight system (`INTEGRATED` vs `BELT`).
+  7. **Official Declaration & Sign-off:** Signatures and official center stamp boxes for duty manager and coast guard investigators.
+
+### 4.6 Scuba Safety Gate: Mandatory Medical Clearance Before Boarding
+* **Strict Safety Rule:** Any diver with an unresolved medical questionnaire (`FLAGGED_CONTACT_CENTER`) **cannot be boarded onto the boat** under any circumstances without verified physician or staff clearance.
+* **Enforcement:**
+  * **Backend Gate (`center_booking_ops.py`):** `POST .../participants/{id}/toggle-checkin` rejects boarding attempts for flagged divers with HTTP 400 (`Safety Gate: Diver has an unresolved medical flag`).
+  * **Frontend Gate (`BoatManifestTable.jsx`):** Boarding toggle transforms into a disabled `🚫 Medical Hold` alert button with tooltip and click alert routing staff to the physician clearance review modal.
+
 ---
 
 ## 5. Local Agency Questionnaires, Waivers & Safety Gate Engine
@@ -514,7 +532,11 @@ Templates are stored in the filesystem at `backend/app/templates/booking/`:
 ### 5.1 Questionnaire Schemas
 * `dmsc_2020_medical.json`: Defines the 10 core questions, branching diagnostic boxes (A–G), and physician evaluation requirements.
 * `gue_medical_screening.json`: Stricter screening including non-smoker declaration, prescription drug checks, and swim fitness acknowledgment.
-* `equipment_sizing.json`: Sizing inputs (height, weight, shoe size, wetsuit, BCD, regulator DIN/Yoke).
+* `equipment_sizing.json`: Sizing inputs:
+  * Height, weight, shoe size (EU).
+  * Thermal suit: Wetsuit size (XS–XXL, or `None (Own Suit)`), thickness (3mm, 5mm, 7mm).
+  * Buoyancy & Cylinder: BCD size (XS–XL, or `None (Own BCD)`), preferred cylinder (10L, 12L, 15L, AL80), gas mix (Air, EAN32), regulator fitting (DIN, YOKE).
+  * Ballast: Lead weight (kg) and **Weight System** (`INTEGRATED` BCD Pockets vs. `BELT` Traditional Nylon Webbing).
 * `nitrox_agreement.json`: Verification of Nitrox certification, MOD understanding, and gas analysis acknowledgment.
 * `no_fly_interval.json`: Captures `outbound_flight_datetime`, comparing with dive completion time:
   * Minimum 12 hours for single no-decompression dive.

@@ -42,7 +42,7 @@
   - `POST /api/v1/centers/{center_id}/booking-ops/bookings/{booking_id}/mark-paid`
   - `GET /api/v1/centers/{center_id}/booking-ops/trips/{trip_id}/manifest/export-port-authority`
 
-- [ ] **Step 1: Write API tests for manifest fetching, walk-in additions, edits, and exports**
+- [x] **Step 1: Write API tests for manifest fetching, walk-in additions, edits, and exports**
 
 Create `backend/tests/test_center_booking_ops_api.py`:
 ```python
@@ -97,17 +97,26 @@ def test_toggle_checkin_and_mark_paid(authenticated_manager_client: TestClient, 
     assert res_paid.json()["payment_status"] == "PAID_IN_FULL"
 ```
 
-- [ ] **Step 2: Implement `backend/app/routers/center_booking_ops.py`**
+- [x] **Step 2: Implement `backend/app/routers/center_booking_ops.py`**
 
-Implements endpoints protected by `is_center_manager(db, center_id, current_user)` from `backend/app/routers/diving_centers.py`.
+Implements endpoints protected by `is_center_manager(db, center_id, current_user)` from `backend/app/routers/diving_centers.py`. Includes:
+- `GET /manifest` (live roster, boat capacity, staff, crate loadouts)
+- `POST /participants` (walk-in intake)
+- `PUT /participants/{id}` (equipment & cylinder modifications)
+- `DELETE /participants/{id}` (seat release)
+- `POST /participants/{id}/toggle-checkin` (with Scuba Safety Gate blocking unresolved medical flags)
+- `POST /bookings/{id}/toggle-payment` (bidirectional payment toggle)
+- `POST /staff-assignment` (skipper, lead guide, crew list)
+- `POST /participants/{id}/clear-medical` (manager clearance override with physician details and audit trail)
+- `GET /participants/{id}/emergency-dossier` (court-ready Emergency Incident Dossier PDF)
 
-- [ ] **Step 3: Implement Coast Guard manifest PDF/CSV export helper using ReportLab**
+- [x] **Step 3: Implement Coast Guard manifest PDF/CSV export helper using ReportLab**
 
-Add `reportlab==4.2.5` to `backend/requirements.txt`. Build PDF generator in `backend/app/services/manifest_export_service.py` compiling vessel IMO/registration numbers, captain/crew details, and passenger credentials into a standard Port Authority manifest.
+Add `reportlab>=4.2.0` to `backend/requirements.txt`. Implemented `backend/app/services/manifest_export_service.py` compiling vessel IMO/registration numbers, captain/crew details, and passenger credentials into a standard Port Authority manifest, as well as the formal Emergency Incident Dossier PDF.
 
-- [ ] **Step 4: Register router in `backend/app/main.py`**
+- [x] **Step 4: Register router in `backend/app/main.py`**
 
-- [ ] **Step 5: Run tests in isolated Docker**
+- [x] **Step 5: Run tests in isolated Docker**
 
 Run:
 ```bash
@@ -115,15 +124,7 @@ cd backend && ./docker-test-github-actions.sh tests/test_center_booking_ops_api.
 ```
 Expected: `All tests passed!`.
 
-- [ ] **Step 6: Prepare commit draft**
-
-Write commit message to `commit-message.txt`:
-```
-Add center booking operations API router and ReportLab manifest export
-
-Implements live boat roster, manual diver intake, sizing edits, roll-call
-boarding toggles, on-arrival payment check-ins, and Coast Guard manifest exports.
-```
+- [x] **Step 6: Prepare commit draft**
 
 ---
 
@@ -142,49 +143,42 @@ boarding toggles, on-arrival payment check-ins, and Coast Guard manifest exports
 - Consumes: `/api/v1/centers/{center_id}/booking-ops/...`.
 - Produces: Responsive center management interface for desktop and mobile tablets.
 
-- [ ] **Step 1: Implement `BoatManifestTable.jsx` with mobile-first card-stack view**
+- [x] **Step 1: Implement `BoatManifestTable.jsx` with mobile-first card-stack view**
 
 Build dual responsive views adhering strictly to the "No Horizontal Scrolling" mandate:
 * **Desktop / Tablet (`hidden md:block`):** Full multi-column data table with diver credentials, medical clearance badge, currency status, unit system translation with tooltip of original submission, roll-call check-in switch, and payment status toggle.
 * **Mobile Viewports (`block md:hidden`):** Vertical card-stack (`rounded-none sm:rounded-2xl border-y sm:border p-3.5 sm:p-5`) with wrapped badge clusters (`flex-wrap gap-1.5`), prominent single-touch boarding and payment checkmarks, and tap-to-expand details without any horizontal scrolling.
+* **Scuba Safety Gate:** Flags divers with unresolved medical conditions with a prominent `🚫 Medical Hold` badge, disabling boarding until physician clearance is approved.
 
-- [ ] **Step 2: Implement `GearPackingManifest.jsx`**
+- [x] **Step 2: Implement `GearPackingManifest.jsx`**
 
-Aggregate cylinders by size and gas mix (e.g. `8x 12L Steel Air`, `2x 15L Steel Air`), total lead weights, and labeled crate cards for dockside packing.
+Aggregates cylinders by size, gas mix, and explicit valve adapter requirement (`✓ DIN Native Valve` vs `⚠️ YOKE (Fit DIN-to-Yoke Insert)`), total lead weights (with 1kg/2kg block count denominations), and weight system breakdown (`Integrated BCD Pockets` vs `Nylon Weight Belts`).
 
-- [ ] **Step 3: Implement `AddDiverModal.jsx` & `DiverDetailsModal.jsx`**
+- [x] **Step 3: Implement `AddDiverModal.jsx` & `DiverDetailsModal.jsx`**
 
-Modal to search Divemap users or create guest walk-in divers on the fly; details modal to view verified C-Cards and inspect physician certificates.
+Modal to search Divemap users or create guest walk-in divers on the fly; details modal to view verified C-Cards, inspect physician certificates, override medical clearance, immediately synchronize and update equipment preferences, and export the official Emergency Incident Dossier PDF.
 
-- [ ] **Step 4: Implement `TripOperationsDashboard.jsx`**
+- [x] **Step 4: Implement `TripOperationsDashboard.jsx`**
 
 Assemble header, capacity gauge, action buttons (Export Manifest, Print Packing Sheet, Add Diver), and tabs for Roster vs. Gear Crates.
 
-- [ ] **Step 5: Register route in `frontend/src/App.jsx`**
+- [x] **Step 5: Register route in `frontend/src/App.jsx`**
 
-Add `/manage/centers/:centerId/trips/:tripId`.
+Added `/manage/centers/:centerId/trips/:tripId`.
 
-- [ ] **Step 6: Run frontend lint and browser verification**
+- [x] **Step 6: Run frontend lint and browser verification**
 
 Run:
 ```bash
 make lint-frontend
 ```
-Verify page rendering, walk-in creation, and zero console errors via Chrome DevTools MCP.
+Verified page rendering, walk-in creation, and zero console errors via Chrome DevTools MCP.
 
-- [ ] **Step 7: Prepare commit draft**
-
-Write commit message to `commit-message.txt`:
-```
-Add center trip operations dashboard and gear packing manifest UI
-
-Provides center managers with a real-time boat roster, walk-in modal,
-equipment crate packing summaries, and Coast Guard manifest exports.
-```
+- [x] **Step 7: Prepare commit draft**
 
 ---
 
 ### Phase 3 Verification Checklist
-- [ ] `cd backend && ./docker-test-github-actions.sh tests/test_center_booking_ops_api.py` passes.
-- [ ] `make lint-frontend` passes with zero errors.
-- [ ] Browser verification passes via Chrome DevTools MCP with zero console errors.
+- [x] `cd backend && ./docker-test-github-actions.sh tests/test_center_booking_ops_api.py` passes.
+- [x] `make lint-frontend` passes with zero errors.
+- [x] Browser verification passes via Chrome DevTools MCP with zero console errors.
