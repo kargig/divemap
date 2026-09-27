@@ -17,7 +17,7 @@ import {
   Compass,
   Flame,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
@@ -279,6 +279,94 @@ const BookingWizard = () => {
   };
 
   const hasContactOrId = Boolean(diverEmail.trim() || diverPhone.trim() || passportNumber.trim());
+
+  // Dynamic Equipment Rental Calculation (Itemized vs Package)
+  const rentalCalculation = useMemo(() => {
+    const pricing = contextData?.rental_pricing;
+    const basePrice = selectedUnit ? parseFloat(selectedUnit.retail_price) : 75;
+    if (!pricing || !pricing.items) {
+      return {
+        basePrice,
+        rentalItems: [],
+        totalRentalSurcharge: 0,
+        totalDue: basePrice,
+        isPackageApplied: false,
+      };
+    }
+
+    const items = pricing.items;
+    const fullKitPackage = pricing.full_kit_package || 30.0;
+    const isFullRentalUnit =
+      selectedUnitId === 'demo-unit-2' ||
+      selectedUnitId === 'certified-diver-full-rental' ||
+      selectedUnit?.title?.toLowerCase().includes('full');
+
+    const rentalItems = [];
+
+    // 1. Auxiliary items
+    if (rentalTorch && items.dive_torch) {
+      rentalItems.push({ label: 'Rental Dive Torch', price: items.dive_torch });
+    }
+
+    // 2. Core equipment items
+    if (isFullRentalUnit) {
+      if (rentalComputer && items.dive_computer) {
+        rentalItems.push({ label: 'Rental Dive Computer', price: items.dive_computer });
+      }
+      const surcharge = rentalItems.reduce((sum, item) => sum + item.price, 0);
+      return {
+        basePrice,
+        rentalItems,
+        totalRentalSurcharge: surcharge,
+        totalDue: basePrice + surcharge,
+        isPackageApplied: true,
+      };
+    }
+
+    // Own Gear Diver selecting individual rental items à la carte
+    const coreItems = [];
+    if (wetsuitSize !== 'None' && items.wetsuit) {
+      coreItems.push({ label: `Rental Wetsuit (${wetsuitSize})`, price: items.wetsuit });
+    }
+    if (bcdSize !== 'None' && items.bcd) {
+      coreItems.push({ label: `Rental BCD (${bcdSize})`, price: items.bcd });
+    }
+    if (rentalComputer && items.dive_computer) {
+      coreItems.push({ label: 'Rental Dive Computer', price: items.dive_computer });
+    }
+
+    const coreSum = coreItems.reduce((sum, item) => sum + item.price, 0);
+    let totalCoreSurcharge = coreSum;
+    let isPackageApplied = false;
+
+    // Smart package cap
+    if (coreSum >= fullKitPackage && fullKitPackage > 0) {
+      totalCoreSurcharge = fullKitPackage;
+      isPackageApplied = true;
+    }
+
+    const allItems = [...coreItems, ...rentalItems];
+    const totalSurcharge =
+      totalCoreSurcharge + rentalItems.reduce((sum, item) => sum + item.price, 0);
+
+    return {
+      basePrice,
+      rentalItems: allItems,
+      totalRentalSurcharge: totalSurcharge,
+      totalDue: basePrice + totalSurcharge,
+      isPackageApplied,
+      coreSum,
+      fullKitPackage,
+    };
+  }, [
+    contextData,
+    selectedUnit,
+    selectedUnitId,
+    wetsuitSize,
+    bcdSize,
+    rentalComputer,
+    rentalTorch,
+  ]);
 
   // Nitrox eligibility
   const isNitroxEligible = (() => {
@@ -1752,13 +1840,51 @@ const BookingWizard = () => {
                 </div>
               </div>
 
+              {/* Itemized Price Breakdown */}
+              <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 text-xs space-y-2'>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Base Dive Trip:</span>
+                  <span className='font-mono font-semibold text-gray-900 dark:text-white'>
+                    €{rentalCalculation.basePrice.toFixed(2)}
+                  </span>
+                </div>
+
+                {rentalCalculation.rentalItems.length > 0 && (
+                  <div className='space-y-1.5 pt-1 border-t border-gray-100 dark:border-gray-700/60'>
+                    <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider block'>
+                      Equipment Rental Surcharges:
+                    </span>
+                    {rentalCalculation.rentalItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className='flex justify-between text-gray-600 dark:text-gray-400 pl-2'
+                      >
+                        <span className='truncate'>{item.label}:</span>
+                        <span className='font-mono text-blue-600 dark:text-blue-400 shrink-0'>
+                          +€{item.price.toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+
+                    {rentalCalculation.isPackageApplied && (
+                      <div className='p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded text-[10px] text-blue-800 dark:text-blue-300 font-medium'>
+                        ✓ Full Equipment Rental Package rate applied
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Total Due */}
-              <div className='pt-4 pb-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-baseline'>
-                <span className='text-sm font-bold text-gray-900 dark:text-white uppercase'>
-                  Total Due
-                </span>
+              <div className='pt-3 pb-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-baseline'>
+                <div>
+                  <span className='text-sm font-bold text-gray-900 dark:text-white uppercase block'>
+                    Total Due
+                  </span>
+                  <span className='text-[10px] text-gray-400'>Pay on arrival at center</span>
+                </div>
                 <span className='text-2xl font-bold font-mono text-blue-600 dark:text-blue-400'>
-                  €{selectedUnit?.retail_price}
+                  €{rentalCalculation.totalDue.toFixed(2)}
                 </span>
               </div>
 

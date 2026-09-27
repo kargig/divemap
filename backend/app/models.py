@@ -1348,6 +1348,9 @@ class DivingCenterBookingSettings(Base):
     hold_duration_minutes = Column(Integer, default=20, nullable=False)
     briefing_lead_hours = Column(Integer, default=24, nullable=False)
 
+    # Optional equipment rental pricing configuration: itemized item prices or bundled full kit price
+    rental_equipment_pricing = Column(JSON, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

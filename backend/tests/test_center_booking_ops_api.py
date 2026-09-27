@@ -658,3 +658,52 @@ def test_toggle_participant_gear_check(client: TestClient, center_ops_setup):
     )
     assert res_toggle2.status_code == 200
     assert res_toggle2.json()["gear_checked"] is False
+
+
+def test_center_rental_pricing_endpoints(client: TestClient, center_ops_setup):
+    center = center_ops_setup["center"]
+    owner = center_ops_setup["owner"]
+
+    token = create_access_token(data={"sub": owner.username})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Get default rental pricing
+    res = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/rental-pricing",
+        headers=headers,
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "items" in data
+    assert data["items"]["bcd"] == 10.0
+
+    # 2. Update rental pricing
+    update_payload = {
+        "currency": "EUR",
+        "full_kit_package": 35.0,
+        "pricing_mode": "ITEMIZED_OR_PACKAGE",
+        "items": {
+            "regulator": 12.0,
+            "bcd": 12.0,
+            "wetsuit": 12.0,
+            "dive_computer": 15.0,
+            "dive_torch": 10.0,
+        },
+    }
+    res_put = client.put(
+        f"/api/v1/centers/{center.id}/booking-ops/rental-pricing",
+        json=update_payload,
+        headers=headers,
+    )
+    assert res_put.status_code == 200
+    assert res_put.json()["full_kit_package"] == 35.0
+    assert res_put.json()["items"]["dive_computer"] == 15.0
+
+    # 3. Verify updated pricing is returned
+    res_get = client.get(
+        f"/api/v1/centers/{center.id}/booking-ops/rental-pricing",
+        headers=headers,
+    )
+    assert res_get.status_code == 200
+    assert res_get.json()["full_kit_package"] == 35.0
+    assert res_get.json()["items"]["bcd"] == 12.0

@@ -17,6 +17,7 @@ from app.models import (
     OctoUnit,
     DiverMedicalRecord,
     DivingCenterVessel,
+    DivingCenterBookingSettings,
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
@@ -1205,3 +1206,80 @@ def export_port_authority_manifest(
             media_type="text/csv",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
+
+
+class RentalPricingUpdateRequest(BaseModel):
+    currency: Optional[str] = "EUR"
+    full_kit_package: Optional[float] = 30.0
+    pricing_mode: Optional[str] = "ITEMIZED_OR_PACKAGE"
+    items: Optional[Dict[str, float]] = None
+
+
+@router.get("/rental-pricing")
+def get_center_rental_pricing(
+    center_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retrieve center equipment rental pricing configuration."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == center_id
+    ).first()
+    if not settings or not settings.rental_equipment_pricing:
+        return {
+            "currency": "EUR",
+            "full_kit_package": 30.0,
+            "pricing_mode": "ITEMIZED_OR_PACKAGE",
+            "items": {
+                "regulator": 10.0,
+                "bcd": 10.0,
+                "wetsuit": 10.0,
+                "fins_boots": 8.0,
+                "mask_snorkel": 5.0,
+                "dive_computer": 10.0,
+                "dive_torch": 8.0,
+                "hood": 5.0,
+                "gloves": 5.0,
+                "dpv_scooter": 40.0,
+                "stage_tank": 20.0,
+            },
+        }
+
+    return settings.rental_equipment_pricing
+
+
+@router.put("/rental-pricing")
+def update_center_rental_pricing(
+    center_id: int,
+    req: RentalPricingUpdateRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update center equipment rental pricing configuration."""
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == center_id
+    ).first()
+    if not settings:
+        settings = DivingCenterBookingSettings(
+            diving_center_id=center_id,
+            is_booking_enabled=True,
+            default_currency=req.currency or "EUR",
+        )
+        db.add(settings)
+
+    pricing = {
+        "currency": req.currency or "EUR",
+        "full_kit_package": req.full_kit_package,
+        "pricing_mode": req.pricing_mode or "ITEMIZED_OR_PACKAGE",
+        "items": req.items or {},
+    }
+    settings.rental_equipment_pricing = pricing
+    db.commit()
+
+    return pricing

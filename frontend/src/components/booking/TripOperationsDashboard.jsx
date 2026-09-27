@@ -14,6 +14,7 @@ import {
   UserCheck,
   Check,
   PackageCheck,
+  Coins,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
@@ -24,6 +25,7 @@ import SEO from '../SEO';
 
 import AddDiverModal from './AddDiverModal';
 import BoatManifestTable from './BoatManifestTable';
+import CenterRentalPricingModal from './CenterRentalPricingModal';
 import DiverDetailsModal from './DiverDetailsModal';
 import DiverEquipmentChecklist from './DiverEquipmentChecklist';
 import GearPackingManifest from './GearPackingManifest';
@@ -47,10 +49,11 @@ const TripOperationsDashboard = () => {
   };
 
   // Modals
-  const [addDiverOpen, setAddDiverOpen] = useState(false);
+  const [addDiverModalOpen, setAddDiverModalOpen] = useState(false);
   const [detailsDiver, setDetailsDiver] = useState(null);
   const [modalEditMode, setModalEditMode] = useState(false);
   const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [rentalPricingModalOpen, setRentalPricingModalOpen] = useState(false);
 
   // Staff state
   const [skipperName, setSkipperName] = useState('');
@@ -493,7 +496,17 @@ const TripOperationsDashboard = () => {
             <div className='flex flex-wrap items-center gap-2'>
               <button
                 type='button'
-                onClick={() => setAddDiverOpen(true)}
+                onClick={() => setRentalPricingModalOpen(true)}
+                className='flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-semibold text-xs rounded-lg transition-all border border-blue-200 dark:border-blue-800'
+                title='Configure equipment rental pricing'
+              >
+                <Coins size={13} className='text-blue-600' />
+                <span>Rental Pricing</span>
+              </button>
+
+              <button
+                type='button'
+                onClick={() => setAddDiverModalOpen(true)}
                 disabled={slot.seats_available <= 0}
                 className='flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed'
               >
@@ -567,8 +580,8 @@ const TripOperationsDashboard = () => {
 
         {/* Modals */}
         <AddDiverModal
-          isOpen={addDiverOpen}
-          onClose={() => setAddDiverOpen(false)}
+          isOpen={addDiverModalOpen}
+          onClose={() => setAddDiverModalOpen(false)}
           onDiverAdded={fetchManifest}
           centerId={centerId}
           tripId={tripId}
@@ -691,6 +704,13 @@ const TripOperationsDashboard = () => {
             </div>
           </form>
         </Modal>
+
+        {/* Center Equipment Rental Pricing Modal */}
+        <CenterRentalPricingModal
+          isOpen={rentalPricingModalOpen}
+          onClose={() => setRentalPricingModalOpen(false)}
+          centerId={centerId}
+        />
       </div>
     </div>
   );

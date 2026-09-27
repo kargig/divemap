@@ -181,6 +181,16 @@ def get_checkout_context(
         "prefill_gear": prefill_gear,
         "user_certifications": user_certifications,
         "dmsc_schema": dmsc_schema,
+        "rental_pricing": (
+            db.query(DivingCenterBookingSettings)
+            .filter(DivingCenterBookingSettings.diving_center_id == center.id)
+            .first()
+            .rental_equipment_pricing
+            if db.query(DivingCenterBookingSettings)
+            .filter(DivingCenterBookingSettings.diving_center_id == center.id)
+            .first()
+            else None
+        ),
     }
 
 
