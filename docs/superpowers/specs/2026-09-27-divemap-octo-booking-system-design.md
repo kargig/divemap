@@ -593,6 +593,21 @@ When a lead booker books multiple slots:
 * If a diver indicates in their `UserGearProfile` or intake that they do not own a dive computer, the booking flow automatically adds a *"Rental Dive Computer"* line item or flags a mandatory dockside rental agreement.
 * Center inventory models automatically deduct rented dive computers from the center's computer pool.
 
+### 5.7 Unified Diver Gear Configuration Architecture (`DiverGearConfigForm` & Dedicated Operations Page)
+* **Single Authoritative Source of Truth (`DiverGearConfigForm.jsx`):**
+  * Extracted reusable component shared across the platform to eliminate feature disparity between user gear profiles, booking checkouts, and center operations.
+  * **Core Capabilities:**
+    * **Dynamic Metric $\leftrightarrow$ Imperial Unit Conversion:** Automatic bidirectional synchronization of height (cm vs ft/in), weight (kg vs lbs), lead ballast (kg vs lbs), and shoe sizes (EU vs US).
+    * **Integrated Buoyancy & Salinity Estimator:** Physics engine computing buoyant displacement from diver body weight, suit thickness factor (`SUIT_FACTORS`), water body density (Aegean/Med, Red Sea, Caribbean, Baltic, Freshwater), and cylinder buoyancy empty at 50 bar reserve.
+    * **Cylinder & Breathing Gas Selection:** Canonical tank options (10L, 12L, 15L, AL80, 2x12L Twinset), Nitrox eligibility gating, and DIN (5/8" threaded) vs. Yoke (A-clamp) valve fitting toggles.
+    * **Ballast & Weight System:** 0.5kg precision increments and selection between `INTEGRATED` (BCD weight pockets) vs `BELT` (traditional nylon webbing belt).
+    * **Thermal Suit & Sizing:** Wetsuit cut (Men/Unisex vs Women), size (XS–XXL, or `None (Own Suit)`), thickness (3mm shorty, 3mm full, 5mm full, 7mm semi-dry, drysuit), BCD size (XS–XL, or `None (Own BCD)`), and Fin style (`OPEN_HEEL` with booties vs `FULL_FOOT` barefoot).
+    * **Personal Safety Equipment:** Checkboxes tracking individual dive computer ownership and Surface Marker Buoy (SMB) + spool ownership.
+    * **Emergency Contacts & Insurance:** Next of kin full name and phone/WhatsApp; dive insurance provider (DAN Europe, DiveAssure), policy #, and expiration date.
+* **Dual View Center Operations Interface:**
+  * **Quick Modal (`DiverDetailsModal.jsx`):** Employs `DiverGearConfigForm` for rapid, in-place dockside adjustments during roll-call without losing scroll position on the manifest table.
+  * **Dedicated Operations Page (`TripParticipantDetailsPage.jsx`):** Full-screen two-column workspace at `/manage/centers/:centerId/trips/:tripId/participants/:participantId` featuring breadcrumbs back to the trip manifest, complete credentials, DMSC 2020 medical review with physician clearance approval, executed liability waiver with audit hash, emergency incident dossier export, and the full gear configuration editor.
+
 ### 5.7 Dive Insurance Verification & Short-Term Coverage Flow
 * In jurisdictions where dive insurance covering hyperbaric chamber evacuation is legally required (e.g., Spain, Egypt, Maldives):
   * The intake requires `insurance_provider`, `insurance_policy_number`, and `insurance_expiry_date`.
