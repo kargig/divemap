@@ -15,7 +15,7 @@ import React from 'react';
 const BoatManifestTable = ({
   participants = [],
   onToggleCheckin,
-  onMarkPaid,
+  onTogglePayment,
   onEditDiver,
   onDeleteDiver,
   onViewDetails,
@@ -153,21 +153,23 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
-                    {isPaid ? (
-                      <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'>
-                        PAID
-                      </span>
-                    ) : (
-                      <button
-                        type='button'
-                        onClick={() => onMarkPaid(p.booking_id)}
-                        className='inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-200 transition-colors'
-                        title='Click to mark counter payment received'
-                      >
-                        <CreditCard size={11} />
-                        Mark Paid
-                      </button>
-                    )}
+                    <button
+                      type='button'
+                      onClick={() => onTogglePayment(p.booking_id)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                        isPaid
+                          ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800'
+                          : 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
+                      }`}
+                      title={
+                        isPaid
+                          ? 'Click to revert payment to Due at Desk'
+                          : 'Click to mark counter payment received'
+                      }
+                    >
+                      {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
+                      <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
+                    </button>
                   </td>
 
                   <td className='py-3.5 px-3 text-right pr-4'>
@@ -284,18 +286,23 @@ const BoatManifestTable = ({
 
                 {/* Payment & Options */}
                 <div className='flex items-center gap-2'>
-                  {isPaid ? (
-                    <span className='text-[11px] font-bold text-emerald-600'>PAID</span>
-                  ) : (
-                    <button
-                      type='button'
-                      onClick={() => onMarkPaid(p.booking_id)}
-                      className='px-2.5 py-1 bg-amber-100 text-amber-800 rounded text-xs font-bold flex items-center gap-1'
-                    >
-                      <CreditCard size={12} />
-                      Mark Paid
-                    </button>
-                  )}
+                  <button
+                    type='button'
+                    onClick={() => onTogglePayment(p.booking_id)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-sm ${
+                      isPaid
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                    }`}
+                    title={
+                      isPaid
+                        ? 'Click to revert payment to Due at Desk'
+                        : 'Click to mark counter payment received'
+                    }
+                  >
+                    {isPaid ? <Check size={12} /> : <CreditCard size={12} />}
+                    <span>{isPaid ? 'Paid' : 'Mark Paid'}</span>
+                  </button>
                   <button
                     type='button'
                     onClick={() => onViewDetails(p)}

@@ -77,22 +77,29 @@ const TripOperationsDashboard = () => {
     }
   };
 
-  const handleMarkPaid = async bookingId => {
+  const handleTogglePayment = async bookingId => {
     try {
-      await api.post(`/api/v1/centers/${centerId}/booking-ops/bookings/${bookingId}/mark-paid`);
+      const res = await api.post(
+        `/api/v1/centers/${centerId}/booking-ops/bookings/${bookingId}/toggle-payment`
+      );
+      const newStatus = res.data.payment_status;
       setManifestData(prev => {
         if (!prev) return prev;
         return {
           ...prev,
           participants: prev.participants.map(p =>
-            p.booking_id === bookingId ? { ...p, payment_status: 'PAID_IN_FULL' } : p
+            p.booking_id === bookingId ? { ...p, payment_status: newStatus } : p
           ),
         };
       });
-      toast.success('Payment recorded as Paid in Full!');
+      toast.success(
+        newStatus === 'PAID_IN_FULL'
+          ? 'Payment marked as Paid in Full!'
+          : 'Payment reverted to Due at Desk.'
+      );
     } catch (err) {
-      console.error('Failed to mark payment:', err);
-      toast.error('Failed to record payment.');
+      console.error('Failed to toggle payment:', err);
+      toast.error('Failed to update payment status.');
     }
   };
 
@@ -371,7 +378,7 @@ const TripOperationsDashboard = () => {
           <BoatManifestTable
             participants={participants}
             onToggleCheckin={handleToggleCheckin}
-            onMarkPaid={handleMarkPaid}
+            onTogglePayment={handleTogglePayment}
             onDeleteDiver={handleDeleteDiver}
             onEditDiver={diver => setDetailsDiver(diver)}
             onViewDetails={diver => setDetailsDiver(diver)}

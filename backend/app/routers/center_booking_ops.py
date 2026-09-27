@@ -382,13 +382,14 @@ def toggle_participant_checkin(
 
 
 @router.post("/bookings/{booking_id}/mark-paid")
-def mark_booking_paid(
+@router.post("/bookings/{booking_id}/toggle-payment")
+def toggle_booking_payment(
     center_id: int,
     booking_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Marks counter payment as paid in full."""
+    """Toggles counter payment between PAID_IN_FULL and PENDING_AT_CHECKIN."""
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
@@ -399,7 +400,11 @@ def mark_booking_paid(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    booking.payment_status = "PAID_IN_FULL"
+    if booking.payment_status in ("PAID_IN_FULL", "PAID_ONLINE"):
+        booking.payment_status = "PENDING_AT_CHECKIN"
+    else:
+        booking.payment_status = "PAID_IN_FULL"
+
     db.commit()
     return {"booking_id": booking.uuid, "payment_status": booking.payment_status}
 

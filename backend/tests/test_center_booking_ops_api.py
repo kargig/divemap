@@ -262,7 +262,7 @@ def test_toggle_participant_checkin(client: TestClient, center_ops_setup):
     assert res2.json()["onboard_checkin_status"] is False
 
 
-def test_mark_booking_paid(client: TestClient, center_ops_setup):
+def test_toggle_booking_payment(client: TestClient, center_ops_setup):
     center = center_ops_setup["center"]
     booking = center_ops_setup["booking"]
     owner = center_ops_setup["owner"]
@@ -270,12 +270,21 @@ def test_mark_booking_paid(client: TestClient, center_ops_setup):
     token = create_access_token(data={"sub": owner.username})
     headers = {"Authorization": f"Bearer {token}"}
 
+    # Initial state: PENDING_AT_CHECKIN -> toggle to PAID_IN_FULL
     res = client.post(
-        f"/api/v1/centers/{center.id}/booking-ops/bookings/{booking.uuid}/mark-paid",
+        f"/api/v1/centers/{center.id}/booking-ops/bookings/{booking.uuid}/toggle-payment",
         headers=headers,
     )
     assert res.status_code == 200
     assert res.json()["payment_status"] == "PAID_IN_FULL"
+
+    # Toggle again -> back to PENDING_AT_CHECKIN
+    res2 = client.post(
+        f"/api/v1/centers/{center.id}/booking-ops/bookings/{booking.uuid}/toggle-payment",
+        headers=headers,
+    )
+    assert res2.status_code == 200
+    assert res2.json()["payment_status"] == "PENDING_AT_CHECKIN"
 
 
 def test_delete_participant_releases_seat(client: TestClient, center_ops_setup):
