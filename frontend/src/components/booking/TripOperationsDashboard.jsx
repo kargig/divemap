@@ -117,9 +117,44 @@ const TripOperationsDashboard = () => {
     }
   };
 
-  const handleExport = (format = 'csv') => {
-    const url = `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/manifest/export-port-authority?format=${format}`;
-    window.open(url, '_blank');
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (format = 'csv') => {
+    try {
+      setExporting(true);
+      toast.loading(`Generating Port Authority ${format.toUpperCase()}...`, {
+        id: 'export-manifest',
+      });
+      const res = await api.get(
+        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/manifest/export-port-authority?format=${format}`,
+        { responseType: 'blob' }
+      );
+
+      const mimeType = format === 'pdf' ? 'application/pdf' : 'text/csv';
+      const blob = new window.Blob([res.data], { type: mimeType });
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const cleanTitle = (manifestData?.slot?.product_title || 'manifest').replace(
+        /[^a-zA-Z0-9_-]/g,
+        '_'
+      );
+      link.setAttribute('download', `port_manifest_${cleanTitle}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+      toast.success(`Port Authority ${format.toUpperCase()} downloaded!`, {
+        id: 'export-manifest',
+      });
+    } catch (err) {
+      console.error('Failed to export manifest:', err);
+      toast.error(`Failed to export ${format.toUpperCase()} manifest.`, { id: 'export-manifest' });
+    } finally {
+      setExporting(false);
+    }
   };
 
   if (loading && !manifestData) {
@@ -300,7 +335,8 @@ const TripOperationsDashboard = () => {
                 <button
                   type='button'
                   onClick={() => handleExport('pdf')}
-                  className='flex items-center gap-1 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold border-r border-gray-200 dark:border-gray-700'
+                  disabled={exporting}
+                  className='flex items-center gap-1 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold border-r border-gray-200 dark:border-gray-700 disabled:opacity-50'
                   title='Download Port Authority PDF'
                 >
                   <Download size={13} className='text-red-600' />
@@ -309,7 +345,8 @@ const TripOperationsDashboard = () => {
                 <button
                   type='button'
                   onClick={() => handleExport('csv')}
-                  className='flex items-center gap-1 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold'
+                  disabled={exporting}
+                  className='flex items-center gap-1 px-3 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold disabled:opacity-50'
                   title='Download Port Authority CSV'
                 >
                   <FileSpreadsheet size={13} className='text-emerald-600' />
