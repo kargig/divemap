@@ -287,20 +287,44 @@ const GearPackingManifest = ({ summary = {}, participants = [] }) => {
               No rental wetsuits requested. All divers using own suits.
             </p>
           ) : (
-            <div className='grid grid-cols-2 gap-2'>
-              {Object.entries(wetsuits).map(([size, count]) => (
-                <div
-                  key={size}
-                  className='p-2 bg-gray-50 dark:bg-gray-750 rounded-lg border border-gray-100 dark:border-gray-700 text-center'
-                >
-                  <span className='text-xs font-bold text-gray-700 dark:text-gray-300 block'>
-                    {size}
-                  </span>
-                  <span className='text-sm font-mono font-bold text-blue-600 mt-0.5 block'>
-                    {count}x
-                  </span>
-                </div>
-              ))}
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-2'>
+              {Object.entries(wetsuits).map(([size, count]) => {
+                const isWomen = size.startsWith("Women's");
+                const isMen = size.startsWith("Men's");
+
+                return (
+                  <div
+                    key={size}
+                    className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                      isWomen
+                        ? 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/40'
+                        : isMen
+                          ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/40'
+                          : 'bg-gray-50 dark:bg-gray-750 border-gray-100 dark:border-gray-700'
+                    }`}
+                  >
+                    <div>
+                      <span className='text-xs font-bold text-gray-800 dark:text-gray-200 block'>
+                        {size}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 inline-block ${
+                          isWomen
+                            ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/60 dark:text-pink-200'
+                            : isMen
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                              : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isWomen ? "Women's Cut" : isMen ? "Men's / Unisex" : 'Custom / Other'}
+                      </span>
+                    </div>
+                    <span className='text-base font-mono font-bold text-blue-600 dark:text-blue-400'>
+                      {count}x
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

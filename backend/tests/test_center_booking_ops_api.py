@@ -179,7 +179,7 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
     assert any("12L AIR" in k for k in summary["cylinders"])
     assert summary["total_lead_kg"] == 10.0 # 4.0 + 6.0
     assert summary["total_participants"] == 2
-    assert "M (5mm)" in summary["wetsuits"]
+    assert any("M (5mm)" in k for k in summary["wetsuits"])
     assert "blocks_05kg" in summary["lead_breakdown"]
 
 

@@ -28,6 +28,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
   const [leadKg, setLeadKg] = useState('4.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
 
+  const [wetsuitGender, setWetsuitGender] = useState('MEN');
   const [wetsuitSize, setWetsuitSize] = useState('L');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [bcdSize, setBcdSize] = useState('M');
@@ -89,6 +90,7 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
         equipment_sizing: {
           regulator_fitting: regulatorFitting,
           weight_system: weightSystem,
+          wetsuit_gender: wetsuitGender,
           wetsuit_size: wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
           bcd_size: bcdSize,
@@ -341,6 +343,18 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
               >
                 <option value='INTEGRATED'>Integrated Pockets</option>
                 <option value='BELT'>Weight Belt</option>
+              </select>
+            </div>
+            <div>
+              <label className='block font-medium text-gray-600 mb-1'>Wetsuit Cut</label>
+              <select
+                value={wetsuitGender}
+                onChange={e => setWetsuitGender(e.target.value)}
+                className='w-full px-2 py-1.5 border rounded-lg text-xs bg-white font-medium'
+              >
+                <option value='MEN'>Men's / Unisex</option>
+                <option value='WOMEN'>Women's</option>
+                <option value='OTHER'>Other / Custom</option>
               </select>
             </div>
             <div>

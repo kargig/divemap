@@ -216,9 +216,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} — {valve_desc}"
             tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + 1
 
-            # Rental gear breakdown
-            if eq.get("wetsuit_size"):
-                suit_label = f"{eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
+            # Rental gear breakdown (distinguish Men's, Women's, and Unisex/Other cuts)
+            if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
+                gender = str(eq.get("wetsuit_gender") or "MEN").upper()
+                gender_prefix = "Women's" if gender == "WOMEN" else ("Men's" if gender == "MEN" else "Unisex/Other")
+                suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
                 suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
 
             if eq.get("bcd_size"):

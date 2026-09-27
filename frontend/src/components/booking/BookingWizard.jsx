@@ -56,6 +56,7 @@ const BookingWizard = () => {
   const [selectedTankId, setSelectedTankId] = useState('12');
   const [selectedGasMixId, setSelectedGasMixId] = useState('air');
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
+  const [wetsuitGender, setWetsuitGender] = useState('MEN');
   const [wetsuitSize, setWetsuitSize] = useState('L');
   const [wetsuitThickness, setWetsuitThickness] = useState('5mm');
   const [bcdSize, setBcdSize] = useState('M');
@@ -100,6 +101,7 @@ const BookingWizard = () => {
           if (pg.preferred_gas_mix_id) setSelectedGasMixId(pg.preferred_gas_mix_id);
           if (pg.regulator_fitting) setRegulatorFitting(pg.regulator_fitting);
           if (pg.weight_system) setWeightSystem(pg.weight_system);
+          if (pg.wetsuit_gender) setWetsuitGender(pg.wetsuit_gender);
           if (pg.wetsuit_size) setWetsuitSize(pg.wetsuit_size);
           if (pg.wetsuit_thickness) setWetsuitThickness(pg.wetsuit_thickness);
           if (pg.bcd_size) setBcdSize(pg.bcd_size);
@@ -173,6 +175,7 @@ const BookingWizard = () => {
     if (prof.preferred_gas_mix_id) setSelectedGasMixId(prof.preferred_gas_mix_id);
     if (prof.regulator_fitting) setRegulatorFitting(prof.regulator_fitting);
     if (prof.weight_system) setWeightSystem(prof.weight_system);
+    if (prof.wetsuit_gender) setWetsuitGender(prof.wetsuit_gender);
     if (prof.wetsuit_size) setWetsuitSize(prof.wetsuit_size);
     if (prof.wetsuit_thickness) setWetsuitThickness(prof.wetsuit_thickness);
     if (prof.bcd_size) setBcdSize(prof.bcd_size);
@@ -283,9 +286,10 @@ const BookingWizard = () => {
             selectedTankId: selectedTankId,
             selectedGasMixId: selectedGasMixId,
             equipmentSizing: {
-              wetsuit_size: wetsuitSize,
+              wetsuit_gender: wetsuitGender,
+              wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
               wetsuit_thickness: wetsuitThickness,
-              bcd_size: bcdSize,
+              bcd_size: bcdSize === 'None' ? null : bcdSize,
               fin_type: finType,
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
               regulator_fitting: regulatorFitting,
@@ -314,9 +318,10 @@ const BookingWizard = () => {
         selectedTankId: selectedTankId,
         selectedGasMixId: selectedGasMixId,
         equipmentSizing: {
-          wetsuit_size: wetsuitSize,
+          wetsuit_gender: wetsuitGender,
+          wetsuit_size: wetsuitSize === 'None' ? null : wetsuitSize,
           wetsuit_thickness: wetsuitThickness,
-          bcd_size: bcdSize,
+          bcd_size: bcdSize === 'None' ? null : bcdSize,
           fin_type: finType,
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
           regulator_fitting: regulatorFitting,
@@ -829,6 +834,102 @@ const BookingWizard = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Thermal Protection, BCD & Fins */}
+                <div className='mt-3 pt-3 border-t border-gray-100 dark:border-gray-700'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2'>
+                    <span className='text-xs font-bold text-gray-500 uppercase tracking-wider'>
+                      Thermal Suit, BCD & Fin Sizing
+                    </span>
+                    <span className='text-[11px] text-gray-400'>
+                      * Men's vs Women's cut ensures correct anatomical chest, waist & torso fit
+                    </span>
+                  </div>
+
+                  <div className='grid grid-cols-2 sm:grid-cols-5 gap-3'>
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        Wetsuit Cut *
+                      </label>
+                      <select
+                        value={wetsuitGender}
+                        onChange={e => setWetsuitGender(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
+                      >
+                        <option value='MEN'>Men's / Unisex</option>
+                        <option value='WOMEN'>Women's</option>
+                        <option value='OTHER'>Other / Custom</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        Wetsuit Size
+                      </label>
+                      <select
+                        value={wetsuitSize}
+                        onChange={e => setWetsuitSize(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                      >
+                        <option value='None'>None (Own Suit)</option>
+                        <option value='XS'>XS</option>
+                        <option value='S'>S</option>
+                        <option value='M'>M</option>
+                        <option value='L'>L</option>
+                        <option value='XL'>XL</option>
+                        <option value='XXL'>XXL</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        Suit Thickness
+                      </label>
+                      <select
+                        value={wetsuitThickness}
+                        onChange={e => setWetsuitThickness(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                      >
+                        <option value='3mm-shorty'>3mm Shorty</option>
+                        <option value='3mm'>3mm Full</option>
+                        <option value='5mm'>5mm Full</option>
+                        <option value='7mm'>7mm Semi-Dry</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        BCD Size
+                      </label>
+                      <select
+                        value={bcdSize}
+                        onChange={e => setBcdSize(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                      >
+                        <option value='None'>None (Own BCD)</option>
+                        <option value='XS'>XS</option>
+                        <option value='S'>S</option>
+                        <option value='M'>M</option>
+                        <option value='L'>L</option>
+                        <option value='XL'>XL</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                        Shoe / Fins (EU)
+                      </label>
+                      <input
+                        type='number'
+                        step='0.5'
+                        value={shoeSizeEu}
+                        onChange={e => setShoeSizeEu(e.target.value)}
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs'
+                        placeholder='e.g. 42'
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -939,6 +1040,15 @@ const BookingWizard = () => {
                   <span>Lead Ballast:</span>
                   <span className='font-semibold text-gray-900 dark:text-white'>
                     {leadKg} kg ({weightSystem === 'BELT' ? 'Belt' : 'Pockets'})
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Wetsuit & BCD:</span>
+                  <span className='font-semibold text-gray-900 dark:text-white'>
+                    {wetsuitSize === 'None'
+                      ? 'Own Suit'
+                      : `${wetsuitGender === 'WOMEN' ? "Women's" : wetsuitGender === 'MEN' ? "Men's" : 'Unisex'} ${wetsuitSize}`}
+                    {bcdSize === 'None' ? ' • Own BCD' : ` • BCD ${bcdSize}`}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
