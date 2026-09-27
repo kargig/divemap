@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 const MONTHS = [
   { val: '01', name: 'Jan' },
@@ -23,20 +23,24 @@ const DateOfBirthPicker = ({
   minAge = 10,
   maxAge = 100,
 }) => {
-  // Parse incoming YYYY-MM-DD
-  const { currentYear, currentMonth, currentDay } = useMemo(() => {
-    if (!value || typeof value !== 'string') {
-      return { currentYear: '', currentMonth: '', currentDay: '' };
+  // Local state so selecting one part immediately reflects in the UI
+  const [selectedDay, setSelectedDay] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+
+  // Sync from incoming prop if initialized or changed externally
+  useEffect(() => {
+    if (value && typeof value === 'string') {
+      const parts = value.split('-');
+      if (parts.length === 3) {
+        setSelectedYear(parts[0] || '');
+        setSelectedMonth(parts[1] || '');
+        setSelectedDay(parts[2] || '');
+      }
+    } else if (!value) {
+      // Only clear if all were set to prevent wiping partial selections
+      setSelectedYear(prev => (prev ? prev : ''));
     }
-    const parts = value.split('-');
-    if (parts.length === 3) {
-      return {
-        currentYear: parts[0] || '',
-        currentMonth: parts[1] || '',
-        currentDay: parts[2] || '',
-      };
-    }
-    return { currentYear: '', currentMonth: '', currentDay: '' };
   }, [value]);
 
   const yearsList = useMemo(() => {
@@ -49,23 +53,33 @@ const DateOfBirthPicker = ({
   }, [minAge, maxAge]);
 
   const daysList = useMemo(() => {
-    // Basic day count (defaults to 31)
     return Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
   }, []);
 
-  const handlePartChange = (part, partVal) => {
-    const y = part === 'year' ? partVal : currentYear;
-    const m = part === 'month' ? partVal : currentMonth;
-    const d = part === 'day' ? partVal : currentDay;
+  const handlePartChange = (part, val) => {
+    let nextYear = selectedYear;
+    let nextMonth = selectedMonth;
+    let nextDay = selectedDay;
 
-    if (y && m && d) {
-      onChange(`${y}-${m}-${d}`);
+    if (part === 'year') {
+      setSelectedYear(val);
+      nextYear = val;
+    } else if (part === 'month') {
+      setSelectedMonth(val);
+      nextMonth = val;
+    } else if (part === 'day') {
+      setSelectedDay(val);
+      nextDay = val;
+    }
+
+    if (nextYear && nextMonth && nextDay) {
+      onChange(`${nextYear}-${nextMonth}-${nextDay}`);
     } else {
       onChange('');
     }
   };
 
-  const isComplete = Boolean(currentYear && currentMonth && currentDay);
+  const isComplete = Boolean(selectedYear && selectedMonth && selectedDay);
 
   return (
     <div>
@@ -78,11 +92,11 @@ const DateOfBirthPicker = ({
       <div className='grid grid-cols-3 gap-1.5'>
         {/* Day */}
         <select
-          value={currentDay}
+          value={selectedDay}
           onChange={e => handlePartChange('day', e.target.value)}
           required={required}
           className={`w-full px-2 py-2 border rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-gray-200 font-medium ${
-            !currentDay && required
+            !selectedDay && required
               ? 'border-amber-300 dark:border-amber-800 bg-amber-50/20'
               : 'border-gray-300 dark:border-gray-600'
           }`}
@@ -97,11 +111,11 @@ const DateOfBirthPicker = ({
 
         {/* Month */}
         <select
-          value={currentMonth}
+          value={selectedMonth}
           onChange={e => handlePartChange('month', e.target.value)}
           required={required}
           className={`w-full px-2 py-2 border rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-gray-200 font-medium ${
-            !currentMonth && required
+            !selectedMonth && required
               ? 'border-amber-300 dark:border-amber-800 bg-amber-50/20'
               : 'border-gray-300 dark:border-gray-600'
           }`}
@@ -116,11 +130,11 @@ const DateOfBirthPicker = ({
 
         {/* Year */}
         <select
-          value={currentYear}
+          value={selectedYear}
           onChange={e => handlePartChange('year', e.target.value)}
           required={required}
           className={`w-full px-2 py-2 border rounded-lg text-xs bg-white dark:bg-gray-800 dark:text-gray-200 font-medium ${
-            !currentYear && required
+            !selectedYear && required
               ? 'border-amber-300 dark:border-amber-800 bg-amber-50/20'
               : 'border-gray-300 dark:border-gray-600'
           }`}
