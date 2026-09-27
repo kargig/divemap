@@ -791,6 +791,29 @@ Generates an official maritime passenger and crew manifest PDF/CSV compliant wit
      * `verified_at` (DateTime(timezone=True), nullable=True)
   4. Divers receive a push notification: *"Your dive at Blue Hole is logged and verified by Aegean Divers! Tap to review and confirm."*
 
+### 7.7 Public Discovery & Native Booking Bridge (/dive-trips <-> OCTO Workflows)
+* **The Problem:** Divemap previously featured two separate systems: public trip exploration at `/dive-trips` (based on `ParsedDiveTrip` with a passive `mailto:` inquiry box on `/dive-trips/:id/:slug`) and the native OCTO booking & operations engine (`OctoAvailabilitySlot`, `/book/:slotId`, and `/manage/centers/:centerId/trips/:tripId`).
+* **The Bridge Architecture:**
+  1. **Schema Linkage:**
+     * `ParsedDiveTrip` is linked to `OctoAvailabilitySlot` via an optional foreign key (`octo_slot_id`).
+     * When linked, the public trip serializer exposes real-time booking metadata: `is_bookable: true`, `slot_id`, `seats_available`, and `base_price`.
+  2. **Public Discovery Cards (`/dive-trips` & `TripCard.jsx`):**
+     * Trips with active slots display an **`✓ Instant Online Booking`** badge, live remaining seats counter (e.g. `5 Seats Left`), and starting price.
+  3. **Public Trip Details (`/dive-trips/:id/:slug` & `TripDetail.jsx`):**
+     * Replaces the static `mailto:` inquiry box on the "Booking" tab with an interactive **"Book This Trip"** primary CTA button linking directly to `/book/:slotId`.
+     * Renders live trip highlights: available capacity, required certification level (e.g. *SSI OWD*), and equipment rental options.
+     * Non-OCTO trips gracefully retain the legacy center contact card.
+  4. **Center Operator Console Shortcuts:**
+     * When an authenticated manager/owner views their own trip on `/dive-trips/:id`, an operator banner appears with:
+       * **`[ Operations Dashboard ]`** $\rightarrow$ routes directly to `/manage/centers/:centerId/trips/:tripId` (Manifest, Gear Check, Crate Loadout).
+       * **`[ Copy Direct Booking Link ]`** $\rightarrow$ copies `/book/:slotId` for sharing via WhatsApp, email, or social media.
+     * Inside `/diving-centers/:id?tab=manage`, the "Trips" panel provides direct links to both the public trip page and the operations console.
+  5. **Unified Trip Creation Flow (`/dive-trips/create`):**
+     * Adds an *"Enable Online Booking & Paperwork (OCTO)"* toggle.
+     * When enabled, prompts for vessel capacity and departure schedule to simultaneously provision both the public discovery page and the bookable slot.
+  6. **URL Architectural Standard (Option A):**
+     * Standardizes `/manage/centers/:centerId/trips/:tripId` for center operations (isolated B2B workspace analogous to `/admin` for platform administrators).
+
 ---
 
 ## 8. API Specification

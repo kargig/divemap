@@ -72,6 +72,8 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
                                     ▼ (Builds on complete operational platform)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  Phase 6: Advanced Operations & Divemap Ecosystem Synergy              │
+│  • Public discovery bridge (/dive-trips <-> /book/:slotId)             │
+│  • Center operator shortcuts (/dive-trips/:id -> /manage/... ops)      │
 │  • Multi-day passes & multi-session courses (octo/packages)            │
 │  • Hotel & resort shuttle pickup logistics (octo/pickups)              │
 │  • Physical rental equipment inventory stock quotas                    │
@@ -92,7 +94,7 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 | **Phase 3** | **Center Operations Dashboard [DONE]** | Live boat roster, participant walk-ins/edits/cancellations, crate packing checklist, DIN/Yoke valve adapter alerts, weight system breakdown, medical safety gates, Port Authority manifest export, and emergency incident dossier PDF. | [`phase-3-center-operations-dashboard.md`](phase-3-center-operations-dashboard.md) |
 | **Phase 4** | **Pre-Dive Briefing Pipeline [DONE]** | Automated weather & site intelligence synthesis, manager review UI, and AWS SQS PDF email dispatch. | [`phase-4-pre-dive-briefing-pipeline.md`](phase-4-pre-dive-briefing-pipeline.md) |
 | **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, guest claim magic-links, youth releases, Nitrox analyzer logs, and buddy team pairing. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) |
-| **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), equipment stock quotas, offline PWA, and automatic post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) |
+| **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Public discovery bridge (`/dive-trips` $\leftrightarrow$ `/book/:slotId`), center ops shortcuts (`/manage/...`), multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), equipment quotas, offline PWA, and automatic post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) |
 
 ---
 
