@@ -6,7 +6,13 @@ import enum
 import nh3
 
 # Import auth schemas
-from .auth import PasswordResetRequest, PasswordResetConfirm
+from .auth import (
+    PasswordResetRequest,
+    PasswordResetConfirm,
+    AuthConfigResponse,
+    GoogleProviderConfig,
+    FacebookProviderConfig,
+)
 from .pats import PATCreate, PATResponse, PATCreateResponse
 from .diving_centers import CenterMediaResponse
 

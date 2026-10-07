@@ -4,7 +4,16 @@ class FacebookAuth {
     this.isInitialized = false;
   }
 
-  async initialize() {
+  setAppId(appId) {
+    if (appId && appId !== 'undefined') {
+      this.appId = appId;
+    }
+  }
+
+  async initialize(customAppId) {
+    if (customAppId && customAppId !== 'undefined') {
+      this.appId = customAppId;
+    }
     if (this.isInitialized || typeof window === 'undefined') return;
 
     return new Promise(resolve => {
@@ -34,7 +43,10 @@ class FacebookAuth {
     });
   }
 
-  async signIn() {
+  async signIn(customAppId) {
+    if (customAppId && customAppId !== 'undefined') {
+      this.appId = customAppId;
+    }
     if (!this.appId || this.appId === 'undefined') {
       throw new Error('Facebook App ID not configured.');
     }

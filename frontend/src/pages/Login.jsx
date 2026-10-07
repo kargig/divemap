@@ -11,6 +11,7 @@ import Logo from '../components/Logo';
 import SEO from '../components/SEO';
 import Turnstile from '../components/Turnstile';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthConfig } from '../hooks/useAuthConfig';
 import { formatDateForError } from '../utils/dateFormatting';
 import { facebookAuth } from '../utils/facebookAuth';
 import { createResolver } from '../utils/formHelpers';
@@ -48,9 +49,20 @@ const Login = () => {
   const [isBackendReady, setIsBackendReady] = useState(false);
 
   const { login: authLogin, loginWithGoogle, loginWithFacebook } = useAuth();
+  const { data: authConfig } = useAuthConfig();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || location.state?.from || '/';
+
+  const fbAppId = authConfig?.facebook?.app_id || import.meta.env.VITE_FACEBOOK_APP_ID;
+  const isFacebookEnabled = Boolean(
+    authConfig?.facebook?.enabled && fbAppId && fbAppId !== 'undefined'
+  );
+
+  const googleClientId = authConfig?.google?.client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isGoogleEnabled = Boolean(
+    authConfig ? authConfig.google?.enabled : googleClientId && googleClientId !== 'undefined'
+  );
 
   const methods = useForm({
     resolver: createResolver(loginSchema),
@@ -104,7 +116,7 @@ const Login = () => {
   const handleFacebookLogin = useCallback(async () => {
     setFacebookLoading(true);
     try {
-      const token = await facebookAuth.signIn();
+      const token = await facebookAuth.signIn(fbAppId);
       const success = await loginWithFacebook(token);
       if (success) {
         navigate(getSafeRedirect(from), { replace: true });
@@ -114,7 +126,7 @@ const Login = () => {
     } finally {
       setFacebookLoading(false);
     }
-  }, [loginWithFacebook, navigate, from]);
+  }, [loginWithFacebook, navigate, from, fbAppId]);
 
   const handleTurnstileVerify = token => {
     setTurnstileToken(token);
@@ -161,12 +173,9 @@ const Login = () => {
   }, []);
 
   useEffect(() => {
-    // Initialize Google Sign-In button only if client ID is configured
+    // Initialize Google Sign-In button only if client ID is configured and enabled
     const initializeGoogleSignIn = async () => {
-      if (
-        !import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-        import.meta.env.VITE_GOOGLE_CLIENT_ID === 'undefined'
-      ) {
+      if (!isGoogleEnabled || !googleClientId) {
         return;
       }
 
@@ -180,7 +189,7 @@ const Login = () => {
     };
 
     initializeGoogleSignIn();
-  }, [handleGoogleSuccess, handleGoogleError]);
+  }, [handleGoogleSuccess, handleGoogleError, isGoogleEnabled, googleClientId]);
 
   const onSubmit = async data => {
     // Only require Turnstile verification if it's enabled
@@ -244,42 +253,35 @@ const Login = () => {
           <FormProvider {...methods}>
             <form className='mt-8 space-y-6' onSubmit={handleSubmit(onSubmit)}>
               {/* Social Sign-In Options */}
-              {((import.meta.env.VITE_GOOGLE_CLIENT_ID &&
-                import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined') ||
-                (import.meta.env.VITE_FACEBOOK_APP_ID &&
-                  import.meta.env.VITE_FACEBOOK_APP_ID !== 'undefined')) && (
+              {(isGoogleEnabled || isFacebookEnabled) && (
                 <div
                   className={`w-full max-w-[400px] mx-auto space-y-3 transition-opacity duration-200 ${
                     !isBackendReady ? 'opacity-50 pointer-events-none' : ''
                   }`}
                 >
-                  {import.meta.env.VITE_GOOGLE_CLIENT_ID &&
-                    import.meta.env.VITE_GOOGLE_CLIENT_ID !== 'undefined' && (
-                      <div
-                        id='google-signin-button'
-                        className='w-full flex justify-center'
-                        style={{ minHeight: '40px' }}
-                      ></div>
-                    )}
+                  {isGoogleEnabled && (
+                    <div
+                      id='google-signin-button'
+                      className='w-full flex justify-center'
+                      style={{ minHeight: '40px' }}
+                    ></div>
+                  )}
 
-                  {import.meta.env.VITE_FACEBOOK_APP_ID &&
-                    import.meta.env.VITE_FACEBOOK_APP_ID !== 'undefined' && (
-                      <div className='w-full flex justify-center'>
-                        <button
-                          type='button'
-                          onClick={handleFacebookLogin}
-                          disabled={!isBackendReady || facebookLoading}
-                          className='w-full max-w-[400px] h-[40px] flex items-center justify-center gap-3 px-4 border border-transparent rounded-[4px] shadow-sm text-sm font-medium text-white bg-[#1877F2] hover:bg-[#166FE5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1877F2] transition-colors'
-                        >
-                          <svg className='w-5 h-5 fill-current shrink-0' viewBox='0 0 24 24'>
-                            <path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' />
-                          </svg>
-                          <span>
-                            {facebookLoading ? 'Connecting...' : 'Continue with Facebook'}
-                          </span>
-                        </button>
-                      </div>
-                    )}
+                  {isFacebookEnabled && (
+                    <div className='w-full flex justify-center'>
+                      <button
+                        type='button'
+                        onClick={handleFacebookLogin}
+                        disabled={!isBackendReady || facebookLoading}
+                        className='w-full max-w-[400px] h-[40px] flex items-center justify-center gap-3 px-4 border border-transparent rounded-[4px] shadow-sm text-sm font-medium text-white bg-[#1877F2] hover:bg-[#166FE5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1877F2] transition-colors'
+                      >
+                        <svg className='w-5 h-5 fill-current shrink-0' viewBox='0 0 24 24'>
+                          <path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z' />
+                        </svg>
+                        <span>{facebookLoading ? 'Connecting...' : 'Continue with Facebook'}</span>
+                      </button>
+                    </div>
+                  )}
 
                   <div className='relative flex items-center justify-center mt-4 mb-2'>
                     <div className='absolute inset-0 flex items-center' aria-hidden='true'>

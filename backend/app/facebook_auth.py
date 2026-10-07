@@ -5,7 +5,7 @@ import hashlib
 import secrets
 import logging
 import requests
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.models import User
 from app.schemas import AvatarType
@@ -26,6 +26,12 @@ def is_facebook_auth_configured() -> bool:
         app_id and app_id.strip()
         and app_secret and app_secret.strip()
     )
+
+def get_facebook_app_id() -> Optional[str]:
+    """Get Facebook App ID if Facebook auth is fully configured."""
+    if is_facebook_auth_configured():
+        return os.getenv("FACEBOOK_APP_ID", "").strip()
+    return None
 
 def _compute_appsecret_proof(token: str, app_secret: str) -> str:
     """HMAC-SHA256 of the access token using the app secret (Meta appsecret_proof)."""
