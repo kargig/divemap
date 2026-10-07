@@ -22,10 +22,21 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 # Set up logging
 logger = logging.getLogger(__name__)
 
+def is_google_auth_configured() -> bool:
+    """Check if Google OAuth is configured."""
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    return bool(client_id and client_id.strip())
+
+def get_google_client_id() -> Optional[str]:
+    """Get Google OAuth client ID if configured."""
+    if is_google_auth_configured():
+        return os.getenv("GOOGLE_CLIENT_ID", "").strip()
+    return None
+
 # Validate Google OAuth configuration (only when actually using Google OAuth)
 def validate_google_config():
     """Validate that Google OAuth configuration is available"""
-    if not GOOGLE_CLIENT_ID:
+    if not is_google_auth_configured():
         logger.error("GOOGLE_CLIENT_ID environment variable is not set")
         raise ValueError("GOOGLE_CLIENT_ID environment variable is required for Google OAuth")
 

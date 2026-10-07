@@ -4,6 +4,7 @@ from app.facebook_auth import (
     verify_facebook_token,
     get_or_create_facebook_user,
     is_facebook_auth_configured,
+    get_facebook_app_id,
     FacebookAuthError
 )
 from app.models import User, NotificationPreference
@@ -28,6 +29,19 @@ def test_is_facebook_auth_configured(monkeypatch):
     monkeypatch.setenv("FACEBOOK_APP_ID", "123456789")
     monkeypatch.setenv("FACEBOOK_APP_SECRET", "secret_value")
     assert is_facebook_auth_configured() is True
+
+def test_get_facebook_app_id(monkeypatch):
+    monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
+    monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+    assert get_facebook_app_id() is None
+
+    monkeypatch.setenv("FACEBOOK_APP_ID", "123456789")
+    monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+    assert get_facebook_app_id() is None
+
+    monkeypatch.setenv("FACEBOOK_APP_ID", "123456789")
+    monkeypatch.setenv("FACEBOOK_APP_SECRET", "secret_value")
+    assert get_facebook_app_id() == "123456789"
 
 def test_verify_facebook_token_not_configured(monkeypatch):
     monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)

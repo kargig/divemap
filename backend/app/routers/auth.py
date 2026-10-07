@@ -15,7 +15,8 @@ from app.database import get_db
 from app.models import User, EmailVerificationToken, PasswordResetToken, RefreshToken, AuthAuditLog
 from app.schemas import (
     UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse,
-    ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm
+    ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm,
+    AuthConfigResponse, GoogleProviderConfig, FacebookProviderConfig
 )
 from app.auth import (
     authenticate_user,
@@ -24,8 +25,20 @@ from app.auth import (
     validate_password_strength
 )
 from app.token_service import token_service
-from app.google_auth import authenticate_google_user, verify_google_token, get_or_create_google_user
-from app.facebook_auth import verify_facebook_token, get_or_create_facebook_user, is_facebook_auth_configured, FacebookAuthError
+from app.google_auth import (
+    authenticate_google_user,
+    verify_google_token,
+    get_or_create_google_user,
+    is_google_auth_configured,
+    get_google_client_id,
+)
+from app.facebook_auth import (
+    verify_facebook_token,
+    get_or_create_facebook_user,
+    is_facebook_auth_configured,
+    get_facebook_app_id,
+    FacebookAuthError,
+)
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.turnstile_service import TurnstileService
 from app.services.email_verification_service import email_verification_service
@@ -49,6 +62,27 @@ class GoogleLoginRequest(BaseModel):
 
 class FacebookLoginRequest(BaseModel):
     token: str
+
+@router.get("/config", response_model=AuthConfigResponse)
+def get_auth_config(response: Response):
+    """
+    Get public OAuth configuration indicating which third-party providers are enabled.
+    Returns enabled state and public client/app IDs without sensitive secrets.
+    """
+    response.headers["Cache-Control"] = "public, max-age=60"
+    fb_configured = is_facebook_auth_configured()
+    google_configured = is_google_auth_configured()
+
+    return AuthConfigResponse(
+        google=GoogleProviderConfig(
+            enabled=google_configured,
+            client_id=get_google_client_id() if google_configured else None,
+        ),
+        facebook=FacebookProviderConfig(
+            enabled=fb_configured,
+            app_id=get_facebook_app_id() if fb_configured else None,
+        ),
+    )
 
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):

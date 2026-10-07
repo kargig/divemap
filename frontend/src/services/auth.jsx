@@ -62,6 +62,15 @@ export const googleLogin = async token => {
 };
 
 /**
+ * Get authentication configuration indicating enabled third-party providers
+ * @returns {Promise<{google: {enabled: boolean, client_id?: string}, facebook: {enabled: boolean, app_id?: string}}>}
+ */
+export const getAuthConfig = async () => {
+  const response = await api.get('/api/v1/auth/config');
+  return response.data;
+};
+
+/**
  * Log in or register with Facebook
  * @param {string} token - Facebook access token
  * @returns {Promise<Object>} Response data containing access_token

@@ -1122,3 +1122,56 @@ class TestDivingCenterAuthorization:
             PasswordResetToken.user_id == user.id
         ).first()
         assert token is not None
+
+    def test_get_auth_config_default(self, client, monkeypatch):
+        """Test GET /api/v1/auth/config when neither provider is configured."""
+        monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
+        monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+        monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+
+        response = client.get("/api/v1/auth/config")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["facebook"]["enabled"] is False
+        assert data["facebook"]["app_id"] is None
+        assert data["google"]["enabled"] is False
+        assert data["google"]["client_id"] is None
+        assert "public, max-age=60" in response.headers.get("Cache-Control", "")
+
+    def test_get_auth_config_with_facebook_configured(self, client, monkeypatch):
+        """Test GET /api/v1/auth/config when Facebook is fully configured."""
+        monkeypatch.setenv("FACEBOOK_APP_ID", "fb_test_app_123")
+        monkeypatch.setenv("FACEBOOK_APP_SECRET", "fb_test_secret_456")
+        monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+
+        response = client.get("/api/v1/auth/config")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["facebook"]["enabled"] is True
+        assert data["facebook"]["app_id"] == "fb_test_app_123"
+        assert data["google"]["enabled"] is False
+
+    def test_get_auth_config_facebook_disabled_when_secret_missing(self, client, monkeypatch):
+        """Test GET /api/v1/auth/config when Facebook has App ID but missing App Secret."""
+        monkeypatch.setenv("FACEBOOK_APP_ID", "fb_test_app_123")
+        monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+
+        response = client.get("/api/v1/auth/config")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["facebook"]["enabled"] is False
+        assert data["facebook"]["app_id"] is None
+
+    def test_get_auth_config_with_google_configured(self, client, monkeypatch):
+        """Test GET /api/v1/auth/config when Google is configured."""
+        monkeypatch.setenv("GOOGLE_CLIENT_ID", "google_test_client_id_789")
+        monkeypatch.delenv("FACEBOOK_APP_ID", raising=False)
+        monkeypatch.delenv("FACEBOOK_APP_SECRET", raising=False)
+
+        response = client.get("/api/v1/auth/config")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["google"]["enabled"] is True
+        assert data["google"]["client_id"] == "google_test_client_id_789"
+        assert data["facebook"]["enabled"] is False
+
