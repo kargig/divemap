@@ -410,7 +410,7 @@ const TripParticipantDetailsPage = () => {
                   </strong>
                 </div>
                 <div className='flex justify-between py-1 border-b border-gray-50 dark:border-gray-750'>
-                  <span className='text-gray-500'>C-Card #:</span>
+                  <span className='text-gray-500'>Cert Card # (Physical/App):</span>
                   <strong className='text-gray-900 dark:text-white font-mono'>
                     {diver.certification_number || 'N/A'}
                   </strong>

@@ -13,6 +13,9 @@ import {
   X,
   Upload,
   CheckCircle,
+  Sparkles,
+  ClipboardList,
+  ShieldCheck,
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -535,7 +538,33 @@ const TripDetail = () => {
         />
       )}
 
-      <div className='flex justify-end items-center space-x-2 mb-4'>
+      <div className='flex flex-wrap justify-end items-center gap-2 mb-4'>
+        {trip.is_bookable && trip.octo_slot_id && (
+          <Button
+            to={`/book/${trip.octo_slot_id}`}
+            variant='primary'
+            size='sm'
+            icon={<Sparkles className='h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-200' />}
+            className='!bg-emerald-600 hover:!bg-emerald-700 !text-white font-bold'
+          >
+            Book Online{' '}
+            {trip.base_price
+              ? `(${trip.base_price.toFixed(2)} ${trip.trip_currency || 'EUR'})`
+              : ''}
+          </Button>
+        )}
+
+        {shouldShowManage && trip.octo_slot_id && (
+          <Button
+            to={`/manage/centers/${trip.diving_center_id}/trips/${trip.octo_slot_id}`}
+            variant='secondary'
+            size='sm'
+            icon={<ClipboardList className='h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600' />}
+          >
+            Operations & Manifest
+          </Button>
+        )}
+
         {/* Share Button (everyone can see) */}
         <Button
           onClick={() => {
@@ -668,11 +697,101 @@ const TripDetail = () => {
           {activeTab === 'booking' && (
             <div className='space-y-4 sm:space-y-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-3'>Book This Trip</h3>
+
+              {trip.is_bookable && trip.octo_slot_id && (
+                <div className='bg-white border-2 border-emerald-500 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100'>
+                    <div>
+                      <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 mb-2'>
+                        <Sparkles className='w-3.5 h-3.5 mr-1 text-emerald-600' /> Instant Online
+                        Booking
+                      </span>
+                      <h4 className='text-2xl font-black text-gray-900'>
+                        Reserve Your Seat Online
+                      </h4>
+                      <p className='text-sm text-gray-500 mt-1'>
+                        Guaranteed spot confirmation with digital check-in and automated dockside
+                        roster.
+                      </p>
+                    </div>
+
+                    <div className='text-left sm:text-right bg-emerald-50/60 sm:bg-transparent p-4 sm:p-0 rounded-xl'>
+                      <span className='text-xs text-gray-500 font-medium block'>Starting From</span>
+                      <span className='text-2xl sm:text-3xl font-black text-gray-900'>
+                        {trip.base_price ? trip.base_price.toFixed(2) : trip.trip_price || '60.00'}{' '}
+                        {trip.trip_currency || 'EUR'}
+                      </span>
+                      <span className='text-xs text-emerald-700 font-semibold block mt-0.5'>
+                        {trip.seats_available !== undefined && trip.seats_available !== null
+                          ? `${trip.seats_available} spots remaining`
+                          : 'Seats available'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600'>
+                    <div className='flex items-start space-x-3'>
+                      <CheckCircle className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                      <div>
+                        <strong className='text-gray-900 block'>Equipment Options</strong>
+                        <span>
+                          Bring your own dive gear or add rental equipment during checkout.
+                        </span>
+                      </div>
+                    </div>
+                    <div className='flex items-start space-x-3'>
+                      <ShieldCheck className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                      <div>
+                        <strong className='text-gray-900 block'>Paperwork Online</strong>
+                        <span>
+                          Pre-fill encrypted medical questionnaires and sign legal waivers.
+                        </span>
+                      </div>
+                    </div>
+                    <div className='flex items-start space-x-3'>
+                      <Ticket className='w-5 h-5 text-emerald-600 shrink-0 mt-0.5' />
+                      <div>
+                        <strong className='text-gray-900 block'>Pay on Arrival</strong>
+                        <span>Reserve now without prepayment and settle at the dive center.</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className='pt-2 flex flex-col sm:flex-row items-center gap-4'>
+                    <Button
+                      to={`/book/${trip.octo_slot_id}`}
+                      variant='primary'
+                      size='lg'
+                      className='w-full sm:w-auto !bg-emerald-600 hover:!bg-emerald-700 !text-white font-bold text-base px-8 py-3.5 shadow-md flex items-center justify-center'
+                    >
+                      <Sparkles className='w-5 h-5 mr-2' />
+                      Proceed to Booking Wizard
+                    </Button>
+
+                    {shouldShowManage && (
+                      <Button
+                        to={`/manage/centers/${trip.diving_center_id}/trips/${trip.octo_slot_id}`}
+                        variant='secondary'
+                        size='lg'
+                        className='w-full sm:w-auto flex items-center justify-center'
+                      >
+                        <ClipboardList className='w-4 h-4 mr-2 text-blue-600' />
+                        View Manifest & Operations
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className='bg-blue-50 border border-blue-200 rounded-lg p-6'>
                 <div className='text-center'>
-                  <h4 className='text-lg font-medium text-blue-900 mb-2'>Ready to Book?</h4>
+                  <h4 className='text-lg font-medium text-blue-900 mb-2'>
+                    {trip.is_bookable ? 'Questions Before Booking?' : 'Ready to Book?'}
+                  </h4>
                   <p className='text-blue-700 mb-4'>
-                    Contact the diving center directly to book this trip and get more information.
+                    {trip.is_bookable
+                      ? 'You can contact the diving center directly for custom requests, questions, or private boat charters.'
+                      : 'Contact the diving center directly to book this trip and get more information.'}
                   </p>
                   {divingCenter ? (
                     <div className='space-y-3'>

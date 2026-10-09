@@ -8,6 +8,7 @@ import {
   Edit,
   X,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -161,15 +162,31 @@ const TripCard = ({
                     <span>{tripName}</span>
                   )}
                 </h3>
-                <p className='hidden sm:block text-gray-600 text-xs'>
-                  {trip.trip_date
-                    ? formatDate(trip.trip_date, {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })
-                    : 'N/A'}
-                </p>
+                <div className='flex flex-wrap items-center gap-2 mt-0.5'>
+                  <p className='text-gray-600 text-xs'>
+                    {trip.trip_date
+                      ? formatDate(trip.trip_date, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : 'N/A'}
+                  </p>
+                  {trip.is_bookable && trip.octo_slot_id && (
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200'>
+                      <Sparkles className='w-3 h-3 mr-1 text-emerald-600' /> Instant Booking
+                    </span>
+                  )}
+                  {trip.is_bookable &&
+                    trip.seats_available !== undefined &&
+                    trip.seats_available !== null && (
+                      <span className='inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded'>
+                        {trip.seats_available > 0
+                          ? `${trip.seats_available} seats left`
+                          : 'Fully booked'}
+                      </span>
+                    )}
+                </div>
               </div>
             </div>
             {user && (
@@ -447,25 +464,45 @@ const TripCard = ({
               )}
             </div>
 
-            {user && (
+            <div className='ml-auto flex items-center space-x-2 shrink-0'>
+              {trip.is_bookable && trip.octo_slot_id && (
+                <Link
+                  to={`/book/${trip.octo_slot_id}`}
+                  className='inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors'
+                >
+                  Book Now
+                </Link>
+              )}
               <Link
                 to={tripUrl}
-                className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
+                className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
                 title='View Trip Details'
               >
                 <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
               </Link>
-            )}
+            </div>
           </div>
         )}
 
         {isGrid && (
-          <Link
-            to={tripUrl}
-            className='mt-auto w-full text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-colors text-sm'
-          >
-            View Trip
-          </Link>
+          <div className='mt-auto flex items-center gap-2 pt-2'>
+            {trip.is_bookable && trip.octo_slot_id && (
+              <Link
+                to={`/book/${trip.octo_slot_id}`}
+                className='flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition-colors text-sm'
+              >
+                Book Now
+              </Link>
+            )}
+            <Link
+              to={tripUrl}
+              className={`${
+                trip.is_bookable && trip.octo_slot_id ? 'flex-1' : 'w-full'
+              } text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-colors text-sm`}
+            >
+              View Trip
+            </Link>
+          </div>
         )}
       </div>
     </div>

@@ -258,56 +258,11 @@ IndexedDB synchronization.
 
 ---
 
-### Task 6.7: Public Discovery & Native Booking Bridge (/dive-trips <-> OCTO Workflows)
+### Task 6.7: Public Discovery & Native Booking Bridge (/dive-trips <-> OCTO Workflows) [MOVED TO PHASE 4.5]
 
-**Files:**
-- Modify: `backend/app/models.py` (link `ParsedDiveTrip` to `OctoAvailabilitySlot`)
-- Modify: `backend/app/routers/newsletters.py` / `trips.py` (expose booking metadata: `is_bookable`, `slot_id`, `seats_available`, `base_price`)
-- Modify: `frontend/src/components/TripCard.jsx` (render online booking badge and remaining seats)
-- Modify: `frontend/src/pages/TripDetail.jsx` (replace static mailto: with direct "Book This Trip" button to `/book/:slotId`)
-- Modify: `frontend/src/pages/DivingCenterDetail.jsx` (add operations shortcuts to `/manage/centers/:centerId/trips/:tripId`)
-- Modify: `frontend/src/pages/CreateTrip.jsx` (add "Enable Online Booking (OCTO)" toggle)
-- Test: `backend/tests/test_trip_octo_bridge.py`
+> **Note:** This task was prioritized and expanded into **Phase 4.5: Core Discovery, Center Hub & Public Booking Bridge** (`docs/superpowers/plans/phase-4-5-booking-system-public-discovery-bridge.md`) to establish full operational connectivity before advanced safety gates and offline PWA syncing.
 
-**Interfaces:**
-- Consumes: `ParsedDiveTrip`, `OctoAvailabilitySlot`, `OctoProduct`.
-- Produces: Public bookable trip listings, direct checkout redirects, and operator dashboard management shortcuts.
-
-- [ ] **Step 1: Write integration tests for ParsedDiveTrip <-> OctoAvailabilitySlot bridge**
-
-Create `backend/tests/test_trip_octo_bridge.py` verifying that:
-1. When a `ParsedDiveTrip` has an `octo_slot_id`, the public trip GET endpoint returns `is_bookable: true`, `slot_id`, `seats_available`, and `base_price`.
-2. When no slot is linked, `is_bookable: false` is returned.
-
-- [ ] **Step 2: Add `octo_slot_id` to `ParsedDiveTrip` model & migration**
-
-Link `ParsedDiveTrip.octo_slot_id = Column(String(36), ForeignKey("octo_availability_slots.id", ondelete="SET NULL"), nullable=True, index=True)`.
-
-- [ ] **Step 3: Update `TripCard.jsx` for `/dive-trips` exploration**
-
-If `trip.is_bookable === true`, render:
-- **`✓ Instant Online Booking`** pill badge
-- Live seat indicator: `X Seats Left`
-- Direct link to `/dive-trips/:id/:slug` or immediate `/book/:slotId` shortcut
-
-- [ ] **Step 4: Update `TripDetail.jsx` on `/dive-trips/:id/:slug`**
-
-Replace the legacy static `mailto:` box on the Booking tab with:
-- Prominent primary CTA button: **"Book This Trip"** routing to `/book/${trip.slot_id}`.
-- Highlights card: Required certification level (e.g. *SSI OWD*), real-time seats remaining, equipment rental available.
-- Operator Banner: If the authenticated user is the owner/manager of the center:
-  - Button **`[ Operations Dashboard ]`** $\rightarrow$ `/manage/centers/${centerId}/trips/${tripId}`
-  - Button **`[ Copy Direct Booking Link ]`** $\rightarrow$ copies `/book/${slotId}` to clipboard
-
-- [ ] **Step 5: Update `DivingCenterDetail.jsx` (Management Tab)**
-
-Under the center's `?tab=manage` Trips panel, render links to both the public trip view and the `/manage/centers/:id/trips/:tripId` operations console.
-
-- [ ] **Step 6: Update `CreateTrip.jsx`**
-
-Add an *"Enable Online Booking (OCTO)"* toggle allowing center staff to configure vessel capacity and departure time to automatically provision both the public exploration listing and the operations slot.
-
-- [ ] **Step 7: Run frontend lint and browser verification**
+---
 
 Verify `/dive-trips`, `/dive-trips/:id/:slug`, and `/diving-centers/:id?tab=manage` via Chrome DevTools MCP with zero console errors.
 

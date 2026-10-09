@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Compass,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from 'react-query';
@@ -92,6 +93,7 @@ const DiveTrips = () => {
       max_price: searchParams.get('max_price') || '',
       difficulty_code: searchParams.get('difficulty_code') || '',
       exclude_unspecified_difficulty: searchParams.get('exclude_unspecified_difficulty') === 'true',
+      bookable_only: searchParams.get('bookable_only') === 'true',
       search_query: searchParams.get('search') || '',
       country: searchParams.get('country') || '',
       region: searchParams.get('region') || '',
@@ -201,6 +203,7 @@ const DiveTrips = () => {
     if (filters.max_price) count++;
     if (filters.difficulty_code) count++;
     if (filters.exclude_unspecified_difficulty) count++;
+    if (filters.bookable_only) count++;
     return count;
   };
 
@@ -796,6 +799,26 @@ const DiveTrips = () => {
             </div>
           </div>
         )}
+
+        {/* Quick Filter: Instant Online Booking */}
+        <div className='flex items-center gap-2 mt-4 mb-2'>
+          <button
+            type='button'
+            onClick={() => handleFilterChange('bookable_only', !filters.bookable_only)}
+            className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
+              filters.bookable_only
+                ? 'bg-emerald-600 text-white shadow-emerald-200'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Sparkles
+              className={`w-3.5 h-3.5 mr-1.5 ${
+                filters.bookable_only ? 'text-white' : 'text-emerald-500'
+              }`}
+            />
+            Instant Online Booking Only
+          </button>
+        </div>
 
         {/* Content */}
         {isLoading && (

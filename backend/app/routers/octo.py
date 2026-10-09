@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.auth import get_current_user_optional
 from app.models import (
+    User,
     DivingCenter,
     DivingCenterBookingSettings,
     OctoProduct,
@@ -281,7 +283,11 @@ def query_availability(query: OctoAvailabilityRequest, db: Session = Depends(get
     return res
 
 @router.post("/bookings", response_model=OctoBookingResponse, status_code=status.HTTP_201_CREATED)
-def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
+def create_booking_hold(
+    req: OctoBookingRequest,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
     """Holds seats in an availability slot and creates a booking in ON_HOLD status."""
     needed_seats = len(req.unitItems)
     if needed_seats <= 0:
@@ -335,8 +341,15 @@ def create_booking_hold(req: OctoBookingRequest, db: Session = Depends(get_db)):
     booking_uuid = str(uuid.uuid4())
     expiration = datetime.now(timezone.utc) + timedelta(minutes=hold_minutes)
 
+    user_id = current_user.id if current_user else None
+    if not user_id and req.contact and req.contact.email:
+        user_by_email = db.query(User).filter(User.email == req.contact.email.strip().lower()).first()
+        if user_by_email:
+            user_id = user_by_email.id
+
     booking = OctoBooking(
         uuid=booking_uuid,
+        user_id=user_id,
         diving_center_id=product.diving_center_id,
         product_id=product.id,
         option_id=req.optionId,
@@ -439,7 +452,12 @@ def get_booking_details(booking_uuid: str, db: Session = Depends(get_db)):
     )
 
 @router.post("/bookings/{booking_uuid}/confirm", response_model=OctoBookingResponse)
-def confirm_booking(booking_uuid: str, req: Optional[OctoConfirmBookingRequest] = None, db: Session = Depends(get_db)):
+def confirm_booking(
+    booking_uuid: str,
+    req: Optional[OctoConfirmBookingRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
@@ -454,8 +472,22 @@ def confirm_booking(booking_uuid: str, req: Optional[OctoConfirmBookingRequest] 
     if req and req.notes:
         booking.booking_notes = req.notes
 
+    if not booking.user_id:
+        if current_user:
+            booking.user_id = current_user.id
+        elif booking.contact_email:
+            u = db.query(User).filter(User.email == booking.contact_email.strip().lower()).first()
+            if u:
+                booking.user_id = u.id
+
     booking.status = "CONFIRMED"
     booking.utc_hold_expiration = None
+
+    # Sync current_bookings count on linked ParsedDiveTrip
+    if booking.slot and booking.slot.dive_trip:
+        trip = booking.slot.dive_trip
+        trip.current_bookings = (trip.current_bookings or 0) + len(booking.unit_items)
+
     db.commit()
     db.refresh(booking)
 

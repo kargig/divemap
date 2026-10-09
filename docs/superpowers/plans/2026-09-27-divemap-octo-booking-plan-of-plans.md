@@ -58,6 +58,16 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 │  • Async PDF compilation & SES email dispatch via AWS SQS queue        │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
+                                    ▼ (Connects isolated booking engine to core app)
+┌────────────────────────────────────────────────────────────────────────┐
+│  Phase 4.5: Core Discovery, Center Hub & Public Booking Bridge         │
+│  • Link ParsedDiveTrip to OctoAvailabilitySlot (octo_slot_id)          │
+│  • Auto-provisioning OCTO product/option/slot on trip creation/update  │
+│  • Center manager portal: /diving-centers/:id/manage & /trips-summary  │
+│  • Public discovery badges & instant booking CTA on /dive-trips        │
+│  • Customer reservations dashboard at /profile/bookings                │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
                                     ▼ (Enhances bookings with advanced validation)
 ┌────────────────────────────────────────────────────────────────────────┐
 │  Phase 5: Scuba Safety Gates & Multi-Party Group Workflows             │
@@ -93,6 +103,7 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 | **Phase 2** | **Minimal Viable Booking Engine** | Core OCTO 1.0 API, catalog, availability, hold/confirm booking lifecycle, and diver checkout wizard. | [`phase-2-mvp-booking-engine.md`](phase-2-mvp-booking-engine.md) |
 | **Phase 3** | **Center Operations Dashboard [DONE]** | Live boat roster, participant walk-ins/edits/cancellations, crate packing checklist, DIN/Yoke valve adapter alerts, weight system breakdown, medical safety gates, Port Authority manifest export, and emergency incident dossier PDF. | [`phase-3-center-operations-dashboard.md`](phase-3-center-operations-dashboard.md) |
 | **Phase 4** | **Pre-Dive Briefing Pipeline [DONE]** | Automated weather & site intelligence synthesis, manager review UI, and AWS SQS PDF email dispatch. | [`phase-4-pre-dive-briefing-pipeline.md`](phase-4-pre-dive-briefing-pipeline.md) |
+| **Phase 4.5** | **Discovery, Center Hub & Booking Bridge [DONE]** | Linking `ParsedDiveTrip` to `OctoAvailabilitySlot`, dedicated manager portal at `/diving-centers/:id/manage`, public booking CTAs, and diver reservations hub at `/profile/bookings`. | [`phase-4-5-booking-system-public-discovery-bridge.md`](phase-4-5-booking-system-public-discovery-bridge.md) |
 | **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, guest claim magic-links, youth releases, Nitrox analyzer logs, and buddy team pairing. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) |
 | **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Public discovery bridge (`/dive-trips` $\leftrightarrow$ `/book/:slotId`), center ops shortcuts (`/manage/...`), multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), equipment quotas, offline PWA, and automatic post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) |
 

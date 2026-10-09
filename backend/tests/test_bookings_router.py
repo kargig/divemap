@@ -211,3 +211,12 @@ def test_get_booking_voucher(client: TestClient, booking_setup):
     assert "qrCodeData" in voucher
     assert voucher["paymentStatus"] == "PENDING_AT_CHECKIN"
     assert voucher["currency"] == "EUR"
+
+def test_download_booking_voucher_pdf(client: TestClient, booking_setup):
+    booking = booking_setup["booking"]
+    res = client.get(f"/api/v1/bookings/{booking.uuid}/voucher/pdf")
+    assert res.status_code == 200
+    assert "application/pdf" in res.headers["content-type"]
+    assert res.content[:4] == b"%PDF"
+    assert len(res.content) > 1000
+

@@ -47,6 +47,7 @@ const TripFormModal = ({
         trip_description: trip.trip_description || '',
         special_requirements: trip.special_requirements || '',
         trip_status: trip.trip_status || 'scheduled',
+        enable_online_booking: Boolean(trip.is_bookable),
         broadcast_to_followers: false,
         dives:
           trip.dives?.map((dive, index) => ({
@@ -72,6 +73,7 @@ const TripFormModal = ({
       trip_description: '',
       special_requirements: '',
       trip_status: 'scheduled',
+      enable_online_booking: false,
       dives: [],
     };
   };
@@ -509,6 +511,31 @@ const TripFormModal = ({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Instant Online Booking Section */}
+      <div className='p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl mt-4'>
+        <div className='flex items-start space-x-3'>
+          <input
+            type='checkbox'
+            id='enable-online-booking'
+            {...register('enable_online_booking')}
+            className='w-5 h-5 mt-0.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500'
+          />
+          <div>
+            <label
+              htmlFor='enable-online-booking'
+              className='text-sm font-bold text-gray-900 dark:text-white block cursor-pointer'
+            >
+              Enable Instant Online Booking on Divemap
+            </label>
+            <p className='text-xs text-gray-600 dark:text-gray-400 mt-0.5'>
+              Allows registered divers to book spots online, pre-fill gear sizing, complete
+              encrypted DMSC medical forms, and digitally sign legal waivers. Automatically
+              provisions your dockside boat manifest and crate packing loadouts.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Broadcast Option */}

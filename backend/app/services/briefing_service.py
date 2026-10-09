@@ -128,7 +128,7 @@ class BriefingService:
         meet_time = slot.option.meeting_time if (slot.option and slot.option.meeting_time) else "08:30"
         briefing.meeting_notes = (
             f"Meeting time at dive center is {meet_time} for roll call, equipment fitment, and paperwork check. "
-            f"Vessel departs prompt at {dep_time}. Please bring your certification C-Card, personal dive computer, "
+            f"Vessel departs prompt at {dep_time}. Please bring your scuba diving certification card (either physical or via an app), personal dive computer, "
             f"towel, sunscreen, and dry clothing."
         )
 

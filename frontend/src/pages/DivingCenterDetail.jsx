@@ -197,11 +197,19 @@ const DivingCenterDetail = () => {
   useEffect(() => {
     if (center && center.name) {
       const expectedSlug = getDivingCenterSlug(center);
+      if (searchParams.get('tab') === 'manage') {
+        navigate(`/diving-centers/${id}/${expectedSlug}/manage`, { replace: true });
+        return;
+      }
+      if (slug === 'manage') {
+        navigate(`/diving-centers/${id}/${expectedSlug}/manage`, { replace: true });
+        return;
+      }
       if (!slug || slug !== expectedSlug) {
         navigate(`/diving-centers/${id}/${expectedSlug}${location.search}`, { replace: true });
       }
     }
-  }, [center, id, slug, navigate, location.search]);
+  }, [center, id, slug, navigate, location.search, searchParams]);
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -879,16 +887,12 @@ const DivingCenterDetail = () => {
             Media
           </button>
           {shouldShowManage && (
-            <button
-              onClick={() => setActiveTab('manage')}
-              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
-                activeTab === 'manage'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm'
-              }`}
+            <Link
+              to={`/diving-centers/${id}/${slug || getDivingCenterSlug(center) || 'center'}/manage`}
+              className='px-4 py-2 text-sm font-bold rounded-xl transition-all bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm flex items-center'
             >
-              Management
-            </button>
+              Management Portal
+            </Link>
           )}
         </nav>
       </div>

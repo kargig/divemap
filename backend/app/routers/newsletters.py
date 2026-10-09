@@ -9,7 +9,7 @@ import os
 import requests
 import math
 from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive
+from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive, OctoAvailabilitySlot, OctoProduct
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
 from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
@@ -1388,6 +1388,7 @@ async def get_parsed_trips(
     location_query: Optional[str] = None,
     country: Optional[str] = Query(None, description="Filter by country (searches in dive sites and diving centers)"),
     region: Optional[str] = Query(None, description="Filter by region (searches in dive sites and diving centers)"),
+    bookable_only: Optional[bool] = Query(False, description="Filter for trips with instant online booking enabled"),
     sort_by: Optional[str] = "trip_date",
     sort_order: Optional[str] = "desc",
     user_lat: Optional[float] = None,
@@ -1426,9 +1427,13 @@ async def get_parsed_trips(
     query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
         joinedload(ParsedDiveTrip.diving_center),
+        joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
         selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
         selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
     )
+
+    if bookable_only:
+        query = query.filter(ParsedDiveTrip.is_bookable.is_(True), ParsedDiveTrip.octo_slot_id.isnot(None))
 
     # Date filtering
     if start_date:
@@ -1716,6 +1721,10 @@ async def get_parsed_trips(
             trip_description=td['trip'].trip_description,
             special_requirements=td['trip'].special_requirements,
             trip_status=td['trip'].trip_status.value,
+            is_bookable=bool(td['trip'].is_bookable and td['trip'].octo_slot_id),
+            octo_slot_id=td['trip'].octo_slot_id,
+            seats_available=td['trip'].octo_slot.seats_available if td['trip'].octo_slot else (td['trip'].group_size_limit - td['trip'].current_bookings if td['trip'].group_size_limit is not None else None),
+            base_price=float(td['trip'].octo_slot.base_price) if td['trip'].octo_slot else (float(td['trip'].trip_price) if td['trip'].trip_price is not None else None),
             diving_center_name=td['trip'].diving_center.name if td['trip'].diving_center else None,
             latitude=td['latitude'],
             longitude=td['longitude'],
@@ -2105,18 +2114,21 @@ async def create_parsed_trip(
     Admins and moderators can create trips for any diving center.
     Owners can create trips only for their own approved diving centers.
     """
-    # Check permissions first: admins/moderators can create trips, regular users cannot
+    # Check permissions first: admins/moderators can create trips, owners/managers can for their centers
     if not (current_user.is_admin or current_user.is_moderator):
-        # Check if user owns any approved diving centers
-        from app.models import OwnershipStatus
-        owned_centers = db.query(DivingCenter).filter(
-            and_(
-                DivingCenter.owner_id == current_user.id,
-                DivingCenter.ownership_status == OwnershipStatus.approved
+        # Check if user owns or manages any approved diving centers
+        from app.models import OwnershipStatus, DivingCenterManager
+        has_manageable_center = db.query(DivingCenter).filter(
+            or_(
+                and_(
+                    DivingCenter.owner_id == current_user.id,
+                    DivingCenter.ownership_status == OwnershipStatus.approved
+                ),
+                DivingCenter.managers.any(DivingCenterManager.user_id == current_user.id)
             )
-        ).count()
+        ).count() > 0
         
-        if owned_centers == 0:
+        if not has_manageable_center:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions"
@@ -2177,6 +2189,17 @@ async def create_parsed_trip(
         db.commit()
         db.refresh(trip)
 
+        if trip_data.enable_online_booking:
+            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            TripOctoProvisioningService().provision_or_sync_slot(
+                db=db,
+                trip=trip,
+                enable_booking=True,
+                base_price=float(trip_data.trip_price) if trip_data.trip_price is not None else None,
+                currency=trip_data.trip_currency,
+                seats_limit=trip_data.group_size_limit
+            )
+
         # Build the response with dives
         # We need to fetch dive sites with ratings/tags for accurate response
         db.commit()
@@ -2184,10 +2207,10 @@ async def create_parsed_trip(
         
         # Load the newly created trip with relations
         from app.models import SiteRating, DiveSiteTag, AvailableTag
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),
+            joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
             selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
             selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
         ).filter(ParsedDiveTrip.id == trip.id).first()
@@ -2226,6 +2249,10 @@ async def create_parsed_trip(
             trip_description=trip.trip_description,
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
+            is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+            octo_slot_id=trip.octo_slot_id,
+            seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
+            base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
             latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
             longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
@@ -2254,6 +2281,8 @@ async def get_parsed_trip(
     # Eager load difficulty relationship and dives collection to prevent N+1 queries
     trip = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
+        joinedload(ParsedDiveTrip.diving_center),
+        joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
         selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
     ).filter(ParsedDiveTrip.id == trip_id).first()
     if not trip:
@@ -2306,6 +2335,10 @@ async def get_parsed_trip(
         trip_description=trip.trip_description,
         special_requirements=trip.special_requirements,
         trip_status=trip.trip_status.value,
+        is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+        octo_slot_id=trip.octo_slot_id,
+        seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
+        base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
         diving_center_name=trip.diving_center.name if trip.diving_center else None,
         diving_center_country=trip.diving_center.country if trip.diving_center else None,
         diving_center_region=trip.diving_center.region if trip.diving_center else None,
@@ -2427,13 +2460,24 @@ async def update_parsed_trip(
         db.commit()
         db.refresh(trip)
 
+        if trip_data.enable_online_booking is not None:
+            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            TripOctoProvisioningService().provision_or_sync_slot(
+                db=db,
+                trip=trip,
+                enable_booking=trip_data.enable_online_booking,
+                base_price=float(trip.trip_price) if trip.trip_price is not None else None,
+                currency=trip.trip_currency,
+                seats_limit=trip.group_size_limit
+            )
+
         # Load the updated trip with relations
         db.commit()
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
         from app.models import SiteRating, DiveSiteTag, AvailableTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),
+            joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
             selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
             selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
         ).filter(ParsedDiveTrip.id == trip.id).first()
@@ -2473,6 +2517,10 @@ async def update_parsed_trip(
             trip_description=trip.trip_description,
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
+            is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+            octo_slot_id=trip.octo_slot_id,
+            seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
+            base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
             latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
             longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,

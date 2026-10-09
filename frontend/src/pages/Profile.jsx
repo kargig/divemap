@@ -36,12 +36,13 @@ import {
   Globe,
   FolderHeart,
   Loader2,
+  Ticket,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import api, {
   getUserPublicProfile,
@@ -80,6 +81,14 @@ const Profile = () => {
   const { user, updateUser, logout } = useAuth();
   const { data: authConfig } = useAuthConfig();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'bookings') {
+      navigate('/profile/bookings', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
   const isSyntheticEmail = Boolean(user?.email?.endsWith('.invalid'));
   const [isEditing, setIsEditing] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -1775,6 +1784,33 @@ const Profile = () => {
                 </Link>
               </div>
             </div>
+
+            {/* My Dive Bookings Section */}
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                <div className='flex items-start gap-3'>
+                  <div className='p-2.5 bg-indigo-50 text-indigo-600 rounded-xl mt-0.5 shrink-0'>
+                    <Ticket className='h-6 w-6' />
+                  </div>
+                  <div>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                      My Dive Bookings
+                    </h2>
+                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                      View upcoming reservations, access digital vouchers with QR check-in, and
+                      download pre-dive safety briefings.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to='/profile/bookings'
+                  className='inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-semibold shadow-sm transition-all text-sm shrink-0'
+                >
+                  View Bookings
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -1980,6 +2016,14 @@ const Profile = () => {
                     </span>
                   </div>
                 )}
+
+                <Link
+                  to='/profile/bookings'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                >
+                  <Ticket size={18} className='mr-3 text-gray-400' />
+                  My Bookings
+                </Link>
 
                 <Link
                   to='/profile/gear'

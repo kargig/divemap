@@ -1,6 +1,6 @@
 import { Modal } from 'antd';
-import { FileText, Check, AlertCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { FileText, Check, AlertCircle, ArrowDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 
 const WaiverSigningModal = ({
@@ -12,6 +12,8 @@ const WaiverSigningModal = ({
 }) => {
   const [typedName, setTypedName] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const textContainerRef = useRef(null);
 
   const isEu = bundleId?.includes('eu');
   const cleanDiver = diverName.trim();
@@ -25,8 +27,38 @@ const WaiverSigningModal = ({
     }
   }, [isOpen, cleanDiver]);
 
+  const handleScroll = () => {
+    const el = textContainerRef.current;
+    if (!el) return;
+    if (el.scrollHeight - el.scrollTop <= el.clientHeight + 25) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(() => {
+        const el = textContainerRef.current;
+        if (el) {
+          // If container fits without scrollbar (e.g. desktop full-height view), mark as seen
+          if (el.scrollHeight <= el.clientHeight + 20) {
+            setHasScrolledToBottom(true);
+          }
+        }
+      }, 250);
+      return () => clearTimeout(timer);
+    } else {
+      setHasScrolledToBottom(false);
+      setAgreed(false);
+    }
+  }, [isOpen]);
+
   const handleSign = e => {
     e.preventDefault();
+    if (!hasScrolledToBottom) {
+      toast.error('Please scroll through and read the entire liability waiver text.');
+      return;
+    }
     if (!agreed) {
       toast.error('You must affirm that you have read and agree to the waiver terms.');
       return;
@@ -53,12 +85,13 @@ const WaiverSigningModal = ({
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      width={720}
+      width={960}
+      style={{ top: 20 }}
       title={
         <div className='flex items-center gap-2.5 pb-2 border-b'>
           <FileText className='h-5 w-5 text-blue-600' />
           <div>
-            <h3 className='text-base font-bold text-gray-900 dark:text-white'>
+            <h3 className='text-base sm:text-lg font-bold text-gray-900 dark:text-white'>
               {isEu
                 ? 'Statement of Risk & Liability (EU Version)'
                 : 'Certified Diver Activity Release & Liability Waiver'}
@@ -70,9 +103,13 @@ const WaiverSigningModal = ({
         </div>
       }
     >
-      <form onSubmit={handleSign} className='pt-3 space-y-4 max-h-[72vh] overflow-y-auto pr-1'>
-        {/* Scrollable Legal Clauses Box */}
-        <div className='bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-700 dark:text-gray-300 space-y-3 leading-relaxed max-h-60 overflow-y-auto'>
+      <form onSubmit={handleSign} className='pt-3 space-y-4 max-h-[85vh] overflow-y-auto pr-1'>
+        {/* Legal Clauses Box - Full size on desktop, scrollable on mobile */}
+        <div
+          ref={textContainerRef}
+          onScroll={handleScroll}
+          className='bg-gray-50 dark:bg-gray-800 p-5 sm:p-6 rounded-xl border border-gray-200 dark:border-gray-700 text-xs sm:text-sm text-gray-700 dark:text-gray-300 space-y-3.5 leading-relaxed max-h-[50vh] sm:max-h-none overflow-y-auto sm:overflow-visible'
+        >
           <p className='font-bold text-gray-900 dark:text-white'>
             PLEASE READ CAREFULLY AND AFFIRM BEFORE SIGNING.
           </p>
@@ -102,15 +139,33 @@ const WaiverSigningModal = ({
           </p>
         </div>
 
+        {/* Scroll prompt on mobile / constrained view */}
+        {!hasScrolledToBottom && (
+          <div className='p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-300 flex items-center justify-between'>
+            <span className='flex items-center gap-1.5 font-medium'>
+              <AlertCircle size={14} className='text-amber-600 shrink-0' />
+              Please scroll down and review the full text above to enable signature.
+            </span>
+            <ArrowDown size={14} className='animate-bounce text-amber-600 shrink-0' />
+          </div>
+        )}
+
         {/* Affirmation Checkbox */}
-        <div className='p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800'>
+        <div
+          className={`p-3 rounded-lg border transition-all ${
+            hasScrolledToBottom
+              ? 'bg-blue-50/50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+              : 'bg-gray-100 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700 opacity-60'
+          }`}
+        >
           <label className='flex items-start gap-2.5 cursor-pointer'>
             <input
               type='checkbox'
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
+              disabled={!hasScrolledToBottom}
               required
-              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mt-0.5 shrink-0'
+              className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mt-0.5 shrink-0 disabled:opacity-40'
             />
             <span className='text-xs sm:text-sm text-gray-800 dark:text-gray-200 font-medium'>
               I have read, understood, and voluntarily agree to this Statement of Risk, Liability
@@ -169,7 +224,7 @@ const WaiverSigningModal = ({
           </button>
           <button
             type='submit'
-            disabled={!agreed || !nameMatches}
+            disabled={!hasScrolledToBottom || !agreed || !nameMatches}
             className='flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-md shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed'
           >
             <Check size={16} />

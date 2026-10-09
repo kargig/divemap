@@ -16,8 +16,9 @@ import {
   HeartPulse,
   Compass,
   Flame,
+  AlertCircle,
 } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
@@ -81,6 +82,12 @@ const BookingWizard = () => {
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
   const [insuranceExpiryDate, setInsuranceExpiryDate] = useState('');
+  const insuranceDateRef = useRef(null);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isInsuranceExpired = Boolean(
+    hasInsurance === 'OWN' && insuranceExpiryDate && insuranceExpiryDate < todayStr
+  );
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [emergencyContactRelation, setEmergencyContactRelation] = useState('Spouse / Family');
@@ -123,7 +130,9 @@ const BookingWizard = () => {
         // Auto-fill from authenticated user
         if (data.user) {
           if (data.user.full_name) setDiverName(data.user.full_name);
-          if (data.user.email) setDiverEmail(data.user.email);
+          if (data.user.email && !data.user.email.endsWith('.invalid')) {
+            setDiverEmail(data.user.email);
+          }
           if (data.user.phone) setDiverPhone(data.user.phone);
           if (data.user.nationality) setDiverNationality(data.user.nationality);
           if (data.user.passport_number) setPassportNumber(data.user.passport_number);
@@ -133,10 +142,10 @@ const BookingWizard = () => {
         // Auto-fill from gear profile
         if (data.prefill_gear) {
           const pg = data.prefill_gear;
-          if (pg.preferred_tank_id) setSelectedTankId(pg.preferred_tank_id);
-          // Default gas mix for dive trips is strictly Air (21%) unless explicitly changed by diver
+          // Default cylinder is strictly 12L Steel and default valve is DIN
+          setSelectedTankId('12');
           setSelectedGasMixId('air');
-          if (pg.regulator_fitting) setRegulatorFitting(pg.regulator_fitting);
+          setRegulatorFitting('DIN');
           if (pg.weight_system) setWeightSystem(pg.weight_system);
           if (pg.wetsuit_gender) setWetsuitGender(pg.wetsuit_gender);
           if (pg.wetsuit_thickness) setWetsuitThickness(pg.wetsuit_thickness);
@@ -164,12 +173,17 @@ const BookingWizard = () => {
           if (pg.insurance_expiry_date) setInsuranceExpiryDate(pg.insurance_expiry_date);
         }
 
-        // Auto-fill from certifications
+        // Auto-fill from certifications (most advanced qualification first)
         if (data.user_certifications && data.user_certifications.length > 0) {
-          const primaryCert = data.user_certifications[0];
-          setCertAgency(primaryCert.agency || '');
-          setCertLevel('');
-          setCertNumber(primaryCert.number || '');
+          const mostAdvancedCert = data.user_certifications[0];
+          const matchedOrg = (orgsRes.data || []).find(
+            o =>
+              o.name?.toLowerCase() === mostAdvancedCert.agency?.toLowerCase() ||
+              o.acronym?.toLowerCase() === mostAdvancedCert.agency?.toLowerCase()
+          );
+          setCertAgency(matchedOrg?.acronym || mostAdvancedCert.agency || '');
+          if (mostAdvancedCert.level) setCertLevel(mostAdvancedCert.level);
+          if (mostAdvancedCert.number) setCertNumber(mostAdvancedCert.number);
         }
       } catch (err) {
         console.error('Failed to load checkout context:', err);
@@ -414,6 +428,8 @@ const BookingWizard = () => {
     const isRental =
       unitId === 'demo-unit-2' ||
       unitId === 'certified-diver-full-rental' ||
+      unit?.unit_type === 'DIVER_RENTAL_GEAR' ||
+      unit?.type === 'DIVER_RENTAL_GEAR' ||
       unit?.title?.toLowerCase().includes('rental');
 
     if (isRental) {
@@ -444,7 +460,9 @@ const BookingWizard = () => {
       return false;
     }
     if (!certAgency || !certLevel || !certNumber.trim()) {
-      toast.error('Please provide your diving certification agency, level, and C-Card number.');
+      toast.error(
+        'Please provide your scuba diving certification agency, level, and certification card number (either physical or via an app).'
+      );
       return false;
     }
     return true;
@@ -465,11 +483,37 @@ const BookingWizard = () => {
       toast.error('Please provide an emergency contact name and phone number for maritime safety.');
       return false;
     }
-    if (hasInsurance === 'OWN' && !insuranceProvider.trim()) {
-      toast.error(
-        'Please provide your dive insurance provider name (or select center daily insurance).'
-      );
-      return false;
+    if (hasInsurance === 'OWN') {
+      if (!insuranceProvider.trim()) {
+        toast.error(
+          'Please provide your dive insurance provider name (or select center daily insurance).'
+        );
+        return false;
+      }
+      if (!insurancePolicyNumber.trim()) {
+        toast.error('Please provide your active dive insurance policy or member number.');
+        return false;
+      }
+
+      // Check both React state and native DOM element to eliminate date-typing race conditions
+      const domDate = insuranceDateRef.current ? insuranceDateRef.current.value : '';
+      const effectiveDate = (insuranceExpiryDate || domDate || '').trim();
+
+      if (!effectiveDate) {
+        toast.error('Please provide your dive insurance policy expiration date.');
+        return false;
+      }
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (effectiveDate < todayStr) {
+        toast.error(
+          'Your dive insurance policy is expired. Please enter an active future expiration date, or choose "I need daily insurance from the dive center".'
+        );
+        return false;
+      }
+
+      if (effectiveDate !== insuranceExpiryDate) {
+        setInsuranceExpiryDate(effectiveDate);
+      }
     }
     return true;
   };
@@ -508,6 +552,9 @@ const BookingWizard = () => {
 
     try {
       setSubmitting(true);
+      const finalExpiryDate = (
+        insuranceExpiryDate || (insuranceDateRef.current ? insuranceDateRef.current.value : '')
+      ).trim();
 
       const holdPayload = {
         productId: contextData.product.id,
@@ -556,7 +603,7 @@ const BookingWizard = () => {
               insurance_policy_number:
                 hasInsurance === 'OWN' ? insurancePolicyNumber.trim() || undefined : undefined,
               insurance_expiry_date:
-                hasInsurance === 'OWN' ? insuranceExpiryDate.trim() || undefined : undefined,
+                hasInsurance === 'OWN' ? finalExpiryDate || undefined : undefined,
               emergency_contact_name: emergencyContactName.trim() || undefined,
               emergency_contact_phone: emergencyContactPhone.trim() || undefined,
               emergency_contact_relation: emergencyContactRelation.trim() || undefined,
@@ -608,8 +655,7 @@ const BookingWizard = () => {
               : 'Center Daily Coverage',
           insurance_policy_number:
             hasInsurance === 'OWN' ? insurancePolicyNumber.trim() || undefined : undefined,
-          insurance_expiry_date:
-            hasInsurance === 'OWN' ? insuranceExpiryDate.trim() || undefined : undefined,
+          insurance_expiry_date: hasInsurance === 'OWN' ? finalExpiryDate || undefined : undefined,
           emergency_contact_name: emergencyContactName.trim() || undefined,
           emergency_contact_phone: emergencyContactPhone.trim() || undefined,
           emergency_contact_relation: emergencyContactRelation.trim() || undefined,
@@ -923,13 +969,59 @@ const BookingWizard = () => {
                     Certification Credentials *
                   </span>
 
+                  {contextData?.user_certifications?.length > 1 && (
+                    <div className='mb-3 p-3 bg-blue-50/60 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/40'>
+                      <span className='text-[11px] font-bold text-blue-700 dark:text-blue-300 block mb-1.5 uppercase tracking-wider'>
+                        Your Registered Certifications (Auto-Selected Highest Qualification):
+                      </span>
+                      <div className='flex flex-wrap gap-2'>
+                        {contextData.user_certifications.map((c, idx) => {
+                          const matchedOrg = organizations.find(
+                            o =>
+                              o.name?.toLowerCase() === c.agency?.toLowerCase() ||
+                              o.acronym?.toLowerCase() === c.agency?.toLowerCase()
+                          );
+                          const orgAcronym = matchedOrg?.acronym || c.agency;
+                          const isSelected =
+                            certAgency?.toLowerCase() === orgAcronym?.toLowerCase() &&
+                            certLevel?.toLowerCase() === c.level?.toLowerCase();
+
+                          return (
+                            <button
+                              key={idx}
+                              type='button'
+                              onClick={() => {
+                                setCertAgency(orgAcronym || '');
+                                setCertLevel(c.level || '');
+                                setCertNumber(c.number || '');
+                              }}
+                              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
+                                isSelected
+                                  ? 'bg-blue-600 text-white shadow-sm'
+                                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-blue-400'
+                              }`}
+                            >
+                              {orgAcronym} • {c.level} {c.is_most_advanced && '⭐ (Most Advanced)'}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
                         Agency *
                       </label>
                       <select
-                        value={certAgency}
+                        value={
+                          organizations.find(
+                            o =>
+                              o.acronym?.toLowerCase() === certAgency?.toLowerCase() ||
+                              o.name?.toLowerCase() === certAgency?.toLowerCase()
+                          )?.acronym || certAgency
+                        }
                         onChange={e => {
                           setCertAgency(e.target.value);
                           setCertLevel('');
@@ -997,18 +1089,21 @@ const BookingWizard = () => {
 
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        C-Card # *
+                        Scuba Diving Certification Card # (Physical or via App) *
                       </label>
                       <input
                         type='text'
                         value={certNumber}
                         onChange={e => setCertNumber(e.target.value)}
-                        placeholder='Certificate number'
+                        placeholder='Card or digital app ID number'
                         required
                         className={`w-full px-3 py-2 border rounded-lg text-sm ${
                           !certNumber.trim() ? 'border-amber-300 bg-amber-50/20' : 'border-gray-300'
                         }`}
                       />
+                      <span className='text-[11px] text-gray-400 mt-1 block'>
+                        Physical plastic card or verified mobile app (PADI, SSI, etc.)
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1082,9 +1177,9 @@ const BookingWizard = () => {
                       <select
                         value={selectedTankId}
                         onChange={e => setSelectedTankId(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
                       >
-                        <option value='12'>12L Steel</option>
+                        <option value='12'>12L Steel (Standard)</option>
                         <option value='15'>15L Steel</option>
                         <option value='al80'>AL80 (11L) Alu</option>
                         <option value='10'>10L Steel</option>
@@ -1114,7 +1209,7 @@ const BookingWizard = () => {
                         onChange={e => setRegulatorFitting(e.target.value)}
                         className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
                       >
-                        <option value='DIN'>DIN (G 5/8" Threaded)</option>
+                        <option value='DIN'>DIN (G 5/8" Threaded) — Standard</option>
                         <option value='YOKE'>Yoke (INT / A-clamp)</option>
                       </select>
                     </div>
@@ -1485,42 +1580,85 @@ const BookingWizard = () => {
                   </div>
 
                   {hasInsurance === 'OWN' ? (
-                    <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200 dark:border-gray-600'>
-                      <div>
-                        <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                          Insurance Provider *
-                        </label>
-                        <input
-                          type='text'
-                          value={insuranceProvider}
-                          onChange={e => setInsuranceProvider(e.target.value)}
-                          placeholder='e.g. DAN Europe'
-                          className='w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white dark:bg-gray-800'
-                        />
+                    <div className='space-y-3 pt-2 border-t border-gray-200 dark:border-gray-600'>
+                      <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                        <div>
+                          <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                            Insurance Provider *
+                          </label>
+                          <input
+                            type='text'
+                            value={insuranceProvider}
+                            onChange={e => setInsuranceProvider(e.target.value)}
+                            placeholder='e.g. DAN Europe'
+                            required
+                            className={`w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-800 ${
+                              !insuranceProvider.trim()
+                                ? 'border-amber-300 bg-amber-50/20'
+                                : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                            Policy / Member Number *
+                          </label>
+                          <input
+                            type='text'
+                            value={insurancePolicyNumber}
+                            onChange={e => setInsurancePolicyNumber(e.target.value)}
+                            placeholder='e.g. 12345678'
+                            required
+                            className={`w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-800 ${
+                              !insurancePolicyNumber.trim()
+                                ? 'border-amber-300 bg-amber-50/20'
+                                : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
+                        <div>
+                          <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
+                            Expiration Date *
+                          </label>
+                          <input
+                            ref={insuranceDateRef}
+                            type='date'
+                            value={insuranceExpiryDate}
+                            onChange={e => setInsuranceExpiryDate(e.target.value)}
+                            onInput={e => setInsuranceExpiryDate(e.target.value)}
+                            onBlur={e => setInsuranceExpiryDate(e.target.value)}
+                            required
+                            className={`w-full px-2.5 py-1.5 border rounded-lg text-xs bg-white dark:bg-gray-800 ${
+                              !insuranceExpiryDate || isInsuranceExpired
+                                ? 'border-rose-300 bg-rose-50/20'
+                                : 'border-gray-300'
+                            }`}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                          Policy / Member Number
-                        </label>
-                        <input
-                          type='text'
-                          value={insurancePolicyNumber}
-                          onChange={e => setInsurancePolicyNumber(e.target.value)}
-                          placeholder='e.g. 12345678'
-                          className='w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white dark:bg-gray-800'
-                        />
-                      </div>
-                      <div>
-                        <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                          Expiration Date
-                        </label>
-                        <input
-                          type='date'
-                          value={insuranceExpiryDate}
-                          onChange={e => setInsuranceExpiryDate(e.target.value)}
-                          className='w-full px-2.5 py-1.5 border border-gray-300 rounded-lg text-xs bg-white dark:bg-gray-800'
-                        />
-                      </div>
+
+                      {isInsuranceExpired && (
+                        <div className='p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-300 dark:border-rose-800 rounded-xl text-xs text-rose-800 dark:text-rose-200 flex items-start gap-2.5'>
+                          <AlertCircle className='w-4 h-4 text-rose-600 shrink-0 mt-0.5' />
+                          <div>
+                            <strong className='font-bold block'>Insurance Policy Expired</strong>
+                            <span>
+                              Your insurance policy expired on{' '}
+                              <strong>{insuranceExpiryDate}</strong>. You cannot proceed with an
+                              expired policy. Please enter an active future expiration date, or
+                              choose{' '}
+                              <button
+                                type='button'
+                                onClick={() => setHasInsurance('CENTER')}
+                                className='underline font-bold text-rose-900 dark:text-rose-100 hover:text-blue-600'
+                              >
+                                "I need daily insurance from the dive center"
+                              </button>
+                              .
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className='p-2.5 bg-blue-50/60 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 text-xs text-blue-900 dark:text-blue-300 flex items-center gap-2'>
@@ -1789,59 +1927,153 @@ const BookingWizard = () => {
               </h3>
 
               <div className='space-y-3 text-sm pb-4 border-b border-gray-100 dark:border-gray-700'>
+                {/* STEP 1 FIELDS: TIER, DIVER NAME, CONTACT, DOB, CERTIFICATION */}
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Tier:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white'>
+                  <span className='font-semibold text-gray-900 dark:text-white text-right max-w-[170px] truncate'>
                     {selectedUnit?.title}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Diver Name:</span>
+                  <span
+                    className={`font-semibold text-right max-w-[150px] truncate ${
+                      diverName
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {diverName || 'Required'}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Contact / ID:</span>
+                  <span
+                    className={`font-semibold ${
+                      hasContactOrId
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {hasContactOrId ? 'Provided' : '1 Required'}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Date of Birth:</span>
+                  <span
+                    className={`font-semibold ${
+                      dateOfBirth
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                  >
+                    {dateOfBirth || 'Required'}
+                  </span>
+                </div>
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
+                  <span>Certification:</span>
+                  <span
+                    className={`font-semibold text-right max-w-[160px] truncate ${
+                      hasCertDetails
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-amber-600 dark:text-amber-400'
+                    }`}
+                    title={hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
+                  >
+                    {hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
+                  </span>
+                </div>
+
+                {/* STEP 2 FIELDS: EQUIPMENT ALLOCATION */}
+                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Tank / Gas:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white'>
-                    {selectedTankId}L • {selectedGasMixId.toUpperCase()} ({regulatorFitting})
+                  <span
+                    className={`font-semibold text-right ${
+                      currentStep > 1
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    {currentStep > 1
+                      ? `${selectedTankId}L • ${selectedGasMixId.toUpperCase()} (${regulatorFitting})`
+                      : 'Configure in Step 2'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Lead Ballast:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white'>
-                    {leadKg} kg ({weightSystem === 'BELT' ? 'Belt' : 'Pockets'})
+                  <span
+                    className={`font-semibold text-right ${
+                      currentStep > 1
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    {currentStep > 1
+                      ? `${leadKg} kg (${weightSystem === 'BELT' ? 'Belt' : 'Pockets'})`
+                      : 'Configure in Step 2'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Wetsuit & BCD:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white text-right'>
-                    {wetsuitSize === 'None'
-                      ? 'Own Suit'
-                      : `${wetsuitGender === 'WOMEN' ? "Women's" : "Men's"} ${wetsuitSize}`}
-                    {' • '}
-                    {bcdSize === 'None'
-                      ? 'Own BCD'
-                      : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`}
+                  <span
+                    className={`font-semibold text-right ${
+                      currentStep > 1
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    {currentStep > 1
+                      ? `${
+                          wetsuitSize === 'None'
+                            ? 'Own Suit'
+                            : `${wetsuitGender === 'WOMEN' ? "Women's" : "Men's"} ${wetsuitSize}`
+                        } • ${
+                          bcdSize === 'None'
+                            ? 'Own BCD'
+                            : `${bcdGender === 'WOMEN' ? "Women's" : "Men's"} BCD ${bcdSize}`
+                        }`
+                      : 'Configure in Step 2'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Fins & Boots:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white text-right'>
-                    {finSize === 'None' && bootSize === 'None'
-                      ? 'Own Fins & Boots'
-                      : `${finSize === 'None' ? 'Own Fins' : `Fins ${finSize}`} • ${
-                          bootSize === 'None' ? 'Own Boots' : `Boots EU ${bootSize}`
-                        }`}
+                  <span
+                    className={`font-semibold text-right ${
+                      currentStep > 1
+                        ? 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
+                    {currentStep > 1
+                      ? `${
+                          finSize === 'None' && bootSize === 'None'
+                            ? 'Own Fins & Boots'
+                            : `${finSize === 'None' ? 'Own Fins' : `Fins ${finSize}`} • ${
+                                bootSize === 'None' ? 'Own Boots' : `Boots EU ${bootSize}`
+                              }`
+                        }`
+                      : 'Configure in Step 2'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Dive Computer:</span>
                   <span
                     className={`font-semibold text-right ${
-                      rentalComputer
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-900 dark:text-white'
+                      currentStep > 1
+                        ? rentalComputer
+                          ? 'text-blue-600 dark:text-blue-400'
+                          : 'text-gray-900 dark:text-white'
+                        : 'text-gray-400 dark:text-gray-500'
                     }`}
                   >
-                    {rentalComputer ? 'Rental Wrist Unit' : 'Own Computer'}
+                    {currentStep > 1
+                      ? rentalComputer
+                        ? 'Rental Wrist Unit'
+                        : 'Own Computer'
+                      : 'Configure in Step 2'}
                   </span>
                 </div>
-                {rentalTorch && (
+                {rentalTorch && currentStep > 1 && (
                   <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                     <span>Rental Light:</span>
                     <span className='font-semibold text-amber-600 dark:text-amber-400'>
@@ -1849,77 +2081,93 @@ const BookingWizard = () => {
                     </span>
                   </div>
                 )}
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Date of Birth:</span>
-                  <span
-                    className={`font-semibold ${dateOfBirth ? 'text-gray-900 dark:text-white' : 'text-amber-600'}`}
-                  >
-                    {dateOfBirth || 'Required'}
-                  </span>
-                </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Contact / ID:</span>
-                  <span
-                    className={`font-semibold ${hasContactOrId ? 'text-emerald-600' : 'text-amber-600'}`}
-                  >
-                    {hasContactOrId ? 'Provided' : '1 Required'}
-                  </span>
-                </div>
+
+                {/* STEP 3 FIELDS: EMERGENCY & INSURANCE */}
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Emergency Contact:</span>
                   <span
                     className={`font-semibold text-right max-w-[150px] truncate ${
                       emergencyContactName && emergencyContactPhone
-                        ? 'text-emerald-600'
-                        : 'text-amber-600'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : currentStep >= 3
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-gray-400 dark:text-gray-500'
                     }`}
                     title={
                       emergencyContactName
                         ? `${emergencyContactName} (${emergencyContactPhone})`
-                        : 'Required'
+                        : currentStep >= 3
+                          ? 'Required'
+                          : 'Configure in Step 3'
                     }
                   >
-                    {emergencyContactName || 'Required'}
+                    {emergencyContactName && emergencyContactPhone
+                      ? emergencyContactName
+                      : currentStep >= 3
+                        ? 'Required'
+                        : 'Pending Step 3'}
                   </span>
                 </div>
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Dive Insurance:</span>
-                  <span className='font-semibold text-gray-900 dark:text-white text-right max-w-[150px] truncate'>
+                  <span
+                    className={`font-semibold text-right max-w-[150px] truncate ${
+                      hasInsurance === 'CENTER' || insuranceProvider
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : currentStep >= 3
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                    }`}
+                  >
                     {hasInsurance === 'CENTER'
                       ? 'Center Daily'
                       : insuranceProvider
                         ? insuranceProvider
-                        : 'Own Policy'}
+                        : currentStep >= 3
+                          ? 'Required'
+                          : 'Pending Step 3'}
                   </span>
                 </div>
-                <div className='flex justify-between text-gray-600 dark:text-gray-400'>
-                  <span>Certification:</span>
-                  <span
-                    className={`font-semibold ${
-                      hasCertDetails ? 'text-emerald-600 truncate max-w-[140px]' : 'text-amber-600'
-                    }`}
-                  >
-                    {hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
-                  </span>
-                </div>
+
+                {/* STEP 4 FIELD: MEDICAL */}
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Medical:</span>
                   <span
-                    className={`font-semibold ${medicalStatus === 'CLEARED' ? 'text-emerald-600' : 'text-amber-600'}`}
+                    className={`font-semibold ${
+                      medicalStatus === 'CLEARED'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : currentStep >= 4
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                    }`}
                   >
                     {medicalStatus === 'CLEARED'
                       ? 'Cleared'
                       : medicalStatus === 'FLAGGED_CONTACT_CENTER'
                         ? 'Flagged'
-                        : 'Pending'}
+                        : currentStep >= 4
+                          ? 'Pending Action'
+                          : 'Pending Step 4'}
                   </span>
                 </div>
+
+                {/* STEP 5 FIELD: WAIVER */}
                 <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                   <span>Waiver:</span>
                   <span
-                    className={`font-semibold ${waiverSignature ? 'text-emerald-600' : 'text-gray-400'}`}
+                    className={`font-semibold ${
+                      waiverSignature
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : currentStep >= 5
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                    }`}
                   >
-                    {waiverSignature ? 'Signed' : 'Pending'}
+                    {waiverSignature
+                      ? 'Signed'
+                      : currentStep >= 5
+                        ? 'Pending Signature'
+                        : 'Pending Step 5'}
                   </span>
                 </div>
               </div>

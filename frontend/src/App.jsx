@@ -82,6 +82,8 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage'));
+const UserBookingsPage = lazy(() => import('./pages/UserBookingsPage'));
+const DivingCenterManagePage = lazy(() => import('./pages/DivingCenterManagePage'));
 const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
 const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
 const TripOperationsDashboard = lazy(() => import('./components/booking/TripOperationsDashboard'));
@@ -302,6 +304,14 @@ function AppContent() {
               }
             />
             <Route
+              path='/profile/bookings'
+              element={
+                <ProtectedRoute>
+                  <UserBookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path='/profile/gear'
               element={
                 <ProtectedRoute>
@@ -325,7 +335,14 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/book/:slotId' element={<BookingWizard />} />
+            <Route
+              path='/book/:slotId'
+              element={
+                <ProtectedRoute>
+                  <BookingWizard />
+                </ProtectedRoute>
+              }
+            />
             <Route path='/bookings/:uuid/voucher' element={<BookingVoucherPage />} />
             <Route
               path='/manage/centers/:centerId/trips/:tripId'
@@ -360,18 +377,10 @@ function AppContent() {
               }
             />
             <Route
-              path='/diving-centers/:id/:slug/gear-rental'
+              path='/manage/centers/:id'
               element={
                 <ProtectedRoute>
-                  <CenterRentalPricingPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path='/diving-centers/:id/gear-rental'
-              element={
-                <ProtectedRoute>
-                  <CenterRentalPricingPage />
+                  <DivingCenterManagePage />
                 </ProtectedRoute>
               }
             />
@@ -450,8 +459,38 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
-            <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
+            <Route
+              path='/diving-centers/:id/:slug/manage'
+              element={
+                <ProtectedRoute>
+                  <DivingCenterManagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/manage'
+              element={
+                <ProtectedRoute>
+                  <DivingCenterManagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/:slug/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path='/diving-centers/:id/edit'
               element={
@@ -460,6 +499,8 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
+            <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
             <Route path='/dive-routes' element={<DiveRoutes />} />
             <Route path='/dive-routes/:id' element={<RouteDetail />} />
             <Route path='/dive-routes/:id/:slug' element={<RouteDetail />} />

@@ -25,6 +25,7 @@ import SEO from '../components/SEO';
 const BookingVoucherPage = () => {
   const { uuid } = useParams();
   const [loading, setLoading] = useState(true);
+  const [downloadingVoucherPdf, setDownloadingVoucherPdf] = useState(false);
   const [voucher, setVoucher] = useState(null);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ const BookingVoucherPage = () => {
         setVoucher(res.data);
       } catch (err) {
         console.error('Failed to load voucher:', err);
-        toast.error('Failed to load booking voucher.');
+        toast.error('Could not load booking voucher details.');
       } finally {
         setLoading(false);
       }
@@ -45,6 +46,31 @@ const BookingVoucherPage = () => {
       fetchVoucher();
     }
   }, [uuid]);
+
+  const handleDownloadVoucherPdf = async () => {
+    try {
+      setDownloadingVoucherPdf(true);
+      toast.loading('Generating official voucher PDF with QR pass...', { id: 'voucher-pdf' });
+      const res = await api.get(`/api/v1/bookings/${uuid}/voucher/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dive_voucher_${uuid.substring(0, 8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Voucher PDF downloaded successfully!', { id: 'voucher-pdf' });
+    } catch (err) {
+      console.error('Failed to download voucher PDF:', err);
+      toast.error('Failed to generate voucher PDF.', { id: 'voucher-pdf' });
+    } finally {
+      setDownloadingVoucherPdf(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -97,11 +123,12 @@ const BookingVoucherPage = () => {
               Briefing PDF
             </a>
             <button
-              onClick={() => window.print()}
-              className='inline-flex items-center px-3.5 py-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-xs transition-all'
+              onClick={handleDownloadVoucherPdf}
+              disabled={downloadingVoucherPdf}
+              className='inline-flex items-center px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-all disabled:opacity-50'
             >
-              <Printer size={14} className='mr-1.5' />
-              Print Voucher
+              <Download size={14} className='mr-1.5' />
+              {downloadingVoucherPdf ? 'Generating PDF...' : 'Download Voucher PDF'}
             </button>
           </div>
         </div>

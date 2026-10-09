@@ -20,6 +20,7 @@ from app.models import (
     DivingCenterVessel,
     DivingCenterBookingSettings,
     TripBriefing,
+    ParsedDiveTrip,
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
@@ -731,7 +732,69 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     }
 
 
+class CenterTripSummaryItem(BaseModel):
+    tripId: int
+    tripDate: str
+    tripTime: Optional[str] = None
+    title: Optional[str] = None
+    isBookable: bool
+    octoSlotId: Optional[str] = None
+    seatsTotal: int
+    seatsBooked: int
+    seatsAvailable: int
+    occupancyRate: float
+    hasBriefing: bool
+    briefingStatus: Optional[str] = None
+
+
 # --- Endpoints ---
+
+@router.get("/trips-summary", response_model=List[CenterTripSummaryItem])
+def get_center_trips_summary(
+    center_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Returns all scheduled trips for the center with live booking and operations metrics."""
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    if not center:
+        raise HTTPException(status_code=404, detail="Diving center not found")
+
+    if not is_center_manager(db, center_id, current_user):
+        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    trips = (
+        db.query(ParsedDiveTrip)
+        .filter(ParsedDiveTrip.diving_center_id == center.id)
+        .order_by(ParsedDiveTrip.trip_date.asc(), ParsedDiveTrip.trip_time.asc())
+        .all()
+    )
+    results = []
+    for t in trips:
+        total = t.group_size_limit or 12
+        booked = t.current_bookings or 0
+        if t.octo_slot:
+            total = t.octo_slot.seats_total
+            booked = total - t.octo_slot.seats_available
+        avail = max(0, total - booked)
+        rate = round(booked / total, 2) if total > 0 else 0.0
+
+        results.append(CenterTripSummaryItem(
+            tripId=t.id,
+            tripDate=str(t.trip_date),
+            tripTime=str(t.trip_time) if t.trip_time else None,
+            title=t.trip_description or f"Trip on {t.trip_date}",
+            isBookable=bool(t.is_bookable and t.octo_slot_id),
+            octoSlotId=t.octo_slot_id,
+            seatsTotal=total,
+            seatsBooked=booked,
+            seatsAvailable=avail,
+            occupancyRate=rate,
+            hasBriefing=bool(t.octo_slot and t.octo_slot.briefing),
+            briefingStatus=t.octo_slot.briefing.status if (t.octo_slot and t.octo_slot.briefing) else None
+        ))
+    return results
+
 
 @router.get("/trips/{trip_id}/manifest")
 def get_trip_manifest(

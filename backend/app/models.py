@@ -570,6 +570,13 @@ class ParsedDiveTrip(Base):
     special_requirements = Column(Text, nullable=True)
     trip_status = Column(Enum(TripStatus), default=TripStatus.scheduled, nullable=False, index=True)
     source_newsletter_id = Column(Integer, ForeignKey("newsletters.id", ondelete="SET NULL"))
+    octo_slot_id = Column(
+        String(36),
+        ForeignKey("octo_availability_slots.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    is_bookable = Column(Boolean, default=False, nullable=False)
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     extracted_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -579,6 +586,11 @@ class ParsedDiveTrip(Base):
     difficulty = relationship("DifficultyLevel", back_populates="parsed_dive_trips")
     diving_center = relationship("DivingCenter", back_populates="dive_trips")
     dives = relationship("ParsedDive", back_populates="trip", cascade="all, delete-orphan")
+    octo_slot = relationship(
+        "OctoAvailabilitySlot",
+        backref=sa.orm.backref("dive_trip", uselist=False),
+        foreign_keys=[octo_slot_id],
+    )
     
     @property
     def max_depth(self):
@@ -1454,6 +1466,22 @@ class OctoAvailabilitySlot(Base):
     product = relationship("OctoProduct", backref=sa.orm.backref("availability_slots", cascade="all, delete-orphan"))
     option = relationship("OctoOption", backref=sa.orm.backref("availability_slots", cascade="all, delete-orphan"))
     vessel = relationship("DivingCenterVessel", backref=sa.orm.backref("availability_slots"))
+
+    @property
+    def base_price(self):
+        if self.dive_trip and self.dive_trip.trip_price is not None:
+            return float(self.dive_trip.trip_price)
+        if self.product and self.product.units:
+            return float(self.product.units[0].retail_price)
+        return 0.0
+
+    @property
+    def currency(self):
+        if self.dive_trip and self.dive_trip.trip_currency:
+            return self.dive_trip.trip_currency
+        if self.product and self.product.units:
+            return self.product.units[0].currency
+        return "EUR"
 
 
 class OctoBooking(Base):

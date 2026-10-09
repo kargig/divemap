@@ -303,13 +303,13 @@ const AddDiverModal = ({ isOpen, onClose, onDiverAdded, centerId, tripId }) => {
             </div>
             <div>
               <label className='block font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                C-Card #
+                Certification Card # (Physical or App)
               </label>
               <input
                 type='text'
                 value={certNumber}
                 onChange={e => setCertNumber(e.target.value)}
-                placeholder='Certificate number'
+                placeholder='Card or digital app ID number'
                 className='w-full px-2 py-1.5 border rounded-lg text-xs'
               />
             </div>

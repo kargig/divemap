@@ -467,6 +467,7 @@ export const tripSchemas = {
         errorMap: () => ({ message: 'Invalid trip status' }),
       })
       .default('scheduled'),
+    enable_online_booking: z.boolean().optional().default(false),
     broadcast_to_followers: z.boolean().optional().default(false),
     dives: z.array(tripDiveSchema).default([]),
   }),

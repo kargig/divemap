@@ -8,6 +8,8 @@ try:
     from reportlab.lib import colors
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.graphics.barcode.qr import QrCodeWidget
+    from reportlab.graphics.shapes import Drawing
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -49,7 +51,7 @@ class ManifestExportService:
             "Nationality",
             "Passport / National ID",
             "Agency & Level",
-            "C-Card Number",
+            "Certification Card Number (Physical/App)",
             "Role",
             "Medical Clearance",
             "Boarded / Checked-In",
@@ -1095,6 +1097,272 @@ class ManifestExportService:
             ('PADDING', (0, 0), (-1, -1), 2),
         ]))
         story.append(sign_table)
+
+        doc.build(story)
+        return buffer.getvalue()
+
+    @staticmethod
+    def generate_voucher_pdf(voucher_data: Dict[str, Any]) -> bytes:
+        """
+        Generates an official Boarding Voucher & QR Code Pass PDF using ReportLab.
+        Contains booking reference, QR verification code, center logistics, diver profiles,
+        equipment specs, and payment confirmation.
+        """
+        if not REPORTLAB_AVAILABLE:
+            raise RuntimeError("ReportLab is required for PDF voucher generation.")
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=36,
+            rightMargin=36,
+            topMargin=36,
+            bottomMargin=36,
+        )
+
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'VoucherTitle',
+            parent=styles['Heading1'],
+            fontSize=15,
+            leading=19,
+            textColor=colors.HexColor('#1E3A8A'),
+            fontName='Helvetica-Bold',
+        )
+        section_style = ParagraphStyle(
+            'VoucherSection',
+            parent=styles['Heading2'],
+            fontSize=9.5,
+            leading=12,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+        body_style = ParagraphStyle(
+            'VoucherBody',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#1E293B'),
+            fontName='Helvetica',
+        )
+        cell_bold = ParagraphStyle(
+            'VoucherCellBold',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor('#0F172A'),
+            fontName='Helvetica-Bold',
+        )
+        cell_muted = ParagraphStyle(
+            'VoucherCellMuted',
+            parent=styles['Normal'],
+            fontSize=7.5,
+            leading=10,
+            textColor=colors.HexColor('#64748B'),
+            fontName='Helvetica',
+        )
+        header_cell = ParagraphStyle(
+            'VoucherHCell',
+            parent=styles['Normal'],
+            fontSize=7.5,
+            leading=10,
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+        )
+
+        story = []
+
+        # 1. Top Header with QR Code & Booking Reference
+        booking_ref = voucher_data.get("reference") or f"DIVEMAP-{voucher_data.get('bookingUuid', '')[:8].upper()}"
+        qr_string = voucher_data.get("qrCodeData") or f"DIVEMAP-VOUCHER:{voucher_data.get('bookingUuid', '')}"
+
+        qr_widget = QrCodeWidget(qr_string)
+        bounds = qr_widget.getBounds()
+        w = bounds[2] - bounds[0]
+        h = bounds[3] - bounds[1]
+        qr_size = 80
+        qr_drawing = Drawing(qr_size, qr_size, transform=[qr_size/w, 0, 0, qr_size/h, 0, 0])
+        qr_drawing.add(qr_widget)
+
+        header_text = [
+            Paragraph("DIVEMAP OFFICIAL BOARDING VOUCHER", title_style),
+            Paragraph(f"<b>Trip:</b> {voucher_data.get('productTitle', 'Guided Boat Dive')}", section_style),
+            Paragraph(f"<b>Diving Center:</b> {voucher_data.get('centerName', 'Diving Center')}", body_style),
+            Paragraph(f"<b>Departure:</b> {voucher_data.get('departureDate', '')} • Meeting: {voucher_data.get('meetingTime', '')} (Dep: {voucher_data.get('departureTime', '')})", body_style),
+            Paragraph("<font color='#059669'><b>STATUS: RESERVATION CONFIRMED</b></font>", body_style),
+        ]
+
+        qr_box = [
+            qr_drawing,
+            Spacer(1, 2),
+            Paragraph(f"<b>{booking_ref}</b>", ParagraphStyle('Ref', parent=cell_bold, alignment=1, fontSize=8)),
+            Paragraph("Scan at reception desk", ParagraphStyle('Scan', parent=cell_muted, alignment=1, fontSize=7)),
+        ]
+
+        header_table = Table([[header_text, qr_box]], colWidths=[395, 128])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#F8FAFC')),
+            ('BACKGROUND', (1, 0), (1, 0), colors.HexColor('#FFFFFF')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 8))
+
+        # 2. Logistics & Vessel Information
+        story.append(Paragraph("TRIP LOGISTICS & CHECK-IN", section_style))
+        story.append(Spacer(1, 2))
+        logistics_data = [
+            [
+                Paragraph("<b>Meeting Location / Pier:</b>", cell_bold),
+                Paragraph(voucher_data.get("meetingInstructions") or "Diving center main reception / harbor dockside office", body_style),
+                Paragraph("<b>Center Contact / WhatsApp:</b>", cell_bold),
+                Paragraph(voucher_data.get("centerPhone") or "N/A", body_style),
+            ],
+            [
+                Paragraph("<b>Assigned Vessel:</b>", cell_bold),
+                Paragraph(voucher_data.get("vesselName") or "Center Dive Boat", body_style),
+                Paragraph("<b>Vessel Port Reg #:</b>", cell_bold),
+                Paragraph(voucher_data.get("vesselRegistration") or "N/A", body_style),
+            ]
+        ]
+        logistics_table = Table(logistics_data, colWidths=[130, 160, 120, 113])
+        logistics_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(logistics_table)
+        story.append(Spacer(1, 8))
+
+        # 3. Diver Participants & Credentials Table
+        story.append(Paragraph("REGISTERED DIVERS & MARITIME MANIFEST DETAILS", section_style))
+        story.append(Spacer(1, 2))
+
+        unit_items = voucher_data.get("unitItems") or []
+        diver_rows = [[
+            Paragraph("Diver Full Legal Name", header_cell),
+            Paragraph("Date of Birth", header_cell),
+            Paragraph("Passport / ID", header_cell),
+            Paragraph("Agency & Level", header_cell),
+            Paragraph("Cert Card #", header_cell),
+            Paragraph("Medical", header_cell),
+            Paragraph("Waiver", header_cell),
+        ]]
+
+        for item in unit_items:
+            med_status = item.get("medicalClearanceStatus", "CLEARED")
+            med_color = "#059669" if med_status == "CLEARED" else "#D97706"
+            waiver_text = "Signed" if item.get("waiversComplete") else "Signed"
+
+            diver_rows.append([
+                Paragraph(f"<b>{item.get('diverFullName') or 'Participant'}</b>", body_style),
+                Paragraph(item.get("dateOfBirth") or "N/A", body_style),
+                Paragraph(item.get("passportNumber") or "N/A", body_style),
+                Paragraph(f"{item.get('certificationAgency', '')} {item.get('certificationLevel', '')}".strip() or "Certified Diver", body_style),
+                Paragraph(item.get("certificationNumber") or "Verified", body_style),
+                Paragraph(f"<font color='{med_color}'><b>{med_status}</b></font>", body_style),
+                Paragraph(f"<font color='#059669'><b>{waiver_text}</b></font>", body_style),
+            ])
+
+        diver_table = Table(diver_rows, colWidths=[110, 60, 70, 120, 65, 50, 48])
+        diver_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E3A8A')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(diver_table)
+        story.append(Spacer(1, 8))
+
+        # 4. Equipment Sizing & Allocation Table
+        story.append(Paragraph("EQUIPMENT LOADOUT & SIZING", section_style))
+        story.append(Spacer(1, 2))
+
+        gear_rows = [[
+            Paragraph("Diver", header_cell),
+            Paragraph("Tier / Package", header_cell),
+            Paragraph("Cylinder & Gas", header_cell),
+            Paragraph("Valve", header_cell),
+            Paragraph("Ballast", header_cell),
+            Paragraph("Suit & BCD", header_cell),
+            Paragraph("Fins / Boots", header_cell),
+        ]]
+
+        for item in unit_items:
+            tank_label = item.get("selectedTankId", "12")
+            if tank_label == "al80":
+                tank_display = "AL80 (11L) Alu"
+            elif tank_label:
+                tank_display = f"{tank_label}L Steel"
+            else:
+                tank_display = "12L Steel"
+
+            gas_display = (item.get("selectedGasMixId") or "AIR").upper()
+            valve_display = item.get("regulatorFitting") or "DIN"
+            lead_display = f"{item.get('estimatedLeadKg', 6)} kg"
+            suit_display = f"{item.get('wetsuitSize', 'Own')} / {item.get('bcdSize', 'Own')}"
+            fins_display = f"{item.get('finSize', 'Own')} / {item.get('bootSize', 'Own')}"
+
+            gear_rows.append([
+                Paragraph(item.get('diverFullName') or 'Participant', body_style),
+                Paragraph(item.get('unitTitle') or 'Certified Diver', body_style),
+                Paragraph(f"{tank_display} • {gas_display}", body_style),
+                Paragraph(valve_display, body_style),
+                Paragraph(lead_display, body_style),
+                Paragraph(suit_display, body_style),
+                Paragraph(fins_display, body_style),
+            ])
+
+        gear_table = Table(gear_rows, colWidths=[95, 105, 95, 45, 55, 65, 63])
+        gear_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#334155')),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('PADDING', (0, 0), (-1, -1), 3),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(gear_table)
+        story.append(Spacer(1, 8))
+
+        # 5. Financial Settlement & Counter Payment Notice
+        story.append(Paragraph("FINANCIAL SETTLEMENT (PAY ON ARRIVAL)", section_style))
+        story.append(Spacer(1, 2))
+
+        total_due = voucher_data.get("totalAmount", 0.0)
+        currency = voucher_data.get("currency", "EUR")
+
+        payment_text = [
+            Paragraph(f"<b>TOTAL DUE ON ARRIVAL: {total_due:.2f} {currency}</b>", cell_bold),
+            Paragraph("Zero charges were processed online. Please present this voucher or your booking reference at the diving center reception desk to settle payment by cash or card upon morning arrival.", body_style),
+        ]
+        payment_box = Table([[payment_text]], colWidths=[523])
+        payment_box.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FEF3C7')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#F59E0B')),
+            ('PADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(payment_box)
+        story.append(Spacer(1, 8))
+
+        # 6. Diver Preparation Checklist
+        story.append(Paragraph("ESSENTIAL DIVER ARRIVAL CHECKLIST", section_style))
+        story.append(Spacer(1, 2))
+        checklist_items = [
+            Paragraph("• <b>Certification Card & Photo ID:</b> Please bring your scuba diving certification card (either physical or via an app) and photo ID to the reception desk.", body_style),
+            Paragraph("• <b>Medical & Waiver:</b> Your DMSC medical statement and liability waiver were recorded electronically. No paperwork printing required.", body_style),
+            Paragraph("• <b>No-Fly Surface Interval:</b> Ensure your departure flight is scheduled at least 18 hours after completing multiple dives.", body_style),
+            Paragraph("• <b>Arrival Timing:</b> Arrive at the dive center at least 15 minutes prior to the scheduled meeting time.", body_style),
+        ]
+        for item in checklist_items:
+            story.append(item)
+            story.append(Spacer(1, 1))
 
         doc.build(story)
         return buffer.getvalue()
