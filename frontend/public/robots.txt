@@ -8,6 +8,9 @@ User-agent: *
 # Block private/admin area
 Disallow: /admin/
 Disallow: /notifications
+Disallow: /book/
+Disallow: /bookings/
+Disallow: /manage/
 # Allow everything else
 Allow: /
 
