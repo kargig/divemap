@@ -29,6 +29,7 @@ from app.services.booking_medical_encryption_service import BookingMedicalEncryp
 from app.services.waiver_service import WaiverService
 from app.services.briefing_service import BriefingService
 from app.services.nitrox_service import check_nitrox_eligibility
+from app.services.booking_pricing_service import compute_participant_octo_pricing
 
 logger = logging.getLogger(__name__)
 
@@ -399,9 +400,25 @@ def submit_diver_paperwork(
     unit_item.selected_tank_id = req.selectedTankId or "12"
     unit_item.selected_gas_mix_id = req.selectedGasMixId or "air"
     if req.equipmentSizing:
-        unit_item.equipmentSizing = req.equipmentSizing
+        unit_item.equipment_sizing = req.equipmentSizing
     unit_item.waivers_complete = True
     unit_item.signed_at = datetime.now(timezone.utc)
+
+    # Recalculate booking total_amount based on updated equipment sizing and add-ons
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == booking.diving_center_id
+    ).first()
+    recomputed_total = 0.0
+    for it in booking.unit_items:
+        it_sizing = req.equipmentSizing if it.id == unit_item.id else it.equipment_sizing
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=it.unit,
+            equipment_sizing=it_sizing,
+            currency=booking.currency or "EUR",
+        )
+        recomputed_total += pricing_calc["total_due"]
+    booking.total_amount = round(recomputed_total, 2)
 
     # 3. Transition booking status
     booking.status = "CONFIRMED"
@@ -430,6 +447,25 @@ def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
     center = booking.center
     option = booking.option
     slot = booking.slot
+
+    # Ensure booking.total_amount is in sync with accurate pricing breakdown
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == booking.diving_center_id
+    ).first()
+    recomputed_total = 0.0
+    for it in booking.unit_items:
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=it.unit,
+            equipment_sizing=it.equipment_sizing,
+            currency=booking.currency or "EUR",
+        )
+        recomputed_total += pricing_calc["total_due"]
+    recomputed_total = round(recomputed_total, 2)
+    if recomputed_total > 0 and float(booking.total_amount) != recomputed_total:
+        booking.total_amount = recomputed_total
+        db.commit()
+        db.refresh(booking)
 
     qr_payload = f"DIVEMAP:BOOKING:{booking.uuid}:{center.id}"
 
@@ -481,6 +517,25 @@ def download_booking_voucher_pdf(
     product = booking.product
     center = booking.center
     option = booking.option
+
+    # Ensure booking.total_amount is in sync with accurate pricing breakdown
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == booking.diving_center_id
+    ).first()
+    recomputed_total = 0.0
+    for it in booking.unit_items:
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=it.unit,
+            equipment_sizing=it.equipment_sizing,
+            currency=booking.currency or "EUR",
+        )
+        recomputed_total += pricing_calc["total_due"]
+    recomputed_total = round(recomputed_total, 2)
+    if recomputed_total > 0 and float(booking.total_amount) != recomputed_total:
+        booking.total_amount = recomputed_total
+        db.commit()
+        db.refresh(booking)
 
     qr_payload = f"DIVEMAP-VOUCHER:{booking.uuid}:{booking.status}:{booking.payment_status}"
     vessel = slot.vessel if slot else None

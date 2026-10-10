@@ -13,6 +13,7 @@ import {
   Hourglass,
   Stethoscope,
   Lock,
+  Waves,
 } from 'lucide-react';
 import React from 'react';
 
@@ -104,6 +105,26 @@ const BoatManifestTable = ({
                         </span>
                       )}
                     </div>
+                    {p.diver_experience && (
+                      <div className='flex items-center gap-1.5 mt-1'>
+                        <span
+                          className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200/50 dark:border-blue-800/50'
+                          title={`Experience: ${p.diver_experience.declared_dives} declared dives, ${p.diver_experience.platform_logged_dives} logged on Divemap`}
+                        >
+                          <Waves size={10} className='text-blue-500' />
+                          <span>{p.diver_experience.declared_dives} declared</span>
+                          <span className='text-gray-300 dark:text-gray-600'>•</span>
+                          <span className='font-bold'>
+                            {p.diver_experience.platform_logged_dives} logged
+                          </span>
+                        </span>
+                        {p.diver_experience.has_account && (
+                          <span className='text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold'>
+                            @{p.diver_experience.username}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   <td className='py-3.5 px-3'>
@@ -375,6 +396,16 @@ const BoatManifestTable = ({
 
               {/* Badges & Credential Row */}
               <div className='flex flex-wrap items-center gap-1.5 mb-3 text-xs'>
+                {p.diver_experience && (
+                  <span className='inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium border border-blue-200/50 dark:border-blue-800/50'>
+                    <Waves size={10} className='text-blue-500' />
+                    <span>{p.diver_experience.declared_dives} declared</span>
+                    <span className='text-gray-300 dark:text-gray-600'>•</span>
+                    <span className='font-bold'>
+                      {p.diver_experience.platform_logged_dives} logged
+                    </span>
+                  </span>
+                )}
                 <span className='px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded font-semibold'>
                   {p.certification_agency} {p.certification_level}
                 </span>

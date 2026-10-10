@@ -19,6 +19,7 @@ from app.models import (
     OctoBooking,
     OctoBookingUnitItem,
 )
+from app.services.booking_pricing_service import compute_participant_octo_pricing
 
 logger = logging.getLogger(__name__)
 
@@ -332,8 +333,18 @@ def create_booking_hold(
                 detail=f"At least one of Email, Phone, or Passport/National ID is required for participant '{item.diverFullName or 'Guest Diver'}'."
             )
 
-    total_amount = sum(float(unit_map[item.unitId].retail_price) for item in req.unitItems if item.unitId in unit_map)
     currency = units[0].currency if units else "EUR"
+    total_amount = 0.0
+    for item in req.unitItems:
+        unit = unit_map.get(item.unitId)
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=unit,
+            equipment_sizing=item.equipmentSizing,
+            currency=currency,
+        )
+        total_amount += pricing_calc["total_due"]
+    total_amount = round(total_amount, 2)
 
     # Decrement seats in slot
     slot.seats_available -= needed_seats

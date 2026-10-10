@@ -172,6 +172,9 @@ def test_get_trip_manifest(client: TestClient, center_ops_setup):
     assert data["vessel"]["name"] == "Ocean Raider"
     assert data["slot"]["seats_total"] == 12
     assert len(data["participants"]) == 2
+    assert "diver_experience" in data["participants"][0]
+    assert "declared_dives" in data["participants"][0]["diver_experience"]
+    assert "platform_logged_dives" in data["participants"][0]["diver_experience"]
 
     # Check crate packing summary aggregation
     summary = data["crate_packing_summary"]

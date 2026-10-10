@@ -735,7 +735,9 @@ const TripDetail = () => {
                       <div>
                         <strong className='text-gray-900 block'>Equipment Options</strong>
                         <span>
-                          Bring your own dive gear or add rental equipment during checkout.
+                          {trip.different_rental_price === false
+                            ? 'Full equipment rental is included in the trip price at no extra charge.'
+                            : 'Bring your own dive gear or rent full equipment from the center.'}
                         </span>
                       </div>
                     </div>

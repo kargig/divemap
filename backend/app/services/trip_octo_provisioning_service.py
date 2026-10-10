@@ -76,14 +76,24 @@ class TripOctoProvisioningService:
             unit.retail_price = price
             unit.currency = curr
 
-        # Ensure Full Equipment Rental tier exists for product
-        settings = db.query(DivingCenterBookingSettings).filter(
-            DivingCenterBookingSettings.diving_center_id == center_id
-        ).first()
-        rental_addon = 25.0
-        if settings and settings.rental_equipment_pricing and isinstance(settings.rental_equipment_pricing, dict):
-            rental_addon = float(settings.rental_equipment_pricing.get("full_kit", 25.0))
-        rental_price = price + rental_addon
+        # 1b. Resolve or create rental gear tier (DIVER_RENTAL_GEAR)
+        different_price = getattr(trip, "different_rental_price", True)
+        if different_price is False:
+            rental_price = price
+        elif getattr(trip, "custom_rental_price", None) is not None:
+            rental_price = float(trip.custom_rental_price)
+        else:
+            settings = db.query(DivingCenterBookingSettings).filter(
+                DivingCenterBookingSettings.diving_center_id == center_id
+            ).first()
+            rental_addon = 30.0
+            if settings and settings.rental_equipment_pricing and isinstance(settings.rental_equipment_pricing, dict):
+                rental_addon = float(
+                    settings.rental_equipment_pricing.get("full_kit_package")
+                    or settings.rental_equipment_pricing.get("full_kit")
+                    or 30.0
+                )
+            rental_price = price + rental_addon
 
         rental_unit = db.query(OctoUnit).filter(
             OctoUnit.product_id == product.id,

@@ -468,6 +468,8 @@ export const tripSchemas = {
       })
       .default('scheduled'),
     enable_online_booking: z.boolean().optional().default(false),
+    different_rental_price: z.boolean().optional().default(true),
+    custom_rental_price: z.number().nullable().optional(),
     broadcast_to_followers: z.boolean().optional().default(false),
     dives: z.array(tripDiveSchema).default([]),
   }),

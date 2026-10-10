@@ -1,4 +1,4 @@
-import { Cookie, Shield, BarChart3, X, Check } from 'lucide-react';
+import { Cookie, Shield, BarChart3, X, Check, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -19,6 +19,7 @@ export default function CookieConsentBanner() {
   const [consentStatus, setConsentStatus] = useState(getConsentStatus);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+  const [preferencesEnabled, setPreferencesEnabled] = useState(false);
 
   // Sync state when preferences are updated
   useEffect(() => {
@@ -26,11 +27,13 @@ export default function CookieConsentBanner() {
       const status = getConsentStatus();
       setConsentStatus(status);
       setAnalyticsEnabled(status.analytics);
+      setPreferencesEnabled(status.preferences);
     };
 
     const handleOpenSettings = () => {
       const status = getConsentStatus();
       setAnalyticsEnabled(status.analytics);
+      setPreferencesEnabled(status.preferences);
       setIsModalOpen(true);
     };
 
@@ -44,24 +47,25 @@ export default function CookieConsentBanner() {
   }, []);
 
   const handleAcceptAll = useCallback(() => {
-    setConsent({ analytics: true });
+    setConsent({ analytics: true, preferences: true });
     setIsModalOpen(false);
   }, []);
 
   const handleRejectOptional = useCallback(() => {
-    setConsent({ analytics: false });
+    setConsent({ analytics: false, preferences: false });
     setIsModalOpen(false);
   }, []);
 
   const handleSavePreferences = useCallback(() => {
-    setConsent({ analytics: analyticsEnabled });
+    setConsent({ analytics: analyticsEnabled, preferences: preferencesEnabled });
     setIsModalOpen(false);
-  }, [analyticsEnabled]);
+  }, [analyticsEnabled, preferencesEnabled]);
 
   const handleOpenCustomize = useCallback(() => {
     setAnalyticsEnabled(consentStatus.analytics);
+    setPreferencesEnabled(consentStatus.preferences);
     setIsModalOpen(true);
-  }, [consentStatus.analytics]);
+  }, [consentStatus.analytics, consentStatus.preferences]);
 
   const showBanner = !consentStatus.hasResponded;
 
@@ -89,8 +93,9 @@ export default function CookieConsentBanner() {
                 </p>
                 <p className='leading-relaxed'>
                   Divemap uses essential cookies to keep you logged in and protect against bots.
-                  With your consent, we also use optional analytics cookies (Google Analytics) to
-                  help us improve our dive site platform. Learn more in our{' '}
+                  With your consent, we also use optional analytics cookies to help us improve the
+                  platform, and preference cookies to remember your diver info for faster booking
+                  checkout. Learn more in our{' '}
                   <Link
                     to='/privacy'
                     className='text-blue-600 dark:text-blue-400 underline font-medium hover:text-blue-800 dark:hover:text-blue-300'
@@ -210,6 +215,35 @@ export default function CookieConsentBanner() {
                 <p className='mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed'>
                   Allows Google Analytics to aggregate anonymous metrics on dive site visits,
                   popular routes, and page loading speeds to help us improve the platform.
+                </p>
+              </div>
+
+              {/* Booking Preferences & Fast Checkout Cookies */}
+              <div className='p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'>
+                <div className='flex items-center justify-between gap-3'>
+                  <div className='flex items-center gap-2.5'>
+                    <Sparkles className='w-4 h-4 text-amber-500' />
+                    <label
+                      htmlFor='preferences-cookies-toggle'
+                      className='text-sm font-semibold text-gray-900 dark:text-white cursor-pointer'
+                    >
+                      Booking Preferences & Fast Checkout
+                    </label>
+                  </div>
+                  <input
+                    id='preferences-cookies-toggle'
+                    type='checkbox'
+                    role='checkbox'
+                    aria-label='Booking Preferences Cookies'
+                    checked={preferencesEnabled}
+                    onChange={e => setPreferencesEnabled(e.target.checked)}
+                    className='w-5 h-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 cursor-pointer'
+                  />
+                </div>
+                <p className='mt-2 text-xs text-gray-500 dark:text-gray-400 leading-relaxed'>
+                  Remembers your personal details, equipment sizing, emergency contacts, and
+                  insurance locally in browser cookies so you don't have to re-enter them on every
+                  dive booking. Always optional.
                 </p>
               </div>
             </div>

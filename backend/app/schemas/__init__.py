@@ -1328,6 +1328,9 @@ class ParsedDiveTripResponse(BaseModel):
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter
     is_bookable: bool = False
+    different_rental_price: bool = True
+    custom_rental_price: Optional[float] = None
+    rental_price: Optional[float] = None
     octo_slot_id: Optional[str] = None
     seats_available: Optional[int] = None
     base_price: Optional[float] = None
@@ -1391,6 +1394,8 @@ class ParsedDiveTripCreate(BaseModel):
     special_requirements: Optional[str] = None
     trip_status: str = Field("scheduled", pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     enable_online_booking: Optional[bool] = False
+    different_rental_price: Optional[bool] = True
+    custom_rental_price: Optional[float] = Field(None, ge=0)
     dives: List[ParsedDiveCreate] = []
 
     @field_validator('trip_description', 'special_requirements', mode='before')
@@ -1412,6 +1417,8 @@ class ParsedDiveTripUpdate(BaseModel):
     special_requirements: Optional[str] = None
     trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
     enable_online_booking: Optional[bool] = None
+    different_rental_price: Optional[bool] = None
+    custom_rental_price: Optional[float] = Field(None, ge=0)
     dives: Optional[List[ParsedDiveCreate]] = None
 
     @field_validator('trip_description', 'special_requirements', mode='before')

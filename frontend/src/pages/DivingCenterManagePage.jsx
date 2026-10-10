@@ -29,6 +29,7 @@ import SEO from '../components/SEO';
 import Button from '../components/ui/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { getFullAvatarUrl } from '../utils/avatarHelpers';
+import { slugify } from '../utils/slugify';
 
 const DivingCenterManagePage = () => {
   const { id } = useParams();
@@ -190,7 +191,10 @@ const DivingCenterManagePage = () => {
                 Diving Centers
               </Link>
               <span>/</span>
-              <Link to={`/diving-centers/${center.id}`} className='hover:underline'>
+              <Link
+                to={`/diving-centers/${center.id}/${slugify(center.name)}?tab=overview`}
+                className='hover:underline'
+              >
                 {center.name}
               </Link>
               <span>/</span>
@@ -200,7 +204,11 @@ const DivingCenterManagePage = () => {
             </div>
 
             <div className='flex items-center space-x-3'>
-              <Button to={`/diving-centers/${center.id}`} variant='secondary' size='sm'>
+              <Button
+                to={`/diving-centers/${center.id}/${slugify(center.name)}?tab=overview`}
+                variant='secondary'
+                size='sm'
+              >
                 <ChevronLeft className='w-4 h-4 mr-1' /> View Public Page
               </Button>
             </div>

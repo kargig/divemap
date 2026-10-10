@@ -12,6 +12,7 @@ from app.auth import get_current_user, get_current_user_optional, verify_token
 from app.models import (
     User,
     DivingCenter,
+    OctoProduct,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
@@ -27,6 +28,7 @@ from app.services.manifest_export_service import ManifestExportService
 from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 from app.services.nitrox_service import check_nitrox_eligibility
 from app.services.briefing_service import BriefingService
+from app.services.booking_pricing_service import compute_participant_octo_pricing
 
 logger = logging.getLogger(__name__)
 
@@ -137,240 +139,6 @@ def reconcile_slot_seats(db: Session, slot: OctoAvailabilitySlot) -> int:
         db.commit()
 
     return correct_seats_available
-
-
-def compute_participant_octo_pricing(
-    center_settings: Optional[DivingCenterBookingSettings],
-    unit: Optional[OctoUnit],
-    equipment_sizing: Dict[str, Any],
-    currency: str = "EUR",
-) -> Dict[str, Any]:
-    """
-    Computes OCTO-compliant pricing object, line items breakdown, and package caps for a diver.
-    Conforms to the OCTO Travel API specification for octo/pricing capability.
-    """
-    eq = equipment_sizing or {}
-    pricing_config = center_settings.rental_equipment_pricing if center_settings else None
-    items_pricing = pricing_config.get("items", {}) if pricing_config else {}
-    full_pkg_rate = float(pricing_config.get("full_kit_package", 30.0)) if pricing_config else 30.0
-
-    # Base unit retail price
-    base_retail = float(unit.retail_price) if unit else 75.0
-    unit_title = unit.title if unit else "Certified Diver (Own Gear)"
-    is_full_rental_unit = (
-        ("rental" in unit_title.lower())
-        or bool(eq.get("is_rental_package", False))
-        or (getattr(unit, "id", "") == "certified-diver-full-rental")
-    )
-
-    base_line_item = {
-        "id": "base_trip",
-        "title": f"Base Dive Trip: {unit_title}",
-        "category": "BASE_TRIP",
-        "quantity": 1,
-        "amount": base_retail,
-        "price": int(round(base_retail * 100)),
-        "formatted": f"€{base_retail:.2f}",
-    }
-
-    core_rental_items = []
-    aux_rental_items = []
-
-    if is_full_rental_unit:
-        # Full package tier covers core kit; auxiliary items are charged extra
-        if eq.get("rental_torch") and items_pricing.get("dive_torch"):
-            p = float(items_pricing["dive_torch"])
-            aux_rental_items.append({
-                "id": "rental_torch",
-                "title": "Rental Primary Dive Torch",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("rental_dive_computer") and items_pricing.get("dive_computer"):
-            p = float(items_pricing["dive_computer"])
-            aux_rental_items.append({
-                "id": "rental_computer",
-                "title": "Rental Dive Computer (Wrist Unit)",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("rental_scooter") and items_pricing.get("dpv_scooter"):
-            p = float(items_pricing["dpv_scooter"])
-            aux_rental_items.append({
-                "id": "rental_scooter",
-                "title": "DPV Underwater Scooter",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("stage_tank") and eq.get("stage_tank") != "None" and items_pricing.get("stage_tank"):
-            p = float(items_pricing["stage_tank"])
-            aux_rental_items.append({
-                "id": "stage_cylinder",
-                "title": f"Stage Cylinder ({eq.get('stage_tank')})",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-
-        total_rental = sum(item["amount"] for item in aux_rental_items)
-        total_due = base_retail + total_rental
-        package_cap = {
-            "applied": True,
-            "title": "Full Equipment Rental Package Bundle",
-            "capPrice": int(round(full_pkg_rate * 100)),
-            "savings": 0,
-            "formattedSavings": "€0.00",
-        }
-        all_rental_items = aux_rental_items
-    else:
-        # Own gear diver selecting individual rental items à la carte
-        if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None" and items_pricing.get("wetsuit"):
-            p = float(items_pricing["wetsuit"])
-            core_rental_items.append({
-                "id": "rental_wetsuit",
-                "title": f"Rental Wetsuit ({eq.get('wetsuit_size')})",
-                "category": "CORE_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("bcd_size") and eq.get("bcd_size") != "None" and items_pricing.get("bcd"):
-            p = float(items_pricing["bcd"])
-            core_rental_items.append({
-                "id": "rental_bcd",
-                "title": f"Rental BCD ({eq.get('bcd_size')})",
-                "category": "CORE_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if (eq.get("rental_fins") or (eq.get("fin_size") and eq.get("fin_size") != "None")) and items_pricing.get("fins_boots"):
-            p = float(items_pricing["fins_boots"])
-            core_rental_items.append({
-                "id": "rental_fins",
-                "title": f"Rental Fins ({eq.get('fin_size', 'Standard')})",
-                "category": "CORE_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        elif (eq.get("rental_boots") or (eq.get("boot_size") and eq.get("boot_size") != "None")):
-            p = 5.0
-            core_rental_items.append({
-                "id": "rental_boots",
-                "title": f"Rental Booties (EU {eq.get('boot_size', eq.get('shoe_size_eu', '43'))})",
-                "category": "CORE_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-
-        # Auxiliary items
-        if eq.get("rental_dive_computer") and items_pricing.get("dive_computer"):
-            p = float(items_pricing["dive_computer"])
-            aux_rental_items.append({
-                "id": "rental_computer",
-                "title": "Rental Dive Computer (Wrist Unit)",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("rental_torch") and items_pricing.get("dive_torch"):
-            p = float(items_pricing["dive_torch"])
-            aux_rental_items.append({
-                "id": "rental_torch",
-                "title": "Rental Primary Dive Torch",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("rental_scooter") and items_pricing.get("dpv_scooter"):
-            p = float(items_pricing["dpv_scooter"])
-            aux_rental_items.append({
-                "id": "rental_scooter",
-                "title": "DPV Underwater Scooter",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-        if eq.get("stage_tank") and eq.get("stage_tank") != "None" and items_pricing.get("stage_tank"):
-            p = float(items_pricing["stage_tank"])
-            aux_rental_items.append({
-                "id": "stage_cylinder",
-                "title": f"Stage Cylinder ({eq.get('stage_tank')})",
-                "category": "AUXILIARY_RENTAL",
-                "quantity": 1,
-                "amount": p,
-                "price": int(round(p * 100)),
-                "formatted": f"€{p:.2f}",
-            })
-
-        core_sum = sum(item["amount"] for item in core_rental_items)
-        aux_sum = sum(item["amount"] for item in aux_rental_items)
-
-        if core_sum >= full_pkg_rate and full_pkg_rate > 0:
-            effective_core = full_pkg_rate
-            savings = round(core_sum - full_pkg_rate, 2)
-            package_cap = {
-                "applied": True,
-                "title": "Full Equipment Rental Package Cap Applied",
-                "capPrice": int(round(full_pkg_rate * 100)),
-                "savings": int(round(savings * 100)),
-                "formattedSavings": f"€{savings:.2f}",
-            }
-        else:
-            effective_core = core_sum
-            package_cap = {
-                "applied": False,
-                "title": "No Package Cap",
-                "capPrice": int(round(full_pkg_rate * 100)),
-                "savings": 0,
-                "formattedSavings": "€0.00",
-            }
-
-        total_rental = effective_core + aux_sum
-        total_due = base_retail + total_rental
-        all_rental_items = core_rental_items + aux_rental_items
-
-    all_line_items = [base_line_item] + all_rental_items
-
-    return {
-        "pricing": {
-            "original": int(round(total_due * 100)),
-            "retail": int(round(total_due * 100)),
-            "net": int(round(total_due * 100)),
-            "currency": currency,
-            "currencyPrecision": 2,
-            "amount": round(total_due, 2),
-            "formatted": f"€{total_due:.2f}",
-        },
-        "base_trip_price": round(base_retail, 2),
-        "total_rental_surcharge": round(total_rental, 2),
-        "total_due": round(total_due, 2),
-        "line_items": all_line_items,
-        "package_cap": package_cap,
-    }
 
 
 def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabilitySlot) -> Dict[str, Any]:
@@ -595,6 +363,22 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             total_due = fin_data["total_due"]
             is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
 
+            # Diver experience metrics (declared vs platform-logged dives)
+            u = b.user
+            if not u and item.diver_email:
+                u = db.query(User).filter(User.email == item.diver_email).first()
+
+            from app.models import Dive
+            declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
+            logged_cnt = db.query(Dive).filter(Dive.user_id == u.id).count() if u else 0
+
+            diver_experience = {
+                "has_account": bool(u),
+                "username": u.username if u else None,
+                "declared_dives": declared_cnt,
+                "platform_logged_dives": logged_cnt,
+            }
+
             participants.append({
                 "id": item.id,
                 "booking_id": b.uuid,
@@ -607,6 +391,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 "certification_agency": item.certification_agency or "PADI",
                 "certification_level": item.certification_level or "Open Water",
                 "certification_number": item.certification_number,
+                "diver_experience": diver_experience,
                 "selected_tank_id": item.selected_tank_id or "12",
                 "selected_gas_mix_id": item.selected_gas_mix_id or "air",
                 "tanks_count": dives_count,
@@ -981,6 +766,22 @@ def get_participant_details(
     booking = item.booking
     vessel = slot.vessel
 
+    # Diver experience metrics (declared vs platform-logged dives)
+    u = booking.user if (booking and booking.user) else None
+    if not u and item.diver_email:
+        u = db.query(User).filter(User.email == item.diver_email).first()
+
+    from app.models import Dive
+    declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
+    logged_cnt = db.query(Dive).filter(Dive.user_id == u.id).count() if u else 0
+
+    diver_experience = {
+        "has_account": bool(u),
+        "username": u.username if u else None,
+        "declared_dives": declared_cnt,
+        "platform_logged_dives": logged_cnt,
+    }
+
     return {
         "id": item.id,
         "booking_id": booking.uuid if booking else None,
@@ -994,6 +795,7 @@ def get_participant_details(
         "certification_agency": item.certification_agency or "PADI",
         "certification_level": item.certification_level or "Open Water",
         "certification_number": item.certification_number,
+        "diver_experience": diver_experience,
         "selected_tank_id": item.selected_tank_id or "12",
         "selected_gas_mix_id": item.selected_gas_mix_id or "air",
         "estimated_lead_kg": lead,
@@ -1712,6 +1514,23 @@ def update_center_rental_pricing(
         "items": req.items or {},
     }
     settings.rental_equipment_pricing = pricing
+
+    # Synchronize active DIVER_RENTAL_GEAR units for this center
+    rental_addon = float(req.full_kit_package)
+    products = db.query(OctoProduct).filter(OctoProduct.diving_center_id == center_id).all()
+    for prod in products:
+        own_unit = db.query(OctoUnit).filter(
+            OctoUnit.product_id == prod.id,
+            OctoUnit.unit_type == "DIVER_OWN_GEAR"
+        ).first()
+        rental_unit = db.query(OctoUnit).filter(
+            OctoUnit.product_id == prod.id,
+            OctoUnit.unit_type == "DIVER_RENTAL_GEAR"
+        ).first()
+        if own_unit and rental_unit:
+            rental_unit.retail_price = float(own_unit.retail_price) + rental_addon
+            rental_unit.currency = req.currency or own_unit.currency
+
     db.commit()
 
     return pricing

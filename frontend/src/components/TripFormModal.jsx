@@ -48,6 +48,9 @@ const TripFormModal = ({
         special_requirements: trip.special_requirements || '',
         trip_status: trip.trip_status || 'scheduled',
         enable_online_booking: Boolean(trip.is_bookable),
+        different_rental_price:
+          trip.different_rental_price !== undefined ? Boolean(trip.different_rental_price) : true,
+        custom_rental_price: trip.custom_rental_price || '',
         broadcast_to_followers: false,
         dives:
           trip.dives?.map((dive, index) => ({
@@ -74,6 +77,8 @@ const TripFormModal = ({
       special_requirements: '',
       trip_status: 'scheduled',
       enable_online_booking: false,
+      different_rental_price: true,
+      custom_rental_price: '',
       dives: [],
     };
   };
@@ -338,6 +343,103 @@ const TripFormModal = ({
         />
       </div>
 
+      {/* Instant Online Booking Section (Top Half for Easy Access) */}
+      <div className='p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl'>
+        <div className='flex items-start space-x-3'>
+          <input
+            type='checkbox'
+            id='enable-online-booking'
+            {...register('enable_online_booking')}
+            className='w-5 h-5 mt-0.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500 cursor-pointer'
+          />
+          <div className='flex-1'>
+            <label
+              htmlFor='enable-online-booking'
+              className='text-sm font-bold text-gray-900 dark:text-white block cursor-pointer'
+            >
+              Enable Instant Online Booking on Divemap
+            </label>
+            <p className='text-xs text-gray-600 dark:text-gray-400 mt-0.5'>
+              Allows registered divers to book spots online, pre-fill gear sizing, complete
+              encrypted DMSC medical forms, and digitally sign legal waivers. Automatically
+              provisions your dockside boat manifest and crate packing loadouts.
+            </p>
+
+            {watch('enable_online_booking') && (
+              <div className='mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800 space-y-2.5'>
+                <label className='block text-xs font-bold uppercase tracking-wider text-emerald-950 dark:text-emerald-200'>
+                  Equipment Rental Pricing Policy
+                </label>
+
+                <div className='space-y-2'>
+                  <label className='flex items-start gap-2.5 cursor-pointer'>
+                    <input
+                      type='radio'
+                      name='rental_pricing_mode'
+                      checked={watch('different_rental_price') !== false}
+                      onChange={() => setValue('different_rental_price', true)}
+                      className='mt-0.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer'
+                    />
+                    <div className='text-xs'>
+                      <strong className='font-bold text-gray-900 dark:text-white block'>
+                        Different price for equipment rental
+                      </strong>
+                      <span className='text-gray-600 dark:text-gray-400 block'>
+                        Divers renting full gear pay a separate rental fee (center standard package
+                        add-on or custom price).
+                      </span>
+                    </div>
+                  </label>
+
+                  {watch('different_rental_price') !== false && (
+                    <div className='pl-6 pt-1 flex items-center gap-3'>
+                      <label
+                        htmlFor='custom-rental-price'
+                        className='text-xs font-medium text-gray-700 dark:text-gray-300 shrink-0'
+                      >
+                        Custom price with full rental ({watch('trip_currency') || 'EUR'}):
+                      </label>
+                      <input
+                        id='custom-rental-price'
+                        type='number'
+                        step='0.01'
+                        placeholder='Empty for center standard'
+                        {...register('custom_rental_price', {
+                          setValueAs: val => (val === '' ? null : Number(val)),
+                        })}
+                        className='w-52 p-1.5 text-xs border rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
+                      />
+                    </div>
+                  )}
+
+                  <label className='flex items-start gap-2.5 cursor-pointer'>
+                    <input
+                      type='radio'
+                      name='rental_pricing_mode'
+                      checked={watch('different_rental_price') === false}
+                      onChange={() => {
+                        setValue('different_rental_price', false);
+                        setValue('custom_rental_price', null);
+                      }}
+                      className='mt-0.5 text-emerald-600 focus:ring-emerald-500 cursor-pointer'
+                    />
+                    <div className='text-xs'>
+                      <strong className='font-bold text-gray-900 dark:text-white block'>
+                        Same price (Full equipment rental included)
+                      </strong>
+                      <span className='text-gray-600 dark:text-gray-400 block'>
+                        Same price for all divers whether bringing their own gear or renting all
+                        equipment from the center.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div>
         <Controller
           name='trip_description'
@@ -511,31 +613,6 @@ const TripFormModal = ({
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Instant Online Booking Section */}
-      <div className='p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-xl mt-4'>
-        <div className='flex items-start space-x-3'>
-          <input
-            type='checkbox'
-            id='enable-online-booking'
-            {...register('enable_online_booking')}
-            className='w-5 h-5 mt-0.5 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500'
-          />
-          <div>
-            <label
-              htmlFor='enable-online-booking'
-              className='text-sm font-bold text-gray-900 dark:text-white block cursor-pointer'
-            >
-              Enable Instant Online Booking on Divemap
-            </label>
-            <p className='text-xs text-gray-600 dark:text-gray-400 mt-0.5'>
-              Allows registered divers to book spots online, pre-fill gear sizing, complete
-              encrypted DMSC medical forms, and digitally sign legal waivers. Automatically
-              provisions your dockside boat manifest and crate packing loadouts.
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* Broadcast Option */}

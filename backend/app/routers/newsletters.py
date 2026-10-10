@@ -1371,6 +1371,21 @@ async def get_newsletters(
 
     return result
 
+
+def get_trip_rental_price(trip: ParsedDiveTrip) -> Optional[float]:
+    if trip.octo_slot and trip.octo_slot.product and trip.octo_slot.product.units:
+        rental_unit = next((u for u in trip.octo_slot.product.units if u.unit_type == "DIVER_RENTAL_GEAR"), None)
+        if rental_unit:
+            return float(rental_unit.retail_price)
+    if not getattr(trip, "different_rental_price", True) and trip.trip_price is not None:
+        return float(trip.trip_price)
+    if getattr(trip, "custom_rental_price", None) is not None:
+        return float(trip.custom_rental_price)
+    if trip.trip_price is not None:
+        return float(trip.trip_price) + 30.0
+    return None
+
+
 @router.get("/trips", response_model=ParsedDiveTripListResponse, response_model_exclude_none=True)
 async def get_parsed_trips(
     start_date: Optional[date] = None,
@@ -1722,6 +1737,9 @@ async def get_parsed_trips(
             special_requirements=td['trip'].special_requirements,
             trip_status=td['trip'].trip_status.value,
             is_bookable=bool(td['trip'].is_bookable and td['trip'].octo_slot_id),
+            different_rental_price=td['trip'].different_rental_price,
+            custom_rental_price=float(td['trip'].custom_rental_price) if td['trip'].custom_rental_price is not None else None,
+            rental_price=get_trip_rental_price(td['trip']),
             octo_slot_id=td['trip'].octo_slot_id,
             seats_available=td['trip'].octo_slot.seats_available if td['trip'].octo_slot else (td['trip'].group_size_limit - td['trip'].current_bookings if td['trip'].group_size_limit is not None else None),
             base_price=float(td['trip'].octo_slot.base_price) if td['trip'].octo_slot else (float(td['trip'].trip_price) if td['trip'].trip_price is not None else None),
@@ -2167,7 +2185,9 @@ async def create_parsed_trip(
             current_bookings=trip_data.current_bookings,
             trip_description=trip_data.trip_description,
             special_requirements=trip_data.special_requirements,
-            trip_status=trip_data.trip_status
+            trip_status=trip_data.trip_status,
+            different_rental_price=trip_data.different_rental_price if trip_data.different_rental_price is not None else True,
+            custom_rental_price=trip_data.custom_rental_price,
         )
         db.add(trip)
         db.flush()  # Get the trip ID
@@ -2250,6 +2270,9 @@ async def create_parsed_trip(
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
             is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+            different_rental_price=trip.different_rental_price,
+            custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+            rental_price=get_trip_rental_price(trip),
             octo_slot_id=trip.octo_slot_id,
             seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
             base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
@@ -2336,6 +2359,9 @@ async def get_parsed_trip(
         special_requirements=trip.special_requirements,
         trip_status=trip.trip_status.value,
         is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+        different_rental_price=trip.different_rental_price,
+        custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+        rental_price=get_trip_rental_price(trip),
         octo_slot_id=trip.octo_slot_id,
         seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
         base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
@@ -2439,6 +2465,10 @@ async def update_parsed_trip(
             trip.special_requirements = trip_data.special_requirements
         if trip_data.trip_status is not None:
             trip.trip_status = trip_data.trip_status
+        if trip_data.different_rental_price is not None:
+            trip.different_rental_price = trip_data.different_rental_price
+        if trip_data.custom_rental_price is not None:
+            trip.custom_rental_price = trip_data.custom_rental_price
 
         # Handle dives if provided
         if trip_data.dives is not None:
@@ -2460,12 +2490,17 @@ async def update_parsed_trip(
         db.commit()
         db.refresh(trip)
 
-        if trip_data.enable_online_booking is not None:
+        should_sync_slot = (
+            trip_data.enable_online_booking is not None
+            or (trip.is_bookable and (trip_data.trip_price is not None or trip_data.different_rental_price is not None or trip_data.custom_rental_price is not None))
+        )
+        if should_sync_slot:
             from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            is_enabled = trip_data.enable_online_booking if trip_data.enable_online_booking is not None else trip.is_bookable
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
                 trip=trip,
-                enable_booking=trip_data.enable_online_booking,
+                enable_booking=is_enabled,
                 base_price=float(trip.trip_price) if trip.trip_price is not None else None,
                 currency=trip.trip_currency,
                 seats_limit=trip.group_size_limit
@@ -2518,6 +2553,9 @@ async def update_parsed_trip(
             special_requirements=trip.special_requirements,
             trip_status=trip.trip_status.value,
             is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
+            different_rental_price=trip.different_rental_price,
+            custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+            rental_price=get_trip_rental_price(trip),
             octo_slot_id=trip.octo_slot_id,
             seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
             base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),

@@ -577,6 +577,8 @@ class ParsedDiveTrip(Base):
         index=True,
     )
     is_bookable = Column(Boolean, default=False, nullable=False)
+    different_rental_price = Column(Boolean, default=True, nullable=False)
+    custom_rental_price = Column(DECIMAL(10, 2), nullable=True)
     view_count = Column(Integer, default=0, nullable=False)  # Number of views
     extracted_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())

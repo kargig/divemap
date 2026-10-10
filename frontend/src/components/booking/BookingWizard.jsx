@@ -17,12 +17,20 @@ import {
   Compass,
   Flame,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
 import api from '../../api';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  getBookingPreferencesFromCookie,
+  saveBookingPreferencesToCookie,
+  clearBookingPreferencesCookie,
+} from '../../utils/bookingCookies';
+import { getConsentStatus, setConsent } from '../../utils/consent';
 import SEO from '../SEO';
 
 import DateOfBirthPicker from './DateOfBirthPicker';
@@ -32,6 +40,8 @@ import WaiverSigningModal from './WaiverSigningModal';
 const BookingWizard = () => {
   const { slotId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id || null;
 
   // Wizard Step: 1 = Credentials, 2 = Equipment, 3 = Emergency & Insurance, 4 = Medical, 5 = Waiver & Review
   const [currentStep, setCurrentStep] = useState(1);
@@ -99,6 +109,162 @@ const BookingWizard = () => {
 
   const [waiverModalOpen, setWaiverModalOpen] = useState(false);
   const [waiverSignature, setWaiverSignature] = useState(null);
+
+  // Cookie Fast Checkout preference (scoped to current authenticated user or guest)
+  const [rememberOnThisDevice, setRememberOnThisDevice] = useState(() => {
+    const consent = getConsentStatus();
+    const saved = getBookingPreferencesFromCookie(userId);
+    return Boolean(consent.preferences || saved);
+  });
+  const [hasLoadedDevicePrefs, setHasLoadedDevicePrefs] = useState(false);
+
+  const handleToggleRemember = checked => {
+    setRememberOnThisDevice(checked);
+    if (!checked) {
+      clearBookingPreferencesCookie(userId);
+      setHasLoadedDevicePrefs(false);
+      toast.success('Saved device booking preferences cleared.');
+    } else {
+      const consent = getConsentStatus();
+      if (!consent.preferences) {
+        setConsent({ analytics: consent.analytics, preferences: true });
+      }
+      saveBookingPreferencesToCookie(
+        {
+          diverName,
+          diverEmail,
+          diverPhone,
+          diverNationality,
+          passportNumber,
+          dateOfBirth,
+          certAgency,
+          certLevel,
+          certNumber,
+          selectedTankId,
+          selectedGasMixId,
+          regulatorFitting,
+          weightSystem,
+          leadKg,
+          wetsuitGender,
+          wetsuitSize,
+          wetsuitThickness,
+          bcdGender,
+          bcdSize,
+          finType,
+          finSize,
+          bootSize,
+          shoeSizeEu,
+          rentalTorch,
+          rentalComputer,
+          emergencyContactName,
+          emergencyContactPhone,
+          emergencyContactRelation,
+          hasInsurance,
+          insuranceProvider,
+          insurancePolicyNumber,
+          insuranceExpiryDate:
+            insuranceExpiryDate || (insuranceDateRef.current ? insuranceDateRef.current.value : ''),
+        },
+        true,
+        userId
+      );
+      toast.success('Your details will be remembered on this device.');
+    }
+  };
+
+  const syncDeviceCookiePreferences = () => {
+    if (rememberOnThisDevice) {
+      const consent = getConsentStatus();
+      if (!consent.preferences) {
+        setConsent({ analytics: consent.analytics, preferences: true });
+      }
+      saveBookingPreferencesToCookie(
+        {
+          diverName,
+          diverEmail,
+          diverPhone,
+          diverNationality,
+          passportNumber,
+          dateOfBirth,
+          certAgency,
+          certLevel,
+          certNumber,
+          selectedTankId,
+          selectedGasMixId,
+          regulatorFitting,
+          weightSystem,
+          leadKg,
+          wetsuitGender,
+          wetsuitSize,
+          wetsuitThickness,
+          bcdGender,
+          bcdSize,
+          finType,
+          finSize,
+          bootSize,
+          shoeSizeEu,
+          rentalTorch,
+          rentalComputer,
+          emergencyContactName,
+          emergencyContactPhone,
+          emergencyContactRelation,
+          hasInsurance,
+          insuranceProvider,
+          insurancePolicyNumber,
+          insuranceExpiryDate:
+            insuranceExpiryDate || (insuranceDateRef.current ? insuranceDateRef.current.value : ''),
+        },
+        true,
+        userId
+      );
+    } else {
+      clearBookingPreferencesCookie(userId);
+    }
+  };
+
+  // Auto-sync cookie preferences as fields change when user opts in to remember on this device
+  useEffect(() => {
+    if (!rememberOnThisDevice || loading) return;
+    const timer = setTimeout(() => {
+      syncDeviceCookiePreferences();
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [
+    rememberOnThisDevice,
+    loading,
+    diverName,
+    diverEmail,
+    diverPhone,
+    diverNationality,
+    passportNumber,
+    dateOfBirth,
+    certAgency,
+    certLevel,
+    certNumber,
+    selectedTankId,
+    selectedGasMixId,
+    regulatorFitting,
+    weightSystem,
+    leadKg,
+    wetsuitGender,
+    wetsuitSize,
+    wetsuitThickness,
+    bcdGender,
+    bcdSize,
+    finType,
+    finSize,
+    bootSize,
+    shoeSizeEu,
+    rentalTorch,
+    rentalComputer,
+    emergencyContactName,
+    emergencyContactPhone,
+    emergencyContactRelation,
+    hasInsurance,
+    insuranceProvider,
+    insurancePolicyNumber,
+    insuranceExpiryDate,
+  ]);
 
   // Submitting state
   const [submitting, setSubmitting] = useState(false);
@@ -173,7 +339,74 @@ const BookingWizard = () => {
           if (pg.insurance_expiry_date) setInsuranceExpiryDate(pg.insurance_expiry_date);
         }
 
-        // Auto-fill from certifications (most advanced qualification first)
+        // Auto-fill from saved device cookies if opted in (certifications are still loaded from platform)
+        const effectiveUserId = userId || data.user?.id || null;
+        const cookiePrefs = getBookingPreferencesFromCookie(effectiveUserId);
+        if (cookiePrefs) {
+          setHasLoadedDevicePrefs(true);
+          // Diver personal details fallback
+          if (!data.user?.full_name && cookiePrefs.diverName) setDiverName(cookiePrefs.diverName);
+          if (
+            (!data.user?.email || data.user.email.endsWith('.invalid')) &&
+            cookiePrefs.diverEmail
+          ) {
+            setDiverEmail(cookiePrefs.diverEmail);
+          }
+          if (!data.user?.phone && cookiePrefs.diverPhone) setDiverPhone(cookiePrefs.diverPhone);
+          if (!data.user?.nationality && cookiePrefs.diverNationality)
+            setDiverNationality(cookiePrefs.diverNationality);
+          if (!data.user?.passport_number && cookiePrefs.passportNumber)
+            setPassportNumber(cookiePrefs.passportNumber);
+          if (!data.user?.date_of_birth && cookiePrefs.dateOfBirth)
+            setDateOfBirth(cookiePrefs.dateOfBirth);
+
+          // Equipment preferences from cookies
+          if (cookiePrefs.selectedTankId) setSelectedTankId(cookiePrefs.selectedTankId);
+          if (cookiePrefs.selectedGasMixId) setSelectedGasMixId(cookiePrefs.selectedGasMixId);
+          if (cookiePrefs.regulatorFitting) setRegulatorFitting(cookiePrefs.regulatorFitting);
+          if (cookiePrefs.weightSystem) setWeightSystem(cookiePrefs.weightSystem);
+          if (cookiePrefs.leadKg) setLeadKg(cookiePrefs.leadKg.toString());
+          if (cookiePrefs.wetsuitGender) setWetsuitGender(cookiePrefs.wetsuitGender);
+          if (cookiePrefs.wetsuitSize) setWetsuitSize(cookiePrefs.wetsuitSize);
+          if (cookiePrefs.wetsuitThickness) setWetsuitThickness(cookiePrefs.wetsuitThickness);
+          if (cookiePrefs.bcdGender) setBcdGender(cookiePrefs.bcdGender);
+          if (cookiePrefs.bcdSize) setBcdSize(cookiePrefs.bcdSize);
+          if (cookiePrefs.finType) setFinType(cookiePrefs.finType);
+          if (cookiePrefs.finSize) setFinSize(cookiePrefs.finSize);
+          if (cookiePrefs.bootSize) setBootSize(cookiePrefs.bootSize);
+          if (cookiePrefs.shoeSizeEu) setShoeSizeEu(cookiePrefs.shoeSizeEu.toString());
+          if (cookiePrefs.rentalTorch !== undefined)
+            setRentalTorch(Boolean(cookiePrefs.rentalTorch));
+          if (cookiePrefs.rentalComputer !== undefined)
+            setRentalComputer(Boolean(cookiePrefs.rentalComputer));
+
+          // Emergency Contact from cookies
+          if (cookiePrefs.emergencyContactName) {
+            setEmergencyContactName(cookiePrefs.emergencyContactName);
+          }
+          if (cookiePrefs.emergencyContactPhone) {
+            setEmergencyContactPhone(cookiePrefs.emergencyContactPhone);
+          }
+          if (cookiePrefs.emergencyContactRelation) {
+            setEmergencyContactRelation(cookiePrefs.emergencyContactRelation);
+          }
+
+          // Dive Accident Insurance preferences from cookies
+          if (cookiePrefs.hasInsurance) {
+            setHasInsurance(cookiePrefs.hasInsurance);
+          }
+          if (cookiePrefs.insuranceProvider) {
+            setInsuranceProvider(cookiePrefs.insuranceProvider);
+          }
+          if (cookiePrefs.insurancePolicyNumber) {
+            setInsurancePolicyNumber(cookiePrefs.insurancePolicyNumber);
+          }
+          if (cookiePrefs.insuranceExpiryDate) {
+            setInsuranceExpiryDate(cookiePrefs.insuranceExpiryDate);
+          }
+        }
+
+        // Auto-fill from certifications (most advanced qualification first from platform)
         if (data.user_certifications && data.user_certifications.length > 0) {
           const mostAdvancedCert = data.user_certifications[0];
           const matchedOrg = (orgsRes.data || []).find(
@@ -184,6 +417,15 @@ const BookingWizard = () => {
           setCertAgency(matchedOrg?.acronym || mostAdvancedCert.agency || '');
           if (mostAdvancedCert.level) setCertLevel(mostAdvancedCert.level);
           if (mostAdvancedCert.number) setCertNumber(mostAdvancedCert.number);
+        } else if (cookiePrefs) {
+          if (cookiePrefs.certAgency) setCertAgency(cookiePrefs.certAgency);
+          if (cookiePrefs.certLevel) setCertLevel(cookiePrefs.certLevel);
+          if (cookiePrefs.certNumber) setCertNumber(cookiePrefs.certNumber);
+        }
+
+        // Restore saved scuba diving certification card ID from cookies if user opted to remember
+        if (cookiePrefs?.certNumber) {
+          setCertNumber(cookiePrefs.certNumber);
         }
       } catch (err) {
         console.error('Failed to load checkout context:', err);
@@ -531,6 +773,7 @@ const BookingWizard = () => {
     if (currentStep === 2 && !validateStep2()) return;
     if (currentStep === 3 && !validateStep3()) return;
     if (currentStep === 4 && !validateStep4()) return;
+    syncDeviceCookiePreferences();
     setCurrentStep(prev => Math.min(5, prev + 1));
     window.scrollTo({ top: 100, behavior: 'smooth' });
   };
@@ -552,6 +795,7 @@ const BookingWizard = () => {
 
     try {
       setSubmitting(true);
+      syncDeviceCookiePreferences();
       const finalExpiryDate = (
         insuranceExpiryDate || (insuranceDateRef.current ? insuranceDateRef.current.value : '')
       ).trim();
@@ -839,6 +1083,23 @@ const BookingWizard = () => {
                   <span className='text-xs font-bold text-blue-600 font-mono'>1 of 5</span>
                 </div>
 
+                {hasLoadedDevicePrefs && (
+                  <div className='p-3 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs flex items-center justify-between text-blue-900 dark:text-blue-200'>
+                    <span className='flex items-center gap-1.5 font-medium'>
+                      <Sparkles size={14} className='text-blue-600 dark:text-blue-400 shrink-0' />
+                      Prefilled from your saved device cookies (certifications loaded from your
+                      Divemap profile).
+                    </span>
+                    <button
+                      type='button'
+                      onClick={() => handleToggleRemember(false)}
+                      className='text-[11px] font-bold text-blue-700 dark:text-blue-300 hover:underline shrink-0'
+                    >
+                      Clear device cookies
+                    </button>
+                  </div>
+                )}
+
                 {/* Unit Selection (Own Gear vs Rental) */}
                 <div>
                   <label className='block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2'>
@@ -866,8 +1127,15 @@ const BookingWizard = () => {
                             {u.title}
                           </span>
                         </div>
-                        <span className='text-xs font-semibold text-blue-600 font-mono'>
+                        <span className='text-xs font-semibold text-blue-600 font-mono flex items-center gap-1'>
                           €{u.retail_price}
+                          {u.unit_type === 'DIVER_RENTAL_GEAR' &&
+                            contextData.units.find(o => o.unit_type === 'DIVER_OWN_GEAR')
+                              ?.retail_price === u.retail_price && (
+                              <span className='text-[10px] px-1.5 py-0.2 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded font-bold'>
+                                Included
+                              </span>
+                            )}
                         </span>
                       </label>
                     ))}
@@ -1089,7 +1357,7 @@ const BookingWizard = () => {
 
                     <div>
                       <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Scuba Diving Certification Card # (Physical or via App) *
+                        Scuba Diving Certification Card #
                       </label>
                       <input
                         type='text'
@@ -1105,6 +1373,29 @@ const BookingWizard = () => {
                         Physical plastic card or verified mobile app (PADI, SSI, etc.)
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Fast Checkout Device Option */}
+                <div className='p-3.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl flex items-start gap-3'>
+                  <input
+                    id='remember-device-toggle-step1'
+                    type='checkbox'
+                    checked={rememberOnThisDevice}
+                    onChange={e => handleToggleRemember(e.target.checked)}
+                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mt-0.5 shrink-0 cursor-pointer'
+                  />
+                  <div className='text-xs'>
+                    <label
+                      htmlFor='remember-device-toggle-step1'
+                      className='font-bold text-gray-900 dark:text-white cursor-pointer block'
+                    >
+                      Remember my details on this device for faster checkout
+                    </label>
+                    <span className='text-gray-500 dark:text-gray-400 block mt-0.5 leading-relaxed'>
+                      Optionally saves your personal info, equipment sizing, emergency contacts, and
+                      insurance in browser cookies so you don't have to re-enter them next time.
+                    </span>
                   </div>
                 </div>
 
@@ -1890,6 +2181,29 @@ const BookingWizard = () => {
                   </span>
                 </div>
 
+                {/* Fast Checkout Option */}
+                <div className='p-3.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl flex items-start gap-3'>
+                  <input
+                    id='remember-device-toggle-step5'
+                    type='checkbox'
+                    checked={rememberOnThisDevice}
+                    onChange={e => handleToggleRemember(e.target.checked)}
+                    className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4 mt-0.5 shrink-0 cursor-pointer'
+                  />
+                  <div className='text-xs'>
+                    <label
+                      htmlFor='remember-device-toggle-step5'
+                      className='font-bold text-gray-900 dark:text-white cursor-pointer block'
+                    >
+                      Remember my details on this device for faster checkout
+                    </label>
+                    <span className='text-gray-500 dark:text-gray-400 block mt-0.5 leading-relaxed'>
+                      Saves contact information, equipment sizing, emergency contacts, and insurance
+                      locally in browser cookies for future bookings.
+                    </span>
+                  </div>
+                </div>
+
                 {/* Step 5 Navigation Buttons */}
                 <div className='flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700'>
                   <button
@@ -1951,7 +2265,7 @@ const BookingWizard = () => {
                   <span
                     className={`font-semibold ${
                       hasContactOrId
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? 'text-gray-900 dark:text-white'
                         : 'text-amber-600 dark:text-amber-400'
                     }`}
                   >
@@ -1975,7 +2289,7 @@ const BookingWizard = () => {
                   <span
                     className={`font-semibold text-right max-w-[160px] truncate ${
                       hasCertDetails
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? 'text-gray-900 dark:text-white'
                         : 'text-amber-600 dark:text-amber-400'
                     }`}
                     title={hasCertDetails ? `${certAgency} ${certLevel}` : 'Required'}
@@ -2060,9 +2374,7 @@ const BookingWizard = () => {
                   <span
                     className={`font-semibold text-right ${
                       currentStep > 1
-                        ? rentalComputer
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-gray-900 dark:text-white'
+                        ? 'text-gray-900 dark:text-white'
                         : 'text-gray-400 dark:text-gray-500'
                     }`}
                   >
@@ -2076,7 +2388,7 @@ const BookingWizard = () => {
                 {rentalTorch && currentStep > 1 && (
                   <div className='flex justify-between text-gray-600 dark:text-gray-400'>
                     <span>Rental Light:</span>
-                    <span className='font-semibold text-amber-600 dark:text-amber-400'>
+                    <span className='font-semibold text-gray-900 dark:text-white'>
                       Primary Dive Torch Included
                     </span>
                   </div>
@@ -2088,7 +2400,7 @@ const BookingWizard = () => {
                   <span
                     className={`font-semibold text-right max-w-[150px] truncate ${
                       emergencyContactName && emergencyContactPhone
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? 'text-gray-900 dark:text-white'
                         : currentStep >= 3
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-gray-400 dark:text-gray-500'
@@ -2113,7 +2425,7 @@ const BookingWizard = () => {
                   <span
                     className={`font-semibold text-right max-w-[150px] truncate ${
                       hasInsurance === 'CENTER' || insuranceProvider
-                        ? 'text-emerald-600 dark:text-emerald-400'
+                        ? 'text-gray-900 dark:text-white'
                         : currentStep >= 3
                           ? 'text-amber-600 dark:text-amber-400'
                           : 'text-gray-400 dark:text-gray-500'

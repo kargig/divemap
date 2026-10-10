@@ -83,6 +83,16 @@ const NavbarDesktopControls = () => {
           <span className='text-sm'>Home</span>
         </Link>
 
+        {primaryCenter && (
+          <Link
+            to={`/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}/manage`}
+            className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors font-bold'
+          >
+            <Building className='h-6 w-6 text-yellow-300' />
+            <span className='text-sm'>My Diving Center</span>
+          </Link>
+        )}
+
         <Link
           to='/map'
           className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
@@ -90,16 +100,6 @@ const NavbarDesktopControls = () => {
           <Map className='h-6 w-6' />
           <span className='text-sm'>Map</span>
         </Link>
-
-        {primaryCenter && !user?.is_admin && !user?.is_moderator && (
-          <Link
-            to={`/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}`}
-            className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors font-bold'
-          >
-            <Building className='h-6 w-6 text-yellow-300' />
-            <span className='text-sm'>My Diving Center</span>
-          </Link>
-        )}
 
         <Dropdown
           menu={{

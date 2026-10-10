@@ -1,8 +1,8 @@
-import { MessageSquare, Bell, ArrowLeft, Edit, MapPin, Phone, Mail, Globe } from 'lucide-react';
+import { MessageSquare, Bell, ArrowLeft, MapPin, Phone, Mail, Globe } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useMutation, useQuery } from 'react-query';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { createChatRoom } from '../api';
 import {
@@ -10,7 +10,6 @@ import {
   unfollowDivingCenter,
   getFollowStatus,
 } from '../services/divingCenters';
-import { decodeHtmlEntities } from '../utils/htmlDecode';
 
 import Avatar from './Avatar';
 import MaskedEmail from './MaskedEmail';
@@ -45,7 +44,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
           isFollowing ? 'Unfollowed diving center' : 'Following diving center for updates'
         );
       },
-      onError: error => {
+      onError: () => {
         toast.error('Failed to update follow status');
       },
     }
@@ -55,53 +54,71 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
     onSuccess: data => {
       navigate(`/messages?room=${data.id}`);
     },
-    onError: error => {
+    onError: () => {
       toast.error('Failed to start conversation');
     },
   });
 
-  const isOwner = Boolean(
-    user && user.id && (user.id === center?.created_by || user.id === center?.owner_id)
-  );
-  const isAdmin = Boolean(user?.is_admin);
-  const isModerator = Boolean(user?.is_moderator);
-
   if (!center) return null;
 
+  const locationString = [center.city, center.country].filter(Boolean).join(', ');
+
   return (
-    <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'>
-      <div className='flex flex-col sm:flex-row justify-between items-start mb-4 sm:mb-6 gap-4'>
-        <div className='flex items-start gap-3 sm:gap-4 flex-1 w-full'>
+    <div className='bg-white rounded-xl shadow-xs p-4 sm:p-5 mb-4 border border-gray-100'>
+      {/* Top Header: Identity on Left, Contact Info on Right */}
+      <div className='flex flex-col md:flex-row justify-between items-start gap-4'>
+        {/* Left: Logo, Name, Location, Buttons */}
+        <div className='flex items-start gap-3.5 flex-1 min-w-0'>
           {onBack && (
             <button
               onClick={onBack}
               className='text-gray-600 hover:text-gray-800 p-1 mt-1 shrink-0'
+              aria-label='Go back'
             >
-              <ArrowLeft size={20} className='sm:w-6 sm:h-6' />
+              <ArrowLeft size={18} className='sm:w-5 sm:h-5' />
             </button>
           )}
+
+          <Avatar
+            src={center.logo_full_url || center.logo_url}
+            alt={center.name}
+            size='xl'
+            shape='rounded'
+            fallbackText={center.name}
+            className='border border-gray-200 shadow-xs shrink-0'
+          />
+
           <div className='min-w-0 flex-1'>
-            <div className='flex items-center gap-4 mb-3'>
-              <Avatar
-                src={center.logo_full_url || center.logo_url}
-                alt={center.name}
-                size='2xl'
-                shape='rounded'
-                fallbackText={center.name}
-                className='border border-gray-200 shadow-sm'
-              />
-              <h1 className='text-3xl font-bold text-gray-900 break-words'>{center.name}</h1>
+            <div className='flex flex-wrap items-center gap-2 mb-0.5'>
+              <h1 className='text-xl sm:text-2xl font-bold text-gray-900 leading-tight'>
+                {center.name}
+              </h1>
+              {center.average_rating && reviewsEnabled !== false && (
+                <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0'>
+                  ★ {center.average_rating.toFixed(1)}/10
+                  <span className='text-[10px] font-normal text-gray-500'>
+                    ({center.total_ratings})
+                  </span>
+                </span>
+              )}
             </div>
 
+            {locationString && (
+              <div className='flex items-center gap-1 text-xs text-gray-500 mb-2'>
+                <MapPin size={12} className='text-gray-400 shrink-0' />
+                <span>{locationString}</span>
+              </div>
+            )}
+
             {user && (
-              <div className='flex flex-col sm:flex-row flex-wrap gap-2 mt-4 w-full'>
+              <div className='flex items-center gap-2 flex-wrap'>
                 <Button
                   onClick={() => startChatMutation.mutate()}
                   disabled={startChatMutation.isLoading}
                   variant='white'
                   size='sm'
-                  className='w-full sm:w-auto shadow-sm'
-                  icon={<MessageSquare className='h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5' />}
+                  className='shadow-2xs text-xs py-1 px-2.5 h-8'
+                  icon={<MessageSquare className='h-3.5 w-3.5 mr-1 text-blue-600' />}
                 >
                   {startChatMutation.isLoading ? 'Loading...' : 'Message'}
                 </Button>
@@ -110,10 +127,12 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
                   disabled={followMutation.isLoading}
                   variant='secondary'
                   size='sm'
-                  className='w-full sm:w-auto shadow-sm'
+                  className='shadow-2xs text-xs py-1 px-2.5 h-8'
                   icon={
                     <Bell
-                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 ${isFollowing ? 'fill-current text-blue-500' : ''}`}
+                      className={`h-3.5 w-3.5 mr-1 ${
+                        isFollowing ? 'fill-current text-blue-500' : ''
+                      }`}
                     />
                   }
                 >
@@ -124,82 +143,43 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
           </div>
         </div>
 
-        <div className='flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto space-x-4 sm:space-x-0 sm:space-y-4 shrink-0'>
-          {center.average_rating && reviewsEnabled !== false ? (
-            <div className='text-right'>
-              <div className='flex items-center space-x-2 mb-1 justify-end'>
-                <span className='text-3xl font-bold text-gray-900 leading-none'>
-                  {center.average_rating.toFixed(1)}
-                  <span className='text-xl text-gray-400'>/10</span>
-                </span>
-              </div>
-              <p className='text-sm text-gray-600'>
-                {center.total_ratings} rating{center.total_ratings !== 1 ? 's' : ''}
-              </p>
-            </div>
-          ) : reviewsEnabled !== false ? (
-            <div className='text-sm text-gray-500 italic'>No ratings yet</div>
-          ) : null}
-        </div>
-      </div>
-
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 sm:pt-6 border-t border-gray-100'>
-        <div className='col-span-2'>
-          {center.description ? (
-            <RichText content={center.description} className='text-gray-700' />
-          ) : (
-            <p className='text-gray-400 italic'>No description available.</p>
-          )}
-        </div>
-
-        <div className='space-y-3 sm:space-y-4 bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-100 h-fit'>
-          <h3 className='font-semibold text-gray-900 text-sm uppercase tracking-wider mb-3'>
-            Contact Info
-          </h3>
+        {/* Right: Compact Contact Information */}
+        <div className='flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-1.5 shrink-0 text-xs sm:text-sm text-gray-600 pt-1'>
           {center.phone && (
-            <div className='flex items-center space-x-3'>
-              <div className='bg-white p-2 rounded-lg shadow-sm border border-gray-100'>
-                <Phone className='w-4 h-4 text-blue-600' />
-              </div>
-              <a
-                href={`tel:${center.phone}`}
-                className='text-gray-700 hover:text-blue-600 transition-colors font-medium'
-              >
-                {center.phone}
-              </a>
-            </div>
+            <a
+              href={`tel:${center.phone}`}
+              className='inline-flex items-center gap-1.5 font-medium text-gray-700 hover:text-blue-600 transition-colors'
+            >
+              <Phone className='w-3.5 h-3.5 text-blue-600 shrink-0' />
+              <span>{center.phone}</span>
+            </a>
           )}
           {center.email && (
-            <div className='flex items-center space-x-3'>
-              <div className='bg-white p-2 rounded-lg shadow-sm border border-gray-100'>
-                <Mail className='w-4 h-4 text-blue-600' />
-              </div>
-              <MaskedEmail
-                email={center.email}
-                className='text-gray-700 hover:text-blue-600 transition-colors font-medium'
-              />
+            <div className='inline-flex items-center gap-1.5 font-medium text-gray-700'>
+              <Mail className='w-3.5 h-3.5 text-blue-600 shrink-0' />
+              <MaskedEmail email={center.email} className='hover:text-blue-600 transition-colors' />
             </div>
           )}
           {center.website && (
-            <div className='flex items-center space-x-3'>
-              <div className='bg-white p-2 rounded-lg shadow-sm border border-gray-100'>
-                <Globe className='w-4 h-4 text-blue-600' />
-              </div>
-              <a
-                href={center.website}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-blue-600 hover:text-blue-800 transition-colors font-medium truncate'
-              >
-                Visit Website
-              </a>
-            </div>
-          )}
-          {!center.phone && !center.email && !center.website && (
-            <p className='text-sm text-gray-500 italic'>No contact details provided.</p>
+            <a
+              href={center.website}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-medium transition-colors'
+            >
+              <Globe className='w-3.5 h-3.5 text-blue-600 shrink-0' />
+              <span>Visit Website</span>
+            </a>
           )}
         </div>
       </div>
+
+      {/* Bottom: Full-Width Description */}
+      {center.description && (
+        <div className='mt-3 pt-3 border-t border-gray-100 text-xs sm:text-sm text-gray-600 leading-relaxed'>
+          <RichText content={center.description} className='text-gray-600' />
+        </div>
+      )}
     </div>
   );
 };

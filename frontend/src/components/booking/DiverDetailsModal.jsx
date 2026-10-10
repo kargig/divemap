@@ -716,6 +716,26 @@ const DiverDetailsModal = ({
                 {currentDiver.diver_phone || 'N/A'}
               </strong>
             </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Dive Experience:</span>
+              <strong className='text-gray-800 dark:text-gray-200'>
+                {currentDiver.diver_experience?.declared_dives ?? 'N/A'} declared
+              </strong>
+            </div>
+            <div>
+              <span className='text-gray-400 block text-[10px]'>Platform Logged:</span>
+              <strong className='text-blue-600 dark:text-blue-400 font-semibold'>
+                {currentDiver.diver_experience?.platform_logged_dives ?? 0} on Divemap
+              </strong>
+            </div>
+            {currentDiver.diver_experience?.has_account && (
+              <div>
+                <span className='text-gray-400 block text-[10px]'>Divemap Diver:</span>
+                <strong className='text-emerald-600 dark:text-emerald-400'>
+                  @{currentDiver.diver_experience.username}
+                </strong>
+              </div>
+            )}
           </div>
         </div>
 

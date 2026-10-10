@@ -427,12 +427,32 @@ const TripParticipantDetailsPage = () => {
                     {diver.diver_email || 'N/A'}
                   </span>
                 </div>
-                <div className='flex justify-between py-1'>
+                <div className='flex justify-between py-1 border-b border-gray-50 dark:border-gray-750'>
                   <span className='text-gray-500'>Phone:</span>
                   <span className='text-gray-900 dark:text-white font-mono'>
                     {diver.diver_phone || 'N/A'}
                   </span>
                 </div>
+                <div className='flex justify-between py-1 border-b border-gray-50 dark:border-gray-750'>
+                  <span className='text-gray-500'>Declared Dives:</span>
+                  <strong className='text-gray-900 dark:text-white'>
+                    {diver.diver_experience?.declared_dives ?? 'N/A'} dives
+                  </strong>
+                </div>
+                <div className='flex justify-between py-1 border-b border-gray-50 dark:border-gray-750'>
+                  <span className='text-gray-500'>Platform Logged Dives:</span>
+                  <strong className='text-blue-600 dark:text-blue-400 font-semibold'>
+                    {diver.diver_experience?.platform_logged_dives ?? 0} on Divemap
+                  </strong>
+                </div>
+                {diver.diver_experience?.has_account && (
+                  <div className='flex justify-between py-1'>
+                    <span className='text-gray-500'>Divemap Diver:</span>
+                    <strong className='text-emerald-600 dark:text-emerald-400'>
+                      @{diver.diver_experience.username}
+                    </strong>
+                  </div>
+                )}
               </div>
             </div>
 

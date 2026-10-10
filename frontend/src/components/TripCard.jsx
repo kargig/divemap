@@ -304,6 +304,11 @@ const TripCard = ({
               <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
+              {trip.different_rental_price === false && trip.trip_price && (
+                <div className='text-[10px] text-emerald-600 font-semibold leading-none mt-0.5'>
+                  Gear included
+                </div>
+              )}
             </div>
           </div>
 
