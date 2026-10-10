@@ -1261,7 +1261,9 @@ const BookingWizard = () => {
                               onClick={() => {
                                 setCertAgency(orgAcronym || '');
                                 setCertLevel(c.level || '');
-                                setCertNumber(c.number || '');
+                                if (c.number) {
+                                  setCertNumber(c.number);
+                                }
                               }}
                               className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${
                                 isSelected
