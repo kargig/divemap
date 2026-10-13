@@ -18,12 +18,16 @@ import {
   Flame,
   AlertCircle,
   Sparkles,
+  MessageSquare,
+  Phone,
+  Mail,
+  ExternalLink,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
-import api from '../../api';
+import api, { createChatRoom } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getBookingPreferencesFromCookie,
@@ -31,7 +35,10 @@ import {
   clearBookingPreferencesCookie,
 } from '../../utils/bookingCookies';
 import { getConsentStatus, setConsent } from '../../utils/consent';
+import { formatDate } from '../../utils/dateHelpers';
+import { decodeHtmlEntities } from '../../utils/htmlDecode';
 import SEO from '../SEO';
+import { WhatsAppIcon } from '../SocialMediaIcons';
 
 import DateOfBirthPicker from './DateOfBirthPicker';
 import MedicalQuestionnaireModal from './MedicalQuestionnaireModal';
@@ -937,6 +944,174 @@ const BookingWizard = () => {
         <Link to='/dives' className='px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold'>
           Explore Dives
         </Link>
+      </div>
+    );
+  }
+
+  if (
+    contextData.slot &&
+    contextData.slot.seats_available !== undefined &&
+    contextData.slot.seats_available !== null &&
+    contextData.slot.seats_available <= 0
+  ) {
+    const center = contextData.center || {};
+    const centerName = decodeHtmlEntities(center.name || 'the diving center');
+    const tripTitle = decodeHtmlEntities(contextData.product?.title || 'Dive Trip');
+    const tripDateStr = contextData.slot.start_datetime
+      ? formatDate(contextData.slot.start_datetime)
+      : '';
+    const cleanPhone = (center.phone || '').replace(/[^0-9]/g, '');
+    const inquiryMessage = `Hi ${centerName}! I noticed online spots are full on Divemap for "${tripTitle}"${tripDateStr ? ` on ${tripDateStr}` : ''}. Do you have any reserved boat spots available or a cancellation waitlist I could join?`;
+    const whatsappUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(inquiryMessage)}`
+      : null;
+    const emailSubject = `Trip Spot Inquiry: ${tripTitle}${tripDateStr ? ` (${tripDateStr})` : ''}`;
+    const emailUrl = center.email
+      ? `mailto:${center.email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(inquiryMessage)}`
+      : null;
+
+    const handleStartChat = async () => {
+      if (!center.id) {
+        toast.error('Diving center information not available');
+        return;
+      }
+      if (!user) {
+        toast.error('Please log in to chat with the diving center');
+        return;
+      }
+      try {
+        const room = await createChatRoom([], false, null, center.id);
+        navigate('/messages', {
+          state: {
+            roomId: room.id,
+            draftMessage: inquiryMessage.slice(0, 500),
+          },
+        });
+      } catch (err) {
+        console.error('Failed to start chat:', err);
+        toast.error('Could not start conversation');
+      }
+    };
+
+    return (
+      <div className='min-h-[75vh] flex items-center justify-center p-4 sm:p-6 bg-gray-50/50 dark:bg-gray-900/50'>
+        <div className='max-w-lg w-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center space-y-6'>
+          <div className='w-14 h-14 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto'>
+            <AlertCircle className='w-7 h-7' />
+          </div>
+
+          <div className='space-y-2'>
+            <h2 className='text-2xl font-bold text-gray-900 dark:text-white'>
+              Departure Currently Full Online
+            </h2>
+            <p className='text-sm text-gray-600 dark:text-gray-300 leading-relaxed'>
+              Online slots for <strong>{tripTitle}</strong>
+              {tripDateStr && <span> on {tripDateStr}</span>} are currently fully booked.
+            </p>
+          </div>
+
+          <div className='p-4 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-left text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed'>
+            Diving centers regularly reserve offline spots on board for walk-ins, phone bookings, or
+            experience last-minute cancellations. Contact {centerName} directly to check
+            availability.
+          </div>
+
+          <div className='space-y-2 text-left pt-1'>
+            {center.id && (
+              <button
+                type='button'
+                onClick={handleStartChat}
+                className='w-full flex items-center justify-between p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-100 transition-colors font-medium text-xs sm:text-sm cursor-pointer'
+              >
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0'>
+                    <MessageSquare className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <div className='font-bold text-gray-900 dark:text-white'>
+                      Divemap Direct Chat
+                    </div>
+                    <div className='text-[11px] text-gray-500 dark:text-gray-400'>
+                      {user ? 'Chat in-app with the center team' : 'Log in to chat in-app'}
+                    </div>
+                  </div>
+                </div>
+                <ExternalLink className='w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0' />
+              </button>
+            )}
+
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='w-full flex items-center justify-between p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-100 transition-colors font-medium text-xs sm:text-sm'
+              >
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0'>
+                    <WhatsAppIcon className='w-4 h-4' color='ffffff' />
+                  </div>
+                  <div>
+                    <div className='font-bold text-gray-900 dark:text-white'>WhatsApp Message</div>
+                    <div className='text-[11px] text-gray-500 dark:text-gray-400'>
+                      Send inquiry to {center.phone}
+                    </div>
+                  </div>
+                </div>
+                <ExternalLink className='w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0' />
+              </a>
+            )}
+
+            {emailUrl && (
+              <a
+                href={emailUrl}
+                className='w-full flex items-center justify-between p-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 text-indigo-900 dark:text-indigo-100 transition-colors font-medium text-xs sm:text-sm'
+              >
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0'>
+                    <Mail className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <div className='font-bold text-gray-900 dark:text-white'>Email Center</div>
+                    <div className='text-[11px] text-gray-500 dark:text-gray-400'>
+                      {center.email}
+                    </div>
+                  </div>
+                </div>
+                <ExternalLink className='w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0' />
+              </a>
+            )}
+
+            {center.phone && (
+              <a
+                href={`tel:${center.phone}`}
+                className='w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800/80 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 transition-colors font-medium text-xs sm:text-sm'
+              >
+                <div className='flex items-center gap-2.5'>
+                  <div className='w-8 h-8 rounded-lg bg-gray-700 text-white flex items-center justify-center shrink-0'>
+                    <Phone className='w-4 h-4' />
+                  </div>
+                  <div>
+                    <div className='font-bold text-gray-900 dark:text-white'>Call Center</div>
+                    <div className='text-[11px] text-gray-500 dark:text-gray-400'>
+                      {center.phone}
+                    </div>
+                  </div>
+                </div>
+                <ExternalLink className='w-4 h-4 text-gray-400 shrink-0' />
+              </a>
+            )}
+          </div>
+
+          <div className='pt-2'>
+            <Link
+              to='/dive-trips'
+              className='inline-flex items-center justify-center w-full px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-xl text-sm font-semibold transition-colors'
+            >
+              Browse Other Dive Trips
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

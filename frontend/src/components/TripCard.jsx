@@ -9,9 +9,10 @@ import {
   X,
   ChevronRight,
   Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatCost } from '../utils/currency';
@@ -21,6 +22,7 @@ import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify'
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
+import TripWaitlistInquiryModal from './booking/TripWaitlistInquiryModal';
 import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
@@ -39,6 +41,24 @@ const TripCard = ({
   compactLayout = false,
   viewMode = 'list',
 }) => {
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+
+  const isFullyBooked = Boolean(
+    trip.is_bookable &&
+      trip.seats_available !== undefined &&
+      trip.seats_available !== null &&
+      trip.seats_available <= 0
+  );
+
+  const divingCenterObj = trip.diving_center || {
+    id: trip.diving_center_id,
+    name: trip.diving_center_name,
+    country: trip.diving_center_country,
+    region: trip.diving_center_region,
+    phone: trip.diving_center_phone,
+    email: trip.diving_center_email,
+  };
+
   // Helper function to get dive site details
   const getDiveSite = diveSiteId => {
     if (!diveSiteId) return null;
@@ -180,10 +200,14 @@ const TripCard = ({
                   {trip.is_bookable &&
                     trip.seats_available !== undefined &&
                     trip.seats_available !== null && (
-                      <span className='inline-flex items-center text-[11px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded'>
-                        {trip.seats_available > 0
-                          ? `${trip.seats_available} seats left`
-                          : 'Fully booked'}
+                      <span
+                        className={`inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded ${
+                          isFullyBooked
+                            ? 'text-amber-800 bg-amber-50 border border-amber-200'
+                            : 'text-emerald-700 bg-emerald-50'
+                        }`}
+                      >
+                        {isFullyBooked ? 'Online spots full' : `${trip.seats_available} seats left`}
                       </span>
                     )}
                 </div>
@@ -470,14 +494,26 @@ const TripCard = ({
             </div>
 
             <div className='ml-auto flex items-center space-x-2 shrink-0'>
-              {trip.is_bookable && trip.octo_slot_id && (
-                <Link
-                  to={`/book/${trip.octo_slot_id}`}
-                  className='inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors'
-                >
-                  Book Now
-                </Link>
-              )}
+              {trip.is_bookable &&
+                trip.octo_slot_id &&
+                (isFullyBooked ? (
+                  <button
+                    type='button'
+                    onClick={() => setIsInquiryModalOpen(true)}
+                    className='inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer'
+                    title='Inquire about reserved spots or waitlists'
+                  >
+                    <MessageSquare className='w-3.5 h-3.5' />
+                    Inquire
+                  </button>
+                ) : (
+                  <Link
+                    to={`/book/${trip.octo_slot_id}`}
+                    className='inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors'
+                  >
+                    Book Now
+                  </Link>
+                ))}
               <Link
                 to={tripUrl}
                 className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
@@ -491,14 +527,25 @@ const TripCard = ({
 
         {isGrid && (
           <div className='mt-auto flex items-center gap-2 pt-2'>
-            {trip.is_bookable && trip.octo_slot_id && (
-              <Link
-                to={`/book/${trip.octo_slot_id}`}
-                className='flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition-colors text-sm'
-              >
-                Book Now
-              </Link>
-            )}
+            {trip.is_bookable &&
+              trip.octo_slot_id &&
+              (isFullyBooked ? (
+                <button
+                  type='button'
+                  onClick={() => setIsInquiryModalOpen(true)}
+                  className='flex-1 inline-flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg transition-colors text-sm cursor-pointer shadow-sm'
+                >
+                  <MessageSquare className='w-4 h-4' />
+                  Inquire / Waitlist
+                </button>
+              ) : (
+                <Link
+                  to={`/book/${trip.octo_slot_id}`}
+                  className='flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition-colors text-sm'
+                >
+                  Book Now
+                </Link>
+              ))}
             <Link
               to={tripUrl}
               className={`${
@@ -510,6 +557,15 @@ const TripCard = ({
           </div>
         )}
       </div>
+
+      {isInquiryModalOpen && (
+        <TripWaitlistInquiryModal
+          isOpen={isInquiryModalOpen}
+          onClose={() => setIsInquiryModalOpen(false)}
+          trip={trip}
+          divingCenter={divingCenterObj}
+        />
+      )}
     </div>
   );
 };

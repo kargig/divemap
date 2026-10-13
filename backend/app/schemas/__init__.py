@@ -1321,6 +1321,8 @@ class ParsedDiveTripResponse(BaseModel):
     diving_center_name: Optional[str] = None
     diving_center_country: Optional[str] = None
     diving_center_region: Optional[str] = None
+    diving_center_phone: Optional[str] = None
+    diving_center_email: Optional[str] = None
     max_depth: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
