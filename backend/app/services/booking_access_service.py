@@ -138,13 +138,17 @@ def assert_slot_belongs_to_center(
     db: Session,
     slot_id: str,
     center_id: int,
+    *,
+    for_update: bool = False,
 ) -> OctoAvailabilitySlot:
-    slot = (
+    query = (
         db.query(OctoAvailabilitySlot)
         .options(joinedload(OctoAvailabilitySlot.product))
         .filter(OctoAvailabilitySlot.id == slot_id)
-        .first()
     )
+    if for_update:
+        query = query.with_for_update()
+    slot = query.first()
     product = slot.product if slot else None
     if not slot or not product or product.diving_center_id != center_id:
         raise HTTPException(status_code=404, detail="Trip availability slot not found")

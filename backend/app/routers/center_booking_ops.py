@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, date, timezone, timedelta
@@ -26,6 +27,7 @@ from app.models import (
     CenterDiverMedicalApproval,
     DivingCenterManager,
     OwnershipStatus,
+    Dive,
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
@@ -139,8 +141,17 @@ class StaffUpdateRequest(BaseModel):
 
 # --- Helper ---
 
-def reconcile_slot_seats(db: Session, slot: OctoAvailabilitySlot) -> int:
-    """Expire stale ON_HOLD bookings past their expiration time and accurately compute available seats."""
+def reconcile_slot_seats(
+    db: Session,
+    slot: OctoAvailabilitySlot,
+    *,
+    commit: bool = True,
+) -> int:
+    """Expire stale ON_HOLD bookings and recompute available seats.
+
+    Use commit=False when the caller holds a row lock and will commit later
+    (e.g. walk-in registration) so the lock is not released early.
+    """
     now_naive = datetime.utcnow()
     # 1. Mark expired holds
     expired_holds = (
@@ -173,7 +184,8 @@ def reconcile_slot_seats(db: Session, slot: OctoAvailabilitySlot) -> int:
 
     if slot.seats_available != correct_seats_available or expired_holds:
         slot.seats_available = correct_seats_available
-        db.commit()
+        if commit:
+            db.commit()
 
     return correct_seats_available
 
@@ -256,203 +268,252 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     din_count = 0
     yoke_count = 0
 
-    for b in slot.bookings:
-        if b.status == "CANCELLED":
-            continue
+    # Batch related lookups once (avoid per-diver medical/unit/user/dive queries)
+    active_pairs = [
+        (b, item)
+        for b in slot.bookings
+        if b.status != "CANCELLED"
+        for item in b.unit_items
+    ]
+    item_ids = [item.id for _, item in active_pairs]
+    unit_ids = {item.unit_id for _, item in active_pairs if item.unit_id}
+    email_lookups = {
+        item.diver_email.strip().lower()
+        for b, item in active_pairs
+        if not b.user and item.diver_email and item.diver_email.strip()
+    }
 
-        for item in b.unit_items:
-            med = db.query(DiverMedicalRecord).filter(
-                DiverMedicalRecord.booking_unit_item_id == item.id
-            ).first()
-            med_status = med.status if med else ("CLEARED" if b.status == "CONFIRMED" else "PENDING")
-
-            med_audit = None
-            if med and med.status == "PHYSICIAN_APPROVED":
-                med_audit = {
-                    "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
-                    "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
-                    "physician_name": med.cleared_physician_name,
-                    "physician_clinic": med.cleared_physician_clinic,
-                    "reason": med.cleared_reason,
-                }
-
-            eq = item.equipment_sizing or {}
-            lead = float(eq.get("estimated_lead_kg") or 0.0)
-            has_own_lead = bool(eq.get("has_own_lead_weights", False))
-            if not has_own_lead:
-                total_lead_kg += lead
-
-            # Valve fitting analysis
-            fitting = str(eq.get("regulator_fitting", "DIN")).upper()
-            if "YOKE" in fitting or "INT" in fitting:
-                yoke_count += 1
-            else:
-                din_count += 1
-
-            # Weight distribution analysis
-            wsys = eq.get("weight_system", "INTEGRATED")
-            if wsys == "NEEDS_BELT" or wsys == "BELT":
-                belts_needed += 1
-            elif wsys == "OWN_BELT":
-                pass  # diver has their own belt
-            else:
-                integrated_divers += 1
-
-            # Ballast block allocation (2kg main blocks, 1kg standard blocks, 0.5kg precision trim blocks):
-            if lead > 0 and not has_own_lead:
-                if (lead % 1.0) >= 0.4:
-                    blocks_05kg += 1
-
-                whole_lead = int(lead)
-                twos = whole_lead // 2
-                ones = whole_lead % 2
-
-                # For 2kg, prefer 2x 1kg for balance if small BCD
-                if twos == 1 and ones == 0 and eq.get("bcd_size") in ("XS", "S"):
-                    blocks_1kg += 2
-                else:
-                    blocks_2kg += twos
-                    blocks_1kg += ones
-
-            # Cylinder breakdown with explicit valve and adapter requirement (multiplied by dives_count)
-            valve_desc = (
-                "YOKE (Fit DIN-to-Yoke Insert)"
-                if ("YOKE" in fitting or "INT" in fitting)
-                else "DIN (Native Valve)"
+    med_by_item_id: Dict[str, DiverMedicalRecord] = {}
+    if item_ids:
+        med_by_item_id = {
+            m.booking_unit_item_id: m
+            for m in (
+                db.query(DiverMedicalRecord)
+                .options(joinedload(DiverMedicalRecord.cleared_by_user))
+                .filter(DiverMedicalRecord.booking_unit_item_id.in_(item_ids))
+                .all()
             )
-            tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} — {valve_desc}"
-            tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + dives_count
+        }
 
-            # Rental gear breakdown (distinguish Men's, Women's, and Unisex/Other cuts)
-            if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
-                gender = str(eq.get("wetsuit_gender") or "MEN").upper()
-                gender_prefix = "Women's" if gender == "WOMEN" else ("Men's" if gender == "MEN" else "Unisex/Other")
-                suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
-                suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
+    unit_by_id: Dict[str, OctoUnit] = {}
+    if unit_ids:
+        unit_by_id = {
+            u.id: u for u in db.query(OctoUnit).filter(OctoUnit.id.in_(unit_ids)).all()
+        }
 
-            is_rental_pkg = item.unit_id == "certified-diver-full-rental" or eq.get("is_rental_package", False)
+    user_by_email: Dict[str, User] = {}
+    if email_lookups:
+        for u in db.query(User).filter(func.lower(User.email).in_(list(email_lookups))).all():
+            if u.email:
+                user_by_email[u.email.strip().lower()] = u
 
-            # 1. Mask & Snorkel
-            if is_rental_pkg or eq.get("rental_mask", False) or not eq.get("has_own_mask", True):
-                masks_count += 1
-            if eq.get("rental_snorkel", False):
-                snorkels_count += 1
+    user_ids = set()
+    for b, item in active_pairs:
+        u = b.user
+        if not u and item.diver_email:
+            u = user_by_email.get(item.diver_email.strip().lower())
+        if u:
+            user_ids.add(u.id)
 
-            # 2. Hood
-            if eq.get("hood_size") and eq.get("hood_size") != "None":
-                h_label = f"Size {eq.get('hood_size')}"
-                hoods_summary[h_label] = hoods_summary.get(h_label, 0) + 1
+    dive_count_by_user: Dict[int, int] = {}
+    if user_ids:
+        dive_count_by_user = dict(
+            db.query(Dive.user_id, func.count(Dive.id))
+            .filter(Dive.user_id.in_(user_ids))
+            .group_by(Dive.user_id)
+            .all()
+        )
 
-            # 3. Regulator
-            if is_rental_pkg or eq.get("rental_regulator", False) or not eq.get("has_own_regulator", True):
-                reg_type = "Yoke" if ("YOKE" in fitting or "INT" in fitting) else "DIN"
-                regulators_summary[reg_type] = regulators_summary.get(reg_type, 0) + 1
+    for b, item in active_pairs:
+        med = med_by_item_id.get(item.id)
+        med_status = med.status if med else ("CLEARED" if b.status == "CONFIRMED" else "PENDING")
 
-            if eq.get("bcd_size") and eq.get("bcd_size") != "None":
-                bcd_gender = str(eq.get("bcd_gender") or eq.get("wetsuit_gender") or "MEN").upper()
-                bcd_prefix = "Women's" if bcd_gender == "WOMEN" else "Men's"
-                bcd_label = f"{bcd_prefix} {eq.get('bcd_size')}"
-                bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
-
-            # 4. Gloves & Socks
-            if eq.get("gloves_size") and eq.get("gloves_size") != "None":
-                g_label = f"Size {eq.get('gloves_size')}"
-                gloves_summary[g_label] = gloves_summary.get(g_label, 0) + 1
-            if eq.get("rental_socks", False):
-                socks_count += 1
-
-            # 5. Boots & Fins (Check explicit rental vs None)
-            shoe_sz = eq.get("shoe_size_eu")
-            fin_style = eq.get("fin_type", "OPEN_HEEL")
-            fin_sz = eq.get("fin_size")
-            boot_sz = eq.get("boot_size")
-
-            is_boot_rental = eq.get("rental_boots", False) or (boot_sz and boot_sz != "None")
-            if is_boot_rental:
-                b_label = f"EU {boot_sz or shoe_sz or 'Standard'}"
-                boots_summary[b_label] = boots_summary.get(b_label, 0) + 1
-
-            is_fin_rental = (
-                eq.get("rental_fins", False)
-                or (fin_sz and fin_sz != "None")
-                or (is_rental_pkg and not eq.get("has_own_fins", False))
-            )
-            if is_fin_rental and fin_sz != "None":
-                f_style_label = "Open-Heel" if fin_style == "OPEN_HEEL" else "Full-Foot"
-                sz_str = fin_sz if (fin_sz and fin_sz != "None") else (f"EU {shoe_sz}" if shoe_sz else "")
-                f_label = f"{f_style_label} ({sz_str})" if sz_str else f_style_label
-                fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
-
-            # 6. DPV Scooter, Torches & Stage Tanks
-            if eq.get("rental_scooter", False) or eq.get("has_scooter", False):
-                scooters_count += 1
-            if eq.get("rental_torch", False) or eq.get("has_torch", False):
-                torches_count += 1
-            if eq.get("rental_dive_computer", False) or is_rental_pkg or not eq.get("has_own_dive_computer", True):
-                computers_count += 1
-            if eq.get("stage_tank") and eq.get("stage_tank") != "None":
-                st_label = str(eq.get("stage_tank"))
-                stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
-
-            # Calculate OCTO pricing and itemized rental breakdown
-            unit = db.query(OctoUnit).filter(OctoUnit.id == item.unit_id).first() if item.unit_id else None
-            fin_data = compute_participant_octo_pricing(
-                center_settings=center.booking_settings,
-                unit=unit,
-                equipment_sizing=eq,
-                currency=center.booking_settings.default_currency if center.booking_settings else "EUR",
-            )
-            total_due = fin_data["total_due"]
-            is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
-
-            # Diver experience metrics (declared vs platform-logged dives)
-            u = b.user
-            if not u and item.diver_email:
-                u = db.query(User).filter(User.email == item.diver_email).first()
-
-            from app.models import Dive
-            declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
-            logged_cnt = db.query(Dive).filter(Dive.user_id == u.id).count() if u else 0
-
-            diver_experience = {
-                "has_account": bool(u),
-                "username": u.username if u else None,
-                "declared_dives": declared_cnt,
-                "platform_logged_dives": logged_cnt,
+        med_audit = None
+        if med and med.status == "PHYSICIAN_APPROVED":
+            med_audit = {
+                "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+                "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
+                "physician_name": med.cleared_physician_name,
+                "physician_clinic": med.cleared_physician_clinic,
+                "reason": med.cleared_reason,
             }
 
-            participants.append({
-                "id": item.id,
-                "booking_id": b.uuid,
-                "diver_full_name": item.diver_full_name,
-                "diver_email": item.diver_email,
-                "diver_phone": item.diver_phone,
-                "diver_nationality": item.diver_nationality,
-                "passport_number": item.passport_number,
-                "date_of_birth": str(item.date_of_birth) if item.date_of_birth else None,
-                "certification_agency": item.certification_agency or "PADI",
-                "certification_level": item.certification_level or "Open Water",
-                "certification_number": item.certification_number,
-                "diver_experience": diver_experience,
-                "selected_tank_id": item.selected_tank_id or "12",
-                "selected_gas_mix_id": item.selected_gas_mix_id or "air",
-                "tanks_count": dives_count,
-                "tank_label": f"{dives_count}x {item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} ({valve_desc.split(' ')[0]})",
-                "estimated_lead_kg": lead,
-                "equipment_sizing": eq,
-                "gear_checked": bool(eq.get("gear_checked", False)),
-                "medical_status": med_status,
-                "medical_clearance_audit": med_audit,
-                "waivers_complete": item.waivers_complete,
-                "onboard_checkin_status": item.onboard_checkin_status,
-                "payment_status": b.payment_status,
-                "payment_mode": b.payment_mode,
-                "booking_status": b.status,
-                "financials": fin_data,
-                "total_due": total_due,
-                "amount_due": 0.0 if is_paid else total_due,
-                "formatted_total_due": fin_data["pricing"]["formatted"],
-            })
+        eq = item.equipment_sizing or {}
+        lead = float(eq.get("estimated_lead_kg") or 0.0)
+        has_own_lead = bool(eq.get("has_own_lead_weights", False))
+        if not has_own_lead:
+            total_lead_kg += lead
+
+        # Valve fitting analysis
+        fitting = str(eq.get("regulator_fitting", "DIN")).upper()
+        if "YOKE" in fitting or "INT" in fitting:
+            yoke_count += 1
+        else:
+            din_count += 1
+
+        # Weight distribution analysis
+        wsys = eq.get("weight_system", "INTEGRATED")
+        if wsys == "NEEDS_BELT" or wsys == "BELT":
+            belts_needed += 1
+        elif wsys == "OWN_BELT":
+            pass  # diver has their own belt
+        else:
+            integrated_divers += 1
+
+        # Ballast block allocation (2kg main blocks, 1kg standard blocks, 0.5kg precision trim blocks):
+        if lead > 0 and not has_own_lead:
+            if (lead % 1.0) >= 0.4:
+                blocks_05kg += 1
+
+            whole_lead = int(lead)
+            twos = whole_lead // 2
+            ones = whole_lead % 2
+
+            # For 2kg, prefer 2x 1kg for balance if small BCD
+            if twos == 1 and ones == 0 and eq.get("bcd_size") in ("XS", "S"):
+                blocks_1kg += 2
+            else:
+                blocks_2kg += twos
+                blocks_1kg += ones
+
+        # Cylinder breakdown with explicit valve and adapter requirement (multiplied by dives_count)
+        valve_desc = (
+            "YOKE (Fit DIN-to-Yoke Insert)"
+            if ("YOKE" in fitting or "INT" in fitting)
+            else "DIN (Native Valve)"
+        )
+        tank_label = f"{item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} — {valve_desc}"
+        tanks_summary[tank_label] = tanks_summary.get(tank_label, 0) + dives_count
+
+        # Rental gear breakdown (distinguish Men's, Women's, and Unisex/Other cuts)
+        if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
+            gender = str(eq.get("wetsuit_gender") or "MEN").upper()
+            gender_prefix = "Women's" if gender == "WOMEN" else ("Men's" if gender == "MEN" else "Unisex/Other")
+            suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
+            suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
+
+        is_rental_pkg = item.unit_id == "certified-diver-full-rental" or eq.get("is_rental_package", False)
+
+        # 1. Mask & Snorkel
+        if is_rental_pkg or eq.get("rental_mask", False) or not eq.get("has_own_mask", True):
+            masks_count += 1
+        if eq.get("rental_snorkel", False):
+            snorkels_count += 1
+
+        # 2. Hood
+        if eq.get("hood_size") and eq.get("hood_size") != "None":
+            h_label = f"Size {eq.get('hood_size')}"
+            hoods_summary[h_label] = hoods_summary.get(h_label, 0) + 1
+
+        # 3. Regulator
+        if is_rental_pkg or eq.get("rental_regulator", False) or not eq.get("has_own_regulator", True):
+            reg_type = "Yoke" if ("YOKE" in fitting or "INT" in fitting) else "DIN"
+            regulators_summary[reg_type] = regulators_summary.get(reg_type, 0) + 1
+
+        if eq.get("bcd_size") and eq.get("bcd_size") != "None":
+            bcd_gender = str(eq.get("bcd_gender") or eq.get("wetsuit_gender") or "MEN").upper()
+            bcd_prefix = "Women's" if bcd_gender == "WOMEN" else "Men's"
+            bcd_label = f"{bcd_prefix} {eq.get('bcd_size')}"
+            bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
+
+        # 4. Gloves & Socks
+        if eq.get("gloves_size") and eq.get("gloves_size") != "None":
+            g_label = f"Size {eq.get('gloves_size')}"
+            gloves_summary[g_label] = gloves_summary.get(g_label, 0) + 1
+        if eq.get("rental_socks", False):
+            socks_count += 1
+
+        # 5. Boots & Fins (Check explicit rental vs None)
+        shoe_sz = eq.get("shoe_size_eu")
+        fin_style = eq.get("fin_type", "OPEN_HEEL")
+        fin_sz = eq.get("fin_size")
+        boot_sz = eq.get("boot_size")
+
+        is_boot_rental = eq.get("rental_boots", False) or (boot_sz and boot_sz != "None")
+        if is_boot_rental:
+            b_label = f"EU {boot_sz or shoe_sz or 'Standard'}"
+            boots_summary[b_label] = boots_summary.get(b_label, 0) + 1
+
+        is_fin_rental = (
+            eq.get("rental_fins", False)
+            or (fin_sz and fin_sz != "None")
+            or (is_rental_pkg and not eq.get("has_own_fins", False))
+        )
+        if is_fin_rental and fin_sz != "None":
+            f_style_label = "Open-Heel" if fin_style == "OPEN_HEEL" else "Full-Foot"
+            sz_str = fin_sz if (fin_sz and fin_sz != "None") else (f"EU {shoe_sz}" if shoe_sz else "")
+            f_label = f"{f_style_label} ({sz_str})" if sz_str else f_style_label
+            fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
+
+        # 6. DPV Scooter, Torches & Stage Tanks
+        if eq.get("rental_scooter", False) or eq.get("has_scooter", False):
+            scooters_count += 1
+        if eq.get("rental_torch", False) or eq.get("has_torch", False):
+            torches_count += 1
+        if eq.get("rental_dive_computer", False) or is_rental_pkg or not eq.get("has_own_dive_computer", True):
+            computers_count += 1
+        if eq.get("stage_tank") and eq.get("stage_tank") != "None":
+            st_label = str(eq.get("stage_tank"))
+            stage_tanks_summary[st_label] = stage_tanks_summary.get(st_label, 0) + 1
+
+        # Calculate OCTO pricing and itemized rental breakdown
+        unit = unit_by_id.get(item.unit_id) if item.unit_id else None
+        fin_data = compute_participant_octo_pricing(
+            center_settings=center.booking_settings,
+            unit=unit,
+            equipment_sizing=eq,
+            currency=center.booking_settings.default_currency if center.booking_settings else "EUR",
+        )
+        total_due = fin_data["total_due"]
+        is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
+
+        # Diver experience metrics (declared vs platform-logged dives)
+        u = b.user
+        if not u and item.diver_email:
+            u = user_by_email.get(item.diver_email.strip().lower())
+
+        declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
+        logged_cnt = dive_count_by_user.get(u.id, 0) if u else 0
+
+        diver_experience = {
+            "has_account": bool(u),
+            "username": u.username if u else None,
+            "declared_dives": declared_cnt,
+            "platform_logged_dives": logged_cnt,
+        }
+
+        participants.append({
+            "id": item.id,
+            "booking_id": b.uuid,
+            "diver_full_name": item.diver_full_name,
+            "diver_email": item.diver_email,
+            "diver_phone": item.diver_phone,
+            "diver_nationality": item.diver_nationality,
+            "passport_number": item.passport_number,
+            "date_of_birth": str(item.date_of_birth) if item.date_of_birth else None,
+            "certification_agency": item.certification_agency or "PADI",
+            "certification_level": item.certification_level or "Open Water",
+            "certification_number": item.certification_number,
+            "diver_experience": diver_experience,
+            "selected_tank_id": item.selected_tank_id or "12",
+            "selected_gas_mix_id": item.selected_gas_mix_id or "air",
+            "tanks_count": dives_count,
+            "tank_label": f"{dives_count}x {item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} ({valve_desc.split(' ')[0]})",
+            "estimated_lead_kg": lead,
+            "equipment_sizing": eq,
+            "gear_checked": bool(eq.get("gear_checked", False)),
+            "medical_status": med_status,
+            "medical_clearance_audit": med_audit,
+            "waivers_complete": item.waivers_complete,
+            "onboard_checkin_status": item.onboard_checkin_status,
+            "payment_status": b.payment_status,
+            "payment_mode": b.payment_mode,
+            "booking_status": b.status,
+            "financials": fin_data,
+            "total_due": total_due,
+            "amount_due": 0.0 if is_paid else total_due,
+            "formatted_total_due": fin_data["pricing"]["formatted"],
+        })
 
     # Spare lead buffer calculation (+15% extra ballast)
     spare_kg = max(4.0, round(total_lead_kg * 0.15, 1))
@@ -609,6 +670,8 @@ def get_center_trips_summary(
         total = t.group_size_limit or 12
         booked = t.current_bookings or 0
         if t.octo_slot:
+            # Expire stale holds before reporting occupancy on the trips list
+            reconcile_slot_seats(db, t.octo_slot)
             total = t.octo_slot.seats_total
             booked = total - t.octo_slot.seats_available
         avail = max(0, total - booked)
@@ -693,9 +756,13 @@ def add_walkin_participant(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
+    # Row-lock slot so concurrent walk-ins / online holds cannot oversell
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id, for_update=True)
     if slot.is_closed:
         raise HTTPException(status_code=400, detail="Trip is not available or closed")
+
+    # Refresh capacity under the lock; defer commit so the lock is held
+    reconcile_slot_seats(db, slot, commit=False)
 
     if slot.seats_available <= 0:
         raise HTTPException(status_code=400, detail="Trip is fully booked. No seats available.")
@@ -713,7 +780,7 @@ def add_walkin_participant(
     unit_id = unit.id if unit else "walkin_unit"
     price = float(unit.retail_price) if unit else 75.0
 
-    # Decrement available seat
+    # Decrement available seat (still under FOR UPDATE)
     slot.seats_available -= 1
 
     # Create Booking
