@@ -1,0 +1,36 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+extend-exclude = [
+    "divemap_venv",
+    ".pytest_cache",
+    "htmlcov",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes (unused imports, undefined variables)
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade (Python 3.11 idioms)
+]
+ignore = [
+    "B008",   # Do not perform function calls in argument defaults (FastAPI Depends/Query)
+    "E501",   # Line too long (handled by ruff format)
+    "E402",   # Module level import not at top of file (common for setup before imports)
+    "E712",   # Comparison to True/False (needed for SQLAlchemy .filter(Model.field == True))
+    "W291",   # Trailing whitespace (handled by ruff format)
+    "W292",   # No newline at end of file (handled by ruff format)
+    "W293",   # Blank line contains whitespace (handled by ruff format)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B018", "F401", "F811"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

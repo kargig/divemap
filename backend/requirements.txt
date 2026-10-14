@@ -51,3 +51,5 @@ garmin-fit-sdk==21.158.0
 tiktoken>=0.7.0
 octo-deco==2.0.3
 reportlab>=4.2.0
+# Code quality and formatting
+ruff>=0.9.0
