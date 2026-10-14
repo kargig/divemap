@@ -8,7 +8,7 @@ import logging
 import re
 
 from app.database import get_db
-from app.auth import get_current_user, get_current_user_optional, verify_token
+from app.auth import get_current_user
 from app.models import (
     User,
     DivingCenter,
@@ -34,6 +34,10 @@ from app.services.nitrox_service import check_nitrox_eligibility
 from app.services.briefing_service import BriefingService
 from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.services.medical_audit_service import log_medical_access
+from app.services.booking_access_service import (
+    assert_slot_belongs_to_center,
+    assert_participant_on_center_trip,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -518,12 +522,20 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     total_diver_tanks = sum(tanks_summary.values())
     total_vessel_tanks = total_diver_tanks + sum(spare_tanks.values())
 
+    # Catalog trip linked to this OCTO slot (for Edit Trip Details from ops dashboard)
+    parsed_trip = (
+        db.query(ParsedDiveTrip)
+        .filter(ParsedDiveTrip.octo_slot_id == slot.id)
+        .first()
+    )
+
     return {
         "center": center_data,
         "vessel": vessel_data,
         "slot": slot_data,
         "staff": staff_data,
         "participants": participants,
+        "parsed_trip_id": parsed_trip.id if parsed_trip else None,
         "financial_summary": financial_summary,
         "crate_packing_summary": {
             "dives_count": dives_count,
@@ -634,9 +646,7 @@ def get_trip_manifest(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
     return get_slot_manifest_data(db, center, slot)
 
@@ -653,9 +663,7 @@ def update_trip_staff(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
     staff_dict = {
         "skipper_name": req.skipper_name or "Captain",
@@ -685,8 +693,8 @@ def add_walkin_participant(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot or slot.is_closed:
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
+    if slot.is_closed:
         raise HTTPException(status_code=400, detail="Trip is not available or closed")
 
     if slot.seats_available <= 0:
@@ -776,15 +784,8 @@ def get_participant_details(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
-    if not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
-
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -868,11 +869,8 @@ def update_participant(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
-    if not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+    assert_slot_belongs_to_center(db, trip_id, center_id)
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     if req.diver_full_name is not None:
         item.diver_full_name = req.diver_full_name
@@ -1089,6 +1087,7 @@ def update_participant_medical_answers(
     trip_id: str,
     participant_id: str,
     req: UpdateMedicalAnswersRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1109,13 +1108,7 @@ def update_participant_medical_answers(
             detail="A specific audit reason for modifying medical questionnaire answers is required."
         )
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
-    if not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
-    if item.booking.availability_id != trip_id:
-        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -1195,6 +1188,20 @@ def update_participant_medical_answers(
     db.commit()
     db.refresh(med)
 
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_ANSWERS_UPDATE",
+        access_status="SUCCESS",
+        reason=f"Manager {current_user.username} updated medical questionnaire for {item.diver_full_name}: {req.reason.strip()}",
+        accessor_user=current_user,
+        target_diver_user_id=item.user_id,
+        target_diver_name=item.diver_full_name,
+        participant_id=participant_id,
+        diving_center_id=center_id,
+        trip_id=trip_id,
+    )
+
     all_questions = []
     flagged_questions = []
     for q_idx in range(1, 11):
@@ -1229,6 +1236,7 @@ def clear_participant_medical(
     trip_id: str,
     participant_id: str,
     req: ClearMedicalOverrideRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1251,13 +1259,7 @@ def clear_participant_medical(
     if not req.physician_name or not req.physician_name.strip():
         raise HTTPException(status_code=400, detail="Physician name is required.")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
-    if not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
-    if item.booking.availability_id != trip_id:
-        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -1274,6 +1276,20 @@ def clear_participant_medical(
 
     db.commit()
     db.refresh(med)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_CLEAR",
+        access_status="SUCCESS",
+        reason=f"Manager {current_user.username} cleared medical for {item.diver_full_name} (Dr. {med.cleared_physician_name})",
+        accessor_user=current_user,
+        target_diver_user_id=item.user_id,
+        target_diver_name=item.diver_full_name,
+        participant_id=participant_id,
+        diving_center_id=center_id,
+        trip_id=trip_id,
+    )
 
     logger.info(
         f"[MEDICAL_CLEARANCE_AUDIT] Diver '{item.diver_full_name}' (item_id={item.id}) cleared by manager "
@@ -1303,6 +1319,7 @@ def grant_annual_center_medical_approval(
     trip_id: str,
     participant_id: str,
     req: GrantCenterAnnualApprovalRequest,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1316,13 +1333,7 @@ def grant_annual_center_medical_approval(
             detail="Access denied. Only registered managers of this diving center can grant annual medical approvals."
         )
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
-    if not item.booking or item.booking.diving_center_id != center_id:
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
-    if item.booking.availability_id != trip_id:
-        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     if not item.user_id:
         raise HTTPException(status_code=400, detail="Participant must have a linked user account to store annual center approval")
@@ -1366,6 +1377,20 @@ def grant_annual_center_medical_approval(
 
     db.commit()
     db.refresh(approval)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_ANNUAL_GRANT",
+        access_status="SUCCESS",
+        reason=f"Manager {current_user.username} granted annual center medical approval for {item.diver_full_name}",
+        accessor_user=current_user,
+        target_diver_user_id=item.user_id,
+        target_diver_name=item.diver_full_name,
+        participant_id=participant_id,
+        diving_center_id=center_id,
+        trip_id=trip_id,
+    )
 
     logger.info(
         f"[ANNUAL_CENTER_MEDICAL_APPROVAL] Diver '{item.diver_full_name}' (user_id={item.user_id}) granted 1-year clearance "
@@ -1416,39 +1441,23 @@ def get_emergency_dossier_pdf(
     if not center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item or not item.booking or item.booking.diving_center_id != center_id:
+    try:
+        item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
+    except HTTPException:
         log_medical_access(
             db=db,
             request=request,
             action="EMERGENCY_DOSSIER_VIEW",
             access_status="DENIED",
-            reason="Participant not found for this diving center",
+            reason="Participant not found for this diving center trip",
             accessor_user=current_user,
             participant_id=participant_id,
             diving_center_id=center_id,
             trip_id=trip_id,
         )
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
-    if item.booking.availability_id != trip_id:
-        log_medical_access(
-            db=db,
-            request=request,
-            action="EMERGENCY_DOSSIER_VIEW",
-            access_status="DENIED",
-            reason="Participant is not registered for this trip departure",
-            accessor_user=current_user,
-            target_diver_user_id=item.user_id,
-            target_diver_name=item.diver_full_name,
-            participant_id=participant_id,
-            diving_center_id=center_id,
-            trip_id=trip_id,
-        )
-        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+        raise
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -1574,13 +1583,10 @@ def delete_participant(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if slot:
-        slot.seats_available = min(slot.seats_total, slot.seats_available + 1)
+    slot.seats_available = min(slot.seats_total, slot.seats_available + 1)
 
     booking = item.booking
     db.delete(item)
@@ -1591,7 +1597,7 @@ def delete_participant(
         booking.cancellation_reason = "Cancelled by center manager"
 
     db.commit()
-    return {"message": "Participant cancelled and seat released.", "seats_available": slot.seats_available if slot else None}
+    return {"message": "Participant cancelled and seat released.", "seats_available": slot.seats_available}
 
 
 @router.post("/trips/{trip_id}/participants/{participant_id}/toggle-checkin")
@@ -1606,9 +1612,7 @@ def toggle_participant_checkin(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     # Scuba Safety Gates: Nobody can board without both a verified Gear Check and Medical Check
     if not item.onboard_checkin_status:  # Attempting to board diver
@@ -1650,9 +1654,7 @@ def toggle_participant_gear_check(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
+    item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     eq = dict(item.equipment_sizing or {})
     eq["gear_checked"] = not bool(eq.get("gear_checked", False))
@@ -1706,9 +1708,7 @@ def export_port_authority_manifest(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip availability slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
     data = get_slot_manifest_data(db, center, slot)
 
@@ -1849,9 +1849,7 @@ def get_trip_briefing(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip slot not found")
+    assert_slot_belongs_to_center(db, trip_id, center_id)
 
     briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
     if not briefing:
@@ -1890,6 +1888,8 @@ def update_trip_briefing(
     """Update pre-dive briefing customization notes and staff assignments."""
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    assert_slot_belongs_to_center(db, trip_id, center_id)
 
     briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
     if not briefing:
@@ -1946,9 +1946,7 @@ def dispatch_trip_briefing(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip slot not found")
+    assert_slot_belongs_to_center(db, trip_id, center_id)
 
     briefing = BriefingService.dispatch_briefing(db, trip_id, dispatched_by_user_id=current_user.id)
     return {
@@ -1962,25 +1960,14 @@ def dispatch_trip_briefing(
 def download_trip_briefing_pdf(
     center_id: int,
     trip_id: str,
-    token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Download compiled pre-dive briefing PDF."""
-    user = current_user
-    if not user and token:
-        try:
-            token_data = verify_token(token)
-            if token_data and token_data.username:
-                user = db.query(User).filter(User.username == token_data.username).first()
-        except Exception:
-            pass
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    if not is_center_manager(db, center_id, user):
+    if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+
+    assert_slot_belongs_to_center(db, trip_id, center_id)
 
     briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
     if not briefing:
@@ -1999,32 +1986,17 @@ def download_trip_briefing_pdf(
 def download_equipment_checklist_pdf(
     center_id: int,
     trip_id: str,
-    token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Download spreadsheet-style, clipboard-ready equipment bench inspection & handover checklist PDF.
     Features Landscape A4 format with clean [  ] checkboxes for physical equipment checking.
     """
-    user = current_user
-    if not user and token:
-        try:
-            token_data = verify_token(token)
-            if token_data and token_data.username:
-                user = db.query(User).filter(User.username == token_data.username).first()
-        except Exception:
-            pass
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    if not is_center_manager(db, center_id, user):
+    if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
     if not center:
@@ -2048,32 +2020,17 @@ def download_equipment_checklist_pdf(
 def download_crate_packing_pdf(
     center_id: int,
     trip_id: str,
-    token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
     Download dockside crate packing & tank loadout sheet PDF.
     Features detailed cylinder breakdown, lead ballast allocations, and partitioned crate contents.
     """
-    user = current_user
-    if not user and token:
-        try:
-            token_data = verify_token(token)
-            if token_data and token_data.username:
-                user = db.query(User).filter(User.username == token_data.username).first()
-        except Exception:
-            pass
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    if not is_center_manager(db, center_id, user):
+    if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
-    if not slot:
-        raise HTTPException(status_code=404, detail="Trip slot not found")
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
     if not center:

@@ -101,6 +101,13 @@ def briefing_api_setup(db_session):
         currency="EUR",
     )
     db_session.add(booking)
+    db_session.flush()
+    from app.services.booking_access_service import mint_booking_access_token
+
+    access_token = mint_booking_access_token(
+        booking,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+    )
     db_session.commit()
 
     return {
@@ -109,6 +116,7 @@ def briefing_api_setup(db_session):
         "site": site,
         "slot": slot,
         "booking": booking,
+        "access_token": access_token,
     }
 
 
@@ -164,9 +172,14 @@ def test_briefing_lifecycle_endpoints(client: TestClient, briefing_api_setup):
     assert res_dispatch.status_code == 200
     assert res_dispatch.json()["status"] == "APPROVED_DISPATCHED"
 
-    # 5. Customer download briefing PDF via booking voucher endpoint
+    # 5. Customer download briefing PDF requires booking access token (or owner session)
+    res_denied = client.get(f"/api/v1/bookings/{booking.uuid}/briefing")
+    assert res_denied.status_code == 401
+
+    access_token = briefing_api_setup["access_token"]
     res_cust_pdf = client.get(
         f"/api/v1/bookings/{booking.uuid}/briefing",
+        headers={"X-Booking-Access-Token": access_token},
     )
     assert res_cust_pdf.status_code == 200
     assert res_cust_pdf.headers["content-type"] == "application/pdf"

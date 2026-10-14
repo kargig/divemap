@@ -80,7 +80,7 @@ export default function CookieConsentBanner() {
         <aside
           role='region'
           aria-label='Cookie Consent Banner'
-          className='fixed bottom-0 inset-x-0 z-50 p-3 sm:p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 shadow-2xl transition-all animate-fade-in'
+          className='fixed bottom-0 inset-x-0 z-[1100] p-3 sm:p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 shadow-2xl transition-all animate-fade-in'
         >
           <div className='max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4'>
             <div className='flex items-start gap-3.5 flex-1'>
@@ -140,7 +140,7 @@ export default function CookieConsentBanner() {
           role='dialog'
           aria-modal='true'
           aria-labelledby='cookie-modal-title'
-          className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in'
+          className='fixed inset-0 z-[1100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in'
         >
           <div className='bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto'>
             <div className='flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700'>

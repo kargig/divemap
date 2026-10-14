@@ -2,7 +2,7 @@ import uuid
 import logging
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Header, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,14 @@ from app.models import (
     OctoBookingUnitItem,
 )
 from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.booking_access_service import (
+    clear_booking_access_token,
+    extend_access_token_for_voucher_window,
+    extract_access_token,
+    mint_booking_access_token,
+    mint_claim_token,
+    require_booking_principal,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +129,10 @@ class OctoBookingUnitItemResponse(BaseModel):
     certificationLevel: Optional[str] = None
     waiversComplete: bool = False
 
+class OctoClaimInviteTokenResponse(BaseModel):
+    unitItemId: str
+    claimToken: str
+
 class OctoBookingResponse(BaseModel):
     uuid: str
     status: str
@@ -129,6 +141,8 @@ class OctoBookingResponse(BaseModel):
     currency: str
     contact: Optional[OctoContactSchema] = None
     unitItems: List[OctoBookingUnitItemResponse] = []
+    accessToken: Optional[str] = None
+    claimInviteTokens: Optional[List[OctoClaimInviteTokenResponse]] = None
 
 class OctoConfirmBookingRequest(BaseModel):
     contact: Optional[OctoContactSchema] = None
@@ -303,7 +317,13 @@ def create_booking_hold(
         raise HTTPException(status_code=404, detail="Availability slot not found or closed")
 
     if slot.seats_available < needed_seats:
-        raise HTTPException(status_code=400, detail=f"Not enough seats available. Requested {needed_seats}, available {slot.seats_available}")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "This trip is fully booked online. Please contact the diving center "
+                "directly — they may still have reserved spots or a waitlist."
+            ),
+        )
 
     product = db.query(OctoProduct).filter(OctoProduct.id == req.productId).first()
     if not product:
@@ -377,8 +397,11 @@ def create_booking_hold(
     db.add(booking)
     db.flush()
 
+    access_token_raw = mint_booking_access_token(booking, expiration)
+
     response_items = []
-    for item in req.unitItems:
+    claim_invite_tokens: List[OctoClaimInviteTokenResponse] = []
+    for seat_index, item in enumerate(req.unitItems):
         item_id = str(uuid.uuid4())
         parsed_dob = None
         if item.dateOfBirth:
@@ -405,6 +428,11 @@ def create_booking_hold(
             equipment_sizing=item.equipmentSizing,
         )
         db.add(unit_item)
+        if seat_index > 0:
+            claim_raw = mint_claim_token(unit_item)
+            claim_invite_tokens.append(
+                OctoClaimInviteTokenResponse(unitItemId=item_id, claimToken=claim_raw)
+            )
         response_items.append(OctoBookingUnitItemResponse(
             id=item_id,
             unitId=item.unitId,
@@ -427,13 +455,27 @@ def create_booking_hold(
         currency=currency,
         contact=req.contact,
         unitItems=response_items,
+        accessToken=access_token_raw,
+        claimInviteTokens=claim_invite_tokens if claim_invite_tokens else None,
     )
 
 @router.get("/bookings/{booking_uuid}", response_model=OctoBookingResponse)
-def get_booking_details(booking_uuid: str, db: Session = Depends(get_db)):
+def get_booking_details(
+    booking_uuid: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    require_booking_principal(
+        booking,
+        current_user,
+        extract_access_token(x_booking_access_token, access_token),
+    )
 
     items = [
         OctoBookingUnitItemResponse(
@@ -468,10 +510,18 @@ def confirm_booking(
     req: Optional[OctoConfirmBookingRequest] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
 ):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    require_booking_principal(
+        booking,
+        current_user,
+        extract_access_token(x_booking_access_token, access_token),
+    )
 
     if booking.status == "CANCELLED":
         raise HTTPException(status_code=400, detail="Cannot confirm a cancelled booking")
@@ -493,6 +543,7 @@ def confirm_booking(
 
     booking.status = "CONFIRMED"
     booking.utc_hold_expiration = None
+    extend_access_token_for_voucher_window(booking)
 
     # Sync current_bookings count on linked ParsedDiveTrip
     if booking.slot and booking.slot.dive_trip:
@@ -530,10 +581,23 @@ def confirm_booking(
     )
 
 @router.post("/bookings/{booking_uuid}/cancel", response_model=OctoBookingResponse)
-def cancel_booking(booking_uuid: str, req: Optional[OctoCancelBookingRequest] = None, db: Session = Depends(get_db)):
+def cancel_booking(
+    booking_uuid: str,
+    req: Optional[OctoCancelBookingRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    require_booking_principal(
+        booking,
+        current_user,
+        extract_access_token(x_booking_access_token, access_token),
+    )
 
     if booking.status != "CANCELLED":
         # Release seats back to availability slot
@@ -549,6 +613,7 @@ def cancel_booking(booking_uuid: str, req: Optional[OctoCancelBookingRequest] = 
         if req and req.reason:
             booking.cancellation_reason = req.reason
         booking.utc_hold_expiration = None
+        clear_booking_access_token(booking)
         db.commit()
         db.refresh(booking)
 
@@ -580,14 +645,33 @@ def cancel_booking(booking_uuid: str, req: Optional[OctoCancelBookingRequest] = 
     )
 
 @router.post("/bookings/{booking_uuid}/extend", response_model=OctoBookingResponse)
-def extend_booking_hold(booking_uuid: str, req: Optional[OctoExtendBookingRequest] = None, db: Session = Depends(get_db)):
+def extend_booking_hold(
+    booking_uuid: str,
+    req: Optional[OctoExtendBookingRequest] = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking or booking.status != "ON_HOLD":
         raise HTTPException(status_code=400, detail="Only ON_HOLD bookings can be extended")
+
+    require_booking_principal(
+        booking,
+        current_user,
+        extract_access_token(x_booking_access_token, access_token),
+    )
 
     extra_minutes = req.expirationMinutes if req and req.expirationMinutes else 20
     booking.utc_hold_expiration = datetime.now(timezone.utc) + timedelta(minutes=extra_minutes)
     db.commit()
     db.refresh(booking)
 
-    return get_booking_details(booking.uuid, db)
+    return get_booking_details(
+        booking.uuid,
+        db,
+        current_user,
+        x_booking_access_token,
+        access_token,
+    )

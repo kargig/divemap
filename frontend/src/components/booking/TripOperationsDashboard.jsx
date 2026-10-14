@@ -16,13 +16,20 @@ import {
   PackageCheck,
   Coins,
   FileText,
+  Edit,
+  Settings2,
 } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import api from '../../api';
+import { getDiveSite } from '../../services/diveSites';
+import { broadcastTrip } from '../../services/divingCenters';
+import { getParsedTrip, updateParsedTrip } from '../../services/newsletters';
+import { extractErrorMessage } from '../../utils/apiErrors';
 import SEO from '../SEO';
+import TripFormModal from '../TripFormModal';
 
 import AddDiverModal from './AddDiverModal';
 import BoatManifestTable from './BoatManifestTable';
@@ -57,6 +64,11 @@ const TripOperationsDashboard = () => {
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [rentalPricingModalOpen, setRentalPricingModalOpen] = useState(false);
   const [briefingModalOpen, setBriefingModalOpen] = useState(false);
+  const [editTripModalOpen, setEditTripModalOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [additionalDiveSites, setAdditionalDiveSites] = useState([]);
+  const [loadingEditTrip, setLoadingEditTrip] = useState(false);
+  const [savingTrip, setSavingTrip] = useState(false);
 
   // Staff state
   const [skipperName, setSkipperName] = useState('');
@@ -121,6 +133,60 @@ const TripOperationsDashboard = () => {
       toast.error('Failed to update trip staff assignments.');
     } finally {
       setSavingStaff(false);
+    }
+  };
+
+  const handleOpenEditTripDetails = async () => {
+    const parsedTripId = manifestData?.parsed_trip_id;
+    if (!parsedTripId) {
+      toast.error(
+        'This departure is not linked to a dive trip listing yet, so catalog details cannot be edited here.'
+      );
+      return;
+    }
+    try {
+      setLoadingEditTrip(true);
+      const trip = await getParsedTrip(parsedTripId);
+      const siteIds = [...new Set((trip.dives || []).map(d => d.dive_site_id).filter(Boolean))];
+      const sites = (
+        await Promise.all(siteIds.map(id => getDiveSite(id).catch(() => null)))
+      ).filter(Boolean);
+      setAdditionalDiveSites(sites);
+      setEditingTrip(trip);
+      setEditTripModalOpen(true);
+    } catch (err) {
+      console.error('Failed to load trip for editing:', err);
+      toast.error(extractErrorMessage(err, 'Failed to load trip details for editing.'));
+    } finally {
+      setLoadingEditTrip(false);
+    }
+  };
+
+  const handleUpdateTripDetails = async tripData => {
+    if (!editingTrip?.id) return;
+    try {
+      setSavingTrip(true);
+      await updateParsedTrip(editingTrip.id, tripData);
+      if (tripData.broadcast_to_followers && editingTrip.diving_center_id) {
+        try {
+          await broadcastTrip(editingTrip.diving_center_id, editingTrip.id, { is_update: true });
+          toast.success('Trip updated and broadcasted to followers!');
+        } catch (broadcastErr) {
+          console.error('Failed to broadcast trip update:', broadcastErr);
+          toast.success('Trip updated successfully');
+          toast.error('Failed to broadcast trip update');
+        }
+      } else {
+        toast.success('Trip details updated successfully');
+      }
+      setEditTripModalOpen(false);
+      setEditingTrip(null);
+      await fetchManifest();
+    } catch (err) {
+      console.error('Failed to update trip details:', err);
+      toast.error(extractErrorMessage(err, 'Failed to update trip details.'));
+    } finally {
+      setSavingTrip(false);
     }
   };
 
@@ -395,6 +461,41 @@ const TripOperationsDashboard = () => {
     },
   ];
 
+  // Prep/config actions — kept out of the live ops toolbar so day-of controls stay scannable
+  const tripSetupMenuItems = [
+    {
+      key: 'edit-trip',
+      disabled: loadingEditTrip || !manifestData?.parsed_trip_id,
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <Edit size={13} className='text-amber-600' />
+          <span>Edit trip details</span>
+        </span>
+      ),
+      onClick: handleOpenEditTripDetails,
+    },
+    {
+      key: 'briefing',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <FileText size={13} className='text-indigo-600' />
+          <span>Pre-dive briefing</span>
+        </span>
+      ),
+      onClick: () => setBriefingModalOpen(true),
+    },
+    {
+      key: 'rental-pricing',
+      label: (
+        <span className='flex items-center gap-2 font-medium text-xs py-0.5'>
+          <Coins size={13} className='text-blue-600' />
+          <span>Rental pricing</span>
+        </span>
+      ),
+      onClick: () => setRentalPricingModalOpen(true),
+    },
+  ];
+
   if (loading && !manifestData) {
     return (
       <div className='min-h-[60vh] flex flex-col items-center justify-center'>
@@ -466,9 +567,29 @@ const TripOperationsDashboard = () => {
                   Live Roster
                 </span>
               </div>
-              <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1'>
-                {slot.product_title}
-              </h1>
+              <div className='flex items-center gap-2 mt-1 flex-wrap'>
+                <h1 className='text-xl sm:text-2xl font-bold text-gray-900 dark:text-white'>
+                  {slot.product_title}
+                </h1>
+                <button
+                  type='button'
+                  onClick={handleOpenEditTripDetails}
+                  disabled={loadingEditTrip || !manifestData?.parsed_trip_id}
+                  className='inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold text-gray-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 dark:hover:text-blue-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed'
+                  title={
+                    manifestData?.parsed_trip_id
+                      ? 'Edit date, sites, price, description, and other catalog details'
+                      : 'No linked dive trip listing for this departure'
+                  }
+                >
+                  {loadingEditTrip ? (
+                    <Loader2 size={12} className='animate-spin' />
+                  ) : (
+                    <Edit size={12} />
+                  )}
+                  <span className='hidden sm:inline'>Edit details</span>
+                </button>
+              </div>
               <div className='flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-xs text-gray-600 dark:text-gray-300'>
                 <span className='flex items-center gap-1'>
                   <Ship size={14} className='text-blue-600 shrink-0' />
@@ -606,85 +727,96 @@ const TripOperationsDashboard = () => {
             </button>
           </div>
 
-          {/* Action Toolbar */}
-          <div className='flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700'>
-            {/* View Tabs */}
-            <div className='flex items-center gap-1.5'>
+          {/* Ops chrome: view switcher (left) vs day-of actions (right) */}
+          <div className='flex flex-col gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between'>
+            {/* Segmented view tabs — short labels; counts as badges */}
+            <div
+              role='tablist'
+              aria-label='Trip operations views'
+              className='inline-flex w-full sm:w-auto p-0.5 rounded-xl bg-gray-100 dark:bg-gray-750 border border-gray-200/80 dark:border-gray-700'
+            >
               <button
                 type='button'
+                role='tab'
+                aria-selected={activeTab === 'manifest'}
                 onClick={() => handleTabChange('manifest')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
                   activeTab === 'manifest'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <Users size={14} />
-                <span>Boat Manifest & Roll Call ({participants.length})</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => handleTabChange('gear-check')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'gear-check'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
-                }`}
-              >
-                <PackageCheck size={14} />
-                <span>
-                  Diver Gear Check ({gearCheckedCount}/{participants.length})
+                <Users size={14} className='shrink-0 opacity-70' />
+                <span>Manifest</span>
+                <span
+                  className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
+                    activeTab === 'manifest'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                      : 'bg-gray-200/80 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {participants.length}
                 </span>
               </button>
 
               <button
                 type='button'
-                onClick={() => handleTabChange('crates')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'crates'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                role='tab'
+                aria-selected={activeTab === 'gear-check'}
+                onClick={() => handleTabChange('gear-check')}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
+                  activeTab === 'gear-check'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                 }`}
               >
-                <Package size={14} />
-                <span>Crate Packing Loadout</span>
+                <PackageCheck size={14} className='shrink-0 opacity-70' />
+                <span>Gear</span>
+                <span
+                  className={`min-w-[1.25rem] px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
+                    activeTab === 'gear-check'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                      : 'bg-gray-200/80 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {gearCheckedCount}/{participants.length}
+                </span>
+              </button>
+
+              <button
+                type='button'
+                role='tab'
+                aria-selected={activeTab === 'crates'}
+                onClick={() => handleTabChange('crates')}
+                className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-semibold transition-all ${
+                  activeTab === 'crates'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <Package size={14} className='shrink-0 opacity-70' />
+                <span>Crates</span>
               </button>
             </div>
 
-            {/* Quick Actions */}
-            <div className='flex flex-wrap items-center gap-2'>
-              <button
-                type='button'
-                onClick={() => setBriefingModalOpen(true)}
-                className='flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-semibold text-xs rounded-lg transition-all border border-indigo-200 dark:border-indigo-800'
-                title='Review, customize and dispatch pre-dive briefing'
+            {/* Day-of actions: one primary CTA + quiet utilities */}
+            <div className='flex items-center justify-end gap-2 flex-wrap'>
+              <Dropdown
+                menu={{ items: tripSetupMenuItems }}
+                placement='bottomRight'
+                trigger={['click']}
               >
-                <FileText size={13} className='text-indigo-600' />
-                <span>Pre-Dive Briefing</span>
-              </button>
+                <button
+                  type='button'
+                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors'
+                  title='Trip setup: details, briefing, rental pricing'
+                >
+                  <Settings2 size={13} className='text-gray-500' />
+                  <span>Trip</span>
+                  <ChevronDown size={12} className='text-gray-400' />
+                </button>
+              </Dropdown>
 
-              <button
-                type='button'
-                onClick={() => setRentalPricingModalOpen(true)}
-                className='flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 text-blue-700 dark:text-blue-300 font-semibold text-xs rounded-lg transition-all border border-blue-200 dark:border-blue-800'
-                title='Configure equipment rental pricing'
-              >
-                <Coins size={13} className='text-blue-600' />
-                <span>Rental Pricing</span>
-              </button>
-
-              <button
-                type='button'
-                onClick={() => setAddDiverModalOpen(true)}
-                disabled={slot.seats_available <= 0}
-                className='flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed'
-              >
-                <UserPlus size={14} />
-                <span>+ Add Walk-In</span>
-              </button>
-
-              {/* Single Unified Export Dropdown */}
               <Dropdown
                 menu={{ items: exportMenuItems }}
                 placement='bottomRight'
@@ -693,18 +825,28 @@ const TripOperationsDashboard = () => {
                 <button
                   type='button'
                   disabled={exporting}
-                  className='flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 font-semibold text-xs rounded-lg shadow-xs transition-all disabled:opacity-50'
+                  className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50'
                   title='Export trip documents'
                 >
                   {exporting ? (
                     <Loader2 size={13} className='animate-spin' />
                   ) : (
-                    <Download size={13} className='text-blue-600' />
+                    <Download size={13} className='text-gray-500' />
                   )}
                   <span>Export</span>
                   <ChevronDown size={12} className='text-gray-400' />
                 </button>
               </Dropdown>
+
+              <button
+                type='button'
+                onClick={() => setAddDiverModalOpen(true)}
+                disabled={slot.seats_available <= 0}
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+              >
+                <UserPlus size={14} />
+                <span>Walk-in</span>
+              </button>
             </div>
           </div>
         </div>
@@ -880,6 +1022,24 @@ const TripOperationsDashboard = () => {
           tripId={tripId}
           onBriefingDispatched={fetchManifest}
         />
+
+        {editingTrip && (
+          <TripFormModal
+            isOpen={editTripModalOpen}
+            onClose={() => {
+              setEditTripModalOpen(false);
+              setEditingTrip(null);
+            }}
+            onSubmit={handleUpdateTripDetails}
+            trip={editingTrip}
+            divingCenterId={Number(centerId)}
+            isSubmitting={savingTrip}
+            diveSites={additionalDiveSites}
+            divingCenters={[{ id: Number(centerId), name: center.name }]}
+            additionalDiveSites={additionalDiveSites}
+            title='Edit Trip Details'
+          />
+        )}
       </div>
     </div>
   );

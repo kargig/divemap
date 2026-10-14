@@ -287,6 +287,45 @@ const BookingWizard = () => {
   // Submitting state
   const [submitting, setSubmitting] = useState(false);
 
+  // Apply sizing/ownership defaults for the selected equipment tier.
+  // Full rental packages must default ALL soft/hard goods to center rental —
+  // anonymous guests have no gear profile implying "own mask/computer/torch".
+  const applyUnitGearDefaults = (unitId, unitsList = contextData?.units) => {
+    const unit = unitsList?.find(u => u.id === unitId);
+    const isRental =
+      unitId === 'demo-unit-2' ||
+      unitId === 'certified-diver-full-rental' ||
+      unit?.unit_type === 'DIVER_RENTAL_GEAR' ||
+      unit?.type === 'DIVER_RENTAL_GEAR' ||
+      unit?.title?.toLowerCase().includes('rental');
+
+    if (isRental) {
+      setWetsuitSize(prev => (prev === 'None' ? 'L' : prev));
+      setBcdSize(prev => (prev === 'None' ? 'M' : prev));
+      setFinSize(prev => (prev === 'None' ? 'M' : prev));
+      setBootSize(prev => (prev === 'None' ? '43' : prev));
+      setRentalMask(true);
+      setRentalRegulator(true);
+      setRentalComputer(true);
+      setRentalTorch(true);
+      setHasOwnLeadWeights(false);
+    } else {
+      setWetsuitSize('None');
+      setBcdSize('None');
+      setFinSize('None');
+      setBootSize('None');
+      setRentalMask(false);
+      setRentalRegulator(false);
+      setRentalComputer(false);
+      setRentalTorch(false);
+    }
+  };
+
+  const handleUnitSelection = unitId => {
+    setSelectedUnitId(unitId);
+    applyUnitGearDefaults(unitId);
+  };
+
   // Load Checkout Context
   useEffect(() => {
     const fetchContext = async () => {
@@ -306,7 +345,9 @@ const BookingWizard = () => {
         const data = contextRes.data;
         setContextData(data);
         if (data.units && data.units.length > 0) {
-          setSelectedUnitId(data.units[0].id);
+          const initialUnitId = data.units[0].id;
+          setSelectedUnitId(initialUnitId);
+          applyUnitGearDefaults(initialUnitId, data.units);
         }
         const profilesList =
           profilesRes.data && profilesRes.data.length > 0
@@ -776,30 +817,6 @@ const BookingWizard = () => {
     );
   })();
 
-  // Handle unit selection with smart rental defaults
-  const handleUnitSelection = unitId => {
-    setSelectedUnitId(unitId);
-    const unit = contextData?.units?.find(u => u.id === unitId);
-    const isRental =
-      unitId === 'demo-unit-2' ||
-      unitId === 'certified-diver-full-rental' ||
-      unit?.unit_type === 'DIVER_RENTAL_GEAR' ||
-      unit?.type === 'DIVER_RENTAL_GEAR' ||
-      unit?.title?.toLowerCase().includes('rental');
-
-    if (isRental) {
-      if (wetsuitSize === 'None') setWetsuitSize('L');
-      if (bcdSize === 'None') setBcdSize('M');
-      if (finSize === 'None') setFinSize('M');
-      if (bootSize === 'None') setBootSize('43');
-    } else {
-      setWetsuitSize('None');
-      setBcdSize('None');
-      setFinSize('None');
-      setBootSize('None');
-    }
-  };
-
   // Step Validation Handlers
   const validateStep1 = () => {
     if (!diverName.trim()) {
@@ -991,7 +1008,18 @@ const BookingWizard = () => {
 
       const holdRes = await api.post('/api/v1/octo/bookings', holdPayload);
       const bookingUuid = holdRes.data.uuid;
+      const accessToken = holdRes.data.accessToken;
       const unitItemId = holdRes.data.unitItems[0].id;
+
+      if (accessToken && typeof window !== 'undefined') {
+        try {
+          window.sessionStorage.setItem(`divemap_booking_access_${bookingUuid}`, accessToken);
+        } catch (_e) {
+          // Ignore storage quota / private mode errors
+        }
+      }
+
+      const bookingAuthHeaders = accessToken ? { 'X-Booking-Access-Token': accessToken } : {};
 
       const paperworkPayload = {
         unitItemId: unitItemId,
@@ -1042,13 +1070,36 @@ const BookingWizard = () => {
         },
       };
 
-      await api.post(`/api/v1/bookings/${bookingUuid}/submit-paperwork`, paperworkPayload);
+      await api.post(`/api/v1/bookings/${bookingUuid}/submit-paperwork`, paperworkPayload, {
+        headers: bookingAuthHeaders,
+      });
 
       toast.success('Booking confirmed! Payment will be collected on arrival.');
-      navigate(`/bookings/${bookingUuid}/voucher`);
+      const voucherPath = accessToken
+        ? `/bookings/${bookingUuid}/voucher?access_token=${encodeURIComponent(accessToken)}`
+        : `/bookings/${bookingUuid}/voucher`;
+      navigate(voucherPath);
     } catch (err) {
       console.error('Booking confirmation failed:', err);
-      toast.error(err.response?.data?.detail || 'Failed to complete booking.');
+      const detail = err.response?.data?.detail;
+      const detailStr = typeof detail === 'string' ? detail : '';
+      const isSoldOut =
+        err.response?.status === 400 &&
+        /fully booked online|not enough seats|seats available/i.test(detailStr);
+
+      if (isSoldOut) {
+        // Surface the existing contact-center sold-out screen instead of a raw capacity toast
+        setContextData(prev =>
+          prev?.slot ? { ...prev, slot: { ...prev.slot, seats_available: 0 } } : prev
+        );
+        toast.error(
+          detailStr ||
+            'This trip is fully booked online. Please contact the diving center directly.'
+        );
+        return;
+      }
+
+      toast.error(detailStr || 'Failed to complete booking.');
     } finally {
       setSubmitting(false);
     }

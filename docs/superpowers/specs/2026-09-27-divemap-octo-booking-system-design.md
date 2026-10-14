@@ -563,14 +563,15 @@ Templates are stored in the filesystem at `backend/app/templates/booking/`:
 
 ### 5.3 Multi-Party Guest Claim Workflow
 When a lead booker books multiple slots:
-1. Lead booker completes payment or card guarantee.
-2. For Seats #2, #3, etc., Divemap generates a secure `claim_token` (e.g. cryptographically random 64-char string).
+1. Lead booker completes payment or card guarantee. At hold creation, Divemap also mints a **booking access token** (raw returned once; **SHA-256 hash stored** on `OctoBooking`) so guest checkout never relies on UUID alone. See `docs/superpowers/specs/2026-10-14-booking-access-control-hardening-design.md`.
+2. For Seats #2, #3, etc., Divemap generates a secure claim token (cryptographically random); store **`claim_token_hash` only** (never plaintext at rest).
 3. System triggers email / WhatsApp invitation links to each guest:
-   `https://divemap.blue/bookings/{uuid}/claim?token={claim_token}`
+   `https://divemap.blue/bookings/{uuid}/claim/{claim_token}`
 4. Guests click the link:
    * Existing Divemap users log in and import their profile/certifications instantly.
    * New guest divers complete a quick mobile-optimized intake (Name, DOB, sizing, DMSC medical questionnaire, e-signature waiver).
 5. The trip manifest marks guest completion in real time: `Paperwork: 3/4 Completed`.
+6. **Authorization rule:** `booking_uuid` identifies; access token, claim token, or authenticated ownership authorizes. Center staff may access only trips/participants bound to their `diving_center_id`.
 
 ### 5.4 Junior Diver Safety & Depth Restriction Rules (ISO 24801 / Agency Limits)
 * **Ages 10–11 (Junior Open Water):**

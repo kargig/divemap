@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Header, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
@@ -33,6 +33,15 @@ from app.services.briefing_service import BriefingService
 from app.services.nitrox_service import check_nitrox_eligibility
 from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.services.medical_audit_service import log_medical_access
+from app.services.booking_access_service import (
+    extract_access_token,
+    require_booking_principal,
+    verify_claim_token,
+    all_participants_paperwork_complete,
+    extend_access_token_for_voucher_window,
+    validate_physician_certificate_url,
+    is_booking_owner,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +103,16 @@ class BookingVoucherResponse(BaseModel):
     qrCodeData: str
     unitItems: List[BookingVoucherUnitItem] = []
 
+class GuestClaimContextResponse(BaseModel):
+    bookingUuid: str
+    unitItemId: str
+    diverFullName: str
+    centerName: str
+    departureDate: str
+    claimStatus: str
+    waiversComplete: bool
+
+
 class MyBookingItemResponse(BaseModel):
     bookingUuid: str
     reference: str
@@ -118,14 +137,13 @@ def get_my_bookings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    email_cond = (
-        and_(
+    if current_user.email and current_user.email_verified:
+        email_cond = and_(
             OctoBooking.contact_email.isnot(None),
-            func.lower(OctoBooking.contact_email) == current_user.email.lower()
+            func.lower(OctoBooking.contact_email) == current_user.email.lower(),
         )
-        if current_user.email
-        else False
-    )
+    else:
+        email_cond = False
     bookings = (
         db.query(OctoBooking)
         .filter(or_(OctoBooking.user_id == current_user.id, email_cond))
@@ -435,38 +453,75 @@ def get_checkout_context(
     }
 
 
-@router.post("/{booking_uuid}/submit-paperwork", response_model=SubmitPaperworkResponse)
-def submit_diver_paperwork(
-    booking_uuid: str,
-    req: SubmitPaperworkRequest,
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
-):
-    """Evaluates medical responses, encrypts medical records at rest, marks waivers complete, and confirms booking."""
-    booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
-    if not booking:
-        raise HTTPException(status_code=404, detail="Booking not found")
+def _maybe_confirm_booking_after_paperwork(booking: OctoBooking) -> None:
+    if all_participants_paperwork_complete(booking) and booking.status == "ON_HOLD":
+        booking.status = "CONFIRMED"
+        booking.payment_status = "PENDING_AT_CHECKIN"
+        booking.utc_hold_expiration = None
+        extend_access_token_for_voucher_window(booking)
 
-    unit_item = db.query(OctoBookingUnitItem).filter(
-        OctoBookingUnitItem.id == req.unitItemId,
-        OctoBookingUnitItem.booking_uuid == booking.uuid
+
+def _recompute_booking_total(
+    booking: OctoBooking,
+    unit_item: OctoBookingUnitItem,
+    equipment_sizing_override: Optional[Dict[str, Any]],
+    db: Session,
+) -> None:
+    settings = db.query(DivingCenterBookingSettings).filter(
+        DivingCenterBookingSettings.diving_center_id == booking.diving_center_id
     ).first()
-    if not unit_item:
-        raise HTTPException(status_code=404, detail="Booking participant item not found")
+    recomputed_total = 0.0
+    for it in booking.unit_items:
+        it_sizing = equipment_sizing_override if it.id == unit_item.id else it.equipment_sizing
+        pricing_calc = compute_participant_octo_pricing(
+            center_settings=settings,
+            unit=it.unit,
+            equipment_sizing=it_sizing,
+            currency=booking.currency or "EUR",
+        )
+        recomputed_total += pricing_calc["total_due"]
+    booking.total_amount = round(recomputed_total, 2)
 
-    # 1. Medical Evaluation & Envelope Encryption
+
+def _apply_diver_paperwork_for_unit_item(
+    booking: OctoBooking,
+    unit_item: OctoBookingUnitItem,
+    req: SubmitPaperworkRequest,
+    current_user: Optional[User],
+    db: Session,
+) -> str:
+    """Encrypt medical data, update gear/waivers for one unit item. Returns medical_status."""
     now_utc = datetime.now(timezone.utc)
     audit_str = f"{booking.uuid}:{unit_item.id}:{req.signatureName}:{now_utc.isoformat()}"
-    audit_hash = hashlib.sha256(audit_str.encode('utf-8')).hexdigest()
+    audit_hash = hashlib.sha256(audit_str.encode("utf-8")).hexdigest()
 
     if req.useAnnualMedical:
         if not current_user:
-            raise HTTPException(status_code=401, detail="Authentication required to use saved annual medical declaration")
-        user_med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required to use saved annual medical declaration",
+            )
+        if not (
+            is_booking_owner(booking, current_user)
+            or unit_item.user_id == current_user.id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to apply annual medical for this participant",
+            )
+        user_med = db.query(UserMedicalProfile).filter(
+            UserMedicalProfile.user_id == current_user.id
+        ).first()
         if not user_med or (user_med.expires_at and ensure_aware(user_med.expires_at) < now_utc):
-            raise HTTPException(status_code=400, detail="No active annual medical declaration found or declaration has expired")
+            raise HTTPException(
+                status_code=400,
+                detail="No active annual medical declaration found or declaration has expired",
+            )
         if not req.confirmNoMedicalChange:
-            raise HTTPException(status_code=400, detail="You must confirm your physical and medical condition has not changed since your last declaration")
+            raise HTTPException(
+                status_code=400,
+                detail="You must confirm your physical and medical condition has not changed since your last declaration",
+            )
 
         if user_med.status == "CLEARED":
             medical_status = "CLEARED"
@@ -475,7 +530,10 @@ def submit_diver_paperwork(
                 CenterDiverMedicalApproval.diving_center_id == booking.diving_center_id,
                 CenterDiverMedicalApproval.user_id == current_user.id,
             ).all()
-            active_ca = [ca for ca in center_approvals if ca.expires_at and ensure_aware(ca.expires_at) >= now_utc]
+            active_ca = [
+                ca for ca in center_approvals
+                if ca.expires_at and ensure_aware(ca.expires_at) >= now_utc
+            ]
             if active_ca:
                 medical_status = "PHYSICIAN_APPROVED"
             else:
@@ -491,9 +549,10 @@ def submit_diver_paperwork(
         encryption_svc = BookingMedicalEncryptionService()
         enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
 
-        # Automatically store or update annual declaration for logged-in diver
         if current_user:
-            user_med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+            user_med = db.query(UserMedicalProfile).filter(
+                UserMedicalProfile.user_id == current_user.id
+            ).first()
             if not user_med:
                 user_med = UserMedicalProfile(
                     user_id=current_user.id,
@@ -522,6 +581,7 @@ def submit_diver_paperwork(
         existing_med.encrypted_dek = enc_dek
         existing_med.encrypted_answers = enc_answers
         existing_med.audit_signature_hash = audit_hash
+        unit_item.medical_record = existing_med
     else:
         med_rec = DiverMedicalRecord(
             booking_unit_item_id=unit_item.id,
@@ -533,13 +593,22 @@ def submit_diver_paperwork(
             audit_signature_hash=audit_hash,
         )
         db.add(med_rec)
+        unit_item.medical_record = med_rec
 
-    # 2. Update unit item with gear sizing and waiver completion
     if req.selectedGasMixId and req.selectedGasMixId.lower() != "air":
-        if not check_nitrox_eligibility(unit_item.certification_level, req.selectedGasMixId, db, user_id=unit_item.user_id):
+        if not check_nitrox_eligibility(
+            unit_item.certification_level,
+            req.selectedGasMixId,
+            db,
+            user_id=unit_item.user_id,
+        ):
             raise HTTPException(
                 status_code=400,
-                detail=f"Gas mix '{req.selectedGasMixId.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Your current level '{unit_item.certification_level or 'Unspecified'}' does not permit Nitrox."
+                detail=(
+                    f"Gas mix '{req.selectedGasMixId.upper()}' requires an Enriched Air Diver (Nitrox) "
+                    f"or qualifying technical certification. Your current level "
+                    f"'{unit_item.certification_level or 'Unspecified'}' does not permit Nitrox."
+                ),
             )
 
     unit_item.selected_tank_id = req.selectedTankId or "12"
@@ -547,28 +616,67 @@ def submit_diver_paperwork(
     if req.equipmentSizing:
         unit_item.equipment_sizing = req.equipmentSizing
     unit_item.waivers_complete = True
-    unit_item.signed_at = datetime.now(timezone.utc)
+    unit_item.signed_at = now_utc
 
-    # Recalculate booking total_amount based on updated equipment sizing and add-ons
-    settings = db.query(DivingCenterBookingSettings).filter(
-        DivingCenterBookingSettings.diving_center_id == booking.diving_center_id
-    ).first()
-    recomputed_total = 0.0
-    for it in booking.unit_items:
-        it_sizing = req.equipmentSizing if it.id == unit_item.id else it.equipment_sizing
-        pricing_calc = compute_participant_octo_pricing(
-            center_settings=settings,
-            unit=it.unit,
-            equipment_sizing=it_sizing,
-            currency=booking.currency or "EUR",
-        )
-        recomputed_total += pricing_calc["total_due"]
-    booking.total_amount = round(recomputed_total, 2)
+    _recompute_booking_total(booking, unit_item, req.equipmentSizing, db)
+    return medical_status
 
-    # 3. Transition booking status
-    booking.status = "CONFIRMED"
-    booking.payment_status = "PENDING_AT_CHECKIN"
-    booking.utc_hold_expiration = None
+
+def _find_unit_item_for_claim_token(
+    booking: OctoBooking,
+    claim_token: str,
+) -> Optional[OctoBookingUnitItem]:
+    for item in booking.unit_items or []:
+        if verify_claim_token(item, claim_token):
+            return item
+    return None
+
+
+@router.post("/{booking_uuid}/submit-paperwork", response_model=SubmitPaperworkResponse)
+def submit_diver_paperwork(
+    booking_uuid: str,
+    req: SubmitPaperworkRequest,
+    request: Request,
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """Evaluates medical responses, encrypts medical records at rest, and marks waivers for one seat."""
+    booking = (
+        db.query(OctoBooking)
+        .filter(OctoBooking.uuid == booking_uuid)
+        .options(joinedload(OctoBooking.unit_items).joinedload(OctoBookingUnitItem.medical_record))
+        .with_for_update()
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    token = extract_access_token(x_booking_access_token, access_token)
+    require_booking_principal(booking, current_user, token)
+
+    unit_item = next((it for it in booking.unit_items if it.id == req.unitItemId), None)
+    if not unit_item:
+        raise HTTPException(status_code=404, detail="Booking participant item not found")
+
+    medical_status = _apply_diver_paperwork_for_unit_item(
+        booking, unit_item, req, current_user, db
+    )
+    db.flush()
+    _maybe_confirm_booking_after_paperwork(booking)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_PAPERWORK_WRITE",
+        access_status="SUCCESS",
+        reason=f"Medical paperwork submitted for booking {booking.uuid}",
+        accessor_user=current_user,
+        participant_id=unit_item.id,
+        diving_center_id=booking.diving_center_id,
+        booking_uuid=booking.uuid,
+    )
 
     db.commit()
     db.refresh(booking)
@@ -577,16 +685,118 @@ def submit_diver_paperwork(
         bookingUuid=booking.uuid,
         status=booking.status,
         medicalStatus=medical_status,
-        waiversComplete=True,
+        waiversComplete=unit_item.waivers_complete,
+    )
+
+
+@router.get("/{booking_uuid}/claim/{claim_token}", response_model=GuestClaimContextResponse)
+def get_guest_claim_context(
+    booking_uuid: str,
+    claim_token: str,
+    db: Session = Depends(get_db),
+):
+    """Validate claim token and return limited context for one guest seat."""
+    booking = (
+        db.query(OctoBooking)
+        .filter(OctoBooking.uuid == booking_uuid)
+        .options(joinedload(OctoBooking.unit_items), joinedload(OctoBooking.center), joinedload(OctoBooking.slot))
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    unit_item = _find_unit_item_for_claim_token(booking, claim_token)
+    if not unit_item:
+        raise HTTPException(status_code=404, detail="Invalid claim token for this booking")
+
+    departure = ""
+    if booking.slot and booking.slot.start_datetime:
+        departure = booking.slot.start_datetime.strftime("%Y-%m-%d")
+
+    return GuestClaimContextResponse(
+        bookingUuid=booking.uuid,
+        unitItemId=unit_item.id,
+        diverFullName=unit_item.diver_full_name,
+        centerName=booking.center.name if booking.center else "Diving Center",
+        departureDate=departure,
+        claimStatus=unit_item.claim_status or "INVITED",
+        waiversComplete=bool(unit_item.waivers_complete),
+    )
+
+
+@router.post("/{booking_uuid}/claim/{claim_token}", response_model=SubmitPaperworkResponse)
+def submit_guest_claim_paperwork(
+    booking_uuid: str,
+    claim_token: str,
+    req: SubmitPaperworkRequest,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
+    """Submit medical and waiver paperwork for a guest seat via claim token."""
+    booking = (
+        db.query(OctoBooking)
+        .filter(OctoBooking.uuid == booking_uuid)
+        .options(joinedload(OctoBooking.unit_items).joinedload(OctoBookingUnitItem.medical_record))
+        .with_for_update()
+        .first()
+    )
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    unit_item = _find_unit_item_for_claim_token(booking, claim_token)
+    if not unit_item:
+        raise HTTPException(status_code=404, detail="Invalid claim token for this booking")
+
+    if req.unitItemId and req.unitItemId != unit_item.id:
+        raise HTTPException(status_code=400, detail="unitItemId does not match this claim link")
+
+    medical_status = _apply_diver_paperwork_for_unit_item(
+        booking, unit_item, req, current_user, db
+    )
+    unit_item.claim_status = "CLAIMED"
+    unit_item.claim_completed_at = datetime.now(timezone.utc)
+    db.flush()
+    _maybe_confirm_booking_after_paperwork(booking)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_PAPERWORK_WRITE",
+        access_status="SUCCESS",
+        reason=f"Guest claim medical paperwork for booking {booking.uuid}",
+        accessor_user=current_user,
+        participant_id=unit_item.id,
+        diving_center_id=booking.diving_center_id,
+        booking_uuid=booking.uuid,
+    )
+
+    db.commit()
+    db.refresh(booking)
+
+    return SubmitPaperworkResponse(
+        bookingUuid=booking.uuid,
+        status=booking.status,
+        medicalStatus=medical_status,
+        waiversComplete=unit_item.waivers_complete,
     )
 
 
 @router.get("/{booking_uuid}/voucher", response_model=BookingVoucherResponse)
-def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
+def get_booking_voucher(
+    booking_uuid: str,
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+):
     """Returns printable voucher details and digital QR-code verification token."""
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    token = extract_access_token(x_booking_access_token, access_token)
+    require_booking_principal(booking, current_user, token)
 
     product = booking.product
     center = booking.center
@@ -651,12 +861,23 @@ def get_booking_voucher(booking_uuid: str, db: Session = Depends(get_db)):
 @router.get("/{booking_uuid}/voucher/pdf")
 def download_booking_voucher_pdf(
     booking_uuid: str,
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Generates official Boarding Voucher & QR Code Pass PDF for download."""
-    booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    booking = (
+        db.query(OctoBooking)
+        .filter(OctoBooking.uuid == booking_uuid)
+        .options(joinedload(OctoBooking.unit_items).joinedload(OctoBookingUnitItem.medical_record))
+        .first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    token = extract_access_token(x_booking_access_token, access_token)
+    require_booking_principal(booking, current_user, token)
 
     slot = booking.slot
     product = booking.product
@@ -696,7 +917,7 @@ def download_booking_voucher_pdf(
             "certificationAgency": item.certification_agency,
             "certificationLevel": item.certification_level,
             "certificationNumber": item.certification_number,
-            "medicalClearanceStatus": item.medical_record.status if item.medical_record else "CLEARED",
+            "medicalClearanceStatus": item.medical_record.status if item.medical_record else "NOT_SUBMITTED",
             "waiversComplete": item.waivers_complete,
             "selectedTankId": item.selected_tank_id or "12",
             "selectedGasMixId": item.selected_gas_mix_id or "air",
@@ -745,12 +966,18 @@ def download_booking_voucher_pdf(
 @router.get("/{booking_uuid}/briefing")
 def download_booking_briefing_pdf(
     booking_uuid: str,
+    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    access_token: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Download pre-dive briefing PDF for a booked trip."""
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    token = extract_access_token(x_booking_access_token, access_token)
+    require_booking_principal(booking, current_user, token)
 
     slot_id = booking.availability_id
     briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == slot_id).first()
@@ -879,6 +1106,8 @@ def save_my_annual_medical_declaration(
     db: Session = Depends(get_db),
 ):
     """Submits or updates the authenticated diver's standalone annual DMSC 2020 medical declaration."""
+    validated_cert_url = validate_physician_certificate_url(req.physicianCertificateUrl)
+
     waiver_svc = WaiverService()
     medical_status = waiver_svc.evaluate_dmsc_medical(req.dmscAnswers)
 
@@ -896,7 +1125,7 @@ def save_my_annual_medical_declaration(
             status="CLEARED" if medical_status == "CLEARED" else "FLAGGED",
             encrypted_dek=enc_dek,
             encrypted_answers=enc_answers,
-            physician_certificate_url=req.physicianCertificateUrl,
+            physician_certificate_url=validated_cert_url,
             completed_at=now_utc,
             expires_at=now_utc + timedelta(days=365),
             audit_signature_hash=audit_hash,
@@ -906,14 +1135,26 @@ def save_my_annual_medical_declaration(
         profile.status = "CLEARED" if medical_status == "CLEARED" else "FLAGGED"
         profile.encrypted_dek = enc_dek
         profile.encrypted_answers = enc_answers
-        if req.physicianCertificateUrl:
-            profile.physician_certificate_url = req.physicianCertificateUrl
+        if validated_cert_url is not None:
+            profile.physician_certificate_url = validated_cert_url
         profile.completed_at = now_utc
         profile.expires_at = now_utc + timedelta(days=365)
         profile.audit_signature_hash = audit_hash
 
     db.commit()
     db.refresh(profile)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_ANNUAL_WRITE",
+        access_status="SUCCESS",
+        reason=f"Diver {current_user.username} updated annual medical declaration",
+        accessor_user=current_user,
+        target_diver_user_id=current_user.id,
+        target_diver_name=current_user.name or current_user.username,
+    )
+
     return {
         "success": True,
         "status": profile.status,

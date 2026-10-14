@@ -7,6 +7,7 @@ from app.models import AuthAuditLog, User
 
 logger = logging.getLogger("medical_audit")
 
+
 def log_medical_access(
     db: Session,
     action: str,
@@ -19,11 +20,14 @@ def log_medical_access(
     participant_id: Optional[str] = None,
     diving_center_id: Optional[int] = None,
     trip_id: Optional[str] = None,
+    booking_uuid: Optional[str] = None,
 ) -> Optional[AuthAuditLog]:
     """
     Creates an audit log entry in the existing AuthAuditLog table for any attempt
-    (successful or denied) to inspect, view, or export a user's medical questionnaire answers.
+    (successful or denied) to inspect, view, export, or mutate a user's medical questionnaire.
     Visible directly in the Admin Audit Logs dashboard (/admin/audit-logs).
+
+    Guest/anonymous accessors use user_id=NULL (never invent user_id=1).
     """
     ip_address = None
     user_agent = None
@@ -33,9 +37,11 @@ def log_medical_access(
         headers = getattr(request, "headers", {})
         user_agent = headers.get("user-agent")
 
-    accessor_id = accessor_user.id if accessor_user else (target_diver_user_id or 1)
-    accessor_name = accessor_user.username if accessor_user else "anonymous"
-    accessor_role = "admin" if (accessor_user and accessor_user.is_admin) else "user"
+    accessor_id = accessor_user.id if accessor_user else None
+    accessor_name = accessor_user.username if accessor_user else "guest"
+    accessor_role = "admin" if (accessor_user and accessor_user.is_admin) else (
+        "user" if accessor_user else "guest"
+    )
 
     # Normalize action name to snake_case matching auth audit log conventions
     normalized_action = action.lower()
@@ -51,6 +57,7 @@ def log_medical_access(
         "participant_id": participant_id,
         "diving_center_id": diving_center_id,
         "trip_id": trip_id,
+        "booking_uuid": booking_uuid,
         "status": access_status,
         "reason": reason,
     }
@@ -70,12 +77,13 @@ def log_medical_access(
         db.rollback()
         logger.error(f"Failed to persist medical audit log: {e}")
 
-    # Structured application log
+    # Structured application log — IDs only (avoid PII names in app logs)
     log_msg = (
         f"[MEDICAL_ACCESS_AUDIT] status={access_status} action={normalized_action} "
-        f"accessor={accessor_name}(id={accessor_id}, role={accessor_role}) "
-        f"target_diver={target_diver_name}(user_id={target_diver_user_id}, participant_id={participant_id}) "
-        f"center_id={diving_center_id} trip_id={trip_id} ip={ip_address} reason='{reason}'"
+        f"accessor_id={accessor_id} role={accessor_role} "
+        f"target_diver_user_id={target_diver_user_id} participant_id={participant_id} "
+        f"booking_uuid={booking_uuid} center_id={diving_center_id} trip_id={trip_id} "
+        f"ip={ip_address} reason='{reason}'"
     )
     if access_status == "SUCCESS":
         logger.info(log_msg)

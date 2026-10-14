@@ -153,12 +153,6 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
               Diver-Owned (Customer Kit)
             </span>
           </div>
-          <div className='flex items-center gap-1.5'>
-            <span className='w-2.5 h-2.5 rounded-full bg-indigo-600 ring-2 ring-indigo-100 dark:ring-indigo-900'></span>
-            <span className='font-semibold text-indigo-900 dark:text-indigo-200 text-[11px]'>
-              Boat Asset (Tank & Lead)
-            </span>
-          </div>
         </div>
 
         <div className='relative w-full sm:w-60'>
@@ -197,9 +191,19 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
             const isMaskRental = isFullRentalTier || eq.rental_mask || eq.has_own_mask === false;
             const isTorchRental = Boolean(eq.rental_torch);
             const isScooterRental = Boolean(eq.rental_scooter || eq.has_scooter);
+            const isComputerRental =
+              Boolean(eq.rental_dive_computer) || (isFullRentalTier && !eq.has_own_dive_computer);
+            const isBallastRental = !eq.has_own_lead_weights;
+            // Primary cylinders are center-supplied for boat trips (same rental styling)
+            const isCylinderRental = true;
 
             const isWomenSuit = eq.wetsuit_gender === 'WOMEN';
             const isWomenBcd = (eq.bcd_gender || eq.wetsuit_gender) === 'WOMEN';
+
+            const ownChip =
+              'px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600';
+            const rentalChip =
+              'px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700 flex items-center gap-1';
 
             const lead = diver.estimated_lead_kg || 0;
             const hasHalf = lead % 1.0 >= 0.4;
@@ -299,15 +303,21 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
 
                 {/* Top-to-Bottom Equipment Checklist Grid */}
                 <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 text-xs'>
-                  {/* 1. Primary Cylinder & Valve (Facility Boat Asset) */}
-                  <div className='p-2.5 rounded-xl space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40'>
+                  {/* 1. Primary Cylinder & Valve */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isCylinderRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
                     <div className='flex items-center justify-between'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
-                        <Gauge size={12} className='text-indigo-600' />
+                        <Gauge size={12} className='text-blue-600' />
                         Cylinder
                       </span>
-                      <span className='text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200'>
-                        Boat Asset
+                      <span className='text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
+                        Rental
                       </span>
                     </div>
                     <strong className='text-gray-900 dark:text-white block'>
@@ -403,23 +413,40 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                     )}
                   </div>
 
-                  {/* 4. Lead Ballast & Weights (Facility Boat Asset) */}
-                  <div className='p-2.5 rounded-xl space-y-1 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40'>
+                  {/* 4. Lead Ballast & Weights */}
+                  <div
+                    className={`p-2.5 rounded-xl space-y-1 border ${
+                      isBallastRental
+                        ? 'bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900/60'
+                        : 'bg-slate-50 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700'
+                    }`}
+                  >
                     <div className='flex items-center justify-between'>
                       <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1'>
-                        <Anchor size={12} className='text-indigo-600' />
+                        <Anchor
+                          size={12}
+                          className={isBallastRental ? 'text-blue-600' : 'text-slate-500'}
+                        />
                         Ballast
                       </span>
-                      <span className='text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200'>
-                        Boat Asset
+                      <span
+                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded ${
+                          isBallastRental
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                            : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300'
+                        }`}
+                      >
+                        {isBallastRental ? 'Rental' : 'Own'}
                       </span>
                     </div>
                     <strong className='text-gray-900 dark:text-white block font-mono'>
-                      {lead} kg ({blocksStr})
+                      {isBallastRental ? `${lead} kg (${blocksStr})` : '✓ Own Weights'}
                     </strong>
-                    <span className='inline-block text-[10px] text-gray-500 font-medium'>
-                      {eq.weight_system === 'BELT' ? 'Nylon Belt' : 'Integrated Pockets'}
-                    </span>
+                    {isBallastRental && (
+                      <span className='inline-block text-[10px] text-gray-500 font-medium'>
+                        {eq.weight_system === 'BELT' ? 'Nylon Belt' : 'Integrated Pockets'}
+                      </span>
+                    )}
                   </div>
 
                   {/* 5. Thermal Suit & Protection (Rental vs Own) */}
@@ -504,87 +531,51 @@ const DiverEquipmentChecklist = ({ participants = [], onToggleGearCheck, onEditD
                   </div>
                 </div>
 
-                {/* Accessories, Lights & Safety Gear Bar with Consistent Colors */}
+                {/* Accessories — consistent ✓ Own / Rental chip format */}
                 <div className='mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-2 text-xs'>
                   <span className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>
                     Kit Accessories:
                   </span>
 
-                  {/* Mask: Rental (Blue) vs Own (Slate) */}
-                  <span
-                    className={`px-2 py-0.5 rounded text-[11px] font-bold border flex items-center gap-1 ${
-                      isMaskRental
-                        ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border-blue-300 dark:border-blue-700'
-                        : 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border-slate-300 dark:border-gray-600'
-                    }`}
-                  >
-                    <span>Mask:</span>
-                    <span>{isMaskRental ? 'Rental Mask' : 'Own Mask'}</span>
+                  <span className={isMaskRental ? rentalChip : ownChip}>
+                    {isMaskRental ? 'Rental Mask' : '✓ Own Mask'}
                   </span>
 
-                  {/* Snorkel */}
-                  {eq.rental_snorkel && (
-                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
-                      Rental Snorkel
-                    </span>
-                  )}
+                  {eq.rental_snorkel && <span className={rentalChip}>Rental Snorkel</span>}
 
-                  {/* Hood */}
                   {eq.hood_size && eq.hood_size !== 'None' && (
-                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
-                      Rental Hood: Size {eq.hood_size}
-                    </span>
+                    <span className={rentalChip}>Rental Hood ({eq.hood_size})</span>
                   )}
 
-                  {/* Gloves */}
                   {eq.gloves_size && eq.gloves_size !== 'None' && (
-                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700'>
-                      Rental Gloves: Size {eq.gloves_size}
-                    </span>
+                    <span className={rentalChip}>Rental Gloves ({eq.gloves_size})</span>
                   )}
 
-                  {/* Dive Torch / Light: Rental (Amber/Blue) */}
                   {isTorchRental && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 font-bold flex items-center gap-1'>
-                      <Flame size={11} className='text-amber-600' />
+                    <span className={rentalChip}>
+                      <Flame size={11} />
                       Rental Dive Torch
                     </span>
                   )}
 
-                  {/* DPV Scooter */}
                   {isScooterRental && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-purple-100 dark:bg-purple-900/50 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-700 font-bold flex items-center gap-1'>
-                      <Sparkles size={11} className='text-purple-600' />
+                    <span className={rentalChip}>
+                      <Sparkles size={11} />
                       Rental DPV Scooter
                     </span>
                   )}
 
-                  {/* Dive Computer: Rental (Blue) vs Own (Slate) */}
-                  {eq.rental_dive_computer || (isFullRentalTier && !eq.has_own_dive_computer) ? (
-                    <span className='px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-300 dark:border-blue-700 flex items-center gap-1'>
-                      Rental Dive Computer
-                    </span>
-                  ) : eq.has_own_dive_computer ? (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600 font-medium'>
-                      ✓ Own Computer
-                    </span>
+                  {isComputerRental ? (
+                    <span className={rentalChip}>Rental Dive Computer</span>
+                  ) : eq.has_own_dive_computer !== false ? (
+                    <span className={ownChip}>✓ Own Computer</span>
                   ) : (
                     <span className='px-2 py-0.5 rounded text-[11px] bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 border border-amber-300 font-bold'>
                       ⚠️ Computer Required
                     </span>
                   )}
 
-                  {eq.has_own_smb && (
-                    <span className='px-2 py-0.5 rounded text-[11px] bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300 border border-slate-300 dark:border-gray-600 font-medium'>
-                      ✓ Own SMB & Spool
-                    </span>
-                  )}
-
-                  {eq.emergency_contact_name && (
-                    <span className='text-[11px] text-gray-400 ml-auto'>
-                      Emergency: {eq.emergency_contact_name} ({eq.emergency_contact_phone})
-                    </span>
-                  )}
+                  {eq.has_own_smb && <span className={ownChip}>✓ Own SMB & Spool</span>}
                 </div>
               </div>
             );

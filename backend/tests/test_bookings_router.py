@@ -202,9 +202,15 @@ def test_submit_paperwork_flagged_medical(client: TestClient, booking_setup):
     data = res.json()
     assert data["medicalStatus"] == "FLAGGED_CONTACT_CENTER"
 
-def test_get_booking_voucher(client: TestClient, booking_setup):
+def test_get_booking_voucher_requires_auth(client: TestClient, booking_setup):
     booking = booking_setup["booking"]
-    res = client.get(f"/api/v1/bookings/{booking.uuid}/voucher")
+    res_denied = client.get(f"/api/v1/bookings/{booking.uuid}/voucher")
+    assert res_denied.status_code == 401
+
+    user = booking_setup["user"]
+    token = create_access_token({"sub": user.username})
+    headers = {"Authorization": f"Bearer {token}"}
+    res = client.get(f"/api/v1/bookings/{booking.uuid}/voucher", headers=headers)
     assert res.status_code == 200
     voucher = res.json()
     assert voucher["bookingUuid"] == booking.uuid
@@ -214,7 +220,10 @@ def test_get_booking_voucher(client: TestClient, booking_setup):
 
 def test_download_booking_voucher_pdf(client: TestClient, booking_setup):
     booking = booking_setup["booking"]
-    res = client.get(f"/api/v1/bookings/{booking.uuid}/voucher/pdf")
+    user = booking_setup["user"]
+    token = create_access_token({"sub": user.username})
+    headers = {"Authorization": f"Bearer {token}"}
+    res = client.get(f"/api/v1/bookings/{booking.uuid}/voucher/pdf", headers=headers)
     assert res.status_code == 200
     assert "application/pdf" in res.headers["content-type"]
     assert res.content[:4] == b"%PDF"

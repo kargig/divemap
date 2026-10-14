@@ -813,7 +813,8 @@ class AuthAuditLog(Base):
     __tablename__ = "auth_audit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Nullable for guest/anonymous medical booking writes (never invent user_id=1)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     action = Column(String(50), nullable=False)  # login, logout, token_refresh, etc.
     ip_address = Column(String(45))
     user_agent = Column(Text)
@@ -1508,6 +1509,10 @@ class OctoBooking(Base):
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(50), nullable=True)
 
+    # Guest/lead booking capability (raw token returned once; hash stored)
+    access_token_hash = Column(String(64), nullable=True, index=True)
+    access_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+
     status = Column(String(30), default="ON_HOLD", nullable=False, index=True) # ON_HOLD, CONFIRMED, CANCELLED, COMPLETED
     utc_hold_expiration = Column(DateTime(timezone=True), nullable=True)
     payment_mode = Column(String(30), default="PAY_ON_ARRIVAL", nullable=False)
@@ -1534,6 +1539,12 @@ class OctoBookingUnitItem(Base):
     booking_uuid = Column(String(36), ForeignKey("octo_bookings.uuid", ondelete="CASCADE"), nullable=False, index=True)
     unit_id = Column(String(36), ForeignKey("octo_units.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    # Guest claim magic-link (hash-at-rest; raw token only in invite URL)
+    claim_token_hash = Column(String(64), unique=True, nullable=True, index=True)
+    claim_status = Column(String(30), default="CLAIMED", nullable=False)  # INVITED | CLAIMED
+    claim_invited_at = Column(DateTime(timezone=True), nullable=True)
+    claim_completed_at = Column(DateTime(timezone=True), nullable=True)
 
     diver_full_name = Column(String(255), nullable=False)
     diver_email = Column(String(255), nullable=True)

@@ -15,24 +15,52 @@ import {
   Ship,
   Download,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 
 import api from '../api';
 import SEO from '../components/SEO';
 
+function resolveBookingAccessToken(uuid, searchParams) {
+  const fromQuery = searchParams.get('access_token');
+  if (fromQuery) {
+    try {
+      window.sessionStorage.setItem(`divemap_booking_access_${uuid}`, fromQuery);
+    } catch (_e) {
+      // ignore storage errors
+    }
+    return fromQuery;
+  }
+  try {
+    return window.sessionStorage.getItem(`divemap_booking_access_${uuid}`);
+  } catch (_e) {
+    return null;
+  }
+}
+
 const BookingVoucherPage = () => {
   const { uuid } = useParams();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [downloadingVoucherPdf, setDownloadingVoucherPdf] = useState(false);
   const [voucher, setVoucher] = useState(null);
+
+  const accessToken = useMemo(
+    () => (uuid ? resolveBookingAccessToken(uuid, searchParams) : null),
+    [uuid, searchParams]
+  );
+
+  const bookingAuthConfig = useMemo(() => {
+    if (!accessToken) return {};
+    return { headers: { 'X-Booking-Access-Token': accessToken } };
+  }, [accessToken]);
 
   useEffect(() => {
     const fetchVoucher = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/api/v1/bookings/${uuid}/voucher`);
+        const res = await api.get(`/api/v1/bookings/${uuid}/voucher`, bookingAuthConfig);
         setVoucher(res.data);
       } catch (err) {
         console.error('Failed to load voucher:', err);
@@ -45,7 +73,7 @@ const BookingVoucherPage = () => {
     if (uuid) {
       fetchVoucher();
     }
-  }, [uuid]);
+  }, [uuid, bookingAuthConfig]);
 
   const handleDownloadVoucherPdf = async () => {
     try {
@@ -53,6 +81,7 @@ const BookingVoucherPage = () => {
       toast.loading('Generating official voucher PDF with QR pass...', { id: 'voucher-pdf' });
       const res = await api.get(`/api/v1/bookings/${uuid}/voucher/pdf`, {
         responseType: 'blob',
+        ...bookingAuthConfig,
       });
       const blob = new window.Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);

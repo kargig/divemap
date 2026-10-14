@@ -107,7 +107,8 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 | **Enhancement** | **Fully-Booked Trip Inquiries & Offline Capacity** | Friction-free diver contact flow (in-app chat, WhatsApp, email, phone) with pre-filled trip context when online seats are full, capacity guard on checkout wizard, and 'Online spots full' badges. | [`2026-10-13-fully-booked-trip-inquiry-plan.md`](2026-10-13-fully-booked-trip-inquiry-plan.md) | **Completed** |
 | **Safety Gate** | **Annual Medical Clearance & Center Approval Engine** | 1-year valid DMSC 2020 annual medical questionnaire (`/profile/medical`), center physician 1-year approval engine, and GDPR Article 17 right-to-erasure endpoint. | [`2026-10-13-annual-medical-questionnaire-design.md`](../specs/2026-10-13-annual-medical-questionnaire-design.md) | **Completed** |
 | **Ops & UX** | **Smart Gear Profile Integration & Gap Resolver** | Item-by-item gear ownership and conditional rental sizing cards on `/profile/gear`, auto-selection and application of primary gear setup in `BookingWizard.jsx` Step 2, grayed-out/hidden rental sizing for owned gear with instant overrides, DIN/Yoke valve synchronization, local diver lead ballast tracking, and dynamic dual-tone equipment checklists. | [`2026-10-14-smart-gear-profile-booking-integration-plan.md`](2026-10-14-smart-gear-profile-booking-integration-plan.md) | **Completed** |
-| **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, guest claim magic-links, youth releases, Nitrox analyzer logs, and buddy team pairing. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) | Planned |
+| **Security** | **Booking Access Control Hardening** | Dual credentials for guest + authenticated bookers (`booking_access_token` + session ownership), claim-token magic links (hash-at-rest), center↔slot↔participant IDOR fixes, confirm/paperwork split, medical audit writes, physician URL allowlist, manager PDF token hygiene. Excludes client-side fast-checkout cookie PII reduction. | [`2026-10-14-booking-access-control-hardening-plan.md`](2026-10-14-booking-access-control-hardening-plan.md) / [`spec`](../specs/2026-10-14-booking-access-control-hardening-design.md) | **Completed** |
+| **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, remaining youth/Nitrox/buddy gates. Guest claim magic-link **security subset** delivered under Access Control Hardening (`0105`); remaining Phase 5 safety columns use `0106+`. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) | Planned |
 | **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), physical rental equipment stock quotas, offshore offline PWA sync, and automated post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) | Planned |
 
 ---
@@ -116,11 +117,12 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 
 Every sub-plan must satisfy the following non-negotiable verification gates before being marked complete:
 
-1. **Alembic Sequential Migrations (Starting at 0105 for Phase 5):**
+1. **Alembic Sequential Migrations (Starting at 0105):**
    * The codebase currently contains sequential migrations up to `0104_add_gear_profile_ownership_flags.py` (following `0103_add_annual_and_center_medical_clearances.py`).
    * Sequential migrations for subsequent phases MUST follow:
-     * Phase 5: `0105_add_safety_and_group_claim_fields.py`
-     * Phase 6: `0106_create_advanced_ops_models.py`
+     * Security hardening: `0105_add_booking_access_and_claim_tokens.py` (access token + claim token hashes)
+     * Phase 5 remaining safety fields: `0106_add_safety_gate_fields.py`
+     * Phase 6: `0107_create_advanced_ops_models.py`
 2. **Backend Testing Isolation:**
    * Direct host `pytest` is strictly forbidden.
    * Tests must execute via `./docker-test-github-actions.sh [test_file]` against ephemeral MySQL containers.

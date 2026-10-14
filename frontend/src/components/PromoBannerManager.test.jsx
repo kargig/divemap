@@ -18,9 +18,21 @@ vi.mock('../utils/promoStorage', () => ({
   dismissPromo: vi.fn(),
 }));
 
+const mockGetConsentStatus = vi.fn();
+vi.mock('../utils/consent', () => ({
+  CONSENT_UPDATED_EVENT: 'divemap-consent-updated',
+  getConsentStatus: () => mockGetConsentStatus(),
+}));
+
 describe('PromoBannerManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetConsentStatus.mockReturnValue({
+      hasResponded: true,
+      analytics: false,
+      preferences: false,
+      necessary: true,
+    });
   });
 
   it('suppresses render if logged in', () => {
@@ -45,6 +57,24 @@ describe('PromoBannerManager', () => {
       </MemoryRouter>
     );
     expect(screen.getByText('Join the Divemap Community!')).toBeInTheDocument();
+  });
+
+  it('suppresses promo while cookie consent banner is still pending', () => {
+    mockUseAuth.mockReturnValue({ user: null, loading: false });
+    mockGetPromoEligibility.mockReturnValue({ isEligible: true, platform: 'desktop' });
+    mockGetConsentStatus.mockReturnValue({
+      hasResponded: false,
+      analytics: false,
+      preferences: false,
+      necessary: true,
+    });
+
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <PromoBannerManager />
+      </MemoryRouter>
+    );
+    expect(container.firstChild).toBeNull();
   });
 
   it('suppresses render if on /login route even if eligible', () => {

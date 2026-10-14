@@ -87,6 +87,7 @@ const UserBookingsPage = lazy(() => import('./pages/UserBookingsPage'));
 const DivingCenterManagePage = lazy(() => import('./pages/DivingCenterManagePage'));
 const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
 const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
+const GuestBookingClaimPage = lazy(() => import('./pages/GuestBookingClaimPage'));
 const TripOperationsDashboard = lazy(() => import('./components/booking/TripOperationsDashboard'));
 const TripParticipantDetailsPage = lazy(() => import('./pages/TripParticipantDetailsPage'));
 const CenterRentalPricingPage = lazy(() => import('./pages/CenterRentalPricingPage'));
@@ -344,15 +345,9 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path='/book/:slotId'
-              element={
-                <ProtectedRoute>
-                  <BookingWizard />
-                </ProtectedRoute>
-              }
-            />
+            <Route path='/book/:slotId' element={<BookingWizard />} />
             <Route path='/bookings/:uuid/voucher' element={<BookingVoucherPage />} />
+            <Route path='/bookings/:uuid/claim/:claimToken' element={<GuestBookingClaimPage />} />
             <Route
               path='/manage/centers/:centerId/trips/:tripId'
               element={

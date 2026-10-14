@@ -4,10 +4,12 @@
 
 **Goal:** Implement critical real-world scuba diving safety gates (DCS No-Fly surface interval validation, Nitrox certification check and dockside analyzer log, minor protection with guardian co-signatures, and inactive diver refresher warnings) along with multi-party group booking workflows (guest claim magic-links) and boat buddy pairing.
 
+**Note (2026-10-14):** The **security-critical claim-token + booking access-token** subset is implemented under [`2026-10-14-booking-access-control-hardening-plan.md`](2026-10-14-booking-access-control-hardening-plan.md) via migration `0105_add_booking_access_and_claim_tokens.py` (hash-at-rest). This Phase 5 plan retains DCS/Nitrox/youth/buddy work; Task 5.1 migration number shifts to **`0106`** for remaining safety columns. Do not re-introduce plaintext `claim_token` columns.
+
 **Architecture:**
-1. Database extensions on `OctoBookingUnitItem` storing guest invitation tokens, date of birth, guardian signatures, flight times, and Nitrox analysis readings ($O_2\%$ and MOD).
+1. Database extensions on `OctoBookingUnitItem` for guardian signatures, flight times, and Nitrox analysis readings ($O_2\%$ and MOD). Claim token hashes are owned by the access-control hardening migration (`0105`).
 2. Safety gate validators in `backend/app/services/waiver_service.py` intercepting checkout if flight interval is $< 18$h or if non-certified divers select Nitrox.
-3. Multi-party guest claim router (`GET/POST /api/v1/bookings/{uuid}/claim/{claim_token}`) allowing secondary divers in a group booking to independently sign waivers and submit biometrics.
+3. Multi-party guest claim router (`GET/POST /api/v1/bookings/{uuid}/claim/{claim_token}`) — delivered/extended by access-control hardening; Phase 5 adds safety validators on those endpoints.
 4. Dockside Nitrox analyzer signoff endpoint (`POST /trips/{trip_id}/log-nitrox`) and buddy team pairing (`POST /trips/{trip_id}/assign-buddies`) in the operations router.
 5. Responsive guest claim page (`GuestBookingClaimPage.jsx`) and roster enhancements for buddy pairs, Nitrox badges, and no-fly alerts.
 

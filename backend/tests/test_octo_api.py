@@ -170,8 +170,16 @@ def test_booking_lifecycle_hold_confirm_cancel(client: TestClient, octo_setup):
     assert booking["status"] == "ON_HOLD"
     assert booking["totalAmount"] == 150.00
     booking_uuid = booking["uuid"]
+    access_token = booking["accessToken"]
+    assert access_token
     assert len(booking["unitItems"]) == 2
+    assert len(booking.get("claimInviteTokens") or []) == 1
+    auth_headers = {"X-Booking-Access-Token": access_token}
     
+    # UUID-only get must be denied
+    res_denied = client.get(f"/api/v1/octo/bookings/{booking_uuid}")
+    assert res_denied.status_code == 401
+
     # Verify slot seats decreased from 4 to 2
     res_avail = client.post("/api/v1/octo/availability", json={
         "productId": prod_id,
@@ -181,8 +189,8 @@ def test_booking_lifecycle_hold_confirm_cancel(client: TestClient, octo_setup):
     })
     assert res_avail.json()[0]["seatsAvailable"] == 2
     
-    # 2. Get booking
-    res_get = client.get(f"/api/v1/octo/bookings/{booking_uuid}")
+    # 2. Get booking with access token
+    res_get = client.get(f"/api/v1/octo/bookings/{booking_uuid}", headers=auth_headers)
     assert res_get.status_code == 200
     assert res_get.json()["uuid"] == booking_uuid
     
@@ -193,12 +201,20 @@ def test_booking_lifecycle_hold_confirm_cancel(client: TestClient, octo_setup):
             "email": "nemo@nautilus.org"
         }
     }
-    res_conf = client.post(f"/api/v1/octo/bookings/{booking_uuid}/confirm", json=confirm_payload)
+    res_conf = client.post(
+        f"/api/v1/octo/bookings/{booking_uuid}/confirm",
+        json=confirm_payload,
+        headers=auth_headers,
+    )
     assert res_conf.status_code == 200
     assert res_conf.json()["status"] == "CONFIRMED"
     
     # 4. Cancel booking (releases seats back)
-    res_cancel = client.post(f"/api/v1/octo/bookings/{booking_uuid}/cancel", json={"reason": "Sea sickness"})
+    res_cancel = client.post(
+        f"/api/v1/octo/bookings/{booking_uuid}/cancel",
+        json={"reason": "Sea sickness"},
+        headers=auth_headers,
+    )
     assert res_cancel.status_code == 200
     assert res_cancel.json()["status"] == "CANCELLED"
     
@@ -226,7 +242,9 @@ def test_booking_capacity_overflow_rejected(client: TestClient, octo_setup):
     }
     res_overflow = client.post("/api/v1/octo/bookings", json=hold_payload)
     assert res_overflow.status_code == 400
-    assert "Not enough seats" in res_overflow.json()["detail"]
+    detail = res_overflow.json()["detail"]
+    assert "fully booked online" in detail.lower()
+    assert "contact the diving center" in detail.lower()
 
 def test_booking_missing_contact_and_id_rejected(client: TestClient, octo_setup):
     prod_id = octo_setup["product"].id
