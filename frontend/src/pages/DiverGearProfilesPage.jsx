@@ -13,6 +13,7 @@ import {
   Droplet,
   Compass,
   Calculator,
+  HeartPulse,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import SEO from '../components/SEO';
 import UserGearProfileModal from '../components/UserGearProfileModal';
+import { formatDate } from '../utils/dateHelpers';
 
 const DiverGearProfilesPage = () => {
   const [profiles, setProfiles] = useState([]);
@@ -325,32 +327,73 @@ const DiverGearProfilesPage = () => {
 
                     {/* Sizing & Hardware Specs */}
                     <div className='space-y-3 text-xs'>
+                      {/* Equipment Configuration (Brings vs Rents) */}
                       <div className='grid grid-cols-2 gap-2 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700'>
                         <div>
-                          <span className='text-gray-400 block mb-0.5'>Wetsuit</span>
-                          <span className='font-semibold text-gray-800 dark:text-gray-200'>
-                            {prof.wetsuit_size} ({prof.wetsuit_thickness}) • {prof.wetsuit_gender}
-                          </span>
+                          <span className='text-gray-400 block mb-0.5'>BCD / Wing</span>
+                          {prof.has_own_bcd ? (
+                            <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
+                              ✓ Brings Own
+                            </span>
+                          ) : (
+                            <span className='font-semibold text-blue-700 dark:text-blue-400'>
+                              Rent (Size {prof.bcd_size || 'M'})
+                            </span>
+                          )}
                         </div>
                         <div>
-                          <span className='text-gray-400 block mb-0.5'>BCD / Wing</span>
-                          <span className='font-semibold text-gray-800 dark:text-gray-200'>
-                            Size {prof.bcd_size || 'N/A'}
-                          </span>
+                          <span className='text-gray-400 block mb-0.5'>Wetsuit</span>
+                          {prof.has_own_wetsuit ? (
+                            <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
+                              ✓ Brings Own ({prof.wetsuit_thickness})
+                            </span>
+                          ) : (
+                            <span className='font-semibold text-blue-700 dark:text-blue-400'>
+                              Rent ({prof.wetsuit_size} • {prof.wetsuit_thickness})
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span className='text-gray-400 block mb-0.5'>Regulator</span>
+                          {prof.has_own_regulator ? (
+                            <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
+                              ✓ Brings Own ({prof.regulator_fitting})
+                            </span>
+                          ) : (
+                            <span className='font-semibold text-blue-700 dark:text-blue-400'>
+                              Rent ({prof.regulator_fitting})
+                            </span>
+                          )}
                         </div>
                         <div>
                           <span className='text-gray-400 block mb-0.5'>Fins</span>
-                          <span className='font-semibold text-gray-800 dark:text-gray-200'>
-                            {prof.fin_type === 'OPEN_HEEL'
-                              ? 'Open-Heel + Boots'
-                              : 'Full-Foot Barefoot'}
-                          </span>
+                          {prof.has_own_fins ? (
+                            <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
+                              ✓ Brings Own
+                            </span>
+                          ) : (
+                            <span className='font-semibold text-blue-700 dark:text-blue-400'>
+                              Rent ({prof.fin_type === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'})
+                            </span>
+                          )}
                         </div>
-                        <div>
-                          <span className='text-gray-400 block mb-0.5'>Lead Ballast</span>
-                          <span className='font-semibold text-gray-800 dark:text-gray-200'>
-                            {leadDisplay}
-                          </span>
+                        <div className='col-span-2 pt-1.5 border-t border-gray-200/60 dark:border-gray-600/60 flex justify-between items-center'>
+                          <span className='text-gray-400'>Lead Ballast</span>
+                          {prof.has_own_lead_weights ? (
+                            <span className='font-semibold text-emerald-700 dark:text-emerald-400'>
+                              ✓ Brings Own Lead (0 kg)
+                            </span>
+                          ) : (
+                            <span className='font-semibold text-blue-700 dark:text-blue-400'>
+                              Rent {leadDisplay} (
+                              {prof.weight_system === 'INTEGRATED'
+                                ? 'BCD Pockets'
+                                : prof.weight_system === 'OWN_BELT'
+                                  ? 'Own Belt'
+                                  : 'Belt'}
+                              )
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -396,17 +439,31 @@ const DiverGearProfilesPage = () => {
 
                   {/* Card Bottom / Set Default */}
                   <div className='p-3 sm:px-6 sm:py-3.5 bg-gray-50 dark:bg-gray-750 border-t border-gray-100 dark:border-gray-700 rounded-b-2xl flex items-center justify-between'>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex flex-wrap items-center gap-1.5'>
+                      {prof.has_own_mask && (
+                        <Tooltip title='Brings personal mask'>
+                          <span className='px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 rounded border border-emerald-200'>
+                            Mask
+                          </span>
+                        </Tooltip>
+                      )}
                       {prof.has_own_dive_computer && (
-                        <Tooltip title='Owns personal dive computer'>
-                          <span className='px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200'>
+                        <Tooltip title='Brings personal dive computer'>
+                          <span className='px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 rounded border border-emerald-200'>
                             Computer
                           </span>
                         </Tooltip>
                       )}
+                      {prof.has_own_torch && (
+                        <Tooltip title='Brings personal dive torch'>
+                          <span className='px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 rounded border border-emerald-200'>
+                            Torch
+                          </span>
+                        </Tooltip>
+                      )}
                       {prof.has_own_smb && (
-                        <Tooltip title='Owns personal SMB'>
-                          <span className='px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 rounded-md border border-emerald-200'>
+                        <Tooltip title='Brings personal SMB'>
+                          <span className='px-1.5 py-0.5 text-[10px] font-medium bg-emerald-50 text-emerald-700 rounded border border-emerald-200'>
                             SMB
                           </span>
                         </Tooltip>

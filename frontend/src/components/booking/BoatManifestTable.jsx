@@ -139,11 +139,26 @@ const BoatManifestTable = ({
                   </td>
 
                   <td className='py-3.5 px-3'>
-                    <span className='inline-flex items-center px-2 py-0.5 rounded font-mono font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] border border-blue-200 dark:border-blue-800'>
-                      {p.tanks_count || 2}x {p.selected_tank_id}L •{' '}
-                      {p.selected_gas_mix_id.toUpperCase()} •{' '}
-                      {p.equipment_sizing?.regulator_fitting || 'DIN'}
-                    </span>
+                    <div className='flex flex-col gap-1'>
+                      <span className='inline-flex items-center px-2 py-0.5 rounded font-mono font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] border border-blue-200 dark:border-blue-800'>
+                        {p.tanks_count || 2}x {p.selected_tank_id}L •{' '}
+                        {p.selected_gas_mix_id.toUpperCase()}
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold w-fit ${
+                          (p.equipment_sizing?.regulator_fitting || 'DIN') === 'DIN'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+                        }`}
+                        title={
+                          (p.equipment_sizing?.regulator_fitting || 'DIN') === 'DIN'
+                            ? 'DIN Valve: Remove yoke insert on cylinder'
+                            : 'Yoke Valve: Keep insert in place'
+                        }
+                      >
+                        Valve: {p.equipment_sizing?.regulator_fitting || 'DIN'}
+                      </span>
+                    </div>
                   </td>
 
                   <td className='py-3.5 px-3 text-center'>
@@ -411,7 +426,7 @@ const BoatManifestTable = ({
                 </span>
                 <span className='px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded font-mono font-medium'>
                   {p.tanks_count || 2}x {p.selected_tank_id}L •{' '}
-                  {p.selected_gas_mix_id.toUpperCase()} •{' '}
+                  {p.selected_gas_mix_id.toUpperCase()} • Valve:{' '}
                   {p.equipment_sizing?.regulator_fitting || 'DIN'}
                 </span>
                 <span

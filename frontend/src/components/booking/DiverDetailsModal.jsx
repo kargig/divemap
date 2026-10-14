@@ -14,12 +14,14 @@ import {
   ExternalLink,
   LifeBuoy,
   Coins,
+  CheckCircle,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 
 import api from '../../api';
+import { formatDate } from '../../utils/dateHelpers';
 
 import DiverGearConfigForm from './DiverGearConfigForm';
 
@@ -47,6 +49,7 @@ const DiverDetailsModal = ({
   const [physicianClinic, setPhysicianClinic] = useState('');
   const [clearanceNotes, setClearanceNotes] = useState('');
   const [confirmedInspected, setConfirmedInspected] = useState(false);
+  const [grantAnnualCenterApproval, setGrantAnnualCenterApproval] = useState(true);
   const [clearingMedical, setClearingMedical] = useState(false);
   const [downloadingDossier, setDownloadingDossier] = useState(false);
 
@@ -172,17 +175,32 @@ const DiverDetailsModal = ({
 
     try {
       setClearingMedical(true);
-      await api.post(
-        `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/clear-medical`,
-        {
-          physician_name: physicianName.trim(),
-          physician_clinic: physicianClinic.trim() || undefined,
-          notes: clearanceNotes.trim() || undefined,
-          confirmed_physical_form_inspected: true,
-        }
-      );
+      if (grantAnnualCenterApproval && (participant.user_id || currentDiver.user_id)) {
+        await api.post(
+          `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/grant-annual-approval`,
+          {
+            physician_name: physicianName.trim(),
+            physician_clinic: physicianClinic.trim() || undefined,
+            approval_notes: clearanceNotes.trim() || undefined,
+            validity_days: 365,
+          }
+        );
+        toast.success(
+          `1-Year Medical Approval granted for ${currentDiver.diver_full_name} at this center!`
+        );
+      } else {
+        await api.post(
+          `/api/v1/centers/${centerId}/booking-ops/trips/${tripId}/participants/${participant.id}/clear-medical`,
+          {
+            physician_name: physicianName.trim(),
+            physician_clinic: physicianClinic.trim() || undefined,
+            notes: clearanceNotes.trim() || undefined,
+            confirmed_physical_form_inspected: true,
+          }
+        );
+        toast.success(`Physician clearance approved for ${currentDiver.diver_full_name}!`);
+      }
 
-      toast.success(`Physician clearance approved for ${currentDiver.diver_full_name}!`);
       setShowClearanceForm(false);
       setDiver(prev => ({
         ...(prev || participant),
@@ -476,6 +494,39 @@ const DiverDetailsModal = ({
             </div>
           )}
 
+          {/* Active 1-Year Center Approval Banner */}
+          {medicalReview?.center_approval && (
+            <div className='p-2.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-1 text-xs'>
+              <div className='flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200 font-bold'>
+                <CheckCircle size={14} className='text-emerald-600' />
+                <span>Active 1-Year Center Medical Approval</span>
+              </div>
+              <p className='text-emerald-800 dark:text-emerald-300 text-[11px]'>
+                Approved by {medicalReview.center_approval.approved_by_name} • Dr.{' '}
+                {medicalReview.center_approval.physician_name} • Valid until{' '}
+                {formatDate(medicalReview.center_approval.expires_at)}
+              </p>
+            </div>
+          )}
+
+          {/* Uploaded Physician Document Link */}
+          {medicalReview?.physician_certificate_url && (
+            <div className='p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl text-xs flex items-center justify-between'>
+              <span className='text-[11px] font-semibold text-blue-900 dark:text-blue-200'>
+                Uploaded Physician Clearance Document
+              </span>
+              <a
+                href={medicalReview.physician_certificate_url}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold flex items-center gap-1'
+              >
+                <span>View Document</span>
+                <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
+
           {/* Flagged Medical Conditions Notice */}
           {isMedicalBlocked && !showEditAnswers && !showClearanceForm && (
             <div className='p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl space-y-1.5'>
@@ -633,6 +684,26 @@ const DiverDetailsModal = ({
                   />
                 </div>
               </div>
+
+              {(participant.user_id || currentDiver.user_id) && (
+                <label className='flex items-start gap-2 pt-1 cursor-pointer p-2 bg-blue-50/50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900/40'>
+                  <input
+                    type='checkbox'
+                    checked={grantAnnualCenterApproval}
+                    onChange={e => setGrantAnnualCenterApproval(e.target.checked)}
+                    className='mt-0.5 rounded text-blue-600'
+                  />
+                  <div>
+                    <span className='font-bold text-gray-900 dark:text-white block text-[11px]'>
+                      Grant 1-Year Center Approval (Recommended)
+                    </span>
+                    <span className='text-[10px] text-gray-500 dark:text-gray-400 block leading-tight'>
+                      Allows this diver to fast-track bookings at this dive center for 365 days
+                      without re-verifying paperwork each trip.
+                    </span>
+                  </div>
+                </label>
+              )}
 
               <label className='flex items-start gap-2 pt-1 cursor-pointer'>
                 <input

@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Optional, List, Dict, Any
 from datetime import datetime, date, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
@@ -24,26 +24,41 @@ from app.models import (
     OctoBookingUnitItem,
     DiverMedicalRecord,
     TripBriefing,
+    UserMedicalProfile,
+    CenterDiverMedicalApproval,
 )
 from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
 from app.services.waiver_service import WaiverService
 from app.services.briefing_service import BriefingService
 from app.services.nitrox_service import check_nitrox_eligibility
 from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.medical_audit_service import log_medical_access
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/bookings", tags=["Diver Bookings & Checkout"])
 
+def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 # --- Schemas ---
 
 class SubmitPaperworkRequest(BaseModel):
     unitItemId: str
-    dmscAnswers: Dict[str, Any]
+    dmscAnswers: Optional[Dict[str, Any]] = None
     signatureName: str
     selectedTankId: Optional[str] = "12"
     selectedGasMixId: Optional[str] = "air"
     equipmentSizing: Optional[Dict[str, Any]] = None
+    useAnnualMedical: bool = False
+    confirmNoMedicalChange: bool = False
+
+class SaveAnnualMedicalRequest(BaseModel):
+    dmscAnswers: Dict[str, Any]
+    signatureName: str
+    physicianCertificateUrl: Optional[str] = None
 
 class SubmitPaperworkResponse(BaseModel):
     bookingUuid: str
@@ -223,6 +238,7 @@ def get_checkout_context(
     # Pull user's primary/default gear profile if authenticated
     prefill_gear = None
     user_certifications = []
+    user_gear_profiles = []
     if current_user:
         gear_prof = db.query(UserGearProfile).filter(
             UserGearProfile.user_id == current_user.id,
@@ -248,11 +264,61 @@ def get_checkout_context(
                 "preferred_tank_id": gear_prof.preferred_tank_id,
                 "preferred_gas_mix_id": gear_prof.preferred_gas_mix_id,
                 "estimated_lead_kg": float(gear_prof.estimated_lead_kg) if gear_prof.estimated_lead_kg else None,
+                "has_own_mask": gear_prof.has_own_mask,
+                "has_own_wetsuit": gear_prof.has_own_wetsuit,
+                "has_own_regulator": gear_prof.has_own_regulator,
+                "has_own_bcd": gear_prof.has_own_bcd,
+                "has_own_fins": gear_prof.has_own_fins,
+                "has_own_boots": gear_prof.has_own_boots,
+                "has_own_torch": gear_prof.has_own_torch,
+                "has_own_lead_weights": gear_prof.has_own_lead_weights,
                 "has_own_dive_computer": gear_prof.has_own_dive_computer,
                 "has_own_smb": gear_prof.has_own_smb,
                 "insurance_provider": gear_prof.insurance_provider,
                 "insurance_policy_number": gear_prof.insurance_policy_number,
             }
+
+        all_profs = (
+            db.query(UserGearProfile)
+            .filter(UserGearProfile.user_id == current_user.id)
+            .order_by(UserGearProfile.is_default.desc(), UserGearProfile.id.asc())
+            .all()
+        )
+        for p in all_profs:
+            user_gear_profiles.append({
+                "id": p.id,
+                "name": p.name,
+                "is_default": p.is_default,
+                "preferred_unit_system": p.preferred_unit_system,
+                "height_cm": p.height_cm,
+                "weight_kg": float(p.weight_kg) if p.weight_kg is not None else None,
+                "shoe_size_eu": float(p.shoe_size_eu) if p.shoe_size_eu is not None else None,
+                "wetsuit_gender": p.wetsuit_gender,
+                "wetsuit_size": p.wetsuit_size,
+                "wetsuit_thickness": p.wetsuit_thickness,
+                "bcd_size": p.bcd_size,
+                "fin_type": p.fin_type,
+                "regulator_fitting": p.regulator_fitting or "DIN",
+                "preferred_tank_id": p.preferred_tank_id or "12",
+                "preferred_gas_mix_id": p.preferred_gas_mix_id or "air",
+                "estimated_lead_kg": float(p.estimated_lead_kg) if p.estimated_lead_kg is not None else 4.0,
+                "has_own_mask": p.has_own_mask,
+                "has_own_wetsuit": p.has_own_wetsuit,
+                "has_own_regulator": p.has_own_regulator,
+                "has_own_bcd": p.has_own_bcd,
+                "has_own_fins": p.has_own_fins,
+                "has_own_boots": p.has_own_boots,
+                "has_own_torch": p.has_own_torch,
+                "has_own_lead_weights": p.has_own_lead_weights,
+                "has_own_dive_computer": p.has_own_dive_computer,
+                "has_own_smb": p.has_own_smb,
+                "insurance_provider": p.insurance_provider,
+                "insurance_policy_number": p.insurance_policy_number,
+                "insurance_expiry_date": p.insurance_expiry_date.isoformat() if p.insurance_expiry_date else None,
+                "emergency_contact_name": p.emergency_contact_name,
+                "emergency_contact_phone": p.emergency_contact_phone,
+                "emergency_contact_relation": p.emergency_contact_relation,
+            })
 
         certs = (
             db.query(UserCertification)
@@ -322,7 +388,38 @@ def get_checkout_context(
             "full_name": current_user.name or current_user.username,
             "email": current_user.email if (current_user.email and not current_user.email.endswith('.invalid')) else None,
         } if current_user else None,
+        "user_annual_medical": (
+            {
+                "has_record": True,
+                "status": u_med.status,
+                "is_expired": ensure_aware(u_med.expires_at) < datetime.now(timezone.utc),
+                "completed_at": ensure_aware(u_med.completed_at).isoformat() if u_med.completed_at else None,
+                "expires_at": ensure_aware(u_med.expires_at).isoformat() if u_med.expires_at else None,
+                "days_remaining": max(0, (ensure_aware(u_med.expires_at) - datetime.now(timezone.utc)).days) if ensure_aware(u_med.expires_at) >= datetime.now(timezone.utc) else 0,
+                "center_approved": bool(
+                    [
+                        ca for ca in db.query(CenterDiverMedicalApproval).filter(
+                            CenterDiverMedicalApproval.diving_center_id == center.id,
+                            CenterDiverMedicalApproval.user_id == current_user.id
+                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)
+                    ]
+                ) if u_med.status != "CLEARED" else True,
+                "center_approval_expires_at": (
+                    ensure_aware(c_app[0].expires_at).isoformat()
+                    if (c_app := [
+                        ca for ca in db.query(CenterDiverMedicalApproval).filter(
+                            CenterDiverMedicalApproval.diving_center_id == center.id,
+                            CenterDiverMedicalApproval.user_id == current_user.id
+                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)
+                    ])
+                    else None
+                ),
+            }
+            if current_user and (u_med := db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first())
+            else None
+        ),
         "prefill_gear": prefill_gear,
+        "user_gear_profiles": user_gear_profiles,
         "user_certifications": user_certifications,
         "dmsc_schema": dmsc_schema,
         "rental_pricing": (
@@ -358,15 +455,63 @@ def submit_diver_paperwork(
         raise HTTPException(status_code=404, detail="Booking participant item not found")
 
     # 1. Medical Evaluation & Envelope Encryption
-    waiver_svc = WaiverService()
-    medical_status = waiver_svc.evaluate_dmsc_medical(req.dmscAnswers)
-
-    encryption_svc = BookingMedicalEncryptionService()
-    enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
-
-    # Audit signature hash (SHA-256 of submission envelope)
-    audit_str = f"{booking.uuid}:{unit_item.id}:{req.signatureName}:{datetime.now(timezone.utc).isoformat()}"
+    now_utc = datetime.now(timezone.utc)
+    audit_str = f"{booking.uuid}:{unit_item.id}:{req.signatureName}:{now_utc.isoformat()}"
     audit_hash = hashlib.sha256(audit_str.encode('utf-8')).hexdigest()
+
+    if req.useAnnualMedical:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required to use saved annual medical declaration")
+        user_med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+        if not user_med or (user_med.expires_at and ensure_aware(user_med.expires_at) < now_utc):
+            raise HTTPException(status_code=400, detail="No active annual medical declaration found or declaration has expired")
+        if not req.confirmNoMedicalChange:
+            raise HTTPException(status_code=400, detail="You must confirm your physical and medical condition has not changed since your last declaration")
+
+        if user_med.status == "CLEARED":
+            medical_status = "CLEARED"
+        else:
+            center_approvals = db.query(CenterDiverMedicalApproval).filter(
+                CenterDiverMedicalApproval.diving_center_id == booking.diving_center_id,
+                CenterDiverMedicalApproval.user_id == current_user.id,
+            ).all()
+            active_ca = [ca for ca in center_approvals if ca.expires_at and ensure_aware(ca.expires_at) >= now_utc]
+            if active_ca:
+                medical_status = "PHYSICIAN_APPROVED"
+            else:
+                medical_status = "FLAGGED_CONTACT_CENTER"
+
+        enc_dek = user_med.encrypted_dek
+        enc_answers = user_med.encrypted_answers
+    else:
+        if not req.dmscAnswers:
+            raise HTTPException(status_code=400, detail="Medical questionnaire responses are required")
+        waiver_svc = WaiverService()
+        medical_status = waiver_svc.evaluate_dmsc_medical(req.dmscAnswers)
+        encryption_svc = BookingMedicalEncryptionService()
+        enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
+
+        # Automatically store or update annual declaration for logged-in diver
+        if current_user:
+            user_med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+            if not user_med:
+                user_med = UserMedicalProfile(
+                    user_id=current_user.id,
+                    status="CLEARED" if medical_status == "CLEARED" else "FLAGGED",
+                    encrypted_dek=enc_dek,
+                    encrypted_answers=enc_answers,
+                    completed_at=now_utc,
+                    expires_at=now_utc + timedelta(days=365),
+                    audit_signature_hash=audit_hash,
+                )
+                db.add(user_med)
+            else:
+                user_med.status = "CLEARED" if medical_status == "CLEARED" else "FLAGGED"
+                user_med.encrypted_dek = enc_dek
+                user_med.encrypted_answers = enc_answers
+                user_med.completed_at = now_utc
+                user_med.expires_at = now_utc + timedelta(days=365)
+                user_med.audit_signature_hash = audit_hash
 
     existing_med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == unit_item.id
@@ -384,7 +529,7 @@ def submit_diver_paperwork(
             status=medical_status,
             encrypted_dek=enc_dek,
             encrypted_answers=enc_answers,
-            expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+            expires_at=now_utc + timedelta(days=365),
             audit_signature_hash=audit_hash,
         )
         db.add(med_rec)
@@ -619,3 +764,160 @@ def download_booking_briefing_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/medical/me")
+def get_my_annual_medical_status(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns the authenticated diver's current annual medical declaration status and center approvals."""
+    med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+    now_utc = datetime.now(timezone.utc)
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="ANNUAL_MEDICAL_STATUS_VIEW",
+        access_status="SUCCESS",
+        reason=f"Diver {current_user.username} viewed their own annual medical status",
+        accessor_user=current_user,
+        target_diver_user_id=current_user.id,
+        target_diver_name=current_user.name or current_user.username,
+    )
+
+    center_approvals = db.query(CenterDiverMedicalApproval).filter(
+        CenterDiverMedicalApproval.user_id == current_user.id
+    ).all()
+
+    approvals_data = [
+        {
+            "center_id": ca.diving_center_id,
+            "center_name": ca.diving_center.name if ca.diving_center else "Diving Center",
+            "physician_name": ca.physician_name,
+            "physician_clinic": ca.physician_clinic,
+            "approved_at": ensure_aware(ca.approved_at).isoformat() if ca.approved_at else None,
+            "expires_at": ensure_aware(ca.expires_at).isoformat() if ca.expires_at else None,
+            "is_expired": ensure_aware(ca.expires_at) < now_utc if ca.expires_at else True,
+        }
+        for ca in center_approvals
+    ]
+
+    if not med:
+        return {
+            "has_record": False,
+            "center_approvals": approvals_data,
+        }
+
+    exp = ensure_aware(med.expires_at)
+    is_active = (exp >= now_utc) if exp else False
+    return {
+        "has_record": True,
+        "status": med.status,
+        "completed_at": ensure_aware(med.completed_at).isoformat() if med.completed_at else None,
+        "expires_at": exp.isoformat() if exp else None,
+        "is_expired": not is_active,
+        "days_remaining": max(0, (exp - now_utc).days) if is_active and exp else 0,
+        "physician_certificate_url": med.physician_certificate_url,
+        "center_approvals": approvals_data,
+    }
+
+
+@router.delete("/medical/me")
+def delete_my_annual_medical_profile(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently deletes the authenticated diver's annual medical declaration profile
+    under GDPR Article 17(1) (Right to Erasure).
+    Historical departure records linked to past dive trips are retained in an
+    encrypted archive for statutory liability defense under GDPR Article 17(3)(e).
+    """
+    profile = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+    if not profile:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="ANNUAL_MEDICAL_DELETE",
+            access_status="DENIED",
+            reason="No annual medical profile found to delete",
+            accessor_user=current_user,
+            target_diver_user_id=current_user.id,
+            target_diver_name=current_user.name or current_user.username,
+        )
+        raise HTTPException(status_code=404, detail="No annual medical profile found to delete")
+
+    db.delete(profile)
+    db.commit()
+
+    log_medical_access(
+        db=db,
+        request=request,
+        action="ANNUAL_MEDICAL_DELETE",
+        access_status="SUCCESS",
+        reason=f"Diver {current_user.username} deleted their annual medical profile under GDPR Art. 17",
+        accessor_user=current_user,
+        target_diver_user_id=current_user.id,
+        target_diver_name=current_user.name or current_user.username,
+    )
+
+    logger.info(f"[GDPR_DELETION] User {current_user.id} ({current_user.username}) deleted annual medical profile.")
+    return {
+        "success": True,
+        "message": "Annual medical declaration deleted. Future bookings will require a new declaration.",
+    }
+
+
+@router.post("/medical/me")
+def save_my_annual_medical_declaration(
+    req: SaveAnnualMedicalRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Submits or updates the authenticated diver's standalone annual DMSC 2020 medical declaration."""
+    waiver_svc = WaiverService()
+    medical_status = waiver_svc.evaluate_dmsc_medical(req.dmscAnswers)
+
+    encryption_svc = BookingMedicalEncryptionService()
+    enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
+
+    now_utc = datetime.now(timezone.utc)
+    audit_str = f"annual_medical:{current_user.id}:{req.signatureName}:{now_utc.isoformat()}"
+    audit_hash = hashlib.sha256(audit_str.encode('utf-8')).hexdigest()
+
+    profile = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = UserMedicalProfile(
+            user_id=current_user.id,
+            status="CLEARED" if medical_status == "CLEARED" else "FLAGGED",
+            encrypted_dek=enc_dek,
+            encrypted_answers=enc_answers,
+            physician_certificate_url=req.physicianCertificateUrl,
+            completed_at=now_utc,
+            expires_at=now_utc + timedelta(days=365),
+            audit_signature_hash=audit_hash,
+        )
+        db.add(profile)
+    else:
+        profile.status = "CLEARED" if medical_status == "CLEARED" else "FLAGGED"
+        profile.encrypted_dek = enc_dek
+        profile.encrypted_answers = enc_answers
+        if req.physicianCertificateUrl:
+            profile.physician_certificate_url = req.physicianCertificateUrl
+        profile.completed_at = now_utc
+        profile.expires_at = now_utc + timedelta(days=365)
+        profile.audit_signature_hash = audit_hash
+
+    db.commit()
+    db.refresh(profile)
+    return {
+        "success": True,
+        "status": profile.status,
+        "completed_at": profile.completed_at.isoformat(),
+        "expires_at": profile.expires_at.isoformat(),
+    }
+

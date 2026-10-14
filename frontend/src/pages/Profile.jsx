@@ -37,6 +37,7 @@ import {
   FolderHeart,
   Loader2,
   Ticket,
+  HeartPulse,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -1811,6 +1812,33 @@ const Profile = () => {
                 </Link>
               </div>
             </div>
+
+            {/* Annual Medical Declaration Section */}
+            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+              <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+                <div className='flex items-start gap-3'>
+                  <div className='p-2.5 bg-red-50 text-red-600 rounded-xl mt-0.5 shrink-0'>
+                    <HeartPulse className='h-6 w-6' />
+                  </div>
+                  <div>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                      Medical Self-Declaration (DMSC 2020)
+                    </h2>
+                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                      Manage your 1-year annual medical screening, upload physician certificates,
+                      and review diving center approvals. Protected by GDPR Article 9 encryption.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  to='/profile/medical'
+                  className='inline-flex items-center justify-center px-4 py-2.5 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold shadow-sm transition-all text-sm shrink-0'
+                >
+                  Manage Medical
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
@@ -2031,6 +2059,14 @@ const Profile = () => {
                 >
                   <Gauge size={18} className='mr-3 text-gray-400' />
                   Gear Configurations
+                </Link>
+
+                <Link
+                  to='/profile/medical'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                >
+                  <HeartPulse size={18} className='mr-3 text-gray-400' />
+                  Medical Declaration
                 </Link>
 
                 <Link

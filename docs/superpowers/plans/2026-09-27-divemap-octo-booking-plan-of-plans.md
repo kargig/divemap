@@ -97,15 +97,18 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 
 ## 2. Phase-by-Phase Index & Summary
 
-| Phase | Title | Primary Deliverable | Sub-Plan Document |
-| :--- | :--- | :--- | :--- |
-| **Phase 1** | **Diver Profile & Paperwork Engine** | Diver biometrics, Metric/Imperial conversions, local agency questionnaires/waivers, and GDPR envelope encryption. | [`phase-1-diver-profile-and-paperwork.md`](phase-1-diver-profile-and-paperwork.md) |
-| **Phase 2** | **Minimal Viable Booking Engine** | Core OCTO 1.0 API, catalog, availability, hold/confirm booking lifecycle, and diver checkout wizard. | [`phase-2-mvp-booking-engine.md`](phase-2-mvp-booking-engine.md) |
-| **Phase 3** | **Center Operations Dashboard [DONE]** | Live boat roster, participant walk-ins/edits/cancellations, crate packing checklist, DIN/Yoke valve adapter alerts, weight system breakdown, medical safety gates, Port Authority manifest export, and emergency incident dossier PDF. | [`phase-3-center-operations-dashboard.md`](phase-3-center-operations-dashboard.md) |
-| **Phase 4** | **Pre-Dive Briefing Pipeline [DONE]** | Automated weather & site intelligence synthesis, manager review UI, and AWS SQS PDF email dispatch. | [`phase-4-pre-dive-briefing-pipeline.md`](phase-4-pre-dive-briefing-pipeline.md) |
-| **Phase 4.5** | **Discovery, Center Hub & Booking Bridge [DONE]** | Linking `ParsedDiveTrip` to `OctoAvailabilitySlot`, dedicated manager portal at `/diving-centers/:id/manage`, public booking CTAs, and diver reservations hub at `/profile/bookings`. | [`phase-4-5-booking-system-public-discovery-bridge.md`](phase-4-5-booking-system-public-discovery-bridge.md) |
-| **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, guest claim magic-links, youth releases, Nitrox analyzer logs, and buddy team pairing. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) |
-| **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Public discovery bridge (`/dive-trips` $\leftrightarrow$ `/book/:slotId`), center ops shortcuts (`/manage/...`), multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), equipment quotas, offline PWA, and automatic post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) |
+| Phase | Title | Primary Deliverable | Sub-Plan Document | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase 1** | **Diver Profile & Paperwork Engine** | Diver biometrics, Metric/Imperial conversions, local agency questionnaires/waivers, and GDPR envelope encryption. | [`phase-1-diver-profile-and-paperwork.md`](phase-1-diver-profile-and-paperwork.md) | **Completed** |
+| **Phase 2** | **Minimal Viable Booking Engine** | Core OCTO 1.0 API, catalog, availability, hold/confirm booking lifecycle, and diver checkout wizard. | [`phase-2-mvp-booking-engine.md`](phase-2-mvp-booking-engine.md) | **Completed** |
+| **Phase 3** | **Center Operations Dashboard** | Live boat roster, participant walk-ins/edits/cancellations, crate packing checklist, DIN/Yoke valve adapter alerts, weight system breakdown, medical safety gates, Port Authority manifest export, and emergency incident dossier PDF. | [`phase-3-center-operations-dashboard.md`](phase-3-center-operations-dashboard.md) | **Completed** |
+| **Phase 4** | **Pre-Dive Briefing Pipeline** | Automated weather & site intelligence synthesis, manager review UI, and AWS SQS PDF email dispatch. | [`phase-4-pre-dive-briefing-pipeline.md`](phase-4-pre-dive-briefing-pipeline.md) | **Completed** |
+| **Phase 4.5** | **Discovery, Center Hub & Booking Bridge** | Linking `ParsedDiveTrip` to `OctoAvailabilitySlot`, dedicated manager portal at `/diving-centers/:id/manage`, public booking CTAs, and diver reservations hub at `/profile/bookings`. | [`phase-4-5-booking-system-public-discovery-bridge.md`](phase-4-5-booking-system-public-discovery-bridge.md) | **Completed** |
+| **Enhancement** | **Fully-Booked Trip Inquiries & Offline Capacity** | Friction-free diver contact flow (in-app chat, WhatsApp, email, phone) with pre-filled trip context when online seats are full, capacity guard on checkout wizard, and 'Online spots full' badges. | [`2026-10-13-fully-booked-trip-inquiry-plan.md`](2026-10-13-fully-booked-trip-inquiry-plan.md) | **Completed** |
+| **Safety Gate** | **Annual Medical Clearance & Center Approval Engine** | 1-year valid DMSC 2020 annual medical questionnaire (`/profile/medical`), center physician 1-year approval engine, and GDPR Article 17 right-to-erasure endpoint. | [`2026-10-13-annual-medical-questionnaire-design.md`](../specs/2026-10-13-annual-medical-questionnaire-design.md) | **Completed** |
+| **Ops & UX** | **Smart Gear Profile Integration & Gap Resolver** | Item-by-item gear ownership and conditional rental sizing cards on `/profile/gear`, auto-selection and application of primary gear setup in `BookingWizard.jsx` Step 2, grayed-out/hidden rental sizing for owned gear with instant overrides, DIN/Yoke valve synchronization, local diver lead ballast tracking, and dynamic dual-tone equipment checklists. | [`2026-10-14-smart-gear-profile-booking-integration-plan.md`](2026-10-14-smart-gear-profile-booking-integration-plan.md) | **Completed** |
+| **Phase 5** | **Safety Gates & Group Workflows** | DCS no-fly buffer, guest claim magic-links, youth releases, Nitrox analyzer logs, and buddy team pairing. | [`phase-5-safety-gates-and-group-workflows.md`](phase-5-safety-gates-and-group-workflows.md) | Planned |
+| **Phase 6** | **Advanced Ops & Ecosystem Synergy**| Multi-day passes (`octo/packages`), hotel pickups (`octo/pickups`), physical rental equipment stock quotas, offshore offline PWA sync, and automated post-dive logbook creation. | [`phase-6-advanced-ops-and-ecosystem-synergy.md`](phase-6-advanced-ops-and-ecosystem-synergy.md) | Planned |
 
 ---
 
@@ -113,14 +116,11 @@ Each sub-plan depends **strictly on the completed artifacts of preceding phases*
 
 Every sub-plan must satisfy the following non-negotiable verification gates before being marked complete:
 
-1. **Alembic Sequential Migrations (Starting at 0094):**
-   * The codebase currently contains migrations up to `0093_add_facebook_login_fields.py`.
-   * Sequential migrations for the booking system MUST follow:
-     * Phase 1: `0094_create_user_gear_profiles.py`
-     * Phase 2: `0095_create_octo_core_booking_models.py`
-     * Phase 4: `0096_create_trip_briefing_table.py`
-     * Phase 5: `0097_add_safety_and_group_claim_fields.py`
-     * Phase 6: `0098_create_advanced_ops_models.py`
+1. **Alembic Sequential Migrations (Starting at 0105 for Phase 5):**
+   * The codebase currently contains sequential migrations up to `0104_add_gear_profile_ownership_flags.py` (following `0103_add_annual_and_center_medical_clearances.py`).
+   * Sequential migrations for subsequent phases MUST follow:
+     * Phase 5: `0105_add_safety_and_group_claim_fields.py`
+     * Phase 6: `0106_create_advanced_ops_models.py`
 2. **Backend Testing Isolation:**
    * Direct host `pytest` is strictly forbidden.
    * Tests must execute via `./docker-test-github-actions.sh [test_file]` against ephemeral MySQL containers.

@@ -29,7 +29,7 @@
 
 **Files:**
 - Modify: `backend/app/models.py`
-- Create: Sequential migration file (e.g. `backend/migrations/versions/0098_create_advanced_ops_models.py`)
+- Create: Sequential migration file (e.g. `backend/migrations/versions/0106_create_advanced_ops_models.py`)
 - Test: `backend/tests/test_advanced_ops_models.py`
 
 **Interfaces:**
@@ -97,7 +97,7 @@ verified_at = Column(DateTime(timezone=True), nullable=True)
 
 - [ ] **Step 3: Create sequential migration file**
 
-Create `backend/migrations/versions/0098_create_advanced_ops_models.py` to create the advanced ops tables and add the verification columns to the `dives` table.
+Create `backend/migrations/versions/0106_create_advanced_ops_models.py` (with `down_revision = '0105'`) to create the advanced ops tables and add the verification columns to the `dives` table.
 
 - [ ] **Step 4: Run test in isolated Docker**
 

@@ -1326,6 +1326,14 @@ class UserGearProfile(Base):
     preferred_gas_mix_id = Column(String(20), default="air", nullable=True) # Re-uses GAS_MIXES ID
     estimated_lead_kg = Column(DECIMAL(4, 1), nullable=True)
 
+    has_own_mask = Column(Boolean, default=True, nullable=False)
+    has_own_wetsuit = Column(Boolean, default=False, nullable=False)
+    has_own_regulator = Column(Boolean, default=False, nullable=False)
+    has_own_bcd = Column(Boolean, default=False, nullable=False)
+    has_own_fins = Column(Boolean, default=False, nullable=False)
+    has_own_boots = Column(Boolean, default=False, nullable=False)
+    has_own_torch = Column(Boolean, default=False, nullable=False)
+    has_own_lead_weights = Column(Boolean, default=False, nullable=False)
     has_own_dive_computer = Column(Boolean, default=False, nullable=False)
     has_own_smb = Column(Boolean, default=False, nullable=False)
 
@@ -1613,5 +1621,54 @@ class TripBriefing(Base):
     slot = relationship("OctoAvailabilitySlot", backref=sa.orm.backref("briefing", uselist=False, cascade="all, delete-orphan"))
     active_dive_site = relationship("DiveSite")
     dispatched_by = relationship("User", foreign_keys=[dispatched_by_user_id])
+
+
+class UserMedicalProfile(Base):
+    __tablename__ = "user_medical_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+
+    status = Column(String(30), nullable=False)  # 'CLEARED' (10 No) or 'FLAGGED' (1+ Yes)
+    encrypted_dek = Column(Text, nullable=False)
+    encrypted_answers = Column(LargeBinary, nullable=False)
+    physician_certificate_url = Column(String(500), nullable=True)
+
+    completed_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    audit_signature_hash = Column(String(64), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user = relationship("User", backref=sa.orm.backref("annual_medical_profile", uselist=False, cascade="all, delete-orphan"))
+
+
+class CenterDiverMedicalApproval(Base):
+    __tablename__ = "center_diver_medical_approvals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    diving_center_id = Column(Integer, ForeignKey("diving_centers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    approved_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    physician_name = Column(String(255), nullable=True)
+    physician_clinic = Column(String(255), nullable=True)
+    approval_notes = Column(Text, nullable=True)
+
+    approved_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        sa.UniqueConstraint("diving_center_id", "user_id", name="uix_center_user_medical_approval"),
+    )
+
+    diving_center = relationship("DivingCenter", backref=sa.orm.backref("diver_medical_approvals", cascade="all, delete-orphan"))
+    user = relationship("User", foreign_keys=[user_id], backref=sa.orm.backref("center_medical_approvals", cascade="all, delete-orphan"))
+    approved_by_user = relationship("User", foreign_keys=[approved_by_user_id])
+
 
 

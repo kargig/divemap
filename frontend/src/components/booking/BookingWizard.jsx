@@ -22,6 +22,7 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  CheckCircle,
 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -89,10 +90,18 @@ const BookingWizard = () => {
   const [finSize, setFinSize] = useState('None');
   const [bootSize, setBootSize] = useState('None');
   const [shoeSizeEu, setShoeSizeEu] = useState('43');
+  const [rentalRegulator, setRentalRegulator] = useState(false);
+  const [rentalMask, setRentalMask] = useState(false);
+  const [hasOwnLeadWeights, setHasOwnLeadWeights] = useState(false);
+  const [selectedProfileId, setSelectedProfileId] = useState('');
   const [rentalTorch, setRentalTorch] = useState(false);
   const [rentalComputer, setRentalComputer] = useState(false);
   const [leadKg, setLeadKg] = useState('4.0');
   const [weightSystem, setWeightSystem] = useState('INTEGRATED');
+
+  const activeProfile = useMemo(() => {
+    return savedProfiles.find(p => p.id === parseInt(selectedProfileId, 10)) || null;
+  }, [savedProfiles, selectedProfileId]);
 
   // Step 3: Emergency Contact & Insurance
   const [hasInsurance, setHasInsurance] = useState('OWN'); // 'OWN' | 'CENTER'
@@ -113,6 +122,8 @@ const BookingWizard = () => {
   const [medicalModalOpen, setMedicalModalOpen] = useState(false);
   const [dmscAnswers, setDmscAnswers] = useState(null);
   const [medicalStatus, setMedicalStatus] = useState('PENDING'); // PENDING | CLEARED | FLAGGED_CONTACT_CENTER
+  const [useAnnualMedical, setUseAnnualMedical] = useState(false);
+  const [confirmNoMedicalChange, setConfirmNoMedicalChange] = useState(false);
 
   const [waiverModalOpen, setWaiverModalOpen] = useState(false);
   const [waiverSignature, setWaiverSignature] = useState(null);
@@ -297,7 +308,11 @@ const BookingWizard = () => {
         if (data.units && data.units.length > 0) {
           setSelectedUnitId(data.units[0].id);
         }
-        setSavedProfiles(profilesRes.data || []);
+        const profilesList =
+          profilesRes.data && profilesRes.data.length > 0
+            ? profilesRes.data
+            : data.user_gear_profiles || [];
+        setSavedProfiles(profilesList);
         setOrganizations(orgsRes.data || []);
 
         // Auto-fill from authenticated user
@@ -312,8 +327,64 @@ const BookingWizard = () => {
           if (data.user.date_of_birth) setDateOfBirth(data.user.date_of_birth);
         }
 
-        // Auto-fill from gear profile
-        if (data.prefill_gear) {
+        // Auto-fill from gear profile: check saved profiles first
+        const primaryProf = profilesList.find(p => p.is_default) || profilesList[0];
+        if (primaryProf) {
+          setSelectedProfileId(primaryProf.id.toString());
+          if (primaryProf.preferred_tank_id) setSelectedTankId(primaryProf.preferred_tank_id);
+          if (primaryProf.preferred_gas_mix_id)
+            setSelectedGasMixId(primaryProf.preferred_gas_mix_id);
+          if (primaryProf.regulator_fitting) setRegulatorFitting(primaryProf.regulator_fitting);
+          if (primaryProf.weight_system) setWeightSystem(primaryProf.weight_system);
+          if (primaryProf.wetsuit_gender) setWetsuitGender(primaryProf.wetsuit_gender);
+          if (primaryProf.wetsuit_thickness) setWetsuitThickness(primaryProf.wetsuit_thickness);
+          if (primaryProf.bcd_gender) setBcdGender(primaryProf.bcd_gender);
+          else if (primaryProf.wetsuit_gender) setBcdGender(primaryProf.wetsuit_gender);
+          if (primaryProf.fin_type) setFinType(primaryProf.fin_type);
+          if (primaryProf.shoe_size_eu) setShoeSizeEu(primaryProf.shoe_size_eu.toString());
+
+          // Resolve ownership flags
+          const hasOwnBcd = Boolean(primaryProf.has_own_bcd);
+          setBcdSize(hasOwnBcd ? 'None' : primaryProf.bcd_size || 'M');
+
+          const hasOwnSuit = Boolean(primaryProf.has_own_wetsuit);
+          setWetsuitSize(hasOwnSuit ? 'None' : primaryProf.wetsuit_size || 'M');
+
+          const hasOwnReg = Boolean(primaryProf.has_own_regulator);
+          setRentalRegulator(!hasOwnReg);
+
+          const hasOwnMsk =
+            primaryProf.has_own_mask !== undefined ? Boolean(primaryProf.has_own_mask) : true;
+          setRentalMask(!hasOwnMsk);
+
+          const hasOwnF = Boolean(primaryProf.has_own_fins);
+          setFinSize(hasOwnF ? 'None' : 'Standard');
+
+          const hasOwnB = Boolean(primaryProf.has_own_boots);
+          setBootSize(
+            hasOwnB ? 'None' : primaryProf.shoe_size_eu ? primaryProf.shoe_size_eu.toString() : '43'
+          );
+
+          setRentalComputer(!primaryProf.has_own_dive_computer);
+          setRentalTorch(!primaryProf.has_own_torch);
+          setHasOwnLeadWeights(Boolean(primaryProf.has_own_lead_weights));
+
+          if (primaryProf.estimated_lead_kg) setLeadKg(primaryProf.estimated_lead_kg.toString());
+          if (primaryProf.emergency_contact_name)
+            setEmergencyContactName(primaryProf.emergency_contact_name);
+          if (primaryProf.emergency_contact_phone)
+            setEmergencyContactPhone(primaryProf.emergency_contact_phone);
+          if (primaryProf.emergency_contact_relation)
+            setEmergencyContactRelation(primaryProf.emergency_contact_relation);
+          if (primaryProf.insurance_provider) {
+            setInsuranceProvider(primaryProf.insurance_provider);
+            setHasInsurance('OWN');
+          }
+          if (primaryProf.insurance_policy_number)
+            setInsurancePolicyNumber(primaryProf.insurance_policy_number);
+          if (primaryProf.insurance_expiry_date)
+            setInsuranceExpiryDate(primaryProf.insurance_expiry_date);
+        } else if (data.prefill_gear) {
           const pg = data.prefill_gear;
           // Default cylinder is strictly 12L Steel and default valve is DIN
           setSelectedTankId('12');
@@ -344,6 +415,18 @@ const BookingWizard = () => {
           }
           if (pg.insurance_policy_number) setInsurancePolicyNumber(pg.insurance_policy_number);
           if (pg.insurance_expiry_date) setInsuranceExpiryDate(pg.insurance_expiry_date);
+        }
+
+        // Auto-fill from annual medical declaration
+        if (data.user_annual_medical?.has_record && !data.user_annual_medical.is_expired) {
+          const uMed = data.user_annual_medical;
+          if (uMed.status === 'CLEARED' || uMed.center_approved) {
+            setUseAnnualMedical(true);
+            setConfirmNoMedicalChange(true);
+            setMedicalStatus(uMed.status === 'CLEARED' ? 'CLEARED' : 'PHYSICIAN_APPROVED');
+          } else {
+            setMedicalStatus('FLAGGED_CONTACT_CENTER');
+          }
         }
 
         // Auto-fill from saved device cookies if opted in (certifications are still loaded from platform)
@@ -508,6 +591,7 @@ const BookingWizard = () => {
 
   // Handle switching gear profiles
   const handleSelectProfilePreset = profId => {
+    setSelectedProfileId(profId);
     const prof = savedProfiles.find(p => p.id === parseInt(profId, 10));
     if (!prof) return;
 
@@ -516,15 +600,35 @@ const BookingWizard = () => {
     if (prof.regulator_fitting) setRegulatorFitting(prof.regulator_fitting);
     if (prof.weight_system) setWeightSystem(prof.weight_system);
     if (prof.wetsuit_gender) setWetsuitGender(prof.wetsuit_gender);
-    if (prof.wetsuit_size) setWetsuitSize(prof.wetsuit_size);
     if (prof.wetsuit_thickness) setWetsuitThickness(prof.wetsuit_thickness);
     if (prof.bcd_gender) setBcdGender(prof.bcd_gender);
     else if (prof.wetsuit_gender) setBcdGender(prof.wetsuit_gender);
-    if (prof.bcd_size) setBcdSize(prof.bcd_size);
     if (prof.fin_type) setFinType(prof.fin_type);
     if (prof.shoe_size_eu) setShoeSizeEu(prof.shoe_size_eu.toString());
-    if (prof.rental_torch) setRentalTorch(prof.rental_torch);
-    if (prof.rental_dive_computer) setRentalComputer(prof.rental_dive_computer);
+
+    // Resolve gear gap based on ownership flags
+    const hasOwnBcd = Boolean(prof.has_own_bcd);
+    setBcdSize(hasOwnBcd ? 'None' : prof.bcd_size || 'M');
+
+    const hasOwnSuit = Boolean(prof.has_own_wetsuit);
+    setWetsuitSize(hasOwnSuit ? 'None' : prof.wetsuit_size || 'M');
+
+    const hasOwnReg = Boolean(prof.has_own_regulator);
+    setRentalRegulator(!hasOwnReg);
+
+    const hasOwnMsk = prof.has_own_mask !== undefined ? Boolean(prof.has_own_mask) : true;
+    setRentalMask(!hasOwnMsk);
+
+    const hasOwnF = Boolean(prof.has_own_fins);
+    setFinSize(hasOwnF ? 'None' : 'Standard');
+
+    const hasOwnB = Boolean(prof.has_own_boots);
+    setBootSize(hasOwnB ? 'None' : prof.shoe_size_eu ? prof.shoe_size_eu.toString() : '43');
+
+    setRentalComputer(!prof.has_own_dive_computer);
+    setRentalTorch(!prof.has_own_torch);
+    setHasOwnLeadWeights(Boolean(prof.has_own_lead_weights));
+
     if (prof.estimated_lead_kg) setLeadKg(prof.estimated_lead_kg.toString());
     if (prof.emergency_contact_name) setEmergencyContactName(prof.emergency_contact_name);
     if (prof.emergency_contact_phone) setEmergencyContactPhone(prof.emergency_contact_phone);
@@ -541,6 +645,8 @@ const BookingWizard = () => {
   const handleMedicalComplete = (answers, status) => {
     setDmscAnswers(answers);
     setMedicalStatus(status);
+    setUseAnnualMedical(false);
+    setConfirmNoMedicalChange(false);
     if (status === 'CLEARED') {
       toast.success('Medical screening cleared!');
     } else {
@@ -768,6 +874,15 @@ const BookingWizard = () => {
   };
 
   const validateStep4 = () => {
+    if (useAnnualMedical) {
+      if (!confirmNoMedicalChange) {
+        toast.error(
+          'Please confirm that your health condition has not changed since your declaration.'
+        );
+        return false;
+      }
+      return true;
+    }
     if (!dmscAnswers) {
       toast.error('Please complete the medical questionnaire before proceeding.');
       return false;
@@ -839,6 +954,12 @@ const BookingWizard = () => {
               rental_boots: bootSize !== 'None',
               has_own_boots: bootSize === 'None',
               shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
+              rental_regulator: rentalRegulator,
+              has_own_regulator: !rentalRegulator,
+              rental_mask: rentalMask,
+              has_own_mask: !rentalMask,
+              has_own_lead_weights: hasOwnLeadWeights,
+              selected_profile_id: selectedProfileId || undefined,
               rental_torch: rentalTorch,
               rental_dive_computer: rentalComputer,
               has_own_dive_computer: !rentalComputer,
@@ -874,7 +995,9 @@ const BookingWizard = () => {
 
       const paperworkPayload = {
         unitItemId: unitItemId,
-        dmscAnswers: dmscAnswers,
+        dmscAnswers: useAnnualMedical ? undefined : dmscAnswers,
+        useAnnualMedical: Boolean(useAnnualMedical),
+        confirmNoMedicalChange: Boolean(useAnnualMedical && confirmNoMedicalChange),
         signatureName: waiverSignature.signatureName,
         selectedTankId: selectedTankId,
         selectedGasMixId: selectedGasMixId,
@@ -892,6 +1015,12 @@ const BookingWizard = () => {
           rental_boots: bootSize !== 'None',
           has_own_boots: bootSize === 'None',
           shoe_size_eu: parseFloat(shoeSizeEu) || 43.0,
+          rental_regulator: rentalRegulator,
+          has_own_regulator: !rentalRegulator,
+          rental_mask: rentalMask,
+          has_own_mask: !rentalMask,
+          has_own_lead_weights: hasOwnLeadWeights,
+          selected_profile_id: selectedProfileId || undefined,
           rental_torch: rentalTorch,
           rental_dive_computer: rentalComputer,
           has_own_dive_computer: !rentalComputer,
@@ -1607,27 +1736,57 @@ const BookingWizard = () => {
                   <span className='text-xs font-bold text-blue-600 font-mono'>2 of 5</span>
                 </div>
 
-                {/* Profile Preset Switcher */}
-                {savedProfiles.length > 0 && (
-                  <div className='p-3.5 bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
-                    <div className='flex items-center gap-2 text-xs text-blue-900 dark:text-blue-300 font-medium'>
-                      <Layers size={16} className='text-blue-600 shrink-0' />
-                      <span>Apply Saved Gear Setup:</span>
+                {/* Active Gear Configuration Switcher */}
+                {savedProfiles.length > 0 ? (
+                  <div className='p-3.5 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+                    <div>
+                      <div className='flex items-center gap-2 text-xs font-bold text-blue-900 dark:text-blue-200'>
+                        <Layers size={16} className='text-blue-600 shrink-0' />
+                        <span>Active Gear Configuration:</span>
+                        <span className='px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs font-semibold'>
+                          {activeProfile?.name || 'Custom Setup'}
+                          {activeProfile?.is_default ? ' (Primary)' : ''}
+                        </span>
+                      </div>
+                      <p className='text-[11px] text-blue-700 dark:text-blue-300 mt-0.5'>
+                        Equipment you own is automatically excluded from rental fees and marked as
+                        brought by you below.
+                      </p>
                     </div>
-                    <select
-                      onChange={e => handleSelectProfilePreset(e.target.value)}
-                      defaultValue=''
-                      className='px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-300 bg-white text-gray-800'
+                    <div className='flex items-center gap-2 shrink-0'>
+                      <select
+                        value={selectedProfileId}
+                        onChange={e => handleSelectProfilePreset(e.target.value)}
+                        className='px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-sm'
+                      >
+                        {savedProfiles.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.is_default ? '(Primary)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <Link
+                        to='/profile/gear'
+                        target='_blank'
+                        className='p-1.5 text-blue-600 hover:text-blue-800 text-xs font-semibold rounded-lg hover:bg-blue-100/50 flex items-center gap-1 transition-colors'
+                        title='Manage Gear Profiles in a new tab'
+                      >
+                        <ExternalLink size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className='p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 flex items-center justify-between'>
+                    <span>
+                      No saved gear profiles found. Configure your rental requirements below.
+                    </span>
+                    <Link
+                      to='/profile/gear'
+                      target='_blank'
+                      className='text-blue-600 hover:underline font-semibold flex items-center gap-1'
                     >
-                      <option value='' disabled>
-                        Select Configuration...
-                      </option>
-                      {savedProfiles.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} {p.is_default ? '(Primary)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      Create Gear Profile <ExternalLink size={12} />
+                    </Link>
                   </div>
                 )}
 
@@ -1689,9 +1848,10 @@ const BookingWizard = () => {
                       <input
                         type='number'
                         step='0.5'
-                        value={leadKg}
+                        disabled={hasOwnLeadWeights}
+                        value={hasOwnLeadWeights ? '0.0' : leadKg}
                         onChange={e => setLeadKg(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-mono font-bold'
+                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs font-mono font-bold disabled:bg-gray-100 disabled:text-gray-400'
                       />
                     </div>
 
@@ -1706,8 +1866,28 @@ const BookingWizard = () => {
                       >
                         <option value='INTEGRATED'>Integrated BCD Pockets</option>
                         <option value='BELT'>Traditional Weight Belt</option>
+                        <option value='OWN_BELT'>Bringing Own Weight Belt</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className='mt-2.5 flex items-center justify-between'>
+                    <label className='flex items-center gap-2 cursor-pointer text-xs'>
+                      <input
+                        type='checkbox'
+                        checked={hasOwnLeadWeights}
+                        onChange={e => setHasOwnLeadWeights(e.target.checked)}
+                        className='rounded text-blue-600'
+                      />
+                      <span className='font-semibold text-gray-800 dark:text-gray-200'>
+                        Bringing Own Lead Weights (Local Diver — 0 kg needed from dive center)
+                      </span>
+                    </label>
+                    <span className='text-[11px] text-gray-400 italic'>
+                      {!hasOwnLeadWeights
+                        ? `Center will prepare ${leadKg || '4.0'} kg of lead blocks for the boat.`
+                        : 'Center will not pack lead blocks for you.'}
+                    </span>
                   </div>
                 </div>
 
@@ -1723,145 +1903,479 @@ const BookingWizard = () => {
                   </div>
                 )}
 
-                {/* Thermal Protection, BCD & Fins */}
-                <div className='pt-3 border-t border-gray-100 dark:border-gray-700'>
-                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2'>
+                {/* Equipment Configuration Cards (Owned vs Rental) */}
+                <div className='pt-3 border-t border-gray-100 dark:border-gray-700 space-y-3'>
+                  <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-1'>
                     <span className='text-xs font-bold text-gray-500 uppercase tracking-wider'>
-                      Thermal Suit, BCD & Fin Sizing
+                      Equipment Allocation & Sizing
                     </span>
                     <span className='text-[11px] text-gray-400'>
-                      * Men's vs Women's cut ensures correct anatomical chest, waist & torso fit
+                      Items you own are grayed out. Click &quot;Need to rent&quot; on any item to
+                      request center equipment.
                     </span>
                   </div>
 
-                  <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3'>
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Wetsuit Cut *
-                      </label>
-                      <select
-                        value={wetsuitGender}
-                        onChange={e => {
-                          setWetsuitGender(e.target.value);
-                          if (e.target.value === 'WOMEN') setBcdGender('WOMEN');
-                          else if (e.target.value === 'MEN') setBcdGender('MEN');
-                        }}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
-                      >
-                        <option value='MEN'>Men's / Unisex</option>
-                        <option value='WOMEN'>Women's</option>
-                        <option value='OTHER'>Other / Custom</option>
-                      </select>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+                    {/* 1. Wetsuit Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        wetsuitSize === 'None'
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          Wetsuit / Exposure Suit
+                        </span>
+                        {wetsuitSize === 'None' ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own ({wetsuitThickness})
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Rent from Center
+                          </span>
+                        )}
+                      </div>
+
+                      {wetsuitSize === 'None' ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-xs text-gray-500 italic'>
+                            No rental suit needed.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setWetsuitSize(activeProfile?.wetsuit_size || 'M')}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need to rent suit
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Cut
+                              </label>
+                              <select
+                                value={wetsuitGender}
+                                onChange={e => {
+                                  setWetsuitGender(e.target.value);
+                                  if (e.target.value === 'WOMEN') setBcdGender('WOMEN');
+                                  else if (e.target.value === 'MEN') setBcdGender('MEN');
+                                }}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                              >
+                                <option value='MEN'>Men / Unisex</option>
+                                <option value='WOMEN'>Women</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Rental Size *
+                              </label>
+                              <select
+                                value={wetsuitSize}
+                                onChange={e => setWetsuitSize(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                              >
+                                <option value='XS'>XS</option>
+                                <option value='S'>S</option>
+                                <option value='M'>M</option>
+                                <option value='L'>L</option>
+                                <option value='XL'>XL</option>
+                                <option value='XXL'>XXL</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-between pt-1'>
+                            <span className='text-[10px] text-gray-400'>
+                              Thickness: {wetsuitThickness}
+                            </span>
+                            <button
+                              type='button'
+                              onClick={() => setWetsuitSize('None')}
+                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                            >
+                              I&apos;ll bring my own
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Wetsuit Size
-                      </label>
-                      <select
-                        value={wetsuitSize}
-                        onChange={e => setWetsuitSize(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                      >
-                        <option value='None'>None (Own Suit)</option>
-                        <option value='XS'>XS</option>
-                        <option value='S'>S</option>
-                        <option value='M'>M</option>
-                        <option value='L'>L</option>
-                        <option value='XL'>XL</option>
-                        <option value='XXL'>XXL</option>
-                      </select>
+                    {/* 2. BCD Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        bcdSize === 'None'
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          BCD / Buoyancy Wing
+                        </span>
+                        {bcdSize === 'None' ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own BCD
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Rent from Center
+                          </span>
+                        )}
+                      </div>
+
+                      {bcdSize === 'None' ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-xs text-gray-500 italic'>
+                            No rental BCD needed.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setBcdSize(activeProfile?.bcd_size || 'M')}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need to rent BCD
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Cut
+                              </label>
+                              <select
+                                value={bcdGender}
+                                onChange={e => setBcdGender(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                              >
+                                <option value='MEN'>Men / Unisex</option>
+                                <option value='WOMEN'>Women</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Rental Size *
+                              </label>
+                              <select
+                                value={bcdSize}
+                                onChange={e => setBcdSize(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                              >
+                                <option value='XS'>XS</option>
+                                <option value='S'>S</option>
+                                <option value='M'>M</option>
+                                <option value='L'>L</option>
+                                <option value='XL'>XL</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-end pt-1'>
+                            <button
+                              type='button'
+                              onClick={() => setBcdSize('None')}
+                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                            >
+                              I&apos;ll bring my own
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Suit Thickness
-                      </label>
-                      <select
-                        value={wetsuitThickness}
-                        onChange={e => setWetsuitThickness(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                      >
-                        <option value='3mm-shorty'>3mm Shorty</option>
-                        <option value='3mm'>3mm Full</option>
-                        <option value='5mm'>5mm Full</option>
-                        <option value='7mm'>7mm Semi-Dry</option>
-                      </select>
+                    {/* 3. Regulator Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        !rentalRegulator
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          Regulator Set
+                        </span>
+                        {!rentalRegulator ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own ({regulatorFitting})
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Rent from Center
+                          </span>
+                        )}
+                      </div>
+
+                      {!rentalRegulator ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-[11px] text-gray-500'>
+                            Valve matched to {regulatorFitting}.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setRentalRegulator(true)}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need to rent regulator
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <div>
+                            <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                              Fitting
+                            </label>
+                            <select
+                              value={regulatorFitting}
+                              onChange={e => setRegulatorFitting(e.target.value)}
+                              className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                            >
+                              <option value='DIN'>DIN (G 5/8&quot; Threaded)</option>
+                              <option value='YOKE'>Yoke (INT / A-clamp)</option>
+                            </select>
+                          </div>
+                          <div className='flex items-center justify-end pt-1'>
+                            <button
+                              type='button'
+                              onClick={() => setRentalRegulator(false)}
+                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                            >
+                              I&apos;ll bring my own
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        BCD Cut *
-                      </label>
-                      <select
-                        value={bcdGender}
-                        onChange={e => setBcdGender(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
-                      >
-                        <option value='MEN'>Men's / Unisex</option>
-                        <option value='WOMEN'>Women's</option>
-                      </select>
+                    {/* 4. Fins & Booties Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        finSize === 'None' && bootSize === 'None'
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          Fins & Neoprene Boots
+                        </span>
+                        {finSize === 'None' && bootSize === 'None' ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own Fins
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Rent from Center
+                          </span>
+                        )}
+                      </div>
+
+                      {finSize === 'None' && bootSize === 'None' ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-xs text-gray-500 italic'>
+                            No rental fins needed.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setFinSize('M');
+                              setBootSize(shoeSizeEu || '43');
+                            }}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need to rent fins/boots
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Fin Size
+                              </label>
+                              <select
+                                value={finSize}
+                                onChange={e => setFinSize(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                              >
+                                <option value='XS'>XS (EU 35-37)</option>
+                                <option value='S'>S (EU 38-40)</option>
+                                <option value='M'>M (EU 41-43)</option>
+                                <option value='L'>L (EU 44-46)</option>
+                                <option value='XL'>XL (EU 47+)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Booties Size
+                              </label>
+                              <select
+                                value={bootSize}
+                                onChange={e => setBootSize(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white font-medium'
+                              >
+                                <option value='36'>EU 36</option>
+                                <option value='37'>EU 37</option>
+                                <option value='38'>EU 38</option>
+                                <option value='39'>EU 39</option>
+                                <option value='40'>EU 40</option>
+                                <option value='41'>EU 41</option>
+                                <option value='42'>EU 42</option>
+                                <option value='43'>EU 43</option>
+                                <option value='44'>EU 44</option>
+                                <option value='45'>EU 45</option>
+                                <option value='46'>EU 46</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-end pt-1'>
+                            <button
+                              type='button'
+                              onClick={() => {
+                                setFinSize('None');
+                                setBootSize('None');
+                              }}
+                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                            >
+                              I&apos;ll bring my own
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        BCD Size
-                      </label>
-                      <select
-                        value={bcdSize}
-                        onChange={e => setBcdSize(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                      >
-                        <option value='None'>None (Own BCD)</option>
-                        <option value='XXS'>XXS</option>
-                        <option value='XS'>XS</option>
-                        <option value='S'>S</option>
-                        <option value='M'>M</option>
-                        <option value='L'>L</option>
-                        <option value='XL'>XL</option>
-                      </select>
+                    {/* 5. Mask Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        !rentalMask
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          Diving Mask
+                        </span>
+                        {!rentalMask ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own Mask
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Rent from Center
+                          </span>
+                        )}
+                      </div>
+
+                      {!rentalMask ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-xs text-gray-500 italic'>
+                            No rental mask needed.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setRentalMask(true)}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need to rent mask
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-[11px] text-blue-700 dark:text-blue-300 font-medium'>
+                            Rental mask included in crate.
+                          </span>
+                          <button
+                            type='button'
+                            onClick={() => setRentalMask(false)}
+                            className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                          >
+                            I&apos;ll bring my own
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Rental Fins
-                      </label>
-                      <select
-                        value={finSize}
-                        onChange={e => setFinSize(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white font-medium'
-                      >
-                        <option value='None'>None (Own Fins)</option>
-                        <option value='XS'>XS (EU 35-37)</option>
-                        <option value='S'>S (EU 38-40)</option>
-                        <option value='M'>M (EU 41-43)</option>
-                        <option value='L'>L (EU 44-46)</option>
-                        <option value='XL'>XL (EU 47+)</option>
-                      </select>
-                    </div>
+                    {/* 6. Lead Ballast Weights Card */}
+                    <div
+                      className={`p-3.5 rounded-xl border transition-all ${
+                        hasOwnLeadWeights
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
+                          : 'bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-700 shadow-sm ring-1 ring-blue-100 dark:ring-blue-900/30'
+                      }`}
+                    >
+                      <div className='flex items-center justify-between mb-2'>
+                        <span className='font-bold text-xs text-gray-900 dark:text-white'>
+                          Lead Ballast Weights
+                        </span>
+                        {hasOwnLeadWeights ? (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'>
+                            ✓ Bringing Own Lead (0 kg)
+                          </span>
+                        ) : (
+                          <span className='px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'>
+                            Center Supplies {leadKg || '4.0'} kg
+                          </span>
+                        )}
+                      </div>
 
-                    <div>
-                      <label className='block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1'>
-                        Neoprene Booties
-                      </label>
-                      <select
-                        value={bootSize}
-                        onChange={e => setBootSize(e.target.value)}
-                        className='w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white'
-                      >
-                        <option value='None'>None (Own Booties)</option>
-                        <option value='36'>EU 36</option>
-                        <option value='37'>EU 37</option>
-                        <option value='38'>EU 38</option>
-                        <option value='39'>EU 39</option>
-                        <option value='40'>EU 40</option>
-                        <option value='41'>EU 41</option>
-                        <option value='42'>EU 42</option>
-                        <option value='43'>EU 43</option>
-                        <option value='44'>EU 44</option>
-                        <option value='45'>EU 45</option>
-                        <option value='46'>EU 46</option>
-                      </select>
+                      {hasOwnLeadWeights ? (
+                        <div className='flex items-center justify-between pt-1'>
+                          <span className='text-[11px] text-gray-500'>0 kg packed by center.</span>
+                          <button
+                            type='button'
+                            onClick={() => setHasOwnLeadWeights(false)}
+                            className='text-xs font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 hover:underline'
+                          >
+                            + Need center lead
+                          </button>
+                        </div>
+                      ) : (
+                        <div className='space-y-2 pt-1'>
+                          <div className='grid grid-cols-2 gap-2'>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                Target (kg)
+                              </label>
+                              <input
+                                type='number'
+                                step='0.5'
+                                value={leadKg}
+                                onChange={e => setLeadKg(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs font-mono font-bold'
+                              />
+                            </div>
+                            <div>
+                              <label className='block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-0.5'>
+                                System
+                              </label>
+                              <select
+                                value={weightSystem}
+                                onChange={e => setWeightSystem(e.target.value)}
+                                className='w-full px-2 py-1 border border-gray-300 rounded-md text-xs bg-white'
+                              >
+                                <option value='INTEGRATED'>BCD Pockets</option>
+                                <option value='BELT'>Weight Belt</option>
+                                <option value='OWN_BELT'>Own Belt</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className='flex items-center justify-end pt-1'>
+                            <button
+                              type='button'
+                              onClick={() => setHasOwnLeadWeights(true)}
+                              className='text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+                            >
+                              I&apos;ll bring my own lead
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1902,6 +2416,110 @@ const BookingWizard = () => {
                         Recommended for caverns, swim-throughs & twilight dives
                       </span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Equipment Gap Breakdown & Valve Guidance */}
+                <div className='p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-750 space-y-3.5'>
+                  <div className='flex items-center justify-between'>
+                    <span className='font-bold text-xs uppercase tracking-wider text-gray-800 dark:text-gray-200 flex items-center gap-1.5'>
+                      <Sparkles size={14} className='text-blue-600' />
+                      Equipment Gap Breakdown
+                    </span>
+                    <span className='text-[10px] text-gray-400'>
+                      Live reconciliation of what you bring vs what the center packs
+                    </span>
+                  </div>
+
+                  <div className='grid grid-cols-1 md:grid-cols-2 gap-3 text-xs'>
+                    {/* 🟢 Diver Owned */}
+                    <div className='p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 space-y-2'>
+                      <div className='flex items-center gap-1.5 font-bold text-emerald-900 dark:text-emerald-200 text-xs'>
+                        <CheckCircle size={14} className='text-emerald-600' />
+                        <span>Bringing Your Own Gear (Diver Provided)</span>
+                      </div>
+                      <ul className='space-y-1.5 text-[11px] text-emerald-800 dark:text-emerald-300 pl-4 list-disc'>
+                        {!rentalMask && <li>Own Mask</li>}
+                        {wetsuitSize === 'None' ? (
+                          <li>Own Wetsuit / Exposure Suit ({wetsuitThickness})</li>
+                        ) : null}
+                        {bcdSize === 'None' ? <li>Own BCD / Wing</li> : null}
+                        {!rentalRegulator ? (
+                          <li>
+                            Own Regulator (<strong>{regulatorFitting}</strong> connection)
+                          </li>
+                        ) : null}
+                        {finSize === 'None' ? (
+                          <li>Own Fins ({finType === 'OPEN_HEEL' ? 'Open-Heel' : 'Full-Foot'})</li>
+                        ) : null}
+                        {bootSize === 'None' ? <li>Own Booties</li> : null}
+                        {!rentalComputer ? <li>Own Personal Dive Computer</li> : null}
+                        {!rentalTorch ? <li>Own Primary Dive Torch</li> : null}
+                        {hasOwnLeadWeights ? (
+                          <li>Own Lead Ballast (0 kg needed from center)</li>
+                        ) : null}
+                      </ul>
+                    </div>
+
+                    {/* 🔵 Center Rental */}
+                    <div className='p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/60 space-y-2'>
+                      <div className='flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-200 text-xs'>
+                        <Compass size={14} className='text-blue-600' />
+                        <span>Rental Gear Required (Center Provided)</span>
+                      </div>
+                      <ul className='space-y-1.5 text-[11px] text-blue-800 dark:text-blue-300 pl-4 list-disc'>
+                        {rentalMask ? <li>Rental Mask</li> : null}
+                        {wetsuitSize !== 'None' ? (
+                          <li>
+                            Rental Wetsuit (Size {wetsuitSize}, {wetsuitThickness})
+                          </li>
+                        ) : null}
+                        {bcdSize !== 'None' ? <li>Rental BCD (Size {bcdSize})</li> : null}
+                        {rentalRegulator ? (
+                          <li>Rental Regulator Set (Fitted with {regulatorFitting})</li>
+                        ) : null}
+                        {finSize !== 'None' ? <li>Rental Fins ({finSize})</li> : null}
+                        {bootSize !== 'None' ? <li>Rental Booties (EU {bootSize})</li> : null}
+                        {rentalComputer ? <li>Rental Wrist Dive Computer</li> : null}
+                        {rentalTorch ? <li>Rental Primary Dive Torch</li> : null}
+                        {!hasOwnLeadWeights ? (
+                          <li>
+                            Center Lead Ballast: {leadKg || '4.0'} kg (
+                            {weightSystem === 'BELT'
+                              ? 'Traditional Weight Belt'
+                              : weightSystem === 'OWN_BELT'
+                                ? 'Loaded into Diver Belt'
+                                : 'BCD Pockets'}
+                            )
+                          </li>
+                        ) : null}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Cylinder Valve Setting Box */}
+                  <div className='p-3 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs'>
+                    <div className='flex items-center gap-2'>
+                      <span className='font-bold text-gray-900 dark:text-white'>
+                        Cylinder Valve for Boat:
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded font-mono font-bold text-xs ${
+                          regulatorFitting === 'DIN'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200'
+                        }`}
+                      >
+                        {regulatorFitting === 'DIN'
+                          ? 'DIN (G 5/8" Threaded 232/300 Bar)'
+                          : 'YOKE (INT / A-clamp)'}
+                      </span>
+                    </div>
+                    <span className='text-[11px] text-gray-500 italic'>
+                      {!rentalRegulator
+                        ? `Cylinder valve locked to your personal regulator fitting (${regulatorFitting}).`
+                        : `Center staff will supply a matching ${regulatorFitting} regulator & cylinder.`}
+                    </span>
                   </div>
                 </div>
 
@@ -2178,6 +2796,98 @@ const BookingWizard = () => {
                   <span className='text-xs font-bold text-blue-600 font-mono'>4 of 5</span>
                 </div>
 
+                {contextData?.user_annual_medical?.has_record &&
+                  !contextData.user_annual_medical.is_expired && (
+                    <div className='p-5 bg-blue-50/60 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3.5'>
+                      <div className='flex items-start justify-between gap-3'>
+                        <div>
+                          <div className='flex items-center gap-2'>
+                            <span className='font-bold text-sm text-blue-950 dark:text-blue-100 flex items-center gap-1.5'>
+                              <CheckCircle size={16} className='text-emerald-600' />
+                              Annual Medical Declaration on File (DMSC 2020)
+                            </span>
+                            <span className='px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200'>
+                              Valid for {contextData.user_annual_medical.days_remaining} days
+                            </span>
+                          </div>
+                          <p className='text-xs text-blue-800 dark:text-blue-300 mt-1'>
+                            Completed on {formatDate(contextData.user_annual_medical.completed_at)}.
+                            Medical declarations are valid for 1 year across all dive centers on
+                            Divemap, provided your health status has not changed.
+                          </p>
+                        </div>
+                      </div>
+
+                      {contextData.user_annual_medical.status === 'CLEARED' ||
+                      contextData.user_annual_medical.center_approved ? (
+                        <div className='space-y-2 pt-1 border-t border-blue-100 dark:border-blue-900/50'>
+                          <label className='flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 cursor-pointer shadow-xs'>
+                            <input
+                              type='radio'
+                              name='annualMedicalChoice'
+                              checked={useAnnualMedical}
+                              onChange={() => {
+                                setUseAnnualMedical(true);
+                                setConfirmNoMedicalChange(true);
+                                setMedicalStatus(
+                                  contextData.user_annual_medical.status === 'CLEARED'
+                                    ? 'CLEARED'
+                                    : 'PHYSICIAN_APPROVED'
+                                );
+                              }}
+                              className='mt-1 text-blue-600'
+                            />
+                            <div>
+                              <span className='font-bold text-xs text-gray-900 dark:text-white block'>
+                                No Change in Medical Condition (Fast-Track)
+                              </span>
+                              <span className='text-[11px] text-gray-600 dark:text-gray-300 block leading-relaxed'>
+                                I affirmatively certify that my physical health and medical
+                                condition have not changed since my declaration on{' '}
+                                {formatDate(contextData.user_annual_medical.completed_at)}.
+                              </span>
+                            </div>
+                          </label>
+
+                          <label className='flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 cursor-pointer'>
+                            <input
+                              type='radio'
+                              name='annualMedicalChoice'
+                              checked={!useAnnualMedical}
+                              onChange={() => {
+                                setUseAnnualMedical(false);
+                                setConfirmNoMedicalChange(false);
+                                setMedicalStatus('PENDING');
+                                setMedicalModalOpen(true);
+                              }}
+                              className='mt-1 text-blue-600'
+                            />
+                            <div>
+                              <span className='font-bold text-xs text-gray-900 dark:text-white block'>
+                                My Health Status Has Changed
+                              </span>
+                              <span className='text-[11px] text-gray-500 dark:text-gray-400 block leading-relaxed'>
+                                I have developed a new condition, had surgery, or started new
+                                prescription medication. I need to re-answer the questionnaire.
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className='p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs space-y-1 text-amber-900 dark:text-amber-200'>
+                          <span className='font-bold block'>
+                            ⚠️ Screening Flagged — Center Manager Review Required
+                          </span>
+                          <span className='text-[11px] block text-amber-800 dark:text-amber-300 leading-relaxed'>
+                            Your annual questionnaire noted conditions requiring physician
+                            clearance. Each diving center independently reviews your physician
+                            approval. Your reservation will be held on Medical Review status.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 <div className='p-5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                   <div>
                     <h4 className='font-bold text-sm text-gray-900 dark:text-white'>
@@ -2395,7 +3105,7 @@ const BookingWizard = () => {
                   <button
                     type='button'
                     onClick={handleConfirmBooking}
-                    disabled={submitting || !waiverSignature || !dmscAnswers}
+                    disabled={submitting || !waiverSignature || (!useAnnualMedical && !dmscAnswers)}
                     className='px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {submitting ? (
@@ -2723,7 +3433,7 @@ const BookingWizard = () => {
                   <button
                     type='button'
                     onClick={handleConfirmBooking}
-                    disabled={submitting || !waiverSignature || !dmscAnswers}
+                    disabled={submitting || !waiverSignature || (!useAnnualMedical && !dmscAnswers)}
                     className='w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {submitting ? (

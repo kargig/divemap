@@ -120,6 +120,29 @@ def compute_participant_octo_pricing(
                 "price": int(round(p * 100)),
                 "formatted": f"€{p:.2f}",
             })
+        if (eq.get("rental_regulator") or (eq.get("has_own_regulator") is False and "rental_regulator" in eq and eq.get("rental_regulator"))) and items_pricing.get("regulator"):
+            p = float(items_pricing["regulator"])
+            fitting_label = f" ({eq.get('regulator_fitting', 'DIN')})" if eq.get("regulator_fitting") else ""
+            core_rental_items.append({
+                "id": "rental_regulator",
+                "title": f"Rental Regulator Set{fitting_label}",
+                "category": "CORE_RENTAL",
+                "quantity": 1,
+                "amount": p,
+                "price": int(round(p * 100)),
+                "formatted": f"€{p:.2f}",
+            })
+        if eq.get("rental_mask") and items_pricing.get("mask"):
+            p = float(items_pricing["mask"])
+            core_rental_items.append({
+                "id": "rental_mask",
+                "title": "Rental Mask",
+                "category": "CORE_RENTAL",
+                "quantity": 1,
+                "amount": p,
+                "price": int(round(p * 100)),
+                "formatted": f"€{p:.2f}",
+            })
         if (eq.get("rental_fins") or (eq.get("fin_size") and eq.get("fin_size") != "None")) and items_pricing.get("fins_boots"):
             p = float(items_pricing["fins_boots"])
             core_rental_items.append({

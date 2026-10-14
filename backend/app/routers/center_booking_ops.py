@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 import uuid
 import logging
 import re
@@ -22,6 +22,10 @@ from app.models import (
     DivingCenterBookingSettings,
     TripBriefing,
     ParsedDiveTrip,
+    UserMedicalProfile,
+    CenterDiverMedicalApproval,
+    DivingCenterManager,
+    OwnershipStatus,
 )
 from app.routers.diving_centers import is_center_manager
 from app.services.manifest_export_service import ManifestExportService
@@ -29,10 +33,39 @@ from app.services.booking_medical_encryption_service import BookingMedicalEncryp
 from app.services.nitrox_service import check_nitrox_eligibility
 from app.services.briefing_service import BriefingService
 from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.medical_audit_service import log_medical_access
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/centers/{center_id}/booking-ops", tags=["Center Booking Operations"])
+
+def is_bona_fide_center_staff(db: Session, center_id: int, user: User) -> bool:
+    """
+    Verifies that the user is an authorized center owner, registered center manager,
+    or platform administrator. All access attempts (by managers and admins alike)
+    are strictly recorded in the immutable MedicalAccessAuditLog.
+    """
+    if getattr(user, "is_admin", False):
+        return True
+
+    center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+    if not center:
+        return False
+
+    if center.owner_id == user.id and center.ownership_status == OwnershipStatus.approved:
+        return True
+
+    manager = db.query(DivingCenterManager).filter(
+        DivingCenterManager.diving_center_id == center_id,
+        DivingCenterManager.user_id == user.id
+    ).first()
+
+    return manager is not None
+
+def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
 
 DMSC_QUESTION_TEXTS = {
     "q1": "1. Problems with lungs/breathing, heart, or blood affecting normal performance.",
@@ -241,7 +274,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
             eq = item.equipment_sizing or {}
             lead = float(eq.get("estimated_lead_kg") or 0.0)
-            total_lead_kg += lead
+            has_own_lead = bool(eq.get("has_own_lead_weights", False))
+            if not has_own_lead:
+                total_lead_kg += lead
 
             # Valve fitting analysis
             fitting = str(eq.get("regulator_fitting", "DIN")).upper()
@@ -251,13 +286,16 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 din_count += 1
 
             # Weight distribution analysis
-            if eq.get("weight_system") == "BELT" or not eq.get("bcd_size"):
+            wsys = eq.get("weight_system", "INTEGRATED")
+            if wsys == "NEEDS_BELT" or wsys == "BELT":
                 belts_needed += 1
+            elif wsys == "OWN_BELT":
+                pass  # diver has their own belt
             else:
                 integrated_divers += 1
 
             # Ballast block allocation (2kg main blocks, 1kg standard blocks, 0.5kg precision trim blocks):
-            if lead > 0:
+            if lead > 0 and not has_own_lead:
                 if (lead % 1.0) >= 0.4:
                     blocks_05kg += 1
 
@@ -741,6 +779,8 @@ def get_participant_details(
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
+    if not item.booking or item.booking.diving_center_id != center_id:
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
 
     slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip_id).first()
     if not slot:
@@ -831,6 +871,8 @@ def update_participant(
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
+    if not item.booking or item.booking.diving_center_id != center_id:
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
 
     if req.diver_full_name is not None:
         item.diver_full_name = req.diver_full_name
@@ -872,34 +914,95 @@ def get_participant_medical_review(
     center_id: int,
     trip_id: str,
     participant_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Allows authorized center managers to inspect flagged medical screening conditions."""
-    if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+    if not is_bona_fide_center_staff(db, center_id, current_user):
+        log_medical_access(
+            db=db,
+            request=request,
+            action="MEDICAL_REVIEW_VIEW",
+            access_status="DENIED",
+            reason="Access denied: Not authorized manager of this diving center",
+            accessor_user=current_user,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only registered managers of this diving center can review departure medical files."
+        )
 
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
+    if not item or not item.booking or item.booking.diving_center_id != center_id:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="MEDICAL_REVIEW_VIEW",
+            access_status="DENIED",
+            reason="Participant not found for this diving center",
+            accessor_user=current_user,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+
+    if item.booking.availability_id != trip_id:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="MEDICAL_REVIEW_VIEW",
+            access_status="DENIED",
+            reason="Participant is not registered for this trip departure",
+            accessor_user=current_user,
+            target_diver_user_id=item.user_id,
+            target_diver_name=item.diver_full_name,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
     ).first()
-    if not med:
-        return {
-            "participant_id": participant_id,
-            "diver_full_name": item.diver_full_name,
-            "status": "CLEARED" if item.booking.status == "CONFIRMED" else "PENDING",
-            "all_questions": [
-                {"id": f"q{i}", "number": i, "text": DMSC_QUESTION_TEXTS.get(f"q{i}", f"Question {i}"), "answered_yes": False}
-                for i in range(1, 11)
-            ],
-            "flagged_questions": [],
-            "clearance_audit": None,
-            "modification_audit": None,
-            "modification_history": [],
-        }
+    if not med or not med.encrypted_answers:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="MEDICAL_REVIEW_VIEW",
+            access_status="DENIED",
+            reason="No medical questionnaire has been submitted by this participant for this trip",
+            accessor_user=current_user,
+            target_diver_user_id=item.user_id,
+            target_diver_name=item.diver_full_name,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail="No medical questionnaire has been submitted by this participant for this trip."
+        )
+
+    # Log successful medical inspection
+    log_medical_access(
+        db=db,
+        request=request,
+        action="MEDICAL_REVIEW_VIEW",
+        access_status="SUCCESS",
+        reason=f"Manager {current_user.username} inspected pre-dive medical screening for {item.diver_full_name}",
+        accessor_user=current_user,
+        target_diver_user_id=item.user_id,
+        target_diver_name=item.diver_full_name,
+        participant_id=participant_id,
+        diving_center_id=center_id,
+        trip_id=trip_id,
+    )
 
     decrypted = {}
     if med.encrypted_answers and med.encrypted_dek:
@@ -942,6 +1045,30 @@ def get_participant_medical_review(
             "modification_reason": med.modification_reason,
         }
 
+    center_approval_info = None
+    physician_cert_url = None
+    if item.user_id:
+        center_apps = db.query(CenterDiverMedicalApproval).filter(
+            CenterDiverMedicalApproval.diving_center_id == center_id,
+            CenterDiverMedicalApproval.user_id == item.user_id,
+        ).all()
+        active_ca = [ca for ca in center_apps if ca.expires_at and ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)]
+        if active_ca:
+            center_app = active_ca[0]
+            center_approval_info = {
+                "id": center_app.id,
+                "approved_by_name": center_app.approved_by_user.username if center_app.approved_by_user else "Manager",
+                "physician_name": center_app.physician_name,
+                "physician_clinic": center_app.physician_clinic,
+                "approval_notes": center_app.approval_notes,
+                "approved_at": ensure_aware(center_app.approved_at).isoformat() if center_app.approved_at else None,
+                "expires_at": ensure_aware(center_app.expires_at).isoformat() if center_app.expires_at else None,
+            }
+
+        user_med_prof = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == item.user_id).first()
+        if user_med_prof:
+            physician_cert_url = user_med_prof.physician_certificate_url
+
     return {
         "participant_id": participant_id,
         "diver_full_name": item.diver_full_name,
@@ -951,6 +1078,8 @@ def get_participant_medical_review(
         "clearance_audit": audit_info,
         "modification_audit": modification_audit,
         "modification_history": med.modification_history or [],
+        "center_approval": center_approval_info,
+        "physician_certificate_url": physician_cert_url,
     }
 
 
@@ -968,8 +1097,11 @@ def update_participant_medical_answers(
     Re-encrypts answers with master encryption keys and records an immutable audit log
     capturing who modified the record, at what timestamp, and the clinical/operational reason.
     """
-    if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+    if not is_bona_fide_center_staff(db, center_id, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only registered managers of this diving center can update medical records."
+        )
 
     if not req.reason or not req.reason.strip():
         raise HTTPException(
@@ -980,6 +1112,10 @@ def update_participant_medical_answers(
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
+    if not item.booking or item.booking.diving_center_id != center_id:
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+    if item.booking.availability_id != trip_id:
+        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -1100,8 +1236,11 @@ def clear_participant_medical(
     Formally clears a diver's medical condition prior to boarding upon verification of signed physician clearance.
     Creates an immutable audit record documenting which staff member cleared the diver and on what date.
     """
-    if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+    if not is_bona_fide_center_staff(db, center_id, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only registered managers of this diving center can clear medical status."
+        )
 
     if not req.confirmed_physical_form_inspected:
         raise HTTPException(
@@ -1115,6 +1254,10 @@ def clear_participant_medical(
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Participant not found")
+    if not item.booking or item.booking.diving_center_id != center_id:
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+    if item.booking.availability_id != trip_id:
+        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
@@ -1147,11 +1290,104 @@ def clear_participant_medical(
     }
 
 
+class GrantCenterAnnualApprovalRequest(BaseModel):
+    physician_name: str
+    physician_clinic: Optional[str] = None
+    approval_notes: Optional[str] = None
+    validity_days: int = 365
+
+
+@router.post("/trips/{trip_id}/participants/{participant_id}/grant-annual-approval")
+def grant_annual_center_medical_approval(
+    center_id: int,
+    trip_id: str,
+    participant_id: str,
+    req: GrantCenterAnnualApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Grants a 1-year medical approval specifically for this diving center.
+    Saves an annual center approval record and clears the participant on this departure.
+    """
+    if not is_bona_fide_center_staff(db, center_id, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only registered managers of this diving center can grant annual medical approvals."
+        )
+
+    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Participant not found")
+    if not item.booking or item.booking.diving_center_id != center_id:
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+    if item.booking.availability_id != trip_id:
+        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+
+    if not item.user_id:
+        raise HTTPException(status_code=400, detail="Participant must have a linked user account to store annual center approval")
+
+    now_dt = datetime.now(timezone.utc)
+    approval = db.query(CenterDiverMedicalApproval).filter(
+        CenterDiverMedicalApproval.diving_center_id == center_id,
+        CenterDiverMedicalApproval.user_id == item.user_id
+    ).first()
+
+    if not approval:
+        approval = CenterDiverMedicalApproval(
+            diving_center_id=center_id,
+            user_id=item.user_id,
+            approved_by_user_id=current_user.id,
+            physician_name=req.physician_name.strip(),
+            physician_clinic=req.physician_clinic.strip() if req.physician_clinic else None,
+            approval_notes=req.approval_notes,
+            approved_at=now_dt,
+            expires_at=now_dt + timedelta(days=req.validity_days),
+        )
+        db.add(approval)
+    else:
+        approval.approved_by_user_id = current_user.id
+        approval.physician_name = req.physician_name.strip()
+        approval.physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
+        approval.approval_notes = req.approval_notes
+        approval.approved_at = now_dt
+        approval.expires_at = now_dt + timedelta(days=req.validity_days)
+
+    med = db.query(DiverMedicalRecord).filter(
+        DiverMedicalRecord.booking_unit_item_id == participant_id
+    ).first()
+    if med:
+        med.status = "PHYSICIAN_APPROVED"
+        med.cleared_by_user_id = current_user.id
+        med.cleared_at = now_dt
+        med.cleared_physician_name = req.physician_name.strip()
+        med.cleared_physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
+        med.cleared_reason = req.approval_notes or f"Granted 1-year center medical approval by {current_user.username}"
+
+    db.commit()
+    db.refresh(approval)
+
+    logger.info(
+        f"[ANNUAL_CENTER_MEDICAL_APPROVAL] Diver '{item.diver_full_name}' (user_id={item.user_id}) granted 1-year clearance "
+        f"for center_id={center_id} by '{current_user.username}'. Expires: {approval.expires_at}."
+    )
+
+    return {
+        "success": True,
+        "diving_center_id": center_id,
+        "user_id": item.user_id,
+        "status": "PHYSICIAN_APPROVED",
+        "expires_at": approval.expires_at.isoformat(),
+        "physician_name": approval.physician_name,
+    }
+
+
 @router.get("/trips/{trip_id}/participants/{participant_id}/emergency-dossier")
 def get_emergency_dossier_pdf(
     center_id: int,
     trip_id: str,
     participant_id: str,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -1159,8 +1395,22 @@ def get_emergency_dossier_pdf(
     Generates a formal court-ready Emergency Incident Dossier PDF containing full decrypted medical history,
     physician clearance audit, and signed liability waiver for Coast Guard and Hyperbaric Doctors.
     """
-    if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+    if not is_bona_fide_center_staff(db, center_id, current_user):
+        log_medical_access(
+            db=db,
+            request=request,
+            action="EMERGENCY_DOSSIER_VIEW",
+            access_status="DENIED",
+            reason="Access denied: Not registered manager of this diving center",
+            accessor_user=current_user,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Only registered managers of this diving center can export incident dossiers."
+        )
 
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
     if not center:
@@ -1171,12 +1421,53 @@ def get_emergency_dossier_pdf(
         raise HTTPException(status_code=404, detail="Trip availability slot not found")
 
     item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="Participant not found")
+    if not item or not item.booking or item.booking.diving_center_id != center_id:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="EMERGENCY_DOSSIER_VIEW",
+            access_status="DENIED",
+            reason="Participant not found for this diving center",
+            accessor_user=current_user,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+    if item.booking.availability_id != trip_id:
+        log_medical_access(
+            db=db,
+            request=request,
+            action="EMERGENCY_DOSSIER_VIEW",
+            access_status="DENIED",
+            reason="Participant is not registered for this trip departure",
+            accessor_user=current_user,
+            target_diver_user_id=item.user_id,
+            target_diver_name=item.diver_full_name,
+            participant_id=participant_id,
+            diving_center_id=center_id,
+            trip_id=trip_id,
+        )
+        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
 
     med = db.query(DiverMedicalRecord).filter(
         DiverMedicalRecord.booking_unit_item_id == participant_id
     ).first()
+
+    # Log successful emergency dossier generation
+    log_medical_access(
+        db=db,
+        request=request,
+        action="EMERGENCY_DOSSIER_VIEW",
+        access_status="SUCCESS",
+        reason=f"Emergency Incident Dossier exported by {current_user.username} for diver {item.diver_full_name}",
+        accessor_user=current_user,
+        target_diver_user_id=item.user_id,
+        target_diver_name=item.diver_full_name,
+        participant_id=participant_id,
+        diving_center_id=center_id,
+        trip_id=trip_id,
+    )
 
     # Decrypt medical answers
     decrypted_answers = {}

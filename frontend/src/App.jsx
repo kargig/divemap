@@ -82,6 +82,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
 const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage'));
+const DiverMedicalProfilePage = lazy(() => import('./pages/DiverMedicalProfilePage'));
 const UserBookingsPage = lazy(() => import('./pages/UserBookingsPage'));
 const DivingCenterManagePage = lazy(() => import('./pages/DivingCenterManagePage'));
 const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
@@ -316,6 +317,14 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <DiverGearProfilesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/medical'
+              element={
+                <ProtectedRoute>
+                  <DiverMedicalProfilePage />
                 </ProtectedRoute>
               }
             />

@@ -29,7 +29,7 @@
 
 **Files:**
 - Modify: `backend/app/models.py`
-- Create: Sequential migration file (e.g. `backend/migrations/versions/0097_add_safety_and_group_claim_fields.py`)
+- Create: Sequential migration file (e.g. `backend/migrations/versions/0105_add_safety_and_group_claim_fields.py`)
 - Test: `backend/tests/test_safety_and_group_models.py`
 
 **Interfaces:**
@@ -67,7 +67,7 @@ def test_safety_and_claim_fields(db, test_booking_unit_item):
 
 - [ ] **Step 3: Create sequential migration file**
 
-Create `backend/migrations/versions/0097_add_safety_and_group_claim_fields.py`.
+Create `backend/migrations/versions/0105_add_safety_and_group_claim_fields.py` (with `down_revision = '0104'`).
 
 - [ ] **Step 4: Run test in isolated Docker**
 

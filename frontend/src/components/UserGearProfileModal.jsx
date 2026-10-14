@@ -26,6 +26,16 @@ const PRESETS = [
     preferred_tank_id: 'al80',
     preferred_gas_mix_id: 'air',
     estimated_lead_kg: 2.0,
+    has_own_mask: true,
+    has_own_wetsuit: true,
+    has_own_regulator: false,
+    has_own_bcd: false,
+    has_own_fins: true,
+    has_own_boots: false,
+    has_own_torch: false,
+    has_own_lead_weights: false,
+    has_own_dive_computer: true,
+    has_own_smb: true,
   },
   {
     name: 'Cold Water / Semi-Dry (7mm)',
@@ -36,6 +46,16 @@ const PRESETS = [
     preferred_tank_id: '15',
     preferred_gas_mix_id: 'air',
     estimated_lead_kg: 8.0,
+    has_own_mask: true,
+    has_own_wetsuit: true,
+    has_own_regulator: true,
+    has_own_bcd: true,
+    has_own_fins: true,
+    has_own_boots: true,
+    has_own_torch: true,
+    has_own_lead_weights: false,
+    has_own_dive_computer: true,
+    has_own_smb: true,
   },
   {
     name: 'Technical Diving (Twins)',
@@ -46,6 +66,14 @@ const PRESETS = [
     preferred_tank_id: '24', // Double 12s
     preferred_gas_mix_id: 'ean32',
     estimated_lead_kg: 6.0,
+    has_own_mask: true,
+    has_own_wetsuit: true,
+    has_own_regulator: true,
+    has_own_bcd: true,
+    has_own_fins: true,
+    has_own_boots: true,
+    has_own_torch: true,
+    has_own_lead_weights: false,
     has_own_dive_computer: true,
     has_own_smb: true,
   },
@@ -90,6 +118,14 @@ const UserGearProfileModal = ({
   const [regulatorFitting, setRegulatorFitting] = useState('DIN');
   const [preferredTankId, setPreferredTankId] = useState('12');
   const [preferredGasMixId, setPreferredGasMixId] = useState('air');
+  const [hasOwnMask, setHasOwnMask] = useState(true);
+  const [hasOwnWetsuit, setHasOwnWetsuit] = useState(false);
+  const [hasOwnRegulator, setHasOwnRegulator] = useState(false);
+  const [hasOwnBcd, setHasOwnBcd] = useState(false);
+  const [hasOwnFins, setHasOwnFins] = useState(false);
+  const [hasOwnBoots, setHasOwnBoots] = useState(false);
+  const [hasOwnTorch, setHasOwnTorch] = useState(false);
+  const [hasOwnLeadWeights, setHasOwnLeadWeights] = useState(false);
   const [hasOwnComputer, setHasOwnComputer] = useState(false);
   const [hasOwnSmb, setHasOwnSmb] = useState(false);
 
@@ -228,6 +264,14 @@ const UserGearProfileModal = ({
         setRegulatorFitting(profile.regulator_fitting || 'DIN');
         setPreferredTankId(profile.preferred_tank_id || '12');
         setPreferredGasMixId(profile.preferred_gas_mix_id || 'air');
+        setHasOwnMask(profile.has_own_mask !== undefined ? Boolean(profile.has_own_mask) : true);
+        setHasOwnWetsuit(Boolean(profile.has_own_wetsuit));
+        setHasOwnRegulator(Boolean(profile.has_own_regulator));
+        setHasOwnBcd(Boolean(profile.has_own_bcd));
+        setHasOwnFins(Boolean(profile.has_own_fins));
+        setHasOwnBoots(Boolean(profile.has_own_boots));
+        setHasOwnTorch(Boolean(profile.has_own_torch));
+        setHasOwnLeadWeights(Boolean(profile.has_own_lead_weights));
         setHasOwnComputer(Boolean(profile.has_own_dive_computer));
         setHasOwnSmb(Boolean(profile.has_own_smb));
 
@@ -260,6 +304,14 @@ const UserGearProfileModal = ({
         setRegulatorFitting('DIN');
         setPreferredTankId('12');
         setPreferredGasMixId('air');
+        setHasOwnMask(true);
+        setHasOwnWetsuit(false);
+        setHasOwnRegulator(false);
+        setHasOwnBcd(false);
+        setHasOwnFins(false);
+        setHasOwnBoots(false);
+        setHasOwnTorch(false);
+        setHasOwnLeadWeights(false);
         setHasOwnComputer(false);
         setHasOwnSmb(false);
       }
@@ -278,6 +330,15 @@ const UserGearProfileModal = ({
       setLeadKg(preset.estimated_lead_kg.toString());
       setLeadLbs((Math.round(preset.estimated_lead_kg * 2.20462 * 10) / 10).toString());
     }
+    if (preset.has_own_mask !== undefined) setHasOwnMask(preset.has_own_mask);
+    if (preset.has_own_wetsuit !== undefined) setHasOwnWetsuit(preset.has_own_wetsuit);
+    if (preset.has_own_regulator !== undefined) setHasOwnRegulator(preset.has_own_regulator);
+    if (preset.has_own_bcd !== undefined) setHasOwnBcd(preset.has_own_bcd);
+    if (preset.has_own_fins !== undefined) setHasOwnFins(preset.has_own_fins);
+    if (preset.has_own_boots !== undefined) setHasOwnBoots(preset.has_own_boots);
+    if (preset.has_own_torch !== undefined) setHasOwnTorch(preset.has_own_torch);
+    if (preset.has_own_lead_weights !== undefined)
+      setHasOwnLeadWeights(preset.has_own_lead_weights);
     if (preset.has_own_dive_computer !== undefined) setHasOwnComputer(preset.has_own_dive_computer);
     if (preset.has_own_smb !== undefined) setHasOwnSmb(preset.has_own_smb);
   };
@@ -364,10 +425,15 @@ const UserGearProfileModal = ({
         wetsuit_thickness: wetsuitThickness,
         bcd_size: bcdSize,
         fin_type: finType,
+        has_own_mask: hasOwnMask,
+        has_own_wetsuit: hasOwnWetsuit,
+        has_own_regulator: hasOwnRegulator,
         regulator_fitting: regulatorFitting,
-        preferred_tank_id: preferredTankId,
-        preferred_gas_mix_id: preferredGasMixId,
-        estimated_lead_kg: finalLeadKg,
+        has_own_bcd: hasOwnBcd,
+        has_own_fins: hasOwnFins,
+        has_own_boots: hasOwnBoots,
+        has_own_torch: hasOwnTorch,
+        has_own_lead_weights: hasOwnLeadWeights,
         has_own_dive_computer: hasOwnComputer,
         has_own_smb: hasOwnSmb,
         insurance_provider: insuranceProvider.trim() || null,
@@ -689,99 +755,376 @@ const UserGearProfileModal = ({
           )}
         </div>
 
-        {/* Section 2: Equipment Sizing */}
-        <div>
-          <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5'>
-            2. Wetsuit, BCD & Valve Configuration
+        {/* Section 2: Equipment Configuration & Ownership */}
+        <div className='space-y-4'>
+          <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider'>
+            2. Equipment Configuration & Ownership
           </h4>
-          <div className='grid grid-cols-2 sm:grid-cols-3 gap-3'>
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>Wetsuit Cut</label>
-              <select
-                value={wetsuitGender}
-                onChange={e => setWetsuitGender(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='MEN'>Men / Unisex</option>
-                <option value='WOMEN'>Women</option>
-              </select>
+
+          {/* Item 1: BCD / Buoyancy Compensator */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+              <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
+                BCD / Buoyancy Compensator
+              </span>
+              <div className='flex items-center gap-3 text-xs'>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='bcdOwnership'
+                    checked={hasOwnBcd}
+                    onChange={() => setHasOwnBcd(true)}
+                    className='text-blue-600'
+                  />
+                  <span>Bring Own BCD</span>
+                </label>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='bcdOwnership'
+                    checked={!hasOwnBcd}
+                    onChange={() => setHasOwnBcd(false)}
+                    className='text-blue-600'
+                  />
+                  <span>Rent BCD from Center</span>
+                </label>
+              </div>
             </div>
 
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>Wetsuit Size</label>
-              <select
-                value={wetsuitSize}
-                onChange={e => setWetsuitSize(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='XS'>XS</option>
-                <option value='S'>S</option>
-                <option value='M'>M</option>
-                <option value='ML'>ML</option>
-                <option value='L'>L</option>
-                <option value='XL'>XL</option>
-                <option value='XXL'>XXL</option>
-                <option value='3XL'>3XL</option>
-              </select>
+            {!hasOwnBcd ? (
+              <div className='pt-2 border-t border-gray-200 dark:border-gray-700 max-w-xs'>
+                <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  Rental BCD Size *
+                </label>
+                <select
+                  value={bcdSize || 'M'}
+                  onChange={e => setBcdSize(e.target.value)}
+                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                >
+                  <option value='XS'>XS</option>
+                  <option value='S'>S</option>
+                  <option value='M'>M</option>
+                  <option value='L'>L</option>
+                  <option value='XL'>XL</option>
+                  <option value='XXL'>XXL</option>
+                </select>
+              </div>
+            ) : (
+              <p className='text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60'>
+                ✓ You bring your own BCD/Wing onboard. Center will not pack a BCD for this
+                configuration.
+              </p>
+            )}
+          </div>
+
+          {/* Item 2: Wetsuit / Exposure Suit */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+              <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
+                Wetsuit / Thermal Exposure Suit
+              </span>
+              <div className='flex items-center gap-3 text-xs'>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='wetsuitOwnership'
+                    checked={hasOwnWetsuit}
+                    onChange={() => setHasOwnWetsuit(true)}
+                    className='text-blue-600'
+                  />
+                  <span>Bring Own Suit</span>
+                </label>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='wetsuitOwnership'
+                    checked={!hasOwnWetsuit}
+                    onChange={() => setHasOwnWetsuit(false)}
+                    className='text-blue-600'
+                  />
+                  <span>Rent Suit from Center</span>
+                </label>
+              </div>
             </div>
 
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
-                Wetsuit Thickness
+            <div className='grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700'>
+              <div>
+                <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  Suit Thickness * (Needed for Ballast Calculation)
+                </label>
+                <select
+                  value={wetsuitThickness}
+                  onChange={e => setWetsuitThickness(e.target.value)}
+                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                >
+                  <option value='3mm-shorty'>3mm Shorty</option>
+                  <option value='3mm'>3mm Full</option>
+                  <option value='5mm'>5mm Full</option>
+                  <option value='7mm'>7mm Semi-Dry</option>
+                  <option value='drysuit'>Drysuit</option>
+                </select>
+              </div>
+
+              {!hasOwnWetsuit ? (
+                <>
+                  <div>
+                    <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                      Rental Suit Cut *
+                    </label>
+                    <select
+                      value={wetsuitGender}
+                      onChange={e => setWetsuitGender(e.target.value)}
+                      className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                    >
+                      <option value='MEN'>Men / Unisex</option>
+                      <option value='WOMEN'>Women</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                      Rental Suit Size *
+                    </label>
+                    <select
+                      value={wetsuitSize}
+                      onChange={e => setWetsuitSize(e.target.value)}
+                      className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                    >
+                      <option value='XS'>XS</option>
+                      <option value='S'>S</option>
+                      <option value='M'>M</option>
+                      <option value='ML'>ML</option>
+                      <option value='L'>L</option>
+                      <option value='XL'>XL</option>
+                      <option value='XXL'>XXL</option>
+                      <option value='3XL'>3XL</option>
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div className='sm:col-span-2 flex items-center'>
+                  <p className='text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800/60 w-full'>
+                    ✓ You bring your own {wetsuitThickness} suit. Center will not pack a wetsuit.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Item 3: Regulator Set & Valve Fitting */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+              <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
+                Regulator Set & Tank Valve
+              </span>
+              <div className='flex items-center gap-3 text-xs'>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='regOwnership'
+                    checked={hasOwnRegulator}
+                    onChange={() => setHasOwnRegulator(true)}
+                    className='text-blue-600'
+                  />
+                  <span>Bring Own Regulator</span>
+                </label>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='regOwnership'
+                    checked={!hasOwnRegulator}
+                    onChange={() => setHasOwnRegulator(false)}
+                    className='text-blue-600'
+                  />
+                  <span>Rent Regulator from Center</span>
+                </label>
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700'>
+              <div>
+                <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  {hasOwnRegulator
+                    ? 'Your Regulator Valve Fitting *'
+                    : 'Preferred Rental Valve Fitting *'}
+                </label>
+                <select
+                  value={regulatorFitting}
+                  onChange={e => setRegulatorFitting(e.target.value)}
+                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                >
+                  <option value='DIN'>DIN (232/300 bar threaded) — European Standard</option>
+                  <option value='YOKE'>Yoke / INT (A-clamp)</option>
+                </select>
+              </div>
+              <div className='flex items-center'>
+                <p className='text-[11px] text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 leading-relaxed'>
+                  {hasOwnRegulator
+                    ? `Cylinder valve will be prepared with the ${
+                        regulatorFitting === 'DIN' ? 'DIN insert removed' : 'Yoke insert in place'
+                      } to match your first stage.`
+                    : `Center staff will supply a matching ${regulatorFitting} regulator set and cylinder valve.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Item 4: Fins & Booties */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+              <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
+                Fins & Neoprene Boots
+              </span>
+              <div className='flex items-center gap-3 text-xs'>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='finsOwnership'
+                    checked={hasOwnFins}
+                    onChange={() => {
+                      setHasOwnFins(true);
+                      setHasOwnBoots(true);
+                    }}
+                    className='text-blue-600'
+                  />
+                  <span>Bring Own Fins</span>
+                </label>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='finsOwnership'
+                    checked={!hasOwnFins}
+                    onChange={() => setHasOwnFins(false)}
+                    className='text-blue-600'
+                  />
+                  <span>Rent Fins from Center</span>
+                </label>
+              </div>
+            </div>
+
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-200 dark:border-gray-700'>
+              <div>
+                <label className='block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                  Fin Type
+                </label>
+                <select
+                  value={finType}
+                  onChange={e => setFinType(e.target.value)}
+                  className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
+                >
+                  <option value='OPEN_HEEL'>Open-Heel (With Booties)</option>
+                  <option value='FULL_FOOT'>Full-Foot (Barefoot)</option>
+                </select>
+              </div>
+
+              {!hasOwnFins ? (
+                <div className='flex items-center'>
+                  <p className='text-[11px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/30 p-2.5 rounded-lg border border-blue-200 dark:border-blue-800 leading-relaxed'>
+                    Center will allocate rental fins and boots matching your shoe size (
+                    {shoeSizeEu ? `EU ${shoeSizeEu}` : 'set in section 1'}).
+                  </p>
+                </div>
+              ) : (
+                <div className='flex items-center'>
+                  <p className='text-[11px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800 w-full'>
+                    ✓ You bring your own fins and boots onboard.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Item 5: Mask, Computer, Torch & SMB Checkboxes */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2.5'>
+            <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider block'>
+              Mask, Computer & Safety Accessories
+            </span>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-2.5'>
+              <label className='flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={hasOwnMask}
+                  onChange={e => setHasOwnMask(e.target.checked)}
+                  className='rounded text-blue-600 focus:ring-blue-500 h-4 w-4'
+                />
+                <span className='text-xs text-gray-800 dark:text-gray-200 font-medium'>
+                  Bring Own Mask
+                </span>
               </label>
-              <select
-                value={wetsuitThickness}
-                onChange={e => setWetsuitThickness(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='3mm-shorty'>3mm Shorty</option>
-                <option value='3mm'>3mm Full</option>
-                <option value='5mm'>5mm Full</option>
-                <option value='7mm'>7mm Semi-Dry</option>
-                <option value='drysuit'>Drysuit</option>
-              </select>
-            </div>
 
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>BCD Size</label>
-              <select
-                value={bcdSize}
-                onChange={e => setBcdSize(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='XS'>XS</option>
-                <option value='S'>S</option>
-                <option value='M'>M</option>
-                <option value='L'>L</option>
-                <option value='XL'>XL</option>
-                <option value='XXL'>XXL</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>Fin Type</label>
-              <select
-                value={finType}
-                onChange={e => setFinType(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='OPEN_HEEL'>Open-Heel (With Booties)</option>
-                <option value='FULL_FOOT'>Full-Foot (Barefoot)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className='block text-xs font-medium text-gray-700 mb-1'>
-                Regulator Fitting
+              <label className='flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={hasOwnComputer}
+                  onChange={e => setHasOwnComputer(e.target.checked)}
+                  className='rounded text-blue-600 focus:ring-blue-500 h-4 w-4'
+                />
+                <span className='text-xs text-gray-800 dark:text-gray-200 font-medium'>
+                  Own Dive Computer
+                </span>
               </label>
-              <select
-                value={regulatorFitting}
-                onChange={e => setRegulatorFitting(e.target.value)}
-                className='w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white'
-              >
-                <option value='DIN'>DIN (232/300 bar)</option>
-                <option value='YOKE'>Yoke / INT</option>
-              </select>
+
+              <label className='flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={hasOwnTorch}
+                  onChange={e => setHasOwnTorch(e.target.checked)}
+                  className='rounded text-blue-600 focus:ring-blue-500 h-4 w-4'
+                />
+                <span className='text-xs text-gray-800 dark:text-gray-200 font-medium'>
+                  Own Dive Torch
+                </span>
+              </label>
+
+              <label className='flex items-center gap-2 p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 cursor-pointer'>
+                <input
+                  type='checkbox'
+                  checked={hasOwnSmb}
+                  onChange={e => setHasOwnSmb(e.target.checked)}
+                  className='rounded text-blue-600 focus:ring-blue-500 h-4 w-4'
+                />
+                <span className='text-xs text-gray-800 dark:text-gray-200 font-medium'>
+                  Own SMB / Spool
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Item 6: Weights & Ballast */}
+          <div className='p-3.5 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-2'>
+              <span className='font-bold text-xs text-gray-900 dark:text-white uppercase tracking-wider'>
+                Lead Ballast Source
+              </span>
+              <div className='flex items-center gap-3 text-xs'>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='leadBallastSource'
+                    checked={hasOwnLeadWeights}
+                    onChange={() => setHasOwnLeadWeights(true)}
+                    className='text-blue-600'
+                  />
+                  <span>Bring Own Lead (0 kg from center)</span>
+                </label>
+                <label className='flex items-center gap-1.5 cursor-pointer font-medium text-gray-700 dark:text-gray-300'>
+                  <input
+                    type='radio'
+                    name='leadBallastSource'
+                    checked={!hasOwnLeadWeights}
+                    onChange={() => setHasOwnLeadWeights(false)}
+                    className='text-blue-600'
+                  />
+                  <span>Center Supplies Lead ({leadKg || '4.0'} kg)</span>
+                </label>
+              </div>
+            </div>
+
+            <div className='pt-2 border-t border-gray-200 dark:border-gray-700'>
+              <p className='text-[11px] text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 leading-relaxed'>
+                {!hasOwnLeadWeights
+                  ? `Boat deck crew will pack ${leadKg || '4.0'} kg of lead blocks in your equipment crate.`
+                  : '✓ You bring your own lead blocks (Local Diver). Center staff will not load lead weights for this profile.'}
+              </p>
             </div>
           </div>
         </div>
@@ -826,35 +1169,12 @@ const UserGearProfileModal = ({
               </select>
             </div>
           </div>
-
-          <div className='mt-2.5 flex flex-col sm:flex-row gap-4'>
-            <label className='flex items-center gap-2 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={hasOwnComputer}
-                onChange={e => setHasOwnComputer(e.target.checked)}
-                className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4'
-              />
-              <span className='text-xs text-gray-700 font-medium'>Own personal dive computer</span>
-            </label>
-            <label className='flex items-center gap-2 cursor-pointer'>
-              <input
-                type='checkbox'
-                checked={hasOwnSmb}
-                onChange={e => setHasOwnSmb(e.target.checked)}
-                className='rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4'
-              />
-              <span className='text-xs text-gray-700 font-medium'>
-                Own surface marker buoy (SMB)
-              </span>
-            </label>
-          </div>
         </div>
 
-        {/* Section 4: Insurance & Emergency */}
+        {/* Section 5: Insurance & Emergency */}
         <div>
           <h4 className='text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5'>
-            4. Insurance & Emergency Contact
+            5. Insurance & Emergency Contact
           </h4>
           <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
             <div>
