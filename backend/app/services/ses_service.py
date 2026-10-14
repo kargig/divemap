@@ -237,7 +237,7 @@ class SESService:
                 message['Body']['Text'] = {'Data': text_body, 'Charset': 'UTF-8'}
             
             # Send bulk email
-            response = self.ses_client.send_bulk_templated_email(
+            self.ses_client.send_bulk_templated_email(
                 Source=f"{from_name} <{from_email}>",
                 Template='',  # Not using templates for now
                 DefaultTemplateData=orjson.dumps({}).decode('utf-8'),

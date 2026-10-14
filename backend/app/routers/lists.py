@@ -276,7 +276,7 @@ async def add_list_item(
     current_user: User = Depends(get_current_active_user)
 ):
     """Add a site to a list with optional notes"""
-    lst = check_list_write_permission(list_id, current_user, db)
+    check_list_write_permission(list_id, current_user, db)
 
     # Check site exists
     site = db.query(DiveSite).filter(DiveSite.id == data.dive_site_id).first()
@@ -374,7 +374,7 @@ async def reorder_list_items(
     current_user: User = Depends(get_current_active_user)
 ):
     """Bulk reorder items of a list securely in a single transaction"""
-    lst = check_list_write_permission(list_id, current_user, db)
+    check_list_write_permission(list_id, current_user, db)
 
     items = db.query(DiveSiteListItem).filter(DiveSiteListItem.list_id == list_id).all()
     item_map = {item.id: item for item in items}

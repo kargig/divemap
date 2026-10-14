@@ -775,7 +775,7 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print(f"🔍 Nominatim API Request:")
+            print("🔍 Nominatim API Request:")
             print(f"   URL: {url}")
             print(f"   Parameters: {params}")
             print(f"   Headers: {headers}")
@@ -785,10 +785,10 @@ async def reverse_geocode(
         data = response.json()
 
         if debug:
-            print(f"📡 Nominatim API Response:")
+            print("📡 Nominatim API Response:")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Headers: {dict(response.headers)}")
-            print(f"   Full Response Content:")
+            print("   Full Response Content:")
             print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
 
         address = data.get("address", {})
@@ -826,14 +826,14 @@ async def reverse_geocode(
 
         # Log the extracted data
         if debug:
-            print(f"📍 Extracted Location Data:")
+            print("📍 Extracted Location Data:")
             print(f"   Country: '{country}'")
             print(f"   Region: '{region}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
             print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
 
             # Show which region fields were found and used
-            print(f"   Region Field Analysis:")
+            print("   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
             print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
             print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
@@ -878,7 +878,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     Fallback function to provide basic location information based on coordinates
     """
     if debug:
-        print(f"🔄 Using fallback location detection ")
+        print("🔄 Using fallback location detection ")
 
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
@@ -1089,8 +1089,6 @@ async def get_dive_sites(
 
             # Define suitability hierarchy for range filtering
             # Order: good < caution < difficult < avoid
-            suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3}
-
             # Determine which suitabilities to include based on range
             if wind_suitability == "good":
                 allowed_suitabilities = ["good"]
@@ -1224,7 +1222,7 @@ async def get_dive_sites(
                         query = query.filter(DiveSite.id.in_(filtered_site_ids))
                     else:
                         # No sites match the suitability filter
-                        logger.info(f"[WIND FILTER] No sites match, returning empty result")
+                        logger.info("[WIND FILTER] No sites match, returning empty result")
                         query = query.filter(False)
                 else:
                     # No sites with valid coordinates

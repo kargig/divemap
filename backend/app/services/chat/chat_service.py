@@ -145,8 +145,7 @@ Page Context: {page_context_summary}
                     
                     # Execute tool
                     tool_result = []
-                    action_type = "search"
-                    
+
                     if name == "search_dive_sites":
                         tool_result = await run_in_threadpool(
                             lambda a=args: execute_discovery(db=self.db, entity_type_filter="dive_site", **a)

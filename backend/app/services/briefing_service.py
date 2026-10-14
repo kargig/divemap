@@ -379,7 +379,7 @@ class BriefingService:
             briefing = BriefingService.compile_draft_briefing(db, slot_id)
 
         # Generate and cache PDF
-        pdf_bytes = BriefingService.generate_briefing_pdf(briefing, db)
+        BriefingService.generate_briefing_pdf(briefing, db)
         briefing.status = "APPROVED_DISPATCHED"
         briefing.dispatched_at = datetime.now(timezone.utc)
         briefing.dispatched_by_user_id = dispatched_by_user_id

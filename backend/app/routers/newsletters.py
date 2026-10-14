@@ -211,23 +211,19 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
     
     for trip in candidate_trips:
         score = 0.0
-        match_type = 'none'
         
         # Calculate RapidFuzz ratios (0-100 scale, so we divide by 100)
         desc_score = fuzz.partial_ratio(query_lower, (trip.trip_description or '').lower()) / 100.0
         if desc_score > score:
             score = desc_score
-            match_type = 'description_fuzzy'
             
         req_score = fuzz.partial_ratio(query_lower, (trip.special_requirements or '').lower()) / 100.0
         if req_score > score:
             score = req_score
-            match_type = 'requirements_fuzzy'
             
         center_score = fuzz.partial_ratio(query_lower, trip.diving_center.name.lower()) / 100.0 if trip.diving_center else 0
         if center_score > score:
             score = center_score
-            match_type = 'diving_center_fuzzy'
             
         if trip.dives:
             for dive in trip.dives:
@@ -235,12 +231,10 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
                     site_score = fuzz.partial_ratio(query_lower, dive.dive_site.name.lower()) / 100.0
                     if site_score > score:
                         score = site_score
-                        match_type = 'dive_site_fuzzy'
                 if dive.dive_description:
                     dive_desc_score = fuzz.partial_ratio(query_lower, dive.dive_description.lower()) / 100.0
                     if dive_desc_score > score:
                         score = dive_desc_score
-                        match_type = 'dive_description_fuzzy'
                         
         if score >= similarity_threshold:
             if score >= 0.8:
@@ -527,10 +521,6 @@ from app.services.openai_service import openai_service
 async def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
-        # Extract diving center from metadata if not provided as override
-        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
-        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
-        
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
         
@@ -885,7 +875,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                                         else:
                                             logger.info(f"❌ No dive site match found for: '{original_name}' (cleaned: '{cleaned_name}')")
                                 else:
-                                    logger.info(f"⚠️ No dive_site_name found in dive")
+                                    logger.info("⚠️ No dive_site_name found in dive")
 
                     logger.info(f"Successfully parsed {len(trips)} trips from OpenAI")
                     return trips
@@ -912,16 +902,11 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
 def parse_newsletter_content(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using basic regex patterns"""
     try:
-        # Extract diving center from metadata if not provided as override
-        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
-        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
-        
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
         
         # Extract subject and clean content from raw email
         email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
-        subject = email_message.get('Subject', '')
 
         # Get the text content
         clean_content = ""
@@ -957,12 +942,6 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
             r'(\d{1,2})/(\d{1,2})/(\d{4})',
             r'(\d{1,2})-(\d{1,2})-(\d{4})',
             r'(\d{1,2})\.(\d{1,2})\.(\d{4})'
-        ]
-
-        time_patterns = [
-            r'(\d{1,2}):(\d{2})',
-            r'(\d{1,2})\.(\d{2})',
-            r'(\d{1,2}) (\d{2})'
         ]
 
         # Keywords that indicate dive trips
@@ -1222,12 +1201,10 @@ async def parse_newsletter_text(
         use_openai = request.use_openai
 
         # Validate diving center if provided
-        diving_center_name = None
         if diving_center_id_override is not None:
             diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id_override).first()
             if not diving_center:
                 raise HTTPException(status_code=400, detail=f"Diving center with ID {diving_center_id_override} not found")
-            diving_center_name = diving_center.name
         
         # Add diving center metadata to content before saving
         content_with_metadata = add_diving_center_metadata(content_str, diving_center_id_override)

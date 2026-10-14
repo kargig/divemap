@@ -897,7 +897,6 @@ class ManifestExportService:
         center = manifest_data.get("center") or {}
         vessel = manifest_data.get("vessel") or {}
         slot = manifest_data.get("slot") or {}
-        staff = manifest_data.get("staff") or {}
         participants = manifest_data.get("participants") or []
         summary = manifest_data.get("crate_packing_summary") or {}
 

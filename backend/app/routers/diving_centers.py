@@ -474,7 +474,7 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print(f"🔍 Nominatim API Request:")
+            print("🔍 Nominatim API Request:")
             print(f"   URL: {url}")
             print(f"   Parameters: {params}")
             print(f"   Headers: {headers}")
@@ -484,10 +484,10 @@ async def reverse_geocode(
         data = response.json()
         
         if debug:
-            print(f"📡 Nominatim API Response:")
+            print("📡 Nominatim API Response:")
             print(f"   Status Code: {response.status_code}")
             print(f"   Response Headers: {dict(response.headers)}")
-            print(f"   Full Response Content:")
+            print("   Full Response Content:")
             print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
         
         address = data.get("address", {})
@@ -568,7 +568,7 @@ async def reverse_geocode(
 
         # Log the extracted data
         if debug:
-            print(f"📍 Extracted Location Data:")
+            print("📍 Extracted Location Data:")
             print(f"   Country: '{country}'")
             print(f"   Region: '{region}'")
             print(f"   City: '{city}'")
@@ -576,7 +576,7 @@ async def reverse_geocode(
             print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
             
             # Show which region fields were found and used
-            print(f"   Region Field Analysis:")
+            print("   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
             print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
             print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
@@ -588,7 +588,7 @@ async def reverse_geocode(
                 print(f"     → Using fallback: '{region}'")
             
             # Show which city fields were found and used
-            print(f"   City Field Analysis:")
+            print("   City Field Analysis:")
             print(f"     city: '{address.get('city')}'")
             print(f"     town: '{address.get('town')}'")
             print(f"     village: '{address.get('village')}'")
@@ -635,7 +635,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     Fallback function to provide basic location information based on coordinates
     """
     if debug:
-        print(f"🔄 Using fallback location detection ")
+        print("🔄 Using fallback location detection ")
     
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
@@ -2365,13 +2365,6 @@ async def approve_diving_center_ownership(
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
-
-    # Find the existing ownership request for this center and user
-    ownership_request = db.query(OwnershipRequest).filter(
-        OwnershipRequest.diving_center_id == diving_center_id,
-        OwnershipRequest.user_id == diving_center.owner_id,
-        OwnershipRequest.request_status == OwnershipStatus.claimed
-    ).first()
 
     # Capture the current owner_id before potentially changing it
     current_owner_id = diving_center.owner_id

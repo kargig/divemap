@@ -142,10 +142,10 @@ async def get_organization_certification_levels(
     levels = query.all()
     
     # Sort levels by Category -> Depth -> Gas
-    levels.sort(key=lambda l: (
-        get_category_score(l.category), 
-        get_depth_value(l.max_depth), 
-        get_gas_value(l.gases)
+    levels.sort(key=lambda lvl: (
+        get_category_score(lvl.category), 
+        get_depth_value(lvl.max_depth), 
+        get_gas_value(lvl.gases)
     ))
     
     return levels

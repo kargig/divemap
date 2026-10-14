@@ -144,7 +144,7 @@ def calculate_wind_suitability(
             # Upgrade unknown -> caution if gusts are strong
             if wind_suitability == "unknown":
                 wind_suitability = "caution"
-                wind_reasoning += f" (strong gusts detected)"
+                wind_reasoning += " (strong gusts detected)"
         
     else:
         # Calculate angle difference between wind and shore direction

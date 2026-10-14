@@ -479,7 +479,7 @@ class NotificationService:
         # 3. Build notification details
         title = "Pending Dive Site Edit"
         message = f"User '{requester_name}' suggested an edit for '{dive_site_name}'. Please review."
-        link_url = f"/admin/dive-sites/edit-requests"
+        link_url = "/admin/dive-sites/edit-requests"
         
         # 4. Fetch all 'moderation' preferences in a single query
         staff_ids = [u.id for u in notifiable_staff]
@@ -641,7 +641,7 @@ class NotificationService:
                 user_id=user.id,
                 category='new_dives',
                 title=f"New Dive: {dive.name or 'Untitled Dive'}",
-                message=f"A new dive has been logged.",
+                message="A new dive has been logged.",
                 link_url=link_url,
                 entity_type='dive',
                 entity_id=dive_id,
@@ -764,7 +764,7 @@ class NotificationService:
                 user_id=user.id,
                 category='new_dive_trips',
                 title=f"New Dive Trip: {getattr(trip, 'title', None) or f'Trip on {trip.trip_date}'}",
-                message=f"A new dive trip has been posted.",
+                message="A new dive trip has been posted.",
                 link_url=link_url,
                 entity_type='dive_trip',
                 entity_id=trip_id,
@@ -823,7 +823,7 @@ class NotificationService:
                     Notification.category == 'user_chat_message',
                     Notification.entity_type == 'chat_message',
                     Notification.is_read == False,
-                    Notification.link_url == f"/messages"
+                    Notification.link_url == "/messages"
                 ).order_by(desc(Notification.created_at)).first()
 
                 if existing_notification:
@@ -840,7 +840,7 @@ class NotificationService:
                         category='user_chat_message',
                         title=f"New message from {sender_name}",
                         message="You have a new message in your chat.",
-                        link_url=f"/messages",
+                        link_url="/messages",
                         entity_type='chat_message',
                         entity_id=message_id,
                         db=db
@@ -855,7 +855,7 @@ class NotificationService:
                         category='user_chat_message',
                         title=f"New message from {sender_name}",
                         message="You have a new message in your chat.",
-                        link_url=f"/messages",
+                        link_url="/messages",
                         entity_type='chat_message',
                         entity_id=message_id,
                         created_at=utcnow()

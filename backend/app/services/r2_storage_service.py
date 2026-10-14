@@ -468,7 +468,6 @@ class R2StorageService:
         base_path_full = self._get_photo_path(user_id, original_filename, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
         directory = os.path.dirname(base_path_full)
         base_name = os.path.splitext(original_filename)[0]
-        original_ext = os.path.splitext(original_filename)[1] # e.g. .jpg
 
         for variant, stream in image_streams.items():
             if variant == 'original_format':

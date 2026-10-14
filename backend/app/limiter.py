@@ -71,8 +71,6 @@ def skip_rate_limit_for_admin(limit_string: str):
         
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            start_time = time.time()
-            
             # Get function name and endpoint info
             func_name = func.__name__
             endpoint_info = f"{func_name}"

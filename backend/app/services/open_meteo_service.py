@@ -367,7 +367,7 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
             db.commit()
             #logger.info(f"[DB CACHE STORE] Stored wind data in database cache for key {cache_key} at {target_datetime}")
 
-        except Exception as e:
+        except Exception:
             db.rollback()
             raise
         finally:
@@ -482,7 +482,7 @@ def _store_batch_in_database_cache(entries: List[Dict]):
             db.commit()
             logger.info(f"[DB CACHE BATCH] Processed {len(entries)} entries ({updates_count} updates, {inserts_count} inserts) in database cache")
 
-        except Exception as e:
+        except Exception:
             db.rollback()
             raise
         finally:

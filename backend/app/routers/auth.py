@@ -154,7 +154,7 @@ async def register(
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -249,7 +249,7 @@ async def login(
                 user.turnstile_verified_at = datetime.now(timezone.utc)
             user.last_accessed_at = func.now()
             db.commit()
-        except Exception as e:
+        except Exception:
             db.rollback()
     if not user:
         raise HTTPException(
@@ -277,7 +277,7 @@ async def login(
     try:
         token_data = token_service.create_token_pair(user, request, db)
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create authentication tokens"
@@ -667,7 +667,7 @@ async def refresh_token(
             "expires_in": token_data["expires_in"],
             "user": populate_avatar_full_url(user, user_dict) if user else None
         }
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token refresh failed"

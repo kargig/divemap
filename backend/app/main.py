@@ -246,10 +246,6 @@ async def fix_request_scheme(request: Request, call_next):
 # Security middleware
 @app.middleware("http")
 async def add_security_headers(request, call_next):
-    # Get client IP for security monitoring (but don't log every request)
-    client_ip = get_client_ip(request)
-    formatted_ip = format_ip_for_logging(client_ip, include_private=False)
-
     response = await call_next(request)
 
     # Security headers
@@ -835,7 +831,7 @@ async def get_statistics(db: Session = Depends(get_db)):
             "diving_centers": diving_center_count,
             "dive_trips": dive_trips_count
         }
-    except Exception as e:
+    except Exception:
         return {
             "dives": 0,
             "dive_sites": 0,

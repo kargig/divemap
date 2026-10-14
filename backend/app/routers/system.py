@@ -1318,8 +1318,6 @@ async def get_notification_analytics(
     
     # Estimate direct SES sends: if FORCE_DIRECT_EMAIL is enabled, count recent sent emails as direct
     # Otherwise, assume most sent emails went through SQS/Lambda
-    # For accuracy, we'll track: emails sent in last hour with FORCE_DIRECT_EMAIL = direct
-    one_hour_ago = now - timedelta(hours=1)
     if force_direct_email:
         # In direct mode, all sent emails are direct
         sent_directly_to_ses = total_email_sent
@@ -1333,8 +1331,6 @@ async def get_notification_analytics(
             Notification.created_at >= five_minutes_ago,
             Notification.email_sent_at <= Notification.created_at + timedelta(minutes=5)
         ).scalar()
-        # Remaining sent emails are assumed to be via SQS/Lambda
-        sent_via_sqs_lambda = total_email_sent - sent_directly_to_ses
     
     # Calculate delivery rate (emails sent / total notifications eligible for email)
     total_eligible_for_email = db.query(func.count(Notification.id)).filter(

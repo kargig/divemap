@@ -120,7 +120,7 @@ class EventBridgeService:
             target_params['Targets'][0]['Input'] = orjson.dumps(input_data).decode('utf-8')
             
         try:
-            response = self.eventbridge_client.put_targets(**target_params)
+            self.eventbridge_client.put_targets(**target_params)
             logger.info(f"Added target to rule: {rule_name} -> {target_arn}")
             
             return True
