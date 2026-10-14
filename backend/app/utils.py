@@ -728,3 +728,9 @@ def has_deco_data(profile_data: dict) -> bool:
         
     # Check for 'stopdepth' or 'ndl_minutes' in samples
     return any(s.get('stopdepth') is not None or s.get('ndl_minutes') is not None for s in samples)
+
+
+# Alias unit_conversion submodule for app.utils.unit_conversion namespace compatibility
+import sys
+import app.unit_conversion as unit_conversion
+sys.modules['app.utils.unit_conversion'] = unit_conversion

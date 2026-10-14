@@ -8,9 +8,11 @@ import {
   Edit,
   X,
   ChevronRight,
+  Sparkles,
+  MessageSquare,
 } from 'lucide-react';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { formatCost } from '../utils/currency';
@@ -20,6 +22,7 @@ import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify'
 import { getStatusColorClasses, getDisplayStatus } from '../utils/tripHelpers';
 import { generateTripName } from '../utils/tripNameGenerator';
 
+import TripWaitlistInquiryModal from './booking/TripWaitlistInquiryModal';
 import DepthIcon from './ui/DepthIcon';
 import DifficultyBadge from './ui/DifficultyBadge';
 
@@ -38,6 +41,24 @@ const TripCard = ({
   compactLayout = false,
   viewMode = 'list',
 }) => {
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+
+  const isFullyBooked = Boolean(
+    trip.is_bookable &&
+      trip.seats_available !== undefined &&
+      trip.seats_available !== null &&
+      trip.seats_available <= 0
+  );
+
+  const divingCenterObj = trip.diving_center || {
+    id: trip.diving_center_id,
+    name: trip.diving_center_name,
+    country: trip.diving_center_country,
+    region: trip.diving_center_region,
+    phone: trip.diving_center_phone,
+    email: trip.diving_center_email,
+  };
+
   // Helper function to get dive site details
   const getDiveSite = diveSiteId => {
     if (!diveSiteId) return null;
@@ -161,15 +182,35 @@ const TripCard = ({
                     <span>{tripName}</span>
                   )}
                 </h3>
-                <p className='hidden sm:block text-gray-600 text-xs'>
-                  {trip.trip_date
-                    ? formatDate(trip.trip_date, {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })
-                    : 'N/A'}
-                </p>
+                <div className='flex flex-wrap items-center gap-2 mt-0.5'>
+                  <p className='text-gray-600 text-xs'>
+                    {trip.trip_date
+                      ? formatDate(trip.trip_date, {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : 'N/A'}
+                  </p>
+                  {trip.is_bookable && trip.octo_slot_id && (
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200'>
+                      <Sparkles className='w-3 h-3 mr-1 text-emerald-600' /> Instant Booking
+                    </span>
+                  )}
+                  {trip.is_bookable &&
+                    trip.seats_available !== undefined &&
+                    trip.seats_available !== null && (
+                      <span
+                        className={`inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded ${
+                          isFullyBooked
+                            ? 'text-amber-800 bg-amber-50 border border-amber-200'
+                            : 'text-emerald-700 bg-emerald-50'
+                        }`}
+                      >
+                        {isFullyBooked ? 'Online spots full' : `${trip.seats_available} seats left`}
+                      </span>
+                    )}
+                </div>
               </div>
             </div>
             {user && (
@@ -287,6 +328,11 @@ const TripCard = ({
               <div className='font-medium text-xs sm:text-sm truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
+              {trip.different_rental_price === false && trip.trip_price && (
+                <div className='text-[10px] text-emerald-600 font-semibold leading-none mt-0.5'>
+                  Gear included
+                </div>
+              )}
             </div>
           </div>
 
@@ -447,27 +493,79 @@ const TripCard = ({
               )}
             </div>
 
-            {user && (
+            <div className='ml-auto flex items-center space-x-2 shrink-0'>
+              {trip.is_bookable &&
+                trip.octo_slot_id &&
+                (isFullyBooked ? (
+                  <button
+                    type='button'
+                    onClick={() => setIsInquiryModalOpen(true)}
+                    className='inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer'
+                    title='Inquire about reserved spots or waitlists'
+                  >
+                    <MessageSquare className='w-3.5 h-3.5' />
+                    Inquire
+                  </button>
+                ) : (
+                  <Link
+                    to={`/book/${trip.octo_slot_id}`}
+                    className='inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors'
+                  >
+                    Book Now
+                  </Link>
+                ))}
               <Link
                 to={tripUrl}
-                className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
+                className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
                 title='View Trip Details'
               >
                 <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
               </Link>
-            )}
+            </div>
           </div>
         )}
 
         {isGrid && (
-          <Link
-            to={tripUrl}
-            className='mt-auto w-full text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-colors text-sm'
-          >
-            View Trip
-          </Link>
+          <div className='mt-auto flex items-center gap-2 pt-2'>
+            {trip.is_bookable &&
+              trip.octo_slot_id &&
+              (isFullyBooked ? (
+                <button
+                  type='button'
+                  onClick={() => setIsInquiryModalOpen(true)}
+                  className='flex-1 inline-flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg transition-colors text-sm cursor-pointer shadow-sm'
+                >
+                  <MessageSquare className='w-4 h-4' />
+                  Inquire / Waitlist
+                </button>
+              ) : (
+                <Link
+                  to={`/book/${trip.octo_slot_id}`}
+                  className='flex-1 text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg transition-colors text-sm'
+                >
+                  Book Now
+                </Link>
+              ))}
+            <Link
+              to={tripUrl}
+              className={`${
+                trip.is_bookable && trip.octo_slot_id ? 'flex-1' : 'w-full'
+              } text-center bg-divemap-blue hover:opacity-90 text-white font-semibold py-2 rounded-lg transition-colors text-sm`}
+            >
+              View Trip
+            </Link>
+          </div>
         )}
       </div>
+
+      {isInquiryModalOpen && (
+        <TripWaitlistInquiryModal
+          isOpen={isInquiryModalOpen}
+          onClose={() => setIsInquiryModalOpen(false)}
+          trip={trip}
+          divingCenter={divingCenterObj}
+        />
+      )}
     </div>
   );
 };

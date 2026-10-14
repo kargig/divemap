@@ -22,6 +22,7 @@ import {
   Users,
   UserPlus,
   Trash2,
+  Coins,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
@@ -60,6 +61,7 @@ import {
   getFollowStatus,
   broadcastTextMessage,
   getDivingCenters,
+  getManagedDivingCenters,
   broadcastTrip,
   getCenterManagers,
   addCenterManager,
@@ -92,7 +94,7 @@ const DivingCenterDetail = () => {
   const [editCommentText, setEditCommentText] = useState('');
   const [showOwnershipClaim, setShowOwnershipClaim] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || 'overview';
+  const activeTab = searchParams.get('tab') || (user ? 'trips' : 'overview');
 
   const setActiveTab = tab => {
     setSearchParams(
@@ -138,6 +140,17 @@ const DivingCenterDetail = () => {
       keepPreviousData: true, // Keep previous data while refetching
     }
   );
+
+  // Fetch centers managed by current user
+  const { data: managedCenters = [] } = useQuery(
+    ['my-managed-diving-centers', user?.id],
+    getManagedDivingCenters,
+    {
+      enabled: !!user,
+      staleTime: 10 * 60 * 1000,
+    }
+  );
+  const isMyDivingCenter = managedCenters.some(mc => mc.id === parseInt(id, 10));
 
   // Query for dive sites (for dropdown)
   const { data: diveSites = [] } = useQuery(
@@ -192,15 +205,34 @@ const DivingCenterDetail = () => {
     }
   };
 
-  // Redirect to canonical URL with slug
+  // Redirect to canonical URL with slug and appropriate default view
   useEffect(() => {
     if (center && center.name) {
       const expectedSlug = getDivingCenterSlug(center);
+
+      // 1. If user is owner/manager of THIS center and no specific tab was requested, go directly to Management Portal
+      if (isMyDivingCenter && !searchParams.get('tab')) {
+        navigate(`/diving-centers/${id}/${expectedSlug}/manage`, { replace: true });
+        return;
+      }
+
+      if (searchParams.get('tab') === 'manage' || slug === 'manage') {
+        navigate(`/diving-centers/${id}/${expectedSlug}/manage`, { replace: true });
+        return;
+      }
+
+      // 2. If user is logged in (not manager of this center) and no specific tab was requested, default to Upcoming Trips tab
+      if (user && !isMyDivingCenter && !searchParams.get('tab')) {
+        navigate(`/diving-centers/${id}/${expectedSlug}?tab=trips`, { replace: true });
+        return;
+      }
+
+      // 3. Otherwise maintain canonical slug
       if (!slug || slug !== expectedSlug) {
         navigate(`/diving-centers/${id}/${expectedSlug}${location.search}`, { replace: true });
       }
     }
-  }, [center, id, slug, navigate, location.search]);
+  }, [center, id, slug, navigate, location.search, searchParams, user, isMyDivingCenter]);
 
   // Show toast notifications for rate limiting errors
   useEffect(() => {
@@ -845,7 +877,7 @@ const DivingCenterDetail = () => {
         }}
       />
       {/* Tab Navigation */}
-      <div className='border-b border-gray-200 mt-6 mb-6 pb-3'>
+      <div className='border-b border-gray-200 mt-3 sm:mt-4 mb-4 pb-2.5'>
         <nav className='flex flex-wrap gap-x-3 gap-y-2' aria-label='Tabs'>
           <button
             onClick={() => setActiveTab('overview')}
@@ -878,16 +910,12 @@ const DivingCenterDetail = () => {
             Media
           </button>
           {shouldShowManage && (
-            <button
-              onClick={() => setActiveTab('manage')}
-              className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
-                activeTab === 'manage'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm'
-              }`}
+            <Link
+              to={`/diving-centers/${id}/${slug || getDivingCenterSlug(center) || 'center'}/manage`}
+              className='px-4 py-2 text-sm font-bold rounded-xl transition-all bg-white text-gray-500 hover:text-gray-700 hover:bg-gray-100 border border-gray-200 shadow-sm flex items-center'
             >
-              Management
-            </button>
+              Management Portal
+            </Link>
           )}
         </nav>
       </div>
@@ -1029,10 +1057,10 @@ const DivingCenterDetail = () => {
             </div>
           </div>
         ) : trips && trips.length > 0 ? (
-          <div className='bg-white rounded-lg shadow-md p-6 mb-6'>
-            <div className='flex items-center justify-between mb-4'>
-              <h2 className='text-2xl font-bold text-gray-900 flex items-center'>
-                <Calendar className='h-6 w-6 mr-2' />
+          <div className='bg-white rounded-xl shadow-xs p-4 sm:p-5 mb-4 border border-gray-100'>
+            <div className='flex items-center justify-between mb-3'>
+              <h2 className='text-xl sm:text-2xl font-bold text-gray-900 flex items-center'>
+                <Calendar className='h-5 w-5 mr-2 text-blue-600' />
                 Dive Trips
               </h2>
               {user && (
@@ -1273,6 +1301,33 @@ const DivingCenterDetail = () => {
       {/* Management Tab */}
       {activeTab === 'manage' && shouldShowManage && (
         <div className='space-y-4 sm:space-y-6'>
+          {/* Equipment Rental Rates Card */}
+          <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
+            <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+              <div className='flex items-start gap-3.5'>
+                <div className='w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5'>
+                  <Coins className='h-6 w-6' />
+                </div>
+                <div>
+                  <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                    <span>Equipment Rental Rates & Package Bundling</span>
+                  </h2>
+                  <p className='text-sm text-gray-500 mt-1 max-w-2xl leading-relaxed'>
+                    Configure itemized daily rental rates (regulators, BCDs, wetsuits, computers,
+                    torches, fins) and full equipment package bundles for customer checkout and
+                    dockside check-in.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/diving-centers/${id}/${slug || getDivingCenterSlug(center) || 'center'}/gear-rental`}
+                className='inline-flex items-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold transition-colors shrink-0 shadow-sm justify-center'
+              >
+                <Coins className='h-4 w-4 mr-1.5' />
+                Manage Rental Pricing
+              </Link>
+            </div>
+          </div>
           <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
             <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4'>
               <h2 className='text-2xl font-bold text-gray-900 flex items-center'>

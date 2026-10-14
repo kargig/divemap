@@ -98,6 +98,12 @@ const Messages = () => {
   };
 
   const [activeRoomId, setActiveRoomId] = useState(getInitialRoomId());
+  const [initialDraft, setInitialDraft] = useState(() => {
+    if (typeof location.state?.draftMessage === 'string') {
+      return location.state.draftMessage.slice(0, 500);
+    }
+    return '';
+  });
   const currentUserId = user?.id || parseInt(localStorage.getItem('user_id'));
 
   const {
@@ -112,6 +118,10 @@ const Messages = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roomParam = params.get('room');
+
+    if (typeof location.state?.draftMessage === 'string' && location.state.draftMessage) {
+      setInitialDraft(location.state.draftMessage.slice(0, 500));
+    }
 
     if (location.state?.roomId || location.state?.activeRoomId) {
       setActiveRoomId(location.state.roomId || location.state.activeRoomId);
@@ -274,6 +284,8 @@ const Messages = () => {
               roomId={activeRoomId}
               room={activeRoom}
               currentUserId={currentUserId}
+              initialDraft={initialDraft}
+              onDraftConsumed={() => setInitialDraft('')}
               onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
               onBack={() => setActiveRoomId(null)}
             />

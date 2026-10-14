@@ -1,28 +1,31 @@
+import { clearBookingPreferencesCookie } from './bookingCookies';
+
 export const CONSENT_STORAGE_KEY = 'divemap_cookie_consent';
 export const CONSENT_UPDATED_EVENT = 'divemap-consent-updated';
 
 /**
  * Retrieve current cookie consent status from localStorage.
- * @returns {{ hasResponded: boolean, analytics: boolean, necessary: true }}
+ * @returns {{ hasResponded: boolean, analytics: boolean, preferences: boolean, necessary: true }}
  */
 export function getConsentStatus() {
   if (typeof window === 'undefined') {
-    return { hasResponded: false, analytics: false, necessary: true };
+    return { hasResponded: false, analytics: false, preferences: false, necessary: true };
   }
 
   try {
     const raw = localStorage.getItem(CONSENT_STORAGE_KEY);
     if (!raw) {
-      return { hasResponded: false, analytics: false, necessary: true };
+      return { hasResponded: false, analytics: false, preferences: false, necessary: true };
     }
     const parsed = JSON.parse(raw);
     return {
       hasResponded: true,
       analytics: Boolean(parsed.analytics),
+      preferences: Boolean(parsed.preferences),
       necessary: true,
     };
   } catch (_e) {
-    return { hasResponded: false, analytics: false, necessary: true };
+    return { hasResponded: false, analytics: false, preferences: false, necessary: true };
   }
 }
 
@@ -71,14 +74,16 @@ export function clearAnalyticsCookies() {
 
 /**
  * Save user cookie preferences, update Google Consent Mode, and broadcast event.
- * @param {{ analytics: boolean }} options
+ * @param {{ analytics?: boolean, preferences?: boolean }} options
  */
-export function setConsent({ analytics }) {
+export function setConsent({ analytics, preferences }) {
   const isAnalyticsGranted = Boolean(analytics);
+  const isPreferencesGranted = Boolean(preferences);
 
   if (typeof window !== 'undefined') {
     const payload = {
       analytics: isAnalyticsGranted,
+      preferences: isPreferencesGranted,
       timestamp: Date.now(),
     };
     try {
@@ -92,12 +97,16 @@ export function setConsent({ analytics }) {
     if (!isAnalyticsGranted) {
       clearAnalyticsCookies();
     }
+    if (!isPreferencesGranted) {
+      clearBookingPreferencesCookie();
+    }
 
     window.dispatchEvent(
       new window.CustomEvent(CONSENT_UPDATED_EVENT, {
         detail: {
           hasResponded: true,
           analytics: isAnalyticsGranted,
+          preferences: isPreferencesGranted,
           necessary: true,
         },
       })

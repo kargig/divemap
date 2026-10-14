@@ -81,6 +81,16 @@ const NotificationPreferencesPage = lazy(() => import('./pages/NotificationPrefe
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Profile = lazy(() => import('./pages/Profile'));
+const DiverGearProfilesPage = lazy(() => import('./pages/DiverGearProfilesPage'));
+const DiverMedicalProfilePage = lazy(() => import('./pages/DiverMedicalProfilePage'));
+const UserBookingsPage = lazy(() => import('./pages/UserBookingsPage'));
+const DivingCenterManagePage = lazy(() => import('./pages/DivingCenterManagePage'));
+const BookingWizard = lazy(() => import('./components/booking/BookingWizard'));
+const BookingVoucherPage = lazy(() => import('./pages/BookingVoucherPage'));
+const GuestBookingClaimPage = lazy(() => import('./pages/GuestBookingClaimPage'));
+const TripOperationsDashboard = lazy(() => import('./components/booking/TripOperationsDashboard'));
+const TripParticipantDetailsPage = lazy(() => import('./pages/TripParticipantDetailsPage'));
+const CenterRentalPricingPage = lazy(() => import('./pages/CenterRentalPricingPage'));
 const MyComments = lazy(() => import('./pages/MyComments'));
 const MyRatings = lazy(() => import('./pages/MyRatings'));
 const Buddies = lazy(() => import('./pages/Buddies'));
@@ -296,6 +306,30 @@ function AppContent() {
               }
             />
             <Route
+              path='/profile/bookings'
+              element={
+                <ProtectedRoute>
+                  <UserBookingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/gear'
+              element={
+                <ProtectedRoute>
+                  <DiverGearProfilesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/profile/medical'
+              element={
+                <ProtectedRoute>
+                  <DiverMedicalProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path='/profile/comments'
               element={
                 <ProtectedRoute>
@@ -308,6 +342,49 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <MyRatings />
+                </ProtectedRoute>
+              }
+            />
+            <Route path='/book/:slotId' element={<BookingWizard />} />
+            <Route path='/bookings/:uuid/voucher' element={<BookingVoucherPage />} />
+            <Route path='/bookings/:uuid/claim/:claimToken' element={<GuestBookingClaimPage />} />
+            <Route
+              path='/manage/centers/:centerId/trips/:tripId'
+              element={
+                <ProtectedRoute>
+                  <TripOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:centerId/trips/:tripId/:tab'
+              element={
+                <ProtectedRoute>
+                  <TripOperationsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:centerId/trips/:tripId/participants/:participantId'
+              element={
+                <ProtectedRoute>
+                  <TripParticipantDetailsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:centerId/rental-pricing'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/manage/centers/:id'
+              element={
+                <ProtectedRoute>
+                  <DivingCenterManagePage />
                 </ProtectedRoute>
               }
             />
@@ -386,8 +463,38 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
-            <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
+            <Route
+              path='/diving-centers/:id/:slug/manage'
+              element={
+                <ProtectedRoute>
+                  <DivingCenterManagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/manage'
+              element={
+                <ProtectedRoute>
+                  <DivingCenterManagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/:slug/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path='/diving-centers/:id/gear-rental'
+              element={
+                <ProtectedRoute>
+                  <CenterRentalPricingPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path='/diving-centers/:id/edit'
               element={
@@ -396,6 +503,8 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
+            <Route path='/diving-centers/:id' element={<DivingCenterDetail />} />
+            <Route path='/diving-centers/:id/:slug' element={<DivingCenterDetail />} />
             <Route path='/dive-routes' element={<DiveRoutes />} />
             <Route path='/dive-routes/:id' element={<RouteDetail />} />
             <Route path='/dive-routes/:id/:slug' element={<RouteDetail />} />

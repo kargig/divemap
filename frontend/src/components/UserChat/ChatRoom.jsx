@@ -38,9 +38,19 @@ const CHAT_TIPS = [
   </>,
 ];
 
-const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => {
+const ChatRoom = ({
+  roomId,
+  room,
+  currentUserId,
+  initialDraft = '',
+  onDraftConsumed = null,
+  onToggleSettings,
+  onBack,
+}) => {
   const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(() =>
+    typeof initialDraft === 'string' ? initialDraft.slice(0, 500) : ''
+  );
   const [isSending, setIsSending] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showHints, setShowHints] = useState(() => !localStorage.getItem('chat_hints_dismissed'));
@@ -53,14 +63,24 @@ const ChatRoom = ({ roomId, room, currentUserId, onToggleSettings, onBack }) => 
     return CHAT_TIPS[Math.floor(Math.random() * CHAT_TIPS.length)];
   }, [roomId]);
 
+  useEffect(() => {
+    if (initialDraft && typeof initialDraft === 'string') {
+      setInputText(initialDraft.slice(0, 500));
+      onDraftConsumed?.();
+    }
+  }, [initialDraft, onDraftConsumed]);
+
   // Reset state when room changes to prevent showing old messages or sending wrong cursor
   if (roomId !== prevRoomId) {
     setPrevRoomId(roomId);
     setMessages([]);
-    setInputText('');
+    setInputText(typeof initialDraft === 'string' ? initialDraft.slice(0, 500) : '');
     setEditingMessage(null);
     setShowEmojiPicker(false);
     lastSyncTime.current = null;
+    if (initialDraft) {
+      onDraftConsumed?.();
+    }
   }
 
   const dismissHints = () => {
@@ -419,6 +439,8 @@ ChatRoom.propTypes = {
   roomId: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   room: PropTypes.object,
   currentUserId: PropTypes.number.isRequired,
+  initialDraft: PropTypes.string,
+  onDraftConsumed: PropTypes.func,
   onToggleSettings: PropTypes.func.isRequired,
   onBack: PropTypes.func.isRequired,
 };

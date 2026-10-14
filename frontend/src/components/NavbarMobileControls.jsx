@@ -187,20 +187,13 @@ const NavbarMobileControls = () => {
               >
                 Home
               </List.Item>
-              <List.Item
-                prefix={<Map className='h-5 w-5 text-blue-100' />}
-                onClick={() => handleNavigate('/map')}
-                arrow={false}
-              >
-                Map
-              </List.Item>
 
-              {primaryCenter && !user?.is_admin && !user?.is_moderator && (
+              {primaryCenter && (
                 <List.Item
                   prefix={<Building className='h-5 w-5 text-yellow-300' />}
                   onClick={() =>
                     handleNavigate(
-                      `/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}`
+                      `/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}/manage`
                     )
                   }
                   arrow={false}
@@ -208,6 +201,14 @@ const NavbarMobileControls = () => {
                   <span className='font-bold text-yellow-300'>My Diving Center</span>
                 </List.Item>
               )}
+
+              <List.Item
+                prefix={<Map className='h-5 w-5 text-blue-100' />}
+                onClick={() => handleNavigate('/map')}
+                arrow={false}
+              >
+                Map
+              </List.Item>
 
               <Collapse
                 style={{

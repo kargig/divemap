@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../contexts/AuthContext';
+import { getConsentStatus, CONSENT_UPDATED_EVENT } from '../utils/consent';
 import {
   incrementSessionPageViews,
   incrementCumulativePageViews,
@@ -17,6 +18,8 @@ const PromoBannerManager = () => {
   const [promoState, setPromoState] = useState({ isEligible: false, platform: 'desktop' });
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showIOSModal, setShowIOSModal] = useState(false);
+  // Cookie consent must remain clickable; suppress promo until user has responded
+  const [cookieConsentDone, setCookieConsentDone] = useState(() => getConsentStatus().hasResponded);
 
   // Capture install prompt for Android
   useEffect(() => {
@@ -26,6 +29,12 @@ const PromoBannerManager = () => {
     };
     window.addEventListener('beforeinstallprompt', handleInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    const syncConsent = () => setCookieConsentDone(getConsentStatus().hasResponded);
+    window.addEventListener(CONSENT_UPDATED_EVENT, syncConsent);
+    return () => window.removeEventListener(CONSENT_UPDATED_EVENT, syncConsent);
   }, []);
 
   // Monitor navigation to increment and update eligibility
@@ -41,7 +50,9 @@ const PromoBannerManager = () => {
 
   const isExcludedPath = ['/login', '/register'].includes(location.pathname);
 
-  if (user || loading || !promoState.isEligible || isExcludedPath) return null;
+  if (user || loading || !promoState.isEligible || isExcludedPath || !cookieConsentDone) {
+    return null;
+  }
 
   const handleDismiss = e => {
     e.stopPropagation();

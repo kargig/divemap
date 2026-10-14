@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PADI Form 10086 - Certified Diver Activity Release</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #1a202c; max-width: 800px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 1.5rem; text-align: center; border-bottom: 2px solid #2b6cb0; padding-bottom: 12px; margin-bottom: 16px; }
+    .meta { background-color: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; }
+    .meta p { margin: 4px 0; }
+    .clause { margin-bottom: 16px; font-size: 0.95rem; text-align: justify; }
+    .signature-box { border: 1px solid #cbd5e0; border-radius: 6px; padding: 16px; background-color: #f7fafc; margin-top: 24px; }
+    .signature-line { display: flex; justify-content: space-between; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>PADI Form 10086 — Certified Diver Activity Release of Liability & Assumption of Risk</h1>
+  
+  <div class="meta">
+    <p><strong>Participant Name:</strong> {{ diver_full_name }}</p>
+    <p><strong>Diving Center:</strong> {{ diving_center_name }}</p>
+    <p><strong>Dive Activity / Date:</strong> {{ dive_date }}</p>
+  </div>
+
+  <div class="clause">
+    <p>Please read carefully and fill in all blanks before signing.</p>
+    <p>I, <strong>{{ diver_full_name }}</strong>, hereby affirm that I am a certified scuba diver trained in safe diving practices by a recognized certification agency.</p>
+  </div>
+
+  <div class="clause">
+    <p>I understand and agree that neither <strong>{{ diving_center_name }}</strong>, nor PADI Americas, Inc., nor their affiliate or subsidiary corporations, nor any of their respective employees, officers, agents, contractors or assigns (hereinafter referred to as "Released Parties") may be held liable or responsible in any way for any injury, death or other damages to me, my family, estate, heirs or assigns that may occur as a result of my participation in this diving activity or as a result of the negligence of any party, including the Released Parties, whether passive or active.</p>
+  </div>
+
+  <div class="clause">
+    <p>I acknowledge that diving with compressed air/gas involves inherent risks of decompression sickness, embolism or other hyperbaric/pressure-related injuries. I affirm that I will inspect all equipment prior to diving, maintain buddy contact, plan my dive within no-decompression limits, and ascend at safe rates with a safety stop.</p>
+  </div>
+
+  <div class="signature-box">
+    <p><strong>Affirmation & Electronic Signature</strong></p>
+    <p>I have fully informed myself of the contents of this Liability Release and Express Assumption of Risk by reading it before signing.</p>
+    <div class="signature-line">
+      <div><strong>Signed by:</strong> {{ diver_full_name }}</div>
+      <div><strong>Date:</strong> {{ signed_at or "Today" }}</div>
+    </div>
+  </div>
+</body>
+</html>

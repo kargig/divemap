@@ -112,6 +112,7 @@ async def get_diving_organization(
 @router.get("/{identifier}/levels", response_model=List[CertificationLevelResponse])
 async def get_organization_certification_levels(
     identifier: str,
+    main_only: bool = Query(False, description="Filter out specialties and special programs, returning only main/core certification tracks"),
     db: Session = Depends(get_db)
 ):
     """Get certification levels for a specific diving organization (by ID or name)."""
@@ -119,9 +120,26 @@ async def get_organization_certification_levels(
     if not organization:
         raise HTTPException(status_code=404, detail="Diving organization not found")
     
-    levels = db.query(CertificationLevel).filter(
+    query = db.query(CertificationLevel).filter(
         CertificationLevel.diving_organization_id == organization.id
-    ).all()
+    )
+
+    if main_only:
+        # Exclude specialties, primers, and skill development courses
+        query = query.filter(~CertificationLevel.category.ilike("%specialt%"))
+        query = query.filter(~CertificationLevel.category.ilike("%primer%"))
+        query = query.filter(~CertificationLevel.category.ilike("%skill dev%"))
+        query = query.filter(~CertificationLevel.category.ilike("%sdc%"))
+
+        # Also exclude intro experience programs (DSD, Try Scuba, Bubblemaker, Seal Team, Snorkel)
+        query = query.filter(~CertificationLevel.name.ilike("%discover scuba%"))
+        query = query.filter(~CertificationLevel.name.ilike("%try scuba%"))
+        query = query.filter(~CertificationLevel.name.ilike("%bubblemaker%"))
+        query = query.filter(~CertificationLevel.name.ilike("%seal team%"))
+        query = query.filter(~CertificationLevel.name.ilike("%snorkel%"))
+        query = query.filter(~CertificationLevel.name.ilike("%skin diver%"))
+
+    levels = query.all()
     
     # Sort levels by Category -> Depth -> Gas
     levels.sort(key=lambda l: (

@@ -1448,19 +1448,27 @@ async def get_audit_logs(
     response: Response,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(25, ge=1, le=100, description="Items per page"),
+    category: Optional[str] = Query(None, description="Category filter: 'auth' or 'medical'"),
     action: Optional[str] = Query(None, description="Filter by action"),
     exclude_action: Optional[List[str]] = Query(None, description="Exclude specific actions"),
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
     username: Optional[str] = Query(None, description="Filter by username"),
+    target_diver: Optional[str] = Query(None, description="Filter by target diver name"),
     ip_address: Optional[str] = Query(None, description="Filter by IP address"),
     success: Optional[bool] = Query(None, description="Filter by success status"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db)
 ):
     """
-    Get auth audit logs with pagination and filtering (Admin only).
+    Get auth and medical audit logs with pagination and filtering (Admin only).
     """
     query = db.query(AuthAuditLog, User.username).join(User, AuthAuditLog.user_id == User.id)
+
+    # Category Filtering
+    if category == "medical":
+        query = query.filter(AuthAuditLog.action.like("medical_%"))
+    elif category == "auth":
+        query = query.filter(~AuthAuditLog.action.like("medical_%"))
 
     # Filtering
     if action:
@@ -1471,6 +1479,8 @@ async def get_audit_logs(
         query = query.filter(AuthAuditLog.user_id == user_id)
     if username:
         query = query.filter(User.username.ilike(f"%{username}%"))
+    if target_diver:
+        query = query.filter(AuthAuditLog.details.ilike(f"%{target_diver}%"))
     if ip_address:
         query = query.filter(AuthAuditLog.ip_address.ilike(f"%{ip_address}%"))
     if success is not None:

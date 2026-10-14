@@ -1321,12 +1321,21 @@ class ParsedDiveTripResponse(BaseModel):
     diving_center_name: Optional[str] = None
     diving_center_country: Optional[str] = None
     diving_center_region: Optional[str] = None
+    diving_center_phone: Optional[str] = None
+    diving_center_email: Optional[str] = None
     max_depth: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     dives: List[ParsedDiveResponse] = []  # List of dives in this trip
     source_newsletter_id: Optional[int] = None  # ID of the source newsletter
     newsletter_content: Optional[str] = None  # Content of the source newsletter
+    is_bookable: bool = False
+    different_rental_price: bool = True
+    custom_rental_price: Optional[float] = None
+    rental_price: Optional[float] = None
+    octo_slot_id: Optional[str] = None
+    seats_available: Optional[int] = None
+    base_price: Optional[float] = None
     extracted_at: datetime
     created_at: datetime
     updated_at: datetime
@@ -1386,6 +1395,9 @@ class ParsedDiveTripCreate(BaseModel):
     trip_description: Optional[str] = None
     special_requirements: Optional[str] = None
     trip_status: str = Field("scheduled", pattern=r"^(scheduled|confirmed|cancelled|completed)$")
+    enable_online_booking: Optional[bool] = False
+    different_rental_price: Optional[bool] = True
+    custom_rental_price: Optional[float] = Field(None, ge=0)
     dives: List[ParsedDiveCreate] = []
 
     @field_validator('trip_description', 'special_requirements', mode='before')
@@ -1406,6 +1418,9 @@ class ParsedDiveTripUpdate(BaseModel):
     trip_description: Optional[str] = None
     special_requirements: Optional[str] = None
     trip_status: Optional[str] = Field(None, pattern=r"^(scheduled|confirmed|cancelled|completed)$")
+    enable_online_booking: Optional[bool] = None
+    different_rental_price: Optional[bool] = None
+    custom_rental_price: Optional[float] = Field(None, ge=0)
     dives: Optional[List[ParsedDiveCreate]] = None
 
     @field_validator('trip_description', 'special_requirements', mode='before')

@@ -60,6 +60,48 @@ class TestDivingOrganizationCertifications:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving organization not found" in response.json()["detail"]
 
+    def test_get_organization_certification_levels_main_only(
+        self, client, db_session, test_diving_organization, test_certification_level
+    ):
+        """Test getting certification levels filtered by main_only=true."""
+        specialty = CertificationLevel(
+            diving_organization_id=test_diving_organization.id,
+            name="Deep Diver Specialty",
+            category="Specialties",
+            max_depth="40m",
+            gases="Air",
+            tanks="Single",
+        )
+        dsd = CertificationLevel(
+            diving_organization_id=test_diving_organization.id,
+            name="Discover Scuba Diving (DSD)",
+            category="Recreational",
+            max_depth="12m",
+            gases="Air",
+            tanks="Single",
+        )
+        db_session.add(specialty)
+        db_session.add(dsd)
+        db_session.commit()
+
+        # Without filter: all 3 returned
+        res_all = client.get(f"/api/v1/diving-organizations/{test_diving_organization.id}/levels")
+        assert res_all.status_code == status.HTTP_200_OK
+        names_all = [l["name"] for l in res_all.json()]
+        assert "Open Water Diver" in names_all
+        assert "Deep Diver Specialty" in names_all
+        assert "Discover Scuba Diving (DSD)" in names_all
+
+        # With main_only=true: specialty and DSD are excluded
+        res_main = client.get(
+            f"/api/v1/diving-organizations/{test_diving_organization.id}/levels?main_only=true"
+        )
+        assert res_main.status_code == status.HTTP_200_OK
+        names_main = [l["name"] for l in res_main.json()]
+        assert "Open Water Diver" in names_main
+        assert "Deep Diver Specialty" not in names_main
+        assert "Discover Scuba Diving (DSD)" not in names_main
+
     def test_create_certification_level_admin(self, client, admin_headers, test_diving_organization):
         """Test creating a certification level as admin."""
         cert_data = {
