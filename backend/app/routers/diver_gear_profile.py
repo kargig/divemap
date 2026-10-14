@@ -2,7 +2,7 @@ import logging
 from typing import Optional, List, Dict, Any
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db

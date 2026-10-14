@@ -5,7 +5,6 @@ This module provides monitoring capabilities for Cloudflare Turnstile verificati
 including success rates, error tracking, and performance metrics.
 """
 
-import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass

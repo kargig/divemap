@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import secrets
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -16,7 +16,6 @@ from app.models import (
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    OctoProduct,
     User,
 )
 

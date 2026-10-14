@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models import User, RefreshToken, AuthAuditLog
-from app.database import get_db
 
 
 class TokenService:

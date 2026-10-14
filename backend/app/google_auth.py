@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import User
 from app.auth import create_access_token, get_password_hash
 from app.schemas import AvatarType
-from datetime import timedelta, datetime, timezone, UTC
+from datetime import timedelta, datetime, UTC
 from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 import re
 from sqlalchemy.exc import IntegrityError

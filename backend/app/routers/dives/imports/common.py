@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List, Optional, Dict, Any, Tuple
-from datetime import date, time, datetime
+from typing import Optional, Tuple
+from datetime import datetime
 import orjson
-from app.models import Dive, DiveSite, DivingCenter, User
+from app.models import Dive, DivingCenter, User
 from ..dives_shared import r2_storage
 from ..dives_utils import find_dive_site_by_import_id, find_potential_matches, calculate_similarity
-import re
 
 # Helper function to convert old difficulty labels to new codes
 def convert_difficulty_to_code(difficulty_input):
@@ -214,4 +213,5 @@ def save_dive_profile_data(dive, profile_data, db):
         raise e
 
 from .gas_utils import create_structured_gas_data, match_tank_id
+
 

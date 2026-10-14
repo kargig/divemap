@@ -5,8 +5,7 @@ Handles exporting dive routes to various formats (GPX, KML).
 """
 
 import xml.etree.ElementTree as ET
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Optional
 from xml.dom import minidom
 
 from app.models import DiveRoute, DiveSite

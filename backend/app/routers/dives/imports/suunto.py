@@ -1,6 +1,5 @@
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
 
 from ..dives_shared import router, get_db, get_current_user, User, Dive
 from app.schemas import GarminFITResponse

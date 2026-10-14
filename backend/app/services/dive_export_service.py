@@ -1,4 +1,3 @@
-import os
 import orjson
 import logging
 import re
@@ -6,7 +5,6 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, time, timedelta
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from io import BytesIO
 
 from app.models import Dive, DiveSite
 from app.services.dive_profile_parser import DiveProfileParser, parse_dive_information_text

@@ -11,11 +11,10 @@ Uses 3-tier caching:
 """
 
 import requests
-import math
 import random
 from collections import defaultdict
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, UTC
 import logging
 from decimal import Decimal
 

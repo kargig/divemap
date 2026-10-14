@@ -1,7 +1,7 @@
 import io
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone, UTC
+from typing import Optional
+from datetime import datetime, UTC
 
 from sqlalchemy.orm import Session
 

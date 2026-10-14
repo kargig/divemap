@@ -1,7 +1,7 @@
 import httpx
 import os
 import time
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from fastapi import HTTPException, status
 from .monitoring.turnstile_monitor import record_verification_event
 

@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import logging

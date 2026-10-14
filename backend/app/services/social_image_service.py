@@ -2,7 +2,6 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import json
-from datetime import datetime
 
 class SocialImageService:
     def __init__(self):

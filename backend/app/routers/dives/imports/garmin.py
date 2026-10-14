@@ -1,7 +1,6 @@
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import timedelta
 from collections import defaultdict
 import fitdecode
 import io

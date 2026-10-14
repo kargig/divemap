@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
-from sqlalchemy.orm import Session, joinedload, selectinload
+from fastapi import APIRouter, Depends, Request, HTTPException
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from app.database import get_db
@@ -44,7 +44,7 @@ async def get_pending_dive_sites(
     return sites
 
 from app.models import DiveSiteEditRequest, EditRequestStatus, EditRequestType, SiteMedia
-from datetime import datetime, timezone, UTC
+from datetime import datetime, UTC
 
 @router.get("/edit-requests")
 async def get_pending_edit_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):

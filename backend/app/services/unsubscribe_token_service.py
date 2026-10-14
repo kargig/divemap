@@ -8,12 +8,11 @@ One token per user, reusable across all emails and categories.
 import os
 import secrets
 import logging
-import json
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.models import User, UnsubscribeToken
+from app.models import UnsubscribeToken
 
 logger = logging.getLogger(__name__)
 

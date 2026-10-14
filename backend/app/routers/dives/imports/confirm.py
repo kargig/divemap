@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
+from typing import List
 from datetime import date, time, datetime
 
 from ..dives_shared import router, get_db, get_current_user, User, Dive, DiveTag, AvailableTag

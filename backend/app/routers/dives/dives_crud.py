@@ -14,10 +14,9 @@ This module contains core CRUD operations for dives:
 from fastapi import Depends, HTTPException, status, Query, BackgroundTasks
 from app.utils import _get_cached_avatar_url
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_, desc, asc, distinct, func
+from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from datetime import datetime
-import orjson
 
 from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, DiveBuddy, r2_storage, UNIFIED_TYPO_TOLERANCE
 

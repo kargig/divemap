@@ -10,7 +10,6 @@ import requests
 import math
 import random
 from typing import Optional, Dict, Tuple, List
-from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)

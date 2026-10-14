@@ -1,10 +1,9 @@
-from fastapi import Depends, HTTPException, status, Response, Request
+from fastapi import Depends, HTTPException, Response, Request
 from sqlalchemy.orm import Session
 from .dives_shared import router, get_db, get_current_user, User, Dive, r2_storage, joinedload
 from app.models import DiveMedia, SiteMedia
 from app.services.social_image_service import SocialImageService
 from app.services.dive_profile_parser import DiveProfileParser
-from app.utils import slugify
 import httpx
 import orjson
 import os

@@ -14,7 +14,7 @@ from email.mime.multipart import MIMEMultipart
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False

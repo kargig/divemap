@@ -7,7 +7,6 @@ detailed dive information including sample points, events, and metadata.
 
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Any
-from datetime import datetime, time
 import os
 import logging
 import re

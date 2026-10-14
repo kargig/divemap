@@ -1,8 +1,7 @@
 from typing import List, Optional, Dict
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct, literal_column
-from slowapi.util import get_remote_address
+from sqlalchemy import func, and_, or_, desc, select, text, literal_column
 from datetime import datetime, timedelta, UTC
 import difflib
 import orjson
@@ -15,7 +14,7 @@ from app.database import get_db
 from app.services.osm_coastline_service import detect_shore_direction
 from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.services.open_meteo_service import fetch_wind_data_single_point
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia, DiveSiteEditRequest, EditRequestStatus, EditRequestType
+from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia, DiveSiteEditRequest, EditRequestStatus, EditRequestType
 from app.auth import is_trusted_contributor
 from fastapi.responses import JSONResponse
 
@@ -23,9 +22,9 @@ from app.schemas import (
     DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, DiveSiteListResponse,
     DiveSiteRegionOption,
     SiteRatingCreate, SiteRatingResponse,
-    SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
+    SiteCommentCreate, SiteCommentResponse,
     SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
-    DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
+    CenterDiveSiteCreate, DiveResponse,
     DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
     DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
 )
@@ -3347,7 +3346,7 @@ async def delete_dive_site(
             message = "Dive site permanently deleted"
         else:
             # Soft delete
-            from datetime import datetime, timezone
+            from datetime import datetime
             dive_site.deleted_at = datetime.now(UTC)
             message = "Dive site archived successfully"
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, desc, or_, and_
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime
 import logging
 
 from fastapi import BackgroundTasks

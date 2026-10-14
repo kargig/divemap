@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, selectinload
 from typing import Optional, List
 
 from app.database import get_db
@@ -7,7 +7,7 @@ from app.auth import get_current_user, get_current_user_optional
 from app.models import User, ChatFeedback, ChatSession, ChatMessage
 from app.schemas.chat import ChatRequest, ChatResponse, ChatFeedbackCreate, ChatSessionResponse, ChatSessionDetailResponse
 from app.services.chat import ChatService
-from app.limiter import limiter, skip_rate_limit_for_admin
+from app.limiter import skip_rate_limit_for_admin
 from app.utils import get_client_ip
 from sqlalchemy import desc, func
 

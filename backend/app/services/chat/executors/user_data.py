@@ -1,6 +1,5 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 import logging
 from app.models import Dive, DiveSite, User
 

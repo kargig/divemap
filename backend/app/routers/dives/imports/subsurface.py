@@ -1,16 +1,14 @@
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
 from datetime import datetime
 import xml.etree.ElementTree as ET
-import orjson
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive, AvailableTag
-from app.schemas import DiveCreate
-from app.models import DiveSite, DivingCenter
+from ..dives_shared import router, get_db, get_current_user, User, Dive
+from app.models import DiveSite
 from app.physics import GasMix, calculate_real_volume
-from .common import find_existing_dive, find_dive_site_by_import_id, convert_difficulty_to_code
-from .gas_utils import create_structured_gas_data, match_tank_id
+from ..dives_utils import find_dive_site_by_import_id
+from .common import find_existing_dive
+from .gas_utils import create_structured_gas_data
 
 def parse_time_to_minutes(time_str):
     """Parse time string to minutes (float)"""

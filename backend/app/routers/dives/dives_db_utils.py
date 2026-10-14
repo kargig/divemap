@@ -7,8 +7,7 @@ that are shared across multiple dives modules.
 
 from sqlalchemy.orm import Session, selectinload, joinedload
 from typing import Optional
-from app.models import Dive, DiveSite, AvailableTag
-from .dives_shared import logger
+from app.models import Dive, DiveSite
 
 
 def get_dive_site_by_id(db: Session, dive_site_id: int) -> Optional[DiveSite]:

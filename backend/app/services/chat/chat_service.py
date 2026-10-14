@@ -2,13 +2,13 @@ import logging
 import uuid
 import json
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from fastapi.concurrency import run_in_threadpool
 from app.schemas.chat import (
-    ChatMessage, ChatRequest, ChatResponse, IntentType, ChatIntermediateAction
+    ChatRequest, ChatResponse, IntentType, ChatIntermediateAction
 )
 from app.models import ChatSession, ChatMessage as ChatMessageModel, User
 from app.services.openai_service import openai_service

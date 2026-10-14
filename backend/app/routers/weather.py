@@ -6,11 +6,9 @@ Endpoints for fetching weather data, specifically wind conditions for dive sites
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 
-from app.database import get_db
 from app.auth import get_current_user_optional
 from app.services.open_meteo_service import fetch_wind_data_single_point, fetch_wind_data_grid
 import logging

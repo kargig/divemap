@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import orjson
@@ -13,7 +13,6 @@ from app.models import (
     CenterRating, CenterComment, UserCertification, DivingCenter,
     DiveSite, AvailableTag, DivingOrganization
 )
-from app.schemas import UserResponse
 
 router = APIRouter()
 

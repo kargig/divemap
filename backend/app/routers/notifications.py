@@ -7,8 +7,8 @@ API endpoints for notification management, preferences, and email configuration.
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Security
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, func
-from datetime import datetime, timezone, UTC
+from sqlalchemy import desc, func
+from datetime import datetime, UTC
 from fastapi.responses import JSONResponse
 import os
 import logging

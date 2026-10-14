@@ -8,14 +8,14 @@ Handles user preference matching, area filtering, and email queuing via SQS.
 import os
 import math
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta, timezone, UTC
+from typing import Optional, Dict, List
+from datetime import datetime, UTC
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
+from sqlalchemy import or_, desc
 
 from app.models import (
     User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip, PushSubscription,
-    UserChatRoom, UserChatRoomMember, UserChatMessage
+    UserChatRoom, UserChatRoomMember
 )
 from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService

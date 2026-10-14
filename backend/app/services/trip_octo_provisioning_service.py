@@ -1,6 +1,5 @@
 import uuid
-import re
-from datetime import datetime, timezone, timedelta, time, UTC
+from datetime import datetime, timedelta, time, UTC
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.models import (

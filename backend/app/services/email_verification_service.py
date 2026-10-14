@@ -7,7 +7,7 @@ Handles email verification token generation, validation, and management.
 import os
 import secrets
 import logging
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 from sqlalchemy.orm import Session
 

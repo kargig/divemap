@@ -5,7 +5,6 @@ import json
 import logging
 import tempfile
 import os
-from pathlib import Path
 from datetime import datetime
 from fastapi import Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session

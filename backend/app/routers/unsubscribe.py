@@ -7,7 +7,7 @@ Users can unsubscribe from specific categories or all emails without requiring l
 
 import os
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import datetime, UTC
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse

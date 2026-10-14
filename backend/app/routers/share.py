@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from slowapi.util import get_remote_address
 
 from app.database import get_db
-from app.models import Dive, DiveSite, DiveRoute, User
-from app.auth import get_current_active_user, get_current_user_optional
+from app.models import User
+from app.auth import get_current_user_optional
 from app.limiter import limiter, skip_rate_limit_for_admin
 from app.services.share_service import ShareService
 from app.services.route_analytics_service import RouteAnalyticsService

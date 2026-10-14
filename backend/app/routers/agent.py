@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import Response
 import os
-import time
 from functools import lru_cache
 
 router = APIRouter()

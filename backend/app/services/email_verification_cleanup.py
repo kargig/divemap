@@ -6,11 +6,10 @@ to prevent database bloat.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta, UTC
+from datetime import datetime, timedelta, UTC
 from sqlalchemy.orm import Session
 
 from app.models import EmailVerificationToken
-from app.database import get_db
 
 logger = logging.getLogger(__name__)
 

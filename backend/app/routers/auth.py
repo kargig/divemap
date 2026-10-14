@@ -1,11 +1,9 @@
-from datetime import timedelta, datetime, timezone, UTC
+from datetime import timedelta, datetime, UTC
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from slowapi.util import get_remote_address
-from slowapi import Limiter
 from pydantic import BaseModel
 import os
 import logging
@@ -26,7 +24,6 @@ from app.auth import (
 )
 from app.token_service import token_service
 from app.google_auth import (
-    authenticate_google_user,
     verify_google_token,
     get_or_create_google_user,
     is_google_auth_configured,

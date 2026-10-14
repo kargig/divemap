@@ -13,7 +13,6 @@ import logging
 from app.database import get_db
 from app.models import User, PersonalAccessToken
 from app.schemas import TokenData
-from app.utils import utcnow
 
 logger = logging.getLogger(__name__)
 

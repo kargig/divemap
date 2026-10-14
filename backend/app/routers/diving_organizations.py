@@ -1,6 +1,6 @@
 import re
-from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -10,7 +10,7 @@ from app.schemas import (
     DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse,
     CertificationLevelResponse, CertificationLevelCreate, CertificationLevelUpdate
 )
-from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
+from app.auth import is_admin_or_moderator
 
 router = APIRouter()
 

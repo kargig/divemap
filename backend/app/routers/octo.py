@@ -1,9 +1,9 @@
 import uuid
 import logging
 from typing import Optional, List, Dict, Any
-from datetime import datetime, date, time, timezone, timedelta, UTC
+from datetime import datetime, time, timedelta, UTC
 from fastapi import APIRouter, Depends, HTTPException, Header, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +13,6 @@ from app.models import (
     DivingCenter,
     DivingCenterBookingSettings,
     OctoProduct,
-    OctoOption,
     OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,

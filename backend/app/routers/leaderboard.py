@@ -1,8 +1,8 @@
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
-from datetime import datetime, timezone, UTC
+from datetime import datetime, UTC
 from fastapi_cache.decorator import cache
 
 from app.database import get_db

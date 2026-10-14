@@ -29,6 +29,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"app/routers/dives/dives_shared.py" = ["F401"]
+"app/routers/dives/imports/common.py" = ["F401"]
+"app/services/chat/executors/base.py" = ["F401"]
 "tests/*" = ["B018", "F401", "F811"]
 
 [tool.ruff.format]

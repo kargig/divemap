@@ -15,7 +15,7 @@ from app.schemas import (
     AvatarUpdate, AvatarType, VisitedDiveSiteResponse,
     MyCommentsListResponse, MyRatingsListResponse, UserDiveSiteListResponse
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, is_admin_or_moderator, get_current_user_optional
+from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, get_current_user_optional
 from app.services.r2_storage_service import r2_storage
 from app.services.image_processing import image_processing
 from app.limiter import skip_rate_limit_for_admin
@@ -409,7 +409,6 @@ async def delete_user(
         db.delete(db_user)
         message = "User permanently deleted"
     else:
-        from datetime import datetime, timezone
         db_user.deleted_at = utcnow()
         db_user.enabled = False
         message = "User archived successfully"
@@ -452,7 +451,6 @@ async def delete_current_user(
     db: Session = Depends(get_db)
 ):
     """Archive current user account (soft delete)"""
-    from datetime import datetime, timezone
     current_user.deleted_at = utcnow()
     current_user.enabled = False
     db.commit()
@@ -791,7 +789,7 @@ async def get_user_public_profile(
     cert_stats = calculate_certification_stats(active_certifications)
 
     # Calculate diving logbook stats
-    from datetime import datetime, timedelta
+    from datetime import timedelta
     
     # 2. Max Depth, Longest Dive, TBT
     # first() on an aggregate query returns a Row object with the values
@@ -958,7 +956,6 @@ async def get_user_public_profile(
     # Remove empty categories
     gear_preferences = {k: v for k, v in gear_preferences.items() if v > 0}
     
-    from app.schemas import FavoriteDiveSite # Ensure it's imported for selection if needed, although defined in schemas/__init__.py
     
     diving_stats = DivingStatsResponse(
       max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,

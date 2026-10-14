@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Union, Literal, Dict, Tuple, Any
-from datetime import datetime, date
+from pydantic import BaseModel
+from typing import Optional, List, Literal, Dict, Tuple, Any
+from datetime import datetime
 from enum import Enum
 
 class ChatMessageRole(str, Enum):

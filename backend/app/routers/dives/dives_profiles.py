@@ -14,27 +14,24 @@ The profile functionality includes:
 - Bulk operations for profile cleanup
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File, Response
+from fastapi import Depends, HTTPException, status, UploadFile, File, Response
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from datetime import date, time, datetime
+from typing import Optional
+from datetime import datetime
 import orjson
 import os
 import tempfile
-import uuid
 from app.utils import parse_gf_from_text, has_deco_data
 
 # Maximum file size for dive profile uploads (15MB)
 MAX_PROFILE_FILE_SIZE = 15 * 1024 * 1024
 
 
-from .dives_shared import router, get_db, get_current_user, get_current_active_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias
+from .dives_shared import router, get_db, get_current_active_user, get_current_user_optional, User, Dive, r2_storage
+from app.models import DiveSite
 from app.services.dive_profile_parser import DiveProfileParser
 from app.services.dive_export_service import DiveExportService
-from .dives_validation import raise_validation_error
-from .dives_logging import log_dive_operation, log_error
+from .dives_logging import log_error
 
 
 @router.get("/{dive_id}/export/{format}", response_class=Response)

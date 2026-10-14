@@ -1,11 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Path, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone, UTC
-from typing import Optional
+from datetime import datetime, timedelta, UTC
 import secrets
 import string
-import os
 from urllib.parse import urlparse
 
 from app.database import get_db

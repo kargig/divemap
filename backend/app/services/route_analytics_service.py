@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 
-from app.models import RouteAnalytics, DiveRoute, User, Dive
+from app.models import RouteAnalytics, DiveRoute, User
 
 
 class RouteAnalyticsService:

@@ -6,7 +6,6 @@ Considers both wind direction and wind speed to provide safety recommendations.
 """
 
 from typing import Optional, Dict, Literal
-import math
 
 # Wind speed thresholds (in m/s)
 WIND_SPEED_GOOD_THRESHOLD = 6.2  # ~12 knots - safe for diving below this threshold

@@ -1,8 +1,8 @@
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, desc, asc, text, Integer
-from datetime import datetime, timedelta, timezone, UTC
+from sqlalchemy import func, and_, desc, text, Integer
+from datetime import datetime, timedelta, UTC
 import psutil
 import os
 import logging
@@ -13,7 +13,7 @@ from app.models import (
     User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
     SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
     DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, NotificationPreference, DiveRoute, RouteAnalytics,
+    Notification, DiveRoute, RouteAnalytics,
     AuthAuditLog
 )
 from app.auth import get_current_admin_user
@@ -407,7 +407,7 @@ async def get_general_statistics(
         "timestamp": now.isoformat()
     }
     
-    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
     pending_site_edits_count = db.query(func.count(DiveSiteEditRequest.id)).filter(
         DiveSiteEditRequest.status == EditRequestStatus.pending
     ).scalar()
@@ -565,7 +565,7 @@ async def get_moderation_pending_counts(
     db: Session = Depends(get_db)
 ):
     """Get the current count of pending edit and ownership requests for real-time moderation dashboard display"""
-    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
     
     pending_site_edits = db.query(func.count(DiveSiteEditRequest.id)).filter(
         DiveSiteEditRequest.status == EditRequestStatus.pending

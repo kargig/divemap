@@ -1,12 +1,9 @@
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
-from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse, ORJSONResponse
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, UTC
 from contextlib import asynccontextmanager
 import os
 import logging
@@ -14,7 +11,6 @@ import time
 import warnings
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Any
 
 # Suppress passlib deprecation warnings for crypt module
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")

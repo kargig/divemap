@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 import orjson
 from typing import Optional, List, Dict, Union, Type, Tuple, Any
 import openai

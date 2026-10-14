@@ -2,36 +2,34 @@ from typing import List, Optional, Union, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
-import difflib
 import orjson
 import requests
 import uuid
 from pathlib import Path
 
 from app.database import get_db
-from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
+from app.models import DivingCenter, CenterRating, CenterComment, User, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
 from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember, CenterMedia, DivingCenterManager, MediaType
 from app.utils import populate_center_media_urls
 from app.schemas import (
     DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse, CenterMediaResponse,
     CenterRatingCreate, CenterRatingResponse,
     CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
-    CenterDiveSiteCreate, GearRentalCostCreate,
+    GearRentalCostCreate,
     DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
     DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
     DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest,
     DivingCenterManagerResponse, DivingCenterManagerCreate
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
+from app.auth import get_current_active_user, get_current_user_optional, is_admin_or_moderator, get_current_user
 from app.models import OwnershipStatus
 from app.utils import (
     calculate_unified_phrase_aware_score,
     classify_match_type,
-    get_unified_fuzzy_trigger_conditions,
     UNIFIED_TYPO_TOLERANCE,
     is_diving_center_reviews_enabled
 )
-from app.limiter import limiter, skip_rate_limit_for_admin
+from app.limiter import skip_rate_limit_for_admin
 from app.services.notification_service import NotificationService
 import logging
 
@@ -1329,7 +1327,7 @@ async def get_diving_center(
                 user_rating = user_rating_obj.score
 
     # Prepare response data
-    from app.models import DivingCenterManager, DivingCenterFollower
+    from app.models import DivingCenterFollower
     is_user_manager = False
     if current_user:
         is_user_manager = is_center_manager(db, diving_center.id, current_user)
@@ -2775,7 +2773,6 @@ async def broadcast_text_to_followers(
 ):
     """Broadcast a text message to all followers of the diving center."""
     from app.models import DivingCenterManager
-    import json
     
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter_by(id=diving_center_id).first()

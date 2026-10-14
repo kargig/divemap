@@ -1,19 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_, func, desc, asc
+from sqlalchemy import or_, and_
 from typing import List, Optional
 from datetime import datetime, date, time, timedelta
 import re
 import orjson
 import os
-import requests
 import math
 from app.database import get_db
 from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive, OctoAvailabilitySlot, OctoProduct
 from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
 from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
-import openai
 import quopri
 from email import message_from_bytes
 from difflib import SequenceMatcher
@@ -1415,7 +1413,7 @@ async def get_parsed_trips(
     from sqlalchemy.orm import selectinload
     # Eager load all relationships to avoid N+1 queries
     # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET
-    from app.models import SiteRating, DiveSiteTag, AvailableTag
+    from app.models import DiveSiteTag
     query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
         joinedload(ParsedDiveTrip.diving_center),
@@ -2207,7 +2205,7 @@ async def create_parsed_trip(
         db.refresh(trip)
         
         # Load the newly created trip with relations
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import DiveSiteTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),
@@ -2495,7 +2493,7 @@ async def update_parsed_trip(
 
         # Load the updated trip with relations
         db.commit()
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import DiveSiteTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),

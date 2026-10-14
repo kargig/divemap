@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from datetime import datetime, date, timezone, timedelta, UTC
+from datetime import datetime, date, timedelta, UTC
 import uuid
 import logging
 import re
@@ -19,7 +19,6 @@ from app.models import (
     OctoBookingUnitItem,
     OctoUnit,
     DiverMedicalRecord,
-    DivingCenterVessel,
     DivingCenterBookingSettings,
     TripBriefing,
     ParsedDiveTrip,

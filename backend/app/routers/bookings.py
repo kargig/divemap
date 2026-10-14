@@ -2,9 +2,9 @@ import hashlib
 import logging
 import re
 from typing import Optional, List, Dict, Any
-from datetime import datetime, date, time, timezone, timedelta, UTC
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Header, Query
-from pydantic import BaseModel, Field
+from datetime import datetime, timedelta, UTC
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, Header, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
 
@@ -14,11 +14,7 @@ from app.models import (
     User,
     UserGearProfile,
     UserCertification,
-    DivingCenter,
     DivingCenterBookingSettings,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
