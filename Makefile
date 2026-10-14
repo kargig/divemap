@@ -17,7 +17,7 @@ export
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts db-snapshot db-restore db-status db-snapshots db-switch
 
 # Default target
 help:
@@ -33,6 +33,11 @@ help:
 	@echo "  test-frontend   - Run frontend tests"
 	@echo "  purge-cache     - Purge Cloudflare cache for divemap.gr"
 	@echo "  check-api-contracts - Verify frontend API calls match backend routes"
+	@echo "  db-snapshot     - Snapshot MySQL database state for branch (optional: rev=... branch=...)"
+	@echo "  db-restore      - Restore MySQL database snapshot (optional: rev=... branch=...)"
+	@echo "  db-status       - Show DB Alembic revision and snapshot sync status"
+	@echo "  db-snapshots    - List all saved branch database snapshots"
+	@echo "  db-switch       - Snapshot current, checkout target, restore target DB if snapshot exists (branch=<name>)"
 	@echo "  help            - Show this help message"
 	@echo ""
 
@@ -123,3 +128,24 @@ purge-cache:
 check-api-contracts:
 	@echo "🔍 Verifying frontend API calls against backend OpenAPI schema..."
 	@python3 scripts/check_api_contracts.py
+
+# Branch-Aware Database Snapshot & Restore
+db-snapshot:
+	@./scripts/db_branch.sh save "$(or $(branch),$$(git branch --show-current))" $(rev)
+
+db-restore:
+	@./scripts/db_branch.sh restore $(if $(branch),$(branch),) $(if $(rev),--rev $(rev),)
+
+db-status:
+	@./scripts/db_branch.sh status
+
+db-snapshots:
+	@./scripts/db_branch.sh list
+
+db-switch:
+	@if [ -z "$(branch)" ]; then \
+		echo "❌ Error: 'branch' parameter is required. Example: make db-switch branch=feature/foo"; \
+		exit 1; \
+	fi
+	@./scripts/db_branch.sh switch $(branch)
+

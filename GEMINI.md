@@ -120,6 +120,17 @@ Migrations are handled by Alembic.
 docker-compose exec backend python run_migrations.py
 ```
 
+**Branch Database Snapshots:**
+To avoid Alembic drift and schema conflicts when switching between Git branches:
+```bash
+make db-snapshot   # Save snapshot for current branch
+make db-restore    # Restore snapshot for current branch
+make db-status     # Check current Alembic revision vs saved snapshot
+make db-snapshots  # List all branch snapshots
+make db-switch branch=<branch_name> # Switch branch and restore its snapshot
+```
+See `docs/development/database-branch-snapshots.md` for details.
+
 ## Key Directories & Files
 - **`REPO_MAP.md`**: **START HERE** for an overview of the codebase structure and module purposes.
 - **`backend/`**: Contains the FastAPI application.
