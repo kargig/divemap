@@ -1,14 +1,13 @@
-from fastapi import Depends, HTTPException, status, UploadFile, File
+from fastapi import Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive
-from app.schemas import GarminFITResponse
 from app.models import DiveSite, DivingCenter
+from app.schemas import GarminFITResponse
+
+from ..dives_shared import Dive, User, get_current_user, get_db, router
+from .common import find_existing_dive, find_sites_by_coords
 from .suunto_parser import parse_suunto_json_file
-from .common import (
-    find_existing_dive, 
-    find_sites_by_coords
-)
+
 
 @router.post("/import/suunto-json", response_model=GarminFITResponse)
 async def import_suunto_json(

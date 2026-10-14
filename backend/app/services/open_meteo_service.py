@@ -10,13 +10,14 @@ Uses 3-tier caching:
 3. Open-Meteo API (source of truth)
 """
 
-import requests
+import logging
 import random
 from collections import defaultdict
-from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta, UTC
-import logging
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from typing import Dict, List, Optional, Tuple
+
+import requests
 
 logger = logging.getLogger(__name__)
 

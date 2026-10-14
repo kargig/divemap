@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, func
 from typing import List
 
-from app.database import get_db
-from app.utils import populate_avatar_full_url
-from app.models import User, UserFriendship
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, or_
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_active_user
-from app.schemas.user_friendship import FriendshipResponse, FriendshipRequestCreate
+from app.database import get_db
+from app.models import User, UserFriendship
+from app.schemas.user_friendship import FriendshipRequestCreate, FriendshipResponse
+from app.utils import populate_avatar_full_url
 
 router = APIRouter()
 

@@ -5,11 +5,11 @@ This service handles parsing of Subsurface XML dive profile data and extracts
 detailed dive information including sample points, events, and metadata.
 """
 
-import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Any
-import os
 import logging
+import os
 import re
+import xml.etree.ElementTree as ET
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

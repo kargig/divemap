@@ -5,12 +5,13 @@ Handles generation of shareable content for dives, dive sites, and dive routes.
 Provides platform-specific share URLs and metadata.
 """
 
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 from urllib.parse import urlencode
-from sqlalchemy.orm import Session
-from fastapi import Request
 
-from app.models import Dive, DiveSite, DiveRoute, User
+from fastapi import Request
+from sqlalchemy.orm import Session
+
+from app.models import Dive, DiveRoute, DiveSite, User
 
 
 class ShareService:

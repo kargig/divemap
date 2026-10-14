@@ -7,6 +7,7 @@ that are shared across multiple dives modules.
 
 from datetime import date, time
 from typing import Optional
+
 from fastapi import HTTPException, status
 
 

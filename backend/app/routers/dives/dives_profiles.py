@@ -14,24 +14,35 @@ The profile functionality includes:
 - Bulk operations for profile cleanup
 """
 
-from fastapi import Depends, HTTPException, status, UploadFile, File, Response
-from sqlalchemy.orm import Session
-from typing import Optional
-from datetime import datetime
-import orjson
 import os
 import tempfile
-from app.utils import parse_gf_from_text, has_deco_data
+from datetime import datetime
+from typing import Optional
+
+import orjson
+from fastapi import Depends, File, HTTPException, Response, UploadFile, status
+from sqlalchemy.orm import Session
+
+from app.utils import has_deco_data, parse_gf_from_text
 
 # Maximum file size for dive profile uploads (15MB)
 MAX_PROFILE_FILE_SIZE = 15 * 1024 * 1024
 
 
-from .dives_shared import router, get_db, get_current_active_user, get_current_user_optional, User, Dive, r2_storage
 from app.models import DiveSite
-from app.services.dive_profile_parser import DiveProfileParser
 from app.services.dive_export_service import DiveExportService
+from app.services.dive_profile_parser import DiveProfileParser
+
 from .dives_logging import log_error
+from .dives_shared import (
+    Dive,
+    User,
+    get_current_active_user,
+    get_current_user_optional,
+    get_db,
+    r2_storage,
+    router,
+)
 
 
 @router.get("/{dive_id}/export/{format}", response_class=Response)
@@ -162,8 +173,9 @@ def get_dive_profile(
             profile_data = orjson.loads(profile_content)
         else:
             # Manually uploaded profile (XML format) - save temporarily and parse
-            from app.services.dive_profile_parser import DiveProfileParser
             import tempfile
+
+            from app.services.dive_profile_parser import DiveProfileParser
             
             with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
                 temp_file.write(profile_content)
@@ -270,9 +282,10 @@ async def upload_dive_profile(
 
         # 1. Parse based on format
         if filename_lower.endswith(('.xml', '.uddf')):
-            from app.services.dive_profile_parser import DiveProfileParser
             import tempfile
             import xml.etree.ElementTree as ET
+
+            from app.services.dive_profile_parser import DiveProfileParser
             with tempfile.NamedTemporaryFile(mode='wb', suffix='.xml', delete=False) as temp_file:
                 temp_file.write(content)
                 temp_path = temp_file.name

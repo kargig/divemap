@@ -1,15 +1,18 @@
 import uuid
-from datetime import datetime, timedelta, time, UTC
+from datetime import UTC, datetime, time, timedelta
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from app.models import (
-    ParsedDiveTrip,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
-    OctoAvailabilitySlot,
     DivingCenterBookingSettings,
+    OctoAvailabilitySlot,
+    OctoOption,
+    OctoProduct,
+    OctoUnit,
+    ParsedDiveTrip,
 )
+
 
 class TripOctoProvisioningService:
     def provision_or_sync_slot(

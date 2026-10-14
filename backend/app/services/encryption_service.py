@@ -1,6 +1,7 @@
-import os
 import logging
-from cachetools import cached, TTLCache
+import os
+
+from cachetools import TTLCache, cached
 from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)

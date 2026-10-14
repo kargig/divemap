@@ -5,8 +5,10 @@ This module contains common database operations and utilities
 that are shared across multiple dives modules.
 """
 
-from sqlalchemy.orm import Session, selectinload, joinedload
 from typing import Optional
+
+from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.models import Dive, DiveSite
 
 

@@ -5,12 +5,13 @@ Provides email sending via AWS SES with template support.
 Automatically detects AWS credentials and falls back gracefully when unavailable.
 """
 
-import os
-import orjson
 import logging
-from typing import Optional, Dict, Any, List
-from email.mime.text import MIMEText
+import os
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Dict, List, Optional
+
+import orjson
 
 try:
     import boto3

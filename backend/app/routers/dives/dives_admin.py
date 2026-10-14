@@ -12,23 +12,35 @@ All functions in this module require admin authentication and provide
 full access to all dives regardless of ownership.
 """
 
-from fastapi import Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
 import orjson
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.responses import Response
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
+
 
 class ORJSONResponse(Response):
     media_type = "application/json"
     def render(self, content: any) -> bytes:
         return orjson.dumps(content, default=str)
 
-from .dives_shared import router, get_db, get_current_admin_user, User, Dive, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveUpdate, DiveResponse, DiveListResponse
 from app.models import DiveSite, DiveSiteAlias, DivingCenter, get_difficulty_id_by_code
+from app.schemas import DiveListResponse, DiveResponse, DiveUpdate
 from app.services.dive_profile_parser import parse_dive_information_text
+
+from .dives_shared import (
+    AvailableTag,
+    Dive,
+    DiveTag,
+    User,
+    get_current_admin_user,
+    get_db,
+    r2_storage,
+    router,
+)
 from .dives_utils import generate_dive_name
 
 

@@ -6,11 +6,11 @@ including Turnstile verification, performance metrics, and error tracking.
 """
 
 from .turnstile_monitor import (
-    TurnstileMonitor,
     TurnstileEvent,
-    turnstile_monitor,
+    TurnstileMonitor,
+    get_turnstile_stats,
     record_verification_event,
-    get_turnstile_stats
+    turnstile_monitor,
 )
 
 __all__ = [

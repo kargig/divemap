@@ -1,43 +1,95 @@
-from typing import List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, and_, or_, desc, select, text, literal_column
-from datetime import datetime, timedelta, UTC
 import difflib
-import orjson
-import uuid
+import logging
 import random
+import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from app.services.r2_storage_service import get_r2_storage
-from app.services.image_processing import image_processing
-from app.database import get_db
-from app.services.osm_coastline_service import detect_shore_direction
-from app.services.wind_recommendation_service import calculate_wind_suitability
-from app.services.open_meteo_service import fetch_wind_data_single_point
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia, DiveSiteEditRequest, EditRequestStatus, EditRequestType
-from app.auth import is_trusted_contributor
-from fastapi.responses import JSONResponse
+from typing import Dict, List, Optional
 
-from app.schemas import (
-    DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, DiveSiteListResponse,
-    DiveSiteRegionOption,
-    SiteRatingCreate, SiteRatingResponse,
-    SiteCommentCreate, SiteCommentResponse,
-    SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
-    CenterDiveSiteCreate, DiveResponse,
-    DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
-    DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
-)
+import orjson
 import requests
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, get_current_user
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.responses import JSONResponse
+from sqlalchemy import and_, desc, func, literal_column, or_, select, text
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import (
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_user,
+    get_current_user_optional,
+    is_trusted_contributor,
+)
+from app.database import get_db
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.models import (
+    AvailableTag,
+    CenterDiveSite,
+    DifficultyLevel,
+    Dive,
+    DiveMedia,
+    DiveRoute,
+    DiveSite,
+    DiveSiteAlias,
+    DiveSiteEditRequest,
+    DiveSiteTag,
+    DiveTag,
+    DivingCenter,
+    DivingOrganization,
+    EditRequestStatus,
+    EditRequestType,
+    OwnershipStatus,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
+    UserCertification,
+    get_difficulty_id_by_code,
+)
+from app.schemas import (
+    CenterDiveSiteCreate,
+    DiveResponse,
+    DiveRouteCreate,
+    DiveRouteResponse,
+    DiveRouteWithCreator,
+    DiveSiteAliasCreate,
+    DiveSiteAliasResponse,
+    DiveSiteAliasUpdate,
+    DiveSiteCreate,
+    DiveSiteListResponse,
+    DiveSiteMediaOrderRequest,
+    DiveSiteRegionOption,
+    DiveSiteResponse,
+    DiveSiteUpdate,
+    SiteCommentCreate,
+    SiteCommentResponse,
+    SiteMediaCreate,
+    SiteMediaResponse,
+    SiteMediaUpdate,
+    SiteRatingCreate,
+    SiteRatingResponse,
+)
+from app.services.image_processing import image_processing
+from app.services.open_meteo_service import fetch_wind_data_single_point
+from app.services.osm_coastline_service import detect_shore_direction
+from app.services.r2_storage_service import get_r2_storage
+from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.utils import (
+    UNIFIED_TYPO_TOLERANCE,
     calculate_unified_phrase_aware_score,
     classify_match_type,
     get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -443,7 +495,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         if hasattr(site, 'tags') and site.tags:
             site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
         else:
-            from app.models import DiveSiteTag, AvailableTag
+            from app.models import AvailableTag, DiveSiteTag
             tags = db.query(AvailableTag).join(DiveSiteTag).filter(
                 DiveSiteTag.dive_site_id == site.id
             ).all()
@@ -582,7 +634,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
         else:
             # Query tags from database if not already loaded
-            from app.models import DiveSiteTag, AvailableTag
+            from app.models import AvailableTag, DiveSiteTag
             tags = db.query(AvailableTag).join(DiveSiteTag).filter(
                 DiveSiteTag.dive_site_id == site.id
             ).all()
@@ -1258,7 +1310,7 @@ async def get_dive_sites(
     # Define subqueries for metadata to avoid N+1 queries.
     # Build ratings aggregate with Core (SiteRating.__table__) so ORDER BY does not unwrap to
     # avg(site_ratings.score) and duplicate JOINs during count().
-    from app.models import SiteRating, SiteComment, DiveRoute
+    from app.models import DiveRoute, SiteComment, SiteRating
     _sr = SiteRating.__table__
     ratings_subquery = (
         select(
@@ -1393,7 +1445,7 @@ async def get_dive_sites(
         site_ids = [s.id for s in dive_sites]
 
         # Fetch all media from SiteMedia for these sites
-        from app.models import SiteMedia, DiveMedia, Dive
+        from app.models import Dive, DiveMedia, SiteMedia
         all_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id.in_(site_ids)).all()
         for sm in all_site_media:
             if sm.dive_site_id not in site_media_map:
@@ -1856,8 +1908,8 @@ async def _send_pending_moderation_notification(dive_site_id: int):
 async def _send_dive_site_notifications(dive_site_id: int):
     """Background task to send notifications for a new dive site."""
     try:
-        from app.services.notification_service import NotificationService
         from app.database import SessionLocal
+        from app.services.notification_service import NotificationService
 
         # Create a new database session for the background task
         db = SessionLocal()
@@ -1884,8 +1936,8 @@ def is_similar_name(name1: str, name2: str) -> bool:
     2. The SequenceMatcher ratio is >= 0.70 (handling typos and suffix/prefix variations like Elphinstone vs Elphinstone Reef)
     3. One is a substring of the other and the shorter name is at least 4 characters long
     """
-    import re
     import difflib
+    import re
 
     n1 = name1.lower().strip()
     n2 = name2.lower().strip()
@@ -2147,6 +2199,7 @@ async def create_dive_site(
     return response_data
 
 from fastapi_cache.decorator import cache
+
 
 @router.get("/countries", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")

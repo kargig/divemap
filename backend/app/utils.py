@@ -1,11 +1,12 @@
-from fastapi import Request
-from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
-from datetime import datetime, UTC
-import orjson
 import re
 import unicodedata
-from cachetools import cached, TTLCache
+from datetime import UTC, datetime
+from typing import List, Optional, Tuple
+
+import orjson
+from cachetools import TTLCache, cached
+from fastapi import Request
+from sqlalchemy.orm import Session
 
 
 def slugify(text: str) -> str:
@@ -265,6 +266,7 @@ def is_localhost_ip(ip_address: str) -> bool:
 
 import ipaddress
 
+
 def is_private_ip(ip_address: str) -> bool:
     """
     Check if an IP address is in a private network range.
@@ -339,7 +341,6 @@ def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
 
 # Unified search scoring utilities for fuzzy search across all content types
 import difflib
-
 
 # Unified typo tolerance settings
 UNIFIED_TYPO_TOLERANCE = {
@@ -647,8 +648,8 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
 @cached(cache=TTLCache(maxsize=1024, ttl=3300))
 def _get_cached_avatar_url(avatar_url: str, avatar_type: str) -> Optional[str]:
     """Helper to generate and cache presigned avatar URLs based on the raw URL string."""
-    from app.services.r2_storage_service import r2_storage
     from app.schemas import AvatarType
+    from app.services.r2_storage_service import r2_storage
 
     if avatar_type == AvatarType.custom:
         return r2_storage.get_photo_url(avatar_url)
@@ -731,5 +732,7 @@ def has_deco_data(profile_data: dict) -> bool:
 
 # Alias unit_conversion submodule for app.utils.unit_conversion namespace compatibility
 import sys
+
 import app.unit_conversion as unit_conversion
+
 sys.modules['app.utils.unit_conversion'] = unit_conversion

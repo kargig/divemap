@@ -5,16 +5,17 @@ Handles email unsubscribe functionality with token-based one-click unsubscribe.
 Users can unsubscribe from specific categories or all emails without requiring login.
 """
 
-import os
 import logging
-from datetime import datetime, UTC
+import os
+from datetime import UTC, datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, NotificationPreference
+from app.models import NotificationPreference, User
 from app.services.unsubscribe_token_service import unsubscribe_token_service
 
 logger = logging.getLogger(__name__)

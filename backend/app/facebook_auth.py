@@ -1,15 +1,17 @@
+import hashlib
+import hmac
+import logging
 import os
 import re
-import hmac
-import hashlib
 import secrets
-import logging
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
+
+from app.auth import get_password_hash
 from app.models import User
 from app.schemas import AvatarType
-from app.auth import get_password_hash
 from app.utils import create_default_notification_preferences
 
 logger = logging.getLogger(__name__)

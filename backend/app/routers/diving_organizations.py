@@ -1,16 +1,21 @@
 import re
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
 
-from app.database import get_db
-from app.models import DivingOrganization, CertificationLevel
-from app.schemas import (
-    DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse,
-    CertificationLevelResponse, CertificationLevelCreate, CertificationLevelUpdate
-)
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
 from app.auth import is_admin_or_moderator
+from app.database import get_db
+from app.models import CertificationLevel, DivingOrganization
+from app.schemas import (
+    CertificationLevelCreate,
+    CertificationLevelResponse,
+    CertificationLevelUpdate,
+    DivingOrganizationCreate,
+    DivingOrganizationResponse,
+    DivingOrganizationUpdate,
+)
 
 router = APIRouter()
 

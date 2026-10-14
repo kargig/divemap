@@ -1,9 +1,19 @@
-from typing import List, Dict
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 import logging
-from app.models import DiveSite, DivingCenter, SiteComment, SiteRating, CenterComment, CenterRating
+from typing import Dict, List
+
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.models import (
+    CenterComment,
+    CenterRating,
+    DiveSite,
+    DivingCenter,
+    SiteComment,
+    SiteRating,
+)
 from app.utils import is_diving_center_reviews_enabled
+
 from .base import clean_results
 
 logger = logging.getLogger(__name__)

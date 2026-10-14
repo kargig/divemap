@@ -1,8 +1,10 @@
 import logging
-import orjson
 from typing import Optional
+
+import orjson
 from fastapi import Request
 from sqlalchemy.orm import Session
+
 from app.models import AuthAuditLog, User
 
 logger = logging.getLogger("medical_audit")

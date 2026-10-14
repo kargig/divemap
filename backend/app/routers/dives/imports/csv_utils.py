@@ -1,8 +1,10 @@
 import re
-import nh3
-from typing import Optional, Tuple
 from datetime import date, time
+from typing import Optional, Tuple
+
+import nh3
 from dateutil import parser
+
 
 def protect_csv_formula(value: str) -> Optional[str]:
     """

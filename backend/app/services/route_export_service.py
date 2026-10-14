@@ -10,7 +10,6 @@ from xml.dom import minidom
 
 from app.models import DiveRoute, DiveSite
 
-
 # Constants for styling
 LINE_WIDTH = 3
 POLYGON_TRANSPARENCY = "80"  # Hex transparency value

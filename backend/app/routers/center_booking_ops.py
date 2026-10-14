@@ -1,45 +1,48 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status, Request
-from sqlalchemy import func
-from sqlalchemy.orm import Session, joinedload
-from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
-from datetime import datetime, date, timedelta, UTC
-import uuid
 import logging
 import re
+import uuid
+from datetime import UTC, date, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_user
+from app.database import get_db
 from app.models import (
-    User,
+    CenterDiverMedicalApproval,
+    Dive,
+    DiverMedicalRecord,
     DivingCenter,
-    OctoProduct,
+    DivingCenterBookingSettings,
+    DivingCenterManager,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
+    OctoProduct,
     OctoUnit,
-    DiverMedicalRecord,
-    DivingCenterBookingSettings,
-    TripBriefing,
-    ParsedDiveTrip,
-    UserMedicalProfile,
-    CenterDiverMedicalApproval,
-    DivingCenterManager,
     OwnershipStatus,
-    Dive,
+    ParsedDiveTrip,
+    TripBriefing,
+    User,
+    UserMedicalProfile,
 )
 from app.routers.diving_centers import is_center_manager
-from app.services.manifest_export_service import ManifestExportService
-from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
-from app.services.nitrox_service import check_nitrox_eligibility
-from app.services.briefing_service import BriefingService
-from app.services.booking_pricing_service import compute_participant_octo_pricing
-from app.services.medical_audit_service import log_medical_access
 from app.services.booking_access_service import (
-    assert_slot_belongs_to_center,
     assert_participant_on_center_trip,
+    assert_slot_belongs_to_center,
     bump_linked_trip_current_bookings,
 )
+from app.services.booking_medical_encryption_service import (
+    BookingMedicalEncryptionService,
+)
+from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.briefing_service import BriefingService
+from app.services.manifest_export_service import ManifestExportService
+from app.services.medical_audit_service import log_medical_access
+from app.services.nitrox_service import check_nitrox_eligibility
 
 logger = logging.getLogger(__name__)
 

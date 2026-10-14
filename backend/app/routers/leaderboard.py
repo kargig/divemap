@@ -1,17 +1,33 @@
+from datetime import UTC, datetime
 from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, and_
-from datetime import datetime, UTC
 from fastapi_cache.decorator import cache
+from sqlalchemy import and_, desc, func
+from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    User, Dive, DiveSite, DivingCenter, DiveSiteEditRequest,
-    SiteRating, CenterRating, SiteComment, CenterComment,
-    ParsedDiveTrip, DiveMedia, SiteMedia
+    CenterComment,
+    CenterRating,
+    Dive,
+    DiveMedia,
+    DiveSite,
+    DiveSiteEditRequest,
+    DivingCenter,
+    ParsedDiveTrip,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
 )
-from app.schemas import LeaderboardUserResponse, LeaderboardCenterResponse, LeaderboardUserEntry, LeaderboardCenterEntry, AvatarType
+from app.schemas import (
+    AvatarType,
+    LeaderboardCenterEntry,
+    LeaderboardCenterResponse,
+    LeaderboardUserEntry,
+    LeaderboardUserResponse,
+)
 from app.utils import populate_avatar_full_url
 
 router = APIRouter()

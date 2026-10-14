@@ -1,27 +1,52 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, desc, or_, and_
-from typing import List, Optional
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import List, Optional
 
-from fastapi import BackgroundTasks
-from app.database import get_db
-from app.utils import populate_avatar_full_url
-from app.models import User, UserChatRoom, UserChatRoomMember, UserChatMessage, DivingCenter, DivingCenterManager, BusinessChatStatus
-from app.auth import get_current_active_user
-from app.schemas.user_chat import (
-    ChatRoomCreate, ChatRoomResponse, ChatRoomUpdate,
-    ChatMessageCreate, ChatMessageResponse, ChatMessageUpdate,
-    ChatRoomArchiveUpdate, RoomMessagesResponse, ChatMessageBaseResponse,
-    UserBasicInfo
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
 )
+from sqlalchemy import and_, desc, func, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import get_current_active_user
+from app.database import get_db
+from app.models import (
+    BusinessChatStatus,
+    DivingCenter,
+    DivingCenterManager,
+    User,
+    UserChatMessage,
+    UserChatRoom,
+    UserChatRoomMember,
+)
+from app.schemas.chat import ChatRequest
+from app.schemas.user_chat import (
+    ChatMessageBaseResponse,
+    ChatMessageCreate,
+    ChatMessageResponse,
+    ChatMessageUpdate,
+    ChatRoomArchiveUpdate,
+    ChatRoomCreate,
+    ChatRoomResponse,
+    ChatRoomUpdate,
+    RoomMessagesResponse,
+    UserBasicInfo,
+)
+from app.services.chat import ChatService
 from app.services.encryption_service import (
-    generate_room_dek, encrypt_room_dek, decrypt_message, encrypt_message
+    decrypt_message,
+    encrypt_message,
+    encrypt_room_dek,
+    generate_room_dek,
 )
 from app.services.sqs_service import SQSService
-from app.services.chat import ChatService
-from app.schemas.chat import ChatRequest
+from app.utils import populate_avatar_full_url
 
 router = APIRouter()
 sqs_service = SQSService()

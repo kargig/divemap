@@ -1,16 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path, Request
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, UTC
 import secrets
 import string
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
-from app.database import get_db
-from app.models import ShortLink
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
+from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.limiter import limiter
+from app.models import ShortLink
 
 api_router = APIRouter()
 redirect_router = APIRouter()

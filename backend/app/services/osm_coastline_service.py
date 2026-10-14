@@ -6,11 +6,12 @@ via the Overpass API. This service queries for coastline segments near dive site
 coordinates and calculates the shore direction (compass bearing facing seaward).
 """
 
-import requests
+import logging
 import math
 import random
-from typing import Optional, Dict, Tuple, List
-import logging
+from typing import Dict, List, Optional, Tuple
+
+import requests
 
 logger = logging.getLogger(__name__)
 

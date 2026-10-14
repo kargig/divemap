@@ -5,11 +5,11 @@ Provides email sending via AWS SES with Jinja2 template rendering.
 Handles notification emails with HTML and plain text templates.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any, TYPE_CHECKING
-from pathlib import Path
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -24,8 +24,9 @@ from app.services.ses_service import SESService
 
 # Optional imports for database-dependent methods
 try:
-    from app.models import EmailConfig
     from sqlalchemy.orm import Session
+
+    from app.models import EmailConfig
     from app.services.unsubscribe_token_service import unsubscribe_token_service
     DB_AVAILABLE = True
 except ImportError:

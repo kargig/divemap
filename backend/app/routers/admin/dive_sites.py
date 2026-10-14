@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
-from sqlalchemy.orm import Session, joinedload
 from typing import List
 
-from app.database import get_db
-from app.models import DiveSite, User
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_active_user
-from app.schemas import DiveSiteResponse
+from app.database import get_db
 from app.limiter import skip_rate_limit_for_admin
+from app.models import DiveSite, User
+from app.schemas import DiveSiteResponse
 
 router = APIRouter(
     prefix="/dive-sites",
@@ -43,8 +44,15 @@ async def get_pending_dive_sites(
         
     return sites
 
-from app.models import DiveSiteEditRequest, EditRequestStatus, EditRequestType, SiteMedia
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
+from app.models import (
+    DiveSiteEditRequest,
+    EditRequestStatus,
+    EditRequestType,
+    SiteMedia,
+)
+
 
 @router.get("/edit-requests")
 async def get_pending_edit_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):

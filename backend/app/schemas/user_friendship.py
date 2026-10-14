@@ -1,8 +1,10 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
 
 from app.schemas.user_chat import UserBasicInfo
+
 
 class FriendshipBase(BaseModel):
     user_id: int

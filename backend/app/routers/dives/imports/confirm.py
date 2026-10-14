@@ -1,17 +1,24 @@
+from datetime import date, datetime, time
+from typing import List
+
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import date, time, datetime
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive, DiveTag, AvailableTag
-from app.schemas import DiveCreate
 from app.models import DiveSite
-from .common import convert_difficulty_to_code, save_dive_profile_data
-from ..dives_utils import (
-    has_deco_profile,
-    generate_dive_name,
-    get_or_create_deco_tag
+from app.schemas import DiveCreate
+
+from ..dives_shared import (
+    AvailableTag,
+    Dive,
+    DiveTag,
+    User,
+    get_current_user,
+    get_db,
+    router,
 )
+from ..dives_utils import generate_dive_name, get_or_create_deco_tag, has_deco_profile
+from .common import convert_difficulty_to_code, save_dive_profile_data
+
 
 @router.post("/import/confirm")
 async def confirm_import_dives(

@@ -1,31 +1,85 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, File, UploadFile
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_
-from typing import List, Optional
-import uuid
-
-from app.database import get_db
-from app.models import User, SiteRating, SiteComment, CenterComment, DiveSite, Dive, DivingCenter, DiveBuddy, ApiKey, UserSocialLink, PersonalAccessToken, DiveSiteList, DiveSiteListItem, DiveSiteTag
-from app.schemas import (
-    UserResponse, UserUpdate, UserCreateAdmin, UserUpdateAdmin, UserListResponse, 
-    PasswordChangeRequest, UserPublicProfileResponse, UserProfileStats, UserSearchResponse,
-    ApiKeyResponse, ApiKeyCreate, ApiKeyCreateResponse, ApiKeyUpdate, CertificationStats,
-    UserSocialLinkCreate, UserSocialLinkResponse,
-    PATCreate, PATResponse, PATCreateResponse, DivingStatsResponse, AdvancedAnalyticsResponse,
-    AvatarUpdate, AvatarType, VisitedDiveSiteResponse,
-    MyCommentsListResponse, MyRatingsListResponse, UserDiveSiteListResponse
-)
-from app.auth import get_current_active_user, get_current_admin_user, get_password_hash, verify_password, get_current_user_optional
-from app.services.r2_storage_service import r2_storage
-from app.services.image_processing import image_processing
-from app.limiter import skip_rate_limit_for_admin
-from app.utils import utcnow, populate_avatar_full_url
-from sqlalchemy import func, extract, desc, distinct
-from pydantic import BaseModel, Field
-from app.facebook_auth import verify_facebook_token, is_facebook_auth_configured, FacebookAuthError
-import secrets
 import base64
 import re
+import secrets
+import uuid
+from typing import List, Optional
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from pydantic import BaseModel, Field
+from sqlalchemy import desc, distinct, extract, func, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import (
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_user_optional,
+    get_password_hash,
+    verify_password,
+)
+from app.database import get_db
+from app.facebook_auth import (
+    FacebookAuthError,
+    is_facebook_auth_configured,
+    verify_facebook_token,
+)
+from app.limiter import skip_rate_limit_for_admin
+from app.models import (
+    ApiKey,
+    CenterComment,
+    Dive,
+    DiveBuddy,
+    DiveSite,
+    DiveSiteList,
+    DiveSiteListItem,
+    DiveSiteTag,
+    DivingCenter,
+    PersonalAccessToken,
+    SiteComment,
+    SiteRating,
+    User,
+    UserSocialLink,
+)
+from app.schemas import (
+    AdvancedAnalyticsResponse,
+    ApiKeyCreate,
+    ApiKeyCreateResponse,
+    ApiKeyResponse,
+    ApiKeyUpdate,
+    AvatarType,
+    AvatarUpdate,
+    CertificationStats,
+    DivingStatsResponse,
+    MyCommentsListResponse,
+    MyRatingsListResponse,
+    PasswordChangeRequest,
+    PATCreate,
+    PATCreateResponse,
+    PATResponse,
+    UserCreateAdmin,
+    UserDiveSiteListResponse,
+    UserListResponse,
+    UserProfileStats,
+    UserPublicProfileResponse,
+    UserResponse,
+    UserSearchResponse,
+    UserSocialLinkCreate,
+    UserSocialLinkResponse,
+    UserUpdate,
+    UserUpdateAdmin,
+    VisitedDiveSiteResponse,
+)
+from app.services.image_processing import image_processing
+from app.services.r2_storage_service import r2_storage
+from app.utils import populate_avatar_full_url, utcnow
 
 router = APIRouter()
 
@@ -523,8 +577,10 @@ async def update_current_user_profile(
 
     if email_upgraded:
         try:
-            from app.services.email_verification_service import email_verification_service
             from app.services.email_service import EmailService
+            from app.services.email_verification_service import (
+                email_verification_service,
+            )
             verification_token_obj = email_verification_service.create_verification_token(
                 current_user.id, db
             )
@@ -1004,8 +1060,9 @@ async def get_user_public_lists(
     from app.routers.lists import ensure_default_lists, sanitize_list_for_response
     ensure_default_lists(db, user.id)
 
-    from app.models import DiveSiteListCollaborator
     from sqlalchemy import or_
+
+    from app.models import DiveSiteListCollaborator
 
     # Subquery to find list IDs where this profile user is a collaborator and show_on_profile is True
     collab_list_ids_subquery = db.query(DiveSiteListCollaborator.list_id).filter(
@@ -1065,7 +1122,7 @@ async def get_user_visited_sites(
             detail="You are not authorized to view this user's visited sites list"
         )
 
-    from app.models import DiveSiteAlias, DiveRoute, DiveSiteTag, AvailableTag
+    from app.models import AvailableTag, DiveRoute, DiveSiteAlias, DiveSiteTag
 
     # Query distinct dive sites with their visit count from the user's logged dives
     # If viewing own profile, show all logged dives; otherwise (Admin), show only public dives
@@ -1192,6 +1249,7 @@ async def get_user_advanced_analytics(
 
     import json
     import re
+
     from app.physics import calculate_sac
     
     advanced_query = db.query(
@@ -1208,7 +1266,7 @@ async def get_user_advanced_analytics(
         Dive.is_private == False
     ).order_by(Dive.dive_date.asc()).all()
 
-    from app.models import DiveTag, AvailableTag
+    from app.models import AvailableTag, DiveTag
     deco_tag_query = db.query(DiveTag.dive_id).join(AvailableTag).filter(
         AvailableTag.name.in_(["deco", "technical"]),
         DiveTag.dive_id.in_([row[0] for row in advanced_query] if advanced_query else [])
@@ -1444,7 +1502,7 @@ async def get_user_advanced_analytics(
     dive_ids = [row[0] for row in advanced_query] if advanced_query else []
     all_dive_tags = []
     if dive_ids:
-        from app.models import DiveTag, AvailableTag
+        from app.models import AvailableTag, DiveTag
         all_dive_tags = db.query(DiveTag.dive_id, AvailableTag.name).join(AvailableTag).filter(
             DiveTag.dive_id.in_(dive_ids)
         ).all()

@@ -1,43 +1,90 @@
-from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
-import orjson
-import requests
+import logging
 import uuid
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
-from app.models import DivingCenter, CenterRating, CenterComment, User, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
-from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember, CenterMedia, DivingCenterManager, MediaType
-from app.utils import populate_center_media_urls
-from app.schemas import (
-    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse, CenterMediaResponse,
-    CenterRatingCreate, CenterRatingResponse,
-    CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
-    GearRentalCostCreate,
-    DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
-    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
-    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest,
-    DivingCenterManagerResponse, DivingCenterManagerCreate
+import orjson
+import requests
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    status,
 )
-from app.auth import get_current_active_user, get_current_user_optional, is_admin_or_moderator, get_current_user
-from app.models import OwnershipStatus
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.auth import (
+    get_current_active_user,
+    get_current_user,
+    get_current_user_optional,
+    is_admin_or_moderator,
+)
+from app.database import get_db
+from app.limiter import skip_rate_limit_for_admin
+from app.models import (
+    CenterComment,
+    CenterMedia,
+    CenterRating,
+    DivingCenter,
+    DivingCenterFollower,
+    DivingCenterManager,
+    DivingCenterOrganization,
+    DivingOrganization,
+    GearRentalCost,
+    MediaType,
+    OwnershipRequest,
+    OwnershipStatus,
+    User,
+    UserCertification,
+    UserChatRoom,
+    UserChatRoomMember,
+)
+from app.schemas import (
+    BroadcastTextRequest,
+    BroadcastTripRequest,
+    CenterCommentCreate,
+    CenterCommentResponse,
+    CenterCommentUpdate,
+    CenterMediaResponse,
+    CenterRatingCreate,
+    CenterRatingResponse,
+    DivingCenterCreate,
+    DivingCenterListResponse,
+    DivingCenterManagerCreate,
+    DivingCenterManagerResponse,
+    DivingCenterOrganizationCreate,
+    DivingCenterOrganizationResponse,
+    DivingCenterOrganizationUpdate,
+    DivingCenterOwnershipApproval,
+    DivingCenterOwnershipClaim,
+    DivingCenterOwnershipResponse,
+    DivingCenterOwnershipRevocation,
+    DivingCenterResponse,
+    DivingCenterUpdate,
+    GearRentalCostCreate,
+    OwnershipRequestHistoryResponse,
+)
+from app.services.notification_service import NotificationService
 from app.utils import (
+    UNIFIED_TYPO_TOLERANCE,
     calculate_unified_phrase_aware_score,
     classify_match_type,
-    UNIFIED_TYPO_TOLERANCE,
-    is_diving_center_reviews_enabled
+    is_diving_center_reviews_enabled,
+    populate_center_media_urls,
 )
-from app.limiter import skip_rate_limit_for_admin
-from app.services.notification_service import NotificationService
-import logging
 
 logger = logging.getLogger(__name__)
 
-from app.services.r2_storage_service import r2_storage
+from fastapi import File, UploadFile
+
 from app.services.image_processing import image_processing
-from fastapi import UploadFile, File
+from app.services.r2_storage_service import r2_storage
+
 
 def is_center_manager(db: Session, center_id: int, user: User) -> bool:
     if user.is_admin:
@@ -2441,7 +2488,7 @@ async def assign_diving_center_owner(
 @router.post("/{diving_center_id}/revoke-ownership")
 async def revoke_diving_center_ownership(
     diving_center_id: int,
-    revocation: Union[DivingCenterOwnershipRevocation, str, Dict[str, Any]] = Body(...),
+    revocation: DivingCenterOwnershipRevocation | str | Dict[str, Any] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
@@ -2608,8 +2655,9 @@ async def broadcast_trip_to_followers(
     db: Session = Depends(get_db)
 ):
     """Broadcast a dive trip to all followers of the diving center."""
-    from app.models import ParsedDiveTrip, DivingCenterManager
     import json
+
+    from app.models import DivingCenterManager, ParsedDiveTrip
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
@@ -2627,6 +2675,7 @@ async def broadcast_trip_to_followers(
         
     # 2. Verify Trip exists and belongs to this center
     from sqlalchemy.orm import joinedload
+
     from app.models import ParsedDive
     trip = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
@@ -2639,10 +2688,16 @@ async def broadcast_trip_to_followers(
         raise HTTPException(status_code=404, detail="Trip not found or does not belong to this center")
         
     # 3. Find or Create Broadcast Room
-    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
-    from app.models import UserChatMessage
     import uuid
+
     from sqlalchemy import func
+
+    from app.models import UserChatMessage
+    from app.services.encryption_service import (
+        encrypt_message,
+        encrypt_room_dek,
+        generate_room_dek,
+    )
     
     broadcast_room = db.query(UserChatRoom).filter(
         UserChatRoom.diving_center_id == diving_center_id,
@@ -2790,10 +2845,16 @@ async def broadcast_text_to_followers(
             raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Find or Create Broadcast Room
-    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
-    from app.models import UserChatMessage
     import uuid
+
     from sqlalchemy import func
+
+    from app.models import UserChatMessage
+    from app.services.encryption_service import (
+        encrypt_message,
+        encrypt_room_dek,
+        generate_room_dek,
+    )
     
     broadcast_room = db.query(UserChatRoom).filter(
         UserChatRoom.diving_center_id == diving_center_id,

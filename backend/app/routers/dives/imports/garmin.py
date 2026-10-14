@@ -1,18 +1,16 @@
-from fastapi import Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
-from datetime import timedelta
-from collections import defaultdict
-import fitdecode
 import io
+from collections import defaultdict
+from datetime import timedelta
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive
-from app.schemas import GarminFITResponse
+import fitdecode
+from fastapi import Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
+
 from app.models import DiveSite, DivingCenter
-from .common import (
-    find_existing_dive, 
-    find_sites_by_coords, 
-    semicircles_to_degrees
-)
+from app.schemas import GarminFITResponse
+
+from ..dives_shared import Dive, User, get_current_user, get_db, router
+from .common import find_existing_dive, find_sites_by_coords, semicircles_to_degrees
 from .gas_utils import create_structured_gas_data
 
 

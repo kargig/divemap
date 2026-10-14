@@ -1,21 +1,23 @@
-import sqlite3
 import gzip
-import struct
 import json
 import logging
-import tempfile
 import os
+import sqlite3
+import struct
+import tempfile
 from datetime import datetime
-from fastapi import Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive
-from app.schemas import GarminFITResponse
+from fastapi import Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
+
 from app.models import DiveSite, DivingCenter
+from app.schemas import GarminFITResponse
+
+from ..dives_shared import Dive, User, get_current_user, get_db, router
+from ..dives_utils import find_dive_site_by_import_id
 from .common import find_existing_dive, find_sites_by_coords
 from .gas_utils import create_structured_gas_data
-from ..dives_utils import find_dive_site_by_import_id
 
 logger = logging.getLogger(__name__)
 

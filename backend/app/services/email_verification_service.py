@@ -4,14 +4,15 @@ Email Verification Service
 Handles email verification token generation, validation, and management.
 """
 
+import logging
 import os
 import secrets
-import logging
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from typing import Optional
+
 from sqlalchemy.orm import Session
 
-from app.models import User, EmailVerificationToken
+from app.models import EmailVerificationToken, User
 
 logger = logging.getLogger(__name__)
 

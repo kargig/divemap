@@ -12,12 +12,21 @@ The search functionality includes:
 - Unified search across multiple fields
 """
 
-from fastapi import HTTPException
-from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
-from .dives_shared import User, Dive, DiveTag, UNIFIED_TYPO_TOLERANCE, calculate_unified_phrase_aware_score, classify_match_type
+from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.models import DiveSite
+
+from .dives_shared import (
+    UNIFIED_TYPO_TOLERANCE,
+    Dive,
+    DiveTag,
+    User,
+    calculate_unified_phrase_aware_score,
+    classify_match_type,
+)
 
 
 def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc', exclude_unspecified_difficulty: bool = False):

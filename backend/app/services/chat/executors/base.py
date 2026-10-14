@@ -1,17 +1,33 @@
-from typing import List, Optional, Dict, Any, Tuple
-from sqlalchemy.orm import Session, joinedload, aliased
-from sqlalchemy import or_, and_, func, String
-from app.models import (
-    DiveSite, ParsedDiveTrip, DivingCenter, ParsedDive, CenterDiveSite, 
-    AvailableTag, DiveSiteTag, Dive, GearRentalCost, SiteRating,
-    DivingOrganization, CertificationLevel, User, DiveRoute
-)
-from app.schemas.chat import IntentType
-from app.routers.search import ENTITY_ICONS
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import String, and_, func, or_
+from sqlalchemy.orm import Session, aliased, joinedload
+
 from app.geo_utils import (
-    get_external_region_bounds, get_empirical_region_bounds, 
-    calculate_directional_bounds, get_location_info_from_coords
+    calculate_directional_bounds,
+    get_empirical_region_bounds,
+    get_external_region_bounds,
+    get_location_info_from_coords,
 )
+from app.models import (
+    AvailableTag,
+    CenterDiveSite,
+    CertificationLevel,
+    Dive,
+    DiveRoute,
+    DiveSite,
+    DiveSiteTag,
+    DivingCenter,
+    DivingOrganization,
+    GearRentalCost,
+    ParsedDive,
+    ParsedDiveTrip,
+    SiteRating,
+    User,
+)
+from app.routers.search import ENTITY_ICONS
+from app.schemas.chat import IntentType
+
 
 def clean_results(results: List[Dict]) -> List[Dict]:
     """Ensures all objects in the results list are JSON serializable (converts Enums to strings)."""

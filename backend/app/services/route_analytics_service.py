@@ -5,11 +5,12 @@ Handles tracking and analysis of user interactions with dive routes.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, and_
+from typing import Any, Dict, List, Optional
 
-from app.models import RouteAnalytics, DiveRoute, User
+from sqlalchemy import and_, desc, func
+from sqlalchemy.orm import Session
+
+from app.models import DiveRoute, RouteAnalytics, User
 
 
 class RouteAnalyticsService:

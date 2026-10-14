@@ -5,24 +5,38 @@ Handles CRUD operations for dive routes with proper authentication,
 validation, and soft delete support.
 """
 
-from typing import List, Optional, Dict, Any
-from datetime import datetime
 import html
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, desc, asc, func, String
-from slowapi.util import get_remote_address
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
-from app.models import DiveRoute, DiveSite, User, Dive
-from app.schemas import (
-    DiveRouteCreate, DiveRouteUpdate, DiveRouteResponse, DiveRouteWithDetails,
-    DiveRouteListResponse, RouteDeletionCheck
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
 )
+from slowapi.util import get_remote_address
+from sqlalchemy import String, and_, asc, desc, func, or_
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_active_user, get_current_user_optional
+from app.database import get_db
 from app.limiter import skip_rate_limit_for_admin
-from app.services.route_deletion_service import RouteDeletionService
+from app.models import Dive, DiveRoute, DiveSite, User
+from app.schemas import (
+    DiveRouteCreate,
+    DiveRouteListResponse,
+    DiveRouteResponse,
+    DiveRouteUpdate,
+    DiveRouteWithDetails,
+    RouteDeletionCheck,
+)
 from app.services.route_analytics_service import RouteAnalyticsService
+from app.services.route_deletion_service import RouteDeletionService
 from app.services.route_export_service import RouteExportService
 
 # Constants for rate limiting

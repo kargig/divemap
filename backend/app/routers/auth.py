@@ -1,46 +1,61 @@
-from datetime import timedelta, datetime, UTC
+import logging
+import os
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel
-import os
-import logging
-import secrets
+from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import User, EmailVerificationToken, PasswordResetToken, RefreshToken, AuthAuditLog
-from app.schemas import (
-    UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse,
-    ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm,
-    AuthConfigResponse, GoogleProviderConfig, FacebookProviderConfig
-)
 from app.auth import (
     authenticate_user,
-    get_password_hash,
     get_current_active_user,
-    validate_password_strength
+    get_password_hash,
+    validate_password_strength,
 )
-from app.token_service import token_service
-from app.google_auth import (
-    verify_google_token,
-    get_or_create_google_user,
-    is_google_auth_configured,
-    get_google_client_id,
-)
+from app.database import get_db
 from app.facebook_auth import (
-    verify_facebook_token,
+    FacebookAuthError,
+    get_facebook_app_id,
     get_or_create_facebook_user,
     is_facebook_auth_configured,
-    get_facebook_app_id,
-    FacebookAuthError,
+    verify_facebook_token,
+)
+from app.google_auth import (
+    get_google_client_id,
+    get_or_create_google_user,
+    is_google_auth_configured,
+    verify_google_token,
 )
 from app.limiter import limiter, skip_rate_limit_for_admin
-from app.turnstile_service import TurnstileService
-from app.services.email_verification_service import email_verification_service
+from app.models import (
+    AuthAuditLog,
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshToken,
+    User,
+)
+from app.schemas import (
+    AuthConfigResponse,
+    FacebookProviderConfig,
+    GoogleProviderConfig,
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RegistrationResponse,
+    ResendVerificationRequest,
+    Token,
+    UserCreate,
+    UserResponse,
+)
 from app.services.email_service import EmailService
+from app.services.email_verification_service import email_verification_service
 from app.services.notification_service import NotificationService
+from app.token_service import token_service
+from app.turnstile_service import TurnstileService
 from app.utils import get_client_ip, populate_avatar_full_url
 
 # Constants

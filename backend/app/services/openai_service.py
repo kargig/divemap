@@ -1,8 +1,9 @@
-import os
 import logging
-import orjson
-from typing import Optional, List, Dict, Union, Type, Tuple, Any
+import os
+from typing import Any, Dict, List, Optional, Tuple, Type
+
 import openai
+import orjson
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -89,7 +90,7 @@ class OpenAIService:
         json_schema: Optional[Type[BaseModel]] = None,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None
-    ) -> Tuple[Union[str, Dict, Any], Dict[str, int]]:
+    ) -> Tuple[str | Dict | Any, Dict[str, int]]:
         """
         Generic wrapper for OpenAI Chat Completions.
         Supports structured output via Pydantic schemas and Tool Calling.

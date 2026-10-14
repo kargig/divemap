@@ -6,10 +6,11 @@ Note: EventBridge rules are typically created via AWS Console or Infrastructure 
 but this service provides helper functions for rule management.
 """
 
-import os
-import orjson
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any, Dict, Optional
+
+import orjson
 
 try:
     import boto3

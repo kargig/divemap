@@ -1,9 +1,10 @@
 import logging
-import requests
 import math
-from typing import Optional, Tuple, Dict
-from sqlalchemy.orm import Session
+from typing import Dict, Optional, Tuple
+
+import requests
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.models import DiveSite
 

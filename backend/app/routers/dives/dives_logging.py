@@ -6,6 +6,7 @@ that are shared across multiple dives modules.
 """
 
 from typing import Optional
+
 from .dives_shared import logger
 
 

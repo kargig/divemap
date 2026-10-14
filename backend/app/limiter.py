@@ -1,11 +1,13 @@
 import time
-from slowapi import Limiter
-from fastapi import Request
 from functools import wraps
+
+from fastapi import Request
+from slowapi import Limiter
+
 from app.auth import verify_token
 from app.database import get_db
 from app.models import User
-from app.utils import get_client_ip, is_localhost_ip, format_ip_for_logging
+from app.utils import format_ip_for_logging, get_client_ip, is_localhost_ip
 
 # Track logged requests to avoid spam
 _logged_requests = set()

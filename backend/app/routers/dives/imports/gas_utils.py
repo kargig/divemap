@@ -1,5 +1,6 @@
-import orjson
 import re
+
+import orjson
 
 # Tank matching constants
 TANK_DEFINITIONS = [

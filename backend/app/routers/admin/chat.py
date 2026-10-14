@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, desc
 from typing import List, Optional
 
-from app.database import get_db
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session, joinedload, selectinload
+
 from app.auth import get_current_admin_user
-from app.models import User, ChatFeedback, ChatSession, ChatMessage as ChatMessageModel
+from app.database import get_db
+from app.models import ChatFeedback, ChatSession, User
+from app.models import ChatMessage as ChatMessageModel
 from app.schemas.chat import (
-    ChatFeedbackResponse, ChatFeedbackStats, 
-    ChatSessionResponse, ChatSessionDetailResponse
+    ChatFeedbackResponse,
+    ChatFeedbackStats,
+    ChatSessionDetailResponse,
+    ChatSessionResponse,
 )
 
 router = APIRouter()

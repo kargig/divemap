@@ -1,23 +1,30 @@
 import io
 import logging
+from datetime import UTC, datetime
 from typing import Optional
-from datetime import datetime, UTC
 
 from sqlalchemy.orm import Session
 
 from app.models import (
-    OctoAvailabilitySlot,
-    TripBriefing,
     DiveSite,
-    OctoBookingUnitItem,
+    OctoAvailabilitySlot,
     OctoBooking,
+    OctoBookingUnitItem,
+    TripBriefing,
 )
 
 try:
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.platypus import (
+        HRFlowable,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False

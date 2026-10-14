@@ -1,44 +1,47 @@
 import hashlib
 import logging
 import re
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta, UTC
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, Header, Query
-from pydantic import BaseModel
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, List, Optional
 
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
+from pydantic import BaseModel
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.auth import get_current_user, get_current_user_optional
 from app.database import get_db
-from app.auth import get_current_user_optional, get_current_user
 from app.models import (
-    User,
-    UserGearProfile,
-    UserCertification,
+    CenterDiverMedicalApproval,
+    DiverMedicalRecord,
     DivingCenterBookingSettings,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    DiverMedicalRecord,
     TripBriefing,
+    User,
+    UserCertification,
+    UserGearProfile,
     UserMedicalProfile,
-    CenterDiverMedicalApproval,
 )
-from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
-from app.services.waiver_service import WaiverService
-from app.services.briefing_service import BriefingService
-from app.services.nitrox_service import check_nitrox_eligibility
-from app.services.booking_pricing_service import compute_participant_octo_pricing
-from app.services.medical_audit_service import log_medical_access
 from app.services.booking_access_service import (
-    extract_access_token,
-    require_booking_principal,
-    verify_claim_token,
     all_participants_paperwork_complete,
-    extend_access_token_for_voucher_window,
-    validate_physician_certificate_url,
-    is_booking_owner,
     bump_linked_trip_current_bookings,
+    extend_access_token_for_voucher_window,
+    extract_access_token,
+    is_booking_owner,
+    require_booking_principal,
+    validate_physician_certificate_url,
+    verify_claim_token,
 )
+from app.services.booking_medical_encryption_service import (
+    BookingMedicalEncryptionService,
+)
+from app.services.booking_pricing_service import compute_participant_octo_pricing
+from app.services.briefing_service import BriefingService
+from app.services.medical_audit_service import log_medical_access
+from app.services.nitrox_service import check_nitrox_eligibility
+from app.services.waiver_service import WaiverService
 
 logger = logging.getLogger(__name__)
 

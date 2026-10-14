@@ -15,13 +15,15 @@ The utility functions include:
 - Alias and name resolution
 """
 
-from sqlalchemy.orm import Session
-from typing import Optional
 from datetime import date
 from difflib import SequenceMatcher
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from app.models import DiveSite, DiveSiteAlias
 
 from .dives_shared import AvailableTag
-from app.models import DiveSite, DiveSiteAlias
 
 
 def generate_dive_name(dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None) -> str:

@@ -1,20 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_
-from typing import List, Optional
-from datetime import datetime, date, time, timedelta
-import re
-import orjson
-import os
-import math
-from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive, OctoAvailabilitySlot, OctoProduct
-from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
-from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
+import math
+import os
 import quopri
-from email import message_from_bytes
+import re
+from datetime import date, datetime, time, timedelta
 from difflib import SequenceMatcher
+from email import message_from_bytes
+from typing import List, Optional
+
+import orjson
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import (
+    can_manage_diving_center,
+    get_current_user,
+    get_current_user_optional,
+    is_admin_or_moderator,
+)
+from app.database import get_db
+from app.models import (
+    DifficultyLevel,
+    Dive,
+    DiveSite,
+    DivingCenter,
+    DivingCenterManager,
+    Newsletter,
+    OctoAvailabilitySlot,
+    OctoProduct,
+    ParsedDive,
+    ParsedDiveTrip,
+    TripStatus,
+    User,
+    get_difficulty_id_by_code,
+)
+from app.schemas import (
+    NewsletterDeleteRequest,
+    NewsletterDeleteResponse,
+    NewsletterParseTextRequest,
+    NewsletterResponse,
+    NewsletterUpdateRequest,
+    NewsletterUploadResponse,
+    ParsedDiveResponse,
+    ParsedDiveTripCreate,
+    ParsedDiveTripListResponse,
+    ParsedDiveTripResponse,
+    ParsedDiveTripUpdate,
+)
 
 # Configure logging level for this module
 logger = logging.getLogger(__name__)
@@ -165,7 +208,7 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
         return final_results
         
     candidate_trips = []
-    from app.models import DivingCenter, DiveSite, ParsedDive, ParsedDiveTrip
+    from app.models import DiveSite, DivingCenter, ParsedDive, ParsedDiveTrip
     
     # 3. Coarse Filter (SQL)
     for word in words:
@@ -515,6 +558,7 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
     return None
 
 from app.services.openai_service import openai_service
+
 
 async def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
@@ -1411,6 +1455,7 @@ async def get_parsed_trips(
         sort_by = "trip_duration"
 
     from sqlalchemy.orm import selectinload
+
     # Eager load all relationships to avoid N+1 queries
     # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET
     from app.models import DiveSiteTag
@@ -2114,7 +2159,7 @@ async def create_parsed_trip(
     # Check permissions first: admins/moderators can create trips, owners/managers can for their centers
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user owns or manages any approved diving centers
-        from app.models import OwnershipStatus, DivingCenterManager
+        from app.models import DivingCenterManager, OwnershipStatus
         has_manageable_center = db.query(DivingCenter).filter(
             or_(
                 and_(
@@ -2189,7 +2234,9 @@ async def create_parsed_trip(
         db.refresh(trip)
 
         if trip_data.enable_online_booking:
-            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            from app.services.trip_octo_provisioning_service import (
+                TripOctoProvisioningService,
+            )
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
                 trip=trip,
@@ -2480,7 +2527,9 @@ async def update_parsed_trip(
             or (trip.is_bookable and (trip_data.trip_price is not None or trip_data.different_rental_price is not None or trip_data.custom_rental_price is not None))
         )
         if should_sync_slot:
-            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            from app.services.trip_octo_provisioning_service import (
+                TripOctoProvisioningService,
+            )
             is_enabled = trip_data.enable_online_booking if trip_data.enable_online_booking is not None else trip.is_bookable
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,

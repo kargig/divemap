@@ -5,11 +5,12 @@ Handles unsubscribe token generation, validation, and management.
 One token per user, reusable across all emails and categories.
 """
 
+import logging
 import os
 import secrets
-import logging
-from datetime import datetime, timedelta, UTC
-from typing import Optional, Dict, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, Optional
+
 from sqlalchemy.orm import Session
 
 from app.models import UnsubscribeToken

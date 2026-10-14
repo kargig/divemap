@@ -1,7 +1,9 @@
-from PIL import Image, ImageDraw, ImageFont
 import io
-import os
 import json
+import os
+
+from PIL import Image, ImageDraw, ImageFont
+
 
 class SocialImageService:
     def __init__(self):

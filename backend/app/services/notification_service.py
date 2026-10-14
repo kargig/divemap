@@ -5,20 +5,29 @@ Core service for creating and managing notifications.
 Handles user preference matching, area filtering, and email queuing via SQS.
 """
 
-import os
-import math
 import logging
-from typing import Optional, Dict, List
-from datetime import datetime, UTC
+import math
+import os
+from datetime import UTC, datetime
+from typing import Dict, List, Optional
+
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, desc
 
 from app.models import (
-    User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip, PushSubscription,
-    UserChatRoom, UserChatRoomMember
+    Dive,
+    DiveSite,
+    DivingCenter,
+    Notification,
+    NotificationPreference,
+    ParsedDiveTrip,
+    PushSubscription,
+    User,
+    UserChatRoom,
+    UserChatRoomMember,
 )
-from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService
+from app.services.sqs_service import SQSService
 from app.services.unsubscribe_token_service import unsubscribe_token_service
 from app.utils import utcnow
 
@@ -310,7 +319,7 @@ class NotificationService:
         # Fetch additional metadata if this is a new dive site email
         if db and template_name == 'new_dive_site' and notification.entity_id:
             try:
-                from app.models import DiveSite, User, DiveSiteTag, AvailableTag
+                from app.models import AvailableTag, DiveSite, DiveSiteTag, User
                 dive_site = db.query(DiveSite).filter(DiveSite.id == notification.entity_id).first()
                 if dive_site:
                     notification_data['site_country'] = dive_site.country or ""
@@ -457,8 +466,9 @@ class NotificationService:
         """
         Notify admins and moderators about a new pending dive site edit request.
         """
-        from app.models import DiveSiteEditRequest, User, NotificationPreference
         from sqlalchemy import or_
+
+        from app.models import DiveSiteEditRequest, NotificationPreference, User
         
         # 1. Fetch the request details
         edit_req = db.query(DiveSiteEditRequest).filter(DiveSiteEditRequest.id == edit_request_id).first()

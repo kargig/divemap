@@ -1,18 +1,28 @@
-from typing import List, Optional, Dict
-from sqlalchemy.orm import Session, joinedload, aliased
-from sqlalchemy import or_, and_, func, String
-from app.models import (
-    DiveSite, ParsedDiveTrip, DivingCenter, AvailableTag, DiveSiteTag, SiteRating,
-    DiveRoute
-)
-from app.routers.search import ENTITY_ICONS
-from app.geo_utils import (
-    get_external_region_bounds, get_empirical_region_bounds, 
-    calculate_directional_bounds
-)
-from .base import clean_results
 import logging
 from datetime import date as py_date
+from typing import Dict, List, Optional
+
+from sqlalchemy import String, and_, func, or_
+from sqlalchemy.orm import Session, aliased, joinedload
+
+from app.geo_utils import (
+    calculate_directional_bounds,
+    get_empirical_region_bounds,
+    get_external_region_bounds,
+)
+from app.models import (
+    AvailableTag,
+    DiveRoute,
+    DiveSite,
+    DiveSiteTag,
+    DivingCenter,
+    ParsedDiveTrip,
+    SiteRating,
+)
+from app.routers.search import ENTITY_ICONS
+
+from .base import clean_results
+
 logger = logging.getLogger(__name__)
     
 def execute_discovery(

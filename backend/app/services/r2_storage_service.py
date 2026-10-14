@@ -5,10 +5,10 @@ Provides S3-compatible storage for dive profile data with local filesystem fallb
 Automatically detects R2 credentials and falls back to local storage when unavailable.
 """
 
-import os
 import logging
-from typing import Optional, List
+import os
 from datetime import datetime
+from typing import List, Optional
 
 try:
     import boto3

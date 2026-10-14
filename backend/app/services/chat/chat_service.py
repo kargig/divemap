@@ -1,24 +1,28 @@
+import json
 import logging
 import uuid
-import json
 from datetime import datetime
 from typing import Optional
 
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
-from fastapi.concurrency import run_in_threadpool
+from app.models import ChatMessage as ChatMessageModel
+from app.models import ChatSession, User
 from app.schemas.chat import (
-    ChatRequest, ChatResponse, IntentType, ChatIntermediateAction
+    ChatIntermediateAction,
+    ChatRequest,
+    ChatResponse,
+    IntentType,
 )
-from app.models import ChatSession, ChatMessage as ChatMessageModel, User
-from app.services.openai_service import openai_service
-from app.services.chat.tools import CHAT_TOOLS
+from app.services.chat.context_resolver import resolve_page_context
 from app.services.chat.executors.discovery import execute_discovery
 from app.services.chat.executors.others import execute_other_intents
-from app.services.chat.executors.user_data import execute_get_user_dive_logs
 from app.services.chat.executors.reviews import execute_get_reviews_and_comments
+from app.services.chat.executors.user_data import execute_get_user_dive_logs
+from app.services.chat.tools import CHAT_TOOLS
 from app.services.chat.weather_enricher import enrich_results_with_weather
-from app.services.chat.context_resolver import resolve_page_context
+from app.services.openai_service import openai_service
 
 logger = logging.getLogger(__name__)
 

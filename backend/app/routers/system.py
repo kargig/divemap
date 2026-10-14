@@ -1,29 +1,47 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, desc, text, Integer
-from datetime import datetime, timedelta, UTC
-import psutil
-import os
-import logging
 import bisect
+import logging
+import os
+from datetime import UTC, datetime, timedelta
+from typing import List, Optional
 
+import psutil
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import Integer, and_, desc, func, text
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_admin_user
 from app.database import get_db
 from app.models import (
-    User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
-    SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
-    DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, DiveRoute, RouteAnalytics,
-    AuthAuditLog
+    AuthAuditLog,
+    AvailableTag,
+    CenterComment,
+    CenterRating,
+    Dive,
+    DiveMedia,
+    DiveRoute,
+    DiveSite,
+    DivingCenter,
+    DivingOrganization,
+    Newsletter,
+    Notification,
+    ParsedDiveTrip,
+    RouteAnalytics,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
+    UserCertification,
 )
-from app.auth import get_current_admin_user
-from app.schemas import (
-    SystemHealthResponse, PlatformStatsResponse,
-    NotificationAnalyticsResponse, GrowthResponse, AuthAuditLogResponse
-)
-from app.utils import get_client_ip, format_ip_for_logging
 from app.monitoring import get_turnstile_stats
+from app.schemas import (
+    AuthAuditLogResponse,
+    GrowthResponse,
+    NotificationAnalyticsResponse,
+    PlatformStatsResponse,
+    SystemHealthResponse,
+)
 from app.services.r2_storage_service import r2_storage
+from app.utils import format_ip_for_logging, get_client_ip
 
 router = APIRouter()
 
@@ -40,6 +58,7 @@ async def get_system_metrics(
     return await get_system_health(current_user, db)
 
 from fastapi_cache.decorator import cache
+
 
 @router.get("/statistics")
 @cache(expire=300)
@@ -639,8 +658,9 @@ async def get_platform_stats(
 
 def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
-    from app.models import OwnershipRequest
     from sqlalchemy.orm import joinedload
+
+    from app.models import OwnershipRequest
     
     # Calculate time range
     if hours is not None:
@@ -927,8 +947,9 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
             })
 
         # 15. Edit Requests (Moderation)
-        from app.models import DiveSiteEditRequest
         from sqlalchemy.orm import joinedload
+
+        from app.models import DiveSiteEditRequest
         
         edit_request_query = db.query(DiveSiteEditRequest).options(
             joinedload(DiveSiteEditRequest.requested_by),

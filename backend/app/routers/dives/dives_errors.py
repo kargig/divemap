@@ -6,6 +6,7 @@ definitions that are shared across multiple dives modules.
 """
 
 from fastapi import HTTPException, status
+
 from .dives_shared import logger
 
 

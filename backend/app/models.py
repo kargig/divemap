@@ -1,10 +1,29 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, DECIMAL, Enum, Date, Time, func, LargeBinary, JSON
-from sqlalchemy.orm import relationship
-from app.database import Base
 import enum
+
 import sqlalchemy as sa
-from sqlalchemy import event, text
+from sqlalchemy import (
+    DECIMAL,
+    JSON,
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    Time,
+    event,
+    func,
+    text,
+)
 from sqlalchemy.dialects.mysql import LONGTEXT
+from sqlalchemy.orm import relationship
+
+from app.database import Base
+
 WKTElement = None  # Avoid geoalchemy2 dependency in tests/CI
 
 # Helper functions for difficulty code conversion
@@ -1193,6 +1212,7 @@ class UserFriendship(Base):
     initiator = relationship("User", foreign_keys=[initiator_id])
 
 import uuid
+
 
 def generate_uuid():
     return str(uuid.uuid4())

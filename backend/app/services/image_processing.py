@@ -7,8 +7,9 @@ Generates thumbnails and medium-sized variants in WebP format.
 
 import io
 import logging
-import magic
 from typing import Dict
+
+import magic
 from PIL import Image, ImageOps
 
 # Security: Prevent Decompression Bomb attacks

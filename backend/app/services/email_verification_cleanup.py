@@ -6,7 +6,8 @@ to prevent database bloat.
 """
 
 import logging
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
+
 from sqlalchemy.orm import Session
 
 from app.models import EmailVerificationToken

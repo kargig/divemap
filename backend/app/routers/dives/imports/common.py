@@ -1,11 +1,19 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import Optional, Tuple
 from datetime import datetime
+from typing import Optional, Tuple
+
 import orjson
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
 from app.models import Dive, DivingCenter, User
+
 from ..dives_shared import r2_storage
-from ..dives_utils import find_dive_site_by_import_id, find_potential_matches, calculate_similarity
+from ..dives_utils import (
+    calculate_similarity,
+    find_dive_site_by_import_id,
+    find_potential_matches,
+)
+
 
 # Helper function to convert old difficulty labels to new codes
 def convert_difficulty_to_code(difficulty_input):

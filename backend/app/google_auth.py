@@ -1,19 +1,20 @@
+import logging
 import os
-from typing import Optional, Dict, Any
+import re
+import time
+from datetime import UTC, datetime, timedelta
+from typing import Any, Dict, Optional
+
+from fastapi import HTTPException, status
+from google.auth.exceptions import GoogleAuthError as GoogleAuthLibraryError
 from google.auth.transport import requests
 from google.oauth2 import id_token
-from google.auth.exceptions import GoogleAuthError as GoogleAuthLibraryError
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
-from app.models import User
-from app.auth import create_access_token, get_password_hash
-from app.schemas import AvatarType
-from datetime import timedelta, datetime, UTC
-from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
-import re
 from sqlalchemy.exc import IntegrityError
-import time
-import logging
+from sqlalchemy.orm import Session
+
+from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, get_password_hash
+from app.models import User
+from app.schemas import AvatarType
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
