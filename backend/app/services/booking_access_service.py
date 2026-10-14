@@ -61,10 +61,35 @@ def verify_booking_access(booking: OctoBooking, raw_token: Optional[str]) -> boo
     return secrets.compare_digest(booking.access_token_hash, hash_booking_token(raw_token))
 
 
-def verify_claim_token(unit_item: OctoBookingUnitItem, raw_token: Optional[str]) -> bool:
+def verify_claim_token(
+    unit_item: OctoBookingUnitItem,
+    raw_token: Optional[str],
+    *,
+    for_write: bool = False,
+) -> bool:
     if not raw_token or not unit_item.claim_token_hash:
         return False
+    if for_write and (unit_item.claim_status or "").upper() == "CLAIMED":
+        return False
+    # Claim links expire 14 days after invite (or immediately if invite time missing and write)
+    if unit_item.claim_invited_at:
+        invited = unit_item.claim_invited_at
+        if invited.tzinfo is None:
+            invited = invited.replace(tzinfo=timezone.utc)
+        if _utcnow() > invited + timedelta(days=14):
+            return False
     return secrets.compare_digest(unit_item.claim_token_hash, hash_booking_token(raw_token))
+
+
+def bump_linked_trip_current_bookings(booking: OctoBooking, delta: int) -> None:
+    """Adjust ParsedDiveTrip.current_bookings when confirming/cancelling (idempotent callers)."""
+    if not delta:
+        return
+    slot = getattr(booking, "slot", None)
+    trip = getattr(slot, "dive_trip", None) if slot else None
+    if trip is None:
+        return
+    trip.current_bookings = max(0, (trip.current_bookings or 0) + delta)
 
 
 def emails_equal(a: Optional[str], b: Optional[str]) -> bool:

@@ -31,7 +31,9 @@ export function setCookie(name, value, days = 180) {
   const expires = `expires=${d.toUTCString()}`;
   const serialized = typeof value === 'object' ? JSON.stringify(value) : String(value);
   const encoded = encodeURIComponent(serialized);
-  document.cookie = `${name}=${encoded}; ${expires}; path=/; SameSite=Lax`;
+  const secure =
+    typeof window !== 'undefined' && window.location?.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${name}=${encoded}; ${expires}; path=/; SameSite=Lax${secure}`;
 }
 
 export function getCookie(name) {
@@ -130,12 +132,11 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
     const sanitized = {
       userId: userId || undefined,
 
-      // Diver Info
+      // Diver Info — no passport (high-sensitivity ID); keep low-risk prefs only
       diverName: prefs.diverName || undefined,
       diverEmail: prefs.diverEmail || undefined,
       diverPhone: prefs.diverPhone || undefined,
       diverNationality: prefs.diverNationality || undefined,
-      passportNumber: prefs.passportNumber || undefined,
       dateOfBirth: prefs.dateOfBirth || undefined,
       loggedDives: prefs.loggedDives || undefined,
 
@@ -167,10 +168,9 @@ export function saveBookingPreferencesToCookie(prefs, remember = true, userId = 
       emergencyContactPhone: prefs.emergencyContactPhone || undefined,
       emergencyContactRelation: prefs.emergencyContactRelation || undefined,
 
-      // Insurance
+      // Insurance — provider/preference only; omit policy number from durable cookies
       hasInsurance: prefs.hasInsurance || 'OWN',
       insuranceProvider: prefs.insuranceProvider || undefined,
-      insurancePolicyNumber: prefs.insurancePolicyNumber || undefined,
       insuranceExpiryDate: prefs.insuranceExpiryDate || undefined,
 
       updatedAt: Date.now(),

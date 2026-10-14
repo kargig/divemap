@@ -50,12 +50,15 @@ const GuestBookingClaimPage = () => {
         unitItemId: context.unitItemId,
         dmscAnswers,
         signatureName: waiverSignature.signatureName,
-        selectedTankId: '12',
-        selectedGasMixId: 'air',
+        selectedTankId: context.selectedTankId || '12',
+        selectedGasMixId: context.selectedGasMixId || 'air',
+        equipmentSizing: context.equipmentSizing || undefined,
       });
       toast.success('Paperwork submitted successfully!');
-      const refreshed = await api.get(`/api/v1/bookings/${uuid}/claim/${claimToken}`);
-      setContext(refreshed.data);
+      // Prefer local claimed state; claim token may reject re-writes after CLAIMED
+      setContext(prev =>
+        prev ? { ...prev, claimStatus: 'CLAIMED', waiversComplete: true } : prev
+      );
     } catch (err) {
       console.error('Claim submit failed:', err);
       toast.error(err.response?.data?.detail || 'Failed to submit claim paperwork.');

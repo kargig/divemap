@@ -41,6 +41,7 @@ from app.services.booking_access_service import (
     extend_access_token_for_voucher_window,
     validate_physician_certificate_url,
     is_booking_owner,
+    bump_linked_trip_current_bookings,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,9 @@ class GuestClaimContextResponse(BaseModel):
     departureDate: str
     claimStatus: str
     waiversComplete: bool
+    selectedTankId: Optional[str] = "12"
+    selectedGasMixId: Optional[str] = "air"
+    equipmentSizing: Optional[Dict[str, Any]] = None
 
 
 class MyBookingItemResponse(BaseModel):
@@ -459,6 +463,7 @@ def _maybe_confirm_booking_after_paperwork(booking: OctoBooking) -> None:
         booking.payment_status = "PENDING_AT_CHECKIN"
         booking.utc_hold_expiration = None
         extend_access_token_for_voucher_window(booking)
+        bump_linked_trip_current_bookings(booking, len(booking.unit_items or []))
 
 
 def _recompute_booking_total(
@@ -472,7 +477,12 @@ def _recompute_booking_total(
     ).first()
     recomputed_total = 0.0
     for it in booking.unit_items:
-        it_sizing = equipment_sizing_override if it.id == unit_item.id else it.equipment_sizing
+        if it.unit is None:
+            continue
+        it_sizing = dict(
+            (equipment_sizing_override if it.id == unit_item.id else it.equipment_sizing) or {}
+        )
+        it_sizing.pop("is_rental_package", None)
         pricing_calc = compute_participant_octo_pricing(
             center_settings=settings,
             unit=it.unit,
@@ -480,7 +490,8 @@ def _recompute_booking_total(
             currency=booking.currency or "EUR",
         )
         recomputed_total += pricing_calc["total_due"]
-    booking.total_amount = round(recomputed_total, 2)
+    if recomputed_total > 0:
+        booking.total_amount = round(recomputed_total, 2)
 
 
 def _apply_diver_paperwork_for_unit_item(
@@ -495,19 +506,33 @@ def _apply_diver_paperwork_for_unit_item(
     audit_str = f"{booking.uuid}:{unit_item.id}:{req.signatureName}:{now_utc.isoformat()}"
     audit_hash = hashlib.sha256(audit_str.encode("utf-8")).hexdigest()
 
+    # Annual medical may only be applied to the authenticated user's own seat
+    is_own_seat = bool(
+        current_user
+        and unit_item.user_id is not None
+        and unit_item.user_id == current_user.id
+    )
+    # Lead booker's primary seat: no claim invite (guests get claim_token_hash at hold time).
+    # Do not use unit_items[0] — relationship order is not creation order.
+    if (
+        current_user
+        and not unit_item.user_id
+        and is_booking_owner(booking, current_user)
+        and not unit_item.claim_token_hash
+    ):
+        is_own_seat = True
+        unit_item.user_id = current_user.id
+
     if req.useAnnualMedical:
         if not current_user:
             raise HTTPException(
                 status_code=401,
                 detail="Authentication required to use saved annual medical declaration",
             )
-        if not (
-            is_booking_owner(booking, current_user)
-            or unit_item.user_id == current_user.id
-        ):
+        if not is_own_seat:
             raise HTTPException(
                 status_code=403,
-                detail="Not authorized to apply annual medical for this participant",
+                detail="Annual medical can only be applied to your own participant seat",
             )
         user_med = db.query(UserMedicalProfile).filter(
             UserMedicalProfile.user_id == current_user.id
@@ -549,7 +574,8 @@ def _apply_diver_paperwork_for_unit_item(
         encryption_svc = BookingMedicalEncryptionService()
         enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
 
-        if current_user:
+        # Only upsert annual profile when paperwork is for the current user's own seat
+        if current_user and is_own_seat:
             user_med = db.query(UserMedicalProfile).filter(
                 UserMedicalProfile.user_id == current_user.id
             ).first()
@@ -576,16 +602,22 @@ def _apply_diver_paperwork_for_unit_item(
         DiverMedicalRecord.booking_unit_item_id == unit_item.id
     ).first()
 
+    med_user_id = unit_item.user_id
+    if med_user_id is None and current_user and is_own_seat:
+        med_user_id = current_user.id
+
     if existing_med:
         existing_med.status = medical_status
         existing_med.encrypted_dek = enc_dek
         existing_med.encrypted_answers = enc_answers
         existing_med.audit_signature_hash = audit_hash
+        if med_user_id is not None:
+            existing_med.user_id = med_user_id
         unit_item.medical_record = existing_med
     else:
         med_rec = DiverMedicalRecord(
             booking_unit_item_id=unit_item.id,
-            user_id=current_user.id if current_user else None,
+            user_id=med_user_id,
             status=medical_status,
             encrypted_dek=enc_dek,
             encrypted_answers=enc_answers,
@@ -625,9 +657,11 @@ def _apply_diver_paperwork_for_unit_item(
 def _find_unit_item_for_claim_token(
     booking: OctoBooking,
     claim_token: str,
+    *,
+    for_write: bool = False,
 ) -> Optional[OctoBookingUnitItem]:
     for item in booking.unit_items or []:
-        if verify_claim_token(item, claim_token):
+        if verify_claim_token(item, claim_token, for_write=for_write):
             return item
     return None
 
@@ -646,12 +680,18 @@ def submit_diver_paperwork(
     booking = (
         db.query(OctoBooking)
         .filter(OctoBooking.uuid == booking_uuid)
-        .options(joinedload(OctoBooking.unit_items).joinedload(OctoBookingUnitItem.medical_record))
+        .options(
+            joinedload(OctoBooking.unit_items).joinedload(OctoBookingUnitItem.medical_record),
+            joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip),
+        )
         .with_for_update()
         .first()
     )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    if booking.status in ("CANCELLED", "EXPIRED"):
+        raise HTTPException(status_code=400, detail="Cannot submit paperwork for a cancelled or expired booking")
 
     token = extract_access_token(x_booking_access_token, access_token)
     require_booking_principal(booking, current_user, token)
@@ -659,6 +699,29 @@ def submit_diver_paperwork(
     unit_item = next((it for it in booking.unit_items if it.id == req.unitItemId), None)
     if not unit_item:
         raise HTTPException(status_code=404, detail="Booking participant item not found")
+
+    # Disallow overwrite once seat paperwork is complete, except own-seat annual refresh
+    already_complete = bool(
+        unit_item.waivers_complete and getattr(unit_item, "medical_record", None) is not None
+    )
+    if already_complete:
+        own_seat_refresh = bool(
+            req.useAnnualMedical
+            and current_user
+            and (
+                unit_item.user_id == current_user.id
+                or (
+                    not unit_item.user_id
+                    and is_booking_owner(booking, current_user)
+                    and not unit_item.claim_token_hash
+                )
+            )
+        )
+        if not own_seat_refresh:
+            raise HTTPException(
+                status_code=400,
+                detail="Paperwork for this participant is already complete; contact the diving center to amend medical data",
+            )
 
     medical_status = _apply_diver_paperwork_for_unit_item(
         booking, unit_item, req, current_user, db
@@ -705,7 +768,7 @@ def get_guest_claim_context(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    unit_item = _find_unit_item_for_claim_token(booking, claim_token)
+    unit_item = _find_unit_item_for_claim_token(booking, claim_token, for_write=False)
     if not unit_item:
         raise HTTPException(status_code=404, detail="Invalid claim token for this booking")
 
@@ -721,6 +784,9 @@ def get_guest_claim_context(
         departureDate=departure,
         claimStatus=unit_item.claim_status or "INVITED",
         waiversComplete=bool(unit_item.waivers_complete),
+        selectedTankId=unit_item.selected_tank_id or "12",
+        selectedGasMixId=unit_item.selected_gas_mix_id or "air",
+        equipmentSizing=unit_item.equipment_sizing or {},
     )
 
 
@@ -744,18 +810,25 @@ def submit_guest_claim_paperwork(
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    unit_item = _find_unit_item_for_claim_token(booking, claim_token)
+    unit_item = _find_unit_item_for_claim_token(booking, claim_token, for_write=True)
     if not unit_item:
-        raise HTTPException(status_code=404, detail="Invalid claim token for this booking")
+        raise HTTPException(
+            status_code=404,
+            detail="Invalid, expired, or already-used claim token for this booking",
+        )
 
     if req.unitItemId and req.unitItemId != unit_item.id:
         raise HTTPException(status_code=400, detail="unitItemId does not match this claim link")
+
+    if unit_item.waivers_complete and getattr(unit_item, "medical_record", None) is not None:
+        raise HTTPException(status_code=400, detail="Claim paperwork for this seat is already complete")
 
     medical_status = _apply_diver_paperwork_for_unit_item(
         booking, unit_item, req, current_user, db
     )
     unit_item.claim_status = "CLAIMED"
     unit_item.claim_completed_at = datetime.now(timezone.utc)
+    # Keep hash for read-only GET of "already claimed"; writes rejected via for_write + CLAIMED
     db.flush()
     _maybe_confirm_booking_after_paperwork(booking)
 
@@ -809,10 +882,14 @@ def get_booking_voucher(
     ).first()
     recomputed_total = 0.0
     for it in booking.unit_items:
+        if it.unit is None:
+            continue
+        sizing = dict(it.equipment_sizing or {})
+        sizing.pop("is_rental_package", None)
         pricing_calc = compute_participant_octo_pricing(
             center_settings=settings,
             unit=it.unit,
-            equipment_sizing=it.equipment_sizing,
+            equipment_sizing=sizing,
             currency=booking.currency or "EUR",
         )
         recomputed_total += pricing_calc["total_due"]
@@ -890,10 +967,14 @@ def download_booking_voucher_pdf(
     ).first()
     recomputed_total = 0.0
     for it in booking.unit_items:
+        if it.unit is None:
+            continue
+        sizing = dict(it.equipment_sizing or {})
+        sizing.pop("is_rental_package", None)
         pricing_calc = compute_participant_octo_pricing(
             center_settings=settings,
             unit=it.unit,
-            equipment_sizing=it.equipment_sizing,
+            equipment_sizing=sizing,
             currency=booking.currency or "EUR",
         )
         recomputed_total += pricing_calc["total_due"]
@@ -1058,26 +1139,38 @@ def delete_my_annual_medical_profile(
     db: Session = Depends(get_db),
 ):
     """
-    Permanently deletes the authenticated diver's annual medical declaration profile
-    under GDPR Article 17(1) (Right to Erasure).
-    Historical departure records linked to past dive trips are retained in an
-    encrypted archive for statutory liability defense under GDPR Article 17(3)(e).
+    Erases forward-looking reusable medical processing under GDPR Article 17(1):
+    annual profile and center physician approvals.
+    Trip-scoped DiverMedicalRecord rows are retained under Article 17(3)(e)
+    for statutory liability / incident defense.
     """
     profile = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
-    if not profile:
+    center_approvals = (
+        db.query(CenterDiverMedicalApproval)
+        .filter(CenterDiverMedicalApproval.user_id == current_user.id)
+        .all()
+    )
+    if not profile and not center_approvals:
         log_medical_access(
             db=db,
             request=request,
             action="ANNUAL_MEDICAL_DELETE",
             access_status="DENIED",
-            reason="No annual medical profile found to delete",
+            reason="No annual medical profile or center approvals found to delete",
             accessor_user=current_user,
             target_diver_user_id=current_user.id,
             target_diver_name=current_user.name or current_user.username,
         )
-        raise HTTPException(status_code=404, detail="No annual medical profile found to delete")
+        raise HTTPException(
+            status_code=404,
+            detail="No annual medical profile or center approvals found to delete",
+        )
 
-    db.delete(profile)
+    approvals_revoked = len(center_approvals)
+    for approval in center_approvals:
+        db.delete(approval)
+    if profile:
+        db.delete(profile)
     db.commit()
 
     log_medical_access(
@@ -1085,16 +1178,34 @@ def delete_my_annual_medical_profile(
         request=request,
         action="ANNUAL_MEDICAL_DELETE",
         access_status="SUCCESS",
-        reason=f"Diver {current_user.username} deleted their annual medical profile under GDPR Art. 17",
+        reason=(
+            f"Diver {current_user.username} deleted annual medical profile and "
+            f"{approvals_revoked} center approval(s) under GDPR Art. 17"
+        ),
         accessor_user=current_user,
         target_diver_user_id=current_user.id,
         target_diver_name=current_user.name or current_user.username,
     )
 
-    logger.info(f"[GDPR_DELETION] User {current_user.id} ({current_user.username}) deleted annual medical profile.")
+    logger.info(
+        f"[GDPR_DELETION] User {current_user.id} ({current_user.username}) deleted annual "
+        f"medical profile; revoked {approvals_revoked} center approval(s)."
+    )
     return {
         "success": True,
-        "message": "Annual medical declaration deleted. Future bookings will require a new declaration.",
+        "deleted": {
+            "annualProfile": bool(profile),
+            "centerApprovalsRevoked": approvals_revoked,
+        },
+        "retained": {
+            "tripMedicalRecords": True,
+            "basis": "GDPR Article 17(3)(e) — statutory liability / incident defense",
+        },
+        "message": (
+            "Annual medical declaration and center physician approvals deleted. "
+            "Encrypted trip medical records for past and upcoming departures are retained "
+            "under GDPR Art. 17(3)(e). Future bookings will require a new declaration."
+        ),
     }
 
 

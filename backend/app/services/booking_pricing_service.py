@@ -17,12 +17,15 @@ def compute_participant_octo_pricing(
     items_pricing = pricing_config.get("items", {}) if pricing_config else {}
     full_pkg_rate = float(pricing_config.get("full_kit_package", 30.0)) if pricing_config else 30.0
 
-    # Base unit retail price
-    base_retail = float(unit.retail_price) if unit else 75.0
-    unit_title = unit.title if unit else "Certified Diver (Own Gear)"
+    # Base unit retail price — unit must come from DB; client flags do not pick package tier
+    if unit is None:
+        raise ValueError("OctoUnit is required for pricing; unknown unitId is not allowed")
+    base_retail = float(unit.retail_price)
+    unit_title = unit.title or "Certified Diver"
+    unit_type = (getattr(unit, "unit_type", None) or "").upper()
     is_full_rental_unit = (
-        ("rental" in unit_title.lower())
-        or bool(eq.get("is_rental_package", False))
+        unit_type == "DIVER_RENTAL_GEAR"
+        or "rental" in unit_title.lower()
         or (getattr(unit, "id", "") == "certified-diver-full-rental")
     )
 

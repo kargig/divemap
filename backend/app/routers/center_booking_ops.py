@@ -39,6 +39,7 @@ from app.services.medical_audit_service import log_medical_access
 from app.services.booking_access_service import (
     assert_slot_belongs_to_center,
     assert_participant_on_center_trip,
+    bump_linked_trip_current_bookings,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,43 +147,86 @@ def reconcile_slot_seats(
     slot: OctoAvailabilitySlot,
     *,
     commit: bool = True,
+    already_locked: bool = False,
 ) -> int:
     """Expire stale ON_HOLD bookings and recompute available seats.
 
     Use commit=False when the caller holds a row lock and will commit later
     (e.g. walk-in registration) so the lock is not released early.
+    Pass already_locked=True when the caller already holds FOR UPDATE on this slot.
     """
-    now_naive = datetime.utcnow()
-    # 1. Mark expired holds
+    if not already_locked:
+        locked = (
+            db.query(OctoAvailabilitySlot)
+            .filter(OctoAvailabilitySlot.id == slot.id)
+            .with_for_update()
+            .first()
+        )
+        if locked is not None:
+            slot = locked
+
+    now = datetime.now(timezone.utc)
+    # 1. Mark expired holds (compare in UTC; coerce naive DB values)
     expired_holds = (
         db.query(OctoBooking)
         .filter(
             OctoBooking.availability_id == slot.id,
             OctoBooking.status == "ON_HOLD",
             OctoBooking.utc_hold_expiration != None,
-            OctoBooking.utc_hold_expiration < now_naive,
         )
         .all()
     )
+    newly_expired = []
     for hold in expired_holds:
-        hold.status = "EXPIRED"
+        exp = hold.utc_hold_expiration
+        if exp is None:
+            continue
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < now:
+            hold.status = "EXPIRED"
+            newly_expired.append(hold)
 
-    # 2. Count confirmed participants
-    confirmed_count = sum(
-        len(b.unit_items) for b in slot.bookings if b.status in ("CONFIRMED", "COMPLETED")
-    )
+    # Refresh pending status mutations before counting
+    db.flush()
 
-    # 3. Count active (unexpired) holds
-    active_holds_count = sum(
-        len(b.unit_items) if b.unit_items else 1
-        for b in slot.bookings
-        if b.status == "ON_HOLD"
-    )
+    # Count via SQL aggregates — avoid stale unit_items collections in the identity map
+    confirmed_count = (
+        db.query(func.count(OctoBookingUnitItem.id))
+        .join(OctoBooking, OctoBookingUnitItem.booking_uuid == OctoBooking.uuid)
+        .filter(
+            OctoBooking.availability_id == slot.id,
+            OctoBooking.status.in_(("CONFIRMED", "COMPLETED")),
+        )
+        .scalar()
+    ) or 0
+
+    active_holds_with_items = (
+        db.query(func.count(OctoBookingUnitItem.id))
+        .join(OctoBooking, OctoBookingUnitItem.booking_uuid == OctoBooking.uuid)
+        .filter(
+            OctoBooking.availability_id == slot.id,
+            OctoBooking.status == "ON_HOLD",
+        )
+        .scalar()
+    ) or 0
+    # Holds with zero unit rows still consume at least one seat placeholder
+    empty_holds = (
+        db.query(func.count(OctoBooking.uuid))
+        .outerjoin(OctoBookingUnitItem, OctoBookingUnitItem.booking_uuid == OctoBooking.uuid)
+        .filter(
+            OctoBooking.availability_id == slot.id,
+            OctoBooking.status == "ON_HOLD",
+            OctoBookingUnitItem.id.is_(None),
+        )
+        .scalar()
+    ) or 0
+    active_holds_count = active_holds_with_items + empty_holds
 
     total_booked = confirmed_count + active_holds_count
     correct_seats_available = max(0, slot.seats_total - total_booked)
 
-    if slot.seats_available != correct_seats_available or expired_holds:
+    if slot.seats_available != correct_seats_available or newly_expired:
         slot.seats_available = correct_seats_available
         if commit:
             db.commit()
@@ -269,10 +313,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     yoke_count = 0
 
     # Batch related lookups once (avoid per-diver medical/unit/user/dive queries)
+    # Exclude EXPIRED (seats already released) and CANCELLED from ops/packing/settlement
     active_pairs = [
         (b, item)
         for b in slot.bookings
-        if b.status != "CANCELLED"
+        if b.status in ("CONFIRMED", "COMPLETED", "ON_HOLD")
         for item in b.unit_items
     ]
     item_ids = [item.id for _, item in active_pairs]
@@ -326,7 +371,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     for b, item in active_pairs:
         med = med_by_item_id.get(item.id)
-        med_status = med.status if med else ("CLEARED" if b.status == "CONFIRMED" else "PENDING")
+        med_status = med.status if med else "PENDING"
 
         med_audit = None
         if med and med.status == "PHYSICIAN_APPROVED":
@@ -392,7 +437,14 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
             suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
 
-        is_rental_pkg = item.unit_id == "certified-diver-full-rental" or eq.get("is_rental_package", False)
+        unit_for_pkg = unit_by_id.get(item.unit_id) if item.unit_id else None
+        unit_type_upper = (getattr(unit_for_pkg, "unit_type", None) or "").upper()
+        unit_title_lower = (getattr(unit_for_pkg, "title", None) or "").lower()
+        is_rental_pkg = (
+            item.unit_id == "certified-diver-full-rental"
+            or unit_type_upper == "DIVER_RENTAL_GEAR"
+            or "rental" in unit_title_lower
+        )
 
         # 1. Mask & Snorkel
         if is_rental_pkg or eq.get("rental_mask", False) or not eq.get("has_own_mask", True):
@@ -458,12 +510,21 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
         # Calculate OCTO pricing and itemized rental breakdown
         unit = unit_by_id.get(item.unit_id) if item.unit_id else None
-        fin_data = compute_participant_octo_pricing(
-            center_settings=center.booking_settings,
-            unit=unit,
-            equipment_sizing=eq,
-            currency=center.booking_settings.default_currency if center.booking_settings else "EUR",
-        )
+        if unit is None:
+            fin_data = {
+                "total_due": float(b.total_amount or 0) / max(1, len(b.unit_items or [1])),
+                "pricing": {"formatted": "€—"},
+                "lineItems": [],
+            }
+        else:
+            eq_pricing = dict(eq)
+            eq_pricing.pop("is_rental_package", None)
+            fin_data = compute_participant_octo_pricing(
+                center_settings=center.booking_settings,
+                unit=unit,
+                equipment_sizing=eq_pricing,
+                currency=center.booking_settings.default_currency if center.booking_settings else "EUR",
+            )
         total_due = fin_data["total_due"]
         is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
 
@@ -544,18 +605,22 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         ),
     }
 
-    # Trip-level financial settlement summary (conforming to OCTO octo/pricing capability)
-    total_revenue_expected = sum(p["total_due"] for p in participants)
+    # Settlement counts only confirmed/completed seats (not open holds)
+    settlement_participants = [
+        p for p in participants
+        if p.get("booking_status") in ("CONFIRMED", "COMPLETED")
+    ]
+    total_revenue_expected = sum(p["total_due"] for p in settlement_participants)
     total_collected = sum(
         p["total_due"]
-        for p in participants
+        for p in settlement_participants
         if p["payment_status"] in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
     )
     total_outstanding = round(total_revenue_expected - total_collected, 2)
     paid_diver_count = sum(
-        1 for p in participants if p["payment_status"] in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
+        1 for p in settlement_participants if p["payment_status"] in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
     )
-    pending_diver_count = len(participants) - paid_diver_count
+    pending_diver_count = len(settlement_participants) - paid_diver_count
 
     currency = center.booking_settings.default_currency if center.booking_settings else "EUR"
     financial_summary = {
@@ -775,10 +840,29 @@ def add_walkin_participant(
                 detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Diver holds '{req.certification_level or 'Unspecified'}', which is not certified for Nitrox."
             )
 
-    # Find default product unit for pricing
+    # Prefer matching unit type from product; require a real OctoUnit for pricing
     unit = db.query(OctoUnit).filter(OctoUnit.product_id == slot.product_id).first()
-    unit_id = unit.id if unit else "walkin_unit"
-    price = float(unit.retail_price) if unit else 75.0
+    if not unit:
+        raise HTTPException(
+            status_code=400,
+            detail="No bookable unit configured for this trip product; cannot price walk-in",
+        )
+    unit_id = unit.id
+    sizing = dict(req.equipment_sizing or {})
+    sizing.pop("is_rental_package", None)
+    settings = center.booking_settings if hasattr(center, "booking_settings") else None
+    if settings is None:
+        settings = db.query(DivingCenterBookingSettings).filter(
+            DivingCenterBookingSettings.diving_center_id == center_id
+        ).first()
+    pricing_calc = compute_participant_octo_pricing(
+        center_settings=settings,
+        unit=unit,
+        equipment_sizing=sizing,
+        currency=(settings.default_currency if settings else "EUR"),
+    )
+    price = float(pricing_calc["total_due"])
+    currency = settings.default_currency if settings else "EUR"
 
     # Decrement available seat (still under FOR UPDATE)
     slot.seats_available -= 1
@@ -798,7 +882,7 @@ def add_walkin_participant(
         payment_mode="PAY_ON_ARRIVAL",
         payment_status="PAID_IN_FULL" if req.mark_as_paid else "PENDING_AT_CHECKIN",
         total_amount=price,
-        currency="EUR",
+        currency=currency,
         booking_notes="Desk Walk-in Booking",
     )
     db.add(booking)
@@ -827,6 +911,10 @@ def add_walkin_participant(
         onboard_checkin_status=req.onboard_checkin_status or False,
     )
     db.add(unit_item)
+    db.flush()
+    # Ensure slot relationship available for trip counter bump
+    booking.slot = slot
+    bump_linked_trip_current_bookings(booking, 1)
     db.commit()
     db.refresh(unit_item)
 
@@ -836,6 +924,8 @@ def add_walkin_participant(
         "diver_full_name": unit_item.diver_full_name,
         "status": "CONFIRMED",
         "seats_available": slot.seats_available,
+        "total_amount": price,
+        "currency": currency,
     }
 
 
@@ -908,7 +998,7 @@ def get_participant_details(
         "selected_gas_mix_id": item.selected_gas_mix_id or "air",
         "estimated_lead_kg": lead,
         "equipment_sizing": eq,
-        "medical_status": med.status if med else ("CLEARED" if booking and booking.status == "CONFIRMED" else "PENDING"),
+        "medical_status": med.status if med else "PENDING",
         "medical_clearance_audit": med_audit,
         "waivers_complete": item.waivers_complete,
         "onboard_checkin_status": item.onboard_checkin_status,
@@ -1054,7 +1144,32 @@ def get_participant_medical_review(
             detail="No medical questionnaire has been submitted by this participant for this trip."
         )
 
-    # Log successful medical inspection
+    decrypted = {}
+    if med.encrypted_answers and med.encrypted_dek:
+        try:
+            encryption_svc = BookingMedicalEncryptionService()
+            decrypted = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+        except Exception as e:
+            logger.error(f"Failed to decrypt medical review answers: {e}")
+            log_medical_access(
+                db=db,
+                request=request,
+                action="MEDICAL_REVIEW_VIEW",
+                access_status="DENIED",
+                reason="Medical ciphertext could not be decrypted",
+                accessor_user=current_user,
+                target_diver_user_id=item.user_id,
+                target_diver_name=item.diver_full_name,
+                participant_id=participant_id,
+                diving_center_id=center_id,
+                trip_id=trip_id,
+            )
+            raise HTTPException(
+                status_code=503,
+                detail="Medical record could not be decrypted. Try again after key rotation or contact support.",
+            )
+
+    # Log successful medical inspection only after decrypt succeeds
     log_medical_access(
         db=db,
         request=request,
@@ -1068,14 +1183,6 @@ def get_participant_medical_review(
         diving_center_id=center_id,
         trip_id=trip_id,
     )
-
-    decrypted = {}
-    if med.encrypted_answers and med.encrypted_dek:
-        try:
-            encryption_svc = BookingMedicalEncryptionService()
-            decrypted = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
-        except Exception as e:
-            logger.error(f"Failed to decrypt medical review answers: {e}")
 
     all_questions = []
     flagged_questions = []
@@ -1200,11 +1307,10 @@ def update_participant_medical_answers(
         old_val = previous_answers.get(q_id, False)
         new_val = req.answers.get(q_id, False)
         if old_val != new_val:
+            # Store question ids only — no plaintext Yes/No deltas at rest
             changed_questions.append({
                 "id": q_id,
-                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
-                "from": old_val,
-                "to": new_val,
+                "changed": True,
             })
 
     # Re-encrypt updated answers
@@ -1545,26 +1651,43 @@ def get_emergency_dossier_pdf(
         trip_id=trip_id,
     )
 
-    # Decrypt medical answers
+    # Decrypt medical answers — fail closed (never render false-clean all-NO)
     decrypted_answers = {}
+    decrypt_ok = True
     if med and med.encrypted_answers and med.encrypted_dek:
         try:
             encryption_svc = BookingMedicalEncryptionService()
             decrypted_answers = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
         except Exception as e:
             logger.error(f"Failed to decrypt answers for emergency dossier: {e}")
+            decrypt_ok = False
+            raise HTTPException(
+                status_code=503,
+                detail="Emergency dossier cannot be generated: medical record decrypt failed.",
+            )
 
-    # Build all 10 questions status
+    # Build all 10 questions status (only when ciphertext decrypted or no med row)
     questions_list = []
-    for q_idx in range(1, 11):
-        q_id = f"q{q_idx}"
-        is_yes = decrypted_answers.get(q_id, False) is True
-        questions_list.append({
-            "number": q_idx,
-            "id": q_id,
-            "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
-            "answered_yes": is_yes,
-        })
+    if med and decrypt_ok and decrypted_answers:
+        for q_idx in range(1, 11):
+            q_id = f"q{q_idx}"
+            is_yes = decrypted_answers.get(q_id, False) is True
+            questions_list.append({
+                "number": q_idx,
+                "id": q_id,
+                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+                "answered_yes": is_yes,
+            })
+    elif not med:
+        for q_idx in range(1, 11):
+            q_id = f"q{q_idx}"
+            questions_list.append({
+                "number": q_idx,
+                "id": q_id,
+                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+                "answered_yes": None,
+                "missing": True,
+            })
 
     clearance_audit = None
     if med and med.status == "PHYSICIAN_APPROVED":
@@ -1607,7 +1730,7 @@ def get_emergency_dossier_pdf(
         "selected_gas_mix_id": item.selected_gas_mix_id or "air",
         "estimated_lead_kg": item.equipment_sizing.get("estimated_lead_kg") if item.equipment_sizing else 0,
         "equipment_sizing": item.equipment_sizing or {},
-        "medical_status": med.status if med else "CLEARED",
+        "medical_status": med.status if med else "MISSING",
     }
 
     waiver_data = {
@@ -1650,19 +1773,28 @@ def delete_participant(
     if not is_center_manager(db, center_id, current_user):
         raise HTTPException(status_code=403, detail="Not authorized to manage this center")
 
-    slot = assert_slot_belongs_to_center(db, trip_id, center_id)
+    slot = assert_slot_belongs_to_center(db, trip_id, center_id, for_update=True)
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    slot.seats_available = min(slot.seats_total, slot.seats_available + 1)
-
     booking = item.booking
+    was_confirmed = booking and booking.status in ("CONFIRMED", "COMPLETED")
+    # Count before delete — relationship length after delete is unreliable until flush
+    remaining_after = (len(booking.unit_items) - 1) if booking else 0
     db.delete(item)
+    db.flush()
 
-    # If booking has no more participants, cancel booking
-    if booking and len(booking.unit_items) <= 1:
+    # If no participants remain, cancel the booking
+    if booking and remaining_after <= 0:
+        if was_confirmed:
+            booking.slot = slot
+            bump_linked_trip_current_bookings(booking, -1)
         booking.status = "CANCELLED"
         booking.cancellation_reason = "Cancelled by center manager"
+    elif was_confirmed:
+        booking.slot = slot
+        bump_linked_trip_current_bookings(booking, -1)
 
+    reconcile_slot_seats(db, slot, commit=False, already_locked=True)
     db.commit()
     return {"message": "Participant cancelled and seat released.", "seats_available": slot.seats_available}
 

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 
 import api from '../api';
 import SEO from '../components/SEO';
@@ -42,14 +42,22 @@ function resolveBookingAccessToken(uuid, searchParams) {
 const BookingVoucherPage = () => {
   const { uuid } = useParams();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [downloadingVoucherPdf, setDownloadingVoucherPdf] = useState(false);
+  const [downloadingBriefingPdf, setDownloadingBriefingPdf] = useState(false);
   const [voucher, setVoucher] = useState(null);
 
   const accessToken = useMemo(
     () => (uuid ? resolveBookingAccessToken(uuid, searchParams) : null),
     [uuid, searchParams]
   );
+
+  // Strip access_token from the URL after hydrating sessionStorage (history / Referer / QR safety)
+  useEffect(() => {
+    if (!uuid || !searchParams.get('access_token')) return;
+    navigate(`/bookings/${uuid}/voucher`, { replace: true });
+  }, [uuid, searchParams, navigate]);
 
   const bookingAuthConfig = useMemo(() => {
     if (!accessToken) return {};
@@ -101,6 +109,38 @@ const BookingVoucherPage = () => {
     }
   };
 
+  const handleDownloadBriefingPdf = async () => {
+    try {
+      setDownloadingBriefingPdf(true);
+      toast.loading('Downloading briefing PDF...', { id: 'briefing-pdf' });
+      const res = await api.get(`/api/v1/bookings/${uuid}/briefing`, {
+        responseType: 'blob',
+        ...bookingAuthConfig,
+      });
+      const blob = new window.Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `dive_briefing_${uuid.substring(0, 8)}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Briefing PDF downloaded.', { id: 'briefing-pdf' });
+    } catch (err) {
+      console.error('Failed to download briefing PDF:', err);
+      const status = err.response?.status;
+      toast.error(
+        status === 401
+          ? 'Authentication required to download the briefing.'
+          : 'Failed to download briefing PDF.',
+        { id: 'briefing-pdf' }
+      );
+    } finally {
+      setDownloadingBriefingPdf(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className='min-h-screen bg-gray-50 flex justify-center items-center py-24'>
@@ -141,16 +181,16 @@ const BookingVoucherPage = () => {
             Back to Home
           </Link>
           <div className='flex items-center gap-2'>
-            <a
-              href={`/api/v1/bookings/${uuid}/briefing`}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center px-3.5 py-1.5 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold rounded-lg text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs transition-all'
+            <button
+              type='button'
+              onClick={handleDownloadBriefingPdf}
+              disabled={downloadingBriefingPdf}
+              className='inline-flex items-center px-3.5 py-1.5 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold rounded-lg text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-xs transition-all disabled:opacity-50'
               title='Download official Pre-Dive Briefing PDF'
             >
               <Download size={14} className='mr-1.5 text-indigo-600 dark:text-indigo-400' />
-              Briefing PDF
-            </a>
+              {downloadingBriefingPdf ? 'Downloading…' : 'Briefing PDF'}
+            </button>
             <button
               onClick={handleDownloadVoucherPdf}
               disabled={downloadingVoucherPdf}
@@ -178,9 +218,14 @@ const BookingVoucherPage = () => {
                 </p>
               </div>
 
-              {/* QR Token Box */}
+              {/* QR boarding pass — non-secret payload from API (never encode access_token URLs) */}
               <div className='bg-white p-2.5 rounded-xl shadow-md text-gray-900 flex flex-col items-center shrink-0'>
-                <QRCode value={window.location.href} size={76} bordered={false} errorLevel='M' />
+                <QRCode
+                  value={voucher.qrCodeData || `DIVEMAP:BOOKING:${uuid}`}
+                  size={76}
+                  bordered={false}
+                  errorLevel='M'
+                />
                 <span className='text-[9px] font-mono font-bold text-gray-500 mt-1 tracking-tighter'>
                   SCAN AT DESK
                 </span>

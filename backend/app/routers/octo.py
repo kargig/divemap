@@ -27,7 +27,9 @@ from app.services.booking_access_service import (
     mint_booking_access_token,
     mint_claim_token,
     require_booking_principal,
+    bump_linked_trip_current_bookings,
 )
+from sqlalchemy.orm import joinedload
 
 logger = logging.getLogger(__name__)
 
@@ -308,13 +310,33 @@ def create_booking_hold(
     if needed_seats <= 0:
         raise HTTPException(status_code=400, detail="At least one unitItem is required")
 
-    # Concurrency-safe slot lookup with row lock
-    slot = db.query(OctoAvailabilitySlot).filter(
-        OctoAvailabilitySlot.id == req.availabilityId
-    ).with_for_update().first()
+    # Concurrency-safe slot lookup with row lock + expire stale holds under the lock
+    slot = (
+        db.query(OctoAvailabilitySlot)
+        .options(joinedload(OctoAvailabilitySlot.product))
+        .filter(OctoAvailabilitySlot.id == req.availabilityId)
+        .with_for_update()
+        .first()
+    )
 
     if not slot or slot.is_closed:
         raise HTTPException(status_code=404, detail="Availability slot not found or closed")
+
+    if req.productId != slot.product_id:
+        raise HTTPException(
+            status_code=400,
+            detail="productId does not match the availability slot's product",
+        )
+    if req.optionId != slot.option_id:
+        raise HTTPException(
+            status_code=400,
+            detail="optionId does not match the availability slot's option",
+        )
+
+    # Lazy import avoids circular import with center_booking_ops
+    from app.routers.center_booking_ops import reconcile_slot_seats
+
+    reconcile_slot_seats(db, slot, commit=False, already_locked=True)
 
     if slot.seats_available < needed_seats:
         raise HTTPException(
@@ -325,7 +347,9 @@ def create_booking_hold(
             ),
         )
 
-    product = db.query(OctoProduct).filter(OctoProduct.id == req.productId).first()
+    product = slot.product
+    if not product:
+        product = db.query(OctoProduct).filter(OctoProduct.id == slot.product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -334,10 +358,17 @@ def create_booking_hold(
     ).first()
     hold_minutes = settings.hold_duration_minutes if settings else 20
 
-    # Calculate total and unit pricing
+    # Calculate total and unit pricing — units must belong to this product
     unit_ids = [item.unitId for item in req.unitItems]
     units = db.query(OctoUnit).filter(OctoUnit.id.in_(unit_ids)).all()
     unit_map = {u.id: u for u in units}
+    for uid in unit_ids:
+        unit = unit_map.get(uid)
+        if not unit or unit.product_id != product.id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"unitId '{uid}' is invalid or does not belong to this product",
+            )
 
     # Validate that at least one of email, phone, or passport is provided for each diver
     for item in req.unitItems:
@@ -356,11 +387,14 @@ def create_booking_hold(
     currency = units[0].currency if units else "EUR"
     total_amount = 0.0
     for item in req.unitItems:
-        unit = unit_map.get(item.unitId)
+        unit = unit_map[item.unitId]
+        # Ignore client-controlled package flags; tier comes from DB unit only
+        sizing = dict(item.equipmentSizing or {})
+        sizing.pop("is_rental_package", None)
         pricing_calc = compute_participant_octo_pricing(
             center_settings=settings,
             unit=unit,
-            equipment_sizing=item.equipmentSizing,
+            equipment_sizing=sizing,
             currency=currency,
         )
         total_amount += pricing_calc["total_due"]
@@ -372,18 +406,15 @@ def create_booking_hold(
     booking_uuid = str(uuid.uuid4())
     expiration = datetime.now(timezone.utc) + timedelta(minutes=hold_minutes)
 
+    # Only attach authenticated session user — never bind by unverified contact email
     user_id = current_user.id if current_user else None
-    if not user_id and req.contact and req.contact.email:
-        user_by_email = db.query(User).filter(User.email == req.contact.email.strip().lower()).first()
-        if user_by_email:
-            user_id = user_by_email.id
 
     booking = OctoBooking(
         uuid=booking_uuid,
         user_id=user_id,
         diving_center_id=product.diving_center_id,
         product_id=product.id,
-        option_id=req.optionId,
+        option_id=slot.option_id,
         availability_id=slot.id,
         status="ON_HOLD",
         utc_hold_expiration=expiration,
@@ -513,7 +544,13 @@ def confirm_booking(
     x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
     access_token: Optional[str] = Query(None),
 ):
-    booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
+    booking = (
+        db.query(OctoBooking)
+        .options(joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip))
+        .filter(OctoBooking.uuid == booking_uuid)
+        .with_for_update()
+        .first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
@@ -523,8 +560,21 @@ def confirm_booking(
         extract_access_token(x_booking_access_token, access_token),
     )
 
-    if booking.status == "CANCELLED":
-        raise HTTPException(status_code=400, detail="Cannot confirm a cancelled booking")
+    if booking.status != "ON_HOLD":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only ON_HOLD bookings can be confirmed (current status: {booking.status})",
+        )
+
+    now = datetime.now(timezone.utc)
+    if booking.utc_hold_expiration:
+        exp = booking.utc_hold_expiration
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        if exp < now:
+            booking.status = "EXPIRED"
+            db.commit()
+            raise HTTPException(status_code=400, detail="Hold has expired and cannot be confirmed")
 
     if req and req.contact:
         if req.contact.fullName: booking.contact_full_name = req.contact.fullName
@@ -533,22 +583,14 @@ def confirm_booking(
     if req and req.notes:
         booking.booking_notes = req.notes
 
-    if not booking.user_id:
-        if current_user:
-            booking.user_id = current_user.id
-        elif booking.contact_email:
-            u = db.query(User).filter(User.email == booking.contact_email.strip().lower()).first()
-            if u:
-                booking.user_id = u.id
+    # Only bind authenticated session user; never attach by unverified contact email
+    if not booking.user_id and current_user:
+        booking.user_id = current_user.id
 
     booking.status = "CONFIRMED"
     booking.utc_hold_expiration = None
     extend_access_token_for_voucher_window(booking)
-
-    # Sync current_bookings count on linked ParsedDiveTrip
-    if booking.slot and booking.slot.dive_trip:
-        trip = booking.slot.dive_trip
-        trip.current_bookings = (trip.current_bookings or 0) + len(booking.unit_items)
+    bump_linked_trip_current_bookings(booking, len(booking.unit_items or []))
 
     db.commit()
     db.refresh(booking)
@@ -589,7 +631,13 @@ def cancel_booking(
     x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
     access_token: Optional[str] = Query(None),
 ):
-    booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).with_for_update().first()
+    booking = (
+        db.query(OctoBooking)
+        .options(joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip))
+        .filter(OctoBooking.uuid == booking_uuid)
+        .with_for_update()
+        .first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
@@ -599,21 +647,31 @@ def cancel_booking(
         extract_access_token(x_booking_access_token, access_token),
     )
 
-    if booking.status != "CANCELLED":
-        # Release seats back to availability slot
-        slot = db.query(OctoAvailabilitySlot).filter(
-            OctoAvailabilitySlot.id == booking.availability_id
-        ).with_for_update().first()
+    from app.routers.center_booking_ops import reconcile_slot_seats
 
-        if slot:
-            seats_to_release = len(booking.unit_items)
-            slot.seats_available = min(slot.seats_total, slot.seats_available + seats_to_release)
+    prev_status = booking.status
+    if prev_status != "CANCELLED":
+        slot = (
+            db.query(OctoAvailabilitySlot)
+            .filter(OctoAvailabilitySlot.id == booking.availability_id)
+            .with_for_update()
+            .first()
+        )
+
+        if prev_status == "CONFIRMED":
+            bump_linked_trip_current_bookings(booking, -len(booking.unit_items or []))
 
         booking.status = "CANCELLED"
         if req and req.reason:
             booking.cancellation_reason = req.reason
         booking.utc_hold_expiration = None
         clear_booking_access_token(booking)
+
+        # Recompute seats under lock. EXPIRED holds already returned seats via reconcile —
+        # never blind-increment. ON_HOLD/CONFIRMED are excluded once status is CANCELLED.
+        if slot and prev_status in ("ON_HOLD", "CONFIRMED", "EXPIRED"):
+            reconcile_slot_seats(db, slot, commit=False, already_locked=True)
+
         db.commit()
         db.refresh(booking)
 
@@ -664,7 +722,10 @@ def extend_booking_hold(
     )
 
     extra_minutes = req.expirationMinutes if req and req.expirationMinutes else 20
-    booking.utc_hold_expiration = datetime.now(timezone.utc) + timedelta(minutes=extra_minutes)
+    new_exp = datetime.now(timezone.utc) + timedelta(minutes=extra_minutes)
+    booking.utc_hold_expiration = new_exp
+    if booking.access_token_hash:
+        booking.access_token_expires_at = new_exp
     db.commit()
     db.refresh(booking)
 

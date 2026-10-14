@@ -1070,15 +1070,41 @@ const BookingWizard = () => {
         },
       };
 
-      await api.post(`/api/v1/bookings/${bookingUuid}/submit-paperwork`, paperworkPayload, {
-        headers: bookingAuthHeaders,
-      });
+      if (!accessToken) {
+        toast.error(
+          'Booking hold was created but the access token was missing. Open My Bookings or contact the center — your seat may be held temporarily.'
+        );
+        navigate(`/bookings/${bookingUuid}/voucher`);
+        return;
+      }
+
+      try {
+        await api.post(`/api/v1/bookings/${bookingUuid}/submit-paperwork`, paperworkPayload, {
+          headers: bookingAuthHeaders,
+        });
+      } catch (paperworkErr) {
+        console.error('Paperwork submission failed after hold:', paperworkErr);
+        const pDetail = paperworkErr.response?.data?.detail;
+        const pStr = typeof pDetail === 'string' ? pDetail : '';
+        if (paperworkErr.response?.status === 401) {
+          toast.error(
+            'Hold created but paperwork authentication failed. Retry from the voucher link or My Bookings.'
+          );
+        } else {
+          toast.error(
+            pStr ||
+              'Hold created but paperwork failed. Complete medical/waiver from your voucher while the hold is active.'
+          );
+        }
+        navigate(
+          `/bookings/${bookingUuid}/voucher?access_token=${encodeURIComponent(accessToken)}`
+        );
+        return;
+      }
 
       toast.success('Booking confirmed! Payment will be collected on arrival.');
-      const voucherPath = accessToken
-        ? `/bookings/${bookingUuid}/voucher?access_token=${encodeURIComponent(accessToken)}`
-        : `/bookings/${bookingUuid}/voucher`;
-      navigate(voucherPath);
+      // Token is already in sessionStorage; avoid leaving it in the URL long-term
+      navigate(`/bookings/${bookingUuid}/voucher?access_token=${encodeURIComponent(accessToken)}`);
     } catch (err) {
       console.error('Booking confirmation failed:', err);
       const detail = err.response?.data?.detail;
@@ -1096,6 +1122,11 @@ const BookingWizard = () => {
           detailStr ||
             'This trip is fully booked online. Please contact the diving center directly.'
         );
+        return;
+      }
+
+      if (err.response?.status === 401) {
+        toast.error(detailStr || 'Authentication required to complete booking.');
         return;
       }
 
