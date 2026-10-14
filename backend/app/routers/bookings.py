@@ -2,7 +2,7 @@ import hashlib
 import logging
 import re
 from typing import Optional, List, Dict, Any
-from datetime import datetime, date, time, timezone, timedelta
+from datetime import datetime, date, time, timezone, timedelta, UTC
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Header, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session, joinedload
@@ -50,7 +50,7 @@ router = APIRouter(prefix="/api/v1/bookings", tags=["Diver Bookings & Checkout"]
 
 def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is not None and dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 # --- Schemas ---
@@ -414,16 +414,16 @@ def get_checkout_context(
             {
                 "has_record": True,
                 "status": u_med.status,
-                "is_expired": ensure_aware(u_med.expires_at) < datetime.now(timezone.utc),
+                "is_expired": ensure_aware(u_med.expires_at) < datetime.now(UTC),
                 "completed_at": ensure_aware(u_med.completed_at).isoformat() if u_med.completed_at else None,
                 "expires_at": ensure_aware(u_med.expires_at).isoformat() if u_med.expires_at else None,
-                "days_remaining": max(0, (ensure_aware(u_med.expires_at) - datetime.now(timezone.utc)).days) if ensure_aware(u_med.expires_at) >= datetime.now(timezone.utc) else 0,
+                "days_remaining": max(0, (ensure_aware(u_med.expires_at) - datetime.now(UTC)).days) if ensure_aware(u_med.expires_at) >= datetime.now(UTC) else 0,
                 "center_approved": bool(
                     [
                         ca for ca in db.query(CenterDiverMedicalApproval).filter(
                             CenterDiverMedicalApproval.diving_center_id == center.id,
                             CenterDiverMedicalApproval.user_id == current_user.id
-                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)
+                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(UTC)
                     ]
                 ) if u_med.status != "CLEARED" else True,
                 "center_approval_expires_at": (
@@ -432,7 +432,7 @@ def get_checkout_context(
                         ca for ca in db.query(CenterDiverMedicalApproval).filter(
                             CenterDiverMedicalApproval.diving_center_id == center.id,
                             CenterDiverMedicalApproval.user_id == current_user.id
-                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)
+                        ).all() if ensure_aware(ca.expires_at) >= datetime.now(UTC)
                     ])
                     else None
                 ),
@@ -502,7 +502,7 @@ def _apply_diver_paperwork_for_unit_item(
     db: Session,
 ) -> str:
     """Encrypt medical data, update gear/waivers for one unit item. Returns medical_status."""
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     audit_str = f"{booking.uuid}:{unit_item.id}:{req.signatureName}:{now_utc.isoformat()}"
     audit_hash = hashlib.sha256(audit_str.encode("utf-8")).hexdigest()
 
@@ -827,7 +827,7 @@ def submit_guest_claim_paperwork(
         booking, unit_item, req, current_user, db
     )
     unit_item.claim_status = "CLAIMED"
-    unit_item.claim_completed_at = datetime.now(timezone.utc)
+    unit_item.claim_completed_at = datetime.now(UTC)
     # Keep hash for read-only GET of "already claimed"; writes rejected via for_write + CLAIMED
     db.flush()
     _maybe_confirm_booking_after_paperwork(booking)
@@ -1082,7 +1082,7 @@ def get_my_annual_medical_status(
 ):
     """Returns the authenticated diver's current annual medical declaration status and center approvals."""
     med = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == current_user.id).first()
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
 
     log_medical_access(
         db=db,
@@ -1225,7 +1225,7 @@ def save_my_annual_medical_declaration(
     encryption_svc = BookingMedicalEncryptionService()
     enc_dek, enc_answers = encryption_svc.encrypt_answers(req.dmscAnswers)
 
-    now_utc = datetime.now(timezone.utc)
+    now_utc = datetime.now(UTC)
     audit_str = f"annual_medical:{current_user.id}:{req.signatureName}:{now_utc.isoformat()}"
     audit_hash = hashlib.sha256(audit_str.encode('utf-8')).hexdigest()
 

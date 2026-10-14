@@ -6,7 +6,7 @@ to prevent database bloat.
 """
 
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, UTC
 from sqlalchemy.orm import Session
 
 from app.models import EmailVerificationToken
@@ -32,7 +32,7 @@ def cleanup_expired_tokens(db: Session, days_old: int = 7) -> int:
         Number of tokens deleted
     """
     try:
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_old)
+        cutoff_date = datetime.now(UTC) - timedelta(days=days_old)
         
         # Delete expired tokens older than cutoff
         expired_count = db.query(EmailVerificationToken).filter(
@@ -74,7 +74,7 @@ def cleanup_all_expired_tokens(db: Session) -> int:
         Number of tokens deleted
     """
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         
         # Delete all expired tokens
         expired_count = db.query(EmailVerificationToken).filter(

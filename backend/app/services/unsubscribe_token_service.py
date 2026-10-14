@@ -9,7 +9,7 @@ import os
 import secrets
 import logging
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 
@@ -52,11 +52,11 @@ class UnsubscribeTokenService:
         
         # If token exists and is not expired, return it
         if existing_token:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # Ensure expires_at is timezone-aware (database may return naive datetime)
             expires_at = existing_token.expires_at
             if expires_at.tzinfo is None:
-                expires_at = expires_at.replace(tzinfo=timezone.utc)
+                expires_at = expires_at.replace(tzinfo=UTC)
             
             if expires_at > now:
                 logger.debug(f"Returning existing valid unsubscribe token for user {user_id}")
@@ -69,7 +69,7 @@ class UnsubscribeTokenService:
         
         # Generate new token
         token = self.generate_unsubscribe_token()
-        expires_at = datetime.now(timezone.utc) + timedelta(days=self.token_expiry_days)
+        expires_at = datetime.now(UTC) + timedelta(days=self.token_expiry_days)
         
         # Create token record
         unsubscribe_token = UnsubscribeToken(
@@ -106,11 +106,11 @@ class UnsubscribeTokenService:
             return None
         
         # Check if token is expired
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Ensure expires_at is timezone-aware (database may return naive datetime)
         expires_at = unsubscribe_token.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
         
         if expires_at <= now:
             logger.warning(f"Unsubscribe token expired: {token[:10]}...")
@@ -126,7 +126,7 @@ class UnsubscribeTokenService:
             token_obj: UnsubscribeToken object
             db: Database session
         """
-        token_obj.last_used_at = datetime.now(timezone.utc)
+        token_obj.last_used_at = datetime.now(UTC)
         db.commit()
         logger.debug(f"Updated last_used_at for unsubscribe token {token_obj.id}")
     
@@ -189,7 +189,7 @@ class UnsubscribeTokenService:
         Returns:
             Number of deleted tokens
         """
-        threshold_date = datetime.now(timezone.utc) - timedelta(days=days_old)
+        threshold_date = datetime.now(UTC) - timedelta(days=days_old)
         
         # Delete tokens that have expired and are older than the threshold
         deleted_count = db.query(UnsubscribeToken).filter(
@@ -213,7 +213,7 @@ class UnsubscribeTokenService:
         category_str = category if category else "all"
         logger.info(
             f"Unsubscribe event - User ID: {user_id}, Category: {category_str}, "
-            f"Token: {token[:10]}..., Timestamp: {datetime.now(timezone.utc).isoformat()}"
+            f"Token: {token[:10]}..., Timestamp: {datetime.now(UTC).isoformat()}"
         )
 
 

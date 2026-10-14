@@ -28,11 +28,11 @@ def _count_tokens_cached(file_path: str, mtime: float) -> str:
         import tiktoken
     except ImportError:
         # Fallback heuristic if tiktoken is not installed
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
         return str(len(content) // 4)
 
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
         
     enc = tiktoken.get_encoding("cl100k_base")
@@ -70,7 +70,7 @@ async def negotiate_markdown(request: Request, path: str):
     token_count = _count_tokens_cached(file_path, mtime)
 
     # Read content
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         content = f.read()
 
     # Build response with required agent headers

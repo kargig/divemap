@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Security
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc, func
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 from fastapi.responses import JSONResponse
 import os
 import logging
@@ -53,10 +53,10 @@ def _serialize_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     
     # If naive datetime, assume it's UTC (from database with timezone=True)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     # Convert to UTC if not already
-    elif dt.tzinfo != timezone.utc:
-        dt = dt.astimezone(timezone.utc)
+    elif dt.tzinfo != UTC:
+        dt = dt.astimezone(UTC)
     
     return dt.isoformat()
 
@@ -241,10 +241,10 @@ def get_notifications(
                     # Ensure timezone-aware datetimes - if naive, assume UTC
                     if value.tzinfo is None:
                         # If naive datetime (shouldn't happen with timezone=True, but handle gracefully)
-                        value = value.replace(tzinfo=timezone.utc)
+                        value = value.replace(tzinfo=UTC)
                     # Convert to UTC if not already (normalize to UTC)
-                    if value.tzinfo != timezone.utc:
-                        value = value.astimezone(timezone.utc)
+                    if value.tzinfo != UTC:
+                        value = value.astimezone(UTC)
                     # Serialize as ISO string with UTC timezone indicator
                     item[key] = value.isoformat()
             content.append(item)

@@ -9,7 +9,7 @@ import os
 import math
 import logging
 from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, desc
 
@@ -379,7 +379,7 @@ class NotificationService:
                 # Mark email as sent in database
                 try:
                     notification.email_sent = True
-                    notification.email_sent_at = datetime.now(timezone.utc)
+                    notification.email_sent_at = datetime.now(UTC)
                     db.commit()
                     logger.info(f"Email sent directly and marked as sent for notification {notification.id}")
                 except Exception as e:

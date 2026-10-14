@@ -1,4 +1,4 @@
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime, timezone, UTC
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
 from sqlalchemy.orm import Session
@@ -148,7 +148,7 @@ async def register(
 
     # Store Turnstile verification timestamp if enabled and not native app
     if turnstile_service.is_enabled() and not is_native_app:
-        db_user.turnstile_verified_at = datetime.now(timezone.utc)
+        db_user.turnstile_verified_at = datetime.now(UTC)
 
     try:
         db.add(db_user)
@@ -246,7 +246,7 @@ async def login(
     if user:
         try:
             if turnstile_service.is_enabled() and not is_native_app:
-                user.turnstile_verified_at = datetime.now(timezone.utc)
+                user.turnstile_verified_at = datetime.now(UTC)
             user.last_accessed_at = func.now()
             db.commit()
         except Exception:
@@ -591,7 +591,7 @@ async def resend_verification(
 
     # Check rate limit by email address (check recent tokens for this user)
     # Use a single query with aggregation to avoid N+1
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
     recent_tokens_count = db.query(EmailVerificationToken).filter(
         EmailVerificationToken.user_id == user.id,
@@ -824,7 +824,7 @@ async def request_password_reset(
     token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
 
     # Expiry: 30 minutes
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    expires_at = datetime.now(UTC) + timedelta(minutes=30)
 
     # Store token hash
     db_token = PasswordResetToken(
@@ -873,7 +873,7 @@ async def verify_reset_token(
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
         PasswordResetToken.used_at.is_(None),
-        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+        PasswordResetToken.expires_at > datetime.now(UTC)
     ).first()
 
     if not db_token:
@@ -900,7 +900,7 @@ async def reset_password(
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
         PasswordResetToken.used_at.is_(None),
-        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+        PasswordResetToken.expires_at > datetime.now(UTC)
     ).first()
 
     if not db_token:
@@ -924,7 +924,7 @@ async def reset_password(
     user.password_hash = get_password_hash(reset_data.new_password)
 
     # Mark token used
-    db_token.used_at = datetime.now(timezone.utc)
+    db_token.used_at = datetime.now(UTC)
 
     # Revoke all refresh tokens
     db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"is_revoked": True})

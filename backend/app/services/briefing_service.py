@@ -1,7 +1,7 @@
 import io
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 from sqlalchemy.orm import Session
 
@@ -381,7 +381,7 @@ class BriefingService:
         # Generate and cache PDF
         BriefingService.generate_briefing_pdf(briefing, db)
         briefing.status = "APPROVED_DISPATCHED"
-        briefing.dispatched_at = datetime.now(timezone.utc)
+        briefing.dispatched_at = datetime.now(UTC)
         briefing.dispatched_by_user_id = dispatched_by_user_id
 
         # Collect recipient divers on boat manifest

@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from datetime import datetime, date, timezone, timedelta
+from datetime import datetime, date, timezone, timedelta, UTC
 import uuid
 import logging
 import re
@@ -71,7 +71,7 @@ def is_bona_fide_center_staff(db: Session, center_id: int, user: User) -> bool:
 
 def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is not None and dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt
 
 DMSC_QUESTION_TEXTS = {
@@ -165,7 +165,7 @@ def reconcile_slot_seats(
         if locked is not None:
             slot = locked
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # 1. Mark expired holds (compare in UTC; coerce naive DB values)
     expired_holds = (
         db.query(OctoBooking)
@@ -182,7 +182,7 @@ def reconcile_slot_seats(
         if exp is None:
             continue
         if exp.tzinfo is None:
-            exp = exp.replace(tzinfo=timezone.utc)
+            exp = exp.replace(tzinfo=UTC)
         if exp < now:
             hold.status = "EXPIRED"
             newly_expired.append(hold)
@@ -907,7 +907,7 @@ def add_walkin_participant(
         selected_gas_mix_id=req.selected_gas_mix_id or "air",
         equipment_sizing=req.equipment_sizing or {},
         waivers_complete=True,
-        signed_at=datetime.now(timezone.utc),
+        signed_at=datetime.now(UTC),
         onboard_checkin_status=req.onboard_checkin_status or False,
     )
     db.add(unit_item)
@@ -1224,7 +1224,7 @@ def get_participant_medical_review(
             CenterDiverMedicalApproval.diving_center_id == center_id,
             CenterDiverMedicalApproval.user_id == item.user_id,
         ).all()
-        active_ca = [ca for ca in center_apps if ca.expires_at and ensure_aware(ca.expires_at) >= datetime.now(timezone.utc)]
+        active_ca = [ca for ca in center_apps if ca.expires_at and ensure_aware(ca.expires_at) >= datetime.now(UTC)]
         if active_ca:
             center_app = active_ca[0]
             center_approval_info = {
@@ -1319,7 +1319,7 @@ def update_participant_medical_answers(
 
     has_any_yes = any(clean_answers.values())
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if not med:
         med = DiverMedicalRecord(
             booking_unit_item_id=participant_id,
@@ -1442,7 +1442,7 @@ def clear_participant_medical(
 
     med.status = "PHYSICIAN_APPROVED"
     med.cleared_by_user_id = current_user.id
-    med.cleared_at = datetime.now(timezone.utc)
+    med.cleared_at = datetime.now(UTC)
     med.cleared_physician_name = req.physician_name.strip()
     med.cleared_physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
     med.cleared_reason = req.notes or f"Physician clearance by Dr. {req.physician_name.strip()} verified by {current_user.username}"
@@ -1511,7 +1511,7 @@ def grant_annual_center_medical_approval(
     if not item.user_id:
         raise HTTPException(status_code=400, detail="Participant must have a linked user account to store annual center approval")
 
-    now_dt = datetime.now(timezone.utc)
+    now_dt = datetime.now(UTC)
     approval = db.query(CenterDiverMedicalApproval).filter(
         CenterDiverMedicalApproval.diving_center_id == center_id,
         CenterDiverMedicalApproval.user_id == item.user_id

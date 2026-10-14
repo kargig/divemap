@@ -13,7 +13,6 @@ from app.geo_utils import (
     calculate_directional_bounds, get_location_info_from_coords
 )
 from .base import clean_results
-from app.geo_utils import get_empirical_region_bounds, get_external_region_bounds, calculate_directional_bounds
 import logging
 from datetime import date as py_date
 logger = logging.getLogger(__name__)

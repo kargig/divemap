@@ -7,7 +7,7 @@ Handles email verification token generation, validation, and management.
 import os
 import secrets
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -48,7 +48,7 @@ class EmailVerificationService:
         
         # Generate new token
         token = self.generate_verification_token()
-        expires_at = datetime.now(timezone.utc) + timedelta(hours=self.token_expiry_hours)
+        expires_at = datetime.now(UTC) + timedelta(hours=self.token_expiry_hours)
         
         # Create token record
         verification_token = EmailVerificationToken(
@@ -89,7 +89,7 @@ class EmailVerificationService:
         # Ensure both datetimes are timezone-aware for comparison
         from app.utils import normalize_datetime_to_utc
         expires_at = normalize_datetime_to_utc(verification_token.expires_at)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if expires_at and expires_at < now:
             logger.warning(f"Verification token expired: {token[:10]}...")
             return None
@@ -106,16 +106,16 @@ class EmailVerificationService:
             if user.email_verified:
                 logger.info(f"Email already verified for user {user.id}")
                 # Mark token as used anyway
-                verification_token.used_at = datetime.now(timezone.utc)
+                verification_token.used_at = datetime.now(UTC)
                 db.commit()
                 return user
             
             # Mark token as used
-            verification_token.used_at = datetime.now(timezone.utc)
+            verification_token.used_at = datetime.now(UTC)
             
             # Mark email as verified
             user.email_verified = True
-            user.email_verified_at = datetime.now(timezone.utc)
+            user.email_verified_at = datetime.now(UTC)
             
             db.commit()
             db.refresh(user)
@@ -148,10 +148,10 @@ class EmailVerificationService:
         # Ensure both datetimes are timezone-aware for comparison
         expires_at = verification_token.expires_at
         if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(tzinfo=timezone.utc)
+            expires_at = expires_at.replace(tzinfo=UTC)
         # Token is expired if expires_at is less than or equal to now
         # (tokens that expire exactly at "now" are considered expired)
-        if expires_at <= datetime.now(timezone.utc):
+        if expires_at <= datetime.now(UTC):
             return False
         
         return True
@@ -195,7 +195,7 @@ class EmailVerificationService:
         ).all()
         
         for token in existing_tokens:
-            token.used_at = datetime.now(timezone.utc)
+            token.used_at = datetime.now(UTC)
         
         if existing_tokens:
             db.commit()

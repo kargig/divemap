@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from typing import Optional, Tuple
 from urllib.parse import urlparse
 
@@ -26,7 +26,7 @@ def hash_booking_token(raw: str) -> str:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def mint_booking_access_token(booking: OctoBooking, expires_at: Optional[datetime] = None) -> str:
@@ -55,7 +55,7 @@ def verify_booking_access(booking: OctoBooking, raw_token: Optional[str]) -> boo
     if booking.access_token_expires_at:
         exp = booking.access_token_expires_at
         if exp.tzinfo is None:
-            exp = exp.replace(tzinfo=timezone.utc)
+            exp = exp.replace(tzinfo=UTC)
         if exp < _utcnow():
             return False
     return secrets.compare_digest(booking.access_token_hash, hash_booking_token(raw_token))
@@ -75,7 +75,7 @@ def verify_claim_token(
     if unit_item.claim_invited_at:
         invited = unit_item.claim_invited_at
         if invited.tzinfo is None:
-            invited = invited.replace(tzinfo=timezone.utc)
+            invited = invited.replace(tzinfo=UTC)
         if _utcnow() > invited + timedelta(days=14):
             return False
     return secrets.compare_digest(unit_item.claim_token_hash, hash_booking_token(raw_token))
@@ -137,7 +137,7 @@ def extend_access_token_for_voucher_window(booking: OctoBooking, days: int = 7) 
     if booking.slot and booking.slot.start_datetime:
         start = booking.slot.start_datetime
         if start.tzinfo is None:
-            start = start.replace(tzinfo=timezone.utc)
+            start = start.replace(tzinfo=UTC)
         base = start
     booking.access_token_expires_at = base + timedelta(days=days)
 

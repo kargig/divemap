@@ -118,10 +118,10 @@ def verify_facebook_token(token: str) -> Dict[str, Any]:
         raise
     except requests.RequestException as e:
         logger.error(f"Network error calling Facebook Graph API: {e}")
-        raise FacebookAuthError("Unable to contact Facebook service.")
+        raise FacebookAuthError("Unable to contact Facebook service.") from e
     except (ValueError, TypeError, KeyError) as e:
         logger.error(f"Unexpected Facebook token response: {e}")
-        raise FacebookAuthError("Facebook token validation failed.")
+        raise FacebookAuthError("Facebook token validation failed.") from e
 
 def _generate_valid_username(db: Session, base_name: str, fb_id: str) -> str:
     """Generate a sanitized, unique username."""

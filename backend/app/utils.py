@@ -1,7 +1,7 @@
 from fastapi import Request
 from typing import Optional, List, Dict, Any, Tuple
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 import orjson
 import re
 import unicodedata
@@ -500,7 +500,7 @@ def calculate_unified_phrase_aware_score(
     
     # 8. Additional fields bonus (for content-specific fields)
     if additional_fields:
-        for field_name, field_value in additional_fields.items():
+        for field_value in additional_fields.values():
             if field_value and query_lower in str(field_value).lower():
                 final_score += 0.05  # Small bonus for additional field matches
     
@@ -630,7 +630,7 @@ def utcnow() -> datetime:
     Returns:
         datetime: Current UTC time as timezone-aware datetime
     """
-    return datetime.now(timezone.utc) 
+    return datetime.now(UTC) 
 
 def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     """
@@ -640,8 +640,8 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is None:
         return None
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 # Cache presigned URLs for 55 minutes (3300s) to safely beat the 1-hour expiration
 @cached(cache=TTLCache(maxsize=1024, ttl=3300))

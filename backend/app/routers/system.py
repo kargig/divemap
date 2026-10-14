@@ -2,7 +2,7 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc, asc, text, Integer
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 import psutil
 import os
 import logging
@@ -50,7 +50,7 @@ async def get_general_statistics(
     """Get general statistics: platform stats, geographic distribution, and notification analytics"""
     
     # Calculate date ranges
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     thirty_days_ago = now - timedelta(days=30)
     seven_days_ago = now - timedelta(days=7)
     one_day_ago = now - timedelta(days=1)
@@ -323,9 +323,9 @@ async def get_general_statistics(
                 created_at = notif.created_at
                 sent_at = notif.email_sent_at
                 if created_at.tzinfo is None:
-                    created_at = created_at.replace(tzinfo=timezone.utc)
+                    created_at = created_at.replace(tzinfo=UTC)
                 if sent_at.tzinfo is None:
-                    sent_at = sent_at.replace(tzinfo=timezone.utc)
+                    sent_at = sent_at.replace(tzinfo=UTC)
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:
                     delivery_times.append(delta)
@@ -1075,7 +1075,7 @@ PERIOD_DAYS = {
 
 def date_to_datetime(date_obj):
     """Convert date object to timezone-aware datetime at start of day"""
-    return datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=timezone.utc)
+    return datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=UTC)
 
 def calculate_growth_rate(start, end):
     """Calculate percentage growth rate between two values"""
@@ -1092,7 +1092,7 @@ async def get_growth_data(
     """Get growth data over time for dive sites, diving centers, dives, routes, and trips"""
     
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         
         # Calculate date range based on period
         days_back = PERIOD_DAYS.get(period, 30)
@@ -1274,7 +1274,7 @@ async def get_notification_analytics(
 ):
     """Get notification analytics including in-app and email delivery statistics"""
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
     seven_days_ago = now - timedelta(days=7)
     thirty_days_ago = now - timedelta(days=30)
@@ -1353,9 +1353,9 @@ async def get_notification_analytics(
                 created_at = notif.created_at
                 sent_at = notif.email_sent_at
                 if created_at.tzinfo is None:
-                    created_at = created_at.replace(tzinfo=timezone.utc)
+                    created_at = created_at.replace(tzinfo=UTC)
                 if sent_at.tzinfo is None:
-                    sent_at = sent_at.replace(tzinfo=timezone.utc)
+                    sent_at = sent_at.replace(tzinfo=UTC)
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:  # Only count positive deltas
                     delivery_times.append(delta)

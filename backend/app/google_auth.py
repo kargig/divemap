@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models import User
 from app.auth import create_access_token, get_password_hash
 from app.schemas import AvatarType
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime, timezone, UTC
 from app.auth import ACCESS_TOKEN_EXPIRE_MINUTES
 import re
 from sqlalchemy.exc import IntegrityError
@@ -88,10 +88,10 @@ def verify_google_token(token: str) -> Dict[str, Any]:
 
     except GoogleAuthLibraryError as e:
         logger.error(f"Google library error during token verification: {str(e)}")
-        raise GoogleAuthError(f"Invalid Google token: {str(e)}")
+        raise GoogleAuthError(f"Invalid Google token: {str(e)}") from e
     except Exception as e:
         logger.error(f"Unexpected error during token verification: {str(e)}")
-        raise GoogleAuthError(f"Token verification failed: {str(e)}")
+        raise GoogleAuthError(f"Token verification failed: {str(e)}") from e
 
 def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> User:
     """
@@ -126,7 +126,7 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         # Set email as verified (Google already verifies emails)
         if not existing_user.email_verified:
             existing_user.email_verified = True
-            existing_user.email_verified_at = datetime.now(timezone.utc)
+            existing_user.email_verified_at = datetime.now(UTC)
         db.commit()
         return existing_user
 
@@ -163,7 +163,7 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         avatar_type=AvatarType.google,
         enabled=True,  # Google users are enabled by default
         email_verified=True,  # Google already verifies emails
-        email_verified_at=datetime.now(timezone.utc),  # Set verification timestamp
+        email_verified_at=datetime.now(UTC),  # Set verification timestamp
         is_admin=False,
         is_moderator=False
     )
@@ -195,7 +195,7 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         return new_user
     except IntegrityError as e:
         db.rollback()
-        raise GoogleAuthError(f"Failed to create user: {str(e)}")
+        raise GoogleAuthError(f"Failed to create user: {str(e)}") from e
 
 
 def _generate_valid_username(db: Session, email: str) -> str:

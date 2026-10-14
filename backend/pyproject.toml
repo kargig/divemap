@@ -19,6 +19,7 @@ select = [
 ]
 ignore = [
     "B008",   # Do not perform function calls in argument defaults (FastAPI Depends/Query)
+    "B904",   # Exception chaining (FastAPI route handlers use HTTPException without chaining)
     "E501",   # Line too long (handled by ruff format)
     "E402",   # Module level import not at top of file (common for setup before imports)
     "E712",   # Comparison to True/False (needed for SQLAlchemy .filter(Model.field == True))

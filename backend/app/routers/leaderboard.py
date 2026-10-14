@@ -1,8 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
-from datetime import datetime, timezone
+from sqlalchemy import func, desc, and_
+from datetime import datetime, timezone, UTC
 from fastapi_cache.decorator import cache
 
 from app.database import get_db
@@ -108,7 +108,7 @@ async def get_overall_leaderboard(
     return LeaderboardUserResponse(
         metric="overall",
         entries=entries,
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(UTC)
     )
 
 @router.get("/users/monthly", response_model=LeaderboardUserResponse)
@@ -121,18 +121,16 @@ async def get_monthly_leaderboard(
 ):
     """Get the monthly user leaderboard based on unified points system for a specific year and month."""
     import calendar
-    from datetime import datetime, timezone
-    from sqlalchemy import and_
 
     # Default to current UTC month/year if not specified
     if not year or not month:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         year = year or now.year
         month = month or now.month
 
     _, last_day = calendar.monthrange(year, month)
-    start_date = datetime(year, month, 1, 0, 0, 0, tzinfo=timezone.utc)
-    end_date = datetime(year, month, last_day, 23, 59, 59, 999999, tzinfo=timezone.utc)
+    start_date = datetime(year, month, 1, 0, 0, 0, tzinfo=UTC)
+    end_date = datetime(year, month, last_day, 23, 59, 59, 999999, tzinfo=UTC)
 
     # Count subqueries with created_at filter
     dives_sub = db.query(Dive.user_id, func.count(Dive.id).label("cnt")).filter(and_(Dive.created_at >= start_date, Dive.created_at <= end_date)).group_by(Dive.user_id).subquery()
@@ -232,7 +230,7 @@ async def get_monthly_leaderboard(
     return LeaderboardUserResponse(
         metric=f"monthly_{year}_{month:02d}",
         entries=entries,
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(UTC)
     )
 
 @router.get("/users/category/{metric}", response_model=LeaderboardUserResponse)
@@ -267,7 +265,7 @@ async def get_category_leaderboard(
         return LeaderboardUserResponse(
             metric=metric,
             entries=entries,
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(UTC)
         )
     elif metric == "comments":
         s_sub = db.query(SiteComment.user_id, func.count(SiteComment.id).label("cnt")).group_by(SiteComment.user_id).subquery()
@@ -292,7 +290,7 @@ async def get_category_leaderboard(
         return LeaderboardUserResponse(
             metric=metric,
             entries=entries,
-            updated_at=datetime.now(timezone.utc)
+            updated_at=datetime.now(UTC)
         )
     
     # Standard metrics
@@ -303,7 +301,7 @@ async def get_category_leaderboard(
     elif metric == "edits":
         subq = db.query(DiveSiteEditRequest.requested_by_id.label("user_id"), func.count(DiveSiteEditRequest.id).label("cnt")).group_by(DiveSiteEditRequest.requested_by_id).subquery()
     else:
-        return LeaderboardUserResponse(metric=metric, entries=[], updated_at=datetime.now(timezone.utc))
+        return LeaderboardUserResponse(metric=metric, entries=[], updated_at=datetime.now(UTC))
 
     results = db.query(User.id, User.username, User.avatar_url, User.avatar_type, User.google_avatar_url, subq.c.cnt)\
         .join(subq, User.id == subq.c.user_id)\
@@ -321,7 +319,7 @@ async def get_category_leaderboard(
     return LeaderboardUserResponse(
         metric=metric,
         entries=entries,
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(UTC)
     )
 
 @router.get("/centers", response_model=LeaderboardCenterResponse)
@@ -348,7 +346,7 @@ async def get_center_leaderboard(
             count=r.cnt,
             rank=i+1
         ) for i, r in enumerate(results)],
-        updated_at=datetime.now(timezone.utc)
+        updated_at=datetime.now(UTC)
     )
 
 

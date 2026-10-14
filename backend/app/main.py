@@ -6,7 +6,7 @@ from starlette.types import ASGIApp
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse, ORJSONResponse
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 from contextlib import asynccontextmanager
 import os
 import logging
@@ -140,14 +140,14 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
     # Calculate reset time (default to 1 minute for most limits, 24 hours for daily limits)
     # This is a best-effort calculation - slowapi doesn't expose the exact reset time
-    reset_time = datetime.now(timezone.utc) + timedelta(minutes=1)
+    reset_time = datetime.now(UTC) + timedelta(minutes=1)
 
     # Check if this is a daily limit (contains "day" or "/d")
     if "day" in limit_detail.lower() or "/d" in limit_detail.lower():
-        reset_time = datetime.now(timezone.utc) + timedelta(days=1)
+        reset_time = datetime.now(UTC) + timedelta(days=1)
 
     reset_timestamp = int(reset_time.timestamp())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     retry_after_seconds = int((reset_time - now).total_seconds())
 
     # Special handling for resend verification endpoint

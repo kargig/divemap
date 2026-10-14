@@ -15,7 +15,7 @@ import math
 import random
 from collections import defaultdict
 from typing import Optional, Dict, List, Tuple
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 import logging
 from decimal import Decimal
 
@@ -323,7 +323,7 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
             if target_datetime:
                 if target_datetime.tzinfo is not None:
                     # Timezone-aware: convert to UTC
-                    target_datetime_utc = target_datetime.astimezone(timezone.utc).replace(tzinfo=None)
+                    target_datetime_utc = target_datetime.astimezone(UTC).replace(tzinfo=None)
                 else:
                     # Naive datetime: assume it's in local time, convert to UTC
                     # For simplicity, we'll use the naive datetime directly and compare with UTC now
@@ -445,7 +445,7 @@ def _store_batch_in_database_cache(entries: List[Dict]):
                 target_datetime_utc = None
                 if target_datetime:
                     if target_datetime.tzinfo is not None:
-                        target_datetime_utc = target_datetime.astimezone(timezone.utc).replace(tzinfo=None)
+                        target_datetime_utc = target_datetime.astimezone(UTC).replace(tzinfo=None)
                     else:
                         target_datetime_utc = target_datetime
                 else:
@@ -1178,7 +1178,7 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                     max_retries = 10  # Maximum retries to find a valid jittered point
                     jittered_point_created = False
                     
-                    for retry in range(max_retries):
+                    for _retry in range(max_retries):
                         # Generate random jitter within range
                         lat_jitter = random.uniform(-jitter_range, jitter_range)
                         lon_jitter = random.uniform(-jitter_range, jitter_range)
@@ -1252,7 +1252,7 @@ def fetch_wind_data_batch(locations: List[Tuple[float, float]], target_datetime:
         cell_to_locations[cache_key].append((lat, lon))
     
     # 2. Process each unique cell
-    for cache_key, points in cell_to_locations.items():
+    for points in cell_to_locations.values():
         # Representative point for this cell
         rep_lat, rep_lon = points[0]
         

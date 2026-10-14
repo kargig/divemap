@@ -1623,7 +1623,7 @@ async def get_parsed_trips(
         
         # For each center, sort by trip_date (ascending = oldest first) and take only 2
         restricted_trips = []
-        for center_id, center_trips in trips_by_center.items():
+        for center_trips in trips_by_center.values():
             # Sort by trip_date ascending (oldest first)
             sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
             # Take only the 2 oldest

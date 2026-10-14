@@ -179,7 +179,7 @@ async def get_spa_template() -> Optional[str]:
         template_path = resolve_html_template()
         if template_path and os.path.isfile(template_path):
             try:
-                with open(template_path, "r", encoding="utf-8") as f:
+                with open(template_path, encoding="utf-8") as f:
                     _spa_template_cache = f.read()
                     _spa_template_fetched_at = time.time()
                 logger.info(f"Successfully read SPA template from disk: {template_path}")

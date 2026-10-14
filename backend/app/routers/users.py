@@ -1453,7 +1453,7 @@ async def get_user_advanced_analytics(
         ).all()
 
     # Map tag names to dimensions
-    for d_id, tag_name in all_dive_tags:
+    for _d_id, tag_name in all_dive_tags:
         lower_tag = tag_name.lower()
         if any(term in lower_tag for term in ["reef", "coral", "shallow", "fish", "flora", "marine"]):
             style_counts["Reef & Eco"] += 1
@@ -1565,7 +1565,7 @@ async def get_user_advanced_analytics(
         if d <= 50: return "40-50m"
         return "50m+"
 
-    for d_id, d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
+    for _d_id, d_max, _d_dur, _d_suit, _d_info, d_gas, _d_avg, _d_date in advanced_query:
         if d_max is not None:
             gas_mix_label = parse_gas_mix(d_gas)
             depth_bin = get_gas_depth_bin(d_max)

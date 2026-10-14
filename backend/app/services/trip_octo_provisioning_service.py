@@ -1,6 +1,6 @@
 import uuid
 import re
-from datetime import datetime, timezone, timedelta, time
+from datetime import datetime, timezone, timedelta, time, UTC
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.models import (
@@ -143,9 +143,9 @@ class TripOctoProvisioningService:
             option.max_capacity = total_seats
 
         # 3. Calculate start and end datetimes
-        trip_date = trip.trip_date or datetime.now(timezone.utc).date()
+        trip_date = trip.trip_date or datetime.now(UTC).date()
         trip_time = trip.trip_time or time(9, 0)
-        start_dt = datetime.combine(trip_date, trip_time).replace(tzinfo=timezone.utc)
+        start_dt = datetime.combine(trip_date, trip_time).replace(tzinfo=UTC)
         end_dt = start_dt + timedelta(minutes=duration_mins)
 
         # 4. Resolve or create Slot

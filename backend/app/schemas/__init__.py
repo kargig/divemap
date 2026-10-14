@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict, ValidationInfo
 from typing import Optional, List, Union, Literal, Dict, Any
-from datetime import datetime, date, time, timezone
+from datetime import datetime, date, time, timezone, UTC
 import re
 import enum
 import nh3
@@ -41,10 +41,10 @@ def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
     if isinstance(v, datetime):
         # If naive datetime, assume it's UTC (from database with timezone=True)
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
+            return v.replace(tzinfo=UTC)
         # If timezone-aware, convert to UTC
-        elif v.tzinfo != timezone.utc:
-            return v.astimezone(timezone.utc)
+        elif v.tzinfo != UTC:
+            return v.astimezone(UTC)
         return v
     return v
 
@@ -1758,10 +1758,10 @@ class NotificationResponse(BaseModel):
         if isinstance(v, datetime):
             # If naive datetime, assume it's UTC (from database with timezone=True)
             if v.tzinfo is None:
-                return v.replace(tzinfo=timezone.utc)
+                return v.replace(tzinfo=UTC)
             # If timezone-aware, convert to UTC
-            elif v.tzinfo != timezone.utc:
-                return v.astimezone(timezone.utc)
+            elif v.tzinfo != UTC:
+                return v.astimezone(UTC)
             return v
         return v
 

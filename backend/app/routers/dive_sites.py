@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, B
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct, literal_column
 from slowapi.util import get_remote_address
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 import difflib
 import orjson
 import uuid
@@ -3348,7 +3348,7 @@ async def delete_dive_site(
         else:
             # Soft delete
             from datetime import datetime, timezone
-            dive_site.deleted_at = datetime.now(timezone.utc)
+            dive_site.deleted_at = datetime.now(UTC)
             message = "Dive site archived successfully"
 
         db.commit()
