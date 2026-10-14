@@ -716,7 +716,7 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
     if start_time is not None:
         dive_query = dive_query.filter(Dive.created_at >= start_time)
     if not is_admin:
-        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id != None)
+        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id.is_not(None))
     new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
     
     for dive in new_dives:

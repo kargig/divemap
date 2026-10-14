@@ -871,7 +871,7 @@ class NotificationService:
                         # For push, we want a room-specific tag so Android groups them by room
                         notification_for_push = notification
                         # We temporarily attach the room_id to the object just for the push payload builder
-                        setattr(notification_for_push, '_push_tag', f'chat_room_{room_id}')
+                        notification_for_push._push_tag = f'chat_room_{room_id}'
                         self._queue_push_notifications(notification_for_push, user, db)
 
         return notification_count

@@ -573,8 +573,6 @@ async def resend_verification(
     Returns:
         Success message (always returns success to prevent email enumeration)
     """
-    from app.models import EmailVerificationToken
-
     email = email_data.email.strip().lower()
 
     # Find user by email
@@ -874,7 +872,7 @@ async def verify_reset_token(
 
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at == None,
+        PasswordResetToken.used_at.is_(None),
         PasswordResetToken.expires_at > datetime.now(timezone.utc)
     ).first()
 
@@ -901,7 +899,7 @@ async def reset_password(
 
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at == None,
+        PasswordResetToken.used_at.is_(None),
         PasswordResetToken.expires_at > datetime.now(timezone.utc)
     ).first()
 

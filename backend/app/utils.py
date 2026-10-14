@@ -339,7 +339,6 @@ def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
 
 # Unified search scoring utilities for fuzzy search across all content types
 import difflib
-from typing import Optional, List
 
 
 # Unified typo tolerance settings

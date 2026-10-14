@@ -134,13 +134,13 @@ def create_structured_gas_data(cylinders, events=None):
         he = int(clean_val(cyl.get('he'), '%') or 0)
         
         start_p = clean_val(cyl.get('start'), ' bar')
-        if not start_p and not cyl.get('start') in [0, 0.0, "0"]:
+        if not start_p and cyl.get('start') not in [0, 0.0, "0"]:
             start_p = None
         else:
             start_p = int(start_p)
-            
+
         end_p = clean_val(cyl.get('end'), ' bar')
-        if not end_p and not cyl.get('end') in [0, 0.0, "0"]:
+        if not end_p and cyl.get('end') not in [0, 0.0, "0"]:
             end_p = None
         else:
             end_p = int(end_p)

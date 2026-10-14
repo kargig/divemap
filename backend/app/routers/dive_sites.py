@@ -12,7 +12,6 @@ from pathlib import Path
 from app.services.r2_storage_service import get_r2_storage
 from app.services.image_processing import image_processing
 from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
 from app.services.osm_coastline_service import detect_shore_direction
 from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.services.open_meteo_service import fetch_wind_data_single_point
@@ -174,9 +173,6 @@ def apply_tag_filtering(query, tag_ids, db):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Too many tag filters"
         )
-
-    # Import required models
-    from app.models import DiveSiteTag
 
     # If multiple tags are provided, ensure the site has ALL of them
     tag_count = len(tag_ids)
@@ -1287,7 +1283,6 @@ async def get_dive_sites(
     ).filter(DiveRoute.deleted_at.is_(None)).group_by(DiveRoute.dive_site_id).subquery()
 
     # Join subqueries and eager load relationships
-    from app.models import DiveSiteTag
     query = query.outerjoin(ratings_subquery, DiveSite.id == ratings_subquery.c.dive_site_id) \
                  .outerjoin(comments_subquery, DiveSite.id == comments_subquery.c.dive_site_id) \
                  .outerjoin(routes_subquery, DiveSite.id == routes_subquery.c.dive_site_id) \
@@ -2231,7 +2226,6 @@ async def get_dive_site(
     ).scalar()
 
     # Get tags for this dive site
-    from app.models import DiveSiteTag, AvailableTag
     tags = db.query(AvailableTag).join(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id
     ).order_by(AvailableTag.name.asc()).all()
@@ -3244,7 +3238,6 @@ async def update_dive_site(
     ).scalar()
 
     # Get tags for this dive site
-    from app.models import DiveSiteTag, AvailableTag
     tags = db.query(AvailableTag).join(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id
     ).all()
@@ -3621,7 +3614,6 @@ async def get_nearby_dive_sites(
         ).scalar()
 
         # Get tags for this dive site
-        from app.models import DiveSiteTag, AvailableTag
         tags = db.query(AvailableTag).join(DiveSiteTag).filter(
             DiveSiteTag.dive_site_id == row.id
         ).all()

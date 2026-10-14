@@ -37,7 +37,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from app.models import CenterMedia, DivingCenterManager, MediaType
 from app.services.r2_storage_service import r2_storage
 from app.services.image_processing import image_processing
 from fastapi import UploadFile, File

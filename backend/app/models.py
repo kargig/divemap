@@ -22,8 +22,6 @@ def get_difficulty_code_by_id(db, difficulty_id: int):
     difficulty = db.query(DifficultyLevel).filter(DifficultyLevel.id == difficulty_id).first()
     return difficulty.code if difficulty else None
 
-import enum
-
 class BusinessChatStatus(str, enum.Enum):
     UNREAD = "UNREAD"
     READ = "READ"

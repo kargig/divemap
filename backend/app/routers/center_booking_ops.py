@@ -172,7 +172,7 @@ def reconcile_slot_seats(
         .filter(
             OctoBooking.availability_id == slot.id,
             OctoBooking.status == "ON_HOLD",
-            OctoBooking.utc_hold_expiration != None,
+            OctoBooking.utc_hold_expiration.is_not(None),
         )
         .all()
     )
