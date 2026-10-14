@@ -261,7 +261,7 @@ class SocialImageService:
                         metrics.append(tank_label)
                     elif tank_count > 1:
                         metrics.append(f"TANKS: {tank_count}")
-                except:
+                except Exception:
                     pass
                     
             # Temperature
@@ -354,13 +354,17 @@ class SocialImageService:
                 elif len(parts) == 3:
                     return int(parts[0]) * 60 + int(parts[1]) + (int(parts[2]) / 60.0)
             return float(t_str)
-        except: return None
+        except Exception:
+            return None
 
     def _parse_depth(self, depth_val):
         """Robustly parse depth value to meters."""
-        if depth_val is None: return None
-        if isinstance(depth_val, (int, float)): return float(depth_val)
+        if depth_val is None:
+            return None
+        if isinstance(depth_val, (int, float)):
+            return float(depth_val)
         try:
             d_str = str(depth_val).lower().replace('m', '').strip()
             return float(d_str)
-        except: return None
+        except Exception:
+            return None

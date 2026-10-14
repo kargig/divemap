@@ -162,15 +162,6 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
         max_stages=max_stages
     )
 
-    if user.avatar_type == AvatarType.custom:
-        response_model_dict['avatar_full_url'] = r2_storage.get_photo_url(user.avatar_url)
-    elif user.avatar_type == AvatarType.library:
-        response_model_dict['avatar_full_url'] = r2_storage.get_library_avatar_url(user.avatar_url)
-    else: # google or fallback
-        response_model_dict['avatar_full_url'] = user.avatar_url
-        
-    return response_model_dict
-
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
@@ -945,7 +936,7 @@ async def get_user_public_profile(
               else:
                 gear_preferences["Singles"] += 1
             continue
-      except:
+      except Exception:
         pass
       
       # Fallback for simple string format
@@ -1290,7 +1281,7 @@ async def get_user_advanced_analytics(
                         else: size_label = f"Single {tank.upper()}" if tank else "Single"
                     
                     return f"{size_label}{' + Stage' if has_stage else ''}"
-        except:
+        except Exception:
             pass
 
         # Text fallback
@@ -1363,7 +1354,7 @@ async def get_user_advanced_analytics(
                             calculated_sac = calculate_sac(float(d_avg), float(d_dur), t_vol, p_start, p_end)
                             if calculated_sac > 0:
                                 extracted_sac = calculated_sac
-            except:
+            except Exception:
                 pass 
 
         if extracted_sac and d_max:
@@ -1536,7 +1527,7 @@ async def get_user_advanced_analytics(
                             return "Nitrox 43-48"
                         elif o2_val >= 49:
                             return "Deco Gas (49+)"
-        except:
+        except Exception:
             pass
 
         lower_str = str(gas_str).lower()

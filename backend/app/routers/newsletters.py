@@ -561,7 +561,7 @@ async def parse_newsletter_with_openai(content: str, db: Session, diving_center_
                 if '=3D' in clean_content or '=20' in clean_content:
                     try:
                         clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
-                    except:
+                    except Exception:
                         pass
             except Exception as e:
                 logger.warning(f"Failed to parse as email, treating as plain text: {e}")
@@ -941,7 +941,7 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
         if '=3D' in clean_content or '=20' in clean_content:
             try:
                 clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
-            except:
+            except Exception:
                 pass
 
         # Extract diving center from headers
@@ -1471,7 +1471,7 @@ async def get_parsed_trips(
             try:
                 trip_status_enum = TripStatus(trip_status)
                 query = query.filter(ParsedDiveTrip.trip_status == trip_status_enum)
-            except:
+            except (ValueError, TypeError):
                 pass  # Invalid status, ignore filter
 
     # Price filtering

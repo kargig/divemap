@@ -4,6 +4,7 @@ from sqlalchemy import func
 import logging
 from app.models import DiveSite, DivingCenter, SiteComment, SiteRating, CenterComment, CenterRating
 from app.utils import is_diving_center_reviews_enabled
+from .base import clean_results
 
 logger = logging.getLogger(__name__)
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 from datetime import date, time, datetime
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive, DiveTag
+from ..dives_shared import router, get_db, get_current_user, User, Dive, DiveTag, AvailableTag
 from app.schemas import DiveCreate
 from app.models import DiveSite
 from .common import convert_difficulty_to_code, save_dive_profile_data

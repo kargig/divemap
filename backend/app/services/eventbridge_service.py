@@ -78,33 +78,32 @@ class EventBridgeService:
         if not self.eventbridge_available or not self.eventbridge_client:
             logger.warning("EventBridge not available - cannot create scheduled rule")
             return False
-        
+
+        # Check if rule exists
         try:
-            # Check if rule exists
-            try:
-                self.eventbridge_client.describe_rule(Name=rule_name)
-                rule_exists = True
-            except ClientError as e:
-                if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                    rule_exists = False
-                else:
-                    raise
-            
-            # Create or update rule
-            rule_params = {
-                'Name': rule_name,
-                'ScheduleExpression': schedule_expression,
-                'State': 'ENABLED',
-                'Description': f'Scheduled task: {rule_name}'
-            }
-            
-            if rule_exists:
-                self.eventbridge_client.put_rule(**rule_params)
-                logger.info(f"Updated EventBridge rule: {rule_name}")
+            self.eventbridge_client.describe_rule(Name=rule_name)
+            rule_exists = True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                rule_exists = False
             else:
-                self.eventbridge_client.put_rule(**rule_params)
-                logger.info(f"Created EventBridge rule: {rule_name}")
-            
+                raise
+
+        # Create or update rule
+        rule_params = {
+            'Name': rule_name,
+            'ScheduleExpression': schedule_expression,
+            'State': 'ENABLED',
+            'Description': f'Scheduled task: {rule_name}'
+        }
+
+        if rule_exists:
+            self.eventbridge_client.put_rule(**rule_params)
+            logger.info(f"Updated EventBridge rule: {rule_name}")
+        else:
+            self.eventbridge_client.put_rule(**rule_params)
+            logger.info(f"Created EventBridge rule: {rule_name}")
+
         targets = [{
             'Id': '1',
             'Arn': target_arn

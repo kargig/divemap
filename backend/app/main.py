@@ -80,7 +80,7 @@ if not is_testing:
             # Quick check if any tables exist
             result = conn.execute(func.count().select().select_from(Base.metadata.tables.get('dives', None)))
             tables_exist = True
-    except:
+    except Exception:
         tables_exist = False
 
     if not tables_exist:
