@@ -121,7 +121,9 @@ ELSE → 401/403
    - Persist `access_token_hash = sha256(raw)`, `access_token_expires_at = utc_hold_expiration`
    - Return `accessToken` **once** in the create response (alongside `uuid`)
 2. Wizard stores token in memory / sessionStorage for the checkout tab (not durable cookie PII store — out of scope here).
-3. Confirmation email (when/if sent) includes `?access_token=` link.
+3. Confirmation email includes `?access_token=` link — scoped in
+   [`2026-10-14-booking-transactional-email-design.md`](2026-10-14-booking-transactional-email-design.md)
+   (implementation planned; not part of this hardening delivery).
 4. On successful confirm: extend `access_token_expires_at` to `slot.start_datetime + 7 days` (voucher retrieval window).
 5. On cancel/expire: clear hash or set expires_at to now.
 
@@ -285,7 +287,8 @@ Isolated Docker only (`./docker-test-github-actions.sh`):
 
 - Breaking API change for clients that called UUID routes without credentials.
 - Wizard and voucher pages ship in the same release.
-- Existing `ON_HOLD` / `CONFIRMED` bookings without `access_token_hash`: managers still operate via center ops; divers must re-request link or support issues new token (admin/center “resend access link” can be follow-up).
+- Existing `ON_HOLD` / `CONFIRMED` bookings without `access_token_hash`: managers still operate via center ops; divers must re-request link or support issues new token. Confirmation / resend access-link email is specified in
+  [`2026-10-14-booking-transactional-email-design.md`](2026-10-14-booking-transactional-email-design.md).
 - Document `BOOKING_ACCESS_TOKEN` behavior in OCTO supplier notes for future OTA adapters (OTAs should use supplier API keys — separate from diver access tokens).
 
 ---

@@ -112,6 +112,8 @@ X-Booking-Access-Token: <raw>
 ```
 
 Query fallback for email links: `?access_token=` (voucher/briefing GET only).
+Confirmation + briefing transactional email delivery is **out of scope here**; see
+[`2026-10-14-booking-transactional-email-plan.md`](2026-10-14-booking-transactional-email-plan.md).
 
 ### Confirm-all-paperwork rule (v1)
 

@@ -10,6 +10,11 @@
 3. Center manager review interface inside the trip dashboard allowing staff to adjust meeting gates, skipper names, and custom safety notices before clicking "Approve & Dispatch".
 4. Asynchronous PDF compilation and email delivery using Divemap's existing AWS SQS queue (`backend/app/services/sqs_service.py`) and SES service (`backend/app/services/email_service.py`), with zero Celery or Redis dependencies.
 
+**Follow-up (planned, not in Phase 4):** Access-token-aware confirmation email and briefing PDF deep links for anonymous bookers are specified in
+[`2026-10-14-booking-transactional-email-design.md`](../specs/2026-10-14-booking-transactional-email-design.md) /
+[`2026-10-14-booking-transactional-email-plan.md`](2026-10-14-booking-transactional-email-plan.md).
+Phase 4 delivers draft/compile/manager dispatch; the enhancement aligns dispatch links with booking access control.
+
 **Tech Stack:** Python 3.11, FastAPI, SQLAlchemy 2.0, Jinja2, WeasyPrint / ReportLab, AWS SQS / SES, React 18, Tailwind CSS.
 
 **Spec:** `docs/superpowers/specs/2026-09-27-divemap-octo-booking-system-design.md` (Sections 3.3, 6, 8.3)

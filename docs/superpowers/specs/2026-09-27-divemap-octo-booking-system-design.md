@@ -667,6 +667,8 @@ Zero new background daemon services are added. We utilize Divemap's existing AWS
    * Compiles HTML into a PDF attachment stored in private R2.
    * Emails the briefing to all confirmed divers on the boat manifest.
    * Posts an in-app notification to divers' Divemap dashboards.
+   * **Access-token deep links:** Voucher/briefing CTAs in email must include a valid booking `access_token` (or rely on an authenticated Divemap session). Bare UUID voucher URLs are insufficient after access-control hardening. Confirmation email (on `CONFIRMED`) and token-aware briefing dispatch are detailed in
+     [`2026-10-14-booking-transactional-email-design.md`](2026-10-14-booking-transactional-email-design.md).
 
 ---
 
