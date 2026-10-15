@@ -41,12 +41,12 @@ services:
     command: |
       bash -c "
         # Create virtual environment (like GitHub Actions)
-        python -m venv divemap_venv
+        pip install --no-cache-dir uv
+        uv venv divemap_venv --python python3.11
         source divemap_venv/bin/activate
         
         # Install dependencies in virtual environment
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        uv sync --active --frozen
         
         # Set PYTHONPATH
         export PYTHONPATH=\"/app/divemap_venv/lib/python3.11/site-packages:\$PYTHONPATH\"

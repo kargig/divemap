@@ -7,12 +7,14 @@ on:
       - 'backend/**/*.py'
       - 'backend/pyproject.toml'
       - 'backend/requirements.txt'
+      - 'backend/uv.lock'
       - '.github/workflows/backend-lint-format.yml'
   pull_request:
     paths:
       - 'backend/**/*.py'
       - 'backend/pyproject.toml'
       - 'backend/requirements.txt'
+      - 'backend/uv.lock'
       - '.github/workflows/backend-lint-format.yml'
   workflow_dispatch:
 
@@ -33,13 +35,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.11'
+          version: "0.10.2"
+          enable-cache: true
 
       - name: Install Ruff
-        run: pip install "ruff>=0.9.0"
+        run: uv tool install "ruff>=0.9.0"
 
       - name: Check Changed Python Files (PR)
         if: github.event_name == 'pull_request'

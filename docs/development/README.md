@@ -362,11 +362,12 @@ docker-compose up -d
 cd frontend
 npm install
 
-# Install backend dependencies
+# Install backend dependencies (using uv)
 cd ../backend
-python -m venv divemap_venv
+uv venv divemap_venv --python 3.11
 source divemap_venv/bin/activate
-pip install -r requirements.txt
+uv sync --active --frozen
+# Or from repo root: make backend-sync
 ```
 
 ### Running the Application
@@ -377,6 +378,44 @@ npm start
 
 # Backend (in backend directory with venv activated)
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Managing Binary Wheels in GitHub Releases
+
+Certain dependencies (such as `octo-deco`) do not provide pre-compiled Linux wheels on PyPI, which would otherwise force Docker and CI environments to install heavy C compilers (`gcc`, `build-essential`, `python3-dev`) and compile from source on every build.
+
+To keep Docker and CI builds under 10–15 seconds with zero compiler overhead, we pre-compile Linux x86_64 wheels in a clean Debian environment matching `python:3.11-slim` and host them on GitHub Releases under tag `deps-v1`.
+
+#### Updating or Adding a Binary Wheel
+
+Use the automated helper script:
+
+```bash
+# Build in container and upload to GitHub Release
+./scripts/publish_wheel_release.sh <package_name> <version> [release_tag]
+
+# Example: Updating octo-deco to version 2.0.4
+./scripts/publish_wheel_release.sh octo-deco 2.0.4 deps-v1
+```
+
+Or manually:
+
+```bash
+# 1. Build Linux wheel in matching container
+docker run --rm -v /tmp:/out python:3.11-slim bash -c "
+    apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null && \
+    pip wheel --no-deps octo-deco==2.0.4 -w /out
+"
+
+# 2. Upload to GitHub Release
+gh release upload deps-v1 /tmp/octo_deco-2.0.4-cp311-cp311-linux_x86_64.whl --clobber --repo kargig/divemap
+
+# 3. Update backend/pyproject.toml:
+# [tool.uv.sources]
+# octo-deco = { url = "https://github.com/kargig/divemap/releases/download/deps-v1/octo_deco-2.0.4-cp311-cp311-linux_x86_64.whl" }
+
+# 4. Re-lock dependencies
+make backend-lock
 ```
 
 ## Development Workflow

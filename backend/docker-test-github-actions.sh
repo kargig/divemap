@@ -110,16 +110,16 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     default-mysql-client \
     libmagic1 \
-    build-essential \
-    gcc \
-    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY requirements.txt .
+COPY --from=ghcr.io/astral-sh/uv:0.10.2 /uv /uvx /bin/
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
+COPY pyproject.toml uv.lock ./
 # Create venv and install dependencies here so it's cached in the base image
-RUN python -m venv /app/divemap_venv && \
-    /app/divemap_venv/bin/pip install --upgrade pip && \
-    /app/divemap_venv/bin/pip install -r requirements.txt
+RUN uv venv /app/divemap_venv --python python3.11
+ENV VIRTUAL_ENV=/app/divemap_venv PATH="/app/divemap_venv/bin:$PATH"
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --active --frozen --no-install-project
 
 # Stage 2: Final image with source code
 FROM base AS final
@@ -154,7 +154,15 @@ run_internal() {
 # Use the pre-built venv from the image
 source /app/divemap_venv/bin/activate
 export PYTHONPATH="/app/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do sleep 1; done
+timeout=30; counter=0
+until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
+    if [ $counter -ge $timeout ]; then
+        echo "💥 ERROR: MySQL did not become ready in container_test.sh within $timeout seconds"
+        exit 1
+    fi
+    sleep 1
+    counter=$((counter + 1))
+done
 run_internal mysql -h divemap-test-mysql -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
 run_internal alembic upgrade head
 echo "Running tests..."

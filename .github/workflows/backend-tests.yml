@@ -56,26 +56,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Install uv and Set up Python
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.11'
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        version: "0.10.2"
+        enable-cache: true
+        cache-dependency-glob: "backend/uv.lock"
 
     - name: Install dependencies
       run: |
         cd backend
-        python -m venv divemap_venv
-        source divemap_venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        uv venv divemap_venv --python 3.11
+        uv sync --active --frozen
 
 
 

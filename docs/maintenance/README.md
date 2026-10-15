@@ -148,10 +148,16 @@ fly logs -n | grep -i "rate limit" | wc -l
 #### 1. Dependency Updates
 
 ```bash
-# Update Python dependencies
+# Update Python dependencies with uv
+make backend-sync
+
+# To upgrade packages and re-lock:
 cd backend
-source divemap_venv/bin/activate
-pip install --upgrade -r requirements.txt
+uv lock --upgrade
+make backend-lock
+
+# To update/publish pre-compiled binary wheels (e.g. octo-deco):
+./scripts/publish_wheel_release.sh <package_name> <version> deps-v1
 
 # Update Node.js dependencies
 cd frontend
