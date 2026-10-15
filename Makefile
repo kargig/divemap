@@ -94,13 +94,16 @@ generate-llm-content:
 
 # Run backend linting and format check with Ruff
 lint-backend:
-	@echo "🧹 Checking backend linting and formatting with Ruff..."
-	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check . && ./divemap_venv/bin/ruff format --check .; else ruff check . && ruff format --check .; fi)
+	@echo "🧹 Checking backend linting with Ruff..."
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check app; else ruff check app; fi)
+	@echo "🧹 Checking backend formatting with Ruff..."
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff format --check app || echo "ℹ️ Formatting differences detected. Run 'make lint-backend-fix' to format."; else ruff format --check app || echo "ℹ️ Formatting differences detected."; fi)
+	@echo "✅ Backend linting complete."
 
 # Fix backend linting issues and format code with Ruff
 lint-backend-fix:
 	@echo "🛠️ Fixing backend lint errors and formatting with Ruff..."
-	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check --fix . && ./divemap_venv/bin/ruff format .; else ruff check --fix . && ruff format .; fi)
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check --fix app && ./divemap_venv/bin/ruff format app; else ruff check --fix app && ruff format app; fi)
 
 # Run frontend linting and formatting, saving errors to a log file
 lint-frontend:

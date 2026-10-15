@@ -1,6 +1,7 @@
 [tool.ruff]
 target-version = "py311"
 line-length = 88
+src = ["backend", "."]
 extend-exclude = [
     "divemap_venv",
     ".pytest_cache",
@@ -33,12 +34,15 @@ ignore = [
     "UP045",  # Use `X | None` for type annotations (gradual adoption)
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"app/routers/dives/dives_shared.py" = ["F401"]
-"app/routers/dives/imports/common.py" = ["F401"]
-"app/services/chat/executors/base.py" = ["F401"]
-"tests/*" = ["B018", "F401", "F811"]
+"**/dives_shared.py" = ["F401"]
+"**/imports/common.py" = ["F401"]
+"**/executors/base.py" = ["F401"]
+"**/tests/*" = ["B018", "F401", "F811"]
 
 [tool.ruff.format]
 quote-style = "double"
