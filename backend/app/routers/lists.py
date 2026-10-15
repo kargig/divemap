@@ -472,17 +472,17 @@ async def add_list_collaborator(
     try:
         import json
 
-        from sqlalchemy import func
+        from sqlalchemy import func, select
 
         from app.models import UserChatMessage, UserChatRoom, UserChatRoomMember
         from app.services.encryption_service import encrypt_message
         
-        room_ids_subquery = db.query(UserChatRoomMember.room_id).filter(
+        room_ids_stmt = select(UserChatRoomMember.room_id).where(
             UserChatRoomMember.user_id.in_([current_user.id, target_user.id])
-        ).group_by(UserChatRoomMember.room_id).having(func.count(UserChatRoomMember.user_id) == 2).subquery()
+        ).group_by(UserChatRoomMember.room_id).having(func.count(UserChatRoomMember.user_id) == 2)
 
         room = db.query(UserChatRoom).filter(
-            UserChatRoom.id.in_(room_ids_subquery),
+            UserChatRoom.id.in_(room_ids_stmt),
             UserChatRoom.is_group == False,
             UserChatRoom.diving_center_id.is_(None)
         ).first()

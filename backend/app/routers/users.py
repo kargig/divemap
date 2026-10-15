@@ -15,7 +15,7 @@ from fastapi import (
     status,
 )
 from pydantic import BaseModel, Field
-from sqlalchemy import desc, distinct, extract, func, or_
+from sqlalchemy import desc, distinct, extract, func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.auth import (
@@ -1060,22 +1060,20 @@ async def get_user_public_lists(
     from app.routers.lists import ensure_default_lists, sanitize_list_for_response
     ensure_default_lists(db, user.id)
 
-    from sqlalchemy import or_
-
     from app.models import DiveSiteListCollaborator
 
     # Subquery to find list IDs where this profile user is a collaborator and show_on_profile is True
-    collab_list_ids_subquery = db.query(DiveSiteListCollaborator.list_id).filter(
+    collab_list_ids_stmt = select(DiveSiteListCollaborator.list_id).where(
         DiveSiteListCollaborator.user_id == user.id,
         DiveSiteListCollaborator.show_on_profile == True
-    ).subquery()
+    )
 
     # Query public lists owned by the user, or public lists where the user is a collaborator
     query = db.query(DiveSiteList).filter(
         DiveSiteList.is_public == True,
         or_(
             (DiveSiteList.user_id == user.id) & (DiveSiteList.show_on_profile == True),
-            DiveSiteList.id.in_(collab_list_ids_subquery)
+            DiveSiteList.id.in_(collab_list_ids_stmt)
         )
     )
 
