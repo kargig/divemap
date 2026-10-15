@@ -1,5 +1,4 @@
 import logging
-from typing import Dict
 
 from sqlalchemy.orm import Session
 
@@ -8,7 +7,7 @@ from app.models import Dive, DiveRoute, DiveSite, DivingCenter
 logger = logging.getLogger(__name__)
 
 
-def resolve_page_context(db: Session, page_context: Dict) -> str:
+def resolve_page_context(db: Session, page_context: dict) -> str:
     """
     Converts the raw page context from the frontend into a human-readable summary for the LLM.
     """

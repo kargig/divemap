@@ -2,7 +2,6 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import Optional
 
 import jwt
 from fastapi import Depends, Header, HTTPException, status
@@ -80,7 +79,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
+def authenticate_user(db: Session, username: str, password: str) -> User | None:
     # Try to find user by username first, then by email
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -94,7 +93,7 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     return user
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -105,7 +104,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 
-def verify_token(token: str) -> Optional[TokenData]:
+def verify_token(token: str) -> TokenData | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -117,7 +116,7 @@ def verify_token(token: str) -> Optional[TokenData]:
         return None
 
 
-def verify_pat(token: str, db: Session) -> Optional[User]:
+def verify_pat(token: str, db: Session) -> User | None:
     """Verify a Personal Access Token (PAT) using efficient prefix lookup."""
     if not token.startswith("dm_pat_"):
         return None
@@ -237,8 +236,8 @@ async def is_admin_or_moderator(current_user: User = Depends(get_current_user)) 
 
 # Optional bearer for endpoints that don't require authentication
 async def get_optional_bearer_token(
-    authorization: Optional[str] = Header(None),
-) -> Optional[str]:
+    authorization: str | None = Header(None),
+) -> str | None:
     if not authorization:
         return None
     if not authorization.startswith("Bearer "):
@@ -247,9 +246,9 @@ async def get_optional_bearer_token(
 
 
 async def get_current_user_optional(
-    token: Optional[str] = Depends(get_optional_bearer_token),
+    token: str | None = Depends(get_optional_bearer_token),
     db: Session = Depends(get_db),
-) -> Optional[User]:
+) -> User | None:
     if not token:
         return None
     try:

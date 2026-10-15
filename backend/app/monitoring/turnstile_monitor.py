@@ -9,7 +9,6 @@ import logging
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +20,9 @@ class TurnstileEvent:
     timestamp: datetime
     success: bool
     response_time_ms: float
-    error_code: Optional[str] = None
-    client_ip: Optional[str] = None
-    user_agent: Optional[str] = None
+    error_code: str | None = None
+    client_ip: str | None = None
+    user_agent: str | None = None
 
 
 class TurnstileMonitor:
@@ -35,8 +34,8 @@ class TurnstileMonitor:
         self.success_count = 0
         self.failure_count = 0
         self.total_response_time = 0.0
-        self.error_counts: Dict[str, int] = defaultdict(int)
-        self.ip_counts: Dict[str, int] = defaultdict(int)
+        self.error_counts: dict[str, int] = defaultdict(int)
+        self.ip_counts: dict[str, int] = defaultdict(int)
 
     def record_event(self, event: TurnstileEvent) -> None:
         """Record a Turnstile verification event."""
@@ -60,7 +59,7 @@ class TurnstileMonitor:
             f"error_code={event.error_code}"
         )
 
-    def get_success_rate(self, time_window: Optional[timedelta] = None) -> float:
+    def get_success_rate(self, time_window: timedelta | None = None) -> float:
         """Calculate success rate within optional time window."""
         if time_window:
             cutoff = datetime.now() - time_window
@@ -73,9 +72,7 @@ class TurnstileMonitor:
         total = self.success_count + self.failure_count
         return self.success_count / total if total > 0 else 0.0
 
-    def get_average_response_time(
-        self, time_window: Optional[timedelta] = None
-    ) -> float:
+    def get_average_response_time(self, time_window: timedelta | None = None) -> float:
         """Calculate average response time within optional time window."""
         if time_window:
             cutoff = datetime.now() - time_window
@@ -89,8 +86,8 @@ class TurnstileMonitor:
         return self.total_response_time / total if total > 0 else 0.0
 
     def get_error_breakdown(
-        self, time_window: Optional[timedelta] = None
-    ) -> Dict[str, int]:
+        self, time_window: timedelta | None = None
+    ) -> dict[str, int]:
         """Get error code breakdown within optional time window."""
         if time_window:
             cutoff = datetime.now() - time_window
@@ -104,8 +101,8 @@ class TurnstileMonitor:
         return dict(self.error_counts)
 
     def get_top_ips(
-        self, limit: int = 10, time_window: Optional[timedelta] = None
-    ) -> List[tuple]:
+        self, limit: int = 10, time_window: timedelta | None = None
+    ) -> list[tuple]:
         """Get top IP addresses by request count."""
         if time_window:
             cutoff = datetime.now() - time_window
@@ -119,7 +116,7 @@ class TurnstileMonitor:
 
         return sorted(ip_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
 
-    def get_stats_summary(self, time_window: Optional[timedelta] = None) -> Dict:
+    def get_stats_summary(self, time_window: timedelta | None = None) -> dict:
         """Get comprehensive statistics summary."""
         return {
             "success_rate": self.get_success_rate(time_window),
@@ -148,9 +145,9 @@ turnstile_monitor = TurnstileMonitor()
 def record_verification_event(
     success: bool,
     response_time_ms: float,
-    error_code: Optional[str] = None,
-    client_ip: Optional[str] = None,
-    user_agent: Optional[str] = None,
+    error_code: str | None = None,
+    client_ip: str | None = None,
+    user_agent: str | None = None,
 ) -> None:
     """Record a Turnstile verification event in the global monitor."""
     event = TurnstileEvent(
@@ -164,6 +161,6 @@ def record_verification_event(
     turnstile_monitor.record_event(event)
 
 
-def get_turnstile_stats(time_window: Optional[timedelta] = None) -> Dict:
+def get_turnstile_stats(time_window: timedelta | None = None) -> dict:
     """Get Turnstile statistics from the global monitor."""
     return turnstile_monitor.get_stats_summary(time_window)

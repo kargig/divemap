@@ -1,6 +1,5 @@
 import uuid
 from datetime import UTC, datetime, time, timedelta
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -20,10 +19,10 @@ class TripOctoProvisioningService:
         db: Session,
         trip: ParsedDiveTrip,
         enable_booking: bool,
-        base_price: Optional[float] = None,
-        currency: Optional[str] = "EUR",
-        seats_limit: Optional[int] = None,
-    ) -> Optional[OctoAvailabilitySlot]:
+        base_price: float | None = None,
+        currency: str | None = "EUR",
+        seats_limit: int | None = None,
+    ) -> OctoAvailabilitySlot | None:
         if not enable_booking:
             trip.is_bookable = False
             db.commit()

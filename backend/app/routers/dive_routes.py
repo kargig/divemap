@@ -7,7 +7,7 @@ validation, and soft delete support.
 
 import html
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -87,7 +87,7 @@ def sanitize_input(text: str, max_length: int = None) -> str:
 
 def create_standard_response(
     data: Any, message: str = None, status_code: int = 200
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create a standardized API response format"""
     response = {
         "success": True,
@@ -102,8 +102,8 @@ def create_standard_response(
 
 
 def create_error_response(
-    message: str, status_code: int = 400, details: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    message: str, status_code: int = 400, details: dict[str, Any] = None
+) -> dict[str, Any]:
     """Create a standardized error response format"""
     response = {
         "success": False,
@@ -120,7 +120,7 @@ def create_error_response(
 # Route Export Endpoints (must be before parameterized routes)
 
 
-@router.get("/export-formats", response_model=List[dict])
+@router.get("/export-formats", response_model=list[dict])
 async def get_export_formats():
     """Get list of available export formats"""
     export_service = RouteExportService()
@@ -441,7 +441,7 @@ async def hide_route(
 async def delete_route(
     request: Request,
     route_id: int,
-    migration_route_id: Optional[int] = Query(
+    migration_route_id: int | None = Query(
         None, description="Route ID to migrate dives to"
     ),
     current_user: User = Depends(get_current_active_user),
@@ -511,17 +511,17 @@ async def check_route_deletion(
 
 @router.get("/", response_model=DiveRouteListResponse)
 async def list_routes(
-    dive_site_id: Optional[int] = Query(None, description="Filter by dive site ID"),
-    created_by: Optional[int] = Query(None, description="Filter by creator ID"),
-    route_type: Optional[str] = Query(None, description="Filter by route type"),
-    search: Optional[str] = Query(
+    dive_site_id: int | None = Query(None, description="Filter by dive site ID"),
+    created_by: int | None = Query(None, description="Filter by creator ID"),
+    route_type: str | None = Query(None, description="Filter by route type"),
+    search: str | None = Query(
         None, description="Search in route names and descriptions"
     ),
-    poi_types: Optional[List[str]] = Query(
+    poi_types: list[str] | None = Query(
         None,
         description="Filter routes containing specific POI marker types (e.g., 'wreck', 'coral')",
     ),
-    poi_search: Optional[str] = Query(
+    poi_search: str | None = Query(
         None, description="Search for text within POI comments"
     ),
     page: int = Query(1, ge=1, description="Page number"),

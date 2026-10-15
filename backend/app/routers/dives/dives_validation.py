@@ -6,7 +6,6 @@ that are shared across multiple dives modules.
 """
 
 from datetime import date, time
-from typing import Optional
 
 from fastapi import HTTPException, status
 
@@ -25,7 +24,7 @@ def validate_dive_date(dive_date: date) -> bool:
     return dive_date <= date.today()
 
 
-def validate_dive_time(dive_time: Optional[time]) -> bool:
+def validate_dive_time(dive_time: time | None) -> bool:
     """Validate dive time is reasonable."""
     if dive_time is None:
         return True
@@ -33,35 +32,35 @@ def validate_dive_time(dive_time: Optional[time]) -> bool:
     return True
 
 
-def validate_depth(depth: Optional[float]) -> bool:
+def validate_depth(depth: float | None) -> bool:
     """Validate dive depth is reasonable."""
     if depth is None:
         return True
     return 0 <= depth <= 200  # Reasonable depth range
 
 
-def validate_duration(duration: Optional[int]) -> bool:
+def validate_duration(duration: int | None) -> bool:
     """Validate dive duration is reasonable."""
     if duration is None:
         return True
     return 0 <= duration <= 600  # 10 hours max
 
 
-def validate_rating(rating: Optional[int]) -> bool:
+def validate_rating(rating: int | None) -> bool:
     """Validate dive rating is in valid range."""
     if rating is None:
         return True
     return 1 <= rating <= 5
 
 
-def validate_visibility(visibility: Optional[float]) -> bool:
+def validate_visibility(visibility: float | None) -> bool:
     """Validate visibility is reasonable."""
     if visibility is None:
         return True
     return 0 <= visibility <= 100  # meters
 
 
-def validate_temperature(temperature: Optional[float]) -> bool:
+def validate_temperature(temperature: float | None) -> bool:
     """Validate water temperature is reasonable."""
     if temperature is None:
         return True

@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -15,7 +13,7 @@ from app.schemas import (
 router = APIRouter()
 
 
-@router.get("/my-certifications", response_model=List[UserCertificationResponse])
+@router.get("/my-certifications", response_model=list[UserCertificationResponse])
 async def get_my_certifications(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ):
@@ -29,7 +27,7 @@ async def get_my_certifications(
 
 
 @router.get(
-    "/users/{user_id}/certifications", response_model=List[UserCertificationResponse]
+    "/users/{user_id}/certifications", response_model=list[UserCertificationResponse]
 )
 async def get_user_certifications(
     user_id: int,

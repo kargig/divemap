@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import orjson
 from fastapi import Request
@@ -14,16 +13,16 @@ def log_medical_access(
     db: Session,
     action: str,
     access_status: str,  # "SUCCESS" or "DENIED"
-    reason: Optional[str] = None,
-    request: Optional[Request] = None,
-    accessor_user: Optional[User] = None,
-    target_diver_user_id: Optional[int] = None,
-    target_diver_name: Optional[str] = None,
-    participant_id: Optional[str] = None,
-    diving_center_id: Optional[int] = None,
-    trip_id: Optional[str] = None,
-    booking_uuid: Optional[str] = None,
-) -> Optional[AuthAuditLog]:
+    reason: str | None = None,
+    request: Request | None = None,
+    accessor_user: User | None = None,
+    target_diver_user_id: int | None = None,
+    target_diver_name: str | None = None,
+    participant_id: str | None = None,
+    diving_center_id: int | None = None,
+    trip_id: str | None = None,
+    booking_uuid: str | None = None,
+) -> AuthAuditLog | None:
     """
     Creates an audit log entry in the existing AuthAuditLog table for any attempt
     (successful or denied) to inspect, view, export, or mutate a user's medical questionnaire.

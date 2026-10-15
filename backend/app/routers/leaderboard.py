@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi_cache.decorator import cache
@@ -197,8 +196,8 @@ async def get_overall_leaderboard(
 @router.get("/users/monthly", response_model=LeaderboardUserResponse)
 @cache(expire=600)  # 10 minutes cache
 async def get_monthly_leaderboard(
-    year: Optional[int] = Query(None, ge=1900, le=2100),
-    month: Optional[int] = Query(None, ge=1, le=12),
+    year: int | None = Query(None, ge=1900, le=2100),
+    month: int | None = Query(None, ge=1, le=12),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):

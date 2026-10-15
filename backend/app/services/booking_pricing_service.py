@@ -1,14 +1,14 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from app.models import DivingCenterBookingSettings, OctoUnit
 
 
 def compute_participant_octo_pricing(
-    center_settings: Optional[DivingCenterBookingSettings],
-    unit: Optional[OctoUnit],
-    equipment_sizing: Optional[Dict[str, Any]],
+    center_settings: DivingCenterBookingSettings | None,
+    unit: OctoUnit | None,
+    equipment_sizing: dict[str, Any] | None,
     currency: str = "EUR",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Computes OCTO-compliant pricing object, line items breakdown, and package caps for a diver.
     Conforms to the OCTO Travel API specification for octo/pricing capability.

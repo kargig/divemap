@@ -6,7 +6,7 @@ Endpoints for fetching weather data, specifically wind conditions for dive sites
 
 import logging
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -27,59 +27,59 @@ class WindDataPoint(BaseModel):
 
     lat: float
     lon: float
-    wind_speed_10m: Optional[float] = None  # m/s
-    wind_direction_10m: Optional[float] = None  # degrees
-    wind_gusts_10m: Optional[float] = None  # m/s
-    timestamp: Optional[str] = None
+    wind_speed_10m: float | None = None  # m/s
+    wind_direction_10m: float | None = None  # degrees
+    wind_gusts_10m: float | None = None  # m/s
+    timestamp: str | None = None
     # Marine Data
-    wave_height: Optional[float] = None  # m
-    wave_direction: Optional[float] = None  # degrees
-    wave_period: Optional[float] = None  # s
-    swell_wave_height: Optional[float] = None  # m
-    swell_wave_direction: Optional[float] = None  # degrees
-    swell_wave_period: Optional[float] = None  # s
-    sea_surface_temperature: Optional[float] = None  # °C
-    sea_level_height_msl: Optional[float] = None  # m
+    wave_height: float | None = None  # m
+    wave_direction: float | None = None  # degrees
+    wave_period: float | None = None  # s
+    swell_wave_height: float | None = None  # m
+    swell_wave_direction: float | None = None  # degrees
+    swell_wave_period: float | None = None  # s
+    sea_surface_temperature: float | None = None  # °C
+    sea_level_height_msl: float | None = None  # m
 
 
 class WindDataResponse(BaseModel):
     """Response containing wind data points and metadata"""
 
-    points: List[WindDataPoint]
-    data_age_seconds: Optional[int] = None
-    grid_resolution: Optional[str] = None
+    points: list[WindDataPoint]
+    data_age_seconds: int | None = None
+    grid_resolution: str | None = None
     point_count: int
 
 
 @router.get("/wind", response_model=WindDataResponse)
 async def get_wind_data(
     request: Request,
-    latitude: Optional[float] = Query(
+    latitude: float | None = Query(
         None, ge=-90, le=90, description="Latitude for single point query"
     ),
-    longitude: Optional[float] = Query(
+    longitude: float | None = Query(
         None, ge=-180, le=180, description="Longitude for single point query"
     ),
-    north: Optional[float] = Query(
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for area query"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for area query"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for area query"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for area query"
     ),
-    zoom_level: Optional[int] = Query(
+    zoom_level: int | None = Query(
         None, ge=1, le=20, description="Map zoom level (affects grid density)"
     ),
-    datetime_str: Optional[str] = Query(
+    datetime_str: str | None = Query(
         None,
         description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead.",
     ),
-    jitter_factor: Optional[int] = Query(
+    jitter_factor: int | None = Query(
         5,
         ge=1,
         le=10,

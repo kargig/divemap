@@ -2,7 +2,6 @@ import logging
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
@@ -523,7 +522,7 @@ async def facebook_login(
 @router.get("/verify-email")
 async def verify_email(
     token: str = Query(..., description="Email verification token from email link"),
-    format: Optional[str] = Query(
+    format: str | None = Query(
         None,
         description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)",
     ),

@@ -28,10 +28,7 @@ ignore = [
     "W291",   # Trailing whitespace (handled by ruff format)
     "W292",   # No newline at end of file (handled by ruff format)
     "W293",   # Blank line contains whitespace (handled by ruff format)
-    "UP006",  # Use `list` instead of `List` for type annotation (gradual adoption)
-    "UP035",  # `typing.List` is deprecated (gradual adoption)
     "UP042",  # Class inherits from both `str` and `enum.Enum` (SQLAlchemy Enum compatibility)
-    "UP045",  # Use `X | None` for type annotations (gradual adoption)
 ]
 
 [tool.ruff.lint.isort]

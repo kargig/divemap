@@ -9,7 +9,6 @@ import logging
 import math
 import os
 from datetime import UTC, datetime
-from typing import Dict, List, Optional
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
@@ -76,11 +75,11 @@ class NotificationService:
         category: str,
         title: str,
         message: str,
-        link_url: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[int] = None,
+        link_url: str | None = None,
+        entity_type: str | None = None,
+        entity_id: int | None = None,
         db: Session = None,
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         """
         Create a notification record for a user.
 
@@ -124,7 +123,7 @@ class NotificationService:
 
     def _get_entity_location(
         self, entity_type: str, entity_id: int, db: Session
-    ) -> Optional[Dict[str, float]]:
+    ) -> dict[str, float] | None:
         """Get latitude/longitude for an entity."""
         try:
             if entity_type == "dive_site":
@@ -199,9 +198,9 @@ class NotificationService:
     def _matches_area_filter(
         self,
         preference: NotificationPreference,
-        entity_location: Optional[Dict[str, float]],
-        entity_country: Optional[str] = None,
-        entity_region: Optional[str] = None,
+        entity_location: dict[str, float] | None,
+        entity_country: str | None = None,
+        entity_region: str | None = None,
     ) -> bool:
         """
         Check if notification matches user's area filter preference.
@@ -247,11 +246,11 @@ class NotificationService:
     def _get_users_to_notify(
         self,
         category: str,
-        entity_location: Optional[Dict[str, float]] = None,
-        entity_country: Optional[str] = None,
-        entity_region: Optional[str] = None,
+        entity_location: dict[str, float] | None = None,
+        entity_country: str | None = None,
+        entity_region: str | None = None,
         db: Session = None,
-    ) -> List[tuple[User, NotificationPreference]]:
+    ) -> list[tuple[User, NotificationPreference]]:
         """
         Get list of users and their preferences who should receive notifications.
         Returns a list of tuples (User, NotificationPreference).
@@ -1041,7 +1040,7 @@ class NotificationService:
 
     async def notify_system_event(
         self, user_id: int, title: str, message: str, link_url: str, db: Session
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         """
         Send a system notification (e.g., buddy requests) respecting user preferences.
         """
@@ -1100,7 +1099,7 @@ class NotificationService:
 
         return notification
 
-    def _get_admins_to_notify(self, db: Session) -> List[User]:
+    def _get_admins_to_notify(self, db: Session) -> list[User]:
         """
         Get list of admin users who should receive admin alerts.
 
@@ -1149,8 +1148,8 @@ class NotificationService:
         return admins
 
     def _get_admin_preferences_map(
-        self, admin_ids: List[int], db: Session
-    ) -> Dict[int, NotificationPreference]:
+        self, admin_ids: list[int], db: Session
+    ) -> dict[int, NotificationPreference]:
         """
         Get admin notification preferences in bulk to avoid N+1 queries.
 
@@ -1265,7 +1264,7 @@ class NotificationService:
         self,
         diving_center_id: int,
         user_id: int,
-        claim_reason: Optional[str],
+        claim_reason: str | None,
         db: Session,
     ) -> int:
         """

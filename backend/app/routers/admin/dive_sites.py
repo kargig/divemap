@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 
@@ -12,7 +10,7 @@ from app.schemas import DiveSiteResponse
 router = APIRouter(prefix="/dive-sites", tags=["admin_dive_sites"])
 
 
-@router.get("/pending", response_model=List[DiveSiteResponse])
+@router.get("/pending", response_model=list[DiveSiteResponse])
 async def get_pending_dive_sites(
     request: Request,
     current_user: User = Depends(get_current_active_user),

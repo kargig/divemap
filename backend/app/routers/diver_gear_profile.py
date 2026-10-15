@@ -1,6 +1,6 @@
 import logging
 from datetime import date
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -17,24 +17,24 @@ router = APIRouter(prefix="/api/v1/bookings", tags=["Diver Gear Profile & Bookin
 
 
 class UserGearProfileSchema(BaseModel):
-    id: Optional[int] = None
-    user_id: Optional[int] = None
+    id: int | None = None
+    user_id: int | None = None
     name: str = "Default"
     is_default: bool = False
     preferred_unit_system: str = "METRIC"
     preferred_shoe_system: str = "EU"
-    height_cm: Optional[int] = None
-    weight_kg: Optional[float] = None
-    shoe_size_eu: Optional[float] = None
-    wetsuit_gender: Optional[str] = None
-    wetsuit_size: Optional[str] = None
-    wetsuit_thickness: Optional[str] = "5mm"
-    bcd_size: Optional[str] = None
-    fin_type: Optional[str] = "OPEN_HEEL"
-    regulator_fitting: Optional[str] = "DIN"
-    preferred_tank_id: Optional[str] = "12"
-    preferred_gas_mix_id: Optional[str] = "air"
-    estimated_lead_kg: Optional[float] = None
+    height_cm: int | None = None
+    weight_kg: float | None = None
+    shoe_size_eu: float | None = None
+    wetsuit_gender: str | None = None
+    wetsuit_size: str | None = None
+    wetsuit_thickness: str | None = "5mm"
+    bcd_size: str | None = None
+    fin_type: str | None = "OPEN_HEEL"
+    regulator_fitting: str | None = "DIN"
+    preferred_tank_id: str | None = "12"
+    preferred_gas_mix_id: str | None = "air"
+    estimated_lead_kg: float | None = None
     has_own_mask: bool = True
     has_own_wetsuit: bool = False
     has_own_regulator: bool = False
@@ -45,12 +45,12 @@ class UserGearProfileSchema(BaseModel):
     has_own_lead_weights: bool = False
     has_own_dive_computer: bool = False
     has_own_smb: bool = False
-    insurance_provider: Optional[str] = None
-    insurance_policy_number: Optional[str] = None
-    insurance_expiry_date: Optional[date] = None
-    emergency_contact_name: Optional[str] = None
-    emergency_contact_phone: Optional[str] = None
-    emergency_contact_relation: Optional[str] = None
+    insurance_provider: str | None = None
+    insurance_policy_number: str | None = None
+    insurance_expiry_date: date | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
+    emergency_contact_relation: str | None = None
 
     class Config:
         from_attributes = True
@@ -58,75 +58,75 @@ class UserGearProfileSchema(BaseModel):
 
 class UserGearProfileCreateSchema(BaseModel):
     name: str = "Default"
-    is_default: Optional[bool] = False
-    preferred_unit_system: Optional[str] = "METRIC"
-    preferred_shoe_system: Optional[str] = "EU"
-    height_cm: Optional[int] = None
-    weight_kg: Optional[float] = None
-    shoe_size_eu: Optional[float] = None
-    wetsuit_gender: Optional[str] = None
-    wetsuit_size: Optional[str] = None
-    wetsuit_thickness: Optional[str] = "5mm"
-    bcd_size: Optional[str] = None
-    fin_type: Optional[str] = "OPEN_HEEL"
-    regulator_fitting: Optional[str] = "DIN"
-    preferred_tank_id: Optional[str] = "12"
-    preferred_gas_mix_id: Optional[str] = "air"
-    estimated_lead_kg: Optional[float] = None
-    has_own_mask: Optional[bool] = True
-    has_own_wetsuit: Optional[bool] = False
-    has_own_regulator: Optional[bool] = False
-    has_own_bcd: Optional[bool] = False
-    has_own_fins: Optional[bool] = False
-    has_own_boots: Optional[bool] = False
-    has_own_torch: Optional[bool] = False
-    has_own_lead_weights: Optional[bool] = False
-    has_own_dive_computer: Optional[bool] = False
-    has_own_smb: Optional[bool] = False
-    insurance_provider: Optional[str] = None
-    insurance_policy_number: Optional[str] = None
-    insurance_expiry_date: Optional[date] = None
-    emergency_contact_name: Optional[str] = None
-    emergency_contact_phone: Optional[str] = None
-    emergency_contact_relation: Optional[str] = None
+    is_default: bool | None = False
+    preferred_unit_system: str | None = "METRIC"
+    preferred_shoe_system: str | None = "EU"
+    height_cm: int | None = None
+    weight_kg: float | None = None
+    shoe_size_eu: float | None = None
+    wetsuit_gender: str | None = None
+    wetsuit_size: str | None = None
+    wetsuit_thickness: str | None = "5mm"
+    bcd_size: str | None = None
+    fin_type: str | None = "OPEN_HEEL"
+    regulator_fitting: str | None = "DIN"
+    preferred_tank_id: str | None = "12"
+    preferred_gas_mix_id: str | None = "air"
+    estimated_lead_kg: float | None = None
+    has_own_mask: bool | None = True
+    has_own_wetsuit: bool | None = False
+    has_own_regulator: bool | None = False
+    has_own_bcd: bool | None = False
+    has_own_fins: bool | None = False
+    has_own_boots: bool | None = False
+    has_own_torch: bool | None = False
+    has_own_lead_weights: bool | None = False
+    has_own_dive_computer: bool | None = False
+    has_own_smb: bool | None = False
+    insurance_provider: str | None = None
+    insurance_policy_number: str | None = None
+    insurance_expiry_date: date | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
+    emergency_contact_relation: str | None = None
 
 
 class UserGearProfileUpdateSchema(BaseModel):
-    name: Optional[str] = None
-    is_default: Optional[bool] = None
-    preferred_unit_system: Optional[str] = None
-    preferred_shoe_system: Optional[str] = None
-    height_cm: Optional[int] = None
-    weight_kg: Optional[float] = None
-    shoe_size_eu: Optional[float] = None
-    wetsuit_gender: Optional[str] = None
-    wetsuit_size: Optional[str] = None
-    wetsuit_thickness: Optional[str] = None
-    bcd_size: Optional[str] = None
-    fin_type: Optional[str] = None
-    regulator_fitting: Optional[str] = None
-    preferred_tank_id: Optional[str] = None
-    preferred_gas_mix_id: Optional[str] = None
-    estimated_lead_kg: Optional[float] = None
-    has_own_mask: Optional[bool] = None
-    has_own_wetsuit: Optional[bool] = None
-    has_own_regulator: Optional[bool] = None
-    has_own_bcd: Optional[bool] = None
-    has_own_fins: Optional[bool] = None
-    has_own_boots: Optional[bool] = None
-    has_own_torch: Optional[bool] = None
-    has_own_lead_weights: Optional[bool] = None
-    has_own_dive_computer: Optional[bool] = None
-    has_own_smb: Optional[bool] = None
-    insurance_provider: Optional[str] = None
-    insurance_policy_number: Optional[str] = None
-    insurance_expiry_date: Optional[date] = None
-    emergency_contact_name: Optional[str] = None
-    emergency_contact_phone: Optional[str] = None
-    emergency_contact_relation: Optional[str] = None
+    name: str | None = None
+    is_default: bool | None = None
+    preferred_unit_system: str | None = None
+    preferred_shoe_system: str | None = None
+    height_cm: int | None = None
+    weight_kg: float | None = None
+    shoe_size_eu: float | None = None
+    wetsuit_gender: str | None = None
+    wetsuit_size: str | None = None
+    wetsuit_thickness: str | None = None
+    bcd_size: str | None = None
+    fin_type: str | None = None
+    regulator_fitting: str | None = None
+    preferred_tank_id: str | None = None
+    preferred_gas_mix_id: str | None = None
+    estimated_lead_kg: float | None = None
+    has_own_mask: bool | None = None
+    has_own_wetsuit: bool | None = None
+    has_own_regulator: bool | None = None
+    has_own_bcd: bool | None = None
+    has_own_fins: bool | None = None
+    has_own_boots: bool | None = None
+    has_own_torch: bool | None = None
+    has_own_lead_weights: bool | None = None
+    has_own_dive_computer: bool | None = None
+    has_own_smb: bool | None = None
+    insurance_provider: str | None = None
+    insurance_policy_number: str | None = None
+    insurance_expiry_date: date | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
+    emergency_contact_relation: str | None = None
 
 
-@router.get("/gear-profiles", response_model=List[UserGearProfileSchema])
+@router.get("/gear-profiles", response_model=list[UserGearProfileSchema])
 def list_my_gear_profiles(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
@@ -393,13 +393,13 @@ def update_my_gear_profile(
     return profile
 
 
-@router.get("/cylinders", response_model=List[Dict[str, Any]])
+@router.get("/cylinders", response_model=list[dict[str, Any]])
 def get_cylinders():
     """Returns canonical cylinder types and dimensions."""
     return TANK_SIZES
 
 
-@router.get("/gas-mixes", response_model=List[Dict[str, Any]])
+@router.get("/gas-mixes", response_model=list[dict[str, Any]])
 def get_gas_mixes():
     """Returns canonical breathing gas mixes."""
     return GAS_MIXES

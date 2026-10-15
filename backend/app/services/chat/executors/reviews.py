@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -21,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def execute_get_reviews_and_comments(
     db: Session, entity_type: str, entity_name: str, **kwargs
-) -> List[Dict]:
+) -> list[dict]:
     results = []
 
     if entity_type == "diving_center":

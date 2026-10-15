@@ -5,7 +5,7 @@ Handles tracking and analysis of user interactions with dive routes.
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from sqlalchemy import and_, desc, func
 from sqlalchemy.orm import Session
@@ -23,12 +23,12 @@ class RouteAnalyticsService:
         self,
         route_id: int,
         interaction_type: str,
-        user_id: Optional[int] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        referrer: Optional[str] = None,
-        session_id: Optional[str] = None,
-        extra_data: Optional[Dict[str, Any]] = None,
+        user_id: int | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        referrer: str | None = None,
+        session_id: str | None = None,
+        extra_data: dict[str, Any] | None = None,
     ) -> RouteAnalytics:
         """Track a user interaction with a route"""
 
@@ -64,8 +64,8 @@ class RouteAnalyticsService:
         self,
         route_id: int,
         days: int = 30,
-        interaction_types: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        interaction_types: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get analytics data for a specific route"""
 
         # Verify route exists
@@ -141,7 +141,7 @@ class RouteAnalyticsService:
 
     def get_popular_routes(
         self, limit: int = 10, days: int = 30, interaction_type: str = "view"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get most popular routes based on analytics"""
 
         # Calculate date range
@@ -208,7 +208,7 @@ class RouteAnalyticsService:
 
         return results
 
-    def get_user_analytics(self, user_id: int, days: int = 30) -> Dict[str, Any]:
+    def get_user_analytics(self, user_id: int, days: int = 30) -> dict[str, Any]:
         """Get analytics for a specific user's route interactions"""
 
         # Calculate date range
@@ -273,7 +273,7 @@ class RouteAnalyticsService:
             "generated_at": datetime.utcnow().isoformat(),
         }
 
-    def get_system_analytics(self, days: int = 30) -> Dict[str, Any]:
+    def get_system_analytics(self, days: int = 30) -> dict[str, Any]:
         """Get system-wide analytics for all routes"""
 
         # Calculate date range

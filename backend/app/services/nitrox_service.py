@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy.orm import Session
 
 from app.models import CertificationLevel, UserCertification
@@ -25,10 +23,10 @@ NITROX_KEYWORDS = [
 
 
 def check_nitrox_eligibility(
-    cert_level: Optional[str],
-    gas_mix_id: Optional[str],
+    cert_level: str | None,
+    gas_mix_id: str | None,
     db_session: Session,
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ) -> bool:
     """Verifies that a diver holds a qualifying certification before breathing Enriched Air Nitrox (>21% O2).
 

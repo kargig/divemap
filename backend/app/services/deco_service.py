@@ -1,13 +1,13 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 def calculate_deco_ceiling(
-    samples: List[Dict[str, Any]],
+    samples: list[dict[str, Any]],
     gf_low: int = 30,
     gf_high: int = 70,
-    cylinders: Optional[List[Dict[str, Any]]] = None,
-    events: Optional[List[Dict[str, Any]]] = None,
-) -> Tuple[List[float], Optional[List[float]], Optional[List[List[float]]]]:
+    cylinders: list[dict[str, Any]] | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> tuple[list[float], list[float] | None, list[list[float]] | None]:
     """
     Calculate the decompression ceiling, final tissue saturation, and heatmap data.
     Uses octo-deco's internal Bühlmann ZH-L16 implementation.

@@ -12,7 +12,6 @@ This module contains core CRUD operations for dives:
 """
 
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_
@@ -346,50 +345,50 @@ async def create_dive(
 @router.get("/count")
 def get_dives_count(
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
-    username: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    user_id: int | None = Query(None, description="Filter by specific user ID"),
+    username: str | None = Query(
         None, description="Filter by username (partial match)"
     ),
-    my_dives: Optional[bool] = Query(
+    my_dives: bool | None = Query(
         None, description="Filter to show only current user's dives"
     ),
-    dive_site_id: Optional[int] = Query(None),
-    dive_site_name: Optional[str] = Query(
+    dive_site_id: int | None = Query(None),
+    dive_site_name: str | None = Query(
         None, description="Filter by dive site name (partial match)"
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None, description="Unified search across dive site name, description, notes"
     ),
-    difficulty_code: Optional[str] = Query(
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dives with unspecified difficulty"
     ),
-    suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
-    min_depth: Optional[float] = Query(None, ge=0, le=1000),
-    max_depth: Optional[float] = Query(None, ge=0, le=1000),
-    min_visibility: Optional[int] = Query(None, ge=1, le=10),
-    max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[float] = Query(None, ge=1, le=10),
-    max_rating: Optional[float] = Query(None, ge=1, le=10),
-    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[List[int]] = Query(None),  # Multiple tag IDs
-    buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
-    buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
-    north: Optional[float] = Query(
+    suit_type: str | None = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
+    min_depth: float | None = Query(None, ge=0, le=1000),
+    max_depth: float | None = Query(None, ge=0, le=1000),
+    min_visibility: int | None = Query(None, ge=1, le=10),
+    max_visibility: int | None = Query(None, ge=1, le=10),
+    min_rating: float | None = Query(None, ge=1, le=10),
+    max_rating: float | None = Query(None, ge=1, le=10),
+    start_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: list[int] | None = Query(None),  # Multiple tag IDs
+    buddy_id: int | None = Query(None, description="Filter by buddy user ID"),
+    buddy_username: str | None = Query(None, description="Filter by buddy username"),
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for viewport filtering"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for viewport filtering"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for viewport filtering"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for viewport filtering"
     ),
 ):
@@ -587,60 +586,60 @@ def get_dives_count(
 @router.get("/", response_model=DiveListResponse, response_model_exclude_none=True)
 def get_dives(
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
-    username: Optional[str] = Query(
+    current_user: User | None = Depends(get_current_user_optional),
+    user_id: int | None = Query(None, description="Filter by specific user ID"),
+    username: str | None = Query(
         None, description="Filter by username (partial match)"
     ),
-    my_dives: Optional[bool] = Query(
+    my_dives: bool | None = Query(
         None, description="Filter to show only current user's dives"
     ),
-    dive_site_id: Optional[int] = Query(None),
-    dive_site_name: Optional[str] = Query(
+    dive_site_id: int | None = Query(None),
+    dive_site_name: str | None = Query(
         None, description="Filter by dive site name (partial match)"
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None, description="Unified search across dive site name, description, notes"
     ),
-    difficulty_code: Optional[str] = Query(
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dives with unspecified difficulty"
     ),
-    suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
-    min_depth: Optional[float] = Query(None, ge=0, le=1000),
-    max_depth: Optional[float] = Query(None, ge=0, le=1000),
-    min_visibility: Optional[int] = Query(None, ge=1, le=10),
-    max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[float] = Query(None, ge=1, le=10),
-    max_rating: Optional[float] = Query(None, ge=1, le=10),
-    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[List[int]] = Query(None),  # Multiple tag IDs
-    buddy_id: Optional[int] = Query(None, description="Filter by buddy user ID"),
-    buddy_username: Optional[str] = Query(None, description="Filter by buddy username"),
-    sort_by: Optional[str] = Query(
+    suit_type: str | None = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
+    min_depth: float | None = Query(None, ge=0, le=1000),
+    max_depth: float | None = Query(None, ge=0, le=1000),
+    min_visibility: int | None = Query(None, ge=1, le=10),
+    max_visibility: int | None = Query(None, ge=1, le=10),
+    min_rating: float | None = Query(None, ge=1, le=10),
+    max_rating: float | None = Query(None, ge=1, le=10),
+    start_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: list[int] | None = Query(None),  # Multiple tag IDs
+    buddy_id: int | None = Query(None, description="Filter by buddy user ID"),
+    buddy_username: str | None = Query(None, description="Filter by buddy username"),
+    sort_by: str | None = Query(
         None,
         description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, created_at, updated_at). Admin users can also sort by view_count.",
     ),
-    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
+    sort_order: str | None = Query("desc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
-    north: Optional[float] = Query(
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for viewport filtering"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for viewport filtering"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for viewport filtering"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for viewport filtering"
     ),
-    detail_level: Optional[str] = Query(
+    detail_level: str | None = Query(
         "full",
         description="Data detail level: 'minimal' (id, name only), 'basic' (id, name), 'full' (all fields)",
     ),
@@ -1144,7 +1143,7 @@ def get_dive(
     dive_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get a specific dive by ID. Can view own dives and public dives from other users. Unauthenticated users can view public dives."""
     # Check if user is authenticated and enabled
@@ -1360,7 +1359,7 @@ def get_dive_details(
     dive_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get detailed dive information including location and minimap data. Unauthenticated users can view public dives."""
     # Check if user is authenticated and enabled

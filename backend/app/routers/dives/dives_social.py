@@ -1,5 +1,4 @@
 import os
-from typing import Set
 from urllib.parse import urlparse
 
 import httpx
@@ -22,7 +21,7 @@ from .dives_shared import (
 )
 
 # SSRF Protection Constants
-ALLOWED_MEDIA_URL_SCHEMES: Set[str] = {"https"}
+ALLOWED_MEDIA_URL_SCHEMES: set[str] = {"https"}
 
 
 def _is_allowed_media_host(hostname: str) -> bool:

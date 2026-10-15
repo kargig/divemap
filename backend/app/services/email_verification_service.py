@@ -8,7 +8,6 @@ import logging
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -67,7 +66,7 @@ class EmailVerificationService:
         logger.info(f"Created verification token for user {user_id}")
         return verification_token
 
-    def verify_token(self, token: str, db: Session) -> Optional[User]:
+    def verify_token(self, token: str, db: Session) -> User | None:
         """
         Verify an email verification token.
 
@@ -172,7 +171,7 @@ class EmailVerificationService:
 
     def resend_verification_email(
         self, user_id: int, db: Session
-    ) -> Optional[EmailVerificationToken]:
+    ) -> EmailVerificationToken | None:
         """
         Generate a new verification token and return it for sending.
 

@@ -8,7 +8,6 @@ Automatically detects R2 credentials and falls back to local storage when unavai
 import logging
 import os
 from datetime import datetime
-from typing import List, Optional
 
 try:
     import boto3
@@ -167,7 +166,7 @@ class R2StorageService:
         logger.info(f"Successfully uploaded profile to local storage: {local_path}")
         return local_path
 
-    def download_profile(self, user_id: int, file_path: str) -> Optional[bytes]:
+    def download_profile(self, user_id: int, file_path: str) -> bytes | None:
         """
         Download dive profile from R2 or local filesystem.
 
@@ -199,7 +198,7 @@ class R2StorageService:
             logger.warning(f"R2 download failed, falling back to local: {e}")
             return self._download_local(user_id, file_path)
 
-    def _download_local(self, user_id: int, file_path: str) -> Optional[bytes]:
+    def _download_local(self, user_id: int, file_path: str) -> bytes | None:
         """Download profile from local filesystem."""
         # Handle both R2-style paths and local paths
         if file_path.startswith("user_"):
@@ -788,7 +787,7 @@ class R2StorageService:
             account_id = os.getenv("R2_ACCOUNT_ID")
             return f"https://pub-{account_id}.r2.dev/{bucket_name}/{photo_path}"
 
-    def list_objects(self, prefix: str) -> List[str]:
+    def list_objects(self, prefix: str) -> list[str]:
         """List object keys with a given prefix."""
         if not self.r2_available:
             # Fallback to local filesystem listing for development

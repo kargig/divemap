@@ -1,5 +1,3 @@
-from typing import List
-
 import orjson
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -52,7 +50,7 @@ async def get_setting(
 from fastapi_cache.decorator import cache
 
 
-@router.get("", response_model=List[SettingResponse])
+@router.get("", response_model=list[SettingResponse])
 @cache(expire=300)
 async def list_settings(
     current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)

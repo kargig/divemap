@@ -17,7 +17,6 @@ The utility functions include:
 
 from datetime import date
 from difflib import SequenceMatcher
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -27,7 +26,7 @@ from .dives_shared import AvailableTag
 
 
 def generate_dive_name(
-    dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None
+    dive_site_name: str, dive_date: date, original_dive_name: str | None = None
 ) -> str:
     """Generate automatic dive name from dive site, date, and optional original dive name"""
     date_str = dive_date.strftime("%Y/%m/%d")

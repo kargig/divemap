@@ -15,7 +15,6 @@ import random
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
 
 import requests
 
@@ -26,7 +25,7 @@ OPEN_METEO_BASE_URL = "https://api.open-meteo.com/v1/forecast"
 OPEN_METEO_MARINE_URL = "https://marine-api.open-meteo.com/v1/marine"
 
 # Cache for wind data (in-memory dictionary)
-_wind_cache: Dict[str, Dict] = {}
+_wind_cache: dict[str, dict] = {}
 _cache_ttl_seconds = 15 * 60  # 15 minutes (fallback for old cache entries)
 # Increased cache size to accommodate zoom 12-13 usage patterns
 # Single viewport at zoom 13: ~480 entries
@@ -39,8 +38,8 @@ _max_cache_size = 2500  # Maximum number of cache entries
 def _generate_cache_key(
     latitude: float,
     longitude: float,
-    bounds: Optional[Dict] = None,
-    target_datetime: Optional[datetime] = None,
+    bounds: dict | None = None,
+    target_datetime: datetime | None = None,
 ) -> str:
     """
     Generate a cache key for wind data.
@@ -71,9 +70,7 @@ def _generate_cache_key(
     return base_key
 
 
-def _calculate_cache_ttl(
-    target_datetime: Optional[datetime], now: datetime
-) -> timedelta:
+def _calculate_cache_ttl(target_datetime: datetime | None, now: datetime) -> timedelta:
     """
     Calculate cache TTL based on forecast distance from current time.
 
@@ -118,9 +115,7 @@ def _calculate_cache_ttl(
         return timedelta(hours=1)
 
 
-def _is_cache_valid(
-    cache_entry: Dict, target_datetime: Optional[datetime] = None
-) -> bool:
+def _is_cache_valid(cache_entry: dict, target_datetime: datetime | None = None) -> bool:
     """
     Check if a cache entry is still valid (not expired).
 
@@ -176,8 +171,8 @@ def _get_from_database_cache(
     cache_key: str,
     latitude: float,
     longitude: float,
-    target_datetime: Optional[datetime],
-) -> Optional[Dict]:
+    target_datetime: datetime | None,
+) -> dict | None:
     """
     Retrieve wind data from database cache (Tier 2 cache).
 
@@ -273,7 +268,7 @@ def _get_from_database_cache(
         return None
 
 
-def _get_batch_from_database_cache(cache_keys: List[str]) -> Dict[str, Dict]:
+def _get_batch_from_database_cache(cache_keys: list[str]) -> dict[str, dict]:
     """
     Retrieve multiple wind data entries from database cache (Tier 2 cache).
 
@@ -339,8 +334,8 @@ def _store_in_database_cache(
     cache_key: str,
     latitude: float,
     longitude: float,
-    target_datetime: Optional[datetime],
-    wind_data: Dict,
+    target_datetime: datetime | None,
+    wind_data: dict,
 ):
     """
     Store wind data in database cache (Tier 2 cache).
@@ -434,7 +429,7 @@ def _store_in_database_cache(
         logger.warning(f"[DB CACHE] Error storing in database cache: {e}")
 
 
-def _store_batch_in_database_cache(entries: List[Dict]):
+def _store_batch_in_database_cache(entries: list[dict]):
     """
     Store multiple wind data entries in database cache in a single transaction.
 
@@ -566,8 +561,8 @@ def _store_batch_in_database_cache(entries: List[Dict]):
 
 
 def _create_grid_points(
-    bounds: Dict, zoom_level: Optional[int] = None
-) -> List[Tuple[float, float]]:
+    bounds: dict, zoom_level: int | None = None
+) -> list[tuple[float, float]]:
     """
     Create a grid of points within the given bounds.
 
@@ -651,9 +646,9 @@ def _create_grid_points(
 def fetch_wind_data_single_point(
     latitude: float,
     longitude: float,
-    target_datetime: Optional[datetime] = None,
+    target_datetime: datetime | None = None,
     skip_validation: bool = False,
-) -> Optional[Dict]:
+) -> dict | None:
     """
     Fetch wind data for a single point.
 
@@ -1115,11 +1110,11 @@ def fetch_wind_data_single_point(
 
 
 def fetch_wind_data_grid(
-    bounds: Dict,
-    zoom_level: Optional[int] = None,
-    target_datetime: Optional[datetime] = None,
+    bounds: dict,
+    zoom_level: int | None = None,
+    target_datetime: datetime | None = None,
     jitter_factor: int = 5,
-) -> List[Dict]:
+) -> list[dict]:
     """
     Fetch wind data for a grid of points within the given bounds.
 
@@ -1525,8 +1520,8 @@ def fetch_wind_data_grid(
 
 
 def fetch_wind_data_batch(
-    locations: List[Tuple[float, float]], target_datetime: Optional[datetime] = None
-) -> Dict[Tuple[float, float], Optional[Dict]]:
+    locations: list[tuple[float, float]], target_datetime: datetime | None = None
+) -> dict[tuple[float, float], dict | None]:
     """
     Fetch wind data for multiple locations efficiently.
     Groups coordinates by 0.1° grid cell to minimize API calls.

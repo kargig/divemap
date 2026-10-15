@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models import Dive, DiveMedia, DiveSite, DiveSiteList, DiveSiteListItem, User
 
 
-def geo_slug(text: Optional[str]) -> str:
+def geo_slug(text: str | None) -> str:
     """URL slug for a country or region name (ASCII, hyphenated)."""
     if not text:
         return ""
@@ -26,7 +26,7 @@ def geo_slug(text: Optional[str]) -> str:
     return text.strip("-")
 
 
-def resolve_label_from_slug(candidates: Iterable[str], slug: str) -> Optional[str]:
+def resolve_label_from_slug(candidates: Iterable[str], slug: str) -> str | None:
     """Return the first candidate whose geo_slug matches slug (case-insensitive path)."""
     if not slug:
         return None
@@ -37,7 +37,7 @@ def resolve_label_from_slug(candidates: Iterable[str], slug: str) -> Optional[st
     return None
 
 
-def geo_hub_path(country: Optional[str], region: Optional[str] = None) -> Optional[str]:
+def geo_hub_path(country: str | None, region: str | None = None) -> str | None:
     """Build /dive-sites/{country}[/{region}] path, or None if country missing."""
     c = geo_slug(country)
     if not c:

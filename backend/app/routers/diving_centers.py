@@ -1,7 +1,7 @@
 import logging
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import orjson
 import requests
@@ -119,7 +119,7 @@ router = APIRouter()
 
 
 # Place utility endpoints before dynamic "/{diving_center_id}" routes to avoid path conflicts
-@router.get("/managed", response_model=List[DivingCenterResponse])
+@router.get("/managed", response_model=list[DivingCenterResponse])
 async def get_my_managed_diving_centers(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
@@ -190,7 +190,7 @@ async def get_nearby_diving_centers(
     radius_km: float = Query(100, ge=1, le=500),
     limit: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Return diving centers within radius_km sorted by distance (km)."""
     bind = db.get_bind()
@@ -241,10 +241,10 @@ async def search_diving_centers_simple(
     request: Request,
     q: str = Query(..., min_length=1, max_length=200),
     limit: int = Query(20, ge=1, le=50),
-    lat: Optional[float] = Query(None, ge=-90, le=90),
-    lng: Optional[float] = Query(None, ge=-180, le=180),
+    lat: float | None = Query(None, ge=-90, le=90),
+    lng: float | None = Query(None, ge=-180, le=180),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Global name search across all diving centers, optionally ranked with distance as tiebreaker."""
     q = q.strip()
@@ -316,7 +316,7 @@ async def search_diving_centers_simple(
 
 def search_diving_centers_with_fuzzy(
     query: str,
-    exact_results: List[DivingCenter],
+    exact_results: list[DivingCenter],
     db: Session,
     similarity_threshold: float = UNIFIED_TYPO_TOLERANCE["overall_threshold"],
     max_fuzzy_results: int = 10,
@@ -518,21 +518,19 @@ def search_diving_centers_with_fuzzy(
 
 @router.get("/count")
 async def get_diving_centers_count(
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         max_length=200,
         description="Unified search across name, description, country, region, city",
     ),
-    name: Optional[str] = Query(None, max_length=100),
-    country: Optional[str] = Query(
-        None, max_length=100, description="Filter by country"
-    ),
-    region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
-    city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
-    min_rating: Optional[float] = Query(
+    name: str | None = Query(None, max_length=100),
+    country: str | None = Query(None, max_length=100, description="Filter by country"),
+    region: str | None = Query(None, max_length=100, description="Filter by region"),
+    city: str | None = Query(None, max_length=100, description="Filter by city"),
+    min_rating: float | None = Query(
         None, ge=0, le=10, description="Minimum average rating (0-10)"
     ),
-    max_rating: Optional[float] = Query(
+    max_rating: float | None = Query(
         None, ge=0, le=10, description="Maximum average rating (0-10)"
     ),
     db: Session = Depends(get_db),
@@ -858,47 +856,45 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     "/", response_model=DivingCenterListResponse, response_model_exclude_none=True
 )
 async def get_diving_centers(
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         max_length=200,
         description="Unified search across name, description, country, region, city",
     ),
-    name: Optional[str] = Query(None, max_length=100),
-    country: Optional[str] = Query(
-        None, max_length=100, description="Filter by country"
-    ),
-    region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
-    city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
-    min_rating: Optional[float] = Query(
+    name: str | None = Query(None, max_length=100),
+    country: str | None = Query(None, max_length=100, description="Filter by country"),
+    region: str | None = Query(None, max_length=100, description="Filter by region"),
+    city: str | None = Query(None, max_length=100, description="Filter by city"),
+    min_rating: float | None = Query(
         None, ge=0, le=10, description="Minimum average rating (0-10)"
     ),
-    max_rating: Optional[float] = Query(
+    max_rating: float | None = Query(
         None, ge=0, le=10, description="Maximum average rating (0-10)"
     ),
-    sort_by: Optional[str] = Query(
+    sort_by: str | None = Query(
         None,
         description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)",
     ),
-    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
+    sort_order: str | None = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
-    north: Optional[float] = Query(
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for viewport filtering"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for viewport filtering"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for viewport filtering"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for viewport filtering"
     ),
-    detail_level: Optional[str] = Query(
+    detail_level: str | None = Query(
         "full",
         description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)",
     ),
-    only_claimed: Optional[bool] = Query(
+    only_claimed: bool | None = Query(
         None, description="Filter to show only claimed diving centers"
     ),
     db: Session = Depends(get_db),
@@ -1425,7 +1421,7 @@ async def create_diving_center(
     }
 
 
-@router.get("/ownership-requests", response_model=List[DivingCenterOwnershipResponse])
+@router.get("/ownership-requests", response_model=list[DivingCenterOwnershipResponse])
 async def get_ownership_requests(
     current_user: User = Depends(is_admin_or_moderator), db: Session = Depends(get_db)
 ):
@@ -1509,7 +1505,7 @@ async def get_ownership_requests(
 
 
 @router.get(
-    "/ownership-requests/history", response_model=List[OwnershipRequestHistoryResponse]
+    "/ownership-requests/history", response_model=list[OwnershipRequestHistoryResponse]
 )
 async def get_ownership_request_history(
     current_user: User = Depends(is_admin_or_moderator), db: Session = Depends(get_db)
@@ -1564,7 +1560,7 @@ async def get_diving_center(
     diving_center_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(
+    current_user: User | None = Depends(
         get_current_user_optional
     ),  # Fix type annotation
 ):
@@ -1831,7 +1827,7 @@ async def upload_center_logo(
 
 
 @router.get(
-    "/{diving_center_id}/managers", response_model=List[DivingCenterManagerResponse]
+    "/{diving_center_id}/managers", response_model=list[DivingCenterManagerResponse]
 )
 async def get_diving_center_managers(
     diving_center_id: int,
@@ -2206,7 +2202,7 @@ async def rate_diving_center(
         }
 
 
-@router.get("/{diving_center_id}/comments", response_model=List[CenterCommentResponse])
+@router.get("/{diving_center_id}/comments", response_model=list[CenterCommentResponse])
 async def get_diving_center_comments(
     diving_center_id: int, db: Session = Depends(get_db)
 ):
@@ -2580,7 +2576,7 @@ async def delete_diving_center_gear_rental(
 # Diving Center Organization Management
 @router.get(
     "/{diving_center_id}/organizations",
-    response_model=List[DivingCenterOrganizationResponse],
+    response_model=list[DivingCenterOrganizationResponse],
 )
 async def get_diving_center_organizations(
     diving_center_id: int, db: Session = Depends(get_db)
@@ -2966,7 +2962,7 @@ async def assign_diving_center_owner(
 @router.post("/{diving_center_id}/revoke-ownership")
 async def revoke_diving_center_ownership(
     diving_center_id: int,
-    revocation: DivingCenterOwnershipRevocation | str | Dict[str, Any] = Body(...),
+    revocation: DivingCenterOwnershipRevocation | str | dict[str, Any] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db),
 ):

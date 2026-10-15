@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 import orjson
 
@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 from .gas_utils import create_structured_gas_data
 
 
-def pa_to_bar(pa: Optional[float]) -> Optional[float]:
+def pa_to_bar(pa: float | None) -> float | None:
     """Convert Pascals to Bar."""
     return round(pa / 100000.0, 1) if pa is not None else None
 
 
-def parse_suunto_json_file(json_content: bytes) -> Dict[str, Any]:
+def parse_suunto_json_file(json_content: bytes) -> dict[str, Any]:
     """
     Parse a Suunto JSON file and return a standardized dive dictionary.
     Supports both Format A (D5, EON Core) and Format B (Ocean).

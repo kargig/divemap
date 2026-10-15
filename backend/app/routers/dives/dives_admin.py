@@ -13,7 +13,6 @@ full access to all dives regardless of ownership.
 """
 
 from datetime import datetime
-from typing import Optional
 
 import orjson
 from fastapi import Depends, HTTPException, Query, status
@@ -50,35 +49,35 @@ from .dives_utils import generate_dive_name
 def get_all_dives_count_admin(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
-    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
-    dive_site_id: Optional[int] = Query(None),
-    dive_site_ids: Optional[str] = Query(
+    user_id: int | None = Query(None, description="Filter by specific user ID"),
+    dive_site_id: int | None = Query(None),
+    dive_site_ids: str | None = Query(
         None, description="Comma-separated list of dive site IDs"
     ),
-    dive_site_name: Optional[str] = Query(
+    dive_site_name: str | None = Query(
         None, description="Filter by dive site name (partial match)"
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         description="Unified search across dive name, user username, dive site name, and dive information",
     ),
-    difficulty_code: Optional[str] = Query(
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dives with unspecified difficulty"
     ),
-    suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
-    min_depth: Optional[float] = Query(None, ge=0, le=1000),
-    max_depth: Optional[float] = Query(None, ge=0, le=1000),
-    min_visibility: Optional[int] = Query(None, ge=1, le=10),
-    max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[float] = Query(None, ge=1, le=10),
-    max_rating: Optional[float] = Query(None, ge=1, le=10),
-    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
+    suit_type: str | None = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
+    min_depth: float | None = Query(None, ge=0, le=1000),
+    max_depth: float | None = Query(None, ge=0, le=1000),
+    min_visibility: int | None = Query(None, ge=1, le=10),
+    max_visibility: int | None = Query(None, ge=1, le=10),
+    min_rating: float | None = Query(None, ge=1, le=10),
+    max_rating: float | None = Query(None, ge=1, le=10),
+    start_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: str | None = Query(None),  # Comma-separated tag IDs
 ):
     """Get total count of dives with admin privileges."""
     # Build query - admin can see all dives
@@ -219,40 +218,40 @@ def get_all_dives_count_admin(
 def get_all_dives_admin(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_admin_user),
-    user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
-    dive_site_id: Optional[int] = Query(None),
-    dive_site_ids: Optional[str] = Query(
+    user_id: int | None = Query(None, description="Filter by specific user ID"),
+    dive_site_id: int | None = Query(None),
+    dive_site_ids: str | None = Query(
         None, description="Comma-separated list of dive site IDs"
     ),
-    dive_site_name: Optional[str] = Query(
+    dive_site_name: str | None = Query(
         None, description="Filter by dive site name (partial match)"
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         description="Unified search across dive name, user username, dive site name, and dive information",
     ),
-    difficulty_code: Optional[str] = Query(
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dives with unspecified difficulty"
     ),
-    suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
-    min_depth: Optional[float] = Query(None, ge=0, le=1000),
-    max_depth: Optional[float] = Query(None, ge=0, le=1000),
-    min_visibility: Optional[int] = Query(None, ge=1, le=10),
-    max_visibility: Optional[int] = Query(None, ge=1, le=10),
-    min_rating: Optional[float] = Query(None, ge=1, le=10),
-    max_rating: Optional[float] = Query(None, ge=1, le=10),
-    start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
-    tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
-    sort_by: Optional[str] = Query(
+    suit_type: str | None = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
+    min_depth: float | None = Query(None, ge=0, le=1000),
+    max_depth: float | None = Query(None, ge=0, le=1000),
+    min_visibility: int | None = Query(None, ge=1, le=10),
+    max_visibility: int | None = Query(None, ge=1, le=10),
+    min_rating: float | None = Query(None, ge=1, le=10),
+    max_rating: float | None = Query(None, ge=1, le=10),
+    start_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    tag_ids: str | None = Query(None),  # Comma-separated tag IDs
+    sort_by: str | None = Query(
         None,
         description="Sort field (id, dive_date, max_depth, duration, user_rating, visibility_rating, view_count, created_at, updated_at)",
     ),
-    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
+    sort_order: str | None = Query("desc", description="Sort order (asc/desc)"),
     limit: int = Query(50, ge=1, le=1000),
     page: int = Query(1, ge=1),
 ):

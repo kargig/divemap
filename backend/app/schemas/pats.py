@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -11,7 +10,7 @@ class PATBase(BaseModel):
         max_length=255,
         description="Human-readable name for the token",
     )
-    expires_in_days: Optional[int] = Field(
+    expires_in_days: int | None = Field(
         None,
         description="Number of days until the token expires. If null, it never expires.",
     )
@@ -24,8 +23,8 @@ class PATCreate(PATBase):
 class PATResponse(BaseModel):
     id: int
     name: str
-    expires_at: Optional[datetime]
-    last_used_at: Optional[datetime]
+    expires_at: datetime | None
+    last_used_at: datetime | None
     is_active: bool
     created_at: datetime
     updated_at: datetime

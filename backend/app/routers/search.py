@@ -5,8 +5,6 @@ Provides unified search endpoint that searches across all entity types
 (dive sites, diving centers, dives, dive routes, dive trips) simultaneously.
 """
 
-from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
@@ -44,7 +42,7 @@ ENTITY_ICONS = {
 }
 
 
-def search_dive_sites(query: str, limit: int, db: Session) -> List[GlobalSearchResult]:
+def search_dive_sites(query: str, limit: int, db: Session) -> list[GlobalSearchResult]:
     """Search dive sites by name, country, region, description, and aliases"""
     sanitized_query = query.strip()[:200]
 
@@ -110,7 +108,7 @@ def search_dive_sites(query: str, limit: int, db: Session) -> List[GlobalSearchR
 
 def search_diving_centers(
     query: str, limit: int, db: Session
-) -> List[GlobalSearchResult]:
+) -> list[GlobalSearchResult]:
     """Search diving centers by name, description, country, region, city"""
     sanitized_query = query.strip()[:200]
 
@@ -172,8 +170,8 @@ def search_diving_centers(
 
 
 def search_dives(
-    query: str, limit: int, db: Session, current_user: Optional[User] = None
-) -> List[GlobalSearchResult]:
+    query: str, limit: int, db: Session, current_user: User | None = None
+) -> list[GlobalSearchResult]:
     """Search dives by dive site name, description, and dive information"""
     sanitized_query = query.strip()[:200]
 
@@ -238,7 +236,7 @@ def search_dives(
     return results
 
 
-def search_dive_routes(query: str, limit: int, db: Session) -> List[GlobalSearchResult]:
+def search_dive_routes(query: str, limit: int, db: Session) -> list[GlobalSearchResult]:
     """Search dive routes by name and description"""
     sanitized_query = query.strip()[:200]
 
@@ -292,7 +290,7 @@ def search_dive_routes(query: str, limit: int, db: Session) -> List[GlobalSearch
     return results
 
 
-def search_dive_trips(query: str, limit: int, db: Session) -> List[GlobalSearchResult]:
+def search_dive_trips(query: str, limit: int, db: Session) -> list[GlobalSearchResult]:
     """Search dive trips by description, special requirements, diving center name, dive site names"""
     sanitized_query = query.strip()[:200]
     search_term = f"%{sanitized_query}%"
@@ -368,7 +366,7 @@ async def global_search(
     ),
     limit: int = Query(8, ge=1, le=20, description="Maximum results per entity type"),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Global search across all entity types: dive sites, diving centers, dives, dive routes, and dive trips.

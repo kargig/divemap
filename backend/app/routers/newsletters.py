@@ -6,7 +6,6 @@ import re
 from datetime import date, datetime, time, timedelta
 from difflib import SequenceMatcher
 from email import message_from_bytes
-from typing import List, Optional
 
 import orjson
 from fastapi import (
@@ -417,7 +416,7 @@ def parse_greek_date(day: str, month: str, year: str = None) -> date:
     return date(year_num, month_num, day_num)
 
 
-def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
+def find_matching_dive_site(db: Session, site_name: str) -> int | None:
     """Find matching dive site in database by name similarity"""
     if not site_name:
         return None
@@ -526,7 +525,7 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     return None
 
 
-def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
+def extract_diving_center_from_headers(raw_email: str) -> str | None:
     """Extract diving center name from email headers"""
     try:
         # Parse email headers
@@ -570,7 +569,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
         return None
 
 
-def extract_diving_center_from_metadata(content: str) -> Optional[int]:
+def extract_diving_center_from_metadata(content: str) -> int | None:
     """
     Extract diving center ID from newsletter metadata embedded in content.
     Looks for format: <!-- DIVEMAP_METADATA: diving_center_id=123 -->
@@ -606,7 +605,7 @@ def remove_metadata_from_content(content: str) -> str:
         return content
 
 
-def add_diving_center_metadata(content: str, diving_center_id: Optional[int]) -> str:
+def add_diving_center_metadata(content: str, diving_center_id: int | None) -> str:
     """
     Add diving center metadata to newsletter content.
     Prepends metadata in a format that can be extracted later but won't interfere with parsing.
@@ -629,7 +628,7 @@ def add_diving_center_metadata(content: str, diving_center_id: Optional[int]) ->
         return metadata + content
 
 
-def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
+def find_matching_diving_center(db: Session, center_name: str) -> int | None:
     """Find matching diving center in database by name similarity"""
     if not center_name:
         return None
@@ -665,8 +664,8 @@ from app.services.openai_service import openai_service
 
 
 async def parse_newsletter_with_openai(
-    content: str, db: Session, diving_center_id_override: Optional[int] = None
-) -> List[dict]:
+    content: str, db: Session, diving_center_id_override: int | None = None
+) -> list[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
         # Remove metadata from content before parsing
@@ -1078,8 +1077,8 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
 
 
 def parse_newsletter_content(
-    content: str, db: Session, diving_center_id_override: Optional[int] = None
-) -> List[dict]:
+    content: str, db: Session, diving_center_id_override: int | None = None
+) -> list[dict]:
     """Parse newsletter content using basic regex patterns"""
     try:
         # Remove metadata from content before parsing
@@ -1564,7 +1563,7 @@ async def parse_newsletter_text(
         )
 
 
-@router.get("/", response_model=List[NewsletterResponse])
+@router.get("/", response_model=list[NewsletterResponse])
 async def get_newsletters(
     limit: int = 50,
     offset: int = 0,
@@ -1606,7 +1605,7 @@ async def get_newsletters(
     return result
 
 
-def get_trip_rental_price(trip: ParsedDiveTrip) -> Optional[float]:
+def get_trip_rental_price(trip: ParsedDiveTrip) -> float | None:
     if trip.octo_slot and trip.octo_slot.product and trip.octo_slot.product.units:
         rental_unit = next(
             (
@@ -1636,41 +1635,41 @@ def get_trip_rental_price(trip: ParsedDiveTrip) -> Optional[float]:
     response_model_exclude_none=True,
 )
 async def get_parsed_trips(
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    diving_center_id: Optional[int] = None,
-    dive_site_id: Optional[int] = None,
-    trip_status: Optional[str] = None,
-    min_price: Optional[float] = None,
-    max_price: Optional[float] = None,
-    min_duration: Optional[int] = None,
-    max_duration: Optional[int] = None,
-    difficulty_code: Optional[str] = Query(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    diving_center_id: int | None = None,
+    dive_site_id: int | None = None,
+    trip_status: str | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    min_duration: int | None = None,
+    max_duration: int | None = None,
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude trips with unspecified difficulty"
     ),
-    search_query: Optional[str] = None,
-    location_query: Optional[str] = None,
-    country: Optional[str] = Query(
+    search_query: str | None = None,
+    location_query: str | None = None,
+    country: str | None = Query(
         None,
         description="Filter by country (searches in dive sites and diving centers)",
     ),
-    region: Optional[str] = Query(
+    region: str | None = Query(
         None, description="Filter by region (searches in dive sites and diving centers)"
     ),
-    bookable_only: Optional[bool] = Query(
+    bookable_only: bool | None = Query(
         False, description="Filter for trips with instant online booking enabled"
     ),
-    sort_by: Optional[str] = "trip_date",
-    sort_order: Optional[str] = "desc",
-    user_lat: Optional[float] = None,
-    user_lon: Optional[float] = None,
+    sort_by: str | None = "trip_date",
+    sort_order: str | None = "desc",
+    user_lat: float | None = None,
+    user_lon: float | None = None,
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(100, description="Page size"),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """

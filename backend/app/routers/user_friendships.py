@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
@@ -140,7 +138,7 @@ async def send_friend_request(
     return new_request
 
 
-@router.get("", response_model=List[FriendshipResponse])
+@router.get("", response_model=list[FriendshipResponse])
 async def list_friends(
     status_filter: str = "ACCEPTED",
     current_user: User = Depends(get_current_active_user),

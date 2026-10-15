@@ -2,7 +2,7 @@ import logging
 import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, time, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 from xml.dom import minidom
 
 import orjson
@@ -33,9 +33,9 @@ class DiveExportService:
     def export_to_subsurface_xml(
         self,
         dive: Dive,
-        profile_data: Dict[str, Any],
-        dive_site: Optional[DiveSite] = None,
-        tags: List[str] = None,
+        profile_data: dict[str, Any],
+        dive_site: DiveSite | None = None,
+        tags: list[str] = None,
     ) -> str:
         """
         Export dive to Subsurface XML format.
@@ -315,7 +315,7 @@ class DiveExportService:
 
     def _reconstruct_cylinders_from_gas_bottles(
         self, gas_bottles_used_str: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Reconstruct cylinders list from the structured gas_bottles_used JSON string."""
         if not gas_bottles_used_str:
             return []
@@ -350,7 +350,7 @@ class DiveExportService:
             logger.warning(f"Error reconstructing cylinders: {e}")
             return []
 
-    def _map_bottle_to_cylinder(self, bottle: Dict[str, Any]) -> Dict[str, Any]:
+    def _map_bottle_to_cylinder(self, bottle: dict[str, Any]) -> dict[str, Any]:
         """Map a bottle object from gas_bottles_used to a cylinder dict."""
         res = {
             "size": f"{bottle.get('tank')} l" if bottle.get("tank") else None,
@@ -397,7 +397,7 @@ class DiveExportService:
 
         return content + "\n"
 
-    def export_to_garmin_fit(self, dive: Dive, profile_data: Dict[str, Any]) -> bytes:
+    def export_to_garmin_fit(self, dive: Dive, profile_data: dict[str, Any]) -> bytes:
         """
         Export dive to Garmin FIT format.
 
@@ -461,7 +461,7 @@ class DiveExportService:
         encoder.close()
         return stream.get_buffer()
 
-    def export_to_suunto_json(self, dive: Dive, profile_data: Dict[str, Any]) -> bytes:
+    def export_to_suunto_json(self, dive: Dive, profile_data: dict[str, Any]) -> bytes:
         """
         Export dive to Suunto-compatible JSON format.
 

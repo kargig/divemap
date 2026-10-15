@@ -2,7 +2,7 @@ import hashlib
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jwt
 from fastapi import Request
@@ -36,7 +36,7 @@ class TokenService:
 
     def create_token_pair(
         self, user: User, request: Request, db: Session
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create both access and refresh tokens"""
         # Clean up old expired tokens
         self._cleanup_expired_tokens(user.id, db)
@@ -66,7 +66,7 @@ class TokenService:
             "expires_in": int(self.access_token_expire.total_seconds()),
         }
 
-    def create_access_token(self, data: Dict[str, Any]) -> str:
+    def create_access_token(self, data: dict[str, Any]) -> str:
         """Create short-lived access token"""
         to_encode = data.copy()
         expire = datetime.utcnow() + self.access_token_expire
@@ -105,7 +105,7 @@ class TokenService:
 
     def refresh_access_token(
         self, refresh_token: str, request: Request, db: Session
-    ) -> Optional[str]:
+    ) -> str | None:
         """Renew access token using refresh token"""
         try:
             # Parse refresh token
@@ -180,7 +180,7 @@ class TokenService:
 
     def rotate_refresh_token(
         self, old_refresh_token: str, request: Request, db: Session
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Rotate refresh token for security"""
         try:
             # Validate old token
@@ -321,7 +321,7 @@ class TokenService:
     def _log_auth_action(
         self,
         db: Session,
-        user_id: Optional[int],
+        user_id: int | None,
         action: str,
         request: Request,
         success: bool,

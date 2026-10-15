@@ -8,7 +8,6 @@ Users can unsubscribe from specific categories or all emails without requiring l
 import logging
 import os
 from datetime import UTC, datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
@@ -27,7 +26,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost")
 
 
 def _store_previous_preferences(
-    user_id: int, category: Optional[str], db: Session
+    user_id: int, category: str | None, db: Session
 ) -> dict:
     """
     Store previous preference state before unsubscribe (for restoration).
@@ -83,11 +82,11 @@ def _store_previous_preferences(
 @router.get("/unsubscribe")
 async def unsubscribe(
     token: str = Query(..., description="Unsubscribe token from email link"),
-    category: Optional[str] = Query(
+    category: str | None = Query(
         None,
         description="Category to unsubscribe from (optional, for category-specific unsubscribe)",
     ),
-    format: Optional[str] = Query(
+    format: str | None = Query(
         None,
         description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)",
     ),
@@ -222,7 +221,7 @@ async def unsubscribe(
 @router.get("/unsubscribe/all")
 async def unsubscribe_all(
     token: str = Query(..., description="Unsubscribe token from email link"),
-    format: Optional[str] = Query(
+    format: str | None = Query(
         None,
         description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)",
     ),
@@ -278,7 +277,7 @@ async def resubscribe(
     token: str = Query(
         ..., description="Unsubscribe token (same token used for unsubscribe)"
     ),
-    category: Optional[str] = Query(
+    category: str | None = Query(
         None,
         description="Category to re-subscribe to (optional, re-subscribes to all if not provided)",
     ),

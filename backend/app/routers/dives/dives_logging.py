@@ -5,8 +5,6 @@ This module contains common logging patterns and utilities
 that are shared across multiple dives modules.
 """
 
-from typing import Optional
-
 from .dives_shared import logger
 
 
@@ -29,9 +27,7 @@ def log_import_operation(operation: str, user_id: int, file_count: int, **kwargs
     )
 
 
-def log_error(
-    operation: str, error: Exception, user_id: Optional[int] = None, **kwargs
-):
+def log_error(operation: str, error: Exception, user_id: int | None = None, **kwargs):
     """Log errors with consistent format."""
     logger.error(f"Error in {operation}: {str(error)}, user_id={user_id}, {kwargs}")
 
@@ -43,8 +39,8 @@ def log_performance(operation: str, duration_ms: float, **kwargs):
 
 def log_security_event(
     event: str,
-    user_id: Optional[int] = None,
-    ip_address: Optional[str] = None,
+    user_id: int | None = None,
+    ip_address: str | None = None,
     **kwargs,
 ):
     """Log security events with consistent format."""

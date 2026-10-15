@@ -43,10 +43,10 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from enum import Enum
-from typing import List, Optional, Sequence
 
 from cachetools import TTLCache
 
@@ -102,8 +102,8 @@ _cache_lock = threading.Lock()
 _in_flight: set[str] = set()
 _in_flight_lock = threading.Lock()
 
-_cidr_networks: List[IpNetwork] = []
-_cidr_loaded_at: Optional[float] = None
+_cidr_networks: list[IpNetwork] = []
+_cidr_loaded_at: float | None = None
 _cidr_lock = threading.Lock()
 _cidr_refresh_in_flight = False
 _cidr_refresh_lock = threading.Lock()
@@ -114,7 +114,7 @@ _executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="searchbot-bg")
 _dns_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="searchbot-dns-op")
 
 
-def looks_like_search_bot(user_agent: Optional[str]) -> bool:
+def looks_like_search_bot(user_agent: str | None) -> bool:
     if not user_agent:
         return False
     ua = user_agent.lower()
@@ -126,7 +126,7 @@ def _hostname_matches_search_bot(hostname: str) -> bool:
     return host.endswith(_GOOGLE_SUFFIXES) or host.endswith(_BING_SUFFIXES)
 
 
-def _cache_get(ip: str) -> Optional[bool]:
+def _cache_get(ip: str) -> bool | None:
     """Return True/False if cached; None on miss. Error cache counts as False."""
     with _cache_lock:
         if ip in _positive_cache:
@@ -149,9 +149,9 @@ def _cache_set(ip: str, result: VerifyResult) -> None:
             _error_cache[ip] = False
 
 
-def parse_ip_range_payload(data: dict) -> List[IpNetwork]:
+def parse_ip_range_payload(data: dict) -> list[IpNetwork]:
     """Parse a Google/Bing ipranges JSON object into ip_network entries."""
-    networks: List[IpNetwork] = []
+    networks: list[IpNetwork] = []
     for prefix in data.get("prefixes", []):
         cidr = prefix.get("ipv4Prefix") or prefix.get("ipv6Prefix")
         if not cidr:
@@ -181,7 +181,7 @@ def refresh_search_bot_ip_ranges() -> int:
     Returns the number of networks loaded. On total failure, leaves the
     previous list intact (fail open to DNS / rate limiting).
     """
-    networks: List[IpNetwork] = []
+    networks: list[IpNetwork] = []
     errors = 0
     for url in _IP_RANGE_URLS:
         try:
@@ -274,7 +274,7 @@ def ip_in_search_bot_allowlist(ip: str) -> bool:
     return False
 
 
-def set_search_bot_ip_ranges_for_tests(networks: List[IpNetwork]) -> None:
+def set_search_bot_ip_ranges_for_tests(networks: list[IpNetwork]) -> None:
     """Test helper: install an allowlist without HTTP."""
     with _cidr_lock:
         global _cidr_networks, _cidr_loaded_at
@@ -354,7 +354,7 @@ def _schedule_verify(ip: str) -> None:
             _in_flight.discard(ip)
 
 
-def is_verified_search_bot(ip: str, user_agent: Optional[str]) -> bool:
+def is_verified_search_bot(ip: str, user_agent: str | None) -> bool:
     """
     Hot-path check: UA gate + CIDR allowlist + DNS cache. Never blocks on I/O.
 

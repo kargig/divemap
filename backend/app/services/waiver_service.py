@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 import orjson
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -26,7 +26,7 @@ TRIGGERED_BOX_MAP = {
 
 
 class WaiverService:
-    def __init__(self, templates_dir: Optional[str] = None):
+    def __init__(self, templates_dir: str | None = None):
         self.templates_dir = templates_dir or TEMPLATES_DIR
         self.jinja_env = Environment(
             loader=FileSystemLoader(self.templates_dir),
@@ -34,7 +34,7 @@ class WaiverService:
         )
 
     @staticmethod
-    def evaluate_dmsc_medical(answers: Dict[str, Any]) -> str:
+    def evaluate_dmsc_medical(answers: dict[str, Any]) -> str:
         """
         Evaluates DMSC 2020 questionnaire answers according to clinical guidelines:
         - If Q3, Q5, or Q10 is YES -> FLAGGED_CONTACT_CENTER (Direct physician clearance needed).
@@ -84,7 +84,7 @@ class WaiverService:
 
     def get_questionnaire_schema(
         self, questionnaire_id: str = "dmsc_2020_medical"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Loads the declarative JSON schema for a medical questionnaire with path-traversal protection.
         """
@@ -106,7 +106,7 @@ class WaiverService:
         with open(schema_path, "rb") as f:
             return orjson.loads(f.read())
 
-    def render_waiver(self, bundle_id: str, context: Dict[str, Any]) -> str:
+    def render_waiver(self, bundle_id: str, context: dict[str, Any]) -> str:
         """
         Renders a Jinja2 legal waiver template based on the bundle identifier.
         """

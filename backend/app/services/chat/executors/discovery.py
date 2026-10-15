@@ -1,6 +1,5 @@
 import logging
 from datetime import date as py_date
-from typing import Dict, List, Optional
 
 from sqlalchemy import String, and_, func, or_
 from sqlalchemy.orm import Session, aliased, joinedload
@@ -28,19 +27,19 @@ logger = logging.getLogger(__name__)
 
 def execute_discovery(
     db: Session,
-    location: Optional[str] = None,
-    parent_region: Optional[str] = None,
-    keywords: Optional[List[str]] = None,
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
-    radius: Optional[float] = None,
-    direction: Optional[str] = None,
-    difficulty_level: Optional[int] = None,
-    entity_type_filter: Optional[str] = None,
-    date: Optional[str] = None,
-    date_range: Optional[List[str]] = None,
+    location: str | None = None,
+    parent_region: str | None = None,
+    keywords: list[str] | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    radius: float | None = None,
+    direction: str | None = None,
+    difficulty_level: int | None = None,
+    entity_type_filter: str | None = None,
+    date: str | None = None,
+    date_range: list[str] | None = None,
     **kwargs,
-) -> List[Dict]:
+) -> list[dict]:
     results = []
     limit = 15
 

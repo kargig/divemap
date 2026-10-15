@@ -1,5 +1,4 @@
 import re
-from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -44,7 +43,7 @@ def slugify(s: str) -> str:
     return s.strip("-")
 
 
-def sanitize_list_for_response(lst: Optional[DiveSiteList]) -> Optional[DiveSiteList]:
+def sanitize_list_for_response(lst: DiveSiteList | None) -> DiveSiteList | None:
     """Sanitize nested dive site tags list objects to match Pydantic schema validation expectation"""
     return lst
 
@@ -82,7 +81,7 @@ def notify_collaborative_list_activity(
     initiator_id: int,
     action: str,
     details: str,
-    db: Optional[Session] = None,
+    db: Session | None = None,
 ):
     from app.database import SessionLocal
 
@@ -136,7 +135,7 @@ def notify_collaborative_list_activity(
             local_db.close()
 
 
-@router.get("/my-lists", response_model=List[UserDiveSiteListResponse])
+@router.get("/my-lists", response_model=list[UserDiveSiteListResponse])
 async def get_my_lists(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ):
@@ -225,7 +224,7 @@ async def get_list_by_id(
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Retrieve details of a curated list with its items, tracked asynchronously on other user visits"""
     lst = (
@@ -703,7 +702,7 @@ async def update_collaborator_profile_preference(
 
 @router.get(
     "/dive-site/{dive_site_id}/my-status",
-    response_model=List[UserDiveSiteListMembershipResponse],
+    response_model=list[UserDiveSiteListMembershipResponse],
 )
 async def get_dive_site_membership_status(
     dive_site_id: int,
@@ -789,7 +788,7 @@ def ensure_default_lists(db: Session, user_id: int):
     db.commit()
 
 
-@router.get("/admin/popular-lists", response_model=List[UserDiveSiteListResponse])
+@router.get("/admin/popular-lists", response_model=list[UserDiveSiteListResponse])
 async def get_popular_lists_admin(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_admin_user)
 ):

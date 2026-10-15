@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, constr
 
@@ -8,9 +7,9 @@ from pydantic import BaseModel, Field, constr
 class UserBasicInfo(BaseModel):
     id: int
     username: str
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[str] = "google"
-    avatar_full_url: Optional[str] = None
+    avatar_url: str | None = None
+    avatar_type: str | None = "google"
+    avatar_full_url: str | None = None
 
     class Config:
         from_attributes = True
@@ -19,7 +18,7 @@ class UserBasicInfo(BaseModel):
 class DivingCenterBasic(BaseModel):
     id: int
     name: str
-    logo_url: Optional[str] = None
+    logo_url: str | None = None
 
     class Config:
         from_attributes = True
@@ -33,9 +32,9 @@ class ChatRoomMemberBase(BaseModel):
 
 class ChatRoomMemberResponse(ChatRoomMemberBase):
     joined_at: datetime
-    left_at: Optional[datetime] = None
+    left_at: datetime | None = None
     last_read_at: datetime
-    user: Optional[UserBasicInfo] = None
+    user: UserBasicInfo | None = None
 
     class Config:
         from_attributes = True
@@ -44,16 +43,16 @@ class ChatRoomMemberResponse(ChatRoomMemberBase):
 # --- Rooms ---
 class ChatRoomCreate(BaseModel):
     is_group: bool = False
-    name: Optional[constr(max_length=100)] = None
-    participant_ids: List[int] = Field(
+    name: constr(max_length=100) | None = None
+    participant_ids: list[int] = Field(
         default_factory=list,
         description="IDs of users to add. Current user is added automatically.",
     )
-    diving_center_id: Optional[int] = None
+    diving_center_id: int | None = None
 
 
 class ChatRoomUpdate(BaseModel):
-    name: Optional[constr(max_length=100)] = None
+    name: constr(max_length=100) | None = None
 
 
 class ChatRoomArchiveUpdate(BaseModel):
@@ -63,22 +62,22 @@ class ChatRoomArchiveUpdate(BaseModel):
 class ChatRoomResponse(BaseModel):
     id: str
     is_group: bool
-    name: Optional[str] = None
-    created_by_id: Optional[int] = None
-    diving_center_id: Optional[int] = None
-    diving_center: Optional[DivingCenterBasic] = None
+    name: str | None = None
+    created_by_id: int | None = None
+    diving_center_id: int | None = None
+    diving_center: DivingCenterBasic | None = None
     is_broadcast: bool = False
     is_archived: bool = False
-    business_status: Optional[str] = None
+    business_status: str | None = None
     is_manager_view: bool = False
-    quick_replies: Optional[List[str]] = None
+    quick_replies: list[str] | None = None
     last_activity_at: datetime
     created_at: datetime
 
     # Metadata added by the endpoint
-    members: List[ChatRoomMemberResponse] = []
+    members: list[ChatRoomMemberResponse] = []
     unread_count: int = 0
-    latest_message: Optional[str] = None
+    latest_message: str | None = None
 
     class Config:
         from_attributes = True
@@ -97,7 +96,7 @@ class ChatMessageUpdate(BaseModel):
 class ChatMessageBaseResponse(BaseModel):
     id: int
     room_id: str
-    sender_id: Optional[int] = None
+    sender_id: int | None = None
     content: str  # Decrypted plaintext
     message_type: str = "TEXT"
     is_edited: bool
@@ -109,9 +108,9 @@ class ChatMessageBaseResponse(BaseModel):
 
 
 class ChatMessageResponse(ChatMessageBaseResponse):
-    sender: Optional[UserBasicInfo] = None
+    sender: UserBasicInfo | None = None
 
 
 class RoomMessagesResponse(BaseModel):
-    messages: List[ChatMessageBaseResponse]
-    users: Dict[int, UserBasicInfo]
+    messages: list[ChatMessageBaseResponse]
+    users: dict[int, UserBasicInfo]

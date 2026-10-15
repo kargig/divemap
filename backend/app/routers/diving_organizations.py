@@ -1,5 +1,4 @@
 import re
-from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import or_
@@ -20,7 +19,7 @@ from app.schemas import (
 router = APIRouter()
 
 
-def get_depth_value(depth_str: Optional[str]) -> int:
+def get_depth_value(depth_str: str | None) -> int:
     """Extract maximum depth value from string for sorting. Returns 999 if no depth found."""
     if not depth_str:
         return 999
@@ -34,7 +33,7 @@ def get_depth_value(depth_str: Optional[str]) -> int:
     return 999
 
 
-def get_gas_value(gas_str: Optional[str]) -> int:
+def get_gas_value(gas_str: str | None) -> int:
     """Calculate gas difficulty score."""
     if not gas_str:
         return 0  # Air/Default
@@ -54,7 +53,7 @@ def get_gas_value(gas_str: Optional[str]) -> int:
     return 1  # Explicit Air or other simple gas
 
 
-def get_category_score(category: Optional[str]) -> int:
+def get_category_score(category: str | None) -> int:
     """
     Calculate category sort score based on keywords.
     Order: Recreational/General -> Specialties/Nitrox -> Technical -> Cave -> Professional
@@ -89,7 +88,7 @@ def get_category_score(category: Optional[str]) -> int:
     return 1
 
 
-def get_org_by_id_or_name(db: Session, identifier: str) -> Optional[DivingOrganization]:
+def get_org_by_id_or_name(db: Session, identifier: str) -> DivingOrganization | None:
     """Helper to find an organization by ID, name, or acronym."""
     if identifier.isdigit():
         return (
@@ -111,7 +110,7 @@ def get_org_by_id_or_name(db: Session, identifier: str) -> Optional[DivingOrgani
     )
 
 
-@router.get("/", response_model=List[DivingOrganizationResponse])
+@router.get("/", response_model=list[DivingOrganizationResponse])
 async def get_diving_organizations(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -141,7 +140,7 @@ async def get_diving_organization(
     return organization
 
 
-@router.get("/{identifier}/levels", response_model=List[CertificationLevelResponse])
+@router.get("/{identifier}/levels", response_model=list[CertificationLevelResponse])
 async def get_organization_certification_levels(
     identifier: str,
     main_only: bool = Query(

@@ -9,7 +9,6 @@ coordinates and calculates the shore direction (compass bearing facing seaward).
 import logging
 import math
 import random
-from typing import Dict, List, Optional, Tuple
 
 import requests
 
@@ -31,7 +30,7 @@ FALLBACK_ENDPOINTS = [
 ]
 
 
-def get_shuffled_endpoints() -> List[str]:
+def get_shuffled_endpoints() -> list[str]:
     """
     Returns a list of max 3 endpoints:
     - Always includes all reliable ones (shuffled)
@@ -101,9 +100,9 @@ def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
 
 
 def point_to_segment_distance(
-    point: Tuple[float, float],
-    seg_start: Tuple[float, float],
-    seg_end: Tuple[float, float],
+    point: tuple[float, float],
+    seg_start: tuple[float, float],
+    seg_end: tuple[float, float],
 ) -> float:
     """
     Calculate the distance from a point to a line segment.
@@ -117,7 +116,7 @@ def point_to_segment_distance(
 
 def query_overpass_api(
     latitude: float, longitude: float, radius: int = DEFAULT_RADIUS, timeout: int = 10
-) -> Optional[Dict]:
+) -> dict | None:
     """
     Query Overpass API for coastline segments near the given coordinates.
 
@@ -180,7 +179,7 @@ out geom;"""
 
 def detect_shore_direction(
     latitude: float, longitude: float, radius: int = DEFAULT_RADIUS
-) -> Optional[Dict[str, any]]:
+) -> dict[str, any] | None:
     """
     Detect shore direction for a dive site using OpenStreetMap coastline data.
 

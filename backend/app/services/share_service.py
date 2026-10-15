@@ -5,7 +5,7 @@ Handles generation of shareable content for dives, dive sites, and dive routes.
 Provides platform-specific share URLs and metadata.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 from fastapi import Request
@@ -25,7 +25,7 @@ class ShareService:
         entity_type: str,
         entity_id: int,
         request: Request,
-        additional_params: Optional[Dict[str, Any]] = None,
+        additional_params: dict[str, Any] | None = None,
     ) -> str:
         """
         Generate a shareable URL for an entity.
@@ -75,8 +75,8 @@ class ShareService:
         return f"{base_url}{path}{query_string}"
 
     def get_entity_data(
-        self, entity_type: str, entity_id: int, current_user: Optional[User] = None
-    ) -> Dict[str, Any]:
+        self, entity_type: str, entity_id: int, current_user: User | None = None
+    ) -> dict[str, Any]:
         """
         Get entity data for sharing.
 
@@ -98,8 +98,8 @@ class ShareService:
             raise ValueError(f"Unknown entity type: {entity_type}")
 
     def _get_dive_data(
-        self, dive_id: int, current_user: Optional[User] = None
-    ) -> Dict[str, Any]:
+        self, dive_id: int, current_user: User | None = None
+    ) -> dict[str, Any]:
         """Get dive data for sharing"""
         dive = self.db.query(Dive).filter(Dive.id == dive_id).first()
 
@@ -140,7 +140,7 @@ class ShareService:
             "is_private": dive.is_private,
         }
 
-    def _get_dive_site_data(self, dive_site_id: int) -> Dict[str, Any]:
+    def _get_dive_site_data(self, dive_site_id: int) -> dict[str, Any]:
         """Get dive site data for sharing"""
         dive_site = self.db.query(DiveSite).filter(DiveSite.id == dive_site_id).first()
 
@@ -163,7 +163,7 @@ class ShareService:
             "average_rating": None,  # Would need to calculate from ratings
         }
 
-    def _get_route_data(self, route_id: int) -> Dict[str, Any]:
+    def _get_route_data(self, route_id: int) -> dict[str, Any]:
         """Get route data for sharing"""
         route = (
             self.db.query(DiveRoute)
@@ -195,8 +195,8 @@ class ShareService:
         }
 
     def format_share_content(
-        self, entity_type: str, entity_data: Dict[str, Any], platform: str = "generic"
-    ) -> Dict[str, str]:
+        self, entity_type: str, entity_data: dict[str, Any], platform: str = "generic"
+    ) -> dict[str, str]:
         """
         Format share content for different platforms.
 
@@ -299,7 +299,7 @@ class ShareService:
 
     def get_platform_share_urls(
         self, share_url: str, title: str, description: str, entity_type: str = ""
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """
         Generate platform-specific share URLs.
 
