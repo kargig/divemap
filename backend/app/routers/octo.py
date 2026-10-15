@@ -1,7 +1,7 @@
 import logging
 import uuid
 from datetime import UTC, datetime, time, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from pydantic import BaseModel
@@ -38,9 +38,9 @@ router = APIRouter(prefix="/api/v1/octo", tags=["OCTO 1.0 Supplier"])
 
 
 class OctoContactSchema(BaseModel):
-    fullName: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
+    fullName: str | None = None
+    email: str | None = None
+    phone: str | None = None
 
 
 class OctoSupplierResponse(BaseModel):
@@ -48,7 +48,7 @@ class OctoSupplierResponse(BaseModel):
     name: str
     endpoint: str
     contact: OctoContactSchema
-    capabilities: List[str]
+    capabilities: list[str]
 
 
 class OctoUnitResponse(BaseModel):
@@ -69,21 +69,21 @@ class OctoOptionResponse(BaseModel):
     departureTime: str
     durationMinutes: int
     maxCapacity: int
-    units: List[OctoUnitResponse] = []
+    units: list[OctoUnitResponse] = []
 
 
 class OctoProductResponse(BaseModel):
     id: str
     internalName: str
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     productType: str
-    agencyCode: Optional[str] = None
+    agencyCode: str | None = None
     waiverBundleId: str
     minLoggedDives: int = 0
-    maxDepthMeters: Optional[float] = None
-    options: List[OctoOptionResponse] = []
-    units: List[OctoUnitResponse] = []
+    maxDepthMeters: float | None = None
+    options: list[OctoOptionResponse] = []
+    units: list[OctoUnitResponse] = []
 
 
 class OctoAvailabilityRequest(BaseModel):
@@ -106,38 +106,38 @@ class OctoAvailabilityResponse(BaseModel):
 
 class OctoBookingUnitItemCreate(BaseModel):
     unitId: str
-    diverFullName: Optional[str] = "Guest Diver"
-    diverEmail: Optional[str] = None
-    diverPhone: Optional[str] = None
-    diverNationality: Optional[str] = None
-    passportNumber: Optional[str] = None
-    dateOfBirth: Optional[str] = None
-    certificationAgency: Optional[str] = None
-    certificationLevel: Optional[str] = None
-    certificationNumber: Optional[str] = None
-    selectedTankId: Optional[str] = "12"
-    selectedGasMixId: Optional[str] = "air"
-    equipmentSizing: Optional[Dict[str, Any]] = None
+    diverFullName: str | None = "Guest Diver"
+    diverEmail: str | None = None
+    diverPhone: str | None = None
+    diverNationality: str | None = None
+    passportNumber: str | None = None
+    dateOfBirth: str | None = None
+    certificationAgency: str | None = None
+    certificationLevel: str | None = None
+    certificationNumber: str | None = None
+    selectedTankId: str | None = "12"
+    selectedGasMixId: str | None = "air"
+    equipmentSizing: dict[str, Any] | None = None
 
 
 class OctoBookingRequest(BaseModel):
     productId: str
     optionId: str
     availabilityId: str
-    unitItems: List[OctoBookingUnitItemCreate]
-    contact: Optional[OctoContactSchema] = None
-    notes: Optional[str] = None
+    unitItems: list[OctoBookingUnitItemCreate]
+    contact: OctoContactSchema | None = None
+    notes: str | None = None
 
 
 class OctoBookingUnitItemResponse(BaseModel):
     id: str
     unitId: str
     diverFullName: str
-    diverEmail: Optional[str] = None
-    diverPhone: Optional[str] = None
-    dateOfBirth: Optional[str] = None
-    certificationAgency: Optional[str] = None
-    certificationLevel: Optional[str] = None
+    diverEmail: str | None = None
+    diverPhone: str | None = None
+    dateOfBirth: str | None = None
+    certificationAgency: str | None = None
+    certificationLevel: str | None = None
     waiversComplete: bool = False
 
 
@@ -149,26 +149,26 @@ class OctoClaimInviteTokenResponse(BaseModel):
 class OctoBookingResponse(BaseModel):
     uuid: str
     status: str
-    utcHoldExpiration: Optional[str] = None
+    utcHoldExpiration: str | None = None
     totalAmount: float
     currency: str
-    contact: Optional[OctoContactSchema] = None
-    unitItems: List[OctoBookingUnitItemResponse] = []
-    accessToken: Optional[str] = None
-    claimInviteTokens: Optional[List[OctoClaimInviteTokenResponse]] = None
+    contact: OctoContactSchema | None = None
+    unitItems: list[OctoBookingUnitItemResponse] = []
+    accessToken: str | None = None
+    claimInviteTokens: list[OctoClaimInviteTokenResponse] | None = None
 
 
 class OctoConfirmBookingRequest(BaseModel):
-    contact: Optional[OctoContactSchema] = None
-    notes: Optional[str] = None
+    contact: OctoContactSchema | None = None
+    notes: str | None = None
 
 
 class OctoCancelBookingRequest(BaseModel):
-    reason: Optional[str] = "Customer requested cancellation"
+    reason: str | None = "Customer requested cancellation"
 
 
 class OctoExtendBookingRequest(BaseModel):
-    expirationMinutes: Optional[int] = 20
+    expirationMinutes: int | None = 20
 
 
 # --- Endpoints ---
@@ -197,7 +197,7 @@ def get_supplier_profile(center_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.get("/suppliers/{center_id}/products", response_model=List[OctoProductResponse])
+@router.get("/suppliers/{center_id}/products", response_model=list[OctoProductResponse])
 def list_supplier_products(center_id: int, db: Session = Depends(get_db)):
     products = (
         db.query(OctoProduct)
@@ -308,7 +308,7 @@ def get_supplier_product(
     )
 
 
-@router.post("/availability", response_model=List[OctoAvailabilityResponse])
+@router.post("/availability", response_model=list[OctoAvailabilityResponse])
 def query_availability(query: OctoAvailabilityRequest, db: Session = Depends(get_db)):
     try:
         start_date = datetime.strptime(query.localDateStart, "%Y-%m-%d").date()
@@ -361,7 +361,7 @@ def query_availability(query: OctoAvailabilityRequest, db: Session = Depends(get
 def create_booking_hold(
     req: OctoBookingRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Holds seats in an availability slot and creates a booking in ON_HOLD status."""
     needed_seats = len(req.unitItems)
@@ -503,7 +503,7 @@ def create_booking_hold(
     access_token_raw = mint_booking_access_token(booking, expiration)
 
     response_items = []
-    claim_invite_tokens: List[OctoClaimInviteTokenResponse] = []
+    claim_invite_tokens: list[OctoClaimInviteTokenResponse] = []
     for seat_index, item in enumerate(req.unitItems):
         item_id = str(uuid.uuid4())
         parsed_dob = None
@@ -573,11 +573,9 @@ def create_booking_hold(
 def get_booking_details(
     booking_uuid: str,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
 ):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking:
@@ -623,13 +621,11 @@ def get_booking_details(
 @router.post("/bookings/{booking_uuid}/confirm", response_model=OctoBookingResponse)
 def confirm_booking(
     booking_uuid: str,
-    req: Optional[OctoConfirmBookingRequest] = None,
+    req: OctoConfirmBookingRequest | None = None,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
 ):
     booking = (
         db.query(OctoBooking)
@@ -721,13 +717,11 @@ def confirm_booking(
 @router.post("/bookings/{booking_uuid}/cancel", response_model=OctoBookingResponse)
 def cancel_booking(
     booking_uuid: str,
-    req: Optional[OctoCancelBookingRequest] = None,
+    req: OctoCancelBookingRequest | None = None,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
 ):
     booking = (
         db.query(OctoBooking)
@@ -807,13 +801,11 @@ def cancel_booking(
 @router.post("/bookings/{booking_uuid}/extend", response_model=OctoBookingResponse)
 def extend_booking_hold(
     booking_uuid: str,
-    req: Optional[OctoExtendBookingRequest] = None,
+    req: OctoExtendBookingRequest | None = None,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
 ):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking or booking.status != "ON_HOLD":

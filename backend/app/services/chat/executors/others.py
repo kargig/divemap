@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Optional
 from urllib.parse import quote
 
 from sqlalchemy import and_, func, or_
@@ -40,20 +39,20 @@ from app.physics import (
 def execute_other_intents(
     db: Session,
     intent_type: IntentType,
-    current_user: Optional[User] = None,
-    keywords: Optional[List[str]] = None,
-    location: Optional[str] = None,
-    latitude: Optional[float] = None,
-    longitude: Optional[float] = None,
-    radius: Optional[float] = None,
-    direction: Optional[str] = None,
-    calculator_params: Optional[Dict] = None,
-    context_entity_id: Optional[int] = None,
-    context_entity_type: Optional[str] = None,
-    query: Optional[str] = None,
-    organization: Optional[str] = None,
+    current_user: User | None = None,
+    keywords: list[str] | None = None,
+    location: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    radius: float | None = None,
+    direction: str | None = None,
+    calculator_params: dict | None = None,
+    context_entity_id: int | None = None,
+    context_entity_type: str | None = None,
+    query: str | None = None,
+    organization: str | None = None,
     **kwargs,
-) -> List[Dict]:
+) -> list[dict]:
     results = []
     if intent_type == IntentType.GEAR_RENTAL:
         query_gear = db.query(GearRentalCost).join(DivingCenter)

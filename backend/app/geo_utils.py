@@ -1,6 +1,5 @@
 import logging
 import math
-from typing import Dict, Optional, Tuple
 
 import requests
 from sqlalchemy import func
@@ -31,7 +30,7 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 def get_external_region_bounds(
     region_name: str,
-) -> Optional[Tuple[Tuple[float, float, float, float], str]]:
+) -> tuple[tuple[float, float, float, float], str] | None:
     """
     Fetches the official geographic bounding box and display name for a region name using Nominatim (OpenStreetMap).
     Returns ((North, South, East, West), display_name) or None.
@@ -78,7 +77,7 @@ def get_external_region_bounds(
 
 def get_empirical_region_bounds(
     db: Session, region_name: str
-) -> Optional[Tuple[float, float, float, float]]:
+) -> tuple[float, float, float, float] | None:
     """
     Fallback method: Finds the bounding box based on existing dive sites matching the region name.
     """
@@ -120,7 +119,7 @@ def get_empirical_region_bounds(
         return None
 
 
-def get_location_info_from_coords(lat: float, lon: float) -> Dict[str, Optional[str]]:
+def get_location_info_from_coords(lat: float, lon: float) -> dict[str, str | None]:
     """
     Reverse geocodes coordinates to find country and region using Nominatim.
     """
@@ -152,7 +151,7 @@ def get_location_info_from_coords(lat: float, lon: float) -> Dict[str, Optional[
     return result
 
 
-def get_country_from_ip(ip: str) -> Optional[str]:
+def get_country_from_ip(ip: str) -> str | None:
     """
     Looks up the country name for an IP address using ip-api.com.
     """
@@ -176,7 +175,7 @@ def get_country_from_ip(ip: str) -> Optional[str]:
 
 def calculate_directional_bounds(
     north: float, south: float, east: float, west: float, direction: str
-) -> Tuple[float, float, float, float]:
+) -> tuple[float, float, float, float]:
     """
     Given a geographic bounding box, subdivides it into the requested cardinal direction.
     direction can be 'north', 'south', 'east', 'west', 'northeast', 'northwest', 'southeast', 'southwest'.

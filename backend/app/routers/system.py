@@ -2,7 +2,6 @@ import bisect
 import logging
 import os
 from datetime import UTC, datetime, timedelta
-from typing import List, Optional
 
 import psutil
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -805,8 +804,8 @@ async def get_platform_stats(
 
 
 def fetch_recent_activities(
-    db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False
-) -> List[dict]:
+    db: Session, hours: int | None = 168, limit: int = 100, is_admin: bool = False
+) -> list[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
     from sqlalchemy.orm import joinedload
 
@@ -1249,7 +1248,7 @@ def fetch_recent_activities(
     return activities[:limit]
 
 
-@router.get("/activity", response_model=List[dict])
+@router.get("/activity", response_model=list[dict])
 async def get_recent_activity(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
@@ -1313,7 +1312,7 @@ async def get_client_ip_info(request: Request):
 @router.get("/turnstile-stats")
 async def get_turnstile_statistics(
     current_user: User = Depends(get_current_admin_user),
-    time_window: Optional[int] = Query(24, description="Time window in hours"),
+    time_window: int | None = Query(24, description="Time window in hours"),
 ):
     """Get Turnstile verification statistics for admin monitoring"""
 
@@ -1805,25 +1804,23 @@ async def get_notification_analytics(
     }
 
 
-@router.get("/audit-logs", response_model=List[AuthAuditLogResponse])
+@router.get("/audit-logs", response_model=list[AuthAuditLogResponse])
 async def get_audit_logs(
     response: Response,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(25, ge=1, le=100, description="Items per page"),
-    category: Optional[str] = Query(
+    category: str | None = Query(
         None, description="Category filter: 'auth' or 'medical'"
     ),
-    action: Optional[str] = Query(None, description="Filter by action"),
-    exclude_action: Optional[List[str]] = Query(
+    action: str | None = Query(None, description="Filter by action"),
+    exclude_action: list[str] | None = Query(
         None, description="Exclude specific actions"
     ),
-    user_id: Optional[int] = Query(None, description="Filter by user ID"),
-    username: Optional[str] = Query(None, description="Filter by username"),
-    target_diver: Optional[str] = Query(
-        None, description="Filter by target diver name"
-    ),
-    ip_address: Optional[str] = Query(None, description="Filter by IP address"),
-    success: Optional[bool] = Query(None, description="Filter by success status"),
+    user_id: int | None = Query(None, description="Filter by user ID"),
+    username: str | None = Query(None, description="Filter by username"),
+    target_diver: str | None = Query(None, description="Filter by target diver name"),
+    ip_address: str | None = Query(None, description="Filter by IP address"),
+    success: bool | None = Query(None, description="Filter by success status"),
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -20,8 +19,8 @@ class FriendshipResponse(FriendshipBase):
 
     # We want to be able to show who the friend is relative to the current user
     # So we might not just return user and friend, but the "other user"
-    user: Optional[UserBasicInfo] = None
-    friend: Optional[UserBasicInfo] = None
+    user: UserBasicInfo | None = None
+    friend: UserBasicInfo | None = None
 
     class Config:
         from_attributes = True

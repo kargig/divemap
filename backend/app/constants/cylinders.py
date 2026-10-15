@@ -3,7 +3,7 @@ Canonical Cylinder and Gas Mix Constants for Divemap.
 Mirrors frontend/src/utils/diveConstants.js to ensure 100% ID consistency.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 TANK_SIZES = [
     {
@@ -151,7 +151,7 @@ TANK_SIZES = [
     },
 ]
 
-TANK_SIZES_BY_ID: Dict[str, Dict[str, Any]] = {t["id"]: t for t in TANK_SIZES}
+TANK_SIZES_BY_ID: dict[str, dict[str, Any]] = {t["id"]: t for t in TANK_SIZES}
 
 GAS_MIXES = [
     {"id": "air", "name": "Air (21%)", "o2": 21, "he": 0},
@@ -165,12 +165,12 @@ GAS_MIXES = [
     {"id": "tx1555", "name": "Tx 15/55", "o2": 15, "he": 55},
 ]
 
-GAS_MIXES_BY_ID: Dict[str, Dict[str, Any]] = {g["id"]: g for g in GAS_MIXES}
+GAS_MIXES_BY_ID: dict[str, dict[str, Any]] = {g["id"]: g for g in GAS_MIXES}
 
 
-def get_tank_spec(tank_id: str) -> Dict[str, Any]:
+def get_tank_spec(tank_id: str) -> dict[str, Any]:
     return TANK_SIZES_BY_ID.get(tank_id, TANK_SIZES_BY_ID["12"])
 
 
-def get_gas_mix_spec(gas_id: str) -> Dict[str, Any]:
+def get_gas_mix_spec(gas_id: str) -> dict[str, Any]:
     return GAS_MIXES_BY_ID.get(gas_id, GAS_MIXES_BY_ID["air"])

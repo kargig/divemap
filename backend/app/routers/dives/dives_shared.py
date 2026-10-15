@@ -13,7 +13,6 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime, time
 from difflib import SequenceMatcher
 from io import BytesIO
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import and_, func, or_

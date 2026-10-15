@@ -1,6 +1,5 @@
 import logging
 from datetime import date, datetime
-from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -13,12 +12,12 @@ logger = logging.getLogger(__name__)
 
 def enrich_results_with_weather(
     db: Session,
-    results: List[Dict],
-    intent_date: Optional[str],
-    intent_time: Optional[str],
-    intent_lat: Optional[float],
-    intent_lon: Optional[float],
-    intent_location: Optional[str],
+    results: list[dict],
+    intent_date: str | None,
+    intent_time: str | None,
+    intent_lat: float | None,
+    intent_lon: float | None,
+    intent_location: str | None,
 ) -> bool:
     """
     Enriches search results with weather suitability data if a date is provided.

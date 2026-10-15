@@ -1,7 +1,7 @@
 import enum
 import re
 from datetime import UTC, date, datetime, time, timezone
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal
 
 import nh3
 from pydantic import (
@@ -25,12 +25,13 @@ from .diving_centers import CenterMediaResponse
 from .pats import PATCreate, PATCreateResponse, PATResponse
 
 # Valid difficulty codes
-DifficultyCode = Optional[
+DifficultyCode = (
     Literal["OPEN_WATER", "ADVANCED_OPEN_WATER", "DEEP_NITROX", "TECHNICAL_DIVING"]
-]
+    | None
+)
 
 
-def strip_html(v: Optional[str]) -> Optional[str]:
+def strip_html(v: str | None) -> str | None:
     """
     Strips ALL HTML tags from a string using nh3.
     Since we only support Markdown on the frontend, we don't want any raw HTML
@@ -68,23 +69,21 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
-    turnstile_token: Optional[str] = Field(
-        None, description="Cloudflare Turnstile token"
-    )
+    turnstile_token: str | None = Field(None, description="Cloudflare Turnstile token")
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = Field(
+    username: str | None = Field(
         None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$"
     )
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    email: Optional[EmailStr] = Field(
+    name: str | None = Field(None, min_length=1, max_length=255)
+    email: EmailStr | None = Field(
         None,
         description="Real email (allowed when upgrading from a synthetic social email)",
     )
-    password: Optional[str] = Field(None, min_length=8, max_length=128)
-    number_of_dives: Optional[int] = Field(None, ge=0)
-    buddy_visibility: Optional[str] = Field(
+    password: str | None = Field(None, min_length=8, max_length=128)
+    number_of_dives: int | None = Field(None, ge=0)
+    buddy_visibility: str | None = Field(
         None,
         pattern=r"^(public|private)$",
         description="Control whether user can be added as buddy: 'public' or 'private'",
@@ -198,24 +197,24 @@ class UserSocialLinkResponse(UserSocialLinkBase):
 
 class UserResponse(UserBase):
     id: int
-    name: Optional[str] = None
+    name: str | None = None
     enabled: bool
     email_verified: bool = False
     is_admin: bool
     is_moderator: bool
     number_of_dives: int = 0
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[AvatarType] = AvatarType.google
-    avatar_full_url: Optional[str] = None
-    google_avatar_url: Optional[str] = None
-    facebook_avatar_url: Optional[str] = None
-    google_id: Optional[str] = None
-    facebook_id: Optional[str] = None
+    avatar_url: str | None = None
+    avatar_type: AvatarType | None = AvatarType.google
+    avatar_full_url: str | None = None
+    google_avatar_url: str | None = None
+    facebook_avatar_url: str | None = None
+    google_id: str | None = None
+    facebook_id: str | None = None
     buddy_visibility: str = "public"
     created_at: datetime
     updated_at: datetime
-    deleted_at: Optional[datetime] = None
-    social_links: List[UserSocialLinkResponse] = []
+    deleted_at: datetime | None = None
+    social_links: list[UserSocialLinkResponse] = []
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -230,20 +229,18 @@ class LoginRequest(BaseModel):
         ..., min_length=1, max_length=255, description="Username or email address"
     )
     password: str = Field(..., min_length=1, max_length=128)
-    turnstile_token: Optional[str] = Field(
-        None, description="Cloudflare Turnstile token"
-    )
+    turnstile_token: str | None = Field(None, description="Cloudflare Turnstile token")
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
-    user: Optional[UserResponse] = None
+    user: UserResponse | None = None
 
 
 class RegistrationResponse(BaseModel):
-    access_token: Optional[str]
+    access_token: str | None
     token_type: str
     expires_in: int
     message: str
@@ -256,7 +253,7 @@ class ResendVerificationRequest(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class PasswordChangeRequest(BaseModel):
@@ -276,15 +273,15 @@ class UserCreateAdmin(BaseModel):
 
 
 class UserUpdateAdmin(BaseModel):
-    username: Optional[str] = Field(
+    username: str | None = Field(
         None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$"
     )
-    email: Optional[EmailStr] = None
-    password: Optional[str] = Field(None, min_length=8, max_length=128)
-    is_admin: Optional[bool] = None
-    is_moderator: Optional[bool] = None
-    enabled: Optional[bool] = None
-    email_verified: Optional[bool] = None
+    email: EmailStr | None = None
+    password: str | None = Field(None, min_length=8, max_length=128)
+    is_admin: bool | None = None
+    is_moderator: bool | None = None
+    enabled: bool | None = None
+    email_verified: bool | None = None
 
 
 class UserListResponse(BaseModel):
@@ -295,10 +292,10 @@ class UserListResponse(BaseModel):
     is_moderator: bool
     enabled: bool
     email_verified: bool
-    email_verified_at: Optional[datetime] = None
+    email_verified_at: datetime | None = None
     created_at: datetime
-    last_accessed_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
+    last_accessed_at: datetime | None = None
+    deleted_at: datetime | None = None
 
     @field_validator(
         "created_at", "email_verified_at", "last_accessed_at", mode="before"
@@ -312,21 +309,21 @@ class UserListResponse(BaseModel):
 
 # Dive Site Schemas
 class DiveSiteBase(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    access_instructions: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = None
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)
+    access_instructions: str | None = None
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    marine_life: Optional[str] = None
-    safety_information: Optional[str] = None  # Safety information
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
-    country: Optional[str] = None  # Country name
-    region: Optional[str] = None  # Region/state/province name
-    shore_direction: Optional[float] = Field(
+    marine_life: str | None = None
+    safety_information: str | None = None  # Safety information
+    max_depth: float | None = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    country: str | None = None  # Country name
+    region: str | None = None  # Region/state/province name
+    shore_direction: float | None = Field(
         None,
         ge=0,
         le=360,
@@ -352,33 +349,33 @@ class DiveSiteCreate(DiveSiteBase):
 
 
 class DiveSiteUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    access_instructions: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = None
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)
+    access_instructions: str | None = None
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    marine_life: Optional[str] = None
-    safety_information: Optional[str] = None  # Safety information
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
-    country: Optional[str] = None  # Country name
-    region: Optional[str] = None  # Region/state/province name
-    shore_direction: Optional[float] = Field(
+    marine_life: str | None = None
+    safety_information: str | None = None  # Safety information
+    max_depth: float | None = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    country: str | None = None  # Country name
+    region: str | None = None  # Region/state/province name
+    shore_direction: float | None = Field(
         None,
         ge=0,
         le=360,
         description="Compass bearing (0-360 degrees) indicating which direction the shore/beach faces",
     )
-    shore_direction_confidence: Optional[str] = Field(
+    shore_direction_confidence: str | None = Field(
         None, description="Confidence level: 'high', 'medium', 'low'"
     )
-    shore_direction_method: Optional[str] = Field(
+    shore_direction_method: str | None = Field(
         None, description="Method used: 'osm_coastline', 'manual', 'ai', etc."
     )
-    shore_direction_distance_m: Optional[float] = Field(
+    shore_direction_distance_m: float | None = Field(
         None, ge=0, description="Distance to coastline in meters"
     )
 
@@ -404,7 +401,7 @@ class DiveSiteAliasCreate(DiveSiteAliasBase):
 
 
 class DiveSiteAliasUpdate(BaseModel):
-    alias: Optional[str] = Field(None, min_length=1, max_length=255)
+    alias: str | None = Field(None, min_length=1, max_length=255)
 
 
 class DiveSiteAliasResponse(DiveSiteAliasBase):
@@ -422,38 +419,36 @@ class DiveSiteAliasResponse(DiveSiteAliasBase):
 
 class DiveSiteResponse(DiveSiteBase):
     id: int
-    created_at: Optional[datetime] = None
-    deleted_at: Optional[datetime] = None
-    created_by: Optional[int] = None
-    created_by_username: Optional[str] = None
+    created_at: datetime | None = None
+    deleted_at: datetime | None = None
+    created_by: int | None = None
+    created_by_username: str | None = None
     status: str = "approved"
-    updated_at: Optional[datetime] = None
-    average_rating: Optional[float] = None
+    updated_at: datetime | None = None
+    average_rating: float | None = None
     total_ratings: int = 0
     comment_count: int = 0
     route_count: int = 0
-    view_count: Optional[int] = None  # Only included for admin users
-    tags: List[dict] = []
-    user_rating: Optional[float] = None
-    distance_km: Optional[float] = None
-    aliases: List[DiveSiteAliasResponse] = []  # List of aliases for this dive site
-    difficulty_label: Optional[str] = None  # Human-readable difficulty label
-    shore_direction: Optional[float] = (
+    view_count: int | None = None  # Only included for admin users
+    tags: list[dict] = []
+    user_rating: float | None = None
+    distance_km: float | None = None
+    aliases: list[DiveSiteAliasResponse] = []  # List of aliases for this dive site
+    difficulty_label: str | None = None  # Human-readable difficulty label
+    shore_direction: float | None = (
         None  # Compass bearing (0-360 degrees) indicating which direction the shore/beach faces
     )
-    shore_direction_confidence: Optional[str] = (
+    shore_direction_confidence: str | None = (
         None  # Confidence level: 'high', 'medium', 'low'
     )
-    shore_direction_method: Optional[str] = (
+    shore_direction_method: str | None = (
         None  # Method used: 'osm_coastline', 'manual', 'ai', etc.
     )
-    shore_direction_distance_m: Optional[float] = (
-        None  # Distance to coastline in meters
-    )
-    thumbnail: Optional[str] = None  # Thumbnail URL for the dive site
-    thumbnail_type: Optional[str] = None  # 'video' or 'photo'
-    thumbnail_source: Optional[str] = None  # 'site_media' or 'dive_media'
-    thumbnail_id: Optional[int] = None  # ID of the media item
+    shore_direction_distance_m: float | None = None  # Distance to coastline in meters
+    thumbnail: str | None = None  # Thumbnail URL for the dive site
+    thumbnail_type: str | None = None  # 'video' or 'photo'
+    thumbnail_source: str | None = None  # 'site_media' or 'dive_media'
+    thumbnail_id: int | None = None  # ID of the media item
 
     @field_validator("tags", mode="before")
     @classmethod
@@ -493,7 +488,7 @@ class DiveSiteResponse(DiveSiteBase):
 
 
 class DiveSiteListResponse(BaseModel):
-    items: List[DiveSiteResponse]
+    items: list[DiveSiteResponse]
     total: int
     page: int
     page_size: int
@@ -506,7 +501,7 @@ class DiveSiteRegionOption(BaseModel):
     """Unique region with its country (for geo-hub URL resolution)."""
 
     region: str
-    country: Optional[str] = None
+    country: str | None = None
 
 
 # Site Rating Schemas
@@ -546,8 +541,8 @@ class SiteCommentResponse(BaseModel):
     comment_text: str
     created_at: datetime
     updated_at: datetime
-    user_diving_certification: Optional[str] = None
-    user_number_of_dives: Optional[int] = None
+    user_diving_certification: str | None = None
+    user_number_of_dives: int | None = None
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -561,13 +556,13 @@ class SiteCommentResponse(BaseModel):
 class SiteMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video)$")
     url: str = Field(..., min_length=1, max_length=500)
-    description: Optional[str] = None
-    thumbnail_url: Optional[str] = Field(None, max_length=500)
-    medium_url: Optional[str] = Field(None, max_length=500)
+    description: str | None = None
+    thumbnail_url: str | None = Field(None, max_length=500)
+    medium_url: str | None = Field(None, max_length=500)
 
 
 class SiteMediaUpdate(BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class SiteMediaResponse(BaseModel):
@@ -575,21 +570,21 @@ class SiteMediaResponse(BaseModel):
     dive_site_id: int
     media_type: str
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     created_at: datetime
     # Optional fields for dive media (when media comes from a dive)
-    dive_id: Optional[int] = None
-    user_id: Optional[int] = None
-    user_username: Optional[str] = None
-    thumbnail_url: Optional[str] = None
-    medium_url: Optional[str] = None
-    download_url: Optional[str] = None
+    dive_id: int | None = None
+    user_id: int | None = None
+    user_username: str | None = None
+    thumbnail_url: str | None = None
+    medium_url: str | None = None
+    download_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class DiveSiteMediaOrderRequest(BaseModel):
-    order: List[str] = Field(
+    order: list[str] = Field(
         ...,
         description="Ordered list of media identifiers (e.g., ['site_1', 'dive_5'])",
     )
@@ -597,43 +592,43 @@ class DiveSiteMediaOrderRequest(BaseModel):
 
 # Search Parameters
 class DiveSiteSearchParams(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
     )
     exclude_unspecified_difficulty: bool = False
-    min_rating: Optional[float] = Field(
+    min_rating: float | None = Field(
         None, ge=0, le=10, description="Minimum average rating (0-10)"
     )
-    tag_ids: Optional[List[int]] = None
-    country: Optional[str] = None
-    region: Optional[str] = None
-    sort_by: Optional[str] = Field(
+    tag_ids: list[int] | None = None
+    country: str | None = None
+    region: str | None = None
+    sort_by: str | None = Field(
         None,
         description="Sort field (name, country, region, difficulty_level, view_count, comment_count, created_at, updated_at)",
     )
-    sort_order: Optional[str] = Field("asc", description="Sort order (asc/desc)")
+    sort_order: str | None = Field("asc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
 
 # Diving Center Schemas
 class DivingCenterBase(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    name: str | None = Field(None, min_length=1, max_length=200)
     # Make description optional at the base level so responses don't fail when empty
-    description: Optional[str] = None
-    address: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    website: Optional[str] = None
-    logo_url: Optional[str] = None
+    description: str | None = None
+    address: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    website: str | None = None
+    logo_url: str | None = None
     # Allow None in responses for legacy rows; enforce on create
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    country: Optional[str] = Field(None, max_length=100)
-    region: Optional[str] = Field(None, max_length=100)
-    city: Optional[str] = Field(None, max_length=100)
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)
+    country: str | None = Field(None, max_length=100)
+    region: str | None = Field(None, max_length=100)
+    city: str | None = Field(None, max_length=100)
 
     @field_validator("description", mode="before")
     @classmethod
@@ -650,17 +645,17 @@ class DivingCenterCreate(DivingCenterBase):
 
 
 class DivingCenterUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = None
-    address: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    website: Optional[str] = None
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    country: Optional[str] = Field(None, max_length=100)
-    region: Optional[str] = Field(None, max_length=100)
-    city: Optional[str] = Field(None, max_length=100)
+    name: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = None
+    address: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    website: str | None = None
+    latitude: float | None = Field(None, ge=-90, le=90)
+    longitude: float | None = Field(None, ge=-180, le=180)
+    country: str | None = Field(None, max_length=100)
+    region: str | None = Field(None, max_length=100)
+    city: str | None = Field(None, max_length=100)
 
     @field_validator("description", mode="before")
     @classmethod
@@ -670,32 +665,32 @@ class DivingCenterUpdate(BaseModel):
 
 class DivingCenterResponse(DivingCenterBase):
     id: int
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    average_rating: Optional[float] = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    average_rating: float | None = None
     total_ratings: int = 0
     comment_count: int = 0
-    view_count: Optional[int] = None  # Only included for admin users
-    user_rating: Optional[float] = None
-    ownership_status: Optional[str] = None
-    owner_username: Optional[str] = None
+    view_count: int | None = None  # Only included for admin users
+    user_rating: float | None = None
+    ownership_status: str | None = None
+    owner_username: str | None = None
     is_manager: bool = False
     follower_count: int = 0
-    media: List[CenterMediaResponse] = []
-    logo_full_url: Optional[str] = None
+    media: list[CenterMediaResponse] = []
+    logo_full_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class DivingCenterListResponse(BaseModel):
-    items: List[DivingCenterResponse]
+    items: list[DivingCenterResponse]
     total: int
     page: int
     page_size: int
     total_pages: int
     has_next_page: bool
     has_prev_page: bool
-    match_types: Optional[Dict[str, Any]] = None
+    match_types: dict[str, Any] | None = None
 
 
 # Center Rating Schemas
@@ -730,28 +725,28 @@ class CenterCommentResponse(BaseModel):
     comment_text: str
     created_at: datetime
     updated_at: datetime
-    user_diving_certification: Optional[str] = None
-    user_number_of_dives: Optional[int] = None
+    user_diving_certification: str | None = None
+    user_number_of_dives: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 # Center Search Parameters
 class DivingCenterSearchParams(BaseModel):
-    name: Optional[str] = None
-    search: Optional[str] = (
+    name: str | None = None
+    search: str | None = (
         None  # Unified search across name, description, country, region, city
     )
-    country: Optional[str] = None  # Filter by country
-    region: Optional[str] = None  # Filter by region
-    city: Optional[str] = None  # Filter by city
-    min_rating: Optional[float] = Field(None, ge=0, le=10)
-    max_rating: Optional[float] = Field(None, ge=0, le=10)
-    sort_by: Optional[str] = Field(
+    country: str | None = None  # Filter by country
+    region: str | None = None  # Filter by region
+    city: str | None = None  # Filter by city
+    min_rating: float | None = Field(None, ge=0, le=10)
+    max_rating: float | None = Field(None, ge=0, le=10)
+    sort_by: str | None = Field(
         None,
         description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)",
     )
-    sort_order: Optional[str] = Field("asc", description="Sort order (asc/desc)")
+    sort_order: str | None = Field("asc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
@@ -759,8 +754,8 @@ class DivingCenterSearchParams(BaseModel):
 # Tag Schemas
 class AvailableTagBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
-    description: Optional[str] = None
-    category: Optional[str] = None
+    description: str | None = None
+    category: str | None = None
 
 
 class AvailableTagCreate(AvailableTagBase):
@@ -768,9 +763,9 @@ class AvailableTagCreate(AvailableTagBase):
 
 
 class AvailableTagUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=50)
-    description: Optional[str] = None
-    category: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=50)
+    description: str | None = None
+    category: str | None = None
 
 
 class AvailableTagResponse(AvailableTagBase):
@@ -783,19 +778,19 @@ class AvailableTagResponse(AvailableTagBase):
 # Tag schemas with expected names for router compatibility
 class TagCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class TagUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=50)
-    description: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=50)
+    description: str | None = None
 
 
 class TagResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str] = None
-    created_by: Optional[int] = None
+    description: str | None = None
+    created_by: int | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -804,8 +799,8 @@ class TagResponse(BaseModel):
 class TagWithCountResponse(BaseModel):
     id: int
     name: str
-    description: Optional[str] = None
-    created_by: Optional[int] = None
+    description: str | None = None
+    created_by: int | None = None
     created_at: datetime
     dive_site_count: int
     dive_count: int
@@ -829,7 +824,7 @@ class DiveSiteTagResponse(BaseModel):
 # Center-Dive Site Association
 class CenterDiveSiteCreate(BaseModel):
     diving_center_id: int
-    dive_cost: Optional[float] = Field(None, ge=0)
+    dive_cost: float | None = Field(None, ge=0)
     currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
 
 
@@ -837,7 +832,7 @@ class CenterDiveSiteResponse(BaseModel):
     id: int
     dive_site_id: int
     diving_center_id: int
-    dive_cost: Optional[float] = None
+    dive_cost: float | None = None
     currency: str = "EUR"
     created_at: datetime
 
@@ -847,12 +842,12 @@ class CenterDiveSiteResponse(BaseModel):
 # Certification Level Schemas
 class CertificationLevelBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    category: Optional[str] = None
-    max_depth: Optional[str] = None
-    gases: Optional[str] = None
-    tanks: Optional[str] = None
-    deco_time_limit: Optional[str] = None
-    prerequisites: Optional[str] = None
+    category: str | None = None
+    max_depth: str | None = None
+    gases: str | None = None
+    tanks: str | None = None
+    deco_time_limit: str | None = None
+    prerequisites: str | None = None
 
 
 class CertificationLevelCreate(CertificationLevelBase):
@@ -860,13 +855,13 @@ class CertificationLevelCreate(CertificationLevelBase):
 
 
 class CertificationLevelUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    category: Optional[str] = None
-    max_depth: Optional[str] = None
-    gases: Optional[str] = None
-    tanks: Optional[str] = None
-    deco_time_limit: Optional[str] = None
-    prerequisites: Optional[str] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    category: str | None = None
+    max_depth: str | None = None
+    gases: str | None = None
+    tanks: str | None = None
+    deco_time_limit: str | None = None
+    prerequisites: str | None = None
 
 
 class CertificationLevelResponse(CertificationLevelBase):
@@ -900,11 +895,11 @@ class GearRentalCostResponse(BaseModel):
 class DivingOrganizationBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     acronym: str = Field(..., min_length=1, max_length=20)
-    website: Optional[str] = None
-    logo_url: Optional[str] = None
-    description: Optional[str] = None
-    country: Optional[str] = Field(None, max_length=100)
-    founded_year: Optional[int] = Field(None, ge=1800, le=2100)
+    website: str | None = None
+    logo_url: str | None = None
+    description: str | None = None
+    country: str | None = Field(None, max_length=100)
+    founded_year: int | None = Field(None, ge=1800, le=2100)
 
 
 class DivingOrganizationCreate(DivingOrganizationBase):
@@ -912,13 +907,13 @@ class DivingOrganizationCreate(DivingOrganizationBase):
 
 
 class DivingOrganizationUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=100)
-    acronym: Optional[str] = Field(None, min_length=1, max_length=20)
-    website: Optional[str] = None
-    logo_url: Optional[str] = None
-    description: Optional[str] = None
-    country: Optional[str] = Field(None, max_length=100)
-    founded_year: Optional[int] = Field(None, ge=1800, le=2100)
+    name: str | None = Field(None, min_length=1, max_length=100)
+    acronym: str | None = Field(None, min_length=1, max_length=20)
+    website: str | None = None
+    logo_url: str | None = None
+    description: str | None = None
+    country: str | None = Field(None, max_length=100)
+    founded_year: int | None = Field(None, ge=1800, le=2100)
 
 
 class DivingOrganizationSummaryResponse(DivingOrganizationBase):
@@ -935,7 +930,7 @@ class DivingOrganizationResponse(DivingOrganizationBase):
     view_count: int = 0
     created_at: datetime
     updated_at: datetime
-    certification_levels: List[CertificationLevelResponse] = []
+    certification_levels: list[CertificationLevelResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -951,7 +946,7 @@ class DivingCenterOrganizationCreate(DivingCenterOrganizationBase):
 
 
 class DivingCenterOrganizationUpdate(BaseModel):
-    is_primary: Optional[bool] = None
+    is_primary: bool | None = None
 
 
 class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
@@ -966,10 +961,10 @@ class DivingCenterOrganizationResponse(DivingCenterOrganizationBase):
 # User Certification Schemas
 class UserCertificationBase(BaseModel):
     diving_organization_id: int
-    certification_level: Optional[str] = Field(
+    certification_level: str | None = Field(
         None, max_length=100
     )  # Optional now, prefer ID
-    certification_level_id: Optional[int] = None
+    certification_level_id: int | None = None
     is_active: bool = True
 
 
@@ -978,17 +973,17 @@ class UserCertificationCreate(UserCertificationBase):
 
 
 class UserCertificationUpdate(BaseModel):
-    diving_organization_id: Optional[int] = None
-    certification_level: Optional[str] = Field(None, max_length=100)
-    certification_level_id: Optional[int] = None
-    is_active: Optional[bool] = None
+    diving_organization_id: int | None = None
+    certification_level: str | None = Field(None, max_length=100)
+    certification_level_id: int | None = None
+    is_active: bool | None = None
 
 
 class UserCertificationResponse(UserCertificationBase):
     id: int
     user_id: int
     diving_organization: DivingOrganizationSummaryResponse
-    certification_level_link: Optional[CertificationLevelResponse] = None
+    certification_level_link: CertificationLevelResponse | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -997,7 +992,7 @@ class UserCertificationResponse(UserCertificationBase):
 
 # Updated User Response to include certifications
 class UserResponseWithCertifications(UserResponse):
-    certifications: List[UserCertificationResponse] = []
+    certifications: list[UserCertificationResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1015,21 +1010,21 @@ class UserProfileStats(BaseModel):
     buddy_dives_count: int
     unique_dive_sites_logged: int = 0
     countries_visited_count: int = 0
-    total_points: Optional[int] = 0
-    leaderboard_rank: Optional[int] = None
+    total_points: int | None = 0
+    leaderboard_rank: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class CertificationStats(BaseModel):
-    max_depth: Optional[float] = None  # Converted to meters
-    max_depth_str: Optional[str] = None  # Original string (e.g. "100m")
-    best_gases: List[str] = []
-    largest_tanks: List[str] = []
-    max_deco_time: Optional[str] = None
-    max_nitrox_pct: Optional[int] = None
-    max_trimix_pct: Optional[str] = None  # e.g. "10/50" or just "Hypoxic"
-    max_stages: Optional[int] = None
+    max_depth: float | None = None  # Converted to meters
+    max_depth_str: str | None = None  # Original string (e.g. "100m")
+    best_gases: list[str] = []
+    largest_tanks: list[str] = []
+    max_deco_time: str | None = None
+    max_nitrox_pct: int | None = None
+    max_trimix_pct: str | None = None  # e.g. "10/50" or just "Hypoxic"
+    max_stages: int | None = None
 
 
 class FavoriteDiveSite(BaseModel):
@@ -1039,63 +1034,63 @@ class FavoriteDiveSite(BaseModel):
 
 
 class DivingStatsResponse(BaseModel):
-    max_depth: Optional[float] = None
-    longest_dive_minutes: Optional[int] = None
-    total_bottom_time_minutes: Optional[int] = None
-    most_active_month: Optional[str] = None  # e.g. "August 2024 (15 dives)"
-    favorite_sites: List[FavoriteDiveSite] = []
-    activity_heatmap: Dict[str, int] = {}  # Date (YYYY-MM-DD) -> Dive Count
-    suit_preferences: Dict[str, int] = {}  # SuitType -> Count
-    gear_preferences: Dict[str, int] = {}
+    max_depth: float | None = None
+    longest_dive_minutes: int | None = None
+    total_bottom_time_minutes: int | None = None
+    most_active_month: str | None = None  # e.g. "August 2024 (15 dives)"
+    favorite_sites: list[FavoriteDiveSite] = []
+    activity_heatmap: dict[str, int] = {}  # Date (YYYY-MM-DD) -> Dive Count
+    suit_preferences: dict[str, int] = {}  # SuitType -> Count
+    gear_preferences: dict[str, int] = {}
 
 
 class AdvancedAnalyticsResponse(BaseModel):
-    depth_density_heatmap: List[Dict[str, Any]] = []
-    sac_vs_depth: List[Dict[str, Any]] = []
-    duration_vs_depth: List[Dict[str, Any]] = []
-    temp_vs_suit: List[Dict[str, Any]] = []
-    dives_per_year: List[Dict[str, Any]] = []
-    sac_over_time: List[Dict[str, Any]] = []
-    depth_over_time: List[Dict[str, Any]] = []
-    dives_per_gas_config: List[
-        Dict[str, Any]
+    depth_density_heatmap: list[dict[str, Any]] = []
+    sac_vs_depth: list[dict[str, Any]] = []
+    duration_vs_depth: list[dict[str, Any]] = []
+    temp_vs_suit: list[dict[str, Any]] = []
+    dives_per_year: list[dict[str, Any]] = []
+    sac_over_time: list[dict[str, Any]] = []
+    depth_over_time: list[dict[str, Any]] = []
+    dives_per_gas_config: list[
+        dict[str, Any]
     ] = []  # [{"config": "Single 12L", "count": 10}]
-    weight_vs_gear: List[
-        Dict[str, Any]
+    weight_vs_gear: list[
+        dict[str, Any]
     ] = []  # [{"gear": "Wetsuit + Single 12L", "weight": 4.5}]
-    weight_over_time: List[
-        Dict[str, Any]
+    weight_over_time: list[
+        dict[str, Any]
     ] = []  # [{"date": "2024-05", "weight": 5.0, "gear": "Wetsuit + Single 12L"}]
-    dive_style_radar: List[
-        Dict[str, Any]
+    dive_style_radar: list[
+        dict[str, Any]
     ] = []  # [{"subject": "Reef & Eco", "value": 15, "fullMark": 100}]
-    boat_dive_pct: Optional[float] = 0.0
-    shore_dive_pct: Optional[float] = 0.0
-    gas_mix_heatmap: List[
-        Dict[str, Any]
+    boat_dive_pct: float | None = 0.0
+    shore_dive_pct: float | None = 0.0
+    gas_mix_heatmap: list[
+        dict[str, Any]
     ] = []  # [{"mix": "Nitrox 32", "depth_bin": "18-30m", "count": 14}]
-    country_distribution: List[
-        Dict[str, Any]
+    country_distribution: list[
+        dict[str, Any]
     ] = []  # [{"country": "Greece", "count": 42}]
 
 
 class UserPublicProfileResponse(BaseModel):
     id: int
     username: str
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[AvatarType] = AvatarType.google
-    avatar_full_url: Optional[str] = None
-    google_avatar_url: Optional[str] = None
+    avatar_url: str | None = None
+    avatar_type: AvatarType | None = AvatarType.google
+    avatar_full_url: str | None = None
+    google_avatar_url: str | None = None
     is_admin: bool = False
     is_moderator: bool = False
     number_of_dives: int
     member_since: datetime
-    deleted_at: Optional[datetime] = None
-    certifications: List[UserCertificationResponse] = []
-    social_links: List[UserSocialLinkResponse] = []
+    deleted_at: datetime | None = None
+    certifications: list[UserCertificationResponse] = []
+    social_links: list[UserSocialLinkResponse] = []
     stats: UserProfileStats
-    certification_stats: Optional[CertificationStats] = None
-    diving_stats: Optional[DivingStatsResponse] = None
+    certification_stats: CertificationStats | None = None
+    diving_stats: DivingStatsResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1112,7 +1107,7 @@ class DiveSiteListItemResponse(BaseModel):
     id: int
     list_id: int
     dive_site_id: int
-    notes: Optional[str] = None
+    notes: str | None = None
     display_order: int
     dive_site: DiveSiteResponse
     created_at: datetime
@@ -1145,65 +1140,65 @@ class UserDiveSiteListResponse(BaseModel):
     username: str
     title: str
     slug: str
-    description: Optional[str] = None
+    description: str | None = None
     is_public: bool
     show_on_profile: bool
-    system_type: Optional[str] = None
+    system_type: str | None = None
     view_count: int
     created_at: datetime
     updated_at: datetime
-    items: List[DiveSiteListItemResponse] = []
-    collaborators: List[CollaboratorResponse] = []
+    items: list[DiveSiteListItemResponse] = []
+    collaborators: list[CollaboratorResponse] = []
     is_collaborator: bool = False
-    role: Optional[str] = None
+    role: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class UserDiveSiteListCreate(BaseModel):
     title: str = Field(..., max_length=100)
-    description: Optional[str] = None
+    description: str | None = None
     is_public: bool = True
     show_on_profile: bool = True
 
 
 class UserDiveSiteListUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    is_public: Optional[bool] = None
-    show_on_profile: Optional[bool] = None
+    title: str | None = None
+    description: str | None = None
+    is_public: bool | None = None
+    show_on_profile: bool | None = None
 
 
 class DiveSiteListItemCreate(BaseModel):
     dive_site_id: int
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class DiveSiteListItemUpdate(BaseModel):
-    notes: Optional[str] = None
-    display_order: Optional[int] = None
+    notes: str | None = None
+    display_order: int | None = None
 
 
 class UserDiveSiteListReorder(BaseModel):
-    item_ids: List[int]
+    item_ids: list[int]
 
 
 class UserDiveSiteListMembershipResponse(BaseModel):
     list_id: int
     title: str
-    system_type: Optional[str] = None
+    system_type: str | None = None
     is_in_list: bool
-    item_id: Optional[int] = None
+    item_id: int | None = None
 
 
 # User Public Info for buddy lists
 class UserPublicInfo(BaseModel):
     id: int
     username: str
-    name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[AvatarType] = AvatarType.google
-    avatar_full_url: Optional[str] = None
+    name: str | None = None
+    avatar_url: str | None = None
+    avatar_type: AvatarType | None = AvatarType.google
+    avatar_full_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1212,97 +1207,95 @@ class UserPublicInfo(BaseModel):
 class UserSearchResponse(BaseModel):
     id: int
     username: str
-    name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[AvatarType] = AvatarType.google
-    avatar_full_url: Optional[str] = None
+    name: str | None = None
+    avatar_url: str | None = None
+    avatar_type: AvatarType | None = AvatarType.google
+    avatar_full_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
 # Updated Diving Center Response to include organizations
 class DivingCenterResponseWithOrganizations(DivingCenterResponse):
-    organizations: List[DivingCenterOrganizationResponse] = []
+    organizations: list[DivingCenterOrganizationResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
 
 
 # Dive Schemas
 class DiveBase(BaseModel):
-    dive_site_id: Optional[int] = None
-    diving_center_id: Optional[int] = None  # Link to diving center
-    selected_route_id: Optional[int] = None  # Selected dive route
-    name: Optional[str] = Field(None, max_length=255)  # Custom name/alias
+    dive_site_id: int | None = None
+    diving_center_id: int | None = None  # Link to diving center
+    selected_route_id: int | None = None  # Selected dive route
+    name: str | None = Field(None, max_length=255)  # Custom name/alias
     is_private: bool = False  # Privacy control - default public
-    dive_information: Optional[str] = None
+    dive_information: str | None = None
 
     @field_validator("name", "dive_information", mode="before")
     @classmethod
     def clean_html_fields(cls, v):
         return strip_html(v)
 
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)  # Maximum depth in meters
-    average_depth: Optional[float] = Field(
-        None, ge=0, le=1000
-    )  # Average depth in meters
-    gas_bottles_used: Optional[str] = None
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
+    max_depth: float | None = Field(None, ge=0, le=1000)  # Maximum depth in meters
+    average_depth: float | None = Field(None, ge=0, le=1000)  # Average depth in meters
+    gas_bottles_used: str | None = None
+    suit_type: str | None = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    visibility_rating: Optional[int] = Field(None, ge=1, le=10)
-    user_rating: Optional[int] = Field(None, ge=1, le=10)
+    visibility_rating: int | None = Field(None, ge=1, le=10)
+    user_rating: int | None = Field(None, ge=1, le=10)
     dive_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD format
-    dive_time: Optional[str] = Field(
+    dive_time: str | None = Field(
         None, pattern=r"^\d{2}:\d{2}:\d{2}$"
     )  # HH:MM:SS format
-    duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+    duration: int | None = Field(None, ge=1, le=1440)  # Duration in minutes
 
     @field_validator("suit_type", mode="before")
     @classmethod
-    def normalize_suit_type(cls, v: Any) -> Optional[str]:
+    def normalize_suit_type(cls, v: Any) -> str | None:
         if v == "":
             return None
         return v
 
 
 class DiveCreate(DiveBase):
-    buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
+    buddies: list[int] | None = None  # List of user IDs to add as buddies
 
 
 class DiveUpdate(BaseModel):
-    dive_site_id: Optional[int] = None
-    diving_center_id: Optional[int] = None  # Link to diving center
-    selected_route_id: Optional[int] = None  # Selected dive route
-    name: Optional[str] = Field(None, max_length=255)
-    is_private: Optional[bool] = None
-    dive_information: Optional[str] = None
+    dive_site_id: int | None = None
+    diving_center_id: int | None = None  # Link to diving center
+    selected_route_id: int | None = None  # Selected dive route
+    name: str | None = Field(None, max_length=255)
+    is_private: bool | None = None
+    dive_information: str | None = None
 
     @field_validator("name", "dive_information", mode="before")
     @classmethod
     def clean_html_fields(cls, v):
         return strip_html(v)
 
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)
-    average_depth: Optional[float] = Field(None, ge=0, le=1000)
-    gas_bottles_used: Optional[str] = None
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
+    max_depth: float | None = Field(None, ge=0, le=1000)
+    average_depth: float | None = Field(None, ge=0, le=1000)
+    gas_bottles_used: str | None = None
+    suit_type: str | None = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
     difficulty_code: DifficultyCode = Field(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    visibility_rating: Optional[int] = Field(None, ge=1, le=10)
-    user_rating: Optional[int] = Field(None, ge=1, le=10)
-    dive_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    dive_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
-    duration: Optional[int] = Field(None, ge=1, le=1440)
-    tags: Optional[List[int]] = None  # List of tag IDs
-    buddies: Optional[List[int]] = None  # List of user IDs to add as buddies
+    visibility_rating: int | None = Field(None, ge=1, le=10)
+    user_rating: int | None = Field(None, ge=1, le=10)
+    dive_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    dive_time: str | None = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
+    duration: int | None = Field(None, ge=1, le=1440)
+    tags: list[int] | None = None  # List of tag IDs
+    buddies: list[int] | None = None  # List of user IDs to add as buddies
 
     @field_validator("suit_type", mode="before")
     @classmethod
-    def normalize_suit_type(cls, v: Any) -> Optional[str]:
+    def normalize_suit_type(cls, v: Any) -> str | None:
         if v == "":
             return None
         return v
@@ -1311,43 +1304,43 @@ class DiveUpdate(BaseModel):
 class DiveResponse(DiveBase):
     id: int
     user_id: int
-    dive_site_id: Optional[int] = None
-    diving_center_id: Optional[int] = None  # Link to diving center
-    selected_route_id: Optional[int] = None  # Selected dive route
-    name: Optional[str] = None
+    dive_site_id: int | None = None
+    diving_center_id: int | None = None  # Link to diving center
+    selected_route_id: int | None = None  # Selected dive route
+    name: str | None = None
     is_private: bool = False
-    dive_information: Optional[str] = None
-    max_depth: Optional[float] = None
-    average_depth: Optional[float] = None
-    gas_bottles_used: Optional[str] = None
-    suit_type: Optional[str] = None
-    difficulty_level: Optional[str] = None
-    difficulty_code: Optional[str] = None
-    difficulty_label: Optional[str] = None
-    visibility_rating: Optional[int] = None
-    user_rating: Optional[int] = None
-    dive_date: Optional[str] = None
-    dive_time: Optional[str] = None
-    duration: Optional[int] = None
-    view_count: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    dive_site: Optional[dict] = None
-    diving_center: Optional[dict] = None  # Diving center information
-    selected_route: Optional[dict] = None  # Selected route information
-    media: List[dict] = []
-    tags: List[dict] = []
-    buddies: List[UserPublicInfo] = []  # List of buddy users
-    user_username: Optional[str] = None  # For public dives
+    dive_information: str | None = None
+    max_depth: float | None = None
+    average_depth: float | None = None
+    gas_bottles_used: str | None = None
+    suit_type: str | None = None
+    difficulty_level: str | None = None
+    difficulty_code: str | None = None
+    difficulty_label: str | None = None
+    visibility_rating: int | None = None
+    user_rating: int | None = None
+    dive_date: str | None = None
+    dive_time: str | None = None
+    duration: int | None = None
+    view_count: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    dive_site: dict | None = None
+    diving_center: dict | None = None  # Diving center information
+    selected_route: dict | None = None  # Selected route information
+    media: list[dict] = []
+    tags: list[dict] = []
+    buddies: list[UserPublicInfo] = []  # List of buddy users
+    user_username: str | None = None  # For public dives
 
     # Parsed from dive_information
-    buddy: Optional[str] = None
-    sac: Optional[str] = None
-    otu: Optional[str] = None
-    cns: Optional[str] = None
-    water_temperature: Optional[str] = None
-    deco_model: Optional[str] = None
-    weights: Optional[str] = None
+    buddy: str | None = None
+    sac: str | None = None
+    otu: str | None = None
+    cns: str | None = None
+    water_temperature: str | None = None
+    deco_model: str | None = None
+    weights: str | None = None
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -1358,29 +1351,29 @@ class DiveResponse(DiveBase):
 
 
 class DiveListResponse(BaseModel):
-    items: List[DiveResponse]
+    items: list[DiveResponse]
     total: int
     page: int
     page_size: int
     total_pages: int
     has_next_page: bool
     has_prev_page: bool
-    match_types: Optional[Dict[str, Any]] = None
+    match_types: dict[str, Any] | None = None
 
 
 class DiveMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video|dive_plan|external_link)$")
     url: str = Field(..., min_length=1, max_length=500)
-    description: Optional[str] = None
-    title: Optional[str] = Field(None, max_length=255)  # For external links
-    thumbnail_url: Optional[str] = Field(
+    description: str | None = None
+    title: str | None = Field(None, max_length=255)  # For external links
+    thumbnail_url: str | None = Field(
         None, max_length=500
     )  # For external links or photo thumbnails
-    medium_url: Optional[str] = Field(None, max_length=500)  # For medium sized photos
+    medium_url: str | None = Field(None, max_length=500)  # For medium sized photos
 
 
 class DiveMediaUpdate(BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class DiveMediaResponse(BaseModel):
@@ -1388,17 +1381,17 @@ class DiveMediaResponse(BaseModel):
     dive_id: int
     media_type: str
     url: str
-    description: Optional[str] = None
-    title: Optional[str] = None
-    thumbnail_url: Optional[str] = None
-    medium_url: Optional[str] = None
-    download_url: Optional[str] = None
+    description: str | None = None
+    title: str | None = None
+    thumbnail_url: str | None = None
+    medium_url: str | None = None
+    download_url: str | None = None
     created_at: datetime
 
 
 # Buddy Management Schemas
 class AddBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(
+    buddy_ids: list[int] = Field(
         ...,
         min_length=1,
         max_length=20,
@@ -1407,7 +1400,7 @@ class AddBuddiesRequest(BaseModel):
 
 
 class ReplaceBuddiesRequest(BaseModel):
-    buddy_ids: List[int] = Field(
+    buddy_ids: list[int] = Field(
         ...,
         max_length=20,
         description="List of user IDs to set as buddies (max 20, can be empty to remove all)",
@@ -1430,8 +1423,8 @@ class DiveTagResponse(BaseModel):
 
 
 class DiveSearchParams(BaseModel):
-    dive_site_id: Optional[int] = None
-    search: Optional[str] = (
+    dive_site_id: int | None = None
+    search: str | None = (
         None  # Unified search across dive site name, description, notes
     )
     difficulty_code: DifficultyCode = Field(
@@ -1439,42 +1432,42 @@ class DiveSearchParams(BaseModel):
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING; omit for no filter",
     )
     exclude_unspecified_difficulty: bool = False
-    suit_type: Optional[str] = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
-    min_depth: Optional[float] = Field(None, ge=0, le=1000)
-    max_depth: Optional[float] = Field(None, ge=0, le=1000)
-    min_visibility: Optional[int] = Field(None, ge=1, le=10)
-    max_visibility: Optional[int] = Field(None, ge=1, le=10)
-    min_rating: Optional[int] = Field(None, ge=1, le=10)
-    max_rating: Optional[int] = Field(None, ge=1, le=10)
-    start_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    suit_type: str | None = Field(None, pattern=r"^(wet_suit|dry_suit|shortie|)$")
+    min_depth: float | None = Field(None, ge=0, le=1000)
+    max_depth: float | None = Field(None, ge=0, le=1000)
+    min_visibility: int | None = Field(None, ge=1, le=10)
+    max_visibility: int | None = Field(None, ge=1, le=10)
+    min_rating: int | None = Field(None, ge=1, le=10)
+    max_rating: int | None = Field(None, ge=1, le=10)
+    start_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class GarminFITResponse(BaseModel):
     message: str
-    dives: List[dict]
-    available_dive_sites: List[dict]
-    available_diving_centers: List[dict]
-    tag_ids: Optional[List[int]] = None
-    sort_by: Optional[str] = Field(
+    dives: list[dict]
+    available_dive_sites: list[dict]
+    available_diving_centers: list[dict]
+    tag_ids: list[int] | None = None
+    sort_by: str | None = Field(
         None,
         description="Sort field (dive_date, max_depth, duration, difficulty_level, visibility_rating, user_rating, view_count, created_at, updated_at)",
     )
-    sort_order: Optional[str] = Field("desc", description="Sort order (asc/desc)")
+    sort_order: str | None = Field("desc", description="Sort order (asc/desc)")
     limit: int = Field(50, ge=1, le=100)
     offset: int = Field(0, ge=0)
 
 
 class CSVHeaderResponse(BaseModel):
-    headers: List[str]
-    sample_data: List[Dict[str, str]]
+    headers: list[str]
+    sample_data: list[dict[str, str]]
     total_rows: int
 
 
 # Diving Center Ownership Schemas
 class BroadcastTripRequest(BaseModel):
     trip_id: int
-    is_update: Optional[bool] = False
+    is_update: bool | None = False
 
 
 class DivingCenterOwnershipClaim(BaseModel):
@@ -1484,14 +1477,14 @@ class DivingCenterOwnershipClaim(BaseModel):
 class DivingCenterOwnershipResponse(BaseModel):
     id: int
     name: str
-    owner_id: Optional[int] = None
+    owner_id: int | None = None
     ownership_status: str
-    owner_username: Optional[str] = None
-    location: Optional[str] = None
-    claim_reason: Optional[str] = None
-    request_date: Optional[datetime] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    owner_username: str | None = None
+    location: str | None = None
+    claim_reason: str | None = None
+    request_date: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1499,12 +1492,12 @@ class DivingCenterOwnershipResponse(BaseModel):
 class DivingCenterOwnershipRevocation(BaseModel):
     """Schema for revoking diving center ownership."""
 
-    reason: Optional[str] = Field(None, max_length=1000)
+    reason: str | None = Field(None, max_length=1000)
 
 
 class DivingCenterOwnershipApproval(BaseModel):
     approved: bool
-    reason: Optional[str] = Field(None, max_length=1000)
+    reason: str | None = Field(None, max_length=1000)
 
 
 class OwnershipRequestHistoryResponse(BaseModel):
@@ -1515,11 +1508,11 @@ class OwnershipRequestHistoryResponse(BaseModel):
     username: str
     request_status: str
     request_date: datetime
-    processed_date: Optional[datetime] = None
-    processed_by: Optional[int] = None
-    admin_username: Optional[str] = None
-    reason: Optional[str] = None
-    notes: Optional[str] = None
+    processed_date: datetime | None = None
+    processed_by: int | None = None
+    admin_username: str | None = None
+    reason: str | None = None
+    notes: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1528,21 +1521,21 @@ class OwnershipRequestHistoryResponse(BaseModel):
 class ParsedDiveResponse(BaseModel):
     id: int
     trip_id: int
-    dive_site_id: Optional[int] = None
+    dive_site_id: int | None = None
     dive_number: int
-    dive_time: Optional[time] = None
-    dive_duration: Optional[int] = None
-    dive_description: Optional[str] = None
-    dive_site_name: Optional[str] = None
-    dive_site_country: Optional[str] = None
-    dive_site_region: Optional[str] = None
-    dive_site_average_rating: Optional[float] = None
-    dive_site_tags: Optional[List[dict]] = None
-    max_depth: Optional[float] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    user_dive_id: Optional[int] = None  # ID of the matching dive in user's logbook
-    user_dive_name: Optional[str] = None  # Name of the matching dive
+    dive_time: time | None = None
+    dive_duration: int | None = None
+    dive_description: str | None = None
+    dive_site_name: str | None = None
+    dive_site_country: str | None = None
+    dive_site_region: str | None = None
+    dive_site_average_rating: float | None = None
+    dive_site_tags: list[dict] | None = None
+    max_depth: float | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    user_dive_id: int | None = None  # ID of the matching dive in user's logbook
+    user_dive_name: str | None = None  # Name of the matching dive
     created_at: datetime
     updated_at: datetime
 
@@ -1550,14 +1543,14 @@ class ParsedDiveResponse(BaseModel):
 
 
 class ParsedDiveCreate(BaseModel):
-    trip_id: Optional[int] = (
+    trip_id: int | None = (
         None  # Optional when creating dives as part of a trip (backend sets it)
     )
-    dive_site_id: Optional[int] = None
+    dive_site_id: int | None = None
     dive_number: int = Field(..., ge=1)
-    dive_time: Optional[time] = None
-    dive_duration: Optional[int] = Field(None, ge=1, le=1440)
-    dive_description: Optional[str] = None
+    dive_time: time | None = None
+    dive_duration: int | None = Field(None, ge=1, le=1440)
+    dive_description: str | None = None
 
     @field_validator("dive_description", mode="before")
     @classmethod
@@ -1566,11 +1559,11 @@ class ParsedDiveCreate(BaseModel):
 
 
 class ParsedDiveUpdate(BaseModel):
-    dive_site_id: Optional[int] = None
-    dive_number: Optional[int] = Field(None, ge=1)
-    dive_time: Optional[time] = None
-    dive_duration: Optional[int] = Field(None, ge=1, le=1440)
-    dive_description: Optional[str] = None
+    dive_site_id: int | None = None
+    dive_number: int | None = Field(None, ge=1)
+    dive_time: time | None = None
+    dive_duration: int | None = Field(None, ge=1, le=1440)
+    dive_description: str | None = None
 
     @field_validator("dive_description", mode="before")
     @classmethod
@@ -1580,38 +1573,38 @@ class ParsedDiveUpdate(BaseModel):
 
 class ParsedDiveTripResponse(BaseModel):
     id: int
-    diving_center_id: Optional[int] = None
+    diving_center_id: int | None = None
     trip_date: date
-    trip_time: Optional[time] = None
-    trip_duration: Optional[int] = None  # Total duration in minutes
+    trip_time: time | None = None
+    trip_duration: int | None = None  # Total duration in minutes
     trip_difficulty_code: DifficultyCode = None
-    trip_difficulty_label: Optional[str] = None
-    trip_price: Optional[float] = None
+    trip_difficulty_label: str | None = None
+    trip_price: float | None = None
     trip_currency: str = "EUR"
-    group_size_limit: Optional[int] = None
+    group_size_limit: int | None = None
     current_bookings: int = 0
-    trip_description: Optional[str] = None
-    special_requirements: Optional[str] = None
+    trip_description: str | None = None
+    special_requirements: str | None = None
     trip_status: str = "scheduled"
     view_count: int = 0
-    diving_center_name: Optional[str] = None
-    diving_center_country: Optional[str] = None
-    diving_center_region: Optional[str] = None
-    diving_center_phone: Optional[str] = None
-    diving_center_email: Optional[str] = None
-    max_depth: Optional[float] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    dives: List[ParsedDiveResponse] = []  # List of dives in this trip
-    source_newsletter_id: Optional[int] = None  # ID of the source newsletter
-    newsletter_content: Optional[str] = None  # Content of the source newsletter
+    diving_center_name: str | None = None
+    diving_center_country: str | None = None
+    diving_center_region: str | None = None
+    diving_center_phone: str | None = None
+    diving_center_email: str | None = None
+    max_depth: float | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    dives: list[ParsedDiveResponse] = []  # List of dives in this trip
+    source_newsletter_id: int | None = None  # ID of the source newsletter
+    newsletter_content: str | None = None  # Content of the source newsletter
     is_bookable: bool = False
     different_rental_price: bool = True
-    custom_rental_price: Optional[float] = None
-    rental_price: Optional[float] = None
-    octo_slot_id: Optional[str] = None
-    seats_available: Optional[int] = None
-    base_price: Optional[float] = None
+    custom_rental_price: float | None = None
+    rental_price: float | None = None
+    octo_slot_id: str | None = None
+    seats_available: int | None = None
+    base_price: float | None = None
     extracted_at: datetime
     created_at: datetime
     updated_at: datetime
@@ -1622,7 +1615,7 @@ class ParsedDiveTripResponse(BaseModel):
 class ParsedDiveTripListResponse(BaseModel):
     """Response for paginated trip lists"""
 
-    items: List[ParsedDiveTripResponse]
+    items: list[ParsedDiveTripResponse]
     total: int
     page: int
     size: int
@@ -1639,14 +1632,14 @@ class NewsletterUploadResponse(BaseModel):
 # Newsletter Text Parse Request Schema
 class NewsletterParseTextRequest(BaseModel):
     content: str
-    diving_center_id: Optional[int] = None
+    diving_center_id: int | None = None
     use_openai: bool = True
 
 
 # Newsletter Management Schemas
 class NewsletterResponse(BaseModel):
     id: int
-    content: Optional[str] = None
+    content: str | None = None
     received_at: datetime
     trips_count: int = 0
 
@@ -1654,11 +1647,11 @@ class NewsletterResponse(BaseModel):
 
 
 class NewsletterUpdateRequest(BaseModel):
-    content: Optional[str] = None
+    content: str | None = None
 
 
 class NewsletterDeleteRequest(BaseModel):
-    newsletter_ids: List[int] = Field(..., min_length=1, max_length=100)
+    newsletter_ids: list[int] = Field(..., min_length=1, max_length=100)
 
 
 class NewsletterDeleteResponse(BaseModel):
@@ -1668,26 +1661,26 @@ class NewsletterDeleteResponse(BaseModel):
 
 # ParsedDiveTrip CRUD schemas
 class ParsedDiveTripCreate(BaseModel):
-    diving_center_id: Optional[int] = None
+    diving_center_id: int | None = None
     trip_date: date
-    trip_time: Optional[time] = None
-    trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+    trip_time: time | None = None
+    trip_duration: int | None = Field(None, ge=1, le=1440)  # Duration in minutes
     trip_difficulty_code: DifficultyCode = Field(
         None, description="Difficulty code or null"
     )
-    trip_price: Optional[float] = Field(None, ge=0)
+    trip_price: float | None = Field(None, ge=0)
     trip_currency: str = Field("EUR", min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")
-    group_size_limit: Optional[int] = Field(None, ge=1)
+    group_size_limit: int | None = Field(None, ge=1)
     current_bookings: int = Field(0, ge=0)
-    trip_description: Optional[str] = None
-    special_requirements: Optional[str] = None
+    trip_description: str | None = None
+    special_requirements: str | None = None
     trip_status: str = Field(
         "scheduled", pattern=r"^(scheduled|confirmed|cancelled|completed)$"
     )
-    enable_online_booking: Optional[bool] = False
-    different_rental_price: Optional[bool] = True
-    custom_rental_price: Optional[float] = Field(None, ge=0)
-    dives: List[ParsedDiveCreate] = []
+    enable_online_booking: bool | None = False
+    different_rental_price: bool | None = True
+    custom_rental_price: float | None = Field(None, ge=0)
+    dives: list[ParsedDiveCreate] = []
 
     @field_validator("trip_description", "special_requirements", mode="before")
     @classmethod
@@ -1696,28 +1689,28 @@ class ParsedDiveTripCreate(BaseModel):
 
 
 class ParsedDiveTripUpdate(BaseModel):
-    diving_center_id: Optional[int] = None
-    trip_date: Optional[date] = None
-    trip_time: Optional[time] = None
-    trip_duration: Optional[int] = Field(None, ge=1, le=1440)  # Duration in minutes
+    diving_center_id: int | None = None
+    trip_date: date | None = None
+    trip_time: time | None = None
+    trip_duration: int | None = Field(None, ge=1, le=1440)  # Duration in minutes
     trip_difficulty_code: DifficultyCode = Field(
         None, description="Difficulty code or null"
     )
-    trip_price: Optional[float] = Field(None, ge=0)
-    trip_currency: Optional[str] = Field(
+    trip_price: float | None = Field(None, ge=0)
+    trip_currency: str | None = Field(
         None, min_length=3, max_length=3, pattern=r"^[A-Z]{3}$"
     )
-    group_size_limit: Optional[int] = Field(None, ge=1)
-    current_bookings: Optional[int] = Field(None, ge=0)
-    trip_description: Optional[str] = None
-    special_requirements: Optional[str] = None
-    trip_status: Optional[str] = Field(
+    group_size_limit: int | None = Field(None, ge=1)
+    current_bookings: int | None = Field(None, ge=0)
+    trip_description: str | None = None
+    special_requirements: str | None = None
+    trip_status: str | None = Field(
         None, pattern=r"^(scheduled|confirmed|cancelled|completed)$"
     )
-    enable_online_booking: Optional[bool] = None
-    different_rental_price: Optional[bool] = None
-    custom_rental_price: Optional[float] = Field(None, ge=0)
-    dives: Optional[List[ParsedDiveCreate]] = None
+    enable_online_booking: bool | None = None
+    different_rental_price: bool | None = None
+    custom_rental_price: float | None = Field(None, ge=0)
+    dives: list[ParsedDiveCreate] | None = None
 
     @field_validator("trip_description", "special_requirements", mode="before")
     @classmethod
@@ -1743,7 +1736,7 @@ class PlatformStatsResponse(BaseModel):
 
 class BroadcastTextRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000)
-    is_update: Optional[bool] = False
+    is_update: bool | None = False
 
 
 # Notification Analytics Schemas
@@ -1752,7 +1745,7 @@ class InAppNotificationStats(BaseModel):
     read: int
     unread: int
     read_rate: float
-    by_category: Dict[str, Dict[str, int]]
+    by_category: dict[str, dict[str, int]]
 
 
 class EmailDeliveryStats(BaseModel):
@@ -1760,7 +1753,7 @@ class EmailDeliveryStats(BaseModel):
     sent_directly_to_ses: int
     queued_to_sqs: int
     delivery_rate: float
-    avg_delivery_time_seconds: Optional[float] = None
+    avg_delivery_time_seconds: float | None = None
 
 
 class NotificationCategoryStats(BaseModel):
@@ -1772,15 +1765,15 @@ class NotificationCategoryStats(BaseModel):
 
 
 class NotificationTimeStats(BaseModel):
-    last_24h: Dict[str, int]
-    last_7d: Dict[str, int]
-    last_30d: Dict[str, int]
+    last_24h: dict[str, int]
+    last_7d: dict[str, int]
+    last_30d: dict[str, int]
 
 
 class NotificationAnalyticsResponse(BaseModel):
     in_app: InAppNotificationStats
     email_delivery: EmailDeliveryStats
-    by_category: List[NotificationCategoryStats]
+    by_category: list[NotificationCategoryStats]
     time_stats: NotificationTimeStats
     timestamp: str
 
@@ -1795,12 +1788,12 @@ class GrowthDataPoint(BaseModel):
 class GrowthDataResponse(BaseModel):
     """Growth data for all entity types"""
 
-    dive_sites: List[GrowthDataPoint]
-    diving_centers: List[GrowthDataPoint]
-    dives: List[GrowthDataPoint]
-    dive_routes: List[GrowthDataPoint]
-    dive_trips: List[GrowthDataPoint]
-    users: Optional[List[GrowthDataPoint]] = None
+    dive_sites: list[GrowthDataPoint]
+    diving_centers: list[GrowthDataPoint]
+    dives: list[GrowthDataPoint]
+    dive_routes: list[GrowthDataPoint]
+    dive_trips: list[GrowthDataPoint]
+    users: list[GrowthDataPoint] | None = None
 
 
 class GrowthRatesResponse(BaseModel):
@@ -1811,7 +1804,7 @@ class GrowthRatesResponse(BaseModel):
     dives: float
     dive_routes: float
     dive_trips: float
-    users: Optional[float] = 0.0
+    users: float | None = 0.0
 
 
 class GrowthResponse(BaseModel):
@@ -1833,7 +1826,7 @@ class RouteType(str, enum.Enum):
 
 class DiveRouteBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
+    description: str | None = None
     route_data: dict = Field(..., description="Multi-segment GeoJSON FeatureCollection")
     route_type: RouteType = Field(
         default=RouteType.scuba, description="Type of route: scuba, walk, swim"
@@ -1957,14 +1950,14 @@ class DiveRouteCreate(DiveRouteBase):
 
 
 class DiveRouteUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    route_data: Optional[dict] = None
-    route_type: Optional[RouteType] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    route_data: dict | None = None
+    route_type: RouteType | None = None
 
     @field_validator("route_data")
     @classmethod
-    def validate_route_data(cls, v: Optional[dict], info: ValidationInfo = None):
+    def validate_route_data(cls, v: dict | None, info: ValidationInfo = None):
         """Validate that route_data is valid multi-segment GeoJSON FeatureCollection if provided"""
         if v is not None:
             # Reuse the same validation logic as DiveRouteBase
@@ -1979,8 +1972,8 @@ class DiveRouteResponse(DiveRouteBase):
     view_count: int = 0
     created_at: datetime
     updated_at: datetime
-    deleted_at: Optional[datetime] = None
-    deleted_by: Optional[int] = None
+    deleted_at: datetime | None = None
+    deleted_by: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1988,9 +1981,9 @@ class DiveRouteResponse(DiveRouteBase):
 class DiveSiteBasic(BaseModel):
     id: int
     name: str
-    country: Optional[str] = None
-    region: Optional[str] = None
-    deleted_at: Optional[datetime] = None
+    country: str | None = None
+    region: str | None = None
+    deleted_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -1998,20 +1991,20 @@ class DiveSiteBasic(BaseModel):
 class DiveRouteWithDetails(DiveRouteResponse):
     """Extended response with related data"""
 
-    dive_site: Optional[DiveSiteBasic] = None  # Basic dive site info
-    creator: Optional[UserPublicInfo] = None  # Basic creator info
+    dive_site: DiveSiteBasic | None = None  # Basic dive site info
+    creator: UserPublicInfo | None = None  # Basic creator info
 
 
 class DiveRouteWithCreator(DiveRouteResponse):
     """Response with creator information"""
 
-    creator: Optional[dict] = None  # Creator information
+    creator: dict | None = None  # Creator information
 
 
 class DiveRouteListResponse(BaseModel):
     """Response for paginated route lists"""
 
-    routes: List[DiveRouteWithDetails]
+    routes: list[DiveRouteWithDetails]
     total: int
     page: int
     page_size: int
@@ -2033,7 +2026,7 @@ class MyCommentItem(BaseModel):
     comment_text: str
     created_at: datetime
     updated_at: datetime
-    dive_site: Optional[DiveSiteBasic] = None
+    dive_site: DiveSiteBasic | None = None
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
@@ -2044,7 +2037,7 @@ class MyCommentItem(BaseModel):
 
 
 class MyCommentsListResponse(BaseModel):
-    items: List[MyCommentItem]
+    items: list[MyCommentItem]
     total: int
     page: int
     page_size: int
@@ -2057,7 +2050,7 @@ class MyRatingItem(BaseModel):
     id: int
     score: float
     created_at: datetime
-    dive_site: Optional[DiveSiteBasic] = None
+    dive_site: DiveSiteBasic | None = None
 
     @field_validator("created_at", mode="before")
     @classmethod
@@ -2068,7 +2061,7 @@ class MyRatingItem(BaseModel):
 
 
 class MyRatingsListResponse(BaseModel):
-    items: List[MyRatingItem]
+    items: list[MyRatingItem]
     total: int
     page: int
     page_size: int
@@ -2086,13 +2079,13 @@ class NotificationResponse(BaseModel):
     category: str
     title: str
     message: str
-    link_url: Optional[str] = None
-    entity_type: Optional[str] = None
-    entity_id: Optional[int] = None
+    link_url: str | None = None
+    entity_type: str | None = None
+    entity_id: int | None = None
     is_read: bool
-    read_at: Optional[datetime] = None
+    read_at: datetime | None = None
     email_sent: bool
-    email_sent_at: Optional[datetime] = None
+    email_sent_at: datetime | None = None
     created_at: datetime
 
     @field_validator("created_at", "read_at", "email_sent_at", mode="before")
@@ -2124,7 +2117,7 @@ class NotificationPreferenceResponse(BaseModel):
     enable_push: bool
     enable_email: bool
     frequency: str
-    area_filter: Optional[dict] = None
+    area_filter: dict | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -2149,17 +2142,17 @@ class NotificationPreferenceCreate(BaseModel):
     frequency: str = Field(
         "immediate", description="Frequency: immediate, daily_digest, weekly_digest"
     )
-    area_filter: Optional[dict] = None
+    area_filter: dict | None = None
 
 
 class NotificationPreferenceUpdate(BaseModel):
     """Update notification preference"""
 
-    enable_website: Optional[bool] = None
-    enable_push: Optional[bool] = None
-    enable_email: Optional[bool] = None
-    frequency: Optional[str] = None
-    area_filter: Optional[dict] = None
+    enable_website: bool | None = None
+    enable_push: bool | None = None
+    enable_email: bool | None = None
+    frequency: str | None = None
+    area_filter: dict | None = None
 
 
 class EmailConfigResponse(BaseModel):
@@ -2193,21 +2186,21 @@ class EmailConfigCreate(BaseModel):
 class EmailConfigUpdate(BaseModel):
     """Update email configuration"""
 
-    smtp_host: Optional[str] = None
-    smtp_port: Optional[int] = None
-    use_starttls: Optional[bool] = None
-    smtp_username: Optional[str] = None
-    smtp_password: Optional[str] = None
-    from_email: Optional[str] = None
-    from_name: Optional[str] = None
-    is_active: Optional[bool] = None
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+    use_starttls: bool | None = None
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    from_email: str | None = None
+    from_name: str | None = None
+    is_active: bool | None = None
 
 
 class RouteDeletionRequest(BaseModel):
     """Request to delete a route"""
 
     route_id: int
-    migrate_dives_to_route_id: Optional[int] = None  # If dives need to be migrated
+    migrate_dives_to_route_id: int | None = None  # If dives need to be migrated
 
 
 # Settings Schemas
@@ -2216,7 +2209,7 @@ class SettingResponse(BaseModel):
 
     key: str
     value: str | int | float | bool | dict | list  # JSON value (parsed)
-    description: Optional[str] = None
+    description: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -2239,7 +2232,7 @@ class GlobalSearchResult(BaseModel):
     name: str
     route_path: str = Field(..., description="Frontend route path for navigation")
     icon_name: str = Field(..., description="Icon name for frontend rendering")
-    metadata: Optional[dict] = Field(
+    metadata: dict | None = Field(
         None, description="Additional metadata (location, date, etc.)"
     )
 
@@ -2252,14 +2245,14 @@ class EntityTypeSearchResults(BaseModel):
     entity_type: str
     icon_name: str
     count: int
-    results: List[GlobalSearchResult]
+    results: list[GlobalSearchResult]
 
 
 class GlobalSearchResponse(BaseModel):
     """Response for global search endpoint"""
 
     query: str
-    results: List[EntityTypeSearchResults]
+    results: list[EntityTypeSearchResults]
     total_count: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -2271,11 +2264,11 @@ class ApiKeyResponse(BaseModel):
 
     id: int
     name: str
-    description: Optional[str] = None
-    created_by_user_id: Optional[int] = None
-    created_by_username: Optional[str] = None
-    expires_at: Optional[datetime] = None
-    last_used_at: Optional[datetime] = None
+    description: str | None = None
+    created_by_user_id: int | None = None
+    created_by_username: str | None = None
+    expires_at: datetime | None = None
+    last_used_at: datetime | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -2292,8 +2285,8 @@ class ApiKeyCreate(BaseModel):
         max_length=255,
         description="Human-readable name for the API key",
     )
-    description: Optional[str] = Field(None, description="Optional description")
-    expires_at: Optional[datetime] = Field(
+    description: str | None = Field(None, description="Optional description")
+    expires_at: datetime | None = Field(
         None, description="Optional expiration date (ISO format)"
     )
 
@@ -2304,8 +2297,8 @@ class ApiKeyCreateResponse(BaseModel):
     id: int
     name: str
     api_key: str = Field(..., description="The actual API key value (only shown once!)")
-    description: Optional[str] = None
-    expires_at: Optional[datetime] = None
+    description: str | None = None
+    expires_at: datetime | None = None
     created_at: datetime
     warning: str = Field(
         default="Store this API key securely. It will not be shown again."
@@ -2315,10 +2308,10 @@ class ApiKeyCreateResponse(BaseModel):
 class ApiKeyUpdate(BaseModel):
     """Update API key request"""
 
-    name: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = None
-    expires_at: Optional[datetime] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = None
+    expires_at: datetime | None = None
+    is_active: bool | None = None
 
 
 class AuthAuditLogResponse(BaseModel):
@@ -2327,12 +2320,12 @@ class AuthAuditLogResponse(BaseModel):
     id: int
     user_id: int
     action: str
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     timestamp: datetime
     success: bool
-    details: Optional[str] = None
-    username: Optional[str] = None  # Enriched field
+    details: str | None = None
+    username: str | None = None  # Enriched field
 
     @field_validator("timestamp", mode="before")
     @classmethod
@@ -2368,40 +2361,40 @@ class PushSubscriptionResponse(PushSubscriptionBase):
 class LeaderboardUserEntry(BaseModel):
     user_id: int
     username: str
-    avatar_url: Optional[str] = None
-    avatar_type: Optional[AvatarType] = AvatarType.google
-    avatar_full_url: Optional[str] = None
+    avatar_url: str | None = None
+    avatar_type: AvatarType | None = AvatarType.google
+    avatar_full_url: str | None = None
     count: int
-    points: Optional[int] = None
+    points: int | None = None
     rank: int
 
 
 class LeaderboardCenterEntry(BaseModel):
     center_id: int
     name: str
-    logo_url: Optional[str] = None
+    logo_url: str | None = None
     count: int
     rank: int
 
 
 class LeaderboardUserResponse(BaseModel):
     metric: str
-    entries: List[LeaderboardUserEntry]
+    entries: list[LeaderboardUserEntry]
     updated_at: datetime
 
 
 class LeaderboardCenterResponse(BaseModel):
     metric: str
-    entries: List[LeaderboardCenterEntry]
+    entries: list[LeaderboardCenterEntry]
     updated_at: datetime
 
 
 class DivingCenterManagerResponse(BaseModel):
     user_id: int
     username: str
-    name: Optional[str] = None
-    email: Optional[str] = None
-    avatar_url: Optional[str] = None
+    name: str | None = None
+    email: str | None = None
+    avatar_url: str | None = None
 
 
 class DivingCenterManagerCreate(BaseModel):

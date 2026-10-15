@@ -5,7 +5,7 @@ Service to calculate dive site suitability based on wind conditions.
 Considers both wind direction and wind speed to provide safety recommendations.
 """
 
-from typing import Dict, Literal, Optional
+from typing import Literal
 
 # Wind speed thresholds (in m/s)
 WIND_SPEED_GOOD_THRESHOLD = 6.2  # ~12 knots - safe for diving below this threshold
@@ -83,12 +83,12 @@ def get_wind_speed_category(
 def calculate_wind_suitability(
     wind_direction: float,
     wind_speed: float,
-    shore_direction: Optional[float],
-    wind_gusts: Optional[float] = None,
+    shore_direction: float | None,
+    wind_gusts: float | None = None,
     wind_speed_unit: str = "m/s",
-    wave_height: Optional[float] = None,
-    wave_period: Optional[float] = None,
-) -> Dict[str, any]:
+    wave_height: float | None = None,
+    wave_period: float | None = None,
+) -> dict[str, any]:
     """
     Calculate suitability for a dive site based on wind and marine conditions.
 

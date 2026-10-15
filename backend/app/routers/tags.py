@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -32,14 +30,14 @@ from app.schemas import (
 router = APIRouter()
 
 
-@router.get("/", response_model=List[TagResponse])
+@router.get("/", response_model=list[TagResponse])
 def get_all_tags(db: Session = Depends(get_db)):
     """Get all available tags"""
     tags = db.query(AvailableTag).order_by(AvailableTag.name.asc()).all()
     return tags
 
 
-@router.get("/with-counts", response_model=List[TagWithCountResponse])
+@router.get("/with-counts", response_model=list[TagWithCountResponse])
 def get_all_tags_with_counts(db: Session = Depends(get_db)):
     """Get all available tags with counts of associated dive sites and dive logs"""
     # Get all tags

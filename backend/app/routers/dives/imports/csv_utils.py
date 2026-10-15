@@ -1,12 +1,11 @@
 import re
 from datetime import date, time
-from typing import Optional, Tuple
 
 import nh3
 from dateutil import parser
 
 
-def protect_csv_formula(value: str) -> Optional[str]:
+def protect_csv_formula(value: str) -> str | None:
     """
     Prevents CSV injection by escaping leading formula characters.
     """
@@ -19,7 +18,7 @@ def protect_csv_formula(value: str) -> Optional[str]:
     return value
 
 
-def sanitize_csv_cell(value: str) -> Optional[str]:
+def sanitize_csv_cell(value: str) -> str | None:
     """
     Strips HTML and protects against CSV formula injection.
     """
@@ -35,7 +34,7 @@ def sanitize_csv_cell(value: str) -> Optional[str]:
     return protect_csv_formula(clean_val)
 
 
-def parse_csv_depth(value: str) -> Optional[float]:
+def parse_csv_depth(value: str) -> float | None:
     """
     Intelligently parse depth from CSV, handling units (m, ft).
     Always returns meters.
@@ -64,7 +63,7 @@ def parse_csv_depth(value: str) -> Optional[float]:
         return None
 
 
-def parse_csv_date_time(value: str) -> Tuple[Optional[date], Optional[time]]:
+def parse_csv_date_time(value: str) -> tuple[date | None, time | None]:
     """
     Intelligently parse date and time from various CSV formats.
     """

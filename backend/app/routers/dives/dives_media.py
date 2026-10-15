@@ -14,7 +14,6 @@ import logging
 import re
 import uuid
 from pathlib import Path
-from typing import List, Optional
 from urllib.parse import quote
 
 import requests
@@ -94,7 +93,7 @@ def add_dive_media(
 async def upload_dive_photo(
     dive_id: int,
     file: UploadFile = File(...),
-    description: Optional[str] = Form(None),
+    description: str | None = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -374,11 +373,11 @@ async def delete_r2_photo(
         )
 
 
-@router.get("/{dive_id}/media", response_model=List[DiveMediaResponse])
+@router.get("/{dive_id}/media", response_model=list[DiveMediaResponse])
 def get_dive_media(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get all media for a dive. Unauthenticated users can view media for public dives."""
     # Check if user is authenticated and enabled
@@ -673,7 +672,7 @@ def remove_dive_tag(
 @router.get("/media/flickr-oembed")
 async def get_flickr_oembed(
     url: str = Query(..., description="Flickr URL (short or full) to convert"),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Proxy endpoint for Flickr oEmbed API to convert Flickr URLs to direct image URLs.

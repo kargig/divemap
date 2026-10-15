@@ -12,8 +12,6 @@ The search functionality includes:
 - Unified search across multiple fields
 """
 
-from typing import List
-
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -31,7 +29,7 @@ from .dives_shared import (
 
 def search_dives_with_fuzzy(
     query: str,
-    exact_results: List[Dive],
+    exact_results: list[Dive],
     db: Session,
     similarity_threshold: float = UNIFIED_TYPO_TOLERANCE["overall_threshold"],
     max_fuzzy_results: int = 10,

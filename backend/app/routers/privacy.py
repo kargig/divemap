@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import orjson
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,12 +34,12 @@ from pydantic import BaseModel
 class UserDataExport(BaseModel):
     """Complete user data export schema"""
 
-    user_profile: Dict[str, Any]
-    dives: List[Dict[str, Any]]
-    ratings: Dict[str, List[Dict[str, Any]]]
-    comments: Dict[str, List[Dict[str, Any]]]
-    certifications: List[Dict[str, Any]]
-    owned_diving_centers: List[Dict[str, Any]]
+    user_profile: dict[str, Any]
+    dives: list[dict[str, Any]]
+    ratings: dict[str, list[dict[str, Any]]]
+    comments: dict[str, list[dict[str, Any]]]
+    certifications: list[dict[str, Any]]
+    owned_diving_centers: list[dict[str, Any]]
     export_timestamp: str
     total_records: int
 
@@ -50,16 +50,16 @@ class AuditLogEntry(BaseModel):
     timestamp: datetime
     action: str
     resource_type: str
-    resource_id: Optional[int] = None
-    details: Dict[str, Any]
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    resource_id: int | None = None
+    details: dict[str, Any]
+    ip_address: str | None = None
+    user_agent: str | None = None
 
 
 class AuditLogResponse(BaseModel):
     """Audit log response schema"""
 
-    entries: List[AuditLogEntry]
+    entries: list[AuditLogEntry]
     total_entries: int
     period_start: datetime
     period_end: datetime

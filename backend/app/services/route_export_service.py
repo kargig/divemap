@@ -5,7 +5,6 @@ Handles exporting dive routes to various formats (GPX, KML).
 """
 
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional
 from xml.dom import minidom
 
 from app.models import DiveRoute, DiveSite
@@ -21,9 +20,7 @@ class RouteExportService:
     def __init__(self):
         pass
 
-    def export_to_gpx(
-        self, route: DiveRoute, dive_site: Optional[DiveSite] = None
-    ) -> str:
+    def export_to_gpx(self, route: DiveRoute, dive_site: DiveSite | None = None) -> str:
         """Export route to GPX format"""
 
         # Create GPX root element
@@ -151,9 +148,7 @@ class RouteExportService:
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
 
-    def export_to_kml(
-        self, route: DiveRoute, dive_site: Optional[DiveSite] = None
-    ) -> str:
+    def export_to_kml(self, route: DiveRoute, dive_site: DiveSite | None = None) -> str:
         """Export route to KML format"""
 
         # Create KML root element
@@ -281,7 +276,7 @@ class RouteExportService:
             outline_elem = ET.SubElement(poly_style, "outline")
             outline_elem.text = "1"
 
-    def get_export_formats(self) -> List[Dict[str, str]]:
+    def get_export_formats(self) -> list[dict[str, str]]:
         """Get list of available export formats"""
         return [
             {

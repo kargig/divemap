@@ -7,7 +7,7 @@ Automatically detects AWS credentials and falls back gracefully when unavailable
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import orjson
 
@@ -65,10 +65,10 @@ class SQSService:
         self,
         notification_id: int,
         user_email: str,
-        notification_data: Dict[str, Any],
+        notification_data: dict[str, Any],
         delay_seconds: int = 0,
-        user_id: Optional[int] = None,
-        unsubscribe_token: Optional[str] = None,
+        user_id: int | None = None,
+        unsubscribe_token: str | None = None,
     ) -> bool:
         """
         Send email notification task to SQS queue.
@@ -121,7 +121,7 @@ class SQSService:
             return False
 
     def send_batch_email_tasks(
-        self, tasks: list[Dict[str, Any]], delay_seconds: int = 0
+        self, tasks: list[dict[str, Any]], delay_seconds: int = 0
     ) -> int:
         """
         Send multiple email notification tasks to SQS queue in batch.
@@ -200,7 +200,7 @@ class SQSService:
         endpoint: str,
         p256dh: str,
         auth: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         delay_seconds: int = 0,
     ) -> bool:
         """
@@ -238,7 +238,7 @@ class SQSService:
             return False
 
     def send_push_tasks(
-        self, tasks: list[Dict[str, Any]], delay_seconds: int = 0
+        self, tasks: list[dict[str, Any]], delay_seconds: int = 0
     ) -> int:
         """
         Send multiple push notification tasks to SQS in batch.

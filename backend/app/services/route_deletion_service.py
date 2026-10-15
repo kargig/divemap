@@ -5,8 +5,6 @@ Handles route deletion rules, permissions, and restrictions.
 Implements soft delete with proper validation and migration logic.
 """
 
-from typing import Optional, Tuple
-
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
@@ -106,7 +104,7 @@ class RouteDeletionService:
 
     def _check_deletion_permissions(
         self, route: DiveRoute, user: User
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Check if user has permission to delete the route.
 
@@ -171,7 +169,7 @@ class RouteDeletionService:
         return True
 
     def hard_delete_route(
-        self, route_id: int, user: User, migrate_to_route_id: Optional[int] = None
+        self, route_id: int, user: User, migrate_to_route_id: int | None = None
     ) -> bool:
         """
         Hard delete (permanently remove) a route with optional migration of associated dives.

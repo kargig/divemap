@@ -7,7 +7,6 @@ Generates thumbnails and medium-sized variants in WebP format.
 
 import io
 import logging
-from typing import Dict
 
 import magic
 from PIL import Image, ImageOps
@@ -27,7 +26,7 @@ MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024  # 15MB limit
 class ImageProcessingService:
     """Service for processing uploaded images."""
 
-    def process_image(self, file_bytes: bytes, filename: str) -> Dict[str, io.BytesIO]:
+    def process_image(self, file_bytes: bytes, filename: str) -> dict[str, io.BytesIO]:
         """
         Process an uploaded image:
         1. Validate (Magic numbers, size).

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy import String, and_, func, or_
 from sqlalchemy.orm import Session, aliased, joinedload
@@ -29,7 +29,7 @@ from app.routers.search import ENTITY_ICONS
 from app.schemas.chat import IntentType
 
 
-def clean_results(results: List[Dict]) -> List[Dict]:
+def clean_results(results: list[dict]) -> list[dict]:
     """Ensures all objects in the results list are JSON serializable (converts Enums to strings)."""
     import enum
 

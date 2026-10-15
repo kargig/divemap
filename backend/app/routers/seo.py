@@ -4,7 +4,6 @@ import os
 import random
 import re
 import time
-from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -42,7 +41,7 @@ def is_flickr_url(url: str) -> bool:
     return "flic.kr/p/" in url or "flickr.com/photos/" in url
 
 
-def resolve_flickr_direct_url(url: str) -> Optional[str]:
+def resolve_flickr_direct_url(url: str) -> str | None:
     """Converts a Flickr page URL into its direct static image URL via oEmbed API."""
     try:
         oembed_url = (
@@ -68,7 +67,7 @@ def resolve_flickr_direct_url(url: str) -> Optional[str]:
     return None
 
 
-def resolve_seo_image_url(media_url: str, base_url: str) -> Optional[str]:
+def resolve_seo_image_url(media_url: str, base_url: str) -> str | None:
     if not media_url:
         return None
 
@@ -140,15 +139,15 @@ logger = logging.getLogger("divemap.seo")
 router = APIRouter()
 
 # Global in-memory cache and concurrency lock for SPA index.html template
-_spa_template_cache: Optional[str] = None
+_spa_template_cache: str | None = None
 _spa_template_fetched_at: float = 0.0
-_spa_template_lock: Optional[asyncio.Lock] = None
+_spa_template_lock: asyncio.Lock | None = None
 SPA_TEMPLATE_CACHE_TTL: float = float(
     os.getenv("SPA_TEMPLATE_CACHE_TTL", "300")
 )  # 5 minutes default
 
 
-async def get_spa_template() -> Optional[str]:
+async def get_spa_template() -> str | None:
     """
     Fetch the SPA built index.html shell to inject pre-rendered content.
     Caches the template in-memory with a TTL. Fetches from nginx or frontend dev servers,
@@ -260,11 +259,11 @@ async def get_prerendered_page(
     )
     canonical = f"{base_url}/"
     main_content = ""
-    json_ld: Optional[dict] = None
-    image_url: Optional[str] = None
-    image_type: Optional[str] = None
-    image_width: Optional[int] = None
-    image_height: Optional[int] = None
+    json_ld: dict | None = None
+    image_url: str | None = None
+    image_type: str | None = None
+    image_width: int | None = None
+    image_height: int | None = None
 
     # Routing
     try:

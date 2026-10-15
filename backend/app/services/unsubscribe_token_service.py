@@ -9,7 +9,7 @@ import logging
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -91,7 +91,7 @@ class UnsubscribeTokenService:
         logger.info(f"Created unsubscribe token for user {user_id}")
         return unsubscribe_token
 
-    def validate_token(self, token: str, db: Session) -> Optional[UnsubscribeToken]:
+    def validate_token(self, token: str, db: Session) -> UnsubscribeToken | None:
         """
         Validate an unsubscribe token.
 
@@ -137,7 +137,7 @@ class UnsubscribeTokenService:
         logger.debug(f"Updated last_used_at for unsubscribe token {token_obj.id}")
 
     def store_previous_preferences(
-        self, token_obj: UnsubscribeToken, preferences_dict: Dict[str, Any], db: Session
+        self, token_obj: UnsubscribeToken, preferences_dict: dict[str, Any], db: Session
     ) -> None:
         """
         Store previous preferences before unsubscribe (for restoration).
@@ -155,7 +155,7 @@ class UnsubscribeTokenService:
 
     def get_previous_preferences(
         self, token_obj: UnsubscribeToken
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Retrieve stored previous preferences for restoration.
 
@@ -217,7 +217,7 @@ class UnsubscribeTokenService:
         return deleted_count
 
     def log_unsubscribe_event(
-        self, user_id: int, category: Optional[str], token: str, db: Session
+        self, user_id: int, category: str | None, token: str, db: Session
     ) -> None:
         """
         Log unsubscribe event for audit purposes.

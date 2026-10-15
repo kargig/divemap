@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -7,13 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field
 class CenterMediaCreate(BaseModel):
     media_type: str = Field(..., pattern=r"^(photo|video|external_link)$")
     url: str = Field(..., min_length=1, max_length=500)
-    description: Optional[str] = None
-    thumbnail_url: Optional[str] = Field(None, max_length=500)
-    medium_url: Optional[str] = Field(None, max_length=500)
+    description: str | None = None
+    thumbnail_url: str | None = Field(None, max_length=500)
+    medium_url: str | None = Field(None, max_length=500)
 
 
 class CenterMediaUpdate(BaseModel):
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class CenterMediaResponse(BaseModel):
@@ -21,17 +20,17 @@ class CenterMediaResponse(BaseModel):
     diving_center_id: int
     media_type: str
     url: str
-    description: Optional[str] = None
+    description: str | None = None
     created_at: datetime
-    user_id: Optional[int] = None
-    user_username: Optional[str] = None
-    thumbnail_url: Optional[str] = None
-    medium_url: Optional[str] = None
-    download_url: Optional[str] = None
+    user_id: int | None = None
+    user_username: str | None = None
+    thumbnail_url: str | None = None
+    medium_url: str | None = None
+    download_url: str | None = None
 
     # Computed full URLs
-    full_url: Optional[str] = None
-    full_thumbnail_url: Optional[str] = None
-    full_medium_url: Optional[str] = None
+    full_url: str | None = None
+    full_thumbnail_url: str | None = None
+    full_medium_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

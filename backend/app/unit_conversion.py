@@ -2,8 +2,6 @@
 Bidirectional Unit Conversion Helpers for Scuba Sizing and Dive Metrics.
 """
 
-from typing import Tuple
-
 
 def kg_to_lbs(kg: float) -> float:
     return kg * 2.20462262
@@ -13,7 +11,7 @@ def lbs_to_kg(lbs: float) -> float:
     return lbs / 2.20462262
 
 
-def cm_to_feet_inches(cm: int) -> Tuple[int, int]:
+def cm_to_feet_inches(cm: int) -> tuple[int, int]:
     total_inches = round(cm / 2.54)
     feet = total_inches // 12
     inches = total_inches % 12

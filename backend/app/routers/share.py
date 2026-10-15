@@ -6,7 +6,6 @@ Provides shareable URLs and platform-specific share links.
 """
 
 from datetime import datetime
-from typing import Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi.util import get_remote_address
@@ -25,13 +24,13 @@ router = APIRouter()
 SHARE_RATE_LIMIT = "30/minute"
 
 
-@router.post("/dives/{dive_id}", response_model=Dict)
+@router.post("/dives/{dive_id}", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def share_dive(
     request: Request,
     dive_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -74,13 +73,13 @@ async def share_dive(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
-@router.get("/dives/{dive_id}/preview", response_model=Dict)
+@router.get("/dives/{dive_id}/preview", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def get_dive_share_preview(
     request: Request,
     dive_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -104,13 +103,13 @@ async def get_dive_share_preview(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
 
-@router.post("/dive-sites/{dive_site_id}", response_model=Dict)
+@router.post("/dive-sites/{dive_site_id}", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def share_dive_site(
     request: Request,
     dive_site_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -153,13 +152,13 @@ async def share_dive_site(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/dive-sites/{dive_site_id}/preview", response_model=Dict)
+@router.get("/dive-sites/{dive_site_id}/preview", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def get_dive_site_share_preview(
     request: Request,
     dive_site_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Get preview data for sharing a dive site."""
@@ -180,13 +179,13 @@ async def get_dive_site_share_preview(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.post("/dive-routes/{route_id}", response_model=Dict)
+@router.post("/dive-routes/{route_id}", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def share_dive_route(
     request: Request,
     route_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
@@ -249,13 +248,13 @@ async def share_dive_route(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@router.get("/dive-routes/{route_id}/preview", response_model=Dict)
+@router.get("/dive-routes/{route_id}/preview", response_model=dict)
 @skip_rate_limit_for_admin(SHARE_RATE_LIMIT)
 @limiter.limit(SHARE_RATE_LIMIT)
 async def get_dive_route_share_preview(
     request: Request,
     route_id: int,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Get preview data for sharing a dive route."""

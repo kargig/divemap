@@ -1,7 +1,6 @@
 import io
 import logging
 from datetime import UTC, datetime
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -497,7 +496,7 @@ class BriefingService:
 
     @staticmethod
     def dispatch_briefing(
-        db: Session, slot_id: str, dispatched_by_user_id: Optional[int] = None
+        db: Session, slot_id: str, dispatched_by_user_id: int | None = None
     ) -> TripBriefing:
         """Approve and dispatch the pre-dive briefing to confirmed participants."""
         slot = (

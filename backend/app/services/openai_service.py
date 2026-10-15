@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any
 
 import openai
 import orjson
@@ -91,14 +91,14 @@ class OpenAIService:
     )
     async def get_chat_completion(
         self,
-        messages: List[Dict],
-        model: Optional[str] = None,
+        messages: list[dict],
+        model: str | None = None,
         max_tokens: int = 2000,
         temperature: float = 0.7,
-        json_schema: Optional[Type[BaseModel]] = None,
-        tools: Optional[List[Dict]] = None,
-        tool_choice: Optional[str] = None,
-    ) -> Tuple[str | Dict | Any, Dict[str, int]]:
+        json_schema: type[BaseModel] | None = None,
+        tools: list[dict] | None = None,
+        tool_choice: str | None = None,
+    ) -> tuple[str | dict | Any, dict[str, int]]:
         """
         Generic wrapper for OpenAI Chat Completions.
         Supports structured output via Pydantic schemas and Tool Calling.

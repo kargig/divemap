@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, Tuple
 
 import orjson
 from sqlalchemy import text
@@ -56,7 +55,7 @@ def convert_difficulty_to_code(difficulty_input):
     return None
 
 
-def semicircles_to_degrees(semicircles: Optional[int]) -> Optional[float]:
+def semicircles_to_degrees(semicircles: int | None) -> float | None:
     """
     Convert Garmin semicircles to decimal degrees.
     Formula: degrees = semicircles * (180 / 2^31)
@@ -70,11 +69,11 @@ def find_existing_dive(
     db: Session,
     user_id: int,
     dive_date: str,
-    dive_time: Optional[str] = None,
-    duration: Optional[int] = None,
-    max_depth: Optional[float] = None,
+    dive_time: str | None = None,
+    duration: int | None = None,
+    max_depth: float | None = None,
     user_dives=None,
-) -> Optional[Dive]:
+) -> Dive | None:
     """
     Attempts to find an existing dive for a user to prevent duplicates.
     Matches by date + time (+/- 0.5m depth), or date + duration + depth if time is missing.
@@ -172,7 +171,7 @@ def find_sites_by_coords(db: Session, lat: float, lng: float, radius_m: int = 50
 
 def resolve_entity(
     db: Session, value: str, centers=None, users=None
-) -> Tuple[Optional[int], Optional[str]]:
+) -> tuple[int | None, str | None]:
     """
     Intelligently resolve a string to either a Diving Center or a User (Buddy).
     Returns (id, type) where type is 'center', 'buddy', or None.

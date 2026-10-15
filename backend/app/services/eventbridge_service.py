@@ -8,7 +8,7 @@ but this service provides helper functions for rule management.
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import orjson
 
@@ -65,7 +65,7 @@ class EventBridgeService:
         rule_name: str,
         schedule_expression: str,
         target_arn: str,
-        input_data: Optional[Dict[str, Any]] = None,
+        input_data: dict[str, Any] | None = None,
     ) -> bool:
         """
         Create or update an EventBridge rule for scheduled tasks.

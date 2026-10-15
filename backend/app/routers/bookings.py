@@ -2,7 +2,7 @@ import hashlib
 import logging
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response
 from pydantic import BaseModel
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/bookings", tags=["Diver Bookings & Checkout"])
 
 
-def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
+def ensure_aware(dt: datetime | None) -> datetime | None:
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt
@@ -59,19 +59,19 @@ def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
 
 class SubmitPaperworkRequest(BaseModel):
     unitItemId: str
-    dmscAnswers: Optional[Dict[str, Any]] = None
+    dmscAnswers: dict[str, Any] | None = None
     signatureName: str
-    selectedTankId: Optional[str] = "12"
-    selectedGasMixId: Optional[str] = "air"
-    equipmentSizing: Optional[Dict[str, Any]] = None
+    selectedTankId: str | None = "12"
+    selectedGasMixId: str | None = "air"
+    equipmentSizing: dict[str, Any] | None = None
     useAnnualMedical: bool = False
     confirmNoMedicalChange: bool = False
 
 
 class SaveAnnualMedicalRequest(BaseModel):
-    dmscAnswers: Dict[str, Any]
+    dmscAnswers: dict[str, Any]
     signatureName: str
-    physicianCertificateUrl: Optional[str] = None
+    physicianCertificateUrl: str | None = None
 
 
 class SubmitPaperworkResponse(BaseModel):
@@ -86,7 +86,7 @@ class BookingVoucherUnitItem(BaseModel):
     unitTitle: str
     selectedTankId: str
     selectedGasMixId: str
-    equipmentSizing: Optional[Dict[str, Any]] = None
+    equipmentSizing: dict[str, Any] | None = None
 
 
 class BookingVoucherResponse(BaseModel):
@@ -98,17 +98,17 @@ class BookingVoucherResponse(BaseModel):
     currency: str
     productTitle: str
     centerName: str
-    centerAddress: Optional[str] = None
-    centerPhone: Optional[str] = None
-    vesselName: Optional[str] = None
-    vesselRegistration: Optional[str] = None
-    vesselCapacity: Optional[int] = None
+    centerAddress: str | None = None
+    centerPhone: str | None = None
+    vesselName: str | None = None
+    vesselRegistration: str | None = None
+    vesselCapacity: int | None = None
     departureDate: str
     meetingTime: str
     departureTime: str
-    meetingInstructions: Optional[str] = None
+    meetingInstructions: str | None = None
     qrCodeData: str
-    unitItems: List[BookingVoucherUnitItem] = []
+    unitItems: list[BookingVoucherUnitItem] = []
 
 
 class GuestClaimContextResponse(BaseModel):
@@ -119,9 +119,9 @@ class GuestClaimContextResponse(BaseModel):
     departureDate: str
     claimStatus: str
     waiversComplete: bool
-    selectedTankId: Optional[str] = "12"
-    selectedGasMixId: Optional[str] = "air"
-    equipmentSizing: Optional[Dict[str, Any]] = None
+    selectedTankId: str | None = "12"
+    selectedGasMixId: str | None = "air"
+    equipmentSizing: dict[str, Any] | None = None
 
 
 class MyBookingItemResponse(BaseModel):
@@ -132,11 +132,11 @@ class MyBookingItemResponse(BaseModel):
     paymentMode: str
     totalAmount: float
     currency: str
-    tripDate: Optional[str] = None
+    tripDate: str | None = None
     centerId: int
     centerName: str
     slotId: str
-    tripId: Optional[int] = None
+    tripId: int | None = None
     participantsCount: int
     hasBriefing: bool
 
@@ -144,7 +144,7 @@ class MyBookingItemResponse(BaseModel):
 # --- Endpoints ---
 
 
-@router.get("/my-bookings", response_model=List[MyBookingItemResponse])
+@router.get("/my-bookings", response_model=list[MyBookingItemResponse])
 def get_my_bookings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -270,7 +270,7 @@ def calculate_certification_rank(cert: UserCertification) -> tuple:
 @router.get("/checkout-context/{slot_id}")
 def get_checkout_context(
     slot_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Provides slot details, auto-fill gear profile, and medical questionnaire schemas for checkout."""
@@ -559,7 +559,7 @@ def _maybe_confirm_booking_after_paperwork(booking: OctoBooking) -> None:
 def _recompute_booking_total(
     booking: OctoBooking,
     unit_item: OctoBookingUnitItem,
-    equipment_sizing_override: Optional[Dict[str, Any]],
+    equipment_sizing_override: dict[str, Any] | None,
     db: Session,
 ) -> None:
     settings = (
@@ -597,7 +597,7 @@ def _apply_diver_paperwork_for_unit_item(
     booking: OctoBooking,
     unit_item: OctoBookingUnitItem,
     req: SubmitPaperworkRequest,
-    current_user: Optional[User],
+    current_user: User | None,
     db: Session,
 ) -> str:
     """Encrypt medical data, update gear/waivers for one unit item. Returns medical_status."""
@@ -778,7 +778,7 @@ def _find_unit_item_for_claim_token(
     claim_token: str,
     *,
     for_write: bool = False,
-) -> Optional[OctoBookingUnitItem]:
+) -> OctoBookingUnitItem | None:
     for item in booking.unit_items or []:
         if verify_claim_token(item, claim_token, for_write=for_write):
             return item
@@ -790,11 +790,9 @@ def submit_diver_paperwork(
     booking_uuid: str,
     req: SubmitPaperworkRequest,
     request: Request,
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Evaluates medical responses, encrypts medical records at rest, and marks waivers for one seat."""
@@ -935,7 +933,7 @@ def submit_guest_claim_paperwork(
     claim_token: str,
     req: SubmitPaperworkRequest,
     request: Request,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Submit medical and waiver paperwork for a guest seat via claim token."""
@@ -1008,11 +1006,9 @@ def submit_guest_claim_paperwork(
 @router.get("/{booking_uuid}/voucher", response_model=BookingVoucherResponse)
 def get_booking_voucher(
     booking_uuid: str,
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Returns printable voucher details and digital QR-code verification token."""
@@ -1097,11 +1093,9 @@ def get_booking_voucher(
 @router.get("/{booking_uuid}/voucher/pdf")
 def download_booking_voucher_pdf(
     booking_uuid: str,
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Generates official Boarding Voucher & QR Code Pass PDF for download."""
@@ -1231,11 +1225,9 @@ def download_booking_voucher_pdf(
 @router.get("/{booking_uuid}/briefing")
 def download_booking_briefing_pdf(
     booking_uuid: str,
-    x_booking_access_token: Optional[str] = Header(
-        None, alias="X-Booking-Access-Token"
-    ),
-    access_token: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    x_booking_access_token: str | None = Header(None, alias="X-Booking-Access-Token"),
+    access_token: str | None = Query(None),
+    current_user: User | None = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """Download pre-dive briefing PDF for a booked trip."""

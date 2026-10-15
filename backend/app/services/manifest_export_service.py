@@ -1,7 +1,7 @@
 import csv
 import io
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 try:
     from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -26,7 +26,7 @@ class ManifestExportService:
     """Generates official maritime Port Authority manifests in CSV and PDF formats, and emergency incident dossiers."""
 
     @staticmethod
-    def generate_csv(manifest_data: Dict[str, Any]) -> str:
+    def generate_csv(manifest_data: dict[str, Any]) -> str:
         """Generates standard maritime passenger & diver manifest CSV."""
         output = io.StringIO()
         writer = csv.writer(output)
@@ -107,7 +107,7 @@ class ManifestExportService:
         return output.getvalue()
 
     @staticmethod
-    def generate_pdf(manifest_data: Dict[str, Any]) -> bytes:
+    def generate_pdf(manifest_data: dict[str, Any]) -> bytes:
         """Generates official Port Authority PDF manifest using ReportLab."""
         if not REPORTLAB_AVAILABLE:
             raise RuntimeError("ReportLab is required for PDF manifest generation.")
@@ -380,7 +380,7 @@ class ManifestExportService:
         return buffer.getvalue()
 
     @staticmethod
-    def generate_emergency_dossier_pdf(dossier_data: Dict[str, Any]) -> bytes:
+    def generate_emergency_dossier_pdf(dossier_data: dict[str, Any]) -> bytes:
         """
         Generates an official Emergency Incident Dossier containing the full decrypted medical questionnaire,
         verified physician clearance, audit logs, and executed liability waiver for Port Authorities and hyperbaric doctors.
@@ -793,7 +793,7 @@ class ManifestExportService:
         return buffer.getvalue()
 
     @staticmethod
-    def generate_equipment_checklist_pdf(manifest_data: Dict[str, Any]) -> bytes:
+    def generate_equipment_checklist_pdf(manifest_data: dict[str, Any]) -> bytes:
         """
         Generates a spreadsheet-style, clipboard-ready equipment inspection & bench handover checklist PDF.
         Designed for diving center staff to quickly walk around equipment boxes/benches and verify each piece of gear.
@@ -1166,7 +1166,7 @@ class ManifestExportService:
         return buffer.getvalue()
 
     @staticmethod
-    def generate_crate_packing_pdf(manifest_data: Dict[str, Any]) -> bytes:
+    def generate_crate_packing_pdf(manifest_data: dict[str, Any]) -> bytes:
         """
         Generates a dedicated Dockside Crate Packing & Tank Loadout Sheet PDF.
         Designed for dock staff to load transport crates and stage cylinders onto the boat.
@@ -1527,7 +1527,7 @@ class ManifestExportService:
         return buffer.getvalue()
 
     @staticmethod
-    def generate_voucher_pdf(voucher_data: Dict[str, Any]) -> bytes:
+    def generate_voucher_pdf(voucher_data: dict[str, Any]) -> bytes:
         """
         Generates an official Boarding Voucher & QR Code Pass PDF using ReportLab.
         Contains booking reference, QR verification code, center logistics, diver profiles,

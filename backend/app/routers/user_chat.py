@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import (
     APIRouter,
@@ -55,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 def get_room_or_404(
     db: Session, room_id: str, user_id: int
-) -> tuple[UserChatRoom, Optional[UserChatRoomMember]]:
+) -> tuple[UserChatRoom, UserChatRoomMember | None]:
     """Helper to get a room and ensure the user is an active member or a manager."""
     room = db.query(UserChatRoom).filter(UserChatRoom.id == room_id).first()
     if not room:
@@ -328,7 +327,7 @@ async def create_chat_room(
         raise
 
 
-@router.get("/rooms", response_model=List[ChatRoomResponse])
+@router.get("/rooms", response_model=list[ChatRoomResponse])
 async def list_chat_rooms(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
@@ -716,7 +715,7 @@ async def edit_message(
 @router.get("/rooms/{room_id}/messages", response_model=RoomMessagesResponse)
 async def get_messages(
     room_id: str,
-    after_updated_at: Optional[datetime] = None,
+    after_updated_at: datetime | None = None,
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),

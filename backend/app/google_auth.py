@@ -3,7 +3,7 @@ import os
 import re
 import time
 from datetime import UTC, datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import HTTPException, status
 from google.auth.exceptions import GoogleAuthError as GoogleAuthLibraryError
@@ -30,7 +30,7 @@ def is_google_auth_configured() -> bool:
     return bool(client_id and client_id.strip())
 
 
-def get_google_client_id() -> Optional[str]:
+def get_google_client_id() -> str | None:
     """Get Google OAuth client ID if configured."""
     if is_google_auth_configured():
         return os.getenv("GOOGLE_CLIENT_ID", "").strip()
@@ -53,7 +53,7 @@ class GoogleAuthError(Exception):
     pass
 
 
-def verify_google_token(token: str) -> Dict[str, Any]:
+def verify_google_token(token: str) -> dict[str, Any]:
     """
     Verify Google ID token and return user information
 
@@ -103,7 +103,7 @@ def verify_google_token(token: str) -> Dict[str, Any]:
         raise GoogleAuthError(f"Token verification failed: {str(e)}") from e
 
 
-def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> User:
+def get_or_create_google_user(db: Session, google_user_info: dict[str, Any]) -> User:
     """
     Get existing user or create new user from Google OAuth data
 

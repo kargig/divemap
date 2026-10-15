@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, selectinload
@@ -57,7 +55,7 @@ async def send_message(
 async def submit_feedback(
     feedback: ChatFeedbackCreate,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Submit user feedback (thumbs up/down) for a chatbot response.
@@ -97,7 +95,7 @@ async def get_last_activity(
     return {"last_activity_at": None}
 
 
-@router.get("/sessions", response_model=List[ChatSessionResponse])
+@router.get("/sessions", response_model=list[ChatSessionResponse])
 async def get_my_chat_sessions(
     response: Response,
     limit: int = Query(50, ge=1, le=100),

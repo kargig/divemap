@@ -1,7 +1,6 @@
 import re
 import unicodedata
 from datetime import UTC, datetime
-from typing import List, Optional, Tuple
 
 import orjson
 from cachetools import TTLCache, cached
@@ -374,12 +373,12 @@ UNIFIED_TYPO_TOLERANCE = {
 def calculate_unified_phrase_aware_score(
     query: str,
     primary_name: str,
-    description: Optional[str] = None,
-    country: Optional[str] = None,
-    region: Optional[str] = None,
-    city: Optional[str] = None,
-    tags: Optional[List[str]] = None,
-    additional_fields: Optional[dict] = None,
+    description: str | None = None,
+    country: str | None = None,
+    region: str | None = None,
+    city: str | None = None,
+    tags: list[str] | None = None,
+    additional_fields: dict | None = None,
 ) -> float:
     """
     Unified phrase-aware scoring function for all content types.
@@ -670,7 +669,7 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
+def normalize_datetime_to_utc(dt: datetime | None) -> datetime | None:
     """
     Ensure a datetime object is timezone-aware and set to UTC.
     If naive, assume it's already UTC (common with SQLite).
@@ -684,7 +683,7 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
 
 # Cache presigned URLs for 55 minutes (3300s) to safely beat the 1-hour expiration
 @cached(cache=TTLCache(maxsize=1024, ttl=3300))
-def _get_cached_avatar_url(avatar_url: str, avatar_type: str) -> Optional[str]:
+def _get_cached_avatar_url(avatar_url: str, avatar_type: str) -> str | None:
     """Helper to generate and cache presigned avatar URLs based on the raw URL string."""
     from app.schemas import AvatarType
     from app.services.r2_storage_service import r2_storage
@@ -738,7 +737,7 @@ def populate_center_media_urls(media_obj, response_dict: dict) -> dict:
     return response_dict
 
 
-def parse_gf_from_text(text: Optional[str]) -> Tuple[Optional[int], Optional[int]]:
+def parse_gf_from_text(text: str | None) -> tuple[int | None, int | None]:
     """
     Parse Gradient Factors (GF Low/High) from a text string.
     Looks for patterns like 'GF 30/70', 'GF: 30/70', 'Gradient Factors: 30/70', etc.

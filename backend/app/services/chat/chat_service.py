@@ -2,7 +2,6 @@ import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
@@ -73,7 +72,7 @@ Page Context: {page_context_summary}
 """
 
     async def process_message(
-        self, request: ChatRequest, current_user: Optional[User] = None
+        self, request: ChatRequest, current_user: User | None = None
     ) -> ChatResponse:
         """
         Agentic message processing loop using OpenAI Tool Calling.

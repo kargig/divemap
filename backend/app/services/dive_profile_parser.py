@@ -9,7 +9,7 @@ import logging
 import os
 import re
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class DiveProfileParser:
     def __init__(self):
         self.supported_formats = ["subsurface"]
 
-    def parse_xml_file(self, xml_file_path: str) -> Dict[str, Any]:
+    def parse_xml_file(self, xml_file_path: str) -> dict[str, Any]:
         """
         Parse a Subsurface XML file and extract dive profile data.
 
@@ -49,7 +49,7 @@ class DiveProfileParser:
             logger.error(f"Error parsing dive profile: {e}")
             raise ValueError(f"Error parsing dive profile: {str(e)}")
 
-    def parse_xml_content(self, xml_content: str) -> Dict[str, Any]:
+    def parse_xml_content(self, xml_content: str) -> dict[str, Any]:
         """
         Parse XML content string and extract dive profile data.
 
@@ -69,7 +69,7 @@ class DiveProfileParser:
             logger.error(f"Error parsing dive profile: {e}")
             raise ValueError(f"Failed to parse dive profile: {e}")
 
-    def _parse_dive_element(self, root: ET.Element) -> Dict[str, Any]:
+    def _parse_dive_element(self, root: ET.Element) -> dict[str, Any]:
         """Parse the root dive element and extract all dive data."""
         # Handle different XML structures
         if root.tag == "dives":
@@ -135,7 +135,7 @@ class DiveProfileParser:
 
         return dive_data
 
-    def _parse_dive_metadata(self, dive: ET.Element) -> Dict[str, Any]:
+    def _parse_dive_metadata(self, dive: ET.Element) -> dict[str, Any]:
         """Parse basic dive metadata from dive element."""
         metadata = {}
 
@@ -204,7 +204,7 @@ class DiveProfileParser:
 
         return metadata
 
-    def _parse_divecomputer_data(self, divecomputer: ET.Element) -> Dict[str, Any]:
+    def _parse_divecomputer_data(self, divecomputer: ET.Element) -> dict[str, Any]:
         """Parse dive computer specific data."""
         dc_data = {}
 
@@ -249,7 +249,7 @@ class DiveProfileParser:
 
         return dc_data
 
-    def _parse_sample_data(self, dive: ET.Element) -> List[Dict[str, Any]]:
+    def _parse_sample_data(self, dive: ET.Element) -> list[dict[str, Any]]:
         """Parse sample data from dive element."""
         samples = []
 
@@ -266,7 +266,7 @@ class DiveProfileParser:
 
         return samples
 
-    def _parse_events(self, dive: ET.Element) -> List[Dict[str, Any]]:
+    def _parse_events(self, dive: ET.Element) -> list[dict[str, Any]]:
         """Parse dive events from dive element."""
         events = []
 
@@ -289,8 +289,8 @@ class DiveProfileParser:
         return events
 
     def _calculate_derived_metrics(
-        self, samples: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, samples: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Calculate derived metrics from sample data."""
         if not samples:
             return {}
@@ -327,7 +327,7 @@ class DiveProfileParser:
             "temperature_range": temp_range,
         }
 
-    def _parse_depth(self, depth_str: Optional[str]) -> Optional[float]:
+    def _parse_depth(self, depth_str: str | None) -> float | None:
         """Parse depth string to float (meters)."""
         if not depth_str:
             return None
@@ -338,7 +338,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return None
 
-    def _parse_temperature(self, temp_str: Optional[str]) -> Optional[float]:
+    def _parse_temperature(self, temp_str: str | None) -> float | None:
         """Parse temperature string to float (Celsius)."""
         if not temp_str:
             return None
@@ -349,7 +349,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return None
 
-    def _parse_pressure(self, pressure_str: Optional[str]) -> Optional[float]:
+    def _parse_pressure(self, pressure_str: str | None) -> float | None:
         """Parse pressure string to float (bar)."""
         if not pressure_str:
             return None
@@ -360,7 +360,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return None
 
-    def _parse_salinity(self, salinity_str: Optional[str]) -> Optional[float]:
+    def _parse_salinity(self, salinity_str: str | None) -> float | None:
         """Parse salinity string to float (g/l)."""
         if not salinity_str:
             return None
@@ -371,7 +371,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return None
 
-    def _parse_cns(self, cns_str: Optional[str]) -> Optional[float]:
+    def _parse_cns(self, cns_str: str | None) -> float | None:
         """Parse CNS percentage string to float."""
         if not cns_str:
             return None
@@ -382,7 +382,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return None
 
-    def _parse_time_to_minutes(self, time_str: Optional[str]) -> float:
+    def _parse_time_to_minutes(self, time_str: str | None) -> float:
         """Parse time string to minutes (float)."""
         if not time_str:
             return 0.0
@@ -410,7 +410,7 @@ class DiveProfileParser:
         except (ValueError, AttributeError):
             return 0.0
 
-    def _parse_sample_element(self, sample: ET.Element) -> Dict[str, Any]:
+    def _parse_sample_element(self, sample: ET.Element) -> dict[str, Any]:
         """Parse a single sample element."""
         sample_data = {}
 
@@ -457,7 +457,7 @@ class DiveProfileParser:
 
         return sample_data
 
-    def _parse_event_element(self, event: ET.Element) -> Dict[str, Any]:
+    def _parse_event_element(self, event: ET.Element) -> dict[str, Any]:
         """Parse a single event element."""
         return {
             "time": event.get("time"),
@@ -471,8 +471,8 @@ class DiveProfileParser:
         }
 
     def _calculate_dive_statistics(
-        self, samples: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, samples: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Calculate dive statistics from sample data."""
         if not samples:
             return {

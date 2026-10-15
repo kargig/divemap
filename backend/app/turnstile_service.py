@@ -1,6 +1,6 @@
 import os
 import time
-from typing import Any, Dict
+from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
@@ -38,7 +38,7 @@ class TurnstileService:
                 )
             self._initialized = True
 
-    async def verify_token(self, token: str, remote_ip: str) -> Dict[str, Any]:
+    async def verify_token(self, token: str, remote_ip: str) -> dict[str, Any]:
         """Verify Turnstile token with Cloudflare"""
         self._ensure_initialized()
         start_time = time.time()

@@ -4,7 +4,7 @@ import random
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import orjson
 import requests
@@ -102,7 +102,7 @@ def calculate_phrase_aware_score(
     site_country: str,
     site_region: str,
     site_description: str,
-    site_tags: List[str] = None,
+    site_tags: list[str] = None,
 ) -> float:
     """
     Calculate a relevance score using phrase-aware logic that prioritizes site names
@@ -521,7 +521,7 @@ def apply_sorting(query, sort_by, sort_order, current_user, ratings_subquery=Non
 
 def search_dive_sites_with_fuzzy(
     query: str,
-    exact_results: List[DiveSite],
+    exact_results: list[DiveSite],
     db: Session,
     similarity_threshold: float = 0.2,
     max_fuzzy_results: int = 10,
@@ -844,7 +844,7 @@ def search_dive_sites_with_fuzzy(
     return final_results
 
 
-def _perform_reverse_geocode(latitude: float, longitude: float) -> Optional[Dict]:
+def _perform_reverse_geocode(latitude: float, longitude: float) -> dict | None:
     """Internal helper to perform reverse geocoding without requiring a Request object."""
     try:
         import requests
@@ -1152,39 +1152,39 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites(
     request: Request,
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         max_length=200,
         description="Unified search across name, country, region, and description",
     ),
-    name: Optional[str] = Query(None, max_length=100),
-    difficulty_code: Optional[str] = Query(
+    name: str | None = Query(None, max_length=100),
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dive sites with unspecified difficulty"
     ),
-    min_rating: Optional[float] = Query(
+    min_rating: float | None = Query(
         None, ge=0, le=10, description="Minimum average rating (0-10)"
     ),
-    tag_ids: Optional[List[int]] = Query(None),
-    country: Optional[str] = Query(None, max_length=100),
-    region: Optional[str] = Query(None, max_length=100),
-    my_dive_sites: Optional[bool] = Query(
+    tag_ids: list[int] | None = Query(None),
+    country: str | None = Query(None, max_length=100),
+    region: str | None = Query(None, max_length=100),
+    my_dive_sites: bool | None = Query(
         None, description="Filter to show only dive sites created by the current user"
     ),
-    created_by_username: Optional[str] = Query(
+    created_by_username: str | None = Query(
         None, description="Filter by username of the user who created the dive sites"
     ),
-    sort_by: Optional[str] = Query(
+    sort_by: str | None = Query(
         None,
         description="Sort field (name, country, region, difficulty_level, created_at, updated_at). Admin users can also sort by view_count and comment_count.",
     ),
-    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
+    sort_order: str | None = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
-    wind_suitability: Optional[str] = Query(
+    wind_suitability: str | None = Query(
         None,
         description="Filter by wind suitability range: 'good' (only good), 'caution' (good+caution), 'difficult' (good+caution+difficult), 'avoid' (all conditions)",
     ),
@@ -1192,35 +1192,35 @@ async def get_dive_sites(
         False,
         description="Include dive sites with unknown wind conditions in addition to the selected range",
     ),
-    datetime_str: Optional[str] = Query(
+    datetime_str: str | None = Query(
         None,
         description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS) for wind filtering. Defaults to current time. Max +2 days ahead.",
     ),
-    north: Optional[float] = Query(
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for viewport filtering"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for viewport filtering"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for viewport filtering"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for viewport filtering"
     ),
-    detail_level: Optional[str] = Query(
+    detail_level: str | None = Query(
         "full",
         description="Data detail level: 'minimal' (id, lat, lng only), 'basic' (id, name, lat, lng, difficulty, rating), 'full' (all fields)",
     ),
     include_archived: bool = Query(
         False, description="Include soft-deleted (archived) dive sites (Admin only)"
     ),
-    site_status: Optional[str] = Query(
+    site_status: str | None = Query(
         None,
         alias="status",
         description="Filter by status (approved, pending, rejected). Admin only for pending/rejected.",
     ),
-    dive_site_id: Optional[int] = Query(
+    dive_site_id: int | None = Query(
         None, description="Filter by a specific dive site ID"
     ),
     db: Session = Depends(get_db),
@@ -1969,46 +1969,46 @@ async def get_dive_sites(
 @skip_rate_limit_for_admin("60/minute")
 async def get_wind_recommendations(
     request: Request,
-    latitude: Optional[float] = Query(
+    latitude: float | None = Query(
         None, ge=-90, le=90, description="Latitude for wind data"
     ),
-    longitude: Optional[float] = Query(
+    longitude: float | None = Query(
         None, ge=-180, le=180, description="Longitude for wind data"
     ),
-    north: Optional[float] = Query(
+    north: float | None = Query(
         None, ge=-90, le=90, description="North bound for area query"
     ),
-    south: Optional[float] = Query(
+    south: float | None = Query(
         None, ge=-90, le=90, description="South bound for area query"
     ),
-    east: Optional[float] = Query(
+    east: float | None = Query(
         None, ge=-180, le=180, description="East bound for area query"
     ),
-    west: Optional[float] = Query(
+    west: float | None = Query(
         None, ge=-180, le=180, description="West bound for area query"
     ),
-    wind_direction: Optional[float] = Query(
+    wind_direction: float | None = Query(
         None,
         ge=0,
         le=360,
         description="Wind direction in degrees (optional, will fetch if not provided)",
     ),
-    wind_speed: Optional[float] = Query(
+    wind_speed: float | None = Query(
         None,
         ge=0,
         description="Wind speed in m/s (optional, will fetch if not provided)",
     ),
-    wind_gusts: Optional[float] = Query(
+    wind_gusts: float | None = Query(
         None, ge=0, description="Wind gusts in m/s (optional)"
     ),
-    datetime_str: Optional[str] = Query(
+    datetime_str: str | None = Query(
         None,
         description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead.",
     ),
     include_unknown: bool = Query(
         False, description="Include sites without shore_direction"
     ),
-    min_suitability: Optional[str] = Query(
+    min_suitability: str | None = Query(
         None, description="Minimum suitability filter: good, caution, difficult, avoid"
     ),
     current_user: Optional = Depends(get_current_user_optional),
@@ -2230,29 +2230,29 @@ async def get_wind_recommendations(
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_sites_count(
     request: Request,
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None,
         max_length=200,
         description="Unified search across name, country, region, and description",
     ),
-    name: Optional[str] = Query(None, max_length=100),
-    difficulty_code: Optional[str] = Query(
+    name: str | None = Query(None, max_length=100),
+    difficulty_code: str | None = Query(
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
     ),
     exclude_unspecified_difficulty: bool = Query(
         False, description="Exclude dive sites with unspecified difficulty"
     ),
-    min_rating: Optional[float] = Query(
+    min_rating: float | None = Query(
         None, ge=0, le=10, description="Minimum average rating (0-10)"
     ),
-    tag_ids: Optional[List[int]] = Query(None),
-    country: Optional[str] = Query(None, max_length=100),
-    region: Optional[str] = Query(None, max_length=100),
-    my_dive_sites: Optional[bool] = Query(
+    tag_ids: list[int] | None = Query(None),
+    country: str | None = Query(None, max_length=100),
+    region: str | None = Query(None, max_length=100),
+    my_dive_sites: bool | None = Query(
         None, description="Filter to show only dive sites created by the current user"
     ),
-    created_by_username: Optional[str] = Query(
+    created_by_username: str | None = Query(
         None, description="Filter by username of the user who created the dive sites"
     ),
     include_archived: bool = Query(
@@ -2398,7 +2398,7 @@ def is_similar_name(name1: str, name2: str) -> bool:
     return False
 
 
-@router.get("/check-proximity", response_model=List[dict])
+@router.get("/check-proximity", response_model=list[dict])
 @skip_rate_limit_for_admin("300/minute")
 async def check_proximity(
     request: Request,
@@ -2636,12 +2636,12 @@ async def create_dive_site(
 from fastapi_cache.decorator import cache
 
 
-@router.get("/countries", response_model=List[str])
+@router.get("/countries", response_model=list[str])
 @skip_rate_limit_for_admin("100/minute")
 @cache(expire=3600)
 async def get_unique_countries(
     request: Request,
-    search: Optional[str] = Query(None, max_length=100),
+    search: str | None = Query(None, max_length=100),
     db: Session = Depends(get_db),
 ):
     """Get unique countries from dive sites with optional search"""
@@ -2654,13 +2654,13 @@ async def get_unique_countries(
     return [c[0] for c in countries]
 
 
-@router.get("/regions", response_model=List[DiveSiteRegionOption])
+@router.get("/regions", response_model=list[DiveSiteRegionOption])
 @skip_rate_limit_for_admin("100/minute")
 @cache(expire=3600)
 async def get_unique_region_options(
     request: Request,
-    country: Optional[str] = Query(None, max_length=100),
-    search: Optional[str] = Query(None, max_length=100),
+    country: str | None = Query(None, max_length=100),
+    search: str | None = Query(None, max_length=100),
     db: Session = Depends(get_db),
 ):
     """Get unique regions (with country) from dive sites with optional country and search filtering.
@@ -2926,13 +2926,13 @@ async def get_dive_site(
     return response_data
 
 
-@router.get("/{dive_site_id}/media", response_model=List[SiteMediaResponse])
+@router.get("/{dive_site_id}/media", response_model=list[SiteMediaResponse])
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_media(
     request: Request,
     dive_site_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
 
     # Check if dive site exists
@@ -4053,7 +4053,7 @@ async def rate_dive_site(
         return db_rating
 
 
-@router.get("/{dive_site_id}/comments", response_model=List[SiteCommentResponse])
+@router.get("/{dive_site_id}/comments", response_model=list[SiteCommentResponse])
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_comments(
     request: Request, dive_site_id: int, db: Session = Depends(get_db)
@@ -4167,7 +4167,7 @@ async def create_dive_site_comment(
     }
 
 
-@router.get("/{dive_site_id}/nearby", response_model=List[DiveSiteResponse])
+@router.get("/{dive_site_id}/nearby", response_model=list[DiveSiteResponse])
 @skip_rate_limit_for_admin("250/minute")
 async def get_nearby_dive_sites(
     request: Request,
@@ -4319,7 +4319,7 @@ async def get_nearby_dive_sites(
     return nearby_sites
 
 
-@router.get("/{dive_site_id}/dives", response_model=List[DiveResponse])
+@router.get("/{dive_site_id}/dives", response_model=list[DiveResponse])
 @skip_rate_limit_for_admin("250/minute")
 async def get_dive_site_dives(
     request: Request,
@@ -4447,7 +4447,7 @@ async def get_dive_site_dives(
 
 
 # Dive Site Alias Endpoints
-@router.get("/{dive_site_id}/aliases", response_model=List[DiveSiteAliasResponse])
+@router.get("/{dive_site_id}/aliases", response_model=list[DiveSiteAliasResponse])
 async def get_dive_site_aliases(
     request: Request, dive_site_id: int, db: Session = Depends(get_db)
 ):
@@ -4611,7 +4611,7 @@ async def delete_dive_site_alias(
 
 
 # Dive Routes endpoints for dive sites
-@router.get("/{dive_site_id}/routes", response_model=List[DiveRouteWithCreator])
+@router.get("/{dive_site_id}/routes", response_model=list[DiveRouteWithCreator])
 async def get_dive_site_routes(
     dive_site_id: int,
     current_user: User = Depends(get_current_user_optional),
@@ -4705,8 +4705,8 @@ async def create_dive_site_route(
 async def detect_shore_direction_for_dive_site(
     request: Request,
     dive_site_id: int,
-    latitude: Optional[float] = Query(None, ge=-90, le=90),
-    longitude: Optional[float] = Query(None, ge=-180, le=180),
+    latitude: float | None = Query(None, ge=-90, le=90),
+    longitude: float | None = Query(None, ge=-180, le=180),
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):

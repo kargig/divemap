@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -18,9 +16,9 @@ from app.schemas.chat import (
 router = APIRouter()
 
 
-@router.get("/sessions", response_model=List[ChatSessionResponse])
+@router.get("/sessions", response_model=list[ChatSessionResponse])
 async def get_chat_sessions(
-    username: Optional[str] = Query(None),
+    username: str | None = Query(None),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -142,12 +140,12 @@ async def delete_chat_session(
     return None
 
 
-@router.get("/feedback", response_model=List[ChatFeedbackResponse])
+@router.get("/feedback", response_model=list[ChatFeedbackResponse])
 async def get_chat_feedback(
-    rating: Optional[int] = Query(
+    rating: int | None = Query(
         None, description="Filter by rating (1 for positive, -1 for negative)"
     ),
-    category: Optional[str] = Query(None, description="Filter by category"),
+    category: str | None = Query(None, description="Filter by category"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),

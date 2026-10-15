@@ -9,7 +9,7 @@ import logging
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import orjson
 
@@ -106,9 +106,9 @@ class SESService:
         to_email: str,
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
+        text_body: str | None = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
     ) -> bool:
         """
         Send email via AWS SES.
@@ -184,13 +184,13 @@ class SESService:
 
     def send_bulk_email(
         self,
-        destinations: List[Dict[str, str]],
+        destinations: list[dict[str, str]],
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        text_body: str | None = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
+    ) -> dict[str, Any]:
         """
         Send bulk emails via AWS SES (up to 50 recipients).
 
@@ -284,13 +284,13 @@ class SESService:
 
     def _send_individual_emails(
         self,
-        destinations: List[Dict[str, str]],
+        destinations: list[dict[str, str]],
         subject: str,
         html_body: str,
-        text_body: Optional[str],
+        text_body: str | None,
         from_email: str,
         from_name: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Fallback: Send emails individually."""
         success_count = 0
         failed_count = 0

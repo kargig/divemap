@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -18,14 +18,14 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    history: List[ChatMessage] = []
-    session_id: Optional[str] = None  # For persistence
-    user_location: Optional[Tuple[float, float]] = None  # (lat, lon)
-    client_ip: Optional[str] = None  # For IP-based geolocation
-    map_context: Optional[Dict[str, float]] = None  # {lat, lng, zoom} from URL
-    page_context: Optional[Dict] = None  # Rich context about the current page
-    context_entity_id: Optional[int] = None
-    context_entity_type: Optional[str] = None  # 'dive_site', 'diving_center', etc.
+    history: list[ChatMessage] = []
+    session_id: str | None = None  # For persistence
+    user_location: tuple[float, float] | None = None  # (lat, lon)
+    client_ip: str | None = None  # For IP-based geolocation
+    map_context: dict[str, float] | None = None  # {lat, lng, zoom} from URL
+    page_context: dict | None = None  # Rich context about the current page
+    context_entity_id: int | None = None
+    context_entity_type: str | None = None  # 'dive_site', 'diving_center', etc.
 
 
 class IntentType(str, Enum):
@@ -46,35 +46,35 @@ class ChatIntermediateAction(BaseModel):
     action_type: Literal[
         "search", "resolve_location", "refine_intent", "final_answer", "tool_call"
     ]
-    tool_name: Optional[str] = None
-    tool_args: Optional[Dict] = None
-    tool_result: Optional[Any] = None
-    reasoning: Optional[str] = None
-    execution_time_ms: Optional[float] = None
+    tool_name: str | None = None
+    tool_args: dict | None = None
+    tool_result: Any | None = None
+    reasoning: str | None = None
+    execution_time_ms: float | None = None
 
 
 class ChatResponse(BaseModel):
     response: str
     message_id: str  # UUID to link feedback
     session_id: str  # UUID for history
-    sources: List[Dict] = []  # Metadata about retrieved entities
-    intermediate_steps: List[ChatIntermediateAction] = []
+    sources: list[dict] = []  # Metadata about retrieved entities
+    intermediate_steps: list[ChatIntermediateAction] = []
 
 
 class ChatFeedbackCreate(BaseModel):
     message_id: str
-    query: Optional[str] = None
-    response: Optional[str] = None
-    debug_data: Optional[Dict] = None
+    query: str | None = None
+    response: str | None = None
+    debug_data: dict | None = None
     rating: bool  # True for Up, False for Down
-    category: Optional[str] = None  # "accuracy", "tone", "safety"
-    comments: Optional[str] = None
+    category: str | None = None  # "accuracy", "tone", "safety"
+    comments: str | None = None
 
 
 class ChatUser(BaseModel):
     id: int
     username: str
-    email: Optional[str] = None
+    email: str | None = None
 
     class Config:
         from_attributes = True
@@ -82,15 +82,15 @@ class ChatUser(BaseModel):
 
 class ChatFeedbackResponse(BaseModel):
     id: int
-    message_id: Optional[str]
-    user_id: Optional[int]
-    user: Optional[ChatUser] = None
-    query: Optional[str]
-    response: Optional[str]
-    debug_data: Optional[Dict]
+    message_id: str | None
+    user_id: int | None
+    user: ChatUser | None = None
+    query: str | None
+    response: str | None
+    debug_data: dict | None
     rating: bool
-    category: Optional[str]
-    comments: Optional[str]
+    category: str | None
+    comments: str | None
     created_at: datetime
 
     class Config:
@@ -102,19 +102,19 @@ class ChatFeedbackStats(BaseModel):
     positive_count: int
     negative_count: int
     satisfaction_rate: float
-    category_breakdown: Dict[str, int]
+    category_breakdown: dict[str, int]
 
 
 class ChatMessageResponse(BaseModel):
     id: int
     role: str
     content: str
-    debug_data: Optional[Dict] = None
+    debug_data: dict | None = None
     created_at: datetime
-    tokens_input: Optional[int] = None
-    tokens_output: Optional[int] = None
-    tokens_cached: Optional[int] = None
-    tokens_total: Optional[int] = None
+    tokens_input: int | None = None
+    tokens_output: int | None = None
+    tokens_cached: int | None = None
+    tokens_total: int | None = None
 
     class Config:
         from_attributes = True
@@ -123,11 +123,11 @@ class ChatMessageResponse(BaseModel):
 class ChatSessionResponse(BaseModel):
     id: str
     user_id: int
-    user: Optional[ChatUser] = None
+    user: ChatUser | None = None
     created_at: datetime
     updated_at: datetime
     total_tokens: int = 0
-    first_question: Optional[str] = None
+    first_question: str | None = None
     prompt_count: int = 0
 
     class Config:
@@ -135,4 +135,4 @@ class ChatSessionResponse(BaseModel):
 
 
 class ChatSessionDetailResponse(ChatSessionResponse):
-    messages: List[ChatMessageResponse] = []
+    messages: list[ChatMessageResponse] = []

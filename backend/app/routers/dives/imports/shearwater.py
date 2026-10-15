@@ -6,7 +6,7 @@ import sqlite3
 import struct
 import tempfile
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from fastapi import Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -43,7 +43,7 @@ _DIVE_MODE_LABELS = [
 ]
 
 
-def decompress_sw_pnf(blob: bytes) -> Optional[bytes]:
+def decompress_sw_pnf(blob: bytes) -> bytes | None:
     if len(blob) < 8:
         return None
     try:
@@ -54,7 +54,7 @@ def decompress_sw_pnf(blob: bytes) -> Optional[bytes]:
         return None
 
 
-def parse_pnf_samples(decompressed_data: bytes) -> List[Dict[str, Any]]:
+def parse_pnf_samples(decompressed_data: bytes) -> list[dict[str, Any]]:
     samples = []
     sample_index = 0
 
@@ -111,7 +111,7 @@ def parse_pnf_samples(decompressed_data: bytes) -> List[Dict[str, Any]]:
 
 def extract_gf_from_pnf(
     decompressed_data: bytes,
-) -> Tuple[Optional[int], Optional[int]]:
+) -> tuple[int | None, int | None]:
     if not decompressed_data:
         return None, None
     for i in range(0, len(decompressed_data), BLOCK_SIZE):
@@ -127,7 +127,7 @@ def extract_gf_from_pnf(
     return None, None
 
 
-def parse_tank_size(size_str: Optional[str]) -> float:
+def parse_tank_size(size_str: str | None) -> float:
     if not size_str:
         return 12.0
     clean = size_str.upper().strip()
@@ -158,8 +158,8 @@ def parse_tank_size(size_str: Optional[str]) -> float:
 
 
 def parse_shearwater_sqlite(
-    db_path: str, db: Session, all_sites: List = None
-) -> List[Dict[str, Any]]:
+    db_path: str, db: Session, all_sites: list = None
+) -> list[dict[str, Any]]:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()

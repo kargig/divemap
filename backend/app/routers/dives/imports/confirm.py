@@ -1,5 +1,4 @@
 from datetime import date, datetime, time
-from typing import List
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -22,7 +21,7 @@ from .common import convert_difficulty_to_code, save_dive_profile_data
 
 @router.post("/import/confirm")
 async def confirm_import_dives(
-    dives_data: List[dict],
+    dives_data: list[dict],
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):

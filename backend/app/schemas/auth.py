@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -20,12 +18,12 @@ class PasswordResetConfirm(BaseModel):
 
 class GoogleProviderConfig(BaseModel):
     enabled: bool
-    client_id: Optional[str] = None
+    client_id: str | None = None
 
 
 class FacebookProviderConfig(BaseModel):
     enabled: bool
-    app_id: Optional[str] = None
+    app_id: str | None = None
 
 
 class AuthConfigResponse(BaseModel):

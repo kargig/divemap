@@ -9,8 +9,6 @@ This module implements:
 4. Unit conversions and standard constants.
 """
 
-from typing import List, Optional
-
 from pydantic import BaseModel
 
 # -----------------------------------------------------------------------------
@@ -72,7 +70,7 @@ def calculate_z_factor(pressure_bar: float, gas: GasMix) -> float:
     N2_COEFFS = [-2.19260353292e-4, 2.92844845532e-6, -2.07613482075e-9]
     HE_COEFFS = [4.87320026468e-4, -8.83632921053e-8, 5.33304543646e-11]
 
-    def virial(coeffs: List[float], x: float) -> float:
+    def virial(coeffs: list[float], x: float) -> float:
         return x * coeffs[0] + (x**2) * coeffs[1] + (x**3) * coeffs[2]
 
     # Subsurface calculation uses weighted averages of the virial terms
@@ -264,7 +262,7 @@ class ICDResult(BaseModel):
     warning: bool
     delta_n2: float
     delta_he: float
-    message: Optional[str] = None
+    message: str | None = None
 
 
 def check_isobaric_counterdiffusion(current_gas: GasMix, next_gas: GasMix) -> ICDResult:

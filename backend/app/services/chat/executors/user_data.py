@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -10,11 +9,11 @@ logger = logging.getLogger(__name__)
 
 def execute_get_user_dive_logs(
     db: Session,
-    current_user: Optional[User] = None,
+    current_user: User | None = None,
     limit: int = 5,
-    dive_site_name: Optional[str] = None,
+    dive_site_name: str | None = None,
     **kwargs,
-) -> List[Dict]:
+) -> list[dict]:
     results = []
 
     if not current_user:

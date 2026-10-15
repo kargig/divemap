@@ -9,7 +9,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -69,8 +69,8 @@ class EmailService:
             return None
 
     def _render_template(
-        self, template_name: str, context: Dict[str, Any], extension: str = "html"
-    ) -> Optional[str]:
+        self, template_name: str, context: dict[str, Any], extension: str = "html"
+    ) -> str | None:
         """
         Render email template with context.
 
@@ -96,13 +96,13 @@ class EmailService:
     def send_notification_email(
         self,
         user_email: str,
-        notification: Dict[str, Any],
+        notification: dict[str, Any],
         template_name: str,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
-        user_id: Optional[int] = None,
-        db: Optional[Session] = None,
-        unsubscribe_token: Optional[str] = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
+        user_id: int | None = None,
+        db: Session | None = None,
+        unsubscribe_token: str | None = None,
     ) -> bool:
         """
         Send notification email using template.
@@ -198,13 +198,13 @@ class EmailService:
     def send_digest_email(
         self,
         user_email: str,
-        notifications: list[Dict[str, Any]],
+        notifications: list[dict[str, Any]],
         frequency: str,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
-        user_id: Optional[int] = None,
-        db: Optional[Session] = None,
-        unsubscribe_token: Optional[str] = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
+        user_id: int | None = None,
+        db: Session | None = None,
+        unsubscribe_token: str | None = None,
     ) -> bool:
         """
         Send digest email with multiple notifications.
@@ -309,8 +309,8 @@ class EmailService:
         self,
         user_email: str,
         verification_token: str,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
     ) -> bool:
         """
         Send email verification email with verification link.
@@ -380,8 +380,8 @@ class EmailService:
         self,
         user_email: str,
         reset_token: str,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
     ) -> bool:
         """
         Send password reset email with reset link.
@@ -437,8 +437,8 @@ class EmailService:
     def send_password_changed_email(
         self,
         user_email: str,
-        from_email: Optional[str] = None,
-        from_name: Optional[str] = None,
+        from_email: str | None = None,
+        from_name: str | None = None,
     ) -> bool:
         """
         Send password changed confirmation email.
@@ -484,7 +484,7 @@ class EmailService:
             from_name=from_name,
         )
 
-    def get_email_config(self, db: Optional[Session] = None) -> Optional[Any]:
+    def get_email_config(self, db: Session | None = None) -> Any | None:
         """
         Get active email configuration from database.
 
@@ -503,7 +503,7 @@ class EmailService:
             logger.error(f"Error fetching email config: {e}")
             return None
 
-    def test_email_connection(self, config: Optional[Any] = None) -> bool:
+    def test_email_connection(self, config: Any | None = None) -> bool:
         """
         Test email configuration by sending a test email.
 

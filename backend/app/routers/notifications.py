@@ -7,7 +7,7 @@ API endpoints for notification management, preferences, and email configuration.
 import logging
 import os
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
 from fastapi.responses import JSONResponse
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _serialize_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
+def _serialize_datetime_utc(dt: datetime | None) -> str | None:
     """
     Serialize datetime to ISO string, ensuring it's in UTC.
 
@@ -166,9 +166,9 @@ verify_lambda_api_key = verify_api_key
 @router.get("", include_in_schema=False)
 @router.get("/")
 def get_notifications(
-    is_read: Optional[bool] = Query(None, description="Filter by read status"),
-    category: Optional[str] = Query(None, description="Filter by category"),
-    since: Optional[str] = Query(
+    is_read: bool | None = Query(None, description="Filter by read status"),
+    category: str | None = Query(None, description="Filter by category"),
+    since: str | None = Query(
         None, description="ISO datetime - only notifications created after this time"
     ),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
@@ -306,7 +306,7 @@ def get_unread_count(
     return {"unread_count": count}
 
 
-@router.get("/new-since-last-check", response_model=List[NotificationResponse])
+@router.get("/new-since-last-check", response_model=list[NotificationResponse])
 def get_new_since_last_check(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ):
@@ -465,7 +465,7 @@ def delete_notification(
 
 
 # Preference Endpoints
-@router.get("/preferences", response_model=List[NotificationPreferenceResponse])
+@router.get("/preferences", response_model=list[NotificationPreferenceResponse])
 def get_notification_preferences(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)
 ):
@@ -968,7 +968,7 @@ def create_email_config(
 # Admin User Notification Preferences Endpoints
 @router.get(
     "/admin/users/{user_id}/preferences",
-    response_model=List[NotificationPreferenceResponse],
+    response_model=list[NotificationPreferenceResponse],
 )
 def get_user_notification_preferences(
     user_id: int,
@@ -1261,7 +1261,7 @@ def unsubscribe_push(
 
 @router.get(
     "/internal/push-subscriptions/{user_id}",
-    response_model=List[PushSubscriptionResponse],
+    response_model=list[PushSubscriptionResponse],
 )
 def get_user_push_subscriptions_for_lambda(
     user_id: int,
@@ -1436,7 +1436,7 @@ async def get_broadcast_targets(
 
 @router.post("/internal/create-bulk")
 async def create_bulk_notifications(
-    requests: List[Dict[str, Any]],
+    requests: list[dict[str, Any]],
     db: Session = Depends(get_db),
     notification_service: NotificationService = Depends(NotificationService),
     _: bool = Depends(verify_lambda_api_key),

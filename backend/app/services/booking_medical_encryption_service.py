@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import orjson
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
@@ -15,7 +15,7 @@ class MedicalEncryptionError(Exception):
 
 
 class BookingMedicalEncryptionService:
-    def __init__(self, master_keys: Optional[List[str]] = None):
+    def __init__(self, master_keys: list[str] | None = None):
         self._explicit_keys = master_keys
 
     def _get_fernets(self) -> MultiFernet:
@@ -47,7 +47,7 @@ class BookingMedicalEncryptionService:
                 f"Invalid master encryption key configuration: {e}"
             )
 
-    def encrypt_answers(self, answers: Dict[str, Any]) -> Tuple[str, bytes]:
+    def encrypt_answers(self, answers: dict[str, Any]) -> tuple[str, bytes]:
         multi_fernet = self._get_fernets()
         try:
             dek = Fernet.generate_key()
@@ -64,7 +64,7 @@ class BookingMedicalEncryptionService:
 
     def decrypt_answers(
         self, encrypted_dek: str, encrypted_payload: bytes
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         multi_fernet = self._get_fernets()
         try:
             dek = multi_fernet.decrypt(encrypted_dek.encode("utf-8"))

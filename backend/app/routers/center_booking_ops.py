@@ -2,7 +2,7 @@ import logging
 import re
 import uuid
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import BaseModel
@@ -82,7 +82,7 @@ def is_bona_fide_center_staff(db: Session, center_id: int, user: User) -> bool:
     return manager is not None
 
 
-def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
+def ensure_aware(dt: datetime | None) -> datetime | None:
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt
@@ -107,54 +107,54 @@ DMSC_QUESTION_TEXTS = {
 
 class ClearMedicalOverrideRequest(BaseModel):
     physician_name: str
-    physician_clinic: Optional[str] = None
-    clearance_date: Optional[date] = None
-    notes: Optional[str] = None
+    physician_clinic: str | None = None
+    clearance_date: date | None = None
+    notes: str | None = None
     confirmed_physical_form_inspected: bool = True
 
 
 class UpdateMedicalAnswersRequest(BaseModel):
-    answers: Dict[str, bool]
+    answers: dict[str, bool]
     reason: str
 
 
 class WalkInParticipantCreate(BaseModel):
     diver_full_name: str
-    diver_email: Optional[str] = None
-    diver_phone: Optional[str] = None
-    diver_nationality: Optional[str] = None
-    passport_number: Optional[str] = None
-    date_of_birth: Optional[date] = None
-    certification_agency: Optional[str] = "PADI"
-    certification_level: Optional[str] = "Open Water"
-    certification_number: Optional[str] = None
-    selected_tank_id: Optional[str] = "12"
-    selected_gas_mix_id: Optional[str] = "air"
-    equipment_sizing: Optional[Dict[str, Any]] = None
-    mark_as_paid: Optional[bool] = True
-    onboard_checkin_status: Optional[bool] = False
+    diver_email: str | None = None
+    diver_phone: str | None = None
+    diver_nationality: str | None = None
+    passport_number: str | None = None
+    date_of_birth: date | None = None
+    certification_agency: str | None = "PADI"
+    certification_level: str | None = "Open Water"
+    certification_number: str | None = None
+    selected_tank_id: str | None = "12"
+    selected_gas_mix_id: str | None = "air"
+    equipment_sizing: dict[str, Any] | None = None
+    mark_as_paid: bool | None = True
+    onboard_checkin_status: bool | None = False
 
 
 class ParticipantUpdateRequest(BaseModel):
-    diver_full_name: Optional[str] = None
-    diver_email: Optional[str] = None
-    diver_phone: Optional[str] = None
-    diver_nationality: Optional[str] = None
-    passport_number: Optional[str] = None
-    certification_agency: Optional[str] = None
-    certification_level: Optional[str] = None
-    certification_number: Optional[str] = None
-    selected_tank_id: Optional[str] = None
-    selected_gas_mix_id: Optional[str] = None
-    equipment_sizing: Optional[Dict[str, Any]] = None
+    diver_full_name: str | None = None
+    diver_email: str | None = None
+    diver_phone: str | None = None
+    diver_nationality: str | None = None
+    passport_number: str | None = None
+    certification_agency: str | None = None
+    certification_level: str | None = None
+    certification_number: str | None = None
+    selected_tank_id: str | None = None
+    selected_gas_mix_id: str | None = None
+    equipment_sizing: dict[str, Any] | None = None
 
 
 class StaffUpdateRequest(BaseModel):
-    skipper_name: Optional[str] = "Captain"
-    skipper_license: Optional[str] = None
-    lead_guide_name: Optional[str] = "Lead Divemaster"
-    lead_guide_cert: Optional[str] = None
-    crew_names: Optional[List[str]] = []
+    skipper_name: str | None = "Captain"
+    skipper_license: str | None = None
+    lead_guide_name: str | None = "Lead Divemaster"
+    lead_guide_cert: str | None = None
+    crew_names: list[str] | None = []
 
 
 # --- Helper ---
@@ -256,7 +256,7 @@ def reconcile_slot_seats(
 
 def get_slot_manifest_data(
     db: Session, center: DivingCenter, slot: OctoAvailabilitySlot
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     reconcile_slot_seats(db, slot)
     vessel = slot.vessel
     vessel_data = {
@@ -364,7 +364,7 @@ def get_slot_manifest_data(
         if not b.user and item.diver_email and item.diver_email.strip()
     }
 
-    med_by_item_id: Dict[str, DiverMedicalRecord] = {}
+    med_by_item_id: dict[str, DiverMedicalRecord] = {}
     if item_ids:
         med_by_item_id = {
             m.booking_unit_item_id: m
@@ -376,13 +376,13 @@ def get_slot_manifest_data(
             )
         }
 
-    unit_by_id: Dict[str, OctoUnit] = {}
+    unit_by_id: dict[str, OctoUnit] = {}
     if unit_ids:
         unit_by_id = {
             u.id: u for u in db.query(OctoUnit).filter(OctoUnit.id.in_(unit_ids)).all()
         }
 
-    user_by_email: Dict[str, User] = {}
+    user_by_email: dict[str, User] = {}
     if email_lookups:
         for u in (
             db.query(User).filter(func.lower(User.email).in_(list(email_lookups))).all()
@@ -398,7 +398,7 @@ def get_slot_manifest_data(
         if u:
             user_ids.add(u.id)
 
-    dive_count_by_user: Dict[int, int] = {}
+    dive_count_by_user: dict[int, int] = {}
     if user_ids:
         dive_count_by_user = dict(
             db.query(Dive.user_id, func.count(Dive.id))
@@ -772,22 +772,22 @@ def get_slot_manifest_data(
 class CenterTripSummaryItem(BaseModel):
     tripId: int
     tripDate: str
-    tripTime: Optional[str] = None
-    title: Optional[str] = None
+    tripTime: str | None = None
+    title: str | None = None
     isBookable: bool
-    octoSlotId: Optional[str] = None
+    octoSlotId: str | None = None
     seatsTotal: int
     seatsBooked: int
     seatsAvailable: int
     occupancyRate: float
     hasBriefing: bool
-    briefingStatus: Optional[str] = None
+    briefingStatus: str | None = None
 
 
 # --- Endpoints ---
 
 
-@router.get("/trips-summary", response_model=List[CenterTripSummaryItem])
+@router.get("/trips-summary", response_model=list[CenterTripSummaryItem])
 def get_center_trips_summary(
     center_id: int,
     db: Session = Depends(get_db),
@@ -1641,8 +1641,8 @@ def clear_participant_medical(
 
 class GrantCenterAnnualApprovalRequest(BaseModel):
     physician_name: str
-    physician_clinic: Optional[str] = None
-    approval_notes: Optional[str] = None
+    physician_clinic: str | None = None
+    approval_notes: str | None = None
     validity_days: int = 365
 
 
@@ -2161,10 +2161,10 @@ def export_port_authority_manifest(
 
 
 class RentalPricingUpdateRequest(BaseModel):
-    currency: Optional[str] = "EUR"
-    full_kit_package: Optional[float] = 30.0
-    pricing_mode: Optional[str] = "ITEMIZED_OR_PACKAGE"
-    items: Optional[Dict[str, float]] = None
+    currency: str | None = "EUR"
+    full_kit_package: float | None = 30.0
+    pricing_mode: str | None = "ITEMIZED_OR_PACKAGE"
+    items: dict[str, float] | None = None
 
 
 @router.get("/rental-pricing")
@@ -2272,14 +2272,14 @@ def update_center_rental_pricing(
 
 
 class BriefingUpdateRequest(BaseModel):
-    active_dive_site_id: Optional[int] = None
-    meeting_notes: Optional[str] = None
-    site_profile_notes: Optional[str] = None
-    hazards_and_safety_notes: Optional[str] = None
-    marine_life_highlights: Optional[List[Dict[str, Any]]] = None
-    crew_manifest: Optional[Dict[str, Any]] = None
-    emergency_action_plan: Optional[Dict[str, Any]] = None
-    contingency_notes: Optional[str] = None
+    active_dive_site_id: int | None = None
+    meeting_notes: str | None = None
+    site_profile_notes: str | None = None
+    hazards_and_safety_notes: str | None = None
+    marine_life_highlights: list[dict[str, Any]] | None = None
+    crew_manifest: dict[str, Any] | None = None
+    emergency_action_plan: dict[str, Any] | None = None
+    contingency_notes: str | None = None
 
 
 @router.get("/trips/{trip_id}/briefing")

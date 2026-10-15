@@ -6,7 +6,6 @@ import hashlib
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Optional, Tuple
 from urllib.parse import urlparse
 
 from fastapi import HTTPException, status
@@ -29,7 +28,7 @@ def _utcnow() -> datetime:
 
 
 def mint_booking_access_token(
-    booking: OctoBooking, expires_at: Optional[datetime] = None
+    booking: OctoBooking, expires_at: datetime | None = None
 ) -> str:
     raw = secrets.token_urlsafe(32)
     booking.access_token_hash = hash_booking_token(raw)
@@ -48,7 +47,7 @@ def mint_claim_token(unit_item: OctoBookingUnitItem) -> str:
     return raw
 
 
-def verify_booking_access(booking: OctoBooking, raw_token: Optional[str]) -> bool:
+def verify_booking_access(booking: OctoBooking, raw_token: str | None) -> bool:
     if not raw_token or not booking.access_token_hash:
         return False
     if booking.status in ("CANCELLED", "EXPIRED"):
@@ -66,7 +65,7 @@ def verify_booking_access(booking: OctoBooking, raw_token: Optional[str]) -> boo
 
 def verify_claim_token(
     unit_item: OctoBookingUnitItem,
-    raw_token: Optional[str],
+    raw_token: str | None,
     *,
     for_write: bool = False,
 ) -> bool:
@@ -97,13 +96,13 @@ def bump_linked_trip_current_bookings(booking: OctoBooking, delta: int) -> None:
     trip.current_bookings = max(0, (trip.current_bookings or 0) + delta)
 
 
-def emails_equal(a: Optional[str], b: Optional[str]) -> bool:
+def emails_equal(a: str | None, b: str | None) -> bool:
     if not a or not b:
         return False
     return a.strip().lower() == b.strip().lower()
 
 
-def is_booking_owner(booking: OctoBooking, user: Optional[User]) -> bool:
+def is_booking_owner(booking: OctoBooking, user: User | None) -> bool:
     if not user:
         return False
     if booking.user_id and booking.user_id == user.id:
@@ -120,8 +119,8 @@ def is_booking_owner(booking: OctoBooking, user: Optional[User]) -> bool:
 
 def require_booking_principal(
     booking: OctoBooking,
-    current_user: Optional[User],
-    access_token: Optional[str],
+    current_user: User | None,
+    access_token: str | None,
 ) -> None:
     """Raise 401/403 unless session owner or valid booking access token."""
     if is_booking_owner(booking, current_user):
@@ -210,7 +209,7 @@ def assert_participant_on_center_trip(
     return item
 
 
-def get_physician_certificate_allowed_hosts() -> Tuple[str, ...]:
+def get_physician_certificate_allowed_hosts() -> tuple[str, ...]:
     raw = os.environ.get(
         "PHYSICIAN_CERTIFICATE_ALLOWED_HOSTS",
         "divemap.blue,www.divemap.blue,uploads.divemap.blue,localhost,127.0.0.1",
@@ -218,7 +217,7 @@ def get_physician_certificate_allowed_hosts() -> Tuple[str, ...]:
     return tuple(h.strip().lower() for h in raw.split(",") if h.strip())
 
 
-def validate_physician_certificate_url(url: Optional[str]) -> Optional[str]:
+def validate_physician_certificate_url(url: str | None) -> str | None:
     if url is None:
         return None
     cleaned = url.strip()
@@ -241,9 +240,9 @@ def validate_physician_certificate_url(url: Optional[str]) -> Optional[str]:
 
 
 def extract_access_token(
-    header_token: Optional[str] = None,
-    query_token: Optional[str] = None,
-) -> Optional[str]:
+    header_token: str | None = None,
+    query_token: str | None = None,
+) -> str | None:
     if header_token and header_token.strip():
         return header_token.strip()
     if query_token and query_token.strip():

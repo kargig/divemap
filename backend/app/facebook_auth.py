@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import secrets
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 from sqlalchemy.orm import Session
@@ -30,7 +30,7 @@ def is_facebook_auth_configured() -> bool:
     return bool(app_id and app_id.strip() and app_secret and app_secret.strip())
 
 
-def get_facebook_app_id() -> Optional[str]:
+def get_facebook_app_id() -> str | None:
     """Get Facebook App ID if Facebook auth is fully configured."""
     if is_facebook_auth_configured():
         return os.getenv("FACEBOOK_APP_ID", "").strip()
@@ -46,7 +46,7 @@ def _compute_appsecret_proof(token: str, app_secret: str) -> str:
     ).hexdigest()
 
 
-def verify_facebook_token(token: str) -> Dict[str, Any]:
+def verify_facebook_token(token: str) -> dict[str, Any]:
     """Verify Facebook user access token is valid and issued for this app."""
     if not is_facebook_auth_configured():
         raise FacebookAuthError("Facebook OAuth is not configured on this server.")
@@ -152,7 +152,7 @@ def _generate_valid_username(db: Session, base_name: str, fb_id: str) -> str:
     return candidate
 
 
-def get_or_create_facebook_user(db: Session, fb_info: Dict[str, Any]) -> User:
+def get_or_create_facebook_user(db: Session, fb_info: dict[str, Any]) -> User:
     """Find existing Facebook user or register a new one with a synthetic email."""
     fb_id = fb_info["id"]
     picture_url = fb_info.get("picture_url")

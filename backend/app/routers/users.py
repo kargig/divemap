@@ -2,7 +2,6 @@ import base64
 import re
 import secrets
 import uuid
-from typing import List, Optional
 
 from fastapi import (
     APIRouter,
@@ -84,7 +83,7 @@ from app.utils import populate_avatar_full_url, utcnow
 router = APIRouter()
 
 
-def calculate_certification_stats(certifications) -> Optional[CertificationStats]:
+def calculate_certification_stats(certifications) -> CertificationStats | None:
     if not certifications:
         return None
 
@@ -239,24 +238,24 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
 
 
 # Admin user management endpoints - must be defined before regular routes
-@router.get("/admin/users", response_model=List[UserListResponse])
+@router.get("/admin/users", response_model=list[UserListResponse])
 async def list_all_users(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         None, max_length=200, description="Unified search across username and email"
     ),
-    is_admin: Optional[bool] = Query(None, description="Filter by admin role"),
-    is_moderator: Optional[bool] = Query(None, description="Filter by moderator role"),
-    enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
-    email_verified: Optional[bool] = Query(
+    is_admin: bool | None = Query(None, description="Filter by admin role"),
+    is_moderator: bool | None = Query(None, description="Filter by moderator role"),
+    enabled: bool | None = Query(None, description="Filter by enabled status"),
+    email_verified: bool | None = Query(
         None, description="Filter by email verified status"
     ),
-    sort_by: Optional[str] = Query(
+    sort_by: str | None = Query(
         None,
         description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)",
     ),
-    sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
+    sort_order: str | None = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
 ):
@@ -735,7 +734,7 @@ async def remove_social_link(
     return {"message": "Social link removed successfully"}
 
 
-@router.get("/search", response_model=List[UserSearchResponse])
+@router.get("/search", response_model=list[UserSearchResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def search_users(
     request: Request,
@@ -749,7 +748,7 @@ async def search_users(
     include_self: bool = Query(
         False, description="Include current user in results (useful for filtering)"
     ),
-    current_user: Optional[User] = Depends(get_current_active_user),
+    current_user: User | None = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """Search for users by username or name. Only returns users with buddy_visibility='public' and enabled=True.
@@ -1133,13 +1132,13 @@ async def get_user_public_profile(
     return populate_avatar_full_url(user, response_dict)
 
 
-@router.get("/{username}/lists", response_model=List[UserDiveSiteListResponse])
+@router.get("/{username}/lists", response_model=list[UserDiveSiteListResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def get_user_public_lists(
     request: Request,
     username: str,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get all public lists for a specific user (Option A delegation)"""
     user = (
@@ -1187,7 +1186,7 @@ async def get_user_public_lists(
     return lists
 
 
-@router.get("/{username}/visited-sites", response_model=List[VisitedDiveSiteResponse])
+@router.get("/{username}/visited-sites", response_model=list[VisitedDiveSiteResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def get_user_visited_sites(
     request: Request,
@@ -1903,7 +1902,7 @@ async def get_user_advanced_analytics(
 
 
 # API Key Management Endpoints (Admin Only)
-@router.get("/admin/api-keys", response_model=List[ApiKeyResponse])
+@router.get("/admin/api-keys", response_model=list[ApiKeyResponse])
 async def list_api_keys(
     current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
@@ -2149,7 +2148,7 @@ async def get_my_ratings(
 
 
 # Personal Access Token (PAT) Management
-@router.get("/me/tokens", response_model=List[PATResponse])
+@router.get("/me/tokens", response_model=list[PATResponse])
 async def list_pats(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
@@ -2417,7 +2416,7 @@ async def unlink_facebook(
     return populate_avatar_full_url(current_user, response_dict)
 
 
-@router.get("/avatars/library", response_model=List[dict])
+@router.get("/avatars/library", response_model=list[dict])
 async def get_library_avatars():
     """List available library avatars with full URLs"""
     keys = r2_storage.list_objects("library/avatars/")

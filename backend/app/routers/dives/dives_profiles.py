@@ -17,7 +17,6 @@ The profile functionality includes:
 import os
 import tempfile
 from datetime import datetime
-from typing import Optional
 
 import orjson
 from fastapi import Depends, File, HTTPException, Response, UploadFile, status
@@ -156,7 +155,7 @@ def export_dive_profile(
 def get_dive_profile(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Get dive profile data. Unauthenticated users can view public dives. Private dives are restricted to owner or admins."""
     # If authenticated, ensure account is enabled (mirror behavior of get_dive)
@@ -283,7 +282,7 @@ async def upload_dive_profile(
     dive_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """
     Upload dive profile file (.xml, .uddf, .fit, .json).
@@ -447,7 +446,7 @@ async def upload_dive_profile(
 def delete_dive_profile(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Delete dive profile"""
     if not current_user:
@@ -497,7 +496,7 @@ def delete_dive_profile(
 def delete_user_profiles(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User | None = Depends(get_current_user_optional),
 ):
     """Delete all dive profiles for a specific user (admin only)"""
     if not current_user:
