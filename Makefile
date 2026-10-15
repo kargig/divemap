@@ -17,7 +17,7 @@ export
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts db-snapshot db-restore db-status db-snapshots db-switch lint-backend lint-backend-fix lint-frontend lint-nginx
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts db-snapshot db-restore db-status db-snapshots db-switch lint-backend lint-backend-fix lint-frontend lint-nginx backend-sync backend-lock
 
 # Default target
 help:
@@ -104,6 +104,18 @@ lint-backend:
 lint-backend-fix:
 	@echo "🛠️ Fixing backend lint errors and formatting with Ruff..."
 	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check --fix app && ./divemap_venv/bin/ruff format app; else ruff check --fix app && ruff format app; fi)
+
+# Sync backend virtualenv with uv
+backend-sync:
+	@echo "📦 Syncing backend dependencies with uv..."
+	@cd backend && UV_PROJECT_ENVIRONMENT=divemap_venv uv sync --frozen
+	@echo "✅ Backend dependencies synced."
+
+# Lock backend dependencies with uv and export requirements.txt
+backend-lock:
+	@echo "🔒 Updating uv.lock and exporting requirements.txt..."
+	@cd backend && uv lock && uv export --frozen --no-dev --no-hashes -o requirements.txt && uv export --frozen --all-groups --no-hashes -o requirements-dev.txt
+	@echo "✅ Lockfile and requirements updated."
 
 # Run frontend linting and formatting, saving errors to a log file
 lint-frontend:

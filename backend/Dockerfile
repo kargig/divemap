@@ -1,26 +1,27 @@
 # Stage 1: Builder
-# This stage installs build tools and compiles dependencies
+# All dependencies have pre-built wheels (including octo-deco via GitHub Release).
+# Zero C-compilers (gcc, build-essential, python3-dev) needed!
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    pkg-config \
-    gcc \
-    python3-dev \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# Install uv from official binary
+COPY --from=ghcr.io/astral-sh/uv:0.10.2 /uv /uvx /bin/
 
-# Copy requirements
-COPY requirements.txt .
+# Configure uv environment
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
-# Install dependencies into a wheels directory or directly
-# Using a virtualenv is the cleanest way to transfer to the next stage
-RUN python -m venv /opt/venv
+# Create destination virtualenv
+RUN uv venv /opt/venv --python python3.11
+ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir --disable-pip-version-check -r requirements.txt
+# Copy dependency specifications
+COPY pyproject.toml uv.lock ./
+
+# Install production dependencies only using BuildKit cache mount
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --active --frozen --no-dev --no-install-project
 
 
 # Stage 2: Runtime
@@ -30,11 +31,7 @@ FROM python:3.11-slim AS runtime
 WORKDIR /app
 
 # Install runtime-only system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    netcat-openbsd \
-    libmagic1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd libmagic1 && rm -rf /var/lib/apt/lists/* && apt-get clean
 
 # Copy the pre-compiled virtual environment from the builder stage
 COPY --from=builder /opt/venv /opt/venv
@@ -48,11 +45,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 COPY . .
 
 # Create uploads directory and set permissions
-RUN mkdir -p uploads && \
-    chmod +x /app/run_migrations.py && \
-    chmod +x /app/run_migrations_docker.sh && \
-    chmod +x /app/test_netcat_ipv6.sh && \
-    chmod +x /app/startup.sh
+RUN mkdir -p uploads && chmod +x /app/run_migrations.py /app/run_migrations_docker.sh /app/test_netcat_ipv6.sh /app/startup.sh
 
 # Expose port
 EXPOSE 8000

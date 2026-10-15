@@ -20,7 +20,7 @@ The backend tests workflow (`backend-tests.yml`) automatically runs when backend
 - **Automatic Triggering**: Runs on PR creation and commits to main/master branches
 - **Path Filtering**: Only runs when backend files are modified
 - **Virtual Environment**: Uses Python virtual environment for isolation
-- **Dependency Caching**: Caches pip dependencies for faster builds
+- **Dependency Caching**: Caches dependencies via uv and `backend/uv.lock` for sub-15s setup
 - **Service Containers**: Provides Redis service for testing
 - **Coverage Reporting**: Generates and uploads test coverage reports
 - **Artifact Upload**: Saves test results and coverage reports as artifacts
@@ -78,11 +78,10 @@ GOOGLE_CLIENT_SECRET=test-client-secret
 The workflow executes tests using the following steps:
 
 1. **Checkout Code**: Clones the repository
-2. **Setup Python**: Installs Python 3.11
-3. **Cache Dependencies**: Uses GitHub Actions cache for pip packages
-4. **Install Dependencies**: Creates virtual environment and installs requirements
-5. **Setup Environment**: Configures environment variables
-6. **Run Tests**: Executes pytest with coverage reporting
+2. **Setup UV & Python**: Installs uv 0.10.2 and Python 3.11 with cache enabled
+3. **Install Dependencies**: Creates virtual environment and syncs with `uv.lock`
+4. **Setup Environment**: Configures environment variables
+5. **Run Tests**: Executes pytest with coverage reporting
 
 ### Test Command
 
@@ -131,10 +130,10 @@ export PYTHONPATH="/path/to/venv/lib/python3.11/site-packages:$PYTHONPATH"
 
 **Problem**: Package installation fails
 
-**Solution**: Clear cache and reinstall:
+**Solution**: Clear cache and resync:
 ```bash
-pip cache purge
-pip install -r requirements.txt --no-cache-dir
+uv cache clean
+uv sync --frozen
 ```
 
 #### 4. Test Database Issues

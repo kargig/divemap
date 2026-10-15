@@ -56,26 +56,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - name: Install uv and Set up Python
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: '3.11'
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        version: "0.10.2"
+        enable-cache: true
+        cache-dependency-glob: "backend/uv.lock"
 
     - name: Install dependencies
       run: |
         cd backend
-        python -m venv divemap_venv
-        source divemap_venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
+        UV_PROJECT_ENVIRONMENT=divemap_venv uv sync --frozen
 
 
 
@@ -94,12 +85,13 @@ jobs:
     - name: Set up MySQL database
       if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
       run: |
-        cd backend
-        source divemap_venv/bin/activate
-        export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/divemap_test"
-        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
-        # The database is already created by the MySQL service container
-        echo "✅ MySQL test database ready"
+        echo "Loading pre-seeded schema from database/init.sql..."
+        if command -v mysql &> /dev/null; then
+          mysql -h 127.0.0.1 -u root -ppassword divemap_test < database/init.sql
+        else
+          docker run --rm --network host -v "${PWD}/database/init.sql:/init.sql" mysql:8.0 bash -c "mysql -h 127.0.0.1 -u root -ppassword divemap_test < /init.sql"
+        fi
+        echo "✅ Pre-seeded database schema loaded (up to migration 0105)"
 
     - name: Run database migrations
       if: ${{ github.event.inputs.run_migrations != 'false' || github.event_name != 'workflow_dispatch' }}
