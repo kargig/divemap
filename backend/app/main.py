@@ -120,6 +120,11 @@ async def lifespan(app: FastAPI):
     from app.database import warm_database_connections
     warm_database_connections()
 
+    # Fire-and-forget Google/Bing crawler CIDR allowlist (rate-limit skip).
+    # Does not block startup; fails open until loaded.
+    from app.search_bot_verification import start_search_bot_ip_range_refresh
+    start_search_bot_ip_range_refresh()
+
     yield
     # Shutdown logic (if any) can be added here
 
