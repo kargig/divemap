@@ -39,8 +39,11 @@ from app.models import (
     MediaType,
     OwnershipRequest,
     OwnershipStatus,
+    ParsedDive,
+    ParsedDiveTrip,
     User,
     UserCertification,
+    UserChatMessage,
     UserChatRoom,
     UserChatRoomMember,
 )
@@ -519,21 +522,14 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print("🔍 Nominatim API Request:")
-            print(f"   URL: {url}")
-            print(f"   Parameters: {params}")
-            print(f"   Headers: {headers}")
+            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
         
         response.raise_for_status()
         
         data = response.json()
         
         if debug:
-            print("📡 Nominatim API Response:")
-            print(f"   Status Code: {response.status_code}")
-            print(f"   Response Headers: {dict(response.headers)}")
-            print("   Full Response Content:")
-            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
+            logger.debug(f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}")
         
         address = data.get("address", {})
 
@@ -2656,8 +2652,14 @@ async def broadcast_trip_to_followers(
 ):
     """Broadcast a dive trip to all followers of the diving center."""
     import json
+    import uuid
 
-    from app.models import DivingCenterManager, ParsedDiveTrip
+    from app.services.encryption_service import (
+        encrypt_message,
+        encrypt_room_dek,
+        generate_room_dek,
+    )
+
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
@@ -2674,9 +2676,6 @@ async def broadcast_trip_to_followers(
             raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Verify Trip exists and belongs to this center
-    from sqlalchemy.orm import joinedload
-
-    from app.models import ParsedDive
     trip = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
     ).filter(
@@ -2688,17 +2687,6 @@ async def broadcast_trip_to_followers(
         raise HTTPException(status_code=404, detail="Trip not found or does not belong to this center")
         
     # 3. Find or Create Broadcast Room
-    import uuid
-
-    from sqlalchemy import func
-
-    from app.models import UserChatMessage
-    from app.services.encryption_service import (
-        encrypt_message,
-        encrypt_room_dek,
-        generate_room_dek,
-    )
-    
     broadcast_room = db.query(UserChatRoom).filter(
         UserChatRoom.diving_center_id == diving_center_id,
         UserChatRoom.is_broadcast == True

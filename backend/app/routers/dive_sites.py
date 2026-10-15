@@ -826,21 +826,14 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print("🔍 Nominatim API Request:")
-            print(f"   URL: {url}")
-            print(f"   Parameters: {params}")
-            print(f"   Headers: {headers}")
+            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
 
         response.raise_for_status()
 
         data = response.json()
 
         if debug:
-            print("📡 Nominatim API Response:")
-            print(f"   Status Code: {response.status_code}")
-            print(f"   Response Headers: {dict(response.headers)}")
-            print("   Full Response Content:")
-            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
+            logger.debug(f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}")
 
         address = data.get("address", {})
 

@@ -24,6 +24,8 @@ jobs:
   lint-format:
     name: Ruff Lint and Format
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
