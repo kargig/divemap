@@ -66,8 +66,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd backend
-        uv venv divemap_venv --python 3.11
-        uv sync --active --frozen
+        UV_PROJECT_ENVIRONMENT=divemap_venv uv sync --frozen
 
 
 
