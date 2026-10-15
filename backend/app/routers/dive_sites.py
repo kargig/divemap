@@ -1,45 +1,95 @@
-from typing import List, Optional, Dict
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks, UploadFile, File
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import func, and_, or_, desc, asc, select, text, distinct, literal_column
-from slowapi.util import get_remote_address
-from datetime import datetime, timedelta
 import difflib
-import orjson
-import uuid
+import logging
 import random
+import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from app.services.r2_storage_service import get_r2_storage
-from app.services.image_processing import image_processing
-from app.database import get_db
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus
-from app.services.osm_coastline_service import detect_shore_direction
-from app.services.wind_recommendation_service import calculate_wind_suitability
-from app.services.open_meteo_service import fetch_wind_data_single_point
-from app.models import DiveSite, SiteRating, SiteComment, SiteMedia, User, DivingCenter, CenterDiveSite, UserCertification, DivingOrganization, Dive, DiveTag, AvailableTag, DiveSiteAlias, DiveSiteTag, ParsedDive, DiveRoute, DifficultyLevel, get_difficulty_id_by_code, OwnershipStatus, DiveMedia, DiveSiteEditRequest, EditRequestStatus, EditRequestType
-from app.auth import is_trusted_contributor
-from fastapi.responses import JSONResponse
+from typing import Dict, List, Optional
 
-from app.schemas import (
-    DiveSiteCreate, DiveSiteUpdate, DiveSiteResponse, DiveSiteListResponse,
-    DiveSiteRegionOption,
-    SiteRatingCreate, SiteRatingResponse,
-    SiteCommentCreate, SiteCommentUpdate, SiteCommentResponse,
-    SiteMediaCreate, SiteMediaUpdate, SiteMediaResponse, DiveSiteMediaOrderRequest,
-    DiveSiteSearchParams, CenterDiveSiteCreate, DiveResponse,
-    DiveSiteAliasCreate, DiveSiteAliasUpdate, DiveSiteAliasResponse,
-    DiveRouteCreate, DiveRouteResponse, DiveRouteWithCreator
-)
+import orjson
 import requests
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, get_current_user
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
+from fastapi.responses import JSONResponse
+from sqlalchemy import and_, desc, func, literal_column, or_, select, text
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import (
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_user,
+    get_current_user_optional,
+    is_trusted_contributor,
+)
+from app.database import get_db
 from app.limiter import limiter, skip_rate_limit_for_admin
+from app.models import (
+    AvailableTag,
+    CenterDiveSite,
+    DifficultyLevel,
+    Dive,
+    DiveMedia,
+    DiveRoute,
+    DiveSite,
+    DiveSiteAlias,
+    DiveSiteEditRequest,
+    DiveSiteTag,
+    DiveTag,
+    DivingCenter,
+    DivingOrganization,
+    EditRequestStatus,
+    EditRequestType,
+    OwnershipStatus,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
+    UserCertification,
+    get_difficulty_id_by_code,
+)
+from app.schemas import (
+    CenterDiveSiteCreate,
+    DiveResponse,
+    DiveRouteCreate,
+    DiveRouteResponse,
+    DiveRouteWithCreator,
+    DiveSiteAliasCreate,
+    DiveSiteAliasResponse,
+    DiveSiteAliasUpdate,
+    DiveSiteCreate,
+    DiveSiteListResponse,
+    DiveSiteMediaOrderRequest,
+    DiveSiteRegionOption,
+    DiveSiteResponse,
+    DiveSiteUpdate,
+    SiteCommentCreate,
+    SiteCommentResponse,
+    SiteMediaCreate,
+    SiteMediaResponse,
+    SiteMediaUpdate,
+    SiteRatingCreate,
+    SiteRatingResponse,
+)
+from app.services.image_processing import image_processing
+from app.services.open_meteo_service import fetch_wind_data_single_point
+from app.services.osm_coastline_service import detect_shore_direction
+from app.services.r2_storage_service import get_r2_storage
+from app.services.wind_recommendation_service import calculate_wind_suitability
 from app.utils import (
+    UNIFIED_TYPO_TOLERANCE,
     calculate_unified_phrase_aware_score,
     classify_match_type,
     get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -174,9 +224,6 @@ def apply_tag_filtering(query, tag_ids, db):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Too many tag filters"
         )
-
-    # Import required models
-    from app.models import DiveSiteTag
 
     # If multiple tags are provided, ensure the site has ALL of them
     tag_count = len(tag_ids)
@@ -448,7 +495,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
         if hasattr(site, 'tags') and site.tags:
             site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
         else:
-            from app.models import DiveSiteTag, AvailableTag
+            from app.models import AvailableTag, DiveSiteTag
             tags = db.query(AvailableTag).join(DiveSiteTag).filter(
                 DiveSiteTag.dive_site_id == site.id
             ).all()
@@ -587,7 +634,7 @@ def search_dive_sites_with_fuzzy(query: str, exact_results: List[DiveSite], db: 
             site_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in site.tags]
         else:
             # Query tags from database if not already loaded
-            from app.models import DiveSiteTag, AvailableTag
+            from app.models import AvailableTag, DiveSiteTag
             tags = db.query(AvailableTag).join(DiveSiteTag).filter(
                 DiveSiteTag.dive_site_id == site.id
             ).all()
@@ -779,21 +826,14 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print(f"🔍 Nominatim API Request:")
-            print(f"   URL: {url}")
-            print(f"   Parameters: {params}")
-            print(f"   Headers: {headers}")
+            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
 
         response.raise_for_status()
 
         data = response.json()
 
         if debug:
-            print(f"📡 Nominatim API Response:")
-            print(f"   Status Code: {response.status_code}")
-            print(f"   Response Headers: {dict(response.headers)}")
-            print(f"   Full Response Content:")
-            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
+            logger.debug(f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}")
 
         address = data.get("address", {})
 
@@ -830,14 +870,14 @@ async def reverse_geocode(
 
         # Log the extracted data
         if debug:
-            print(f"📍 Extracted Location Data:")
+            print("📍 Extracted Location Data:")
             print(f"   Country: '{country}'")
             print(f"   Region: '{region}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
             print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
 
             # Show which region fields were found and used
-            print(f"   Region Field Analysis:")
+            print("   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
             print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
             print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
@@ -882,7 +922,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     Fallback function to provide basic location information based on coordinates
     """
     if debug:
-        print(f"🔄 Using fallback location detection ")
+        print("🔄 Using fallback location detection ")
 
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
@@ -1093,8 +1133,6 @@ async def get_dive_sites(
 
             # Define suitability hierarchy for range filtering
             # Order: good < caution < difficult < avoid
-            suitability_order = {"good": 0, "caution": 1, "difficult": 2, "avoid": 3}
-
             # Determine which suitabilities to include based on range
             if wind_suitability == "good":
                 allowed_suitabilities = ["good"]
@@ -1228,7 +1266,7 @@ async def get_dive_sites(
                         query = query.filter(DiveSite.id.in_(filtered_site_ids))
                     else:
                         # No sites match the suitability filter
-                        logger.info(f"[WIND FILTER] No sites match, returning empty result")
+                        logger.info("[WIND FILTER] No sites match, returning empty result")
                         query = query.filter(False)
                 else:
                     # No sites with valid coordinates
@@ -1265,7 +1303,7 @@ async def get_dive_sites(
     # Define subqueries for metadata to avoid N+1 queries.
     # Build ratings aggregate with Core (SiteRating.__table__) so ORDER BY does not unwrap to
     # avg(site_ratings.score) and duplicate JOINs during count().
-    from app.models import SiteRating, SiteComment, DiveRoute
+    from app.models import DiveRoute, SiteComment, SiteRating
     _sr = SiteRating.__table__
     ratings_subquery = (
         select(
@@ -1287,7 +1325,6 @@ async def get_dive_sites(
     ).filter(DiveRoute.deleted_at.is_(None)).group_by(DiveRoute.dive_site_id).subquery()
 
     # Join subqueries and eager load relationships
-    from app.models import DiveSiteTag
     query = query.outerjoin(ratings_subquery, DiveSite.id == ratings_subquery.c.dive_site_id) \
                  .outerjoin(comments_subquery, DiveSite.id == comments_subquery.c.dive_site_id) \
                  .outerjoin(routes_subquery, DiveSite.id == routes_subquery.c.dive_site_id) \
@@ -1401,7 +1438,7 @@ async def get_dive_sites(
         site_ids = [s.id for s in dive_sites]
 
         # Fetch all media from SiteMedia for these sites
-        from app.models import SiteMedia, DiveMedia, Dive
+        from app.models import Dive, DiveMedia, SiteMedia
         all_site_media = db.query(SiteMedia).filter(SiteMedia.dive_site_id.in_(site_ids)).all()
         for sm in all_site_media:
             if sm.dive_site_id not in site_media_map:
@@ -1864,8 +1901,8 @@ async def _send_pending_moderation_notification(dive_site_id: int):
 async def _send_dive_site_notifications(dive_site_id: int):
     """Background task to send notifications for a new dive site."""
     try:
-        from app.services.notification_service import NotificationService
         from app.database import SessionLocal
+        from app.services.notification_service import NotificationService
 
         # Create a new database session for the background task
         db = SessionLocal()
@@ -1892,8 +1929,8 @@ def is_similar_name(name1: str, name2: str) -> bool:
     2. The SequenceMatcher ratio is >= 0.70 (handling typos and suffix/prefix variations like Elphinstone vs Elphinstone Reef)
     3. One is a substring of the other and the shorter name is at least 4 characters long
     """
-    import re
     import difflib
+    import re
 
     n1 = name1.lower().strip()
     n2 = name2.lower().strip()
@@ -2156,6 +2193,7 @@ async def create_dive_site(
 
 from fastapi_cache.decorator import cache
 
+
 @router.get("/countries", response_model=List[str])
 @skip_rate_limit_for_admin("100/minute")
 @cache(expire=3600)
@@ -2231,7 +2269,6 @@ async def get_dive_site(
     ).scalar()
 
     # Get tags for this dive site
-    from app.models import DiveSiteTag, AvailableTag
     tags = db.query(AvailableTag).join(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id
     ).order_by(AvailableTag.name.asc()).all()
@@ -2760,20 +2797,6 @@ async def upload_dive_site_photo_r2_only(
             detail="Dive site not found"
         )
 
-    if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = media_update.dict(exclude_unset=True)
-        update_data['id'] = media_id
-        edit_request = DiveSiteEditRequest(
-            dive_site_id=dive_site_id,
-            requested_by_id=current_user.id,
-            status=EditRequestStatus.pending,
-            edit_type=EditRequestType.media_update,
-            proposed_data=update_data
-        )
-        db.add(edit_request)
-        db.commit()
-        return JSONResponse(status_code=202, content={"message": "Media update submitted for moderation."})
-
     # Validate file size (max 15MB) - Read in chunks to prevent memory exhaustion
     MAX_FILE_SIZE = 15 * 1024 * 1024
     file_size = 0
@@ -3258,7 +3281,6 @@ async def update_dive_site(
     ).scalar()
 
     # Get tags for this dive site
-    from app.models import DiveSiteTag, AvailableTag
     tags = db.query(AvailableTag).join(DiveSiteTag).filter(
         DiveSiteTag.dive_site_id == dive_site_id
     ).all()
@@ -3370,8 +3392,8 @@ async def delete_dive_site(
             message = "Dive site permanently deleted"
         else:
             # Soft delete
-            from datetime import datetime, timezone
-            dive_site.deleted_at = datetime.now(timezone.utc)
+            from datetime import datetime
+            dive_site.deleted_at = datetime.now(UTC)
             message = "Dive site archived successfully"
 
         db.commit()
@@ -3635,7 +3657,6 @@ async def get_nearby_dive_sites(
         ).scalar()
 
         # Get tags for this dive site
-        from app.models import DiveSiteTag, AvailableTag
         tags = db.query(AvailableTag).join(DiveSiteTag).filter(
             DiveSiteTag.dive_site_id == row.id
         ).all()

@@ -5,15 +5,14 @@ Provides S3-compatible storage for dive profile data with local filesystem fallb
 Automatically detects R2 credentials and falls back to local storage when unavailable.
 """
 
-import os
 import logging
-from typing import Optional, List
+import os
 from datetime import datetime
-import json
+from typing import List, Optional
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -468,7 +467,6 @@ class R2StorageService:
         base_path_full = self._get_photo_path(user_id, original_filename, dive_id=dive_id, dive_site_id=dive_site_id, diving_center_id=diving_center_id)
         directory = os.path.dirname(base_path_full)
         base_name = os.path.splitext(original_filename)[0]
-        original_ext = os.path.splitext(original_filename)[1] # e.g. .jpg
 
         for variant, stream in image_streams.items():
             if variant == 'original_format':

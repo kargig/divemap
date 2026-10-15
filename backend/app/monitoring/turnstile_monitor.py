@@ -5,12 +5,11 @@ This module provides monitoring capabilities for Cloudflare Turnstile verificati
 including success rates, error tracking, and performance metrics.
 """
 
-import time
+import logging
+from collections import defaultdict, deque
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from dataclasses import dataclass
-from collections import defaultdict, deque
-import logging
 
 logger = logging.getLogger(__name__)
 

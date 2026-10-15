@@ -5,16 +5,17 @@ Provides email sending via AWS SES with template support.
 Automatically detects AWS credentials and falls back gracefully when unavailable.
 """
 
-import os
-import orjson
 import logging
-from typing import Optional, Dict, Any, List
-from email.mime.text import MIMEText
+import os
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Dict, List, Optional
+
+import orjson
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -237,7 +238,7 @@ class SESService:
                 message['Body']['Text'] = {'Data': text_body, 'Charset': 'UTF-8'}
             
             # Send bulk email
-            response = self.ses_client.send_bulk_templated_email(
+            self.ses_client.send_bulk_templated_email(
                 Source=f"{from_name} <{from_email}>",
                 Template='',  # Not using templates for now
                 DefaultTemplateData=orjson.dumps({}).decode('utf-8'),

@@ -17,7 +17,7 @@ export
 
 SHELL := /bin/bash
 
-.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts db-snapshot db-restore db-status db-snapshots db-switch
+.PHONY: help deploy deploy-backend deploy-frontend deploy-nginx test test-backend test-frontend purge-cache check-api-contracts db-snapshot db-restore db-status db-snapshots db-switch lint-backend lint-backend-fix lint-frontend lint-nginx
 
 # Default target
 help:
@@ -31,6 +31,10 @@ help:
 	@echo "  test            - Run all tests (backend and frontend)"
 	@echo "  test-backend    - Run backend tests"
 	@echo "  test-frontend   - Run frontend tests"
+	@echo "  lint-backend    - Run backend linting and format check with Ruff"
+	@echo "  lint-backend-fix - Fix backend linting issues and format with Ruff"
+	@echo "  lint-frontend   - Run frontend linting and formatting"
+	@echo "  lint-nginx      - Lint Nginx configuration files"
 	@echo "  purge-cache     - Purge Cloudflare cache for divemap.gr"
 	@echo "  check-api-contracts - Verify frontend API calls match backend routes"
 	@echo "  db-snapshot     - Snapshot MySQL database state for branch (optional: rev=... branch=...)"
@@ -87,6 +91,19 @@ generate-llm-content:
 	@echo "🤖 Generating LLM content in backend..."
 	@docker-compose exec -T backend python generate_static_content.py --force
 	@echo "✅ LLM content generated in backend/llm_content/"
+
+# Run backend linting and format check with Ruff
+lint-backend:
+	@echo "🧹 Checking backend linting with Ruff..."
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check app; else ruff check app; fi)
+	@echo "🧹 Checking backend formatting with Ruff..."
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff format --check app || echo "ℹ️ Formatting differences detected. Run 'make lint-backend-fix' to format."; else ruff format --check app || echo "ℹ️ Formatting differences detected."; fi)
+	@echo "✅ Backend linting complete."
+
+# Fix backend linting issues and format code with Ruff
+lint-backend-fix:
+	@echo "🛠️ Fixing backend lint errors and formatting with Ruff..."
+	@cd backend && (if [ -f divemap_venv/bin/ruff ]; then ./divemap_venv/bin/ruff check --fix app && ./divemap_venv/bin/ruff format app; else ruff check --fix app && ruff format app; fi)
 
 # Run frontend linting and formatting, saving errors to a log file
 lint-frontend:

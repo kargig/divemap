@@ -1,9 +1,42 @@
-from .base import *
 import logging
+from typing import Dict, List, Optional
 from urllib.parse import quote
+
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, aliased, joinedload
+
+from app.geo_utils import (
+    calculate_directional_bounds,
+    get_empirical_region_bounds,
+    get_external_region_bounds,
+)
+from app.models import (
+    CenterDiveSite,
+    CertificationLevel,
+    Dive,
+    DiveSite,
+    DivingCenter,
+    DivingOrganization,
+    GearRentalCost,
+    SiteRating,
+    User,
+)
+from app.schemas.chat import IntentType
+
+from .base import clean_results
+
 logger = logging.getLogger(__name__)
-from app.physics import calculate_mod, calculate_sac, calculate_best_mix, calculate_min_gas, calculate_ead, calculate_end, GasMix
-    
+from app.physics import (
+    GasMix,
+    calculate_best_mix,
+    calculate_ead,
+    calculate_end,
+    calculate_min_gas,
+    calculate_mod,
+    calculate_sac,
+)
+
+
 def execute_other_intents(
     db: Session, 
     intent_type: IntentType,

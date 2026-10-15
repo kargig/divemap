@@ -1,23 +1,30 @@
 import io
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import (
-    OctoAvailabilitySlot,
-    TripBriefing,
     DiveSite,
-    OctoBookingUnitItem,
+    OctoAvailabilitySlot,
     OctoBooking,
+    OctoBookingUnitItem,
+    TripBriefing,
 )
 
 try:
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.platypus import (
+        HRFlowable,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -373,14 +380,15 @@ class BriefingService:
     @staticmethod
     def dispatch_briefing(db: Session, slot_id: str, dispatched_by_user_id: Optional[int] = None) -> TripBriefing:
         """Approve and dispatch the pre-dive briefing to confirmed participants."""
+        slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == slot_id).first()
         briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == slot_id).first()
         if not briefing:
             briefing = BriefingService.compile_draft_briefing(db, slot_id)
 
         # Generate and cache PDF
-        pdf_bytes = BriefingService.generate_briefing_pdf(briefing, db)
+        BriefingService.generate_briefing_pdf(briefing, db)
         briefing.status = "APPROVED_DISPATCHED"
-        briefing.dispatched_at = datetime.now(timezone.utc)
+        briefing.dispatched_at = datetime.now(UTC)
         briefing.dispatched_by_user_id = dispatched_by_user_id
 
         # Collect recipient divers on boat manifest

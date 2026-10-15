@@ -1,29 +1,47 @@
-from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, Response
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, desc, asc, text, Integer
-from datetime import datetime, timedelta, timezone
-import psutil
-import os
-import logging
 import bisect
+import logging
+import os
+from datetime import UTC, datetime, timedelta
+from typing import List, Optional
 
+import psutil
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import Integer, and_, desc, func, text
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_admin_user
 from app.database import get_db
 from app.models import (
-    User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
-    SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
-    DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, NotificationPreference, DiveRoute, RouteAnalytics,
-    AuthAuditLog
+    AuthAuditLog,
+    AvailableTag,
+    CenterComment,
+    CenterRating,
+    Dive,
+    DiveMedia,
+    DiveRoute,
+    DiveSite,
+    DivingCenter,
+    DivingOrganization,
+    Newsletter,
+    Notification,
+    ParsedDiveTrip,
+    RouteAnalytics,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
+    UserCertification,
 )
-from app.auth import get_current_admin_user
-from app.schemas import (
-    SystemHealthResponse, PlatformStatsResponse,
-    NotificationAnalyticsResponse, GrowthResponse, AuthAuditLogResponse
-)
-from app.utils import get_client_ip, format_ip_for_logging
 from app.monitoring import get_turnstile_stats
+from app.schemas import (
+    AuthAuditLogResponse,
+    GrowthResponse,
+    NotificationAnalyticsResponse,
+    PlatformStatsResponse,
+    SystemHealthResponse,
+)
 from app.services.r2_storage_service import r2_storage
+from app.utils import format_ip_for_logging, get_client_ip
 
 router = APIRouter()
 
@@ -41,6 +59,7 @@ async def get_system_metrics(
 
 from fastapi_cache.decorator import cache
 
+
 @router.get("/statistics")
 @cache(expire=300)
 async def get_general_statistics(
@@ -50,7 +69,7 @@ async def get_general_statistics(
     """Get general statistics: platform stats, geographic distribution, and notification analytics"""
     
     # Calculate date ranges
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     thirty_days_ago = now - timedelta(days=30)
     seven_days_ago = now - timedelta(days=7)
     one_day_ago = now - timedelta(days=1)
@@ -323,9 +342,9 @@ async def get_general_statistics(
                 created_at = notif.created_at
                 sent_at = notif.email_sent_at
                 if created_at.tzinfo is None:
-                    created_at = created_at.replace(tzinfo=timezone.utc)
+                    created_at = created_at.replace(tzinfo=UTC)
                 if sent_at.tzinfo is None:
-                    sent_at = sent_at.replace(tzinfo=timezone.utc)
+                    sent_at = sent_at.replace(tzinfo=UTC)
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:
                     delivery_times.append(delta)
@@ -407,7 +426,7 @@ async def get_general_statistics(
         "timestamp": now.isoformat()
     }
     
-    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
     pending_site_edits_count = db.query(func.count(DiveSiteEditRequest.id)).filter(
         DiveSiteEditRequest.status == EditRequestStatus.pending
     ).scalar()
@@ -565,7 +584,7 @@ async def get_moderation_pending_counts(
     db: Session = Depends(get_db)
 ):
     """Get the current count of pending edit and ownership requests for real-time moderation dashboard display"""
-    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipRequest, OwnershipStatus
+    from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
     
     pending_site_edits = db.query(func.count(DiveSiteEditRequest.id)).filter(
         DiveSiteEditRequest.status == EditRequestStatus.pending
@@ -639,8 +658,9 @@ async def get_platform_stats(
 
 def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
-    from app.models import OwnershipRequest
     from sqlalchemy.orm import joinedload
+
+    from app.models import OwnershipRequest
     
     # Calculate time range
     if hours is not None:
@@ -716,7 +736,7 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
     if start_time is not None:
         dive_query = dive_query.filter(Dive.created_at >= start_time)
     if not is_admin:
-        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id != None)
+        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id.is_not(None))
     new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
     
     for dive in new_dives:
@@ -927,8 +947,9 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
             })
 
         # 15. Edit Requests (Moderation)
-        from app.models import DiveSiteEditRequest
         from sqlalchemy.orm import joinedload
+
+        from app.models import DiveSiteEditRequest
         
         edit_request_query = db.query(DiveSiteEditRequest).options(
             joinedload(DiveSiteEditRequest.requested_by),
@@ -1075,7 +1096,7 @@ PERIOD_DAYS = {
 
 def date_to_datetime(date_obj):
     """Convert date object to timezone-aware datetime at start of day"""
-    return datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=timezone.utc)
+    return datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=UTC)
 
 def calculate_growth_rate(start, end):
     """Calculate percentage growth rate between two values"""
@@ -1092,7 +1113,7 @@ async def get_growth_data(
     """Get growth data over time for dive sites, diving centers, dives, routes, and trips"""
     
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         
         # Calculate date range based on period
         days_back = PERIOD_DAYS.get(period, 30)
@@ -1274,7 +1295,7 @@ async def get_notification_analytics(
 ):
     """Get notification analytics including in-app and email delivery statistics"""
     
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
     seven_days_ago = now - timedelta(days=7)
     thirty_days_ago = now - timedelta(days=30)
@@ -1318,8 +1339,6 @@ async def get_notification_analytics(
     
     # Estimate direct SES sends: if FORCE_DIRECT_EMAIL is enabled, count recent sent emails as direct
     # Otherwise, assume most sent emails went through SQS/Lambda
-    # For accuracy, we'll track: emails sent in last hour with FORCE_DIRECT_EMAIL = direct
-    one_hour_ago = now - timedelta(hours=1)
     if force_direct_email:
         # In direct mode, all sent emails are direct
         sent_directly_to_ses = total_email_sent
@@ -1333,8 +1352,6 @@ async def get_notification_analytics(
             Notification.created_at >= five_minutes_ago,
             Notification.email_sent_at <= Notification.created_at + timedelta(minutes=5)
         ).scalar()
-        # Remaining sent emails are assumed to be via SQS/Lambda
-        sent_via_sqs_lambda = total_email_sent - sent_directly_to_ses
     
     # Calculate delivery rate (emails sent / total notifications eligible for email)
     total_eligible_for_email = db.query(func.count(Notification.id)).filter(
@@ -1357,9 +1374,9 @@ async def get_notification_analytics(
                 created_at = notif.created_at
                 sent_at = notif.email_sent_at
                 if created_at.tzinfo is None:
-                    created_at = created_at.replace(tzinfo=timezone.utc)
+                    created_at = created_at.replace(tzinfo=UTC)
                 if sent_at.tzinfo is None:
-                    sent_at = sent_at.replace(tzinfo=timezone.utc)
+                    sent_at = sent_at.replace(tzinfo=UTC)
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:  # Only count positive deltas
                     delivery_times.append(delta)

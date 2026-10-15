@@ -5,16 +5,17 @@ Handles email unsubscribe functionality with token-based one-click unsubscribe.
 Users can unsubscribe from specific categories or all emails without requiring login.
 """
 
-import os
 import logging
-from datetime import datetime, timezone
+import os
+from datetime import UTC, datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, NotificationPreference
+from app.models import NotificationPreference, User
 from app.services.unsubscribe_token_service import unsubscribe_token_service
 
 logger = logging.getLogger(__name__)
@@ -149,7 +150,7 @@ async def unsubscribe(
         else:
             # Global unsubscribe - opt out of all emails
             user.email_notifications_opted_out = True
-            user.email_opt_out_at = datetime.now(timezone.utc)
+            user.email_opt_out_at = datetime.now(UTC)
             
             # Disable email for all preferences
             preferences = db.query(NotificationPreference).filter(
@@ -357,7 +358,7 @@ async def resubscribe(
         # Log re-subscribe event for audit
         logger.info(
             f"Re-subscribe event - User ID: {user.id}, Category: {category or 'all'}, "
-            f"Token: {token_obj.token[:10]}..., Timestamp: {datetime.now(timezone.utc).isoformat()}"
+            f"Token: {token_obj.token[:10]}..., Timestamp: {datetime.now(UTC).isoformat()}"
         )
         
         return {

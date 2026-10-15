@@ -1,13 +1,13 @@
 import time
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from fastapi import Request, Depends
-from typing import Optional
 from functools import wraps
-from app.auth import get_current_user_optional, get_current_admin_user, verify_token
+
+from fastapi import Request
+from slowapi import Limiter
+
+from app.auth import verify_token
 from app.database import get_db
 from app.models import User
-from app.utils import get_client_ip, is_localhost_ip, format_ip_for_logging
+from app.utils import format_ip_for_logging, get_client_ip, is_localhost_ip
 
 # Track logged requests to avoid spam
 _logged_requests = set()
@@ -71,8 +71,6 @@ def skip_rate_limit_for_admin(limit_string: str):
         
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            start_time = time.time()
-            
             # Get function name and endpoint info
             func_name = func.__name__
             endpoint_info = f"{func_name}"

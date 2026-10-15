@@ -5,18 +5,19 @@ Handles sharing functionality for dives, dive sites, and dive routes.
 Provides shareable URLs and platform-specific share links.
 """
 
-from typing import Dict, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
-from slowapi.util import get_remote_address
+from typing import Dict, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_user_optional
 from app.database import get_db
-from app.models import Dive, DiveSite, DiveRoute, User
-from app.auth import get_current_active_user, get_current_user_optional
 from app.limiter import limiter, skip_rate_limit_for_admin
-from app.services.share_service import ShareService
+from app.models import User
 from app.services.route_analytics_service import RouteAnalyticsService
+from app.services.share_service import ShareService
 
 router = APIRouter()
 

@@ -7,9 +7,10 @@ Generates thumbnails and medium-sized variants in WebP format.
 
 import io
 import logging
+from typing import Dict
+
 import magic
-from typing import Dict, Optional, Tuple
-from PIL import Image, ImageOps, ExifTags
+from PIL import Image, ImageOps
 
 # Security: Prevent Decompression Bomb attacks
 # 80MP limit (approx 8944x8944) covers high-end DSLRs but stops massive malicious files

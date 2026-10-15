@@ -1,7 +1,8 @@
-from typing import List, Dict, Any, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
 import logging
+from typing import Dict, List, Optional
+
+from sqlalchemy.orm import Session
+
 from app.models import Dive, DiveSite, User
 
 logger = logging.getLogger(__name__)

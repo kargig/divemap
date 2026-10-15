@@ -1,14 +1,15 @@
 import logging
-from typing import Optional, List, Dict, Any
 from datetime import date
+from typing import Any, Dict, List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db
 from app.auth import get_current_user
+from app.constants.cylinders import GAS_MIXES, TANK_SIZES
+from app.database import get_db
 from app.models import User, UserGearProfile
-from app.constants.cylinders import TANK_SIZES, GAS_MIXES
 
 logger = logging.getLogger(__name__)
 

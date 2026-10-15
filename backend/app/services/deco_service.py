@@ -1,4 +1,5 @@
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 
 def calculate_deco_ceiling(
     samples: List[Dict[str, Any]], 
@@ -18,9 +19,9 @@ def calculate_deco_ceiling(
         return [], None, None
 
     # Defer heavy engine import to local scope
+    from octodeco.deco import Util
     from octodeco.deco.Buhlmann import Buhlmann
     from octodeco.deco.Gas import Air, Nitrox, Trimix
-    from octodeco.deco import Util
 
     # 1. Setup Gases
     gas_map = {}

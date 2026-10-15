@@ -1,18 +1,38 @@
 import re
 from typing import List, Optional
-from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload, selectinload
-from app.database import get_db
-from app.models import DiveSiteList, DiveSiteListItem, DiveSite, User, DiveSiteTag, DiveSiteListCollaborator, UserFriendship
-from app.auth import get_current_active_user, get_current_user_optional, get_current_admin_user
-from app.utils import increment_view_count
-from app.schemas import (
-    UserDiveSiteListResponse, UserDiveSiteListCreate, UserDiveSiteListUpdate,
-    DiveSiteListItemResponse, DiveSiteListItemCreate, DiveSiteListItemUpdate,
-    UserDiveSiteListReorder, UserDiveSiteListMembershipResponse,
-    CollaboratorResponse, AddCollaboratorRequest, UpdateCollaboratorPreference
+
+from app.auth import (
+    get_current_active_user,
+    get_current_admin_user,
+    get_current_user_optional,
 )
+from app.database import get_db
+from app.models import (
+    DiveSite,
+    DiveSiteList,
+    DiveSiteListCollaborator,
+    DiveSiteListItem,
+    DiveSiteTag,
+    User,
+    UserFriendship,
+)
+from app.schemas import (
+    AddCollaboratorRequest,
+    CollaboratorResponse,
+    DiveSiteListItemCreate,
+    DiveSiteListItemResponse,
+    DiveSiteListItemUpdate,
+    UpdateCollaboratorPreference,
+    UserDiveSiteListCreate,
+    UserDiveSiteListMembershipResponse,
+    UserDiveSiteListReorder,
+    UserDiveSiteListResponse,
+    UserDiveSiteListUpdate,
+)
+from app.utils import increment_view_count
 
 router = APIRouter()
 
@@ -276,7 +296,7 @@ async def add_list_item(
     current_user: User = Depends(get_current_active_user)
 ):
     """Add a site to a list with optional notes"""
-    lst = check_list_write_permission(list_id, current_user, db)
+    check_list_write_permission(list_id, current_user, db)
 
     # Check site exists
     site = db.query(DiveSite).filter(DiveSite.id == data.dive_site_id).first()
@@ -374,7 +394,7 @@ async def reorder_list_items(
     current_user: User = Depends(get_current_active_user)
 ):
     """Bulk reorder items of a list securely in a single transaction"""
-    lst = check_list_write_permission(list_id, current_user, db)
+    check_list_write_permission(list_id, current_user, db)
 
     items = db.query(DiveSiteListItem).filter(DiveSiteListItem.list_id == list_id).all()
     item_map = {item.id: item for item in items}
@@ -450,10 +470,12 @@ async def add_list_collaborator(
     
     # 2. Inject interactive shared list card inside DM chat if room exists
     try:
-        from app.models import UserChatRoom, UserChatRoomMember, UserChatMessage
-        from sqlalchemy import func
-        from app.services.encryption_service import encrypt_message
         import json
+
+        from sqlalchemy import func
+
+        from app.models import UserChatMessage, UserChatRoom, UserChatRoomMember
+        from app.services.encryption_service import encrypt_message
         
         room_ids_subquery = db.query(UserChatRoomMember.room_id).filter(
             UserChatRoomMember.user_id.in_([current_user.id, target_user.id])

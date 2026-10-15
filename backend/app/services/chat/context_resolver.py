@@ -1,7 +1,9 @@
 import logging
 from typing import Dict
+
 from sqlalchemy.orm import Session
-from app.models import DiveSite, DivingCenter, Dive, DiveRoute
+
+from app.models import Dive, DiveRoute, DiveSite, DivingCenter
 
 logger = logging.getLogger(__name__)
 

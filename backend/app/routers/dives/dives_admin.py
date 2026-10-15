@@ -12,29 +12,36 @@ All functions in this module require admin authentication and provide
 full access to all dives regardless of ownership.
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
-from typing import List, Optional
-from datetime import date, time, datetime
-import json
-import os
-import tempfile
-import uuid
+from datetime import datetime
+from typing import Optional
+
 import orjson
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.responses import Response
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
+
 
 class ORJSONResponse(Response):
     media_type = "application/json"
     def render(self, content: any) -> bytes:
         return orjson.dumps(content, default=str)
 
-from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias, DivingCenter, DifficultyLevel, DiveBuddy, get_difficulty_id_by_code
-from app.services.dive_profile_parser import DiveProfileParser, parse_dive_information_text
-from .dives_validation import raise_validation_error
-from .dives_logging import log_dive_operation, log_error
+from app.models import DiveSite, DiveSiteAlias, DivingCenter, get_difficulty_id_by_code
+from app.schemas import DiveListResponse, DiveResponse, DiveUpdate
+from app.services.dive_profile_parser import parse_dive_information_text
+
+from .dives_shared import (
+    AvailableTag,
+    Dive,
+    DiveTag,
+    User,
+    get_current_admin_user,
+    get_db,
+    r2_storage,
+    router,
+)
+from .dives_utils import generate_dive_name
 
 
 @router.get("/admin/dives/count")

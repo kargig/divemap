@@ -3,27 +3,27 @@ import logging
 import os
 import random
 import re
-import sys
 import time
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-import httpx
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.models import (
+    CenterDiveSite,
     Dive,
     DiveRoute,
     DiveSite,
+    DiveSiteTag,
     DivingCenter,
     DivingOrganization,
-    User,
     MediaType,
-    DiveSiteTag,
-    CenterDiveSite,
+    User,
 )
+
 
 def make_absolute_url(url: str, base_url: str) -> str:
     if not url:
@@ -33,6 +33,7 @@ def make_absolute_url(url: str, base_url: str) -> str:
     return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
 
 from urllib.parse import quote
+
 
 def is_flickr_url(url: str) -> bool:
     if not url:
@@ -93,6 +94,12 @@ def get_image_mime_type(url: str) -> str:
     if clean_url.endswith(".png"):
         return "image/png"
     return "image/jpeg"
+from app.seo_geo import (
+    distinct_approved_countries,
+    distinct_approved_regions,
+    geo_hub_path,
+    resolve_label_from_slug,
+)
 from generate_static_content import get_dive_site_slug, get_diving_center_slug, slugify
 from static_html import (
     _site_rating_stats,
@@ -102,6 +109,8 @@ from static_html import (
     dive_site_schema,
     diving_center_meta_description,
     diving_center_schema,
+    escape_text,
+    format_depth,
     geo_hub_schema,
     render_dive_route_main,
     render_dive_site_main,
@@ -112,14 +121,6 @@ from static_html import (
     render_map_main,
     render_seo_page,
     resolve_html_template,
-    escape_text,
-    format_depth,
-)
-from app.seo_geo import (
-    distinct_approved_countries,
-    distinct_approved_regions,
-    geo_hub_path,
-    resolve_label_from_slug,
 )
 
 logger = logging.getLogger("divemap.seo")
@@ -179,7 +180,7 @@ async def get_spa_template() -> Optional[str]:
         template_path = resolve_html_template()
         if template_path and os.path.isfile(template_path):
             try:
-                with open(template_path, "r", encoding="utf-8") as f:
+                with open(template_path, encoding="utf-8") as f:
                     _spa_template_cache = f.read()
                     _spa_template_fetched_at = time.time()
                 logger.info(f"Successfully read SPA template from disk: {template_path}")
@@ -303,7 +304,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     raise HTTPException(status_code=404, detail="Dive Site not found")
 
                 # Extract a random photo media URL if available (combining both direct site photos and public dive log photos at this site)
-                from app.models import SiteMedia, DiveMedia
+                from app.models import DiveMedia, SiteMedia
 
                 site_photos = db.query(SiteMedia).filter(
                     SiteMedia.dive_site_id == site.id,

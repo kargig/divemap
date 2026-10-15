@@ -1,15 +1,15 @@
+import hashlib
 import os
 import uuid
-import hashlib
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 import jwt
 from fastapi import Request
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from app.models import User, RefreshToken, AuthAuditLog
-from app.database import get_db
+from app.models import AuthAuditLog, RefreshToken, User
 
 
 class TokenService:

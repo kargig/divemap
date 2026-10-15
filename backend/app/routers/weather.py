@@ -4,16 +4,18 @@ Weather API Router
 Endpoints for fetching weather data, specifically wind conditions for dive sites.
 """
 
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
-
-from app.database import get_db
-from app.auth import get_current_user_optional
-from app.services.open_meteo_service import fetch_wind_data_single_point, fetch_wind_data_grid
 import logging
+from datetime import datetime, timedelta
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel
+
+from app.auth import get_current_user_optional
+from app.services.open_meteo_service import (
+    fetch_wind_data_grid,
+    fetch_wind_data_single_point,
+)
 
 logger = logging.getLogger(__name__)
 

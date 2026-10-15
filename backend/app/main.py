@@ -1,29 +1,34 @@
-from fastapi import FastAPI, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from fastapi.responses import JSONResponse, ORJSONResponse
-from datetime import datetime, timedelta, timezone
-from contextlib import asynccontextmanager
-import os
 import logging
+import os
 import time
 import warnings
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
+
+from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, ORJSONResponse
+from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import func
-from typing import Any
+from sqlalchemy.orm import Session
 
 # Suppress passlib deprecation warnings for crypt module
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
 
 # Lazy imports for faster startup - only import when needed
 from app.database import engine, get_db
-from app.models import Base, Dive, DiveSite, SiteRating, CenterRating, DivingCenter, ParsedDiveTrip
 from app.limiter import limiter
-from app.utils import get_client_ip, format_ip_for_logging, is_private_ip
+from app.models import (
+    Base,
+    CenterRating,
+    Dive,
+    DiveSite,
+    DivingCenter,
+    ParsedDiveTrip,
+    SiteRating,
+)
+from app.utils import format_ip_for_logging, get_client_ip, is_private_ip
 
 # Startup timing for performance monitoring
 startup_start_time = time.time()
@@ -64,6 +69,7 @@ print(f"🔧 Suspicious proxy chain length threshold: {suspicious_proxy_chain_le
 # Create database tables (skip during testing)
 # Check if we're running tests by looking for pytest in sys.argv or test environment
 import sys
+
 is_testing = (
     "pytest" in sys.modules or
     "pytest" in sys.argv[0] or
@@ -80,7 +86,7 @@ if not is_testing:
             # Quick check if any tables exist
             result = conn.execute(func.count().select().select_from(Base.metadata.tables.get('dives', None)))
             tables_exist = True
-    except:
+    except Exception:
         tables_exist = False
 
     if not tables_exist:
@@ -140,14 +146,14 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
     # Calculate reset time (default to 1 minute for most limits, 24 hours for daily limits)
     # This is a best-effort calculation - slowapi doesn't expose the exact reset time
-    reset_time = datetime.now(timezone.utc) + timedelta(minutes=1)
+    reset_time = datetime.now(UTC) + timedelta(minutes=1)
 
     # Check if this is a daily limit (contains "day" or "/d")
     if "day" in limit_detail.lower() or "/d" in limit_detail.lower():
-        reset_time = datetime.now(timezone.utc) + timedelta(days=1)
+        reset_time = datetime.now(UTC) + timedelta(days=1)
 
     reset_timestamp = int(reset_time.timestamp())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     retry_after_seconds = int((reset_time - now).total_seconds())
 
     # Special handling for resend verification endpoint
@@ -246,10 +252,6 @@ async def fix_request_scheme(request: Request, call_next):
 # Security middleware
 @app.middleware("http")
 async def add_security_headers(request, call_next):
-    # Get client IP for security monitoring (but don't log every request)
-    client_ip = get_client_ip(request)
-    formatted_ip = format_ip_for_logging(client_ip, include_private=False)
-
     response = await call_next(request)
 
     # Security headers
@@ -396,7 +398,7 @@ def load_routers():
     router_start = time.time()
 
     # Import only the most essential routers for startup
-    from app.routers import auth, users, settings, notifications, lists
+    from app.routers import auth, lists, notifications, settings, users
 
     # Include only the most critical routers (others moved to lazy loading)
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
@@ -835,7 +837,7 @@ async def get_statistics(db: Session = Depends(get_db)):
             "diving_centers": diving_center_count,
             "dive_trips": dive_trips_count
         }
-    except Exception as e:
+    except Exception:
         return {
             "dives": 0,
             "dive_sites": 0,

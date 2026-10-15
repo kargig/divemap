@@ -12,22 +12,21 @@ The search functionality includes:
 - Unified search across multiple fields
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session, joinedload, selectinload
-from typing import List, Optional
-from datetime import date, time, datetime
-import json
-import os
-import tempfile
-import uuid
-import traceback
+from typing import List
 
-from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, DiveBuddy, r2_storage, UNIFIED_TYPO_TOLERANCE, calculate_unified_phrase_aware_score, classify_match_type
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
-from app.models import DiveSite, DiveSiteAlias
-from app.services.dive_profile_parser import DiveProfileParser
-from .dives_validation import raise_validation_error
-from .dives_logging import log_dive_operation, log_error
+from fastapi import HTTPException
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.models import DiveSite
+
+from .dives_shared import (
+    UNIFIED_TYPO_TOLERANCE,
+    Dive,
+    DiveTag,
+    User,
+    calculate_unified_phrase_aware_score,
+    classify_match_type,
+)
 
 
 def search_dives_with_fuzzy(query: str, exact_results: List[Dive], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc', exclude_unspecified_difficulty: bool = False):

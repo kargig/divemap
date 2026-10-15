@@ -1,13 +1,13 @@
 from typing import List
+
+import orjson
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-import orjson
 
-from app.database import get_db
-from app.models import Setting
-from app.schemas import SettingResponse, SettingUpdate
 from app.auth import get_current_admin_user, get_current_user_optional
-from app.models import User
+from app.database import get_db
+from app.models import Setting, User
+from app.schemas import SettingResponse, SettingUpdate
 
 router = APIRouter()
 
@@ -51,6 +51,7 @@ async def get_setting(
 
 
 from fastapi_cache.decorator import cache
+
 
 @router.get("", response_model=List[SettingResponse])
 @cache(expire=300)

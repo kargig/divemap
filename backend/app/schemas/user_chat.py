@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, constr
-from typing import Optional, List, Dict
 from datetime import datetime
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field, constr
+
 
 # --- Common/Shared ---
 class UserBasicInfo(BaseModel):

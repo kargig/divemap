@@ -1,18 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path, Request
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta, timezone
-from typing import Optional
 import secrets
 import string
-import os
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
 
-from app.database import get_db
-from app.models import ShortLink
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, HttpUrl
+from sqlalchemy.orm import Session
 
+from app.database import get_db
 from app.limiter import limiter
+from app.models import ShortLink
 
 api_router = APIRouter()
 redirect_router = APIRouter()
@@ -61,7 +59,7 @@ async def create_short_link(
         relative_url += f"#{parsed_url.fragment}"
 
     # Deduplication: Check for existing active link
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     existing_link = db.query(ShortLink).filter(
         ShortLink.original_url == relative_url,
         ShortLink.expires_at > now
@@ -121,14 +119,14 @@ async def redirect_short_link(
         raise HTTPException(status_code=404, detail="Short link not found")
     
     # Check expiration (ensure timezone awareness)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     # Ensure link.expires_at is timezone-aware.
     # If it was stored without timezone info in DB but is UTC, we might need to fix it.
     # SQLAlchemy DateTime(timezone=True) should handle this, but let's be safe.
     
     if link.expires_at.tzinfo is None:
         # Assume UTC if naive
-        link_expires_at = link.expires_at.replace(tzinfo=timezone.utc)
+        link_expires_at = link.expires_at.replace(tzinfo=UTC)
     else:
         link_expires_at = link.expires_at
 

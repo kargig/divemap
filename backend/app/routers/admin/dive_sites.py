@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, status
-from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
-from app.database import get_db
-from app.models import DiveSite, User
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_active_user
-from app.schemas import DiveSiteResponse
+from app.database import get_db
 from app.limiter import skip_rate_limit_for_admin
+from app.models import DiveSite, User
+from app.schemas import DiveSiteResponse
 
 router = APIRouter(
     prefix="/dive-sites",
@@ -43,8 +44,15 @@ async def get_pending_dive_sites(
         
     return sites
 
-from app.models import DiveSiteEditRequest, EditRequestStatus, EditRequestType, SiteMedia
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
+from app.models import (
+    DiveSiteEditRequest,
+    EditRequestStatus,
+    EditRequestType,
+    SiteMedia,
+)
+
 
 @router.get("/edit-requests")
 async def get_pending_edit_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
@@ -200,8 +208,7 @@ async def approve_edit_request(request: Request, request_id: int, db: Session = 
             ).delete()
 
     edit_req.status = EditRequestStatus.approved
-    from datetime import datetime, timezone
-    edit_req.reviewed_at = datetime.now(timezone.utc)
+    edit_req.reviewed_at = datetime.now(UTC)
     edit_req.reviewed_by_id = current_user.id
     db.commit()
     return {"message": "Approved"}
@@ -216,7 +223,7 @@ async def reject_edit_request(request_id: int, db: Session = Depends(get_db), cu
         raise HTTPException(status_code=404, detail="Pending request not found")
         
     edit_req.status = EditRequestStatus.rejected
-    edit_req.reviewed_at = datetime.now(timezone.utc)
+    edit_req.reviewed_at = datetime.now(UTC)
     edit_req.reviewed_by_id = current_user.id
     db.commit()
     return {"message": "Rejected"}

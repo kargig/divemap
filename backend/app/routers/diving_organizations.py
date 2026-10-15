@@ -1,16 +1,21 @@
 import re
-from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from typing import List, Optional
 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from app.auth import is_admin_or_moderator
 from app.database import get_db
-from app.models import DivingOrganization, CertificationLevel
+from app.models import CertificationLevel, DivingOrganization
 from app.schemas import (
-    DivingOrganizationCreate, DivingOrganizationUpdate, DivingOrganizationResponse,
-    CertificationLevelResponse, CertificationLevelCreate, CertificationLevelUpdate
+    CertificationLevelCreate,
+    CertificationLevelResponse,
+    CertificationLevelUpdate,
+    DivingOrganizationCreate,
+    DivingOrganizationResponse,
+    DivingOrganizationUpdate,
 )
-from app.auth import get_current_admin_user, get_current_user_optional, is_admin_or_moderator
 
 router = APIRouter()
 
@@ -142,10 +147,10 @@ async def get_organization_certification_levels(
     levels = query.all()
     
     # Sort levels by Category -> Depth -> Gas
-    levels.sort(key=lambda l: (
-        get_category_score(l.category), 
-        get_depth_value(l.max_depth), 
-        get_gas_value(l.gases)
+    levels.sort(key=lambda lvl: (
+        get_category_score(lvl.category), 
+        get_depth_value(lvl.max_depth), 
+        get_gas_value(lvl.gases)
     ))
     
     return levels

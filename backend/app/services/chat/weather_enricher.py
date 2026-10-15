@@ -1,7 +1,9 @@
 import logging
-from datetime import datetime, date
-from typing import List, Dict, Optional
+from datetime import date, datetime
+from typing import Dict, List, Optional
+
 from sqlalchemy.orm import Session
+
 from app.models import DiveSite
 from app.services.open_meteo_service import fetch_wind_data_batch
 from app.services.wind_recommendation_service import calculate_wind_suitability

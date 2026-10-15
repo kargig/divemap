@@ -1,8 +1,9 @@
+import logging
 import os
 import re
+from typing import Any, Dict, Optional
+
 import orjson
-import logging
-from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logger = logging.getLogger(__name__)

@@ -11,22 +11,47 @@ This module contains core CRUD operations for dives:
 - delete_dive
 """
 
-from fastapi import Depends, HTTPException, status, Query, BackgroundTasks
-from app.utils import _get_cached_avatar_url
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_, desc, asc, distinct, func
-from typing import List, Optional
 from datetime import datetime
-import orjson
+from typing import List, Optional
 
-from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, DiveBuddy, r2_storage, UNIFIED_TYPO_TOLERANCE
+from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveListResponse, AddBuddiesRequest, ReplaceBuddiesRequest
-from app.models import DiveSite, DivingCenter, DiveSiteAlias, DifficultyLevel, get_difficulty_id_by_code
-from .dives_utils import generate_dive_name
+from app.models import (
+    DifficultyLevel,
+    DiveSite,
+    DiveSiteAlias,
+    DivingCenter,
+    get_difficulty_id_by_code,
+)
+from app.schemas import (
+    AddBuddiesRequest,
+    DiveCreate,
+    DiveListResponse,
+    DiveResponse,
+    DiveUpdate,
+    ReplaceBuddiesRequest,
+)
 from app.services.dive_profile_parser import parse_dive_information_text
+from app.utils import _get_cached_avatar_url, get_unified_fuzzy_trigger_conditions
+
 from .dives_search import search_dives_with_fuzzy
-from app.utils import get_unified_fuzzy_trigger_conditions
+from .dives_shared import (
+    UNIFIED_TYPO_TOLERANCE,
+    AvailableTag,
+    Dive,
+    DiveBuddy,
+    DiveMedia,
+    DiveTag,
+    User,
+    get_current_user,
+    get_current_user_optional,
+    get_db,
+    r2_storage,
+    router,
+)
+from .dives_utils import generate_dive_name
 
 
 @router.post("/", response_model=DiveResponse)
@@ -289,6 +314,7 @@ def get_dives_count(
     my_dives: Optional[bool] = Query(None, description="Filter to show only current user's dives"),
     dive_site_id: Optional[int] = Query(None),
     dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
+    search: Optional[str] = Query(None, description="Unified search across dive site name, description, notes"),
     difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
     exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),

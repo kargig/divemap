@@ -2,7 +2,7 @@
 Canonical Cylinder and Gas Mix Constants for Divemap.
 Mirrors frontend/src/utils/diveConstants.js to ensure 100% ID consistency.
 """
-from typing import Dict, Any
+from typing import Any, Dict
 
 TANK_SIZES = [
     {"id": "3", "name": "3 Liters (Pony)", "size": 3, "defaultPressure": 232, "material": "steel", "emptyWeight": 4.0},

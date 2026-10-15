@@ -1,49 +1,61 @@
-from datetime import timedelta, datetime, timezone
+import logging
+import os
+import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Response, Query
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
-from slowapi.util import get_remote_address
-from slowapi import Limiter
-from pydantic import BaseModel
-import os
-import logging
-import secrets
+from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import User, EmailVerificationToken, PasswordResetToken, RefreshToken, AuthAuditLog
-from app.schemas import (
-    UserCreate, Token, LoginRequest, UserResponse, RegistrationResponse,
-    ResendVerificationRequest, PasswordResetRequest, PasswordResetConfirm,
-    AuthConfigResponse, GoogleProviderConfig, FacebookProviderConfig
-)
 from app.auth import (
     authenticate_user,
-    get_password_hash,
     get_current_active_user,
-    validate_password_strength
+    get_password_hash,
+    validate_password_strength,
 )
-from app.token_service import token_service
-from app.google_auth import (
-    authenticate_google_user,
-    verify_google_token,
-    get_or_create_google_user,
-    is_google_auth_configured,
-    get_google_client_id,
-)
+from app.database import get_db
 from app.facebook_auth import (
-    verify_facebook_token,
+    FacebookAuthError,
+    get_facebook_app_id,
     get_or_create_facebook_user,
     is_facebook_auth_configured,
-    get_facebook_app_id,
-    FacebookAuthError,
+    verify_facebook_token,
+)
+from app.google_auth import (
+    get_google_client_id,
+    get_or_create_google_user,
+    is_google_auth_configured,
+    verify_google_token,
 )
 from app.limiter import limiter, skip_rate_limit_for_admin
-from app.turnstile_service import TurnstileService
-from app.services.email_verification_service import email_verification_service
+from app.models import (
+    AuthAuditLog,
+    EmailVerificationToken,
+    PasswordResetToken,
+    RefreshToken,
+    User,
+)
+from app.schemas import (
+    AuthConfigResponse,
+    FacebookProviderConfig,
+    GoogleProviderConfig,
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RegistrationResponse,
+    ResendVerificationRequest,
+    Token,
+    UserCreate,
+    UserResponse,
+)
 from app.services.email_service import EmailService
+from app.services.email_verification_service import email_verification_service
 from app.services.notification_service import NotificationService
+from app.token_service import token_service
+from app.turnstile_service import TurnstileService
 from app.utils import get_client_ip, populate_avatar_full_url
 
 # Constants
@@ -148,13 +160,13 @@ async def register(
 
     # Store Turnstile verification timestamp if enabled and not native app
     if turnstile_service.is_enabled() and not is_native_app:
-        db_user.turnstile_verified_at = datetime.now(timezone.utc)
+        db_user.turnstile_verified_at = datetime.now(UTC)
 
     try:
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-    except IntegrityError as e:
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -246,10 +258,10 @@ async def login(
     if user:
         try:
             if turnstile_service.is_enabled() and not is_native_app:
-                user.turnstile_verified_at = datetime.now(timezone.utc)
+                user.turnstile_verified_at = datetime.now(UTC)
             user.last_accessed_at = func.now()
             db.commit()
-        except Exception as e:
+        except Exception:
             db.rollback()
     if not user:
         raise HTTPException(
@@ -277,7 +289,7 @@ async def login(
     try:
         token_data = token_service.create_token_pair(user, request, db)
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create authentication tokens"
@@ -573,8 +585,6 @@ async def resend_verification(
     Returns:
         Success message (always returns success to prevent email enumeration)
     """
-    from app.models import EmailVerificationToken
-
     email = email_data.email.strip().lower()
 
     # Find user by email
@@ -593,7 +603,7 @@ async def resend_verification(
 
     # Check rate limit by email address (check recent tokens for this user)
     # Use a single query with aggregation to avoid N+1
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
     recent_tokens_count = db.query(EmailVerificationToken).filter(
         EmailVerificationToken.user_id == user.id,
@@ -669,7 +679,7 @@ async def refresh_token(
             "expires_in": token_data["expires_in"],
             "user": populate_avatar_full_url(user, user_dict) if user else None
         }
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token refresh failed"
@@ -826,7 +836,7 @@ async def request_password_reset(
     token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
 
     # Expiry: 30 minutes
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    expires_at = datetime.now(UTC) + timedelta(minutes=30)
 
     # Store token hash
     db_token = PasswordResetToken(
@@ -874,8 +884,8 @@ async def verify_reset_token(
 
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at == None,
-        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+        PasswordResetToken.used_at.is_(None),
+        PasswordResetToken.expires_at > datetime.now(UTC)
     ).first()
 
     if not db_token:
@@ -901,8 +911,8 @@ async def reset_password(
 
     db_token = db.query(PasswordResetToken).filter(
         PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at == None,
-        PasswordResetToken.expires_at > datetime.now(timezone.utc)
+        PasswordResetToken.used_at.is_(None),
+        PasswordResetToken.expires_at > datetime.now(UTC)
     ).first()
 
     if not db_token:
@@ -926,7 +936,7 @@ async def reset_password(
     user.password_hash = get_password_hash(reset_data.new_password)
 
     # Mark token used
-    db_token.used_at = datetime.now(timezone.utc)
+    db_token.used_at = datetime.now(UTC)
 
     # Revoke all refresh tokens
     db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"is_revoked": True})

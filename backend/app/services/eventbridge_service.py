@@ -6,14 +6,15 @@ Note: EventBridge rules are typically created via AWS Console or Infrastructure 
 but this service provides helper functions for rule management.
 """
 
-import os
-import orjson
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any, Dict, Optional
+
+import orjson
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -78,33 +79,32 @@ class EventBridgeService:
         if not self.eventbridge_available or not self.eventbridge_client:
             logger.warning("EventBridge not available - cannot create scheduled rule")
             return False
-        
+
+        # Check if rule exists
         try:
-            # Check if rule exists
-            try:
-                self.eventbridge_client.describe_rule(Name=rule_name)
-                rule_exists = True
-            except ClientError as e:
-                if e.response['Error']['Code'] == 'ResourceNotFoundException':
-                    rule_exists = False
-                else:
-                    raise
-            
-            # Create or update rule
-            rule_params = {
-                'Name': rule_name,
-                'ScheduleExpression': schedule_expression,
-                'State': 'ENABLED',
-                'Description': f'Scheduled task: {rule_name}'
-            }
-            
-            if rule_exists:
-                self.eventbridge_client.put_rule(**rule_params)
-                logger.info(f"Updated EventBridge rule: {rule_name}")
+            self.eventbridge_client.describe_rule(Name=rule_name)
+            rule_exists = True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'ResourceNotFoundException':
+                rule_exists = False
             else:
-                self.eventbridge_client.put_rule(**rule_params)
-                logger.info(f"Created EventBridge rule: {rule_name}")
-            
+                raise
+
+        # Create or update rule
+        rule_params = {
+            'Name': rule_name,
+            'ScheduleExpression': schedule_expression,
+            'State': 'ENABLED',
+            'Description': f'Scheduled task: {rule_name}'
+        }
+
+        if rule_exists:
+            self.eventbridge_client.put_rule(**rule_params)
+            logger.info(f"Updated EventBridge rule: {rule_name}")
+        else:
+            self.eventbridge_client.put_rule(**rule_params)
+            logger.info(f"Created EventBridge rule: {rule_name}")
+
         targets = [{
             'Id': '1',
             'Arn': target_arn
@@ -121,7 +121,7 @@ class EventBridgeService:
             target_params['Targets'][0]['Input'] = orjson.dumps(input_data).decode('utf-8')
             
         try:
-            response = self.eventbridge_client.put_targets(**target_params)
+            self.eventbridge_client.put_targets(**target_params)
             logger.info(f"Added target to rule: {rule_name} -> {target_arn}")
             
             return True

@@ -5,11 +5,12 @@ Handles route deletion rules, permissions, and restrictions.
 Implements soft delete with proper validation and migration logic.
 """
 
-from typing import Tuple, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from typing import Optional, Tuple
 
-from app.models import DiveRoute, Dive, User, DiveSite
+from sqlalchemy import and_
+from sqlalchemy.orm import Session
+
+from app.models import Dive, DiveRoute, DiveSite, User
 from app.schemas import RouteDeletionCheck
 
 

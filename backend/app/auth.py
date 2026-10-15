@@ -1,19 +1,19 @@
-from datetime import datetime, timedelta
-from typing import Optional
-import jwt
-from jwt.exceptions import InvalidTokenError
-from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status, Header
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session, joinedload
+import logging
 import os
 import re
-import logging
+from datetime import datetime, timedelta
+from typing import Optional
+
+import jwt
+from fastapi import Depends, Header, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt.exceptions import InvalidTokenError
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import User, PersonalAccessToken
+from app.models import PersonalAccessToken, User
 from app.schemas import TokenData
-from app.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,8 @@ def validate_password_strength(password: str) -> bool:
         return False
     return True
 
-from app.models import DiveSite, Dive, DivingCenter, DiveRoute, OwnershipStatus
+from app.models import Dive, DiveRoute, DiveSite, DivingCenter, OwnershipStatus
+
 
 def is_trusted_contributor(db: Session, user: User, dive_site: DiveSite) -> bool:
     if user.is_admin or user.is_moderator:
@@ -126,7 +127,7 @@ def verify_pat(token: str, db: Session) -> Optional[User]:
         if not matching_pats:
             return None
 
-        from app.utils import utcnow, normalize_datetime_to_utc
+        from app.utils import normalize_datetime_to_utc, utcnow
         now = utcnow()
         for pat in matching_pats:
             # 1. Check expiration
@@ -251,7 +252,7 @@ async def can_manage_diving_center(
         return current_user
     
     # Check if user is the owner or manager of this diving center
-    from app.models import DivingCenter, OwnershipStatus, DivingCenterManager
+    from app.models import DivingCenter, DivingCenterManager, OwnershipStatus
     diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     
     if not diving_center:

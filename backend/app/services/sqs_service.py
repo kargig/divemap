@@ -5,14 +5,15 @@ Provides SQS integration for queuing email notification tasks.
 Automatically detects AWS credentials and falls back gracefully when unavailable.
 """
 
-import os
-import orjson
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any, Dict, Optional
+
+import orjson
 
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False

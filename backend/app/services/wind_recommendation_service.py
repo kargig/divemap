@@ -5,8 +5,7 @@ Service to calculate dive site suitability based on wind conditions.
 Considers both wind direction and wind speed to provide safety recommendations.
 """
 
-from typing import Optional, Dict, Literal
-import math
+from typing import Dict, Literal, Optional
 
 # Wind speed thresholds (in m/s)
 WIND_SPEED_GOOD_THRESHOLD = 6.2  # ~12 knots - safe for diving below this threshold
@@ -144,7 +143,7 @@ def calculate_wind_suitability(
             # Upgrade unknown -> caution if gusts are strong
             if wind_suitability == "unknown":
                 wind_suitability = "caution"
-                wind_reasoning += f" (strong gusts detected)"
+                wind_reasoning += " (strong gusts detected)"
         
     else:
         # Calculate angle difference between wind and shore direction

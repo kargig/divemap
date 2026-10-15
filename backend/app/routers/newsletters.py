@@ -1,22 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_, and_, func, desc, asc
-from typing import List, Optional
-from datetime import datetime, date, time, timedelta
-import re
-import orjson
-import os
-import requests
-import math
-from app.database import get_db
-from app.models import Newsletter, ParsedDiveTrip, DivingCenter, DiveSite, User, TripStatus, ParsedDive, DifficultyLevel, DivingCenterManager, get_difficulty_id_by_code, Dive, OctoAvailabilitySlot, OctoProduct
-from app.auth import get_current_user, get_current_user_optional, is_admin_or_moderator, can_manage_diving_center
-from app.schemas import ParsedDiveTripResponse, ParsedDiveTripListResponse, NewsletterUploadResponse, NewsletterResponse, NewsletterUpdateRequest, NewsletterDeleteRequest, NewsletterDeleteResponse, ParsedDiveTripCreate, ParsedDiveTripUpdate, ParsedDiveResponse, NewsletterParseTextRequest
 import logging
-import openai
+import math
+import os
 import quopri
-from email import message_from_bytes
+import re
+from datetime import date, datetime, time, timedelta
 from difflib import SequenceMatcher
+from email import message_from_bytes
+from typing import List, Optional
+
+import orjson
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload, selectinload
+
+from app.auth import (
+    can_manage_diving_center,
+    get_current_user,
+    get_current_user_optional,
+    is_admin_or_moderator,
+)
+from app.database import get_db
+from app.models import (
+    DifficultyLevel,
+    Dive,
+    DiveSite,
+    DivingCenter,
+    DivingCenterManager,
+    Newsletter,
+    OctoAvailabilitySlot,
+    OctoProduct,
+    ParsedDive,
+    ParsedDiveTrip,
+    TripStatus,
+    User,
+    get_difficulty_id_by_code,
+)
+from app.schemas import (
+    NewsletterDeleteRequest,
+    NewsletterDeleteResponse,
+    NewsletterParseTextRequest,
+    NewsletterResponse,
+    NewsletterUpdateRequest,
+    NewsletterUploadResponse,
+    ParsedDiveResponse,
+    ParsedDiveTripCreate,
+    ParsedDiveTripListResponse,
+    ParsedDiveTripResponse,
+    ParsedDiveTripUpdate,
+)
 
 # Configure logging level for this module
 logger = logging.getLogger(__name__)
@@ -167,7 +208,7 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
         return final_results
         
     candidate_trips = []
-    from app.models import DivingCenter, DiveSite, ParsedDive, ParsedDiveTrip
+    from app.models import DiveSite, DivingCenter, ParsedDive, ParsedDiveTrip
     
     # 3. Coarse Filter (SQL)
     for word in words:
@@ -211,23 +252,19 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
     
     for trip in candidate_trips:
         score = 0.0
-        match_type = 'none'
         
         # Calculate RapidFuzz ratios (0-100 scale, so we divide by 100)
         desc_score = fuzz.partial_ratio(query_lower, (trip.trip_description or '').lower()) / 100.0
         if desc_score > score:
             score = desc_score
-            match_type = 'description_fuzzy'
             
         req_score = fuzz.partial_ratio(query_lower, (trip.special_requirements or '').lower()) / 100.0
         if req_score > score:
             score = req_score
-            match_type = 'requirements_fuzzy'
             
         center_score = fuzz.partial_ratio(query_lower, trip.diving_center.name.lower()) / 100.0 if trip.diving_center else 0
         if center_score > score:
             score = center_score
-            match_type = 'diving_center_fuzzy'
             
         if trip.dives:
             for dive in trip.dives:
@@ -235,12 +272,10 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
                     site_score = fuzz.partial_ratio(query_lower, dive.dive_site.name.lower()) / 100.0
                     if site_score > score:
                         score = site_score
-                        match_type = 'dive_site_fuzzy'
                 if dive.dive_description:
                     dive_desc_score = fuzz.partial_ratio(query_lower, dive.dive_description.lower()) / 100.0
                     if dive_desc_score > score:
                         score = dive_desc_score
-                        match_type = 'dive_description_fuzzy'
                         
         if score >= similarity_threshold:
             if score >= 0.8:
@@ -524,13 +559,10 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
 
 from app.services.openai_service import openai_service
 
+
 async def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
-        # Extract diving center from metadata if not provided as override
-        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
-        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
-        
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
         
@@ -561,7 +593,7 @@ async def parse_newsletter_with_openai(content: str, db: Session, diving_center_
                 if '=3D' in clean_content or '=20' in clean_content:
                     try:
                         clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
-                    except:
+                    except Exception:
                         pass
             except Exception as e:
                 logger.warning(f"Failed to parse as email, treating as plain text: {e}")
@@ -885,7 +917,7 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
                                         else:
                                             logger.info(f"❌ No dive site match found for: '{original_name}' (cleaned: '{cleaned_name}')")
                                 else:
-                                    logger.info(f"⚠️ No dive_site_name found in dive")
+                                    logger.info("⚠️ No dive_site_name found in dive")
 
                     logger.info(f"Successfully parsed {len(trips)} trips from OpenAI")
                     return trips
@@ -912,16 +944,11 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
 def parse_newsletter_content(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
     """Parse newsletter content using basic regex patterns"""
     try:
-        # Extract diving center from metadata if not provided as override
-        extracted_diving_center_id = extract_diving_center_from_metadata(content) if diving_center_id_override is None else None
-        diving_center_id_from_metadata = diving_center_id_override or extracted_diving_center_id
-        
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
         
         # Extract subject and clean content from raw email
         email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
-        subject = email_message.get('Subject', '')
 
         # Get the text content
         clean_content = ""
@@ -941,7 +968,7 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
         if '=3D' in clean_content or '=20' in clean_content:
             try:
                 clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
-            except:
+            except Exception:
                 pass
 
         # Extract diving center from headers
@@ -957,12 +984,6 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
             r'(\d{1,2})/(\d{1,2})/(\d{4})',
             r'(\d{1,2})-(\d{1,2})-(\d{4})',
             r'(\d{1,2})\.(\d{1,2})\.(\d{4})'
-        ]
-
-        time_patterns = [
-            r'(\d{1,2}):(\d{2})',
-            r'(\d{1,2})\.(\d{2})',
-            r'(\d{1,2}) (\d{2})'
         ]
 
         # Keywords that indicate dive trips
@@ -1222,12 +1243,10 @@ async def parse_newsletter_text(
         use_openai = request.use_openai
 
         # Validate diving center if provided
-        diving_center_name = None
         if diving_center_id_override is not None:
             diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id_override).first()
             if not diving_center:
                 raise HTTPException(status_code=400, detail=f"Diving center with ID {diving_center_id_override} not found")
-            diving_center_name = diving_center.name
         
         # Add diving center metadata to content before saving
         content_with_metadata = add_diving_center_metadata(content_str, diving_center_id_override)
@@ -1436,9 +1455,10 @@ async def get_parsed_trips(
         sort_by = "trip_duration"
 
     from sqlalchemy.orm import selectinload
+
     # Eager load all relationships to avoid N+1 queries
     # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET
-    from app.models import SiteRating, DiveSiteTag, AvailableTag
+    from app.models import DiveSiteTag
     query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
         joinedload(ParsedDiveTrip.diving_center),
@@ -1471,7 +1491,7 @@ async def get_parsed_trips(
             try:
                 trip_status_enum = TripStatus(trip_status)
                 query = query.filter(ParsedDiveTrip.trip_status == trip_status_enum)
-            except:
+            except (ValueError, TypeError):
                 pass  # Invalid status, ignore filter
 
     # Price filtering
@@ -1646,7 +1666,7 @@ async def get_parsed_trips(
         
         # For each center, sort by trip_date (ascending = oldest first) and take only 2
         restricted_trips = []
-        for center_id, center_trips in trips_by_center.items():
+        for center_trips in trips_by_center.values():
             # Sort by trip_date ascending (oldest first)
             sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
             # Take only the 2 oldest
@@ -2139,7 +2159,7 @@ async def create_parsed_trip(
     # Check permissions first: admins/moderators can create trips, owners/managers can for their centers
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user owns or manages any approved diving centers
-        from app.models import OwnershipStatus, DivingCenterManager
+        from app.models import DivingCenterManager, OwnershipStatus
         has_manageable_center = db.query(DivingCenter).filter(
             or_(
                 and_(
@@ -2214,7 +2234,9 @@ async def create_parsed_trip(
         db.refresh(trip)
 
         if trip_data.enable_online_booking:
-            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            from app.services.trip_octo_provisioning_service import (
+                TripOctoProvisioningService,
+            )
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
                 trip=trip,
@@ -2230,7 +2252,7 @@ async def create_parsed_trip(
         db.refresh(trip)
         
         # Load the newly created trip with relations
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import DiveSiteTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),
@@ -2505,7 +2527,9 @@ async def update_parsed_trip(
             or (trip.is_bookable and (trip_data.trip_price is not None or trip_data.different_rental_price is not None or trip_data.custom_rental_price is not None))
         )
         if should_sync_slot:
-            from app.services.trip_octo_provisioning_service import TripOctoProvisioningService
+            from app.services.trip_octo_provisioning_service import (
+                TripOctoProvisioningService,
+            )
             is_enabled = trip_data.enable_online_booking if trip_data.enable_online_booking is not None else trip.is_bookable
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
@@ -2518,7 +2542,7 @@ async def update_parsed_trip(
 
         # Load the updated trip with relations
         db.commit()
-        from app.models import SiteRating, DiveSiteTag, AvailableTag
+        from app.models import DiveSiteTag
         trip = db.query(ParsedDiveTrip).options(
             joinedload(ParsedDiveTrip.difficulty),
             joinedload(ParsedDiveTrip.diving_center),

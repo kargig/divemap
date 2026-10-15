@@ -1,46 +1,93 @@
-from typing import List, Optional, Union, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Body, BackgroundTasks
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_, or_
-import difflib
-import orjson
-import requests
+import logging
 import uuid
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
-from app.models import DivingCenter, CenterRating, CenterComment, User, CenterDiveSite, GearRentalCost, DivingCenterOrganization, DivingOrganization, UserCertification, OwnershipRequest
-from app.models import DivingCenterFollower, UserChatRoom, UserChatRoomMember, CenterMedia, DivingCenterManager, MediaType
-from app.utils import populate_center_media_urls
-from app.schemas import (
-    DivingCenterCreate, DivingCenterUpdate, DivingCenterResponse, DivingCenterListResponse, CenterMediaResponse,
-    CenterRatingCreate, CenterRatingResponse,
-    CenterCommentCreate, CenterCommentUpdate, CenterCommentResponse,
-    CenterDiveSiteCreate, GearRentalCostCreate,
-    DivingCenterOrganizationCreate, DivingCenterOrganizationUpdate, DivingCenterOrganizationResponse,
-    DivingCenterOwnershipClaim, DivingCenterOwnershipResponse, DivingCenterOwnershipApproval, OwnershipRequestHistoryResponse,
-    DivingCenterOwnershipRevocation, BroadcastTripRequest, BroadcastTextRequest,
-    DivingCenterManagerResponse, DivingCenterManagerCreate
+import orjson
+import requests
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    status,
 )
-from app.auth import get_current_active_user, get_current_admin_user, get_current_user_optional, is_admin_or_moderator, get_current_user
-from app.models import OwnershipStatus
+from sqlalchemy import and_, func, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.auth import (
+    get_current_active_user,
+    get_current_user,
+    get_current_user_optional,
+    is_admin_or_moderator,
+)
+from app.database import get_db
+from app.limiter import skip_rate_limit_for_admin
+from app.models import (
+    CenterComment,
+    CenterMedia,
+    CenterRating,
+    DivingCenter,
+    DivingCenterFollower,
+    DivingCenterManager,
+    DivingCenterOrganization,
+    DivingOrganization,
+    GearRentalCost,
+    MediaType,
+    OwnershipRequest,
+    OwnershipStatus,
+    ParsedDive,
+    ParsedDiveTrip,
+    User,
+    UserCertification,
+    UserChatMessage,
+    UserChatRoom,
+    UserChatRoomMember,
+)
+from app.schemas import (
+    BroadcastTextRequest,
+    BroadcastTripRequest,
+    CenterCommentCreate,
+    CenterCommentResponse,
+    CenterCommentUpdate,
+    CenterMediaResponse,
+    CenterRatingCreate,
+    CenterRatingResponse,
+    DivingCenterCreate,
+    DivingCenterListResponse,
+    DivingCenterManagerCreate,
+    DivingCenterManagerResponse,
+    DivingCenterOrganizationCreate,
+    DivingCenterOrganizationResponse,
+    DivingCenterOrganizationUpdate,
+    DivingCenterOwnershipApproval,
+    DivingCenterOwnershipClaim,
+    DivingCenterOwnershipResponse,
+    DivingCenterOwnershipRevocation,
+    DivingCenterResponse,
+    DivingCenterUpdate,
+    GearRentalCostCreate,
+    OwnershipRequestHistoryResponse,
+)
+from app.services.notification_service import NotificationService
 from app.utils import (
+    UNIFIED_TYPO_TOLERANCE,
     calculate_unified_phrase_aware_score,
     classify_match_type,
-    get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE,
-    is_diving_center_reviews_enabled
+    is_diving_center_reviews_enabled,
+    populate_center_media_urls,
 )
-from app.limiter import limiter, skip_rate_limit_for_admin
-from app.services.notification_service import NotificationService
-import logging
 
 logger = logging.getLogger(__name__)
 
-from app.models import CenterMedia, DivingCenterManager, MediaType
-from app.services.r2_storage_service import r2_storage
+from fastapi import File, UploadFile
+
 from app.services.image_processing import image_processing
-from fastapi import UploadFile, File
+from app.services.r2_storage_service import r2_storage
+
 
 def is_center_manager(db: Session, center_id: int, user: User) -> bool:
     if user.is_admin:
@@ -475,21 +522,14 @@ async def reverse_geocode(
 
         # Log the response for debugging
         if debug:
-            print(f"🔍 Nominatim API Request:")
-            print(f"   URL: {url}")
-            print(f"   Parameters: {params}")
-            print(f"   Headers: {headers}")
+            logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
         
         response.raise_for_status()
         
         data = response.json()
         
         if debug:
-            print(f"📡 Nominatim API Response:")
-            print(f"   Status Code: {response.status_code}")
-            print(f"   Response Headers: {dict(response.headers)}")
-            print(f"   Full Response Content:")
-            print(f"   {orjson.dumps(data, option=orjson.OPT_INDENT_2).decode('utf-8')}")
+            logger.debug(f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}")
         
         address = data.get("address", {})
 
@@ -569,7 +609,7 @@ async def reverse_geocode(
 
         # Log the extracted data
         if debug:
-            print(f"📍 Extracted Location Data:")
+            print("📍 Extracted Location Data:")
             print(f"   Country: '{country}'")
             print(f"   Region: '{region}'")
             print(f"   City: '{city}'")
@@ -577,7 +617,7 @@ async def reverse_geocode(
             print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
             
             # Show which region fields were found and used
-            print(f"   Region Field Analysis:")
+            print("   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
             print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
             print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
@@ -589,7 +629,7 @@ async def reverse_geocode(
                 print(f"     → Using fallback: '{region}'")
             
             # Show which city fields were found and used
-            print(f"   City Field Analysis:")
+            print("   City Field Analysis:")
             print(f"     city: '{address.get('city')}'")
             print(f"     town: '{address.get('town')}'")
             print(f"     village: '{address.get('village')}'")
@@ -636,7 +676,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     Fallback function to provide basic location information based on coordinates
     """
     if debug:
-        print(f"🔄 Using fallback location detection ")
+        print("🔄 Using fallback location detection ")
     
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
@@ -1330,7 +1370,7 @@ async def get_diving_center(
                 user_rating = user_rating_obj.score
 
     # Prepare response data
-    from app.models import DivingCenterManager, DivingCenterFollower
+    from app.models import DivingCenterFollower
     is_user_manager = False
     if current_user:
         is_user_manager = is_center_manager(db, diving_center.id, current_user)
@@ -2367,13 +2407,6 @@ async def approve_diving_center_ownership(
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
-    # Find the existing ownership request for this center and user
-    ownership_request = db.query(OwnershipRequest).filter(
-        OwnershipRequest.diving_center_id == diving_center_id,
-        OwnershipRequest.user_id == diving_center.owner_id,
-        OwnershipRequest.request_status == OwnershipStatus.claimed
-    ).first()
-
     # Capture the current owner_id before potentially changing it
     current_owner_id = diving_center.owner_id
     
@@ -2451,7 +2484,7 @@ async def assign_diving_center_owner(
 @router.post("/{diving_center_id}/revoke-ownership")
 async def revoke_diving_center_ownership(
     diving_center_id: int,
-    revocation: Union[DivingCenterOwnershipRevocation, str, Dict[str, Any]] = Body(...),
+    revocation: DivingCenterOwnershipRevocation | str | Dict[str, Any] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
     db: Session = Depends(get_db)
 ):
@@ -2618,8 +2651,15 @@ async def broadcast_trip_to_followers(
     db: Session = Depends(get_db)
 ):
     """Broadcast a dive trip to all followers of the diving center."""
-    from app.models import ParsedDiveTrip, DivingCenterManager
     import json
+    import uuid
+
+    from app.services.encryption_service import (
+        encrypt_message,
+        encrypt_room_dek,
+        generate_room_dek,
+    )
+
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
@@ -2636,8 +2676,6 @@ async def broadcast_trip_to_followers(
             raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Verify Trip exists and belongs to this center
-    from sqlalchemy.orm import joinedload
-    from app.models import ParsedDive
     trip = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
     ).filter(
@@ -2649,11 +2687,6 @@ async def broadcast_trip_to_followers(
         raise HTTPException(status_code=404, detail="Trip not found or does not belong to this center")
         
     # 3. Find or Create Broadcast Room
-    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
-    from app.models import UserChatMessage
-    import uuid
-    from sqlalchemy import func
-    
     broadcast_room = db.query(UserChatRoom).filter(
         UserChatRoom.diving_center_id == diving_center_id,
         UserChatRoom.is_broadcast == True
@@ -2783,7 +2816,6 @@ async def broadcast_text_to_followers(
 ):
     """Broadcast a text message to all followers of the diving center."""
     from app.models import DivingCenterManager
-    import json
     
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter_by(id=diving_center_id).first()
@@ -2801,10 +2833,16 @@ async def broadcast_text_to_followers(
             raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
         
     # 2. Find or Create Broadcast Room
-    from app.services.encryption_service import generate_room_dek, encrypt_room_dek, encrypt_message
-    from app.models import UserChatMessage
     import uuid
+
     from sqlalchemy import func
+
+    from app.models import UserChatMessage
+    from app.services.encryption_service import (
+        encrypt_message,
+        encrypt_room_dek,
+        generate_room_dek,
+    )
     
     broadcast_room = db.query(UserChatRoom).filter(
         UserChatRoom.diving_center_id == diving_center_id,

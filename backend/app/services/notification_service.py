@@ -5,20 +5,29 @@ Core service for creating and managing notifications.
 Handles user preference matching, area filtering, and email queuing via SQS.
 """
 
-import os
-import math
 import logging
-from typing import Optional, Dict, Any, List
-from datetime import datetime, timedelta, timezone
+import math
+import os
+from datetime import UTC, datetime
+from typing import Dict, List, Optional
+
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc
 
 from app.models import (
-    User, Notification, NotificationPreference, DiveSite, Dive, DivingCenter, ParsedDiveTrip, PushSubscription,
-    UserChatRoom, UserChatRoomMember, UserChatMessage
+    Dive,
+    DiveSite,
+    DivingCenter,
+    Notification,
+    NotificationPreference,
+    ParsedDiveTrip,
+    PushSubscription,
+    User,
+    UserChatRoom,
+    UserChatRoomMember,
 )
-from app.services.sqs_service import SQSService
 from app.services.email_service import EmailService
+from app.services.sqs_service import SQSService
 from app.services.unsubscribe_token_service import unsubscribe_token_service
 from app.utils import utcnow
 
@@ -310,7 +319,7 @@ class NotificationService:
         # Fetch additional metadata if this is a new dive site email
         if db and template_name == 'new_dive_site' and notification.entity_id:
             try:
-                from app.models import DiveSite, User, DiveSiteTag, AvailableTag
+                from app.models import AvailableTag, DiveSite, DiveSiteTag, User
                 dive_site = db.query(DiveSite).filter(DiveSite.id == notification.entity_id).first()
                 if dive_site:
                     notification_data['site_country'] = dive_site.country or ""
@@ -379,7 +388,7 @@ class NotificationService:
                 # Mark email as sent in database
                 try:
                     notification.email_sent = True
-                    notification.email_sent_at = datetime.now(timezone.utc)
+                    notification.email_sent_at = datetime.now(UTC)
                     db.commit()
                     logger.info(f"Email sent directly and marked as sent for notification {notification.id}")
                 except Exception as e:
@@ -457,8 +466,9 @@ class NotificationService:
         """
         Notify admins and moderators about a new pending dive site edit request.
         """
-        from app.models import DiveSiteEditRequest, User, NotificationPreference
         from sqlalchemy import or_
+
+        from app.models import DiveSiteEditRequest, NotificationPreference, User
         
         # 1. Fetch the request details
         edit_req = db.query(DiveSiteEditRequest).filter(DiveSiteEditRequest.id == edit_request_id).first()
@@ -479,7 +489,7 @@ class NotificationService:
         # 3. Build notification details
         title = "Pending Dive Site Edit"
         message = f"User '{requester_name}' suggested an edit for '{dive_site_name}'. Please review."
-        link_url = f"/admin/dive-sites/edit-requests"
+        link_url = "/admin/dive-sites/edit-requests"
         
         # 4. Fetch all 'moderation' preferences in a single query
         staff_ids = [u.id for u in notifiable_staff]
@@ -641,7 +651,7 @@ class NotificationService:
                 user_id=user.id,
                 category='new_dives',
                 title=f"New Dive: {dive.name or 'Untitled Dive'}",
-                message=f"A new dive has been logged.",
+                message="A new dive has been logged.",
                 link_url=link_url,
                 entity_type='dive',
                 entity_id=dive_id,
@@ -764,7 +774,7 @@ class NotificationService:
                 user_id=user.id,
                 category='new_dive_trips',
                 title=f"New Dive Trip: {getattr(trip, 'title', None) or f'Trip on {trip.trip_date}'}",
-                message=f"A new dive trip has been posted.",
+                message="A new dive trip has been posted.",
                 link_url=link_url,
                 entity_type='dive_trip',
                 entity_id=trip_id,
@@ -823,7 +833,7 @@ class NotificationService:
                     Notification.category == 'user_chat_message',
                     Notification.entity_type == 'chat_message',
                     Notification.is_read == False,
-                    Notification.link_url == f"/messages"
+                    Notification.link_url == "/messages"
                 ).order_by(desc(Notification.created_at)).first()
 
                 if existing_notification:
@@ -840,7 +850,7 @@ class NotificationService:
                         category='user_chat_message',
                         title=f"New message from {sender_name}",
                         message="You have a new message in your chat.",
-                        link_url=f"/messages",
+                        link_url="/messages",
                         entity_type='chat_message',
                         entity_id=message_id,
                         db=db
@@ -855,7 +865,7 @@ class NotificationService:
                         category='user_chat_message',
                         title=f"New message from {sender_name}",
                         message="You have a new message in your chat.",
-                        link_url=f"/messages",
+                        link_url="/messages",
                         entity_type='chat_message',
                         entity_id=message_id,
                         created_at=utcnow()
@@ -871,7 +881,7 @@ class NotificationService:
                         # For push, we want a room-specific tag so Android groups them by room
                         notification_for_push = notification
                         # We temporarily attach the room_id to the object just for the push payload builder
-                        setattr(notification_for_push, '_push_tag', f'chat_room_{room_id}')
+                        notification_for_push._push_tag = f'chat_room_{room_id}'
                         self._queue_push_notifications(notification_for_push, user, db)
 
         return notification_count

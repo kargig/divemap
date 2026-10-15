@@ -1,20 +1,28 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict, ValidationInfo
-from typing import Optional, List, Union, Literal, Dict, Any
-from datetime import datetime, date, time, timezone
-import re
 import enum
+import re
+from datetime import UTC, date, datetime, time, timezone
+from typing import Any, Dict, List, Literal, Optional, Union
+
 import nh3
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    ValidationInfo,
+    field_validator,
+)
 
 # Import auth schemas
 from .auth import (
-    PasswordResetRequest,
-    PasswordResetConfirm,
     AuthConfigResponse,
-    GoogleProviderConfig,
     FacebookProviderConfig,
+    GoogleProviderConfig,
+    PasswordResetConfirm,
+    PasswordResetRequest,
 )
-from .pats import PATCreate, PATResponse, PATCreateResponse
 from .diving_centers import CenterMediaResponse
+from .pats import PATCreate, PATCreateResponse, PATResponse
 
 # Valid difficulty codes
 DifficultyCode = Optional[Literal['OPEN_WATER', 'ADVANCED_OPEN_WATER', 'DEEP_NITROX', 'TECHNICAL_DIVING']]
@@ -41,16 +49,16 @@ def normalize_datetime_to_utc(cls, v, info: ValidationInfo = None):
     if isinstance(v, datetime):
         # If naive datetime, assume it's UTC (from database with timezone=True)
         if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
+            return v.replace(tzinfo=UTC)
         # If timezone-aware, convert to UTC
-        elif v.tzinfo != timezone.utc:
-            return v.astimezone(timezone.utc)
+        elif v.tzinfo != UTC:
+            return v.astimezone(UTC)
         return v
     return v
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
-    email: Union[EmailStr, str]
+    email: EmailStr | str
 
 class UserCreate(UserBase):
     email: EmailStr
@@ -1758,10 +1766,10 @@ class NotificationResponse(BaseModel):
         if isinstance(v, datetime):
             # If naive datetime, assume it's UTC (from database with timezone=True)
             if v.tzinfo is None:
-                return v.replace(tzinfo=timezone.utc)
+                return v.replace(tzinfo=UTC)
             # If timezone-aware, convert to UTC
-            elif v.tzinfo != timezone.utc:
-                return v.astimezone(timezone.utc)
+            elif v.tzinfo != UTC:
+                return v.astimezone(UTC)
             return v
         return v
 
@@ -1855,14 +1863,14 @@ class RouteDeletionRequest(BaseModel):
 class SettingResponse(BaseModel):
     """Response schema for a setting"""
     key: str
-    value: Union[str, int, float, bool, dict, list]  # JSON value (parsed)
+    value: str | int | float | bool | dict | list  # JSON value (parsed)
     description: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 class SettingUpdate(BaseModel):
     """Schema for updating a setting value"""
-    value: Union[str, int, float, bool, dict, list]  # JSON-serializable value
+    value: str | int | float | bool | dict | list  # JSON-serializable value
 
 # Global Search Schemas
 class GlobalSearchResult(BaseModel):

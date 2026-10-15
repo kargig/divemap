@@ -1,22 +1,23 @@
-import sqlite3
 import gzip
-import struct
 import json
 import logging
-import tempfile
 import os
-from pathlib import Path
+import sqlite3
+import struct
+import tempfile
 from datetime import datetime
-from fastapi import Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive
-from app.schemas import GarminFITResponse
+from fastapi import Depends, File, HTTPException, UploadFile, status
+from sqlalchemy.orm import Session
+
 from app.models import DiveSite, DivingCenter
+from app.schemas import GarminFITResponse
+
+from ..dives_shared import Dive, User, get_current_user, get_db, router
+from ..dives_utils import find_dive_site_by_import_id
 from .common import find_existing_dive, find_sites_by_coords
 from .gas_utils import create_structured_gas_data
-from ..dives_utils import find_dive_site_by_import_id
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +67,12 @@ def parse_pnf_samples(decompressed_data: bytes) -> List[Dict[str, Any]]:
             depth_be = struct.unpack_from(">H", block, 1)[0]
             first_stop_m = block[4]
             tts = block[6]
-            ppo2_cg = block[7]
+            _ppo2_cg = block[7]
             o2_pct = block[8]
             he_pct = block[9]
             ndl_or_fs = block[10]
             water_temp = struct.unpack_from("b", block, 14)[0]
-            status_byte = block[12]
+            _status_byte = block[12]
             cns_cg = block[23]
             
             # Guardrails for raw values
@@ -369,7 +370,9 @@ def parse_shearwater_sqlite(db_path: str, db: Session, all_sites: List = None) -
         
         # Build dive info text description
         info_parts = []
-        info_parts.append(f"Source: Shearwater Database")
+        info_parts.append("Source: Shearwater Database")
+        if buddy:
+            info_parts.append(f"Buddy: {buddy}")
         if gf_low is not None and gf_high is not None:
             info_parts.append(f"Gradient Factors: {gf_low}/{gf_high}")
         if avg_depth:

@@ -1,9 +1,12 @@
-import httpx
 import os
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict
+
+import httpx
 from fastapi import HTTPException, status
+
 from .monitoring.turnstile_monitor import record_verification_event
+
 
 class TurnstileService:
     def __init__(self):

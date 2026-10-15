@@ -1,15 +1,25 @@
-from fastapi import Depends, HTTPException, status, Response, Request
-from sqlalchemy.orm import Session
-from .dives_shared import router, get_db, get_current_user, User, Dive, r2_storage, joinedload
-from app.models import DiveMedia, SiteMedia
-from app.services.social_image_service import SocialImageService
-from app.services.dive_profile_parser import DiveProfileParser
-from app.utils import slugify
+import os
+from typing import Set
+from urllib.parse import urlparse
+
 import httpx
 import orjson
-import os
-from urllib.parse import urlparse
-from typing import Set
+from fastapi import Depends, HTTPException, Request, Response
+from sqlalchemy.orm import Session
+
+from app.models import DiveMedia, SiteMedia
+from app.services.dive_profile_parser import DiveProfileParser
+from app.services.social_image_service import SocialImageService
+
+from .dives_shared import (
+    Dive,
+    User,
+    get_current_user,
+    get_db,
+    joinedload,
+    r2_storage,
+    router,
+)
 
 # SSRF Protection Constants
 ALLOWED_MEDIA_URL_SCHEMES: Set[str] = {"https"}

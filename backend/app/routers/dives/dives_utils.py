@@ -15,22 +15,15 @@ The utility functions include:
 - Alias and name resolution
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date, time, datetime
-import json
-import os
-import tempfile
-import uuid
+from datetime import date
 from difflib import SequenceMatcher
+from typing import Optional
 
-from .dives_shared import router, get_db, get_current_user, get_current_admin_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag
-from app.schemas import DiveCreate, DiveUpdate, DiveResponse, DiveMediaCreate, DiveMediaResponse, DiveTagResponse
+from sqlalchemy.orm import Session
+
 from app.models import DiveSite, DiveSiteAlias
-from app.services.dive_profile_parser import DiveProfileParser
-from .dives_validation import raise_validation_error
-from .dives_logging import log_dive_operation, log_error
+
+from .dives_shared import AvailableTag
 
 
 def generate_dive_name(dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None) -> str:

@@ -1,24 +1,35 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
-from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
-import orjson
-from fastapi.responses import Response
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
+import orjson
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from app.auth import get_current_active_user
+from app.database import get_db
 from app.models import (
-    User, Dive, DiveMedia, DiveTag, SiteRating, SiteComment, 
-    CenterRating, CenterComment, UserCertification, DivingCenter,
-    DiveSite, AvailableTag, DivingOrganization
+    AvailableTag,
+    CenterComment,
+    CenterRating,
+    Dive,
+    DiveMedia,
+    DiveSite,
+    DiveTag,
+    DivingCenter,
+    DivingOrganization,
+    SiteComment,
+    SiteRating,
+    User,
+    UserCertification,
 )
-from app.schemas import UserResponse
 
 router = APIRouter()
 
 # Privacy data export schemas
 from pydantic import BaseModel
+
 
 class UserDataExport(BaseModel):
     """Complete user data export schema"""

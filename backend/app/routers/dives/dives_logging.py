@@ -5,8 +5,8 @@ This module contains common logging patterns and utilities
 that are shared across multiple dives modules.
 """
 
-import logging
-from typing import Any, Dict, Optional
+from typing import Optional
+
 from .dives_shared import logger
 
 

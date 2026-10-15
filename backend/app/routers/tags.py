@@ -1,12 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
 from typing import List
-from app.database import get_db
-from app.models import AvailableTag, DiveSiteTag, DiveTag, User, DiveSite, DiveSiteEditRequest, EditRequestStatus, EditRequestType
-from app.schemas import TagCreate, TagResponse, TagUpdate, DiveSiteTagCreate, DiveSiteTagResponse, TagWithCountResponse
-from app.auth import get_current_user, is_admin_or_moderator, get_current_active_user, is_trusted_contributor
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+
+from app.auth import (
+    get_current_active_user,
+    is_admin_or_moderator,
+    is_trusted_contributor,
+)
+from app.database import get_db
+from app.models import (
+    AvailableTag,
+    DiveSite,
+    DiveSiteEditRequest,
+    DiveSiteTag,
+    DiveTag,
+    EditRequestStatus,
+    EditRequestType,
+    User,
+)
+from app.schemas import (
+    DiveSiteTagCreate,
+    DiveSiteTagResponse,
+    TagCreate,
+    TagResponse,
+    TagUpdate,
+    TagWithCountResponse,
+)
 
 router = APIRouter()
 

@@ -1,24 +1,28 @@
+import json
 import logging
 import uuid
-import json
 from datetime import datetime
-from typing import List, Optional, Dict, Any, Tuple
-
-from sqlalchemy.orm import Session
+from typing import Optional
 
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy.orm import Session
+
+from app.models import ChatMessage as ChatMessageModel
+from app.models import ChatSession, User
 from app.schemas.chat import (
-    ChatMessage, ChatRequest, ChatResponse, IntentType, ChatIntermediateAction
+    ChatIntermediateAction,
+    ChatRequest,
+    ChatResponse,
+    IntentType,
 )
-from app.models import ChatSession, ChatMessage as ChatMessageModel, User
-from app.services.openai_service import openai_service
-from app.services.chat.tools import CHAT_TOOLS
+from app.services.chat.context_resolver import resolve_page_context
 from app.services.chat.executors.discovery import execute_discovery
 from app.services.chat.executors.others import execute_other_intents
-from app.services.chat.executors.user_data import execute_get_user_dive_logs
 from app.services.chat.executors.reviews import execute_get_reviews_and_comments
+from app.services.chat.executors.user_data import execute_get_user_dive_logs
+from app.services.chat.tools import CHAT_TOOLS
 from app.services.chat.weather_enricher import enrich_results_with_weather
-from app.services.chat.context_resolver import resolve_page_context
+from app.services.openai_service import openai_service
 
 logger = logging.getLogger(__name__)
 
@@ -145,81 +149,80 @@ Page Context: {page_context_summary}
                     
                     # Execute tool
                     tool_result = []
-                    action_type = "search"
-                    
+
                     if name == "search_dive_sites":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_site", **args)
+                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="dive_site", **a)
                         )
                     elif name == "search_dive_routes":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_route", **args)
+                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="dive_route", **a)
                         )
                     elif name == "search_diving_centers":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_discovery(db=self.db, entity_type_filter="diving_center", **args)
+                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="diving_center", **a)
                         )
                     elif name == "search_gear_rental":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda a=args: execute_other_intents(
                                 db=self.db,
                                 intent_type=IntentType.GEAR_RENTAL,
-                                **args
+                                **a
                             )
                         )
                     elif name == "search_marine_life":
                         # Adapt args for execute_other_intents
                         species = args.pop("marine_species", [])
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda sp=species, a=args: execute_other_intents(
                                 db=self.db, 
                                 intent_type=IntentType.MARINE_LIFE, 
-                                keywords=species, 
-                                **args
+                                keywords=sp, 
+                                **a
                             )
                         )
                     elif name == "calculate_diving_physics":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda a=args: execute_other_intents(
                                 db=self.db, 
                                 intent_type=IntentType.CALCULATOR, 
-                                calculator_params=args,
-                                **args
+                                calculator_params=a,
+                                **a
                             )
                         )
                     elif name == "compare_certifications":
                         courses = args.pop("courses_to_compare", [])
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda c=courses, a=args: execute_other_intents(
                                 db=self.db, 
                                 intent_type=IntentType.COMPARISON, 
-                                keywords=courses,
-                                **args
+                                keywords=c,
+                                **a
                             )
                         )
                     elif name == "get_certification_path":
                         course_name = args.pop("course_name", None)
                         kws = [course_name] if course_name else []
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda k=kws, a=args: execute_other_intents(
                                 db=self.db, 
                                 intent_type=IntentType.CAREER_PATH, 
-                                keywords=kws,
-                                **args
+                                keywords=k,
+                                **a
                             )
                         )
                     elif name == "get_dive_site_details":
                         site_name = args.pop("site_name", "")
                         tool_result = await run_in_threadpool(
-                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_site", location=site_name, **args)
+                            lambda s=site_name, a=args: execute_discovery(db=self.db, entity_type_filter="dive_site", location=s, **a)
                         )
                     elif name == "get_user_dive_logs":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_get_user_dive_logs(db=self.db, current_user=current_user, **args)
+                            lambda a=args: execute_get_user_dive_logs(db=self.db, current_user=current_user, **a)
                         ) # Dummy intent
                     elif name == "get_reviews_and_comments":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_get_reviews_and_comments(db=self.db, **args)
+                            lambda a=args: execute_get_reviews_and_comments(db=self.db, **a)
                         ) # Dummy intent
                     elif name == "search_diving_trips":
                         start_date = args.pop("start_date", None)
@@ -228,7 +231,7 @@ Page Context: {page_context_summary}
                         if start_date and end_date:
                             date_range = [start_date, end_date]
                         tool_result = await run_in_threadpool(
-                            lambda: execute_discovery(db=self.db, entity_type_filter="dive_trip", date_range=date_range, **args)
+                            lambda dr=date_range, a=args: execute_discovery(db=self.db, entity_type_filter="dive_trip", date_range=dr, **a)
                         )
                         # We need to create a dummy result list for weather enricher
                         dummy_results = [{
@@ -238,24 +241,24 @@ Page Context: {page_context_summary}
                             "longitude": args["longitude"]
                         }]
                         await run_in_threadpool(
-                            lambda: enrich_results_with_weather(
+                            lambda d=dummy_results, a=args: enrich_results_with_weather(
                                 db=self.db,
-                                results=dummy_results,
-                                intent_date=args["date"],
-                                intent_time=args.get("time"),
-                                intent_lat=args["latitude"],
-                                intent_lon=args["longitude"],
-                                intent_location=args.get("location")
+                                results=d,
+                                intent_date=a["date"],
+                                intent_time=a.get("time"),
+                                intent_lat=a["latitude"],
+                                intent_lon=a["longitude"],
+                                intent_location=a.get("location")
                             )
                         )
                         tool_result = dummy_results
                     elif name == "recommend_dive_sites":
                         tool_result = await run_in_threadpool(
-                            lambda: execute_other_intents(
+                            lambda a=args: execute_other_intents(
                                 db=self.db,
                                 intent_type=IntentType.PERSONAL_RECOMMENDATION,
                                 current_user=current_user,
-                                **args
+                                **a
                             )
                         )
                     elif name == "get_weather_suitability":
@@ -266,14 +269,14 @@ Page Context: {page_context_summary}
                             "longitude": args.get("longitude")
                         }]
                         await run_in_threadpool(
-                            lambda: enrich_results_with_weather(
+                            lambda d=dummy_results, a=args: enrich_results_with_weather(
                                 db=self.db,
-                                results=dummy_results,
-                                intent_date=args.get("date"),
-                                intent_time=args.get("time"),
-                                intent_lat=args.get("latitude"),
-                                intent_lon=args.get("longitude"),
-                                intent_location=args.get("location")
+                                results=d,
+                                intent_date=a.get("date"),
+                                intent_time=a.get("time"),
+                                intent_lat=a.get("latitude"),
+                                intent_lon=a.get("longitude"),
+                                intent_location=a.get("location")
                             )
                         )
                         tool_result = dummy_results

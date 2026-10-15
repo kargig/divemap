@@ -1,15 +1,21 @@
 import csv
 import io
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict
 
 try:
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib import colors
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.graphics.barcode.qr import QrCodeWidget
     from reportlab.graphics.shapes import Drawing
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -897,7 +903,6 @@ class ManifestExportService:
         center = manifest_data.get("center") or {}
         vessel = manifest_data.get("vessel") or {}
         slot = manifest_data.get("slot") or {}
-        staff = manifest_data.get("staff") or {}
         participants = manifest_data.get("participants") or []
         summary = manifest_data.get("crate_packing_summary") or {}
 

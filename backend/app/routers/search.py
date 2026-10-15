@@ -6,20 +6,31 @@ Provides unified search endpoint that searches across all entity types
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session, joinedload
+
+from app.auth import get_current_user_optional
 from app.database import get_db
+from app.limiter import skip_rate_limit_for_admin
 from app.models import (
-    DiveSite, DiveSiteAlias, DivingCenter, Dive, DiveRoute,
-    ParsedDiveTrip, ParsedDive, User, AvailableTag, DiveSiteTag
+    AvailableTag,
+    Dive,
+    DiveRoute,
+    DiveSite,
+    DiveSiteAlias,
+    DiveSiteTag,
+    DivingCenter,
+    ParsedDive,
+    ParsedDiveTrip,
+    User,
 )
 from app.schemas import (
-    GlobalSearchResponse, GlobalSearchResult, EntityTypeSearchResults
+    EntityTypeSearchResults,
+    GlobalSearchResponse,
+    GlobalSearchResult,
 )
-from app.auth import get_current_user_optional
-from app.limiter import skip_rate_limit_for_admin
 
 router = APIRouter()
 
@@ -235,7 +246,8 @@ def search_dive_trips(query: str, limit: int, db: Session) -> List[GlobalSearchR
     search_term = f"%{sanitized_query}%"
     
     # Search in trip description, special requirements, diving center name, and dive site names
-    from app.models import DivingCenter, DiveSite as DS
+    from app.models import DiveSite as DS
+    from app.models import DivingCenter
     trips_query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.diving_center),
         joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)

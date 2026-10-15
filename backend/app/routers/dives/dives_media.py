@@ -10,19 +10,40 @@ This module contains operations for dive media and tags:
 - remove_dive_tag
 """
 
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File, Form, Body
-from sqlalchemy.orm import Session
-from typing import List, Optional
-import uuid
 import logging
-import requests
 import re
-from urllib.parse import quote
+import uuid
 from pathlib import Path
-from app.services.r2_storage_service import get_r2_storage
+from typing import List, Optional
+from urllib.parse import quote
+
+import requests
+from fastapi import Body, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy.orm import Session
+
+from app.schemas import (
+    DeleteR2PhotoRequest,
+    DiveMediaCreate,
+    DiveMediaResponse,
+    DiveMediaUpdate,
+    DiveTagCreate,
+    DiveTagResponse,
+)
 from app.services.image_processing import image_processing
-from .dives_shared import router, get_db, get_current_user, get_current_user_optional, User, Dive, DiveMedia, DiveTag, AvailableTag, r2_storage
-from app.schemas import DeleteR2PhotoRequest, DiveMediaCreate, DiveMediaResponse, DiveMediaUpdate, DiveTagResponse, DiveTagCreate
+from app.services.r2_storage_service import get_r2_storage
+
+from .dives_shared import (
+    AvailableTag,
+    Dive,
+    DiveMedia,
+    DiveTag,
+    User,
+    get_current_user,
+    get_current_user_optional,
+    get_db,
+    r2_storage,
+    router,
+)
 
 logger = logging.getLogger(__name__)
 

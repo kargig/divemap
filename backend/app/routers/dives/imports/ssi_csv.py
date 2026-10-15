@@ -1,24 +1,18 @@
-from fastapi import Depends, HTTPException, status, Query, UploadFile, File
-from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-import orjson
 import csv
 import io
 import re
 
-from ..dives_shared import router, get_db, get_current_user, User, Dive, AvailableTag
-from app.schemas import CSVHeaderResponse
+import orjson
+from fastapi import Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy.orm import Session
+
 from app.models import DiveSite, DivingCenter
-from .common import (
-    find_existing_dive, 
-    find_dive_site_by_import_id, 
-    resolve_entity
-)
-from .csv_utils import (
-    sanitize_csv_cell, 
-    parse_csv_depth, 
-    parse_csv_date_time
-)
+from app.schemas import CSVHeaderResponse
+
+from ..dives_shared import AvailableTag, Dive, User, get_current_user, get_db, router
+from .common import find_dive_site_by_import_id, find_existing_dive, resolve_entity
+from .csv_utils import parse_csv_date_time, parse_csv_depth, sanitize_csv_cell
+
 
 @router.post("/import/csv-headers", response_model=CSVHeaderResponse)
 async def get_csv_headers(

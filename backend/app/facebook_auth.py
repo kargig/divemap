@@ -1,15 +1,17 @@
+import hashlib
+import hmac
+import logging
 import os
 import re
-import hmac
-import hashlib
 import secrets
-import logging
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
+
+from app.auth import get_password_hash
 from app.models import User
 from app.schemas import AvatarType
-from app.auth import get_password_hash
 from app.utils import create_default_notification_preferences
 
 logger = logging.getLogger(__name__)
@@ -118,10 +120,10 @@ def verify_facebook_token(token: str) -> Dict[str, Any]:
         raise
     except requests.RequestException as e:
         logger.error(f"Network error calling Facebook Graph API: {e}")
-        raise FacebookAuthError("Unable to contact Facebook service.")
+        raise FacebookAuthError("Unable to contact Facebook service.") from e
     except (ValueError, TypeError, KeyError) as e:
         logger.error(f"Unexpected Facebook token response: {e}")
-        raise FacebookAuthError("Facebook token validation failed.")
+        raise FacebookAuthError("Facebook token validation failed.") from e
 
 def _generate_valid_username(db: Session, base_name: str, fb_id: str) -> str:
     """Generate a sanitized, unique username."""

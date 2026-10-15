@@ -1,11 +1,13 @@
-import orjson
 import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, Optional
+
+import orjson
 
 logger = logging.getLogger(__name__)
 
 from .gas_utils import create_structured_gas_data
+
 
 def pa_to_bar(pa: Optional[float]) -> Optional[float]:
     """Convert Pascals to Bar."""

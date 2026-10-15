@@ -1,9 +1,9 @@
-import os
 import logging
-import asyncio
-import orjson
-from typing import Optional, List, Dict, Union, Type, Tuple, Any
+import os
+from typing import Any, Dict, List, Optional, Tuple, Type
+
 import openai
+import orjson
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -27,7 +27,7 @@ class OpenAIService:
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(OpenAIService, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
 
@@ -44,7 +44,7 @@ class OpenAIService:
         self.api_key = os.getenv(self.provider_config["api_key_env"])
 
         if not self.api_key or self.api_key == "foobar":
-            logger.warning(f"API key not set or using placeholder. Chat features will fail.")
+            logger.warning("API key not set or using placeholder. Chat features will fail.")
             self.client = None
         else:
             self.client = openai.AsyncOpenAI(
@@ -90,7 +90,7 @@ class OpenAIService:
         json_schema: Optional[Type[BaseModel]] = None,
         tools: Optional[List[Dict]] = None,
         tool_choice: Optional[str] = None
-    ) -> Tuple[Union[str, Dict, Any], Dict[str, int]]:
+    ) -> Tuple[str | Dict | Any, Dict[str, int]]:
         """
         Generic wrapper for OpenAI Chat Completions.
         Supports structured output via Pydantic schemas and Tool Calling.

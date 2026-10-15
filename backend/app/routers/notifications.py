@@ -4,33 +4,40 @@ Notifications Router
 API endpoints for notification management, preferences, and email configuration.
 """
 
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Security
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, func
-from datetime import datetime, timezone
-from fastapi.responses import JSONResponse
-import os
 import logging
+import os
+from datetime import UTC, datetime
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
-from app.models import User, Notification, NotificationPreference, EmailConfig, PushSubscription
-from app.auth import get_current_active_user, get_current_admin_user
-from app.utils import utcnow
+from fastapi import APIRouter, Depends, HTTPException, Query, Security, status
+from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
+from sqlalchemy import desc, func
+from sqlalchemy.orm import Session
+
+from app.auth import get_current_active_user, get_current_admin_user
+from app.database import get_db
+from app.models import (
+    EmailConfig,
+    Notification,
+    NotificationPreference,
+    PushSubscription,
+    User,
+)
 from app.schemas import (
-    NotificationResponse,
-    NotificationPreferenceResponse,
-    NotificationPreferenceCreate,
-    NotificationPreferenceUpdate,
-    EmailConfigResponse,
     EmailConfigCreate,
+    EmailConfigResponse,
     EmailConfigUpdate,
+    NotificationPreferenceCreate,
+    NotificationPreferenceResponse,
+    NotificationPreferenceUpdate,
+    NotificationResponse,
     PushSubscriptionCreate,
-    PushSubscriptionResponse
+    PushSubscriptionResponse,
 )
 from app.services.email_service import EmailService
 from app.services.notification_service import NotificationService
+from app.utils import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +60,10 @@ def _serialize_datetime_utc(dt: Optional[datetime]) -> Optional[str]:
     
     # If naive datetime, assume it's UTC (from database with timezone=True)
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     # Convert to UTC if not already
-    elif dt.tzinfo != timezone.utc:
-        dt = dt.astimezone(timezone.utc)
+    elif dt.tzinfo != UTC:
+        dt = dt.astimezone(UTC)
     
     return dt.isoformat()
 
@@ -82,8 +89,8 @@ def verify_api_key(
     
     # Try database API keys first
     try:
-        from app.models import ApiKey
         from app.auth import verify_password
+        from app.models import ApiKey
         from app.utils import normalize_datetime_to_utc
             
         # Get all active API keys
@@ -241,10 +248,10 @@ def get_notifications(
                     # Ensure timezone-aware datetimes - if naive, assume UTC
                     if value.tzinfo is None:
                         # If naive datetime (shouldn't happen with timezone=True, but handle gracefully)
-                        value = value.replace(tzinfo=timezone.utc)
+                        value = value.replace(tzinfo=UTC)
                     # Convert to UTC if not already (normalize to UTC)
-                    if value.tzinfo != timezone.utc:
-                        value = value.astimezone(timezone.utc)
+                    if value.tzinfo != UTC:
+                        value = value.astimezone(UTC)
                     # Serialize as ISO string with UTC timezone indicator
                     item[key] = value.isoformat()
             content.append(item)
@@ -1262,7 +1269,12 @@ async def get_broadcast_targets(
     """
     Internal endpoint for Lambda to fetch a chunk of notification targets for a broadcast.
     """
-    from app.models import UserChatRoomMember, User, NotificationPreference, PushSubscription
+    from app.models import (
+        NotificationPreference,
+        PushSubscription,
+        User,
+        UserChatRoomMember,
+    )
     
     # 1. Get room members (excluding sender)
     query = db.query(UserChatRoomMember).filter(
@@ -1360,7 +1372,7 @@ async def get_broadcast_context(
     """
     Internal endpoint for Lambda to fetch sender and center names for a broadcast message.
     """
-    from app.models import UserChatMessage, User, UserChatRoom, DivingCenter
+    from app.models import DivingCenter, User, UserChatMessage, UserChatRoom
     
     msg = db.query(UserChatMessage).filter(UserChatMessage.id == message_id).first()
     if not msg:

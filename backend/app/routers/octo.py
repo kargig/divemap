@@ -1,35 +1,34 @@
-import uuid
 import logging
-from typing import Optional, List, Dict, Any
-from datetime import datetime, date, time, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Header, Query, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+import uuid
+from datetime import UTC, datetime, time, timedelta
+from typing import Any, Dict, List, Optional
 
-from app.database import get_db
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session, joinedload
+
 from app.auth import get_current_user_optional
+from app.database import get_db
 from app.models import (
-    User,
     DivingCenter,
     DivingCenterBookingSettings,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
+    OctoProduct,
+    OctoUnit,
+    User,
 )
-from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.services.booking_access_service import (
+    bump_linked_trip_current_bookings,
     clear_booking_access_token,
     extend_access_token_for_voucher_window,
     extract_access_token,
     mint_booking_access_token,
     mint_claim_token,
     require_booking_principal,
-    bump_linked_trip_current_bookings,
 )
-from sqlalchemy.orm import joinedload
+from app.services.booking_pricing_service import compute_participant_octo_pricing
 
 logger = logging.getLogger(__name__)
 
@@ -404,7 +403,7 @@ def create_booking_hold(
     slot.seats_available -= needed_seats
 
     booking_uuid = str(uuid.uuid4())
-    expiration = datetime.now(timezone.utc) + timedelta(minutes=hold_minutes)
+    expiration = datetime.now(UTC) + timedelta(minutes=hold_minutes)
 
     # Only attach authenticated session user — never bind by unverified contact email
     user_id = current_user.id if current_user else None
@@ -566,11 +565,11 @@ def confirm_booking(
             detail=f"Only ON_HOLD bookings can be confirmed (current status: {booking.status})",
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if booking.utc_hold_expiration:
         exp = booking.utc_hold_expiration
         if exp.tzinfo is None:
-            exp = exp.replace(tzinfo=timezone.utc)
+            exp = exp.replace(tzinfo=UTC)
         if exp < now:
             booking.status = "EXPIRED"
             db.commit()
@@ -722,7 +721,7 @@ def extend_booking_hold(
     )
 
     extra_minutes = req.expirationMinutes if req and req.expirationMinutes else 20
-    new_exp = datetime.now(timezone.utc) + timedelta(minutes=extra_minutes)
+    new_exp = datetime.now(UTC) + timedelta(minutes=extra_minutes)
     booking.utc_hold_expiration = new_exp
     if booking.access_token_hash:
         booking.access_token_expires_at = new_exp

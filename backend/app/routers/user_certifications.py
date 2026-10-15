@@ -1,13 +1,16 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import UserCertification, User, DivingOrganization
-from app.schemas import (
-    UserCertificationCreate, UserCertificationUpdate, UserCertificationResponse
-)
 from app.auth import get_current_active_user, get_current_user_optional
+from app.database import get_db
+from app.models import DivingOrganization, User, UserCertification
+from app.schemas import (
+    UserCertificationCreate,
+    UserCertificationResponse,
+    UserCertificationUpdate,
+)
 
 router = APIRouter()
 

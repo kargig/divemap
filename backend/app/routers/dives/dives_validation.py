@@ -7,8 +7,8 @@ that are shared across multiple dives modules.
 
 from datetime import date, time
 from typing import Optional
+
 from fastapi import HTTPException, status
-from .dives_shared import logger
 
 
 def raise_validation_error(message: str, status_code: int = status.HTTP_400_BAD_REQUEST):

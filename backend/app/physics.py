@@ -9,7 +9,8 @@ This module implements:
 4. Unit conversions and standard constants.
 """
 
-from typing import Tuple, Optional, Dict, List
+from typing import List, Optional
+
 from pydantic import BaseModel
 
 # -----------------------------------------------------------------------------

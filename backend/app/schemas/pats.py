@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, Field
+
 
 class PATBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="Human-readable name for the token")
