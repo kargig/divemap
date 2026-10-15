@@ -73,11 +73,13 @@ run_cleanup docker network rm divemap-test-network
 # Setup
 print_status "Setting up environment..."
 run_silent docker network create divemap-test-network
+INIT_SQL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/database/init.sql"
 run_silent docker run -d \
     --name divemap-test-mysql \
     --network divemap-test-network \
     -e MYSQL_ROOT_PASSWORD=password \
     -e MYSQL_DATABASE=divemap_test \
+    -v "${INIT_SQL_PATH}:/docker-entrypoint-initdb.d/init.sql:ro" \
     -p 3307:3306 \
     --health-cmd="mysqladmin ping" \
     --health-interval=10s \
