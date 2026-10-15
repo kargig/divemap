@@ -17,13 +17,13 @@ def parse_time_to_minutes(time_str):
     """Parse time string to minutes (float)"""
     if not time_str:
         return 0.0
-    
+
     try:
         # Handle formats like "1:30 min", "30:00 min", "0:10 min", "54:30 min"
-        time_str = time_str.replace('min', '').strip()
-        
-        if ':' in time_str:
-            parts = time_str.split(':')
+        time_str = time_str.replace("min", "").strip()
+
+        if ":" in time_str:
+            parts = time_str.split(":")
             if len(parts) == 2:
                 # Format: MM:SS
                 minutes = int(parts[0]) if parts[0] else 0
@@ -41,41 +41,45 @@ def parse_time_to_minutes(time_str):
     except (ValueError, AttributeError):
         return 0.0
 
+
 def parse_depth_value(depth_str):
     """Parse depth string to float meters"""
     if not depth_str:
         return 0.0
-    
+
     try:
         # Handle formats like "28.7 m", "0.0 m"
-        depth_str = depth_str.replace(' m', '').strip()
+        depth_str = depth_str.replace(" m", "").strip()
         return float(depth_str)
     except (ValueError, AttributeError):
         return 0.0
+
 
 def parse_temperature_value(temp_str):
     """Parse temperature string to float Celsius"""
     if not temp_str:
         return None
-    
+
     try:
         # Handle formats like "19.0 C", "27.7 C"
-        temp_str = temp_str.replace(' C', '').strip()
+        temp_str = temp_str.replace(" C", "").strip()
         return float(temp_str)
     except (ValueError, AttributeError):
         return None
+
 
 def parse_cns_value(cns_str):
     """Parse CNS string to float percentage"""
     if not cns_str:
         return None
-    
+
     try:
         # Handle formats like "3%", "0%"
-        cns_str = cns_str.replace('%', '').strip()
+        cns_str = cns_str.replace("%", "").strip()
         return float(cns_str)
     except (ValueError, AttributeError):
         return None
+
 
 def parse_dive_profile_samples(computer_elem, cylinders=None):
     # Handle both XML element and XML string
@@ -87,161 +91,169 @@ def parse_dive_profile_samples(computer_elem, cylinders=None):
     """Parse dive profile samples and events from dive computer element"""
     samples = []
     events = []
-    
+
     # Find all sample elements
-    sample_elements = computer_elem.findall('sample')
+    sample_elements = computer_elem.findall("sample")
     for sample in sample_elements:
         sample_data = {}
-        
+
         # Parse time (convert to minutes)
-        time_str = sample.get('time')
+        time_str = sample.get("time")
         if time_str:
-            sample_data['time'] = time_str
-            sample_data['time_minutes'] = parse_time_to_minutes(time_str)
-        
+            sample_data["time"] = time_str
+            sample_data["time_minutes"] = parse_time_to_minutes(time_str)
+
         # Parse depth
-        depth = sample.get('depth')
+        depth = sample.get("depth")
         if depth:
-            sample_data['depth'] = parse_depth_value(depth)
-        
+            sample_data["depth"] = parse_depth_value(depth)
+
         # Parse temperature
-        temp = sample.get('temp')
+        temp = sample.get("temp")
         if temp:
-            sample_data['temperature'] = parse_temperature_value(temp)
-        
+            sample_data["temperature"] = parse_temperature_value(temp)
+
         # Parse NDL (No Decompression Limit)
-        ndl = sample.get('ndl')
+        ndl = sample.get("ndl")
         if ndl:
-            sample_data['ndl_minutes'] = parse_time_to_minutes(ndl)
-        
+            sample_data["ndl_minutes"] = parse_time_to_minutes(ndl)
+
         # Parse in_deco status
-        in_deco = sample.get('in_deco')
+        in_deco = sample.get("in_deco")
         if in_deco is not None:
-            sample_data['in_deco'] = in_deco == '1'
-        
+            sample_data["in_deco"] = in_deco == "1"
+
         # Parse CNS
-        cns = sample.get('cns')
+        cns = sample.get("cns")
         if cns:
-            sample_data['cns_percent'] = parse_cns_value(cns)
-        
+            sample_data["cns_percent"] = parse_cns_value(cns)
+
         # Parse decompression stop time
-        stoptime = sample.get('stoptime')
+        stoptime = sample.get("stoptime")
         if stoptime:
-            sample_data['stoptime_minutes'] = parse_time_to_minutes(stoptime)
-        
+            sample_data["stoptime_minutes"] = parse_time_to_minutes(stoptime)
+
         # Parse stop depth
-        stopdepth = sample.get('stopdepth')
+        stopdepth = sample.get("stopdepth")
         if stopdepth:
-            sample_data['stopdepth'] = parse_depth_value(stopdepth)
-        
+            sample_data["stopdepth"] = parse_depth_value(stopdepth)
+
         # Only add sample if it has essential data
-        if 'time_minutes' in sample_data and 'depth' in sample_data:
+        if "time_minutes" in sample_data and "depth" in sample_data:
             samples.append(sample_data)
-    
+
     # Parse events
-    event_elements = computer_elem.findall('event')
+    event_elements = computer_elem.findall("event")
     for event in event_elements:
         event_data = {
-            'time': event.get('time'),
-            'time_minutes': parse_time_to_minutes(event.get('time', '0:00 min')),
-            'type': event.get('type'),
-            'flags': event.get('flags'),
-            'name': event.get('name'),
-            'cylinder': event.get('cylinder'),
-            'o2': event.get('o2')
+            "time": event.get("time"),
+            "time_minutes": parse_time_to_minutes(event.get("time", "0:00 min")),
+            "type": event.get("type"),
+            "flags": event.get("flags"),
+            "name": event.get("name"),
+            "cylinder": event.get("cylinder"),
+            "o2": event.get("o2"),
         }
         events.append(event_data)
-    
+
     if not samples:
         return None
-    
+
     # Calculate derived metrics
-    depths = [s['depth'] for s in samples if 'depth' in s]
-    temperatures = [s['temperature'] for s in samples if 'temperature' in s]
-    
+    depths = [s["depth"] for s in samples if "depth" in s]
+    temperatures = [s["temperature"] for s in samples if "temperature" in s]
+
     profile_data = {
-        'samples': samples,
-        'events': events,
-        'cylinders': cylinders,
-        'sample_count': len(samples),
-        'calculated_max_depth': max(depths) if depths else 0,
-        'calculated_avg_depth': sum(depths) / len(depths) if depths else 0,
-        'calculated_duration_minutes': samples[-1].get('time_minutes', 0) if samples else 0,
-        'temperature_range': {
-            'min': min(temperatures) if temperatures else None,
-            'max': max(temperatures) if temperatures else None
-        }
+        "samples": samples,
+        "events": events,
+        "cylinders": cylinders,
+        "sample_count": len(samples),
+        "calculated_max_depth": max(depths) if depths else 0,
+        "calculated_avg_depth": sum(depths) / len(depths) if depths else 0,
+        "calculated_duration_minutes": samples[-1].get("time_minutes", 0)
+        if samples
+        else 0,
+        "temperature_range": {
+            "min": min(temperatures) if temperatures else None,
+            "max": max(temperatures) if temperatures else None,
+        },
     }
-    
+
     return profile_data
+
 
 def parse_cylinder(cylinder_elem):
     """Parse cylinder information from XML element"""
     cylinder_data = {}
 
     # Extract cylinder attributes
-    cylinder_data['size'] = cylinder_elem.get('size')
-    cylinder_data['workpressure'] = cylinder_elem.get('workpressure')
-    cylinder_data['description'] = cylinder_elem.get('description')
-    cylinder_data['o2'] = cylinder_elem.get('o2')
-    cylinder_data['he'] = cylinder_elem.get('he')
-    cylinder_data['start'] = cylinder_elem.get('start')
-    cylinder_data['end'] = cylinder_elem.get('end')
-    cylinder_data['depth'] = cylinder_elem.get('depth')
+    cylinder_data["size"] = cylinder_elem.get("size")
+    cylinder_data["workpressure"] = cylinder_elem.get("workpressure")
+    cylinder_data["description"] = cylinder_elem.get("description")
+    cylinder_data["o2"] = cylinder_elem.get("o2")
+    cylinder_data["he"] = cylinder_elem.get("he")
+    cylinder_data["start"] = cylinder_elem.get("start")
+    cylinder_data["end"] = cylinder_elem.get("end")
+    cylinder_data["depth"] = cylinder_elem.get("depth")
 
     return cylinder_data
+
 
 def parse_weightsystem(weights_elem):
     """Parse weight system information from XML element"""
     weights_data = {}
 
     # Extract weight system attributes
-    weights_data['weight'] = weights_elem.get('weight')
-    weights_data['description'] = weights_elem.get('description')
+    weights_data["weight"] = weights_elem.get("weight")
+    weights_data["description"] = weights_elem.get("description")
 
     return weights_data
+
 
 def parse_divecomputer(computer_elem):
     """Parse dive computer information from XML element"""
     computer_data = {}
 
     # Extract basic computer info
-    computer_data['model'] = computer_elem.get('model')
-    computer_data['deviceid'] = computer_elem.get('deviceid')
-    computer_data['diveid'] = computer_elem.get('diveid')
+    computer_data["model"] = computer_elem.get("model")
+    computer_data["deviceid"] = computer_elem.get("deviceid")
+    computer_data["diveid"] = computer_elem.get("diveid")
 
     # Parse depth information
-    depth_elem = computer_elem.find('depth')
+    depth_elem = computer_elem.find("depth")
     if depth_elem is not None:
-        computer_data['max_depth'] = depth_elem.get('max')
-        computer_data['mean_depth'] = depth_elem.get('mean')
+        computer_data["max_depth"] = depth_elem.get("max")
+        computer_data["mean_depth"] = depth_elem.get("mean")
 
     # Parse temperature information
-    temp_elem = computer_elem.find('temperature')
+    temp_elem = computer_elem.find("temperature")
     if temp_elem is not None:
-        computer_data['water_temp'] = temp_elem.get('water')
+        computer_data["water_temp"] = temp_elem.get("water")
 
     # Parse surface pressure
-    surface_pressure_elem = computer_elem.find('surface pressure')
+    surface_pressure_elem = computer_elem.find("surface pressure")
     if surface_pressure_elem is not None:
-        computer_data['surface_pressure'] = surface_pressure_elem.get('surface pressure')
+        computer_data["surface_pressure"] = surface_pressure_elem.get(
+            "surface pressure"
+        )
 
     # Parse water salinity
-    salinity_elem = computer_elem.find('water salinity')
+    salinity_elem = computer_elem.find("water salinity")
     if salinity_elem is not None:
-        computer_data['water_salinity'] = salinity_elem.get('water salinity')
+        computer_data["water_salinity"] = salinity_elem.get("water salinity")
 
     # Parse extradata - only keep "Deco model"
     extradata_list = []
-    for extradata_elem in computer_elem.findall('extradata'):
-        key = extradata_elem.get('key')
-        value = extradata_elem.get('value')
-        if key == 'Deco model':
-            extradata_list.append({'key': key, 'value': value})
+    for extradata_elem in computer_elem.findall("extradata"):
+        key = extradata_elem.get("key")
+        value = extradata_elem.get("value")
+        if key == "Deco model":
+            extradata_list.append({"key": key, "value": value})
 
-    computer_data['extradata'] = extradata_list
+    computer_data["extradata"] = extradata_list
 
     return computer_data
+
 
 def parse_duration(duration_str):
     """Convert Subsurface duration format to minutes"""
@@ -267,6 +279,7 @@ def parse_duration(duration_str):
     except (ValueError, AttributeError):
         return None
 
+
 def parse_rating(rating):
     """Convert Subsurface rating (1-5) to Divemap rating (1-10)"""
     if not isinstance(rating, int) or rating < 1 or rating > 5:
@@ -274,6 +287,7 @@ def parse_rating(rating):
 
     # Convert 1-5 scale to 1-10 scale
     return rating * 2
+
 
 def parse_suit_type(suit_str):
     """Parse suit type from Subsurface format"""
@@ -289,7 +303,7 @@ def parse_suit_type(suit_str):
         "shorty": "shortie",
         "wetsuit": "wet_suit",
         "wet suit": "wet_suit",
-        "rofos": "dry_suit"
+        "rofos": "dry_suit",
     }
 
     suit_lower = suit_str.lower()
@@ -301,10 +315,29 @@ def parse_suit_type(suit_str):
 
     return None
 
-def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, tags,
-                             divesiteid, dive_date, dive_time, duration,
-                             buddy, suit, cylinders, weights, computer_data,
-                             dive_sites, db, events=None, site_match_cache=None):
+
+def convert_to_divemap_format(
+    dive_number,
+    rating,
+    visibility,
+    sac,
+    otu,
+    cns,
+    tags,
+    divesiteid,
+    dive_date,
+    dive_time,
+    duration,
+    buddy,
+    suit,
+    cylinders,
+    weights,
+    computer_data,
+    dive_sites,
+    db,
+    events=None,
+    site_match_cache=None,
+):
     """Convert Subsurface dive data to Divemap format"""
 
     parsed_date = None
@@ -312,13 +345,13 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
 
     if dive_date:
         try:
-            parsed_date = datetime.strptime(dive_date, '%Y-%m-%d').date()
+            parsed_date = datetime.strptime(dive_date, "%Y-%m-%d").date()
         except ValueError:
             pass
 
     if dive_time:
         try:
-            parsed_time = datetime.strptime(dive_time, '%H:%M:%S').time()
+            parsed_time = datetime.strptime(dive_time, "%H:%M:%S").time()
         except ValueError:
             pass
 
@@ -353,22 +386,22 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
     if parsed_duration and parsed_duration > 0 and cylinders:
         for cylinder in cylinders:
             try:
-                size_str = cylinder.get('size', '').replace(' l', '').strip()
+                size_str = cylinder.get("size", "").replace(" l", "").strip()
                 vol = float(size_str) if size_str else 0
-                start_str = cylinder.get('start', '').replace(' bar', '').strip()
-                end_str = cylinder.get('end', '').replace(' bar', '').strip()
+                start_str = cylinder.get("start", "").replace(" bar", "").strip()
+                end_str = cylinder.get("end", "").replace(" bar", "").strip()
                 start_p = float(start_str) if start_str else 0
                 end_p = float(end_str) if end_str else 0
-                o2_str = cylinder.get('o2', '21%').replace('%', '').strip()
-                he_str = cylinder.get('he', '0%').replace('%', '').strip()
+                o2_str = cylinder.get("o2", "21%").replace("%", "").strip()
+                he_str = cylinder.get("he", "0%").replace("%", "").strip()
                 o2 = float(o2_str) if o2_str else 21.0
                 he = float(he_str) if he_str else 0.0
-                
+
                 if vol > 0 and start_p > end_p:
                     avg_depth = 0
-                    if computer_data and computer_data.get('mean_depth'):
-                        avg_depth = float(computer_data['mean_depth'].replace(' m', ''))
-                    
+                    if computer_data and computer_data.get("mean_depth"):
+                        avg_depth = float(computer_data["mean_depth"].replace(" m", ""))
+
                     if avg_depth > 0:
                         gas_mix = GasMix(o2=o2, he=he)
                         vol_start = calculate_real_volume(vol, start_p, gas_mix)
@@ -376,7 +409,9 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
                         gas_used_liters = vol_start - vol_end
                         ata = (avg_depth / 10.0) + 1.0
                         real_sac = gas_used_liters / parsed_duration / ata
-                        dive_info_parts.append(f"Real SAC (Z-Factor): {real_sac:.1f} L/min")
+                        dive_info_parts.append(
+                            f"Real SAC (Z-Factor): {real_sac:.1f} L/min"
+                        )
                         break
             except (ValueError, AttributeError):
                 continue
@@ -387,49 +422,49 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
         dive_info_parts.append(f"CNS: {cns}")
 
     if computer_data:
-        if computer_data.get('model'):
+        if computer_data.get("model"):
             dive_info_parts.append(f"Computer: {computer_data['model']}")
-        for extradata in computer_data.get('extradata', []):
-            if extradata.get('key') == 'Deco model':
+        for extradata in computer_data.get("extradata", []):
+            if extradata.get("key") == "Deco model":
                 dive_info_parts.append(f"Deco Model: {extradata['value']}")
 
     for weight in weights:
         weight_info = []
-        if weight.get('weight'):
-            weight_info.append(weight['weight'])
-        if weight.get('description'):
-            weight_info.append(weight['description'])
+        if weight.get("weight"):
+            weight_info.append(weight["weight"])
+        if weight.get("description"):
+            weight_info.append(weight["description"])
         if weight_info:
             dive_info_parts.append(f"Weight: {' - '.join(weight_info)}")
 
     max_depth = 0.0
     average_depth = 0.0
     if computer_data:
-        if computer_data.get('max_depth'):
-            max_depth = float(computer_data['max_depth'].replace(' m', ''))
-        if computer_data.get('mean_depth'):
-            average_depth = float(computer_data['mean_depth'].replace(' m', ''))
+        if computer_data.get("max_depth"):
+            max_depth = float(computer_data["max_depth"].replace(" m", ""))
+        if computer_data.get("mean_depth"):
+            average_depth = float(computer_data["mean_depth"].replace(" m", ""))
 
     dive_site_id = None
     unmatched_dive_site = None
     proposed_sites = None
-    
+
     if divesiteid and dive_sites.get(divesiteid):
-        site_name = dive_sites[divesiteid]['name']
+        site_name = dive_sites[divesiteid]["name"]
         match = None
         if site_match_cache and site_name in site_match_cache:
             match = site_match_cache[site_name]
         else:
             match = find_dive_site_by_import_id(site_name, db, site_name)
-            
+
         if match:
-            dive_site_id = match['id']
-            if match.get('match_type') == 'similarity':
-                proposed_sites = match.get('proposed_sites')
+            dive_site_id = match["id"]
+            if match.get("match_type") == "similarity":
+                proposed_sites = match.get("proposed_sites")
         else:
             unmatched_dive_site = {
-                'name': site_name,
-                'gps': dive_sites[divesiteid].get('gps')
+                "name": site_name,
+                "gps": dive_sites[divesiteid].get("gps"),
             }
 
     gas_bottles_used = create_structured_gas_data(cylinders, events=events)
@@ -449,58 +484,77 @@ def convert_to_divemap_format(dive_number, rating, visibility, sac, otu, cns, ta
         "dive_time": parsed_time.isoformat() if parsed_time else None,
         "duration": parsed_duration,
         "unmatched_dive_site": unmatched_dive_site,
-        "proposed_sites": proposed_sites
+        "proposed_sites": proposed_sites,
     }
+
 
 def parse_dive_element(dive_elem, dive_sites, db, site_match_cache=None):
     """Parse individual dive element from XML"""
     try:
-        dive_number = dive_elem.get('number')
-        rating = dive_elem.get('rating')
-        visibility = dive_elem.get('visibility')
-        sac = dive_elem.get('sac')
-        otu = dive_elem.get('otu')
-        cns = dive_elem.get('cns')
-        tags = dive_elem.get('tags')
-        divesiteid = dive_elem.get('divesiteid')
-        dive_date = dive_elem.get('date')
-        dive_time = dive_elem.get('time')
-        duration = dive_elem.get('duration')
+        dive_number = dive_elem.get("number")
+        rating = dive_elem.get("rating")
+        visibility = dive_elem.get("visibility")
+        sac = dive_elem.get("sac")
+        otu = dive_elem.get("otu")
+        cns = dive_elem.get("cns")
+        tags = dive_elem.get("tags")
+        divesiteid = dive_elem.get("divesiteid")
+        dive_date = dive_elem.get("date")
+        dive_time = dive_elem.get("time")
+        duration = dive_elem.get("duration")
 
-        buddy_elem = dive_elem.find('buddy')
+        buddy_elem = dive_elem.find("buddy")
         buddy = buddy_elem.text if buddy_elem is not None else None
-        suit_elem = dive_elem.find('suit')
+        suit_elem = dive_elem.find("suit")
         suit = suit_elem.text if suit_elem is not None else None
 
         cylinders = []
-        for cylinder_elem in dive_elem.findall('cylinder'):
+        for cylinder_elem in dive_elem.findall("cylinder"):
             cylinders.append(parse_cylinder(cylinder_elem))
 
         weights = []
-        for weights_elem in dive_elem.findall('weightsystem'):
+        for weights_elem in dive_elem.findall("weightsystem"):
             weights.append(parse_weightsystem(weights_elem))
 
         computer_data = None
-        computer_elem = dive_elem.find('divecomputer')
+        computer_elem = dive_elem.find("divecomputer")
         if computer_elem is not None:
             computer_data = parse_divecomputer(computer_elem)
 
         profile_data = None
-        divecomputer_elem = dive_elem.find('divecomputer')
+        divecomputer_elem = dive_elem.find("divecomputer")
         if divecomputer_elem is not None:
-            profile_data = parse_dive_profile_samples(divecomputer_elem, cylinders=cylinders)
+            profile_data = parse_dive_profile_samples(
+                divecomputer_elem, cylinders=cylinders
+            )
 
-        events = profile_data.get('events') if profile_data else None
+        events = profile_data.get("events") if profile_data else None
 
         divemap_dive = convert_to_divemap_format(
-            dive_number, rating, visibility, sac, otu, cns, tags,
-            divesiteid, dive_date, dive_time, duration,
-            buddy, suit, cylinders, weights, computer_data,
-            dive_sites, db, events=events, site_match_cache=site_match_cache
+            dive_number,
+            rating,
+            visibility,
+            sac,
+            otu,
+            cns,
+            tags,
+            divesiteid,
+            dive_date,
+            dive_time,
+            duration,
+            buddy,
+            suit,
+            cylinders,
+            weights,
+            computer_data,
+            dive_sites,
+            db,
+            events=events,
+            site_match_cache=site_match_cache,
         )
 
         if profile_data:
-            divemap_dive['profile_data'] = profile_data
+            divemap_dive["profile_data"] = profile_data
 
         return divemap_dive
 
@@ -508,58 +562,61 @@ def parse_dive_element(dive_elem, dive_sites, db, site_match_cache=None):
         print(f"Error parsing dive element: {e}")
         return None
 
+
 @router.post("/import/subsurface-xml")
 async def import_subsurface_xml(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Import dives from Subsurface XML file.
     Returns parsed dive data for user review before import.
     """
     filename_lower = file.filename.lower()
-    if not (filename_lower.endswith('.xml') or filename_lower.endswith('.ssrf')):
+    if not (filename_lower.endswith(".xml") or filename_lower.endswith(".ssrf")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File must be a Subsurface (.xml or .ssrf) file"
+            detail="File must be a Subsurface (.xml or .ssrf) file",
         )
 
     try:
         content = await file.read()
-        root = ET.fromstring(content.decode('utf-8'))
+        root = ET.fromstring(content.decode("utf-8"))
 
         dive_sites = {}
-        for site_elem in root.findall('.//divesites/site'):
-            site_id = site_elem.get('uuid')
-            site_name = site_elem.get('name')
-            gps = site_elem.get('gps')
+        for site_elem in root.findall(".//divesites/site"):
+            site_id = site_elem.get("uuid")
+            site_name = site_elem.get("name")
+            gps = site_elem.get("gps")
             if site_id and site_name:
-                dive_sites[site_id] = {'name': site_name, 'gps': gps}
+                dive_sites[site_id] = {"name": site_name, "gps": gps}
 
         parsed_dives = []
         dive_elements = []
-        if root.tag == 'dives':
-            dive_elements = root.findall('dive')
-        elif root.tag == 'divelog':
-            dives_container = root.find('dives')
+        if root.tag == "dives":
+            dive_elements = root.findall("dive")
+        elif root.tag == "divelog":
+            dives_container = root.find("dives")
             if dives_container is not None:
-                dive_elements = dives_container.findall('dive')
+                dive_elements = dives_container.findall("dive")
             else:
-                dive_elements = root.findall('dive')
-        elif root.tag == 'dive':
+                dive_elements = root.findall("dive")
+        elif root.tag == "dive":
             dive_elements = [root]
         else:
-            dive_elements = root.findall('.//dive')
-        
+            dive_elements = root.findall(".//dive")
+
         user_dives = db.query(Dive).filter(Dive.user_id == current_user.id).all()
-        all_sites = db.query(DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region).all()
+        all_sites = db.query(
+            DiveSite.id, DiveSite.name, DiveSite.country, DiveSite.region
+        ).all()
 
         xml_site_names = set()
         for site_info in dive_sites.values():
-            if site_info.get('name'):
-                xml_site_names.add(site_info['name'])
-        
+            if site_info.get("name"):
+                xml_site_names.add(site_info["name"])
+
         site_match_cache = {}
         for site_name in xml_site_names:
             site_match_cache[site_name] = find_dive_site_by_import_id(
@@ -567,31 +624,39 @@ async def import_subsurface_xml(
             )
 
         for dive_elem in dive_elements:
-            dive_data = parse_dive_element(dive_elem, dive_sites, db, site_match_cache=site_match_cache)
+            dive_data = parse_dive_element(
+                dive_elem, dive_sites, db, site_match_cache=site_match_cache
+            )
             if dive_data:
                 if dive_data.get("dive_date"):
                     existing = find_existing_dive(
-                        db, current_user.id, 
-                        dive_data["dive_date"], 
+                        db,
+                        current_user.id,
+                        dive_data["dive_date"],
                         dive_data.get("dive_time"),
                         dive_data.get("duration"),
                         dive_data.get("max_depth"),
-                        user_dives=user_dives
+                        user_dives=user_dives,
                     )
                     if existing:
                         dive_data["existing_dive_id"] = existing.id
                         dive_data["skip"] = True
-                
+
                 parsed_dives.append(dive_data)
 
         if not parsed_dives:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No valid dives found in XML file"
+                detail="No valid dives found in XML file",
             )
 
         dive_sites_for_selection = [
-            {"id": site.id, "name": site.name, "country": site.country, "region": site.region}
+            {
+                "id": site.id,
+                "name": site.name,
+                "country": site.country,
+                "region": site.region,
+            }
             for site in all_sites
         ]
 
@@ -599,18 +664,18 @@ async def import_subsurface_xml(
             "message": f"Successfully parsed {len(parsed_dives)} dives",
             "dives": parsed_dives,
             "total_count": len(parsed_dives),
-            "available_dive_sites": dive_sites_for_selection
+            "available_dive_sites": dive_sites_for_selection,
         }
 
     except ET.ParseError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid XML format"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid XML format"
         )
     except Exception:
         import logging
+
         logging.exception("Error processing XML file")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error processing XML file"
+            detail="Error processing XML file",
         )

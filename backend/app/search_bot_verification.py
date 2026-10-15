@@ -168,7 +168,9 @@ def _fetch_ip_range_json(url: str) -> dict:
         url,
         headers={"User-Agent": "DivemapSearchBotVerification/1.0"},
     )
-    with urllib.request.urlopen(request, timeout=_IP_RANGE_FETCH_TIMEOUT_SECONDS) as response:
+    with urllib.request.urlopen(
+        request, timeout=_IP_RANGE_FETCH_TIMEOUT_SECONDS
+    ) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -185,9 +187,18 @@ def refresh_search_bot_ip_ranges() -> int:
         try:
             payload = _fetch_ip_range_json(url)
             networks.extend(parse_ip_range_payload(payload))
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError, ValueError, json.JSONDecodeError) as exc:
+        except (
+            urllib.error.URLError,
+            urllib.error.HTTPError,
+            TimeoutError,
+            OSError,
+            ValueError,
+            json.JSONDecodeError,
+        ) as exc:
             errors += 1
-            logger.warning("Failed to refresh search-bot IP ranges from %s: %s", url, exc)
+            logger.warning(
+                "Failed to refresh search-bot IP ranges from %s: %s", url, exc
+            )
 
     if not networks:
         logger.warning(
@@ -329,7 +340,11 @@ def _schedule_verify(ip: str) -> None:
         if ip in _in_flight:
             return
         if len(_in_flight) >= _MAX_IN_FLIGHT:
-            logger.debug("search bot verify queue full (%s in flight); skipping %s", len(_in_flight), ip)
+            logger.debug(
+                "search bot verify queue full (%s in flight); skipping %s",
+                len(_in_flight),
+                ip,
+            )
             return
         _in_flight.add(ip)
     try:

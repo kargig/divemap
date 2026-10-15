@@ -36,10 +36,12 @@ router = APIRouter(prefix="/api/v1/octo", tags=["OCTO 1.0 Supplier"])
 
 # --- Pydantic Schemas ---
 
+
 class OctoContactSchema(BaseModel):
     fullName: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+
 
 class OctoSupplierResponse(BaseModel):
     id: str
@@ -48,6 +50,7 @@ class OctoSupplierResponse(BaseModel):
     contact: OctoContactSchema
     capabilities: List[str]
 
+
 class OctoUnitResponse(BaseModel):
     id: str
     internalName: str
@@ -55,6 +58,7 @@ class OctoUnitResponse(BaseModel):
     title: str
     retailPrice: float
     currency: str
+
 
 class OctoOptionResponse(BaseModel):
     id: str
@@ -66,6 +70,7 @@ class OctoOptionResponse(BaseModel):
     durationMinutes: int
     maxCapacity: int
     units: List[OctoUnitResponse] = []
+
 
 class OctoProductResponse(BaseModel):
     id: str
@@ -80,11 +85,13 @@ class OctoProductResponse(BaseModel):
     options: List[OctoOptionResponse] = []
     units: List[OctoUnitResponse] = []
 
+
 class OctoAvailabilityRequest(BaseModel):
     productId: str
     optionId: str
-    localDateStart: str # YYYY-MM-DD
-    localDateEnd: str   # YYYY-MM-DD
+    localDateStart: str  # YYYY-MM-DD
+    localDateEnd: str  # YYYY-MM-DD
+
 
 class OctoAvailabilityResponse(BaseModel):
     id: str
@@ -94,7 +101,8 @@ class OctoAvailabilityResponse(BaseModel):
     endDatetime: str
     seatsTotal: int
     seatsAvailable: int
-    status: str # AVAILABLE, SOLD_OUT, CLOSED
+    status: str  # AVAILABLE, SOLD_OUT, CLOSED
+
 
 class OctoBookingUnitItemCreate(BaseModel):
     unitId: str
@@ -111,6 +119,7 @@ class OctoBookingUnitItemCreate(BaseModel):
     selectedGasMixId: Optional[str] = "air"
     equipmentSizing: Optional[Dict[str, Any]] = None
 
+
 class OctoBookingRequest(BaseModel):
     productId: str
     optionId: str
@@ -118,6 +127,7 @@ class OctoBookingRequest(BaseModel):
     unitItems: List[OctoBookingUnitItemCreate]
     contact: Optional[OctoContactSchema] = None
     notes: Optional[str] = None
+
 
 class OctoBookingUnitItemResponse(BaseModel):
     id: str
@@ -130,9 +140,11 @@ class OctoBookingUnitItemResponse(BaseModel):
     certificationLevel: Optional[str] = None
     waiversComplete: bool = False
 
+
 class OctoClaimInviteTokenResponse(BaseModel):
     unitItemId: str
     claimToken: str
+
 
 class OctoBookingResponse(BaseModel):
     uuid: str
@@ -145,18 +157,22 @@ class OctoBookingResponse(BaseModel):
     accessToken: Optional[str] = None
     claimInviteTokens: Optional[List[OctoClaimInviteTokenResponse]] = None
 
+
 class OctoConfirmBookingRequest(BaseModel):
     contact: Optional[OctoContactSchema] = None
     notes: Optional[str] = None
 
+
 class OctoCancelBookingRequest(BaseModel):
     reason: Optional[str] = "Customer requested cancellation"
+
 
 class OctoExtendBookingRequest(BaseModel):
     expirationMinutes: Optional[int] = 20
 
 
 # --- Endpoints ---
+
 
 @router.get("/suppliers/{center_id}", response_model=OctoSupplierResponse)
 def get_supplier_profile(center_id: int, db: Session = Depends(get_db)):
@@ -169,9 +185,7 @@ def get_supplier_profile(center_id: int, db: Session = Depends(get_db)):
         name=center.name,
         endpoint=f"/api/v1/octo/suppliers/{center.id}",
         contact=OctoContactSchema(
-            fullName=center.name,
-            email=center.email,
-            phone=center.phone
+            fullName=center.name, email=center.email, phone=center.phone
         ),
         capabilities=[
             "octo/pricing",
@@ -179,59 +193,80 @@ def get_supplier_profile(center_id: int, db: Session = Depends(get_db)):
             "octo/questions",
             "octo/waivers",
             "octo/identities",
-        ]
+        ],
     )
+
 
 @router.get("/suppliers/{center_id}/products", response_model=List[OctoProductResponse])
 def list_supplier_products(center_id: int, db: Session = Depends(get_db)):
-    products = db.query(OctoProduct).filter(
-        OctoProduct.diving_center_id == center_id,
-        OctoProduct.is_active == True
-    ).all()
+    products = (
+        db.query(OctoProduct)
+        .filter(
+            OctoProduct.diving_center_id == center_id, OctoProduct.is_active == True
+        )
+        .all()
+    )
 
     res = []
     for p in products:
-        res.append(OctoProductResponse(
-            id=p.id,
-            internalName=p.title,
-            title=p.title,
-            description=p.description,
-            productType=p.product_type,
-            agencyCode=p.agency_code,
-            waiverBundleId=p.waiver_bundle_id,
-            minLoggedDives=p.min_logged_dives,
-            maxDepthMeters=float(p.max_depth_meters) if p.max_depth_meters else None,
-            options=[
-                OctoOptionResponse(
-                    id=opt.id,
-                    internalName=opt.title,
-                    title=opt.title,
-                    meetingTime=opt.meeting_time.strftime("%H:%M"),
-                    departureTime=opt.departure_time.strftime("%H:%M"),
-                    durationMinutes=opt.duration_minutes,
-                    maxCapacity=opt.max_capacity,
-                ) for opt in p.options if opt.is_active
-            ],
-            units=[
-                OctoUnitResponse(
-                    id=u.id,
-                    internalName=u.title,
-                    type=u.unit_type,
-                    title=u.title,
-                    retailPrice=float(u.retail_price),
-                    currency=u.currency,
-                ) for u in p.units if u.is_active
-            ]
-        ))
+        res.append(
+            OctoProductResponse(
+                id=p.id,
+                internalName=p.title,
+                title=p.title,
+                description=p.description,
+                productType=p.product_type,
+                agencyCode=p.agency_code,
+                waiverBundleId=p.waiver_bundle_id,
+                minLoggedDives=p.min_logged_dives,
+                maxDepthMeters=float(p.max_depth_meters)
+                if p.max_depth_meters
+                else None,
+                options=[
+                    OctoOptionResponse(
+                        id=opt.id,
+                        internalName=opt.title,
+                        title=opt.title,
+                        meetingTime=opt.meeting_time.strftime("%H:%M"),
+                        departureTime=opt.departure_time.strftime("%H:%M"),
+                        durationMinutes=opt.duration_minutes,
+                        maxCapacity=opt.max_capacity,
+                    )
+                    for opt in p.options
+                    if opt.is_active
+                ],
+                units=[
+                    OctoUnitResponse(
+                        id=u.id,
+                        internalName=u.title,
+                        type=u.unit_type,
+                        title=u.title,
+                        retailPrice=float(u.retail_price),
+                        currency=u.currency,
+                    )
+                    for u in p.units
+                    if u.is_active
+                ],
+            )
+        )
     return res
 
-@router.get("/suppliers/{center_id}/products/{product_id}", response_model=OctoProductResponse)
-def get_supplier_product(center_id: int, product_id: str, db: Session = Depends(get_db)):
-    p = db.query(OctoProduct).filter(
-        OctoProduct.id == product_id,
-        OctoProduct.diving_center_id == center_id,
-        OctoProduct.is_active == True
-    ).first()
+
+@router.get(
+    "/suppliers/{center_id}/products/{product_id}", response_model=OctoProductResponse
+)
+def get_supplier_product(
+    center_id: int, product_id: str, db: Session = Depends(get_db)
+):
+    p = (
+        db.query(OctoProduct)
+        .filter(
+            OctoProduct.id == product_id,
+            OctoProduct.diving_center_id == center_id,
+            OctoProduct.is_active == True,
+        )
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -254,7 +289,9 @@ def get_supplier_product(center_id: int, product_id: str, db: Session = Depends(
                 departureTime=opt.departure_time.strftime("%H:%M"),
                 durationMinutes=opt.duration_minutes,
                 maxCapacity=opt.max_capacity,
-            ) for opt in p.options if opt.is_active
+            )
+            for opt in p.options
+            if opt.is_active
         ],
         units=[
             OctoUnitResponse(
@@ -264,41 +301,63 @@ def get_supplier_product(center_id: int, product_id: str, db: Session = Depends(
                 title=u.title,
                 retailPrice=float(u.retail_price),
                 currency=u.currency,
-            ) for u in p.units if u.is_active
-        ]
+            )
+            for u in p.units
+            if u.is_active
+        ],
     )
+
 
 @router.post("/availability", response_model=List[OctoAvailabilityResponse])
 def query_availability(query: OctoAvailabilityRequest, db: Session = Depends(get_db)):
     try:
         start_date = datetime.strptime(query.localDateStart, "%Y-%m-%d").date()
-        end_date = datetime.strptime(query.localDateEnd, "%Y-%m-%d").date() + timedelta(days=1)
+        end_date = datetime.strptime(query.localDateEnd, "%Y-%m-%d").date() + timedelta(
+            days=1
+        )
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
+        )
 
-    slots = db.query(OctoAvailabilitySlot).filter(
-        OctoAvailabilitySlot.product_id == query.productId,
-        OctoAvailabilitySlot.option_id == query.optionId,
-        OctoAvailabilitySlot.start_datetime >= datetime.combine(start_date, time.min),
-        OctoAvailabilitySlot.start_datetime <= datetime.combine(end_date, time.max),
-    ).order_by(OctoAvailabilitySlot.start_datetime.asc()).all()
+    slots = (
+        db.query(OctoAvailabilitySlot)
+        .filter(
+            OctoAvailabilitySlot.product_id == query.productId,
+            OctoAvailabilitySlot.option_id == query.optionId,
+            OctoAvailabilitySlot.start_datetime
+            >= datetime.combine(start_date, time.min),
+            OctoAvailabilitySlot.start_datetime <= datetime.combine(end_date, time.max),
+        )
+        .order_by(OctoAvailabilitySlot.start_datetime.asc())
+        .all()
+    )
 
     res = []
     for s in slots:
-        status_str = "AVAILABLE" if s.seats_available > 0 and not s.is_closed else ("CLOSED" if s.is_closed else "SOLD_OUT")
-        res.append(OctoAvailabilityResponse(
-            id=s.id,
-            productId=s.product_id,
-            optionId=s.option_id,
-            startDatetime=s.start_datetime.isoformat(),
-            endDatetime=s.end_datetime.isoformat(),
-            seatsTotal=s.seats_total,
-            seatsAvailable=s.seats_available,
-            status=status_str
-        ))
+        status_str = (
+            "AVAILABLE"
+            if s.seats_available > 0 and not s.is_closed
+            else ("CLOSED" if s.is_closed else "SOLD_OUT")
+        )
+        res.append(
+            OctoAvailabilityResponse(
+                id=s.id,
+                productId=s.product_id,
+                optionId=s.option_id,
+                startDatetime=s.start_datetime.isoformat(),
+                endDatetime=s.end_datetime.isoformat(),
+                seatsTotal=s.seats_total,
+                seatsAvailable=s.seats_available,
+                status=status_str,
+            )
+        )
     return res
 
-@router.post("/bookings", response_model=OctoBookingResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/bookings", response_model=OctoBookingResponse, status_code=status.HTTP_201_CREATED
+)
 def create_booking_hold(
     req: OctoBookingRequest,
     db: Session = Depends(get_db),
@@ -319,7 +378,9 @@ def create_booking_hold(
     )
 
     if not slot or slot.is_closed:
-        raise HTTPException(status_code=404, detail="Availability slot not found or closed")
+        raise HTTPException(
+            status_code=404, detail="Availability slot not found or closed"
+        )
 
     if req.productId != slot.product_id:
         raise HTTPException(
@@ -348,13 +409,19 @@ def create_booking_hold(
 
     product = slot.product
     if not product:
-        product = db.query(OctoProduct).filter(OctoProduct.id == slot.product_id).first()
+        product = (
+            db.query(OctoProduct).filter(OctoProduct.id == slot.product_id).first()
+        )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    settings = db.query(DivingCenterBookingSettings).filter(
-        DivingCenterBookingSettings.diving_center_id == product.diving_center_id
-    ).first()
+    settings = (
+        db.query(DivingCenterBookingSettings)
+        .filter(
+            DivingCenterBookingSettings.diving_center_id == product.diving_center_id
+        )
+        .first()
+    )
     hold_minutes = settings.hold_duration_minutes if settings else 20
 
     # Calculate total and unit pricing — units must belong to this product
@@ -372,15 +439,21 @@ def create_booking_hold(
     # Validate that at least one of email, phone, or passport is provided for each diver
     for item in req.unitItems:
         has_contact_or_id = bool(
-            (item.diverEmail and item.diverEmail.strip()) or
-            (item.diverPhone and item.diverPhone.strip()) or
-            (item.passportNumber and item.passportNumber.strip()) or
-            (req.contact and ((req.contact.email and req.contact.email.strip()) or (req.contact.phone and req.contact.phone.strip())))
+            (item.diverEmail and item.diverEmail.strip())
+            or (item.diverPhone and item.diverPhone.strip())
+            or (item.passportNumber and item.passportNumber.strip())
+            or (
+                req.contact
+                and (
+                    (req.contact.email and req.contact.email.strip())
+                    or (req.contact.phone and req.contact.phone.strip())
+                )
+            )
         )
         if not has_contact_or_id:
             raise HTTPException(
                 status_code=400,
-                detail=f"At least one of Email, Phone, or Passport/National ID is required for participant '{item.diverFullName or 'Guest Diver'}'."
+                detail=f"At least one of Email, Phone, or Passport/National ID is required for participant '{item.diverFullName or 'Guest Diver'}'.",
             )
 
     currency = units[0].currency if units else "EUR"
@@ -436,7 +509,9 @@ def create_booking_hold(
         parsed_dob = None
         if item.dateOfBirth:
             try:
-                parsed_dob = datetime.strptime(item.dateOfBirth.strip(), "%Y-%m-%d").date()
+                parsed_dob = datetime.strptime(
+                    item.dateOfBirth.strip(), "%Y-%m-%d"
+                ).date()
             except Exception:
                 pass
 
@@ -463,17 +538,21 @@ def create_booking_hold(
             claim_invite_tokens.append(
                 OctoClaimInviteTokenResponse(unitItemId=item_id, claimToken=claim_raw)
             )
-        response_items.append(OctoBookingUnitItemResponse(
-            id=item_id,
-            unitId=item.unitId,
-            diverFullName=unit_item.diver_full_name,
-            diverEmail=unit_item.diver_email,
-            diverPhone=unit_item.diver_phone,
-            dateOfBirth=str(unit_item.date_of_birth) if unit_item.date_of_birth else None,
-            certificationAgency=unit_item.certification_agency,
-            certificationLevel=unit_item.certification_level,
-            waiversComplete=False,
-        ))
+        response_items.append(
+            OctoBookingUnitItemResponse(
+                id=item_id,
+                unitId=item.unitId,
+                diverFullName=unit_item.diver_full_name,
+                diverEmail=unit_item.diver_email,
+                diverPhone=unit_item.diver_phone,
+                dateOfBirth=str(unit_item.date_of_birth)
+                if unit_item.date_of_birth
+                else None,
+                certificationAgency=unit_item.certification_agency,
+                certificationLevel=unit_item.certification_level,
+                waiversComplete=False,
+            )
+        )
 
     db.commit()
 
@@ -489,12 +568,15 @@ def create_booking_hold(
         claimInviteTokens=claim_invite_tokens if claim_invite_tokens else None,
     )
 
+
 @router.get("/bookings/{booking_uuid}", response_model=OctoBookingResponse)
 def get_booking_details(
     booking_uuid: str,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    x_booking_access_token: Optional[str] = Header(
+        None, alias="X-Booking-Access-Token"
+    ),
     access_token: Optional[str] = Query(None),
 ):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
@@ -517,22 +599,26 @@ def get_booking_details(
             certificationAgency=item.certification_agency,
             certificationLevel=item.certification_level,
             waiversComplete=item.waivers_complete,
-        ) for item in booking.unit_items
+        )
+        for item in booking.unit_items
     ]
 
     return OctoBookingResponse(
         uuid=booking.uuid,
         status=booking.status,
-        utcHoldExpiration=booking.utc_hold_expiration.isoformat() if booking.utc_hold_expiration else None,
+        utcHoldExpiration=booking.utc_hold_expiration.isoformat()
+        if booking.utc_hold_expiration
+        else None,
         totalAmount=float(booking.total_amount),
         currency=booking.currency,
         contact=OctoContactSchema(
             fullName=booking.contact_full_name,
             email=booking.contact_email,
-            phone=booking.contact_phone
+            phone=booking.contact_phone,
         ),
         unitItems=items,
     )
+
 
 @router.post("/bookings/{booking_uuid}/confirm", response_model=OctoBookingResponse)
 def confirm_booking(
@@ -540,12 +626,16 @@ def confirm_booking(
     req: Optional[OctoConfirmBookingRequest] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    x_booking_access_token: Optional[str] = Header(
+        None, alias="X-Booking-Access-Token"
+    ),
     access_token: Optional[str] = Query(None),
 ):
     booking = (
         db.query(OctoBooking)
-        .options(joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip))
+        .options(
+            joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip)
+        )
         .filter(OctoBooking.uuid == booking_uuid)
         .with_for_update()
         .first()
@@ -573,12 +663,17 @@ def confirm_booking(
         if exp < now:
             booking.status = "EXPIRED"
             db.commit()
-            raise HTTPException(status_code=400, detail="Hold has expired and cannot be confirmed")
+            raise HTTPException(
+                status_code=400, detail="Hold has expired and cannot be confirmed"
+            )
 
     if req and req.contact:
-        if req.contact.fullName: booking.contact_full_name = req.contact.fullName
-        if req.contact.email: booking.contact_email = req.contact.email
-        if req.contact.phone: booking.contact_phone = req.contact.phone
+        if req.contact.fullName:
+            booking.contact_full_name = req.contact.fullName
+        if req.contact.email:
+            booking.contact_email = req.contact.email
+        if req.contact.phone:
+            booking.contact_phone = req.contact.phone
     if req and req.notes:
         booking.booking_notes = req.notes
 
@@ -604,7 +699,8 @@ def confirm_booking(
             certificationAgency=item.certification_agency,
             certificationLevel=item.certification_level,
             waiversComplete=item.waivers_complete,
-        ) for item in booking.unit_items
+        )
+        for item in booking.unit_items
     ]
 
     return OctoBookingResponse(
@@ -616,10 +712,11 @@ def confirm_booking(
         contact=OctoContactSchema(
             fullName=booking.contact_full_name,
             email=booking.contact_email,
-            phone=booking.contact_phone
+            phone=booking.contact_phone,
         ),
         unitItems=items,
     )
+
 
 @router.post("/bookings/{booking_uuid}/cancel", response_model=OctoBookingResponse)
 def cancel_booking(
@@ -627,12 +724,16 @@ def cancel_booking(
     req: Optional[OctoCancelBookingRequest] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    x_booking_access_token: Optional[str] = Header(
+        None, alias="X-Booking-Access-Token"
+    ),
     access_token: Optional[str] = Query(None),
 ):
     booking = (
         db.query(OctoBooking)
-        .options(joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip))
+        .options(
+            joinedload(OctoBooking.slot).joinedload(OctoAvailabilitySlot.dive_trip)
+        )
         .filter(OctoBooking.uuid == booking_uuid)
         .with_for_update()
         .first()
@@ -684,7 +785,8 @@ def cancel_booking(
             certificationAgency=item.certification_agency,
             certificationLevel=item.certification_level,
             waiversComplete=item.waivers_complete,
-        ) for item in booking.unit_items
+        )
+        for item in booking.unit_items
     ]
 
     return OctoBookingResponse(
@@ -696,10 +798,11 @@ def cancel_booking(
         contact=OctoContactSchema(
             fullName=booking.contact_full_name,
             email=booking.contact_email,
-            phone=booking.contact_phone
+            phone=booking.contact_phone,
         ),
         unitItems=items,
     )
+
 
 @router.post("/bookings/{booking_uuid}/extend", response_model=OctoBookingResponse)
 def extend_booking_hold(
@@ -707,12 +810,16 @@ def extend_booking_hold(
     req: Optional[OctoExtendBookingRequest] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    x_booking_access_token: Optional[str] = Header(None, alias="X-Booking-Access-Token"),
+    x_booking_access_token: Optional[str] = Header(
+        None, alias="X-Booking-Access-Token"
+    ),
     access_token: Optional[str] = Query(None),
 ):
     booking = db.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     if not booking or booking.status != "ON_HOLD":
-        raise HTTPException(status_code=400, detail="Only ON_HOLD bookings can be extended")
+        raise HTTPException(
+            status_code=400, detail="Only ON_HOLD bookings can be extended"
+        )
 
     require_booking_principal(
         booking,

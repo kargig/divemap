@@ -20,11 +20,13 @@ from pydantic import BaseModel
 # Subsurface uses 1.01325 bar as standard surface pressure for volume conversions
 SURFACE_PRESSURE_BAR = 1.01325
 
+
 class GasMix(BaseModel):
     """
     Represents a breathing gas mixture.
     Percentages should be 0-100 (e.g., 21 for Air).
     """
+
     o2: float
     he: float = 0.0
 
@@ -40,22 +42,24 @@ class GasMix(BaseModel):
     def is_trimix(self) -> bool:
         return self.he > 0.0
 
+
 # -----------------------------------------------------------------------------
 # Compressibility (Z-Factor) - Real Gas Law
 # -----------------------------------------------------------------------------
+
 
 def calculate_z_factor(pressure_bar: float, gas: GasMix) -> float:
     """
     Calculates the gas compressibility factor (Z) using the Virial equation.
     Based on Subsurface implementation (core/compressibility.c / core/gas.c).
-    
+
     Z = PV / nRT
     Z = 1 + B/V + C/V^2 ... approximated via pressure series for diving ranges.
-    
+
     Args:
         pressure_bar: Pressure in bar.
         gas: GasMix object.
-        
+
     Returns:
         float: The compressibility factor Z.
     """
@@ -69,7 +73,7 @@ def calculate_z_factor(pressure_bar: float, gas: GasMix) -> float:
     HE_COEFFS = [4.87320026468e-4, -8.83632921053e-8, 5.33304543646e-11]
 
     def virial(coeffs: List[float], x: float) -> float:
-        return x * coeffs[0] + (x ** 2) * coeffs[1] + (x ** 3) * coeffs[2]
+        return x * coeffs[0] + (x**2) * coeffs[1] + (x**3) * coeffs[2]
 
     # Subsurface calculation uses weighted averages of the virial terms
     # Note: Subsurface code uses permille (0-1000), we convert to that scale for the formula match
@@ -78,63 +82,76 @@ def calculate_z_factor(pressure_bar: float, gas: GasMix) -> float:
     n2_permille = gas.n2 * 10.0
 
     # The formula essentially calculates Z-1 (z_minus_1) scaled by 1000
-    z_m1 = (virial(O2_COEFFS, p) * o2_permille + 
-            virial(HE_COEFFS, p) * he_permille + 
-            virial(N2_COEFFS, p) * n2_permille)
+    z_m1 = (
+        virial(O2_COEFFS, p) * o2_permille
+        + virial(HE_COEFFS, p) * he_permille
+        + virial(N2_COEFFS, p) * n2_permille
+    )
 
     # Convert back: Z = 1 + (Weighted_Virial_Sum / 1000)
     return z_m1 * 0.001 + 1.0
 
-def calculate_real_volume(tank_water_volume_liters: float, pressure_bar: float, gas: GasMix) -> float:
+
+def calculate_real_volume(
+    tank_water_volume_liters: float, pressure_bar: float, gas: GasMix
+) -> float:
     """
     Calculates the actual volume of gas (at surface pressure) in a tank, accounting for compressibility.
-    
+
     Real Volume = (Tank_Water_Vol * Pressure) / Z
     (Note: Adjusted for surface pressure reference)
-    
+
     Args:
         tank_water_volume_liters: Wet volume of the tank (e.g., 12L).
         pressure_bar: Current pressure in the tank.
         gas: The gas mixture.
-        
+
     Returns:
         float: Equivalent surface volume in liters.
     """
     if pressure_bar <= 0:
         return 0.0
-    
+
     z = calculate_z_factor(pressure_bar, gas)
-    
+
     # Standard formula: V_surface = (P_tank * V_tank) / (P_surface * Z)
     return (pressure_bar * tank_water_volume_liters) / (SURFACE_PRESSURE_BAR * z)
 
-def calculate_pressure_from_volume(surface_volume_liters: float, tank_water_volume_liters: float, gas: GasMix) -> float:
+
+def calculate_pressure_from_volume(
+    surface_volume_liters: float, tank_water_volume_liters: float, gas: GasMix
+) -> float:
     """
     Inverse of calculate_real_volume. Iteratively solves for pressure given a gas volume.
     Useful for "How much pressure do I need for X liters of gas?"
     """
     # Initial guess using Ideal Gas Law: P = (V_surf * P_surf) / V_tank
     p_guess = (surface_volume_liters * SURFACE_PRESSURE_BAR) / tank_water_volume_liters
-    
+
     # Newton-Raphson or simple iteration to converge
     for _ in range(5):
         z = calculate_z_factor(p_guess, gas)
-        p_new = (surface_volume_liters * SURFACE_PRESSURE_BAR * z) / tank_water_volume_liters
+        p_new = (
+            surface_volume_liters * SURFACE_PRESSURE_BAR * z
+        ) / tank_water_volume_liters
         if abs(p_new - p_guess) < 0.1:
             return p_new
         p_guess = p_new
-        
+
     return p_guess
+
 
 # -----------------------------------------------------------------------------
 # Partial Pressures & Depths
 # -----------------------------------------------------------------------------
 
+
 def depth_to_bar(depth_meters: float, surface_pressure: float = 1.013) -> float:
     """Calculates absolute ambient pressure at depth (ATA/bar)."""
-    # Simple approx: depth/10 + surface. 
+    # Simple approx: depth/10 + surface.
     # For higher precision, density of water (salt/fresh) could be a parameter.
     return (depth_meters / 10.0) + surface_pressure
+
 
 def calculate_mod(gas: GasMix, pp_o2_max: float) -> float:
     """
@@ -143,17 +160,25 @@ def calculate_mod(gas: GasMix, pp_o2_max: float) -> float:
     """
     if gas.o2 <= 0:
         return 0.0
-    
+
     f_o2 = gas.o2 / 100.0
     max_ata = pp_o2_max / f_o2
     return max(0.0, (max_ata - 1.0) * 10.0)
 
-def calculate_sac(depth_meters: float, duration_minutes: float, tank_volume: float, start_pressure: float, end_pressure: float, gas: GasMix = None) -> float:
+
+def calculate_sac(
+    depth_meters: float,
+    duration_minutes: float,
+    tank_volume: float,
+    start_pressure: float,
+    end_pressure: float,
+    gas: GasMix = None,
+) -> float:
     """
     Calculates Surface Air Consumption (SAC) rate in L/min.
-    Uses the Real Gas Law (accounting for compressibility) if gas is provided, 
+    Uses the Real Gas Law (accounting for compressibility) if gas is provided,
     otherwise falls back to Ideal Gas Law.
-    
+
     Args:
         depth_meters: Average depth of the dive.
         duration_minutes: Duration of the dive in minutes.
@@ -161,19 +186,19 @@ def calculate_sac(depth_meters: float, duration_minutes: float, tank_volume: flo
         start_pressure: Starting tank pressure in bar.
         end_pressure: Ending tank pressure in bar.
         gas: Optional GasMix to use for real gas volume calculation.
-        
+
     Returns:
         float: SAC rate in L/min.
     """
     if duration_minutes <= 0:
         return 0.0
-    
+
     # Calculate pressure used
     pressure_used = max(0.0, start_pressure - end_pressure)
-    
+
     # Average pressure at depth (ATA)
     avg_ata = (depth_meters / 10.0) + 1.0
-    
+
     if gas:
         # Use Real Gas Law
         v_start = calculate_real_volume(tank_volume, start_pressure, gas)
@@ -182,9 +207,10 @@ def calculate_sac(depth_meters: float, duration_minutes: float, tank_volume: flo
     else:
         # Use Ideal Gas Law (PV = nRT fallback)
         gas_used_liters = pressure_used * tank_volume
-        
+
     # SAC = Total Gas Used / (Average ATA * Duration)
     return gas_used_liters / (avg_ata * duration_minutes)
+
 
 def calculate_best_mix(depth_meters: float, pp_o2_max: float) -> GasMix:
     """
@@ -196,15 +222,19 @@ def calculate_best_mix(depth_meters: float, pp_o2_max: float) -> GasMix:
     o2_pct = min(100.0, max(21.0, f_o2 * 100.0))
     return GasMix(o2=o2_pct, he=0.0)
 
-def calculate_min_gas(depth_meters: float, duration_at_depth: float, sac_rate: float, tank_volume: float) -> float:
+
+def calculate_min_gas(
+    depth_meters: float, duration_at_depth: float, sac_rate: float, tank_volume: float
+) -> float:
     """
     Calculates Minimum Gas (Reserve) required for an ascent.
     Simple reserve model: (Avg Depth ATA) * (Duration) * (SAC Rate)
     Returns pressure in Bar.
     """
-    avg_ata = (depth_meters / 2.0 / 10.0) + 1.0 # Average ATA during ascent
+    avg_ata = (depth_meters / 2.0 / 10.0) + 1.0  # Average ATA during ascent
     gas_required = avg_ata * duration_at_depth * sac_rate
     return gas_required / tank_volume
+
 
 def calculate_end(depth_meters: float, gas: GasMix) -> float:
     """
@@ -215,6 +245,7 @@ def calculate_end(depth_meters: float, gas: GasMix) -> float:
     f_he = gas.he / 100.0
     return (depth_meters + 10.0) * (1.0 - f_he) - 10.0
 
+
 def calculate_ead(depth_meters: float, gas: GasMix) -> float:
     """
     Calculates Equivalent Air Depth (EAD) for Nitrox.
@@ -223,9 +254,11 @@ def calculate_ead(depth_meters: float, gas: GasMix) -> float:
     f_n2 = gas.n2 / 100.0
     return (depth_meters + 10.0) * (f_n2 / 0.79) - 10.0
 
+
 # -----------------------------------------------------------------------------
 # Safety Checks
 # -----------------------------------------------------------------------------
+
 
 class ICDResult(BaseModel):
     warning: bool
@@ -233,35 +266,36 @@ class ICDResult(BaseModel):
     delta_he: float
     message: Optional[str] = None
 
+
 def check_isobaric_counterdiffusion(current_gas: GasMix, next_gas: GasMix) -> ICDResult:
     """
     Checks for Isobaric Counterdiffusion (ICD) risks when switching gases.
     Implements the 'Rule of Fifths': Nitrogen increase should not exceed 1/5th of Helium decrease.
-    
+
     Based on Subsurface: core/gas.cpp -> isobaric_counterdiffusion()
-    
+
     Args:
         current_gas: The gas being breathed currently.
         next_gas: The gas being switched to.
-        
+
     Returns:
         ICDResult: Warning flag and delta values.
     """
     # Delta N2 (increase is positive)
     d_n2 = next_gas.n2 - current_gas.n2
-    
+
     # Delta He (decrease is negative)
     d_he = next_gas.he - current_gas.he
-    
+
     # Logic:
     # 1. Current gas must have Helium (>0)
     # 2. Switching results in N2 increase (>0)
     # 3. Switching results in He decrease (<0)
     # 4. Rule check: 5 * delta_N2 > -delta_He (Magnitude of N2 rise is large relative to He drop)
-    
+
     warning = False
     message = None
-    
+
     if current_gas.he > 0 and d_n2 > 0 and d_he < 0:
         # Subsurface logic: 5 * results->dN2 > -results->dHe
         if 5 * d_n2 > -d_he:
@@ -271,9 +305,4 @@ def check_isobaric_counterdiffusion(current_gas: GasMix, next_gas: GasMix) -> IC
                 f"Nitrogen increase ({d_n2:.1f}%) is more than 1/5th of Helium decrease ({abs(d_he):.1f}%)."
             )
 
-    return ICDResult(
-        warning=warning,
-        delta_n2=d_n2,
-        delta_he=d_he,
-        message=message
-    )
+    return ICDResult(warning=warning, delta_n2=d_n2, delta_he=d_he, message=message)

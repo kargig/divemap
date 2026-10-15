@@ -17,6 +17,7 @@ from app.utils import format_ip_for_logging, get_client_ip, is_localhost_ip
 _logged_requests = set()
 _last_cleanup = time.time()
 
+
 def _cleanup_logged_requests():
     """Clean up old logged requests to prevent memory growth"""
     global _last_cleanup
@@ -25,6 +26,7 @@ def _cleanup_logged_requests():
     if current_time - _last_cleanup > 300:
         _logged_requests.clear()
         _last_cleanup = current_time
+
 
 def custom_key_func(request: Request) -> str:
     """
@@ -48,35 +50,44 @@ def custom_key_func(request: Request) -> str:
     # Skip rate limiting for localhost only
     if is_localhost_ip(client_ip):
         if request_key not in _logged_requests:
-            print(f"[RATE_LIMIT] {endpoint} - Skipping rate limiting for localhost IP: {formatted_ip}")
+            print(
+                f"[RATE_LIMIT] {endpoint} - Skipping rate limiting for localhost IP: {formatted_ip}"
+            )
             _logged_requests.add(request_key)
         return "localhost"  # Special key that won't be rate limited
 
     user_agent = request.headers.get("user-agent")
     if is_verified_search_bot(client_ip, user_agent):
         if request_key not in _logged_requests:
-            print(f"[RATE_LIMIT] {endpoint} - Skipping rate limiting for verified search bot IP: {formatted_ip}")
+            print(
+                f"[RATE_LIMIT] {endpoint} - Skipping rate limiting for verified search bot IP: {formatted_ip}"
+            )
             _logged_requests.add(request_key)
         return "searchbot"
 
     # For all other requests, use IP address as key
     # Only log once per request to avoid spam
     if request_key not in _logged_requests:
-        print(f"[RATE_LIMIT] {endpoint} - Applying rate limiting for IP: {formatted_ip}")
+        print(
+            f"[RATE_LIMIT] {endpoint} - Applying rate limiting for IP: {formatted_ip}"
+        )
         _logged_requests.add(request_key)
 
     return client_ip
+
 
 # Initialize rate limiter with custom key function
 # Note: The app will be set in main.py via app.state.limiter
 # slowapi will access it via request.app.state.limiter at runtime
 limiter = Limiter(key_func=custom_key_func)
 
+
 def skip_rate_limit_for_admin(limit_string: str):
     """
     Custom decorator that applies rate limiting but skips it for admin users,
     localhost requests, and cache-verified Googlebot/Bingbot.
     """
+
     def decorator(func):
         # Create the rate limited function once when the decorator is applied
         # slowapi will access app.state.limiter at runtime via request.app.state.limiter
@@ -96,8 +107,8 @@ def skip_rate_limit_for_admin(limit_string: str):
                     break
 
             # Also check kwargs for request
-            if not request and 'request' in kwargs:
-                request = kwargs['request']
+            if not request and "request" in kwargs:
+                request = kwargs["request"]
 
             if request:
                 client_ip = get_client_ip(request)
@@ -105,12 +116,16 @@ def skip_rate_limit_for_admin(limit_string: str):
 
                 # Skip rate limiting for localhost requests
                 if is_localhost_ip(client_ip):
-                    print(f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for localhost IP: {formatted_ip}")
+                    print(
+                        f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for localhost IP: {formatted_ip}"
+                    )
                     return await func(*args, **kwargs)
 
                 user_agent = request.headers.get("user-agent")
                 if is_verified_search_bot(client_ip, user_agent):
-                    print(f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for verified search bot IP: {formatted_ip}")
+                    print(
+                        f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for verified search bot IP: {formatted_ip}"
+                    )
                     return await func(*args, **kwargs)
 
                 # Try to get current user by extracting token from headers
@@ -129,10 +144,16 @@ def skip_rate_limit_for_admin(limit_string: str):
                             db = None
                             try:
                                 db = next(get_db())
-                                user = db.query(User).filter(User.username == token_data.username).first()
+                                user = (
+                                    db.query(User)
+                                    .filter(User.username == token_data.username)
+                                    .first()
+                                )
 
                                 if user and user.is_admin:
-                                    print(f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for admin user: {user.username}")
+                                    print(
+                                        f"[RATE_LIMIT] {endpoint_info} - Skipping rate limiting for admin user: {user.username}"
+                                    )
                                     return await func(*args, **kwargs)
                             finally:
                                 # Always close the database session
@@ -144,10 +165,13 @@ def skip_rate_limit_for_admin(limit_string: str):
 
             # Apply normal rate limiting using the pre-created rate limited function
             # Ensure limiter has access to app via request.app.state.limiter
-            if request and hasattr(request, 'app') and hasattr(request.app, 'state'):
+            if request and hasattr(request, "app") and hasattr(request.app, "state"):
                 request.app.state.limiter = limiter
-            print(f"[RATE_LIMIT] {endpoint_info} - Applying rate limiting: {limit_string}")
+            print(
+                f"[RATE_LIMIT] {endpoint_info} - Applying rate limiting: {limit_string}"
+            )
             return await rate_limited_func(*args, **kwargs)
 
         return wrapper
+
     return decorator

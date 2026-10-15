@@ -18,10 +18,10 @@ def slugify(text: str) -> str:
         return ""
     text = str(text)
     # Normalize unicode characters
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')
+    text = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("utf-8")
     text = text.lower().strip()
-    text = re.sub(r'[\s\W-]+', '-', text)
-    text = text.strip('-')
+    text = re.sub(r"[\s\W-]+", "-", text)
+    text = text.strip("-")
     return text
 
 
@@ -29,20 +29,22 @@ def is_diving_center_reviews_enabled(db: Session) -> bool:
     """
     Check if diving center reviews (comments and ratings) are enabled.
     Returns True if reviews are enabled (setting is false/disabled), False otherwise.
-    
+
     Args:
         db: Database session
-        
+
     Returns:
         bool: True if reviews are enabled, False if disabled
     """
     from app.models import Setting
-    
-    setting = db.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+
+    setting = (
+        db.query(Setting).filter(Setting.key == "disable_diving_center_reviews").first()
+    )
     if not setting:
         # Default to enabled if setting doesn't exist
         return True
-    
+
     try:
         # Parse JSON boolean value using orjson for performance
         value = orjson.loads(setting.value)
@@ -51,6 +53,7 @@ def is_diving_center_reviews_enabled(db: Session) -> bool:
     except (orjson.JSONDecodeError, ValueError):
         # If value is not a valid boolean, default to enabled
         return True
+
 
 def increment_view_count(db: Session, model_class, item_id: int):
     """
@@ -61,15 +64,18 @@ def increment_view_count(db: Session, model_class, item_id: int):
         db.query(model_class).filter(model_class.id == item_id).update(
             {
                 model_class.view_count: model_class.view_count + 1,
-                model_class.updated_at: model_class.updated_at
+                model_class.updated_at: model_class.updated_at,
             },
-            synchronize_session=False
+            synchronize_session=False,
         )
         db.commit()
     except Exception as e:
         db.rollback()
         import logging
-        logging.error(f"Failed to increment view count for {model_class.__name__} {item_id}: {e}")
+
+        logging.error(
+            f"Failed to increment view count for {model_class.__name__} {item_id}: {e}"
+        )
 
 
 def get_client_ip(request: Request) -> str:
@@ -99,52 +105,52 @@ def get_client_ip(request: Request) -> str:
         print(f"Request from IP: {client_ip}")
     """
     # Check Fly.io specific header first
-    if 'Fly-Client-IP' in request.headers:
-        fly_ip = request.headers['Fly-Client-IP']
+    if "Fly-Client-IP" in request.headers:
+        fly_ip = request.headers["Fly-Client-IP"]
         # Only trust Fly-Client-IP if it's a public IP
         # This prevents internal Fly IPs (fdaa:...) from being used as client IP
         if not is_private_ip(fly_ip) and not is_localhost_ip(fly_ip):
             return fly_ip
 
     # Check Cloudflare header
-    if 'CF-Connecting-IP' in request.headers:
-        return request.headers['CF-Connecting-IP']
+    if "CF-Connecting-IP" in request.headers:
+        return request.headers["CF-Connecting-IP"]
 
     # Check X-Real-IP header (common with Nginx, Apache)
-    if 'X-Real-IP' in request.headers:
-        return request.headers['X-Real-IP']
+    if "X-Real-IP" in request.headers:
+        return request.headers["X-Real-IP"]
 
     # Check X-Forwarded-For header (standard proxy header)
-    if 'X-Forwarded-For' in request.headers:
+    if "X-Forwarded-For" in request.headers:
         # Get the list of IPs
-        forwarded_for = request.headers['X-Forwarded-For']
-        ips = [ip.strip() for ip in forwarded_for.split(',')]
-        
+        forwarded_for = request.headers["X-Forwarded-For"]
+        ips = [ip.strip() for ip in forwarded_for.split(",")]
+
         # Iterate through IPs in REVERSE order (right to left)
         # This is critical for security: rightmost IPs are added by trusted proxies.
         # Leftmost IPs can be spoofed by the client.
         for ip in reversed(ips):
             if not is_private_ip(ip) and not is_localhost_ip(ip):
                 return ip
-        
+
         # If all IPs are private/internal, return the first one (leftmost) as fallback
         # The first IP represents the original client within the internal network
         return ips[0]
 
     # Check True-Client-IP (Akamai, Cloudflare)
-    if 'True-Client-IP' in request.headers:
-        return request.headers['True-Client-IP']
+    if "True-Client-IP" in request.headers:
+        return request.headers["True-Client-IP"]
 
     # Check X-Client-IP (custom proxy headers)
-    if 'X-Client-IP' in request.headers:
-        return request.headers['X-Client-IP']
+    if "X-Client-IP" in request.headers:
+        return request.headers["X-Client-IP"]
 
     # Check request.client.host (FastAPI's client host)
-    if hasattr(request, 'client') and request.client and request.client.host:
+    if hasattr(request, "client") and request.client and request.client.host:
         return request.client.host
 
     # Fallback to request.remote_addr if available
-    if hasattr(request, 'remote_addr') and request.remote_addr:
+    if hasattr(request, "remote_addr") and request.remote_addr:
         return request.remote_addr
 
     # If all else fails, return a placeholder
@@ -155,112 +161,120 @@ def get_client_ip(request: Request) -> str:
 def get_client_ip_with_headers(request: Request) -> dict:
     """
     Get the client's IP address along with all relevant headers for debugging.
-    
+
     This function is useful for debugging proxy configurations and understanding
     how the client IP is being forwarded through various layers.
-    
+
     Args:
         request: FastAPI Request object
-        
+
     Returns:
         dict: Dictionary containing client IP and relevant headers
-        
+
     Example:
         ip_info = get_client_ip_with_headers(request)
         print(f"Client IP: {ip_info['client_ip']}")
         print(f"Headers: {ip_info['headers']}")
     """
     client_ip = get_client_ip(request)
-    
+
     # Collect relevant headers for debugging
     relevant_headers = {}
     header_names = [
-        'Fly-Client-IP',
-        'X-Real-IP', 
-        'X-Forwarded-For',
-        'X-Forwarded-Proto',
-        'X-Forwarded-Host',
-        'CF-Connecting-IP',  # Cloudflare
-        'True-Client-IP',    # Akamai
-        'X-Client-IP'        # Custom
+        "Fly-Client-IP",
+        "X-Real-IP",
+        "X-Forwarded-For",
+        "X-Forwarded-Proto",
+        "X-Forwarded-Host",
+        "CF-Connecting-IP",  # Cloudflare
+        "True-Client-IP",  # Akamai
+        "X-Client-IP",  # Custom
     ]
-    
+
     for header_name in header_names:
         if header_name in request.headers:
             relevant_headers[header_name] = request.headers[header_name]
-    
+
     # Add client connection info
     connection_info = {}
-    if hasattr(request, 'client') and request.client:
-        connection_info['client_host'] = getattr(request.client, 'host', None)
-        connection_info['client_port'] = getattr(request.client, 'port', None)
-    
+    if hasattr(request, "client") and request.client:
+        connection_info["client_host"] = getattr(request.client, "host", None)
+        connection_info["client_port"] = getattr(request.client, "port", None)
+
     return {
-        'client_ip': client_ip,
-        'headers': relevant_headers,
-        'connection': connection_info,
-        'method': request.method,
-        'url': str(request.url)
+        "client_ip": client_ip,
+        "headers": relevant_headers,
+        "connection": connection_info,
+        "method": request.method,
+        "url": str(request.url),
     }
 
 
-def get_rounded_buffered_bounds(north: float, south: float, east: float, west: float, buffer_pct: float = 0.05, decimals: int = 4):
+def get_rounded_buffered_bounds(
+    north: float,
+    south: float,
+    east: float,
+    west: float,
+    buffer_pct: float = 0.05,
+    decimals: int = 4,
+):
     """
     Expands a bounding box by a percentage and rounds to specified decimal places
     to improve database query cacheability and prevent edge-flickering on maps.
-    
+
     Returns: (buffered_north, buffered_south, buffered_east, buffered_west)
     """
     lat_diff = north - south
     lat_buffer = lat_diff * buffer_pct
-    
+
     b_north = round(min(90.0, north + lat_buffer), decimals)
     b_south = round(max(-90.0, south - lat_buffer), decimals)
-    
+
     if east >= west:
         lon_diff = east - west
     else:
         # Crosses anti-meridian
         lon_diff = 360.0 - west + east
-        
+
     lon_buffer = lon_diff * buffer_pct
-    
+
     b_east = east + lon_buffer
     b_west = west - lon_buffer
-    
+
     # Normalize longitudes
     if b_east > 180.0:
         b_east -= 360.0
     if b_west < -180.0:
         b_west += 360.0
-        
+
     b_east = round(b_east, decimals)
     b_west = round(b_west, decimals)
-    
+
     return b_north, b_south, b_east, b_west
+
 
 def is_localhost_ip(ip_address: str) -> bool:
     """
     Check if an IP address is a localhost address.
-    
+
     Args:
         ip_address: IP address string to check
-        
+
     Returns:
         bool: True if localhost, False otherwise
-        
+
     Example:
         if is_localhost_ip(client_ip):
             print("Request from localhost")
     """
     localhost_ips = [
-        "127.0.0.1",      # IPv4 localhost
-        "::1",            # IPv6 localhost
-        "localhost",      # Hostname
-        "0.0.0.0",       # IPv4 unspecified
-        "::",             # IPv6 unspecified
+        "127.0.0.1",  # IPv4 localhost
+        "::1",  # IPv6 localhost
+        "localhost",  # Hostname
+        "0.0.0.0",  # IPv4 unspecified
+        "::",  # IPv6 unspecified
     ]
-    
+
     return ip_address in localhost_ips
 
 
@@ -271,28 +285,34 @@ def is_private_ip(ip_address: str) -> bool:
     """
     Check if an IP address is in a private network range.
     Uses the standard ipaddress library for robust detection.
-    
+
     Args:
         ip_address: IP address string to check
-        
+
     Returns:
         bool: True if private IP, False otherwise
-        
+
     Example:
         if is_private_ip(client_ip):
             print("Request from private network")
     """
     if not ip_address or ip_address == "-":
         return False
-    
+
     try:
         # Handle potential port numbers in IPv4 addresses (e.g. 127.0.0.1:8000)
         # IPv6 addresses with ports are typically [::1]:8000, which ip_address handles if brackets present,
         # but pure string manipulation is safer for stripping ports from simple strings
-        clean_ip = ip_address.split(']')[0].lstrip('[') if ']' in ip_address else ip_address.split(':')[0] if '.' in ip_address else ip_address
-        
+        clean_ip = (
+            ip_address.split("]")[0].lstrip("[")
+            if "]" in ip_address
+            else ip_address.split(":")[0]
+            if "." in ip_address
+            else ip_address
+        )
+
         ip = ipaddress.ip_address(clean_ip)
-        
+
         # Check standard private ranges
         # is_private covers:
         # - 10.0.0.0/8
@@ -301,7 +321,7 @@ def is_private_ip(ip_address: str) -> bool:
         # - fc00::/7 (Unique Local Addresses, including Fly.io's fdaa:: range)
         # - fe80::/10 (Link-Local)
         return ip.is_private or ip.is_loopback or ip.is_link_local
-        
+
     except ValueError:
         # Invalid IP address format
         return False
@@ -310,24 +330,24 @@ def is_private_ip(ip_address: str) -> bool:
 def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
     """
     Format IP address for logging, optionally masking private IPs.
-    
+
     Args:
         client_ip: Client IP address
         include_private: Whether to include private IPs in full
-        
+
     Returns:
         str: Formatted IP address for logging
-        
+
     Example:
         log_ip = format_ip_for_logging(client_ip, include_private=False)
         logger.info(f"Request from {log_ip}")
     """
     if not client_ip or client_ip == "-":
         return "unknown"
-    
+
     if is_localhost_ip(client_ip):
         return "localhost"
-    
+
     if is_private_ip(client_ip) and not include_private:
         # Mask private IPs for privacy in logs
         if "." in client_ip:  # IPv4
@@ -335,7 +355,7 @@ def format_ip_for_logging(client_ip: str, include_private: bool = False) -> str:
             return f"{parts[0]}.{parts[1]}.*.*"
         else:  # IPv6
             return "private-ipv6"
-    
+
     return client_ip
 
 
@@ -344,10 +364,10 @@ import difflib
 
 # Unified typo tolerance settings
 UNIFIED_TYPO_TOLERANCE = {
-    'word_similarity': 0.7,      # 70% similarity for individual words
-    'single_word': 0.8,          # 80% similarity for single-word queries
-    'phrase_similarity': 0.7,    # 70% similarity for multi-word phrases
-    'overall_threshold': 0.2,    # Overall similarity threshold for fuzzy results
+    "word_similarity": 0.7,  # 70% similarity for individual words
+    "single_word": 0.8,  # 80% similarity for single-word queries
+    "phrase_similarity": 0.7,  # 70% similarity for multi-word phrases
+    "overall_threshold": 0.2,  # Overall similarity threshold for fuzzy results
 }
 
 
@@ -359,14 +379,14 @@ def calculate_unified_phrase_aware_score(
     region: Optional[str] = None,
     city: Optional[str] = None,
     tags: Optional[List[str]] = None,
-    additional_fields: Optional[dict] = None
+    additional_fields: Optional[dict] = None,
 ) -> float:
     """
     Unified phrase-aware scoring function for all content types.
-    
+
     This function provides consistent scoring logic across dive sites, diving centers,
     dives, and dive trips, ensuring a uniform user experience.
-    
+
     Args:
         query: The search query string
         primary_name: The primary name field (e.g., site name, center name)
@@ -375,7 +395,7 @@ def calculate_unified_phrase_aware_score(
         region: Region field (optional)
         city: City field (optional)
         additional_fields: Dict of additional field names and values (optional)
-    
+
     Returns:
         Float score between 0.0 and 1.0, where higher is more relevant
     """
@@ -385,75 +405,92 @@ def calculate_unified_phrase_aware_score(
     country_lower = (country or "").lower()
     region_lower = (region or "").lower()
     city_lower = (city or "").lower()
-    
+
     # 1. Exact phrase match (highest priority)
     if query_lower in name_lower:
         return 1.0
-    
+
     # 2. Word-by-word matching across all fields (with unified typo tolerance)
     query_words = query_lower.split()
     name_words = name_lower.split()
     city_words = city_lower.split()
     region_words = region_lower.split()
     country_words = country_lower.split()
-    
+
     # Count how many query words appear in any relevant field (with fuzzy matching)
     matching_words = 0
     for query_word in query_words:
         # Check for exact substring match first in any field
-        if (any(query_word in name_word for name_word in name_words) or
-            any(query_word in city_word for city_word in city_words) or
-            any(query_word in region_word for region_word in region_words) or
-            any(query_word in country_word for country_word in country_words)):
+        if (
+            any(query_word in name_word for name_word in name_words)
+            or any(query_word in city_word for city_word in city_words)
+            or any(query_word in region_word for region_word in region_words)
+            or any(query_word in country_word for country_word in country_words)
+        ):
             matching_words += 1
         else:
             # Check for fuzzy similarity using unified threshold across all fields
             found_match = False
             # Check name field
             for name_word in name_words:
-                if difflib.SequenceMatcher(None, query_word, name_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                if (
+                    difflib.SequenceMatcher(None, query_word, name_word).ratio()
+                    >= UNIFIED_TYPO_TOLERANCE["word_similarity"]
+                ):
                     matching_words += 1
                     found_match = True
                     break
-            
+
             # Check city field if no match found in name
             if not found_match:
                 for city_word in city_words:
-                    if difflib.SequenceMatcher(None, query_word, city_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                    if (
+                        difflib.SequenceMatcher(None, query_word, city_word).ratio()
+                        >= UNIFIED_TYPO_TOLERANCE["word_similarity"]
+                    ):
                         matching_words += 1
                         found_match = True
                         break
-            
+
             # Check region field if no match found yet
             if not found_match:
                 for region_word in region_words:
-                    if difflib.SequenceMatcher(None, query_word, region_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                    if (
+                        difflib.SequenceMatcher(None, query_word, region_word).ratio()
+                        >= UNIFIED_TYPO_TOLERANCE["word_similarity"]
+                    ):
                         matching_words += 1
                         found_match = True
                         break
-            
+
             # Check country field if no match found yet
             if not found_match:
                 for country_word in country_words:
-                    if difflib.SequenceMatcher(None, query_word, country_word).ratio() >= UNIFIED_TYPO_TOLERANCE['word_similarity']:
+                    if (
+                        difflib.SequenceMatcher(None, query_word, country_word).ratio()
+                        >= UNIFIED_TYPO_TOLERANCE["word_similarity"]
+                    ):
                         matching_words += 1
                         break
-    
+
     word_match_ratio = matching_words / len(query_words)
-    
+
     # 3. Consecutive word bonus (for "blue hole" in "bluehole reef")
     consecutive_bonus = 0.0
     if len(query_words) > 1:
         # Check if words appear consecutively (even if concatenated)
-        query_phrase = ''.join(query_words)
-        if query_phrase in name_lower.replace(' ', ''):
+        query_phrase = "".join(query_words)
+        if query_phrase in name_lower.replace(" ", ""):
             consecutive_bonus = 0.3
         else:
             # Check for fuzzy similarity of concatenated phrase
-            name_no_spaces = name_lower.replace(' ', '')
-            if difflib.SequenceMatcher(None, query_phrase, name_no_spaces).ratio() >= UNIFIED_TYPO_TOLERANCE['phrase_similarity']:
+            name_no_spaces = name_lower.replace(" ", "")
+            if (
+                difflib.SequenceMatcher(None, query_phrase, name_no_spaces).ratio()
+                >= UNIFIED_TYPO_TOLERANCE["phrase_similarity"]
+            ):
                 consecutive_bonus = 0.2
-    
+
     # 4. Geographic field matching (country, region, and city)
     geographic_bonus = 0.0
     if country_lower and query_lower in country_lower:
@@ -462,7 +499,7 @@ def calculate_unified_phrase_aware_score(
         geographic_bonus += 0.2
     if city_lower and query_lower in city_lower:
         geographic_bonus += 0.2
-    
+
     # 5. Tag matching (high priority for specialized searches)
     tag_bonus = 0.0
     if tags:
@@ -476,162 +513,162 @@ def calculate_unified_phrase_aware_score(
                 if query_word in tag_lower:
                     tag_bonus += 0.2
                     break
-    
+
     # 6. Traditional similarity for edge cases
     similarity_score = difflib.SequenceMatcher(None, query_lower, name_lower).ratio()
-    
+
     # 7. Weighted final score (unified across all content types)
     final_score = (
-        word_match_ratio * 0.5 +      # Word matching (50%)
-        consecutive_bonus +            # Consecutive bonus
-        geographic_bonus +             # Geographic bonus
-        tag_bonus +                    # Tag bonus
-        similarity_score * 0.2 +      # Traditional similarity (20%)
-        (0.1 if query_lower in desc_lower else 0.0)  # Description bonus (10%)
+        word_match_ratio * 0.5  # Word matching (50%)
+        + consecutive_bonus  # Consecutive bonus
+        + geographic_bonus  # Geographic bonus
+        + tag_bonus  # Tag bonus
+        + similarity_score * 0.2  # Traditional similarity (20%)
+        + (0.1 if query_lower in desc_lower else 0.0)  # Description bonus (10%)
     )
-    
+
     # 7. Special case: if it's a single word and has high similarity to any name word, boost the score
     if len(query_words) == 1 and len(name_words) > 0:
         best_word_similarity = max(
             difflib.SequenceMatcher(None, query_words[0], name_word).ratio()
             for name_word in name_words
         )
-        if best_word_similarity >= UNIFIED_TYPO_TOLERANCE['single_word']:
+        if best_word_similarity >= UNIFIED_TYPO_TOLERANCE["single_word"]:
             final_score = max(final_score, best_word_similarity * 0.8)
-    
+
     # 8. Additional fields bonus (for content-specific fields)
     if additional_fields:
         for field_value in additional_fields.values():
             if field_value and query_lower in str(field_value).lower():
                 final_score += 0.05  # Small bonus for additional field matches
-    
+
     return min(final_score, 1.0)
 
 
 def classify_match_type(score: float) -> str:
     """
     Unified match type classification for all content types.
-    
+
     Args:
         score: The calculated similarity score (0.0 to 1.0)
-    
+
     Returns:
         String representing the match type
     """
     if score >= 0.9:
-        return 'exact_phrase'      # Exact phrase match
+        return "exact_phrase"  # Exact phrase match
     elif score >= 0.7:
-        return 'exact_words'       # All words found
+        return "exact_words"  # All words found
     elif score >= 0.5:
-        return 'partial_words'     # Some words found
+        return "partial_words"  # Some words found
     elif score >= 0.3:
-        return 'similar'           # High similarity
+        return "similar"  # High similarity
     else:
-        return 'fuzzy'             # Low similarity
+        return "fuzzy"  # Low similarity
 
 
 def get_unified_fuzzy_trigger_conditions(
     search_query: str,
     exact_result_count: int,
     max_exact_results: int = 5,
-    max_query_length: int = 10
+    max_query_length: int = 10,
 ) -> bool:
     """
     Unified fuzzy search trigger conditions for all content types.
-    
+
     Args:
         search_query: The search query string
         exact_result_count: Number of results from exact search
         max_exact_results: Maximum exact results before triggering fuzzy search
         max_query_length: Maximum query length before triggering fuzzy search
-    
+
     Returns:
         Boolean indicating whether fuzzy search should be triggered
     """
-    return (
-        search_query and (
-            exact_result_count < max_exact_results or
-            len(search_query.strip()) <= max_query_length or
-            ' ' in search_query.strip()  # Multi-word queries
-        )
+    return search_query and (
+        exact_result_count < max_exact_results
+        or len(search_query.strip()) <= max_query_length
+        or " " in search_query.strip()  # Multi-word queries
     )
 
 
 # Notification defaults for users
 # Default notification categories that should be enabled for all users
 DEFAULT_NOTIFICATION_CATEGORIES = [
-    'new_dive_sites',
-    'new_dive_trips',
-    'admin_alerts',
-    'system'
+    "new_dive_sites",
+    "new_dive_trips",
+    "admin_alerts",
+    "system",
 ]
 
 # Opt-in categories (users must manually enable these)
-OPT_IN_CATEGORIES = [
-    'new_dives',
-    'new_diving_centers'
-]
+OPT_IN_CATEGORIES = ["new_dives", "new_diving_centers"]
 
 
 def create_default_notification_preferences(user_id: int, db: Session) -> list:
     """
     Create default notification preferences for a user.
-    
+
     Args:
         user_id: User ID to create preferences for
         db: Database session
-    
+
     Returns:
         List of created NotificationPreference instances
     """
     from app.models import NotificationPreference
-    
+
     created_preferences = []
-    
+
     for category in DEFAULT_NOTIFICATION_CATEGORIES:
         # Check if preference already exists
-        existing = db.query(NotificationPreference).filter(
-            NotificationPreference.user_id == user_id,
-            NotificationPreference.category == category
-        ).first()
-        
+        existing = (
+            db.query(NotificationPreference)
+            .filter(
+                NotificationPreference.user_id == user_id,
+                NotificationPreference.category == category,
+            )
+            .first()
+        )
+
         if existing:
             continue  # Skip if already exists
-        
+
         # Create default preference
         preference = NotificationPreference(
             user_id=user_id,
             category=category,
             enable_website=True,  # Website notifications enabled by default
-            enable_push=True,    # Push notifications enabled by default
+            enable_push=True,  # Push notifications enabled by default
             enable_email=False,  # Email notifications disabled by default
-            frequency='immediate',  # Immediate notifications
-            area_filter=None  # No area filtering (all areas)
+            frequency="immediate",  # Immediate notifications
+            area_filter=None,  # No area filtering (all areas)
         )
-        
+
         db.add(preference)
         created_preferences.append(preference)
-    
+
     if created_preferences:
         db.commit()
         # Refresh all created preferences
         for pref in created_preferences:
             db.refresh(pref)
-    
+
     return created_preferences
 
 
 def utcnow() -> datetime:
     """
     Get current UTC datetime as timezone-aware datetime object.
-    
+
     This is the recommended way to get UTC time in Python 3.9+.
     Replaces deprecated datetime.utcnow() which returns naive datetime.
-    
+
     Returns:
         datetime: Current UTC time as timezone-aware datetime
     """
-    return datetime.now(UTC) 
+    return datetime.now(UTC)
+
 
 def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     """
@@ -643,6 +680,7 @@ def normalize_datetime_to_utc(dt: Optional[datetime]) -> Optional[datetime]:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt.astimezone(UTC)
+
 
 # Cache presigned URLs for 55 minutes (3300s) to safely beat the 1-hour expiration
 @cached(cache=TTLCache(maxsize=1024, ttl=3300))
@@ -661,16 +699,22 @@ def _get_cached_avatar_url(avatar_url: str, avatar_type: str) -> Optional[str]:
 def populate_avatar_full_url(user, response_model_dict: dict) -> dict:
     """Populate avatar_full_url based on avatar_type and avatar_url"""
     if not user.avatar_url:
-        response_model_dict['avatar_full_url'] = None
+        response_model_dict["avatar_full_url"] = None
         return response_model_dict
 
     # Use the cached helper to avoid redundant cryptographic signing
     # avatar_type is cast to string for hashability in lru_cache
-    avatar_type_str = user.avatar_type.value if hasattr(user.avatar_type, 'value') else str(user.avatar_type)
-    response_model_dict['avatar_full_url'] = _get_cached_avatar_url(user.avatar_url, avatar_type_str)
+    avatar_type_str = (
+        user.avatar_type.value
+        if hasattr(user.avatar_type, "value")
+        else str(user.avatar_type)
+    )
+    response_model_dict["avatar_full_url"] = _get_cached_avatar_url(
+        user.avatar_url, avatar_type_str
+    )
 
     # Always include original google avatar if available
-    response_model_dict['google_avatar_url'] = user.google_avatar_url
+    response_model_dict["google_avatar_url"] = user.google_avatar_url
 
     return response_model_dict
 
@@ -681,11 +725,15 @@ def populate_center_media_urls(media_obj, response_dict: dict) -> dict:
     """
     from app.services.r2_storage_service import r2_storage
 
-    response_dict['full_url'] = r2_storage.get_photo_url(media_obj.url)
+    response_dict["full_url"] = r2_storage.get_photo_url(media_obj.url)
     if media_obj.thumbnail_url:
-        response_dict['full_thumbnail_url'] = r2_storage.get_photo_url(media_obj.thumbnail_url)
+        response_dict["full_thumbnail_url"] = r2_storage.get_photo_url(
+            media_obj.thumbnail_url
+        )
     if media_obj.medium_url:
-        response_dict['full_medium_url'] = r2_storage.get_photo_url(media_obj.medium_url)
+        response_dict["full_medium_url"] = r2_storage.get_photo_url(
+            media_obj.medium_url
+        )
 
     return response_dict
 
@@ -694,19 +742,19 @@ def parse_gf_from_text(text: Optional[str]) -> Tuple[Optional[int], Optional[int
     """
     Parse Gradient Factors (GF Low/High) from a text string.
     Looks for patterns like 'GF 30/70', 'GF: 30/70', 'Gradient Factors: 30/70', etc.
-    
+
     Returns:
         A tuple of (gf_low, gf_high) or (None, None) if not found.
     """
     if not text:
         return None, None
-        
+
     # Pattern to match GF Low/High: (GF|Gradient Factor)[s]?[:]? [0-9]+/[0-9]+
     # Supports optional brackets: (GF 30/70)
     # Supports optional spaces: GF 30 / 70
-    pattern = r'(?:GF|Gradient Factor)[s]?[:]?\s*\(?(\d+)\s*/\s*(\d+)\)?'
+    pattern = r"(?:GF|Gradient Factor)[s]?[:]?\s*\(?(\d+)\s*/\s*(\d+)\)?"
     match = re.search(pattern, text, re.IGNORECASE)
-    
+
     if match:
         try:
             gf_low = int(match.group(1))
@@ -714,7 +762,7 @@ def parse_gf_from_text(text: Optional[str]) -> Tuple[Optional[int], Optional[int
             return gf_low, gf_high
         except (ValueError, IndexError):
             pass
-            
+
     return None, None
 
 
@@ -722,12 +770,15 @@ def has_deco_data(profile_data: dict) -> bool:
     """
     Check if the dive profile data contains decompression information.
     """
-    samples = profile_data.get('samples', [])
+    samples = profile_data.get("samples", [])
     if not samples:
         return False
-        
+
     # Check for 'stopdepth' or 'ndl_minutes' in samples
-    return any(s.get('stopdepth') is not None or s.get('ndl_minutes') is not None for s in samples)
+    return any(
+        s.get("stopdepth") is not None or s.get("ndl_minutes") is not None
+        for s in samples
+    )
 
 
 # Alias unit_conversion submodule for app.utils.unit_conversion namespace compatibility
@@ -735,4 +786,4 @@ import sys
 
 import app.unit_conversion as unit_conversion
 
-sys.modules['app.utils.unit_conversion'] = unit_conversion
+sys.modules["app.utils.unit_conversion"] = unit_conversion

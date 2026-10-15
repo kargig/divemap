@@ -14,9 +14,9 @@ from .turnstile_monitor import (
 )
 
 __all__ = [
-    'TurnstileMonitor',
-    'TurnstileEvent',
-    'turnstile_monitor',
-    'record_verification_event',
-    'get_turnstile_stats'
+    "TurnstileMonitor",
+    "TurnstileEvent",
+    "turnstile_monitor",
+    "record_verification_event",
+    "get_turnstile_stats",
 ]

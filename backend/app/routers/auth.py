@@ -69,11 +69,14 @@ router = APIRouter()
 # Initialize Turnstile service
 turnstile_service = TurnstileService()
 
+
 class GoogleLoginRequest(BaseModel):
     token: str
 
+
 class FacebookLoginRequest(BaseModel):
     token: str
+
 
 @router.get("/config", response_model=AuthConfigResponse)
 def get_auth_config(response: Response):
@@ -96,30 +99,36 @@ def get_auth_config(response: Response):
         ),
     )
 
+
 @router.get("/me", response_model=UserResponse)
 async def get_current_user_info(current_user: User = Depends(get_current_active_user)):
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 
-@router.post("/register", response_model=RegistrationResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/register",
+    response_model=RegistrationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 @skip_rate_limit_for_admin("10/minute")  # Allow admins higher rate limit
 async def register(
     request: Request,
     response: Response,
     user_data: UserCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Verify Turnstile if enabled and not bypassing via native app user-agent
     user_agent = request.headers.get("User-Agent", "")
     is_native_app = "DivemapApp" in user_agent
-    
+
     if turnstile_service.is_enabled() and not is_native_app:
         client_ip = get_client_ip(request)
 
         if not user_data.turnstile_token:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CAPTCHA verification required"
+                detail="CAPTCHA verification required",
             )
 
         try:
@@ -132,18 +141,20 @@ async def register(
     if not validate_password_strength(user_data.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+            detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character",
         )
 
     # Check if user already exists
-    existing_user = db.query(User).filter(
-        (User.username == user_data.username) | (User.email == user_data.email)
-    ).first()
+    existing_user = (
+        db.query(User)
+        .filter((User.username == user_data.username) | (User.email == user_data.email))
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already registered"
+            detail="Username or email already registered",
         )
 
     # Create new user (enabled by default, email not verified)
@@ -155,7 +166,7 @@ async def register(
         enabled=True,
         email_verified=False,  # Email verification required
         is_admin=False,
-        is_moderator=False
+        is_moderator=False,
     )
 
     # Store Turnstile verification timestamp if enabled and not native app
@@ -170,22 +181,29 @@ async def register(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already registered"
+            detail="Username or email already registered",
         )
 
     # Create default notification preferences for new user
     try:
         from app.utils import create_default_notification_preferences
+
         create_default_notification_preferences(db_user.id, db)
     except Exception as e:
         # Log error but don't fail registration if preference creation fails
-        logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
+        logger.warning(
+            f"Failed to create default notification preferences for user {db_user.id}: {e}"
+        )
 
     # Generate verification token and send verification email
     try:
-        verification_token_obj = email_verification_service.create_verification_token(db_user.id, db)
+        verification_token_obj = email_verification_service.create_verification_token(
+            db_user.id, db
+        )
         email_service = EmailService()
-        email_service.send_verification_email(db_user.email, verification_token_obj.token)
+        email_service.send_verification_email(
+            db_user.email, verification_token_obj.token
+        )
     except Exception as e:
         # Log error but don't fail registration if email sending fails
         logger.error(f"Failed to send verification email for user {db_user.id}: {e}")
@@ -194,7 +212,9 @@ async def register(
     # See /verify-email endpoint for admin notification after verification
 
     # Check if email verification is required before login
-    email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    email_verification_required = (
+        os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    )
 
     if not email_verification_required:
         # Create token pair if verification not required
@@ -207,14 +227,14 @@ async def register(
             max_age=int(token_service.refresh_token_expire.total_seconds()),
             httponly=True,
             secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict"),
         )
 
         return {
             "access_token": token_data["access_token"],
             "token_type": "bearer",
             "expires_in": token_data["expires_in"],
-            "message": "Registration successful. Please check your email to verify your account."
+            "message": "Registration successful. Please check your email to verify your account.",
         }
     else:
         # Don't create tokens - user must verify email first
@@ -222,8 +242,9 @@ async def register(
             "access_token": None,
             "token_type": "bearer",
             "expires_in": 0,
-            "message": "Registration successful. Please check your email to verify your account before logging in."
+            "message": "Registration successful. Please check your email to verify your account before logging in.",
         }
+
 
 @router.post("/login", response_model=Token)
 @skip_rate_limit_for_admin("30/minute")
@@ -231,7 +252,7 @@ async def login(
     request: Request,
     response: Response,
     login_data: LoginRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Verify Turnstile before authenticating (skip if native app)
     user_agent = request.headers.get("User-Agent", "")
@@ -243,7 +264,7 @@ async def login(
         if not login_data.turnstile_token:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="CAPTCHA verification required"
+                detail="CAPTCHA verification required",
             )
 
         try:
@@ -278,11 +299,13 @@ async def login(
         )
 
     # Check if email verification is required
-    email_verification_required = os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    email_verification_required = (
+        os.getenv("EMAIL_VERIFICATION_REQUIRED", "true").lower() == "true"
+    )
     if email_verification_required and not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Please verify your email address before logging in. Check your email for the verification link."
+            detail="Please verify your email address before logging in. Check your email for the verification link.",
         )
 
     # Create token pair
@@ -292,18 +315,18 @@ async def login(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create authentication tokens"
+            detail="Failed to create authentication tokens",
         )
 
     # Set refresh token as HTTP-only cookie
-    if token_data and 'refresh_token' in token_data:
+    if token_data and "refresh_token" in token_data:
         response.set_cookie(
             "refresh_token",
             token_data["refresh_token"],
             max_age=int(token_service.refresh_token_expire.total_seconds()),
             httponly=True,
             secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict"),
         )
 
     user_dict = UserResponse.model_validate(user).model_dump()
@@ -311,8 +334,9 @@ async def login(
         "access_token": token_data["access_token"],
         "token_type": "bearer",
         "expires_in": token_data["expires_in"],
-        "user": populate_avatar_full_url(user, user_dict)
+        "user": populate_avatar_full_url(user, user_dict),
     }
+
 
 @router.post("/google-login", response_model=Token)
 @skip_rate_limit_for_admin("30/minute")
@@ -320,7 +344,7 @@ async def google_login(
     request: Request,
     response: Response,
     google_data: GoogleLoginRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Google OAuth login endpoint
@@ -351,10 +375,14 @@ async def google_login(
             # The notification service will check if notifications were already sent to prevent duplicates
             try:
                 notification_service = NotificationService()
-                await notification_service.notify_admins_for_user_registration(user.id, db)
+                await notification_service.notify_admins_for_user_registration(
+                    user.id, db
+                )
             except Exception as e:
                 # Log error but don't fail login if notification fails
-                logger.warning(f"Failed to send admin notifications for Google user {user.id}: {e}")
+                logger.warning(
+                    f"Failed to send admin notifications for Google user {user.id}: {e}"
+                )
 
             # Create token pair
             token_data = token_service.create_token_pair(user, request, db)
@@ -365,8 +393,9 @@ async def google_login(
                 token_data["refresh_token"],
                 max_age=int(token_service.refresh_token_expire.total_seconds()),
                 httponly=True,
-                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower()
+                == "true",
+                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict"),
             )
 
             user_dict = UserResponse.model_validate(user).model_dump()
@@ -374,12 +403,12 @@ async def google_login(
                 "access_token": token_data["access_token"],
                 "token_type": "bearer",
                 "expires_in": token_data["expires_in"],
-                "user": populate_avatar_full_url(user, user_dict)
+                "user": populate_avatar_full_url(user, user_dict),
             }
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Google authentication failed"
+                detail="Google authentication failed",
             )
     except HTTPException:
         raise
@@ -392,13 +421,14 @@ async def google_login(
         if "Invalid token format" in str(e) or "Token is required" in str(e):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid token: {str(e)}"
+                detail=f"Invalid token: {str(e)}",
             )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Google authentication failed"
+                detail="Google authentication failed",
             )
+
 
 @router.post("/facebook-login", response_model=Token)
 @skip_rate_limit_for_admin("30/minute")
@@ -406,7 +436,7 @@ async def facebook_login(
     request: Request,
     response: Response,
     facebook_data: FacebookLoginRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Facebook OAuth login endpoint
@@ -421,7 +451,7 @@ async def facebook_login(
     if not is_facebook_auth_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Facebook authentication is not configured on this server"
+            detail="Facebook authentication is not configured on this server",
         )
 
     try:
@@ -431,8 +461,7 @@ async def facebook_login(
         if user:
             if not user.enabled:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Account is disabled"
+                    status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
                 )
 
             # Update last_accessed_at
@@ -445,9 +474,13 @@ async def facebook_login(
             # Notify admins about new user registration
             try:
                 notification_service = NotificationService()
-                await notification_service.notify_admins_for_user_registration(user.id, db)
+                await notification_service.notify_admins_for_user_registration(
+                    user.id, db
+                )
             except Exception as e:
-                logger.warning(f"Failed to send admin notifications for Facebook user {user.id}: {e}")
+                logger.warning(
+                    f"Failed to send admin notifications for Facebook user {user.id}: {e}"
+                )
 
             # Create token pair
             token_data = token_service.create_token_pair(user, request, db)
@@ -458,8 +491,9 @@ async def facebook_login(
                 token_data["refresh_token"],
                 max_age=int(token_service.refresh_token_expire.total_seconds()),
                 httponly=True,
-                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+                secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower()
+                == "true",
+                samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict"),
             )
 
             user_dict = UserResponse.model_validate(user).model_dump()
@@ -467,32 +501,33 @@ async def facebook_login(
                 "access_token": token_data["access_token"],
                 "token_type": "bearer",
                 "expires_in": token_data["expires_in"],
-                "user": populate_avatar_full_url(user, user_dict)
+                "user": populate_avatar_full_url(user, user_dict),
             }
         else:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Facebook authentication failed"
+                detail="Facebook authentication failed",
             )
     except FacebookAuthError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Facebook login error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Facebook authentication failed"
+            detail="Facebook authentication failed",
         )
+
 
 @router.get("/verify-email")
 async def verify_email(
     token: str = Query(..., description="Email verification token from email link"),
-    format: Optional[str] = Query(None, description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)"),
-    db: Session = Depends(get_db)
+    format: Optional[str] = Query(
+        None,
+        description="Response format: 'json' for API calls, 'redirect' for direct browser access (default)",
+    ),
+    db: Session = Depends(get_db),
 ):
     """
     Verify email address using verification token.
@@ -544,7 +579,9 @@ async def verify_email(
             await notification_service.notify_admins_for_user_registration(user.id, db)
         except Exception as e:
             # Log error but don't fail verification if notification fails
-            logger.warning(f"Failed to send admin notifications for verified user {user.id}: {e}")
+            logger.warning(
+                f"Failed to send admin notifications for verified user {user.id}: {e}"
+            )
 
     if format == "json":
         # Return JSON response for API calls
@@ -553,7 +590,7 @@ async def verify_email(
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or expired verification token"
+                detail="Invalid or expired verification token",
             )
     else:
         # Redirect for direct browser access (email links)
@@ -564,12 +601,13 @@ async def verify_email(
             error_url = f"{frontend_url}/verify-email?error=invalid_or_expired"
             return RedirectResponse(url=error_url, status_code=302)
 
+
 @router.post("/resend-verification")
 @limiter.limit("3/day")
 async def resend_verification(
     request: Request,
     email_data: ResendVerificationRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Resend verification email.
@@ -605,10 +643,14 @@ async def resend_verification(
     # Use a single query with aggregation to avoid N+1
     now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
-    recent_tokens_count = db.query(EmailVerificationToken).filter(
-        EmailVerificationToken.user_id == user.id,
-        EmailVerificationToken.created_at >= one_day_ago
-    ).count()
+    recent_tokens_count = (
+        db.query(EmailVerificationToken)
+        .filter(
+            EmailVerificationToken.user_id == user.id,
+            EmailVerificationToken.created_at >= one_day_ago,
+        )
+        .count()
+    )
 
     if recent_tokens_count >= RESEND_VERIFICATION_RATE_LIMIT:
         # Rate limit exceeded - return success anyway (don't reveal limit)
@@ -616,28 +658,37 @@ async def resend_verification(
 
     # Generate new token and send email
     try:
-        verification_token_obj = email_verification_service.resend_verification_email(user.id, db)
+        verification_token_obj = email_verification_service.resend_verification_email(
+            user.id, db
+        )
         if verification_token_obj:
             logger.info(f"Resending verification email to {email} (user_id: {user.id})")
             email_service = EmailService()
-            email_sent = email_service.send_verification_email(user.email, verification_token_obj.token)
+            email_sent = email_service.send_verification_email(
+                user.email, verification_token_obj.token
+            )
             if email_sent:
                 logger.info(f"Verification email sent successfully to {email}")
             else:
-                logger.error(f"Failed to send verification email to {email} - send_verification_email returned False")
+                logger.error(
+                    f"Failed to send verification email to {email} - send_verification_email returned False"
+                )
         else:
-            logger.warning(f"resend_verification_email returned None for user {user.id} (email: {email})")
+            logger.warning(
+                f"resend_verification_email returned None for user {user.id} (email: {email})"
+            )
     except Exception as e:
         # Log error but return success (don't reveal failure)
-        logger.error(f"Failed to resend verification email for {email}: {e}", exc_info=True)
+        logger.error(
+            f"Failed to resend verification email for {email}: {e}", exc_info=True
+        )
 
     return {"message": success_message}
 
+
 @router.post("/refresh", response_model=Token)
 async def refresh_token(
-    request: Request,
-    response: Response,
-    db: Session = Depends(get_db)
+    request: Request, response: Response, db: Session = Depends(get_db)
 ):
     # Get refresh token from cookies
     refresh_token = request.cookies.get("refresh_token")
@@ -645,7 +696,7 @@ async def refresh_token(
     if not refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token not found in cookies"
+            detail="Refresh token not found in cookies",
         )
 
     try:
@@ -654,8 +705,7 @@ async def refresh_token(
 
         if not token_data:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
             )
 
         # Set new refresh token as cookie
@@ -665,7 +715,7 @@ async def refresh_token(
             max_age=int(token_service.refresh_token_expire.total_seconds()),
             httponly=True,
             secure=os.getenv("REFRESH_TOKEN_COOKIE_SECURE", "false").lower() == "true",
-            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict")
+            samesite=os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", "strict"),
         )
 
         # Fetch user to return in response
@@ -677,20 +727,16 @@ async def refresh_token(
             "access_token": token_data["access_token"],
             "token_type": "bearer",
             "expires_in": token_data["expires_in"],
-            "user": populate_avatar_full_url(user, user_dict) if user else None
+            "user": populate_avatar_full_url(user, user_dict) if user else None,
         }
     except Exception:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token refresh failed"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token refresh failed"
         )
 
+
 @router.post("/logout")
-async def logout(
-    request: Request,
-    response: Response,
-    db: Session = Depends(get_db)
-):
+async def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """Logout and revoke refresh token"""
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
@@ -698,23 +744,29 @@ async def logout(
         token_service.revoke_refresh_token(refresh_token, db)
 
     # Clear refresh token cookie
-    response.delete_cookie("refresh_token", httponly=True, secure=False, samesite="strict")
+    response.delete_cookie(
+        "refresh_token", httponly=True, secure=False, samesite="strict"
+    )
 
     return {"message": "Logged out successfully"}
 
+
 @router.get("/tokens")
 async def list_active_tokens(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """List user's active refresh tokens"""
     from app.models import RefreshToken
 
-    tokens = db.query(RefreshToken).filter(
-        RefreshToken.user_id == current_user.id,
-        RefreshToken.is_revoked == False,
-        RefreshToken.expires_at > datetime.utcnow()
-    ).all()
+    tokens = (
+        db.query(RefreshToken)
+        .filter(
+            RefreshToken.user_id == current_user.id,
+            RefreshToken.is_revoked == False,
+            RefreshToken.expires_at > datetime.utcnow(),
+        )
+        .all()
+    )
 
     return [
         {
@@ -723,29 +775,30 @@ async def list_active_tokens(
             "last_used_at": token.last_used_at,
             "expires_at": token.expires_at,
             "device_info": token.device_info,
-            "ip_address": token.ip_address
+            "ip_address": token.ip_address,
         }
         for token in tokens
     ]
+
 
 @router.delete("/tokens/{token_id}")
 async def revoke_token(
     token_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Revoke a specific refresh token"""
     from app.models import RefreshToken
 
-    token = db.query(RefreshToken).filter(
-        RefreshToken.id == token_id,
-        RefreshToken.user_id == current_user.id
-    ).first()
+    token = (
+        db.query(RefreshToken)
+        .filter(RefreshToken.id == token_id, RefreshToken.user_id == current_user.id)
+        .first()
+    )
 
     if not token:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Token not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Token not found"
         )
 
     token.is_revoked = True
@@ -753,14 +806,14 @@ async def revoke_token(
 
     return {"message": "Token revoked successfully"}
 
+
 # Password Reset Endpoints
+
 
 @router.post("/forgot-password")
 @limiter.limit("5/day")
 async def request_password_reset(
-    request: Request,
-    reset_data: PasswordResetRequest,
-    db: Session = Depends(get_db)
+    request: Request, reset_data: PasswordResetRequest, db: Session = Depends(get_db)
 ):
     """
     Request a password reset email.
@@ -774,12 +827,13 @@ async def request_password_reset(
     ip_address = get_client_ip(request)
 
     # Find user by email or username
-    user = db.query(User).filter(
-        or_(
-            User.email == email_or_username,
-            User.username == email_or_username
+    user = (
+        db.query(User)
+        .filter(
+            or_(User.email == email_or_username, User.username == email_or_username)
         )
-    ).first()
+        .first()
+    )
 
     # Generic success message to prevent enumeration
     success_message = "If an account exists with these details, a password reset link has been sent to your email."
@@ -791,9 +845,11 @@ async def request_password_reset(
 
     # Block password reset when email cannot be delivered (synthetic social emails).
     # Users with a real email may reset even if Google/Facebook is linked.
-    if user.email and user.email.endswith('.invalid'):
+    if user.email and user.email.endswith(".invalid"):
         provider = "Facebook" if user.facebook_id else "social"
-        logger.info(f"Password reset blocked for synthetic-email {provider} user {user.id}")
+        logger.info(
+            f"Password reset blocked for synthetic-email {provider} user {user.id}"
+        )
 
         audit_log = AuthAuditLog(
             user_id=user.id,
@@ -801,7 +857,7 @@ async def request_password_reset(
             ip_address=ip_address,
             user_agent=request.headers.get("user-agent"),
             success=False,
-            details=f"Blocked: synthetic {provider} email"
+            details=f"Blocked: synthetic {provider} email",
         )
         db.add(audit_log)
         db.commit()
@@ -820,7 +876,7 @@ async def request_password_reset(
             ip_address=ip_address,
             user_agent=request.headers.get("user-agent"),
             success=False,
-            details="Blocked: admin account"
+            details="Blocked: admin account",
         )
         db.add(audit_log)
         db.commit()
@@ -843,7 +899,7 @@ async def request_password_reset(
         user_id=user.id,
         token_hash=token_hash,
         expires_at=expires_at,
-        ip_address=ip_address
+        ip_address=ip_address,
     )
 
     db.add(db_token)
@@ -854,7 +910,7 @@ async def request_password_reset(
         action="password_reset_request",
         ip_address=ip_address,
         user_agent=request.headers.get("user-agent"),
-        success=True
+        success=True,
     )
     db.add(audit_log)
 
@@ -870,10 +926,11 @@ async def request_password_reset(
 
     return {"message": success_message}
 
+
 @router.get("/verify-reset-token")
 async def verify_reset_token(
     token: str = Query(..., description="Password reset token"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Verify if a password reset token is valid.
@@ -882,25 +939,28 @@ async def verify_reset_token(
 
     token_hash = hashlib.sha256(token.encode()).hexdigest()
 
-    db_token = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at.is_(None),
-        PasswordResetToken.expires_at > datetime.now(UTC)
-    ).first()
+    db_token = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > datetime.now(UTC),
+        )
+        .first()
+    )
 
     if not db_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired password reset token"
+            detail="Invalid or expired password reset token",
         )
 
     return {"valid": True}
 
+
 @router.post("/reset-password")
 async def reset_password(
-    request: Request,
-    reset_data: PasswordResetConfirm,
-    db: Session = Depends(get_db)
+    request: Request, reset_data: PasswordResetConfirm, db: Session = Depends(get_db)
 ):
     """
     Reset password using a valid token.
@@ -909,16 +969,20 @@ async def reset_password(
 
     token_hash = hashlib.sha256(reset_data.token.encode()).hexdigest()
 
-    db_token = db.query(PasswordResetToken).filter(
-        PasswordResetToken.token_hash == token_hash,
-        PasswordResetToken.used_at.is_(None),
-        PasswordResetToken.expires_at > datetime.now(UTC)
-    ).first()
+    db_token = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.token_hash == token_hash,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > datetime.now(UTC),
+        )
+        .first()
+    )
 
     if not db_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired password reset token"
+            detail="Invalid or expired password reset token",
         )
 
     user = db.query(User).filter(User.id == db_token.user_id).first()
@@ -929,7 +993,7 @@ async def reset_password(
     if not validate_password_strength(reset_data.new_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+            detail="Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character",
         )
 
     # Update password
@@ -939,7 +1003,9 @@ async def reset_password(
     db_token.used_at = datetime.now(UTC)
 
     # Revoke all refresh tokens
-    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update({"is_revoked": True})
+    db.query(RefreshToken).filter(RefreshToken.user_id == user.id).update(
+        {"is_revoked": True}
+    )
 
     # Audit log
     audit_log = AuthAuditLog(
@@ -947,7 +1013,7 @@ async def reset_password(
         action="password_reset_success",
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent"),
-        success=True
+        success=True,
     )
     db.add(audit_log)
 
@@ -960,4 +1026,6 @@ async def reset_password(
     except Exception as e:
         logger.error(f"Failed to send password changed email to {user.email}: {e}")
 
-    return {"message": "Password has been reset successfully. Please login with your new password."}
+    return {
+        "message": "Password has been reset successfully. Please login with your new password."
+    }

@@ -52,37 +52,59 @@ router = APIRouter()
 sqs_service = SQSService()
 logger = logging.getLogger(__name__)
 
-def get_room_or_404(db: Session, room_id: str, user_id: int) -> tuple[UserChatRoom, Optional[UserChatRoomMember]]:
+
+def get_room_or_404(
+    db: Session, room_id: str, user_id: int
+) -> tuple[UserChatRoom, Optional[UserChatRoomMember]]:
     """Helper to get a room and ensure the user is an active member or a manager."""
     room = db.query(UserChatRoom).filter(UserChatRoom.id == room_id).first()
     if not room:
         raise HTTPException(status_code=404, detail="Chat room not found")
-        
-    member = db.query(UserChatRoomMember).filter(
-        UserChatRoomMember.room_id == room_id,
-        UserChatRoomMember.user_id == user_id,
-        UserChatRoomMember.left_at.is_(None)
-    ).first()
-    
+
+    member = (
+        db.query(UserChatRoomMember)
+        .filter(
+            UserChatRoomMember.room_id == room_id,
+            UserChatRoomMember.user_id == user_id,
+            UserChatRoomMember.left_at.is_(None),
+        )
+        .first()
+    )
+
     if not member:
         # Check if they manage the associated diving center
         if room.diving_center_id:
-            is_manager = db.query(DivingCenterManager).filter(
-                DivingCenterManager.diving_center_id == room.diving_center_id,
-                DivingCenterManager.user_id == user_id
-            ).first()
-            is_owner = db.query(DivingCenter).filter(
-                DivingCenter.id == room.diving_center_id,
-                DivingCenter.owner_id == user_id
-            ).first()
+            is_manager = (
+                db.query(DivingCenterManager)
+                .filter(
+                    DivingCenterManager.diving_center_id == room.diving_center_id,
+                    DivingCenterManager.user_id == user_id,
+                )
+                .first()
+            )
+            is_owner = (
+                db.query(DivingCenter)
+                .filter(
+                    DivingCenter.id == room.diving_center_id,
+                    DivingCenter.owner_id == user_id,
+                )
+                .first()
+            )
             if not is_manager and not is_owner:
-                raise HTTPException(status_code=403, detail="You do not have access to this room")
+                raise HTTPException(
+                    status_code=403, detail="You do not have access to this room"
+                )
         else:
-            raise HTTPException(status_code=403, detail="You are not an active member of this room")
-        
+            raise HTTPException(
+                status_code=403, detail="You are not an active member of this room"
+            )
+
     return room, member
 
-async def process_bot_mention_task(room_id: str, user_message: str, sender_id: int, db: Session):
+
+async def process_bot_mention_task(
+    room_id: str, user_message: str, sender_id: int, db: Session
+):
     """Background task to generate and inject a chatbot response into a chat room."""
     try:
         room = db.query(UserChatRoom).filter(UserChatRoom.id == room_id).first()
@@ -96,84 +118,108 @@ async def process_bot_mention_task(room_id: str, user_message: str, sender_id: i
             return
 
         chat_service = ChatService(db)
-        
+
         # Strip mentions to get a clean prompt
-        clean_message = user_message.replace("@bot ", "").replace("@divemap ", "").strip()
+        clean_message = (
+            user_message.replace("@bot ", "").replace("@divemap ", "").strip()
+        )
         if not clean_message:
             clean_message = user_message
 
         request = ChatRequest(message=clean_message)
-        
+
         # Process via the existing AI chatbot pipeline
         response = await chat_service.process_message(request, current_user)
-        
+
         # Encrypt the bot's response using the room's DEK
         ciphertext = encrypt_message(response.response, room.encrypted_dek)
-        
+
         # Create the message (sender_id=None indicates the system/bot author)
         bot_message = UserChatMessage(
-            room_id=room_id,
-            sender_id=None,
-            content=ciphertext
+            room_id=room_id, sender_id=None, content=ciphertext
         )
         db.add(bot_message)
-        
+
         # Update room activity so buddies poll the new message
         room.last_activity_at = func.now()
-        
+
         db.commit()
         logger.info(f"Successfully injected bot response into room {room_id}")
-        
+
     except Exception as e:
-        logger.error(f"process_bot_mention_task: Error processing bot mention: {str(e)}")
+        logger.error(
+            f"process_bot_mention_task: Error processing bot mention: {str(e)}"
+        )
         db.rollback()
 
-@router.post("/rooms", response_model=ChatRoomResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/rooms", response_model=ChatRoomResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_chat_room(
     room_in: ChatRoomCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new 1-on-1 DM, Group Chat, or B2C Business room."""
     try:
         # Ensure current user is in participants
         participants = set(room_in.participant_ids)
         participants.add(current_user.id)
-        
+
         is_b2c = room_in.diving_center_id is not None
-        
+
         if not room_in.is_group and not is_b2c and len(participants) != 2:
-            raise HTTPException(status_code=400, detail="A DM must have exactly 2 participants")
-            
+            raise HTTPException(
+                status_code=400, detail="A DM must have exactly 2 participants"
+            )
+
         if is_b2c and not room_in.is_group and len(participants) != 1:
-            raise HTTPException(status_code=400, detail="A B2C DM must only have the customer as a participant")
-            
+            raise HTTPException(
+                status_code=400,
+                detail="A B2C DM must only have the customer as a participant",
+            )
+
         # Check if a 1-on-1 DM already exists between these two users (or for this user and business)
         if not room_in.is_group:
             p_list = list(participants)
-            
+
             if is_b2c:
-                existing_room = db.query(UserChatRoom).join(UserChatRoomMember).filter(
-                    UserChatRoom.is_group == False,
-                    UserChatRoom.diving_center_id == room_in.diving_center_id,
-                    UserChatRoomMember.user_id == current_user.id
-                ).first()
-            else:
-                existing_room = db.query(UserChatRoom).join(UserChatRoomMember).filter(
-                    UserChatRoom.is_group == False,
-                    UserChatRoom.diving_center_id.is_(None),
-                    UserChatRoom.id.in_(
-                        db.query(UserChatRoomMember.room_id)
-                        .filter(UserChatRoomMember.user_id.in_(p_list))
-                        .group_by(UserChatRoomMember.room_id)
-                        .having(func.count(UserChatRoomMember.user_id) == 2)
+                existing_room = (
+                    db.query(UserChatRoom)
+                    .join(UserChatRoomMember)
+                    .filter(
+                        UserChatRoom.is_group == False,
+                        UserChatRoom.diving_center_id == room_in.diving_center_id,
+                        UserChatRoomMember.user_id == current_user.id,
                     )
-                ).first()
-            
+                    .first()
+                )
+            else:
+                existing_room = (
+                    db.query(UserChatRoom)
+                    .join(UserChatRoomMember)
+                    .filter(
+                        UserChatRoom.is_group == False,
+                        UserChatRoom.diving_center_id.is_(None),
+                        UserChatRoom.id.in_(
+                            db.query(UserChatRoomMember.room_id)
+                            .filter(UserChatRoomMember.user_id.in_(p_list))
+                            .group_by(UserChatRoomMember.room_id)
+                            .having(func.count(UserChatRoomMember.user_id) == 2)
+                        ),
+                    )
+                    .first()
+                )
+
             if existing_room:
                 # Re-activate if someone had left
                 for p_id in p_list:
-                    member = db.query(UserChatRoomMember).filter_by(room_id=existing_room.id, user_id=p_id).first()
+                    member = (
+                        db.query(UserChatRoomMember)
+                        .filter_by(room_id=existing_room.id, user_id=p_id)
+                        .first()
+                    )
                     if member and member.left_at:
                         member.left_at = None
                         member.joined_at = func.now()
@@ -184,55 +230,64 @@ async def create_chat_room(
         # Generate and encrypt the unique Room DEK
         plaintext_dek = generate_room_dek()
         encrypted_dek = encrypt_room_dek(plaintext_dek)
-        
+
         # Create the room
         new_room = UserChatRoom(
             is_group=room_in.is_group,
             name=room_in.name if room_in.is_group else None,
             encrypted_dek=encrypted_dek,
             created_by_id=current_user.id,
-            diving_center_id=room_in.diving_center_id
+            diving_center_id=room_in.diving_center_id,
         )
         db.add(new_room)
         db.flush()
-        
+
         # Add participants
         for user_id in participants:
             # Validate user exists
             user = db.query(User).filter(User.id == user_id).first()
             if not user:
-                raise HTTPException(status_code=400, detail=f"User ID {user_id} not found")
-                
+                raise HTTPException(
+                    status_code=400, detail=f"User ID {user_id} not found"
+                )
+
             # Enforce that current_user can only chat with users who have an ACCEPTED UserFriendship
             if user_id != current_user.id and not is_b2c:
                 from app.models import UserFriendship
-                uid1, uid2 = min(current_user.id, user_id), max(current_user.id, user_id)
-                
-                friendship = db.query(UserFriendship).filter(
-                    UserFriendship.user_id == uid1,
-                    UserFriendship.friend_id == uid2,
-                    UserFriendship.status == "ACCEPTED"
-                ).first()
-                
+
+                uid1, uid2 = (
+                    min(current_user.id, user_id),
+                    max(current_user.id, user_id),
+                )
+
+                friendship = (
+                    db.query(UserFriendship)
+                    .filter(
+                        UserFriendship.user_id == uid1,
+                        UserFriendship.friend_id == uid2,
+                        UserFriendship.status == "ACCEPTED",
+                    )
+                    .first()
+                )
+
                 # If running tests, skip this check to keep tests simple or we would need to mock friendships
                 import os
+
                 if not friendship and not os.getenv("GITHUB_ACTIONS"):
                     raise HTTPException(
-                        status_code=403, 
-                        detail="You can only start chats with users who have accepted your buddy request."
+                        status_code=403,
+                        detail="You can only start chats with users who have accepted your buddy request.",
                     )
 
-            role = "ADMIN" if user_id == current_user.id and room_in.is_group else "MEMBER"
-            member = UserChatRoomMember(
-                room_id=new_room.id,
-                user_id=user_id,
-                role=role
+            role = (
+                "ADMIN" if user_id == current_user.id and room_in.is_group else "MEMBER"
             )
+            member = UserChatRoomMember(room_id=new_room.id, user_id=user_id, role=role)
             db.add(member)
-            
+
         db.commit()
         db.refresh(new_room)
-        
+
         # Populate avatars for response
         for m in new_room.members:
             if m.user:
@@ -240,54 +295,70 @@ async def create_chat_room(
                 populate_avatar_full_url(m.user, temp_data)
                 m.user.avatar_full_url = temp_data.get("avatar_full_url")
                 m.user.avatar_type = m.user.avatar_type or "google"
-        
+
         # Inject auto-greeting
         if is_b2c:
             from app.models import DivingCenterChatSettings
-            settings = db.query(DivingCenterChatSettings).filter(
-                DivingCenterChatSettings.diving_center_id == room_in.diving_center_id
-            ).first()
-            
+
+            settings = (
+                db.query(DivingCenterChatSettings)
+                .filter(
+                    DivingCenterChatSettings.diving_center_id
+                    == room_in.diving_center_id
+                )
+                .first()
+            )
+
             if settings and settings.auto_greeting:
-                ciphertext = encrypt_message(settings.auto_greeting, new_room.encrypted_dek)
+                ciphertext = encrypt_message(
+                    settings.auto_greeting, new_room.encrypted_dek
+                )
                 greeting = UserChatMessage(
                     room_id=new_room.id,
-                    sender_id=None, # System message
+                    sender_id=None,  # System message
                     content=ciphertext,
-                    message_type="TEXT"
+                    message_type="TEXT",
                 )
                 db.add(greeting)
                 db.commit()
-                
+
         return new_room
     except Exception as e:
         logger.error(f"Error creating chat room: {e}", exc_info=True)
         raise
 
+
 @router.get("/rooms", response_model=List[ChatRoomResponse])
 async def list_chat_rooms(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """List all active chat rooms for the current user with unread counts and latest message preview."""
     # 1. Get personal memberships where NOT archived
-    active_memberships = db.query(UserChatRoomMember).filter(
-        UserChatRoomMember.user_id == current_user.id,
-        UserChatRoomMember.left_at.is_(None),
-        UserChatRoomMember.is_archived == False
-    ).all()
+    active_memberships = (
+        db.query(UserChatRoomMember)
+        .filter(
+            UserChatRoomMember.user_id == current_user.id,
+            UserChatRoomMember.left_at.is_(None),
+            UserChatRoomMember.is_archived == False,
+        )
+        .all()
+    )
     personal_room_ids = [m.room_id for m in active_memberships]
 
     # 2. Get managed center IDs
-    managed_centers = db.query(DivingCenterManager.diving_center_id).filter(
-        DivingCenterManager.user_id == current_user.id
-    ).all()
+    managed_centers = (
+        db.query(DivingCenterManager.diving_center_id)
+        .filter(DivingCenterManager.user_id == current_user.id)
+        .all()
+    )
     managed_center_ids = [c[0] for c in managed_centers]
-    
+
     # Also add centers they own
-    owned_centers = db.query(DivingCenter.id).filter(DivingCenter.owner_id == current_user.id).all()
+    owned_centers = (
+        db.query(DivingCenter.id).filter(DivingCenter.owner_id == current_user.id).all()
+    )
     managed_center_ids.extend([c[0] for c in owned_centers])
-    
+
     # Deduplicate center IDs
     managed_center_ids = list(set(managed_center_ids))
 
@@ -299,44 +370,55 @@ async def list_chat_rooms(
         b2c_customer_condition = and_(
             UserChatRoom.diving_center_id.is_not(None),
             ~UserChatRoom.diving_center_id.in_(managed_center_ids),
-            UserChatRoom.id.in_(personal_room_ids)
+            UserChatRoom.id.in_(personal_room_ids),
         )
         b2c_manager_condition = and_(
             UserChatRoom.diving_center_id.in_(managed_center_ids),
-            UserChatRoom.is_archived == False
+            UserChatRoom.is_archived == False,
         )
     else:
         b2c_customer_condition = and_(
             UserChatRoom.diving_center_id.is_not(None),
-            UserChatRoom.id.in_(personal_room_ids)
+            UserChatRoom.id.in_(personal_room_ids),
         )
         b2c_manager_condition = False
 
-    rooms = db.query(UserChatRoom).options(
-        selectinload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
-        joinedload(UserChatRoom.diving_center)
-    ).filter(
-        or_(
-            # Condition 1: Personal rooms (not B2C)
-            and_(
-                UserChatRoom.diving_center_id.is_(None),
-                UserChatRoom.id.in_(personal_room_ids)
-            ),
-            # Condition 2: Business rooms where user is a manager (shared inbox)
-            b2c_manager_condition,
-            # Condition 3: Business rooms where user is a customer
-            b2c_customer_condition
+    rooms = (
+        db.query(UserChatRoom)
+        .options(
+            selectinload(UserChatRoom.members).joinedload(UserChatRoomMember.user),
+            joinedload(UserChatRoom.diving_center),
         )
-    ).order_by(desc(UserChatRoom.last_activity_at)).all()
-    
+        .filter(
+            or_(
+                # Condition 1: Personal rooms (not B2C)
+                and_(
+                    UserChatRoom.diving_center_id.is_(None),
+                    UserChatRoom.id.in_(personal_room_ids),
+                ),
+                # Condition 2: Business rooms where user is a manager (shared inbox)
+                b2c_manager_condition,
+                # Condition 3: Business rooms where user is a customer
+                b2c_customer_condition,
+            )
+        )
+        .order_by(desc(UserChatRoom.last_activity_at))
+        .all()
+    )
+
     # 4. Calculate unread counts
     for room in rooms:
         # Fetch quick replies for customers interacting with business
         if room.diving_center_id and room.diving_center_id not in managed_center_ids:
             from app.models import DivingCenterChatSettings
-            settings = db.query(DivingCenterChatSettings).filter(
-                DivingCenterChatSettings.diving_center_id == room.diving_center_id
-            ).first()
+
+            settings = (
+                db.query(DivingCenterChatSettings)
+                .filter(
+                    DivingCenterChatSettings.diving_center_id == room.diving_center_id
+                )
+                .first()
+            )
             if settings and settings.quick_replies:
                 room.quick_replies = settings.quick_replies
 
@@ -351,14 +433,22 @@ async def list_chat_rooms(
         else:
             room.is_manager_view = False
             # Personal room logic
-            member_record = next((m for m in active_memberships if m.room_id == room.id), None)
+            member_record = next(
+                (m for m in active_memberships if m.room_id == room.id), None
+            )
             if member_record:
-                unread_count = db.query(func.count(UserChatMessage.id)).filter(
-                    UserChatMessage.room_id == room.id,
-                    UserChatMessage.created_at > member_record.last_read_at,
-                    UserChatMessage.created_at >= member_record.joined_at, # Don't count messages before they joined
-                    UserChatMessage.sender_id != current_user.id # Don't count own messages
-                ).scalar()
+                unread_count = (
+                    db.query(func.count(UserChatMessage.id))
+                    .filter(
+                        UserChatMessage.room_id == room.id,
+                        UserChatMessage.created_at > member_record.last_read_at,
+                        UserChatMessage.created_at
+                        >= member_record.joined_at,  # Don't count messages before they joined
+                        UserChatMessage.sender_id
+                        != current_user.id,  # Don't count own messages
+                    )
+                    .scalar()
+                )
                 room.unread_count = unread_count
                 # Override room.is_archived with the user-specific member value
                 room.is_archived = member_record.is_archived
@@ -373,59 +463,79 @@ async def list_chat_rooms(
                     populate_avatar_full_url(m.user, temp_data)
                     m.user.avatar_full_url = temp_data.get("avatar_full_url")
                     m.user.avatar_type = m.user.avatar_type or "google"
-                    avatar_memo[m.user.id] = (m.user.avatar_full_url, m.user.avatar_type)
+                    avatar_memo[m.user.id] = (
+                        m.user.avatar_full_url,
+                        m.user.avatar_type,
+                    )
                 else:
                     m.user.avatar_full_url, m.user.avatar_type = avatar_memo[m.user.id]
-            
+
     return rooms
+
 
 @router.get("/unread-count", response_model=dict)
 async def get_total_unread_count(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Get the total number of unread messages across all active chat rooms."""
     # Find all rooms where user is an active member
-    active_memberships = db.query(UserChatRoomMember).filter(
-        UserChatRoomMember.user_id == current_user.id,
-        UserChatRoomMember.left_at.is_(None)
-    ).all()
-    
+    active_memberships = (
+        db.query(UserChatRoomMember)
+        .filter(
+            UserChatRoomMember.user_id == current_user.id,
+            UserChatRoomMember.left_at.is_(None),
+        )
+        .all()
+    )
+
     if not active_memberships:
         return {"unread_count": 0}
-        
+
     total_unread = 0
     for member_record in active_memberships:
-        unread_count = db.query(func.count(UserChatMessage.id)).filter(
-            UserChatMessage.room_id == member_record.room_id,
-            UserChatMessage.created_at > member_record.last_read_at,
-            UserChatMessage.created_at >= member_record.joined_at,
-            UserChatMessage.sender_id != current_user.id
-        ).scalar()
+        unread_count = (
+            db.query(func.count(UserChatMessage.id))
+            .filter(
+                UserChatMessage.room_id == member_record.room_id,
+                UserChatMessage.created_at > member_record.last_read_at,
+                UserChatMessage.created_at >= member_record.joined_at,
+                UserChatMessage.sender_id != current_user.id,
+            )
+            .scalar()
+        )
         total_unread += unread_count
-        
+
     return {"unread_count": total_unread}
+
 
 @router.patch("/rooms/{room_id}/archive", response_model=ChatRoomResponse)
 async def toggle_room_archive(
     room_id: str,
     archive_in: ChatRoomArchiveUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Archive or unarchive a chat room."""
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     if room.diving_center_id:
         # Check if the user is a manager/owner for this center
-        is_manager = db.query(DivingCenterManager).filter(
-            DivingCenterManager.diving_center_id == room.diving_center_id,
-            DivingCenterManager.user_id == current_user.id
-        ).first()
-        is_owner = db.query(DivingCenter).filter(
-            DivingCenter.id == room.diving_center_id,
-            DivingCenter.owner_id == current_user.id
-        ).first()
+        is_manager = (
+            db.query(DivingCenterManager)
+            .filter(
+                DivingCenterManager.diving_center_id == room.diving_center_id,
+                DivingCenterManager.user_id == current_user.id,
+            )
+            .first()
+        )
+        is_owner = (
+            db.query(DivingCenter)
+            .filter(
+                DivingCenter.id == room.diving_center_id,
+                DivingCenter.owner_id == current_user.id,
+            )
+            .first()
+        )
 
         if is_manager or is_owner:
             # B2C Room: Manager archiving globally for the business
@@ -435,16 +545,21 @@ async def toggle_room_archive(
             if member:
                 member.is_archived = archive_in.is_archived
             else:
-                raise HTTPException(status_code=403, detail="You can only archive your own personal chats")
+                raise HTTPException(
+                    status_code=403,
+                    detail="You can only archive your own personal chats",
+                )
     else:
         # Personal Room: Archive for this user only
         if member:
             member.is_archived = archive_in.is_archived
         else:
-            # This handles the case where a manager is viewing a personal room 
+            # This handles the case where a manager is viewing a personal room
             # they are not a member of, which should not happen per current logic
-            raise HTTPException(status_code=403, detail="You can only archive your own personal chats")
-        
+            raise HTTPException(
+                status_code=403, detail="You can only archive your own personal chats"
+            )
+
     db.commit()
     db.refresh(room)
 
@@ -458,63 +573,69 @@ async def toggle_room_archive(
 
     return room
 
-@router.post("/rooms/{room_id}/messages", response_model=ChatMessageResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/rooms/{room_id}/messages",
+    response_model=ChatMessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def send_message(
     room_id: str,
     message_in: ChatMessageCreate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Send a new encrypted message to a room."""
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     # Encrypt the message content
     ciphertext = encrypt_message(message_in.content, room.encrypted_dek)
-    
+
     # Create the message
     new_message = UserChatMessage(
         room_id=room_id,
         sender_id=current_user.id,
         content=ciphertext,
-        message_type=message_in.message_type if hasattr(message_in, 'message_type') else "TEXT"
+        message_type=message_in.message_type
+        if hasattr(message_in, "message_type")
+        else "TEXT",
     )
     db.add(new_message)
-    
+
     # Update room activity
     room.last_activity_at = func.now()
-    
+
     # B2C / Business Inbox logic
     if room.diving_center_id:
         # Unarchive the room for the business globally
         room.is_archived = False
-        
-        if member: # Customer sending
+
+        if member:  # Customer sending
             room.business_status = BusinessChatStatus.UNREAD
             member.last_read_at = func.now()
             # Customer unarchives their own view too
             member.is_archived = False
-        else: # Manager sending
+        else:  # Manager sending
             room.business_status = BusinessChatStatus.READ
             room.last_responded_by_id = current_user.id
             # Auto-unarchive for the customer (recipient)
             db.query(UserChatRoomMember).filter(
                 UserChatRoomMember.room_id == room_id,
-                UserChatRoomMember.user_id != current_user.id
+                UserChatRoomMember.user_id != current_user.id,
             ).update({"is_archived": False}, synchronize_session=False)
     else:
         # Personal Room: Auto-unarchive for all members
         db.query(UserChatRoomMember).filter(
-            UserChatRoomMember.room_id == room_id,
-            UserChatRoomMember.left_at.is_(None)
+            UserChatRoomMember.room_id == room_id, UserChatRoomMember.left_at.is_(None)
         ).update({"is_archived": False}, synchronize_session=False)
-        
+
         if member:
             member.last_read_at = func.now()
-    
+
     db.commit()
     db.refresh(new_message)
-    
+
     # Check for bot mentions to trigger AI response
     content_lower = message_in.content.lower()
     if "@bot" in content_lower or "@divemap" in content_lower:
@@ -523,70 +644,74 @@ async def send_message(
             room_id=room_id,
             user_message=message_in.content,
             sender_id=current_user.id,
-            db=db
+            db=db,
         )
-    
+
     # Queue notification generation in SQS for offline users
     if sqs_service.sqs_available:
         sqs_service.sqs_client.send_message(
             QueueUrl=sqs_service.queue_url,
             MessageBody=f'{{"type": "new_chat_message", "room_id": "{room_id}", "sender_id": {current_user.id}, "message_id": {new_message.id}}}',
-            DelaySeconds=0
+            DelaySeconds=0,
         )
-    
+
     # Decrypt content for the response
     response_msg = ChatMessageResponse.model_validate(new_message)
     response_msg.content = message_in.content
-    
+
     if response_msg.sender and new_message.sender:
         temp_data = {}
         populate_avatar_full_url(new_message.sender, temp_data)
         response_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
         response_msg.sender.avatar_type = new_message.sender.avatar_type or "google"
-        
+
     return response_msg
+
 
 @router.put("/messages/{message_id}", response_model=ChatMessageResponse)
 async def edit_message(
     message_id: int,
     message_in: ChatMessageUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Edit an existing message."""
     message = db.query(UserChatMessage).filter(UserChatMessage.id == message_id).first()
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-        
+
     if message.sender_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You can only edit your own messages")
-        
+        raise HTTPException(
+            status_code=403, detail="You can only edit your own messages"
+        )
+
     room = db.query(UserChatRoom).filter(UserChatRoom.id == message.room_id).first()
-    
+
     # Encrypt the new content
     new_ciphertext = encrypt_message(message_in.content, room.encrypted_dek)
-    
+
     message.content = new_ciphertext
     message.is_edited = True
     # The updated_at column will automatically update via `onupdate=func.now()`
-    
+
     # Update room activity so it syncs to clients
     room.last_activity_at = func.now()
-    
+
     db.commit()
     db.refresh(message)
-    
+
     # Return decrypted
     response_msg = ChatMessageResponse.model_validate(message)
     response_msg.content = message_in.content
-    
+
     if response_msg.sender and message.sender:
         temp_data = {}
         populate_avatar_full_url(message.sender, temp_data)
         response_msg.sender.avatar_full_url = temp_data.get("avatar_full_url")
         response_msg.sender.avatar_type = message.sender.avatar_type or "google"
-        
+
     return response_msg
+
 
 @router.get("/rooms/{room_id}/messages", response_model=RoomMessagesResponse)
 async def get_messages(
@@ -594,65 +719,85 @@ async def get_messages(
     after_updated_at: Optional[datetime] = None,
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get messages for a chat room with cursor-based pagination.
     Returns normalized data: a list of messages and a dictionary of unique users.
     """
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     # 1. Short-circuit: Check if room has activity since the cursor
     if after_updated_at:
-        cmp_activity = room.last_activity_at.replace(tzinfo=None) if room.last_activity_at.tzinfo else room.last_activity_at
-        cmp_after = after_updated_at.replace(tzinfo=None) if after_updated_at.tzinfo else after_updated_at
+        cmp_activity = (
+            room.last_activity_at.replace(tzinfo=None)
+            if room.last_activity_at.tzinfo
+            else room.last_activity_at
+        )
+        cmp_after = (
+            after_updated_at.replace(tzinfo=None)
+            if after_updated_at.tzinfo
+            else after_updated_at
+        )
         if cmp_activity <= cmp_after:
             return Response(status_code=status.HTTP_304_NOT_MODIFIED)
-        
+
     # 2. Fetch messages
-    query = db.query(UserChatMessage).options(
-        joinedload(UserChatMessage.sender)
-    ).filter(
-        UserChatMessage.room_id == room_id
+    query = (
+        db.query(UserChatMessage)
+        .options(joinedload(UserChatMessage.sender))
+        .filter(UserChatMessage.room_id == room_id)
     )
-    
+
     if member:
         query = query.filter(UserChatMessage.created_at >= member.joined_at)
-    
+
     if after_updated_at:
         query = query.filter(UserChatMessage.updated_at > after_updated_at)
-        
+
     messages = query.order_by(UserChatMessage.created_at.asc()).limit(limit).all()
-    
+
     # 3. Decrypt and normalize
     result_messages = []
     users_dict = {}
-    
+
     manager_ids = set()
     if room.diving_center_id:
-        managers = db.query(DivingCenterManager.user_id).filter(DivingCenterManager.diving_center_id == room.diving_center_id).all()
+        managers = (
+            db.query(DivingCenterManager.user_id)
+            .filter(DivingCenterManager.diving_center_id == room.diving_center_id)
+            .all()
+        )
         manager_ids = {m[0] for m in managers}
-        owner = db.query(DivingCenter.owner_id).filter(DivingCenter.id == room.diving_center_id).first()
+        owner = (
+            db.query(DivingCenter.owner_id)
+            .filter(DivingCenter.id == room.diving_center_id)
+            .first()
+        )
         if owner and owner[0]:
             manager_ids.add(owner[0])
-            
+
     for msg in messages:
         # Use Base schema to exclude 'sender' field from message list
         resp_msg = ChatMessageBaseResponse.model_validate(msg)
         resp_msg.content = decrypt_message(msg.content, room.encrypted_dek)
-        
+
         # Populate users dictionary
         if msg.sender_id and msg.sender_id not in users_dict:
             # Identity Masking for Managers
             if room.diving_center_id and msg.sender_id in manager_ids and msg.sender:
-                dc = db.query(DivingCenter).filter(DivingCenter.id == room.diving_center_id).first()
+                dc = (
+                    db.query(DivingCenter)
+                    .filter(DivingCenter.id == room.diving_center_id)
+                    .first()
+                )
                 if dc:
                     # Create masked user info
                     users_dict[msg.sender_id] = UserBasicInfo(
                         id=msg.sender_id,
                         username=dc.name,
                         avatar_url=dc.logo_url,
-                        avatar_full_url=dc.logo_url
+                        avatar_full_url=dc.logo_url,
                     )
             elif msg.sender:
                 # Regular user
@@ -661,59 +806,73 @@ async def get_messages(
                 user_info = UserBasicInfo.model_validate(msg.sender)
                 user_info.avatar_full_url = temp_data.get("avatar_full_url")
                 users_dict[msg.sender_id] = user_info
-                
+
         result_messages.append(resp_msg)
-        
+
     return RoomMessagesResponse(messages=result_messages, users=users_dict)
+
 
 @router.put("/rooms/{room_id}/read", status_code=status.HTTP_200_OK)
 async def mark_room_read(
     room_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Mark all messages in a room as read by updating the last_read_at timestamp."""
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     if room.diving_center_id:
-        is_manager = db.query(DivingCenterManager).filter(
-            DivingCenterManager.diving_center_id == room.diving_center_id,
-            DivingCenterManager.user_id == current_user.id
-        ).first()
-        is_owner = db.query(DivingCenter).filter(
-            DivingCenter.id == room.diving_center_id,
-            DivingCenter.owner_id == current_user.id
-        ).first()
-        
+        is_manager = (
+            db.query(DivingCenterManager)
+            .filter(
+                DivingCenterManager.diving_center_id == room.diving_center_id,
+                DivingCenterManager.user_id == current_user.id,
+            )
+            .first()
+        )
+        is_owner = (
+            db.query(DivingCenter)
+            .filter(
+                DivingCenter.id == room.diving_center_id,
+                DivingCenter.owner_id == current_user.id,
+            )
+            .first()
+        )
+
         if is_manager or is_owner:
             room.business_status = BusinessChatStatus.READ
-        
+
     if member:
         member.last_read_at = func.now()
-        
+
     db.commit()
-    
+
     return {"status": "success"}
+
 
 @router.put("/rooms/{room_id}", response_model=ChatRoomResponse)
 async def update_chat_room(
     room_id: str,
     room_in: ChatRoomUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update chat room details (e.g., name). Only admins can do this for groups."""
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     if not room.is_group:
-        raise HTTPException(status_code=400, detail="Cannot update details of a direct message room")
-        
+        raise HTTPException(
+            status_code=400, detail="Cannot update details of a direct message room"
+        )
+
     if member.role != "ADMIN":
-        raise HTTPException(status_code=403, detail="Only admins can update group details")
-        
+        raise HTTPException(
+            status_code=403, detail="Only admins can update group details"
+        )
+
     if room_in.name:
         room.name = room_in.name
-        
+
     db.commit()
     db.refresh(room)
 
@@ -727,37 +886,48 @@ async def update_chat_room(
 
     return room
 
+
 @router.delete("/rooms/{room_id}/leave", status_code=status.HTTP_200_OK)
 async def leave_chat_room(
     room_id: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Leave a chat room."""
     room, member = get_room_or_404(db, room_id, current_user.id)
-    
+
     if not room.is_group:
-        raise HTTPException(status_code=400, detail="Cannot leave a direct message room. Use buddy removal to block/hide.")
-        
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot leave a direct message room. Use buddy removal to block/hide.",
+        )
+
     member.left_at = func.now()
-    
+
     # Check if there are any members left
-    remaining_members = db.query(UserChatRoomMember).filter(
-        UserChatRoomMember.room_id == room_id,
-        UserChatRoomMember.left_at.is_(None)
-    ).count()
-    
-    # If no members left, we could technically delete the room, 
+    remaining_members = (
+        db.query(UserChatRoomMember)
+        .filter(
+            UserChatRoomMember.room_id == room_id, UserChatRoomMember.left_at.is_(None)
+        )
+        .count()
+    )
+
+    # If no members left, we could technically delete the room,
     # but for now we'll just keep it in the database for history/audit.
-    
+
     # If the leaving member was the last admin, assign admin role to another member
     if member.role == "ADMIN" and remaining_members > 0:
-        next_admin = db.query(UserChatRoomMember).filter(
-            UserChatRoomMember.room_id == room_id,
-            UserChatRoomMember.left_at.is_(None)
-        ).first()
+        next_admin = (
+            db.query(UserChatRoomMember)
+            .filter(
+                UserChatRoomMember.room_id == room_id,
+                UserChatRoomMember.left_at.is_(None),
+            )
+            .first()
+        )
         if next_admin:
             next_admin.role = "ADMIN"
-            
+
     db.commit()
     return {"status": "success", "message": "You have left the group chat"}

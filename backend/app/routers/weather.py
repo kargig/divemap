@@ -24,6 +24,7 @@ router = APIRouter()
 
 class WindDataPoint(BaseModel):
     """Single wind data point"""
+
     lat: float
     lon: float
     wind_speed_10m: Optional[float] = None  # m/s
@@ -43,6 +44,7 @@ class WindDataPoint(BaseModel):
 
 class WindDataResponse(BaseModel):
     """Response containing wind data points and metadata"""
+
     points: List[WindDataPoint]
     data_age_seconds: Optional[int] = None
     grid_resolution: Optional[str] = None
@@ -52,29 +54,51 @@ class WindDataResponse(BaseModel):
 @router.get("/wind", response_model=WindDataResponse)
 async def get_wind_data(
     request: Request,
-    latitude: Optional[float] = Query(None, ge=-90, le=90, description="Latitude for single point query"),
-    longitude: Optional[float] = Query(None, ge=-180, le=180, description="Longitude for single point query"),
-    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for area query"),
-    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for area query"),
-    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for area query"),
-    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for area query"),
-    zoom_level: Optional[int] = Query(None, ge=1, le=20, description="Map zoom level (affects grid density)"),
-    datetime_str: Optional[str] = Query(None, description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead."),
-    jitter_factor: Optional[int] = Query(5, ge=1, le=10, description="Number of jittered variations per grid point (default: 5, max: 10)"),
-    current_user: Optional = Depends(get_current_user_optional)
+    latitude: Optional[float] = Query(
+        None, ge=-90, le=90, description="Latitude for single point query"
+    ),
+    longitude: Optional[float] = Query(
+        None, ge=-180, le=180, description="Longitude for single point query"
+    ),
+    north: Optional[float] = Query(
+        None, ge=-90, le=90, description="North bound for area query"
+    ),
+    south: Optional[float] = Query(
+        None, ge=-90, le=90, description="South bound for area query"
+    ),
+    east: Optional[float] = Query(
+        None, ge=-180, le=180, description="East bound for area query"
+    ),
+    west: Optional[float] = Query(
+        None, ge=-180, le=180, description="West bound for area query"
+    ),
+    zoom_level: Optional[int] = Query(
+        None, ge=1, le=20, description="Map zoom level (affects grid density)"
+    ),
+    datetime_str: Optional[str] = Query(
+        None,
+        description="Target date/time in ISO format (YYYY-MM-DDTHH:MM:SS). Defaults to current time. Max +2 days ahead.",
+    ),
+    jitter_factor: Optional[int] = Query(
+        5,
+        ge=1,
+        le=10,
+        description="Number of jittered variations per grid point (default: 5, max: 10)",
+    ),
+    current_user: Optional = Depends(get_current_user_optional),
 ):
     """
     Fetch wind data from Open-Meteo API.
-    
+
     Supports two modes:
     1. Single point: Provide latitude and longitude
     2. Grid/area: Provide bounds (north, south, east, west) and optional zoom_level
-    
+
     Date/time parameter:
     - If not provided, fetches current weather data
     - If provided, fetches forecast for that date/time (max +2 days ahead)
     - Format: ISO 8601 (e.g., "2025-12-01T14:00:00")
-    
+
     Returns array of wind data points with speed, direction, and gusts.
     """
     try:
@@ -82,85 +106,89 @@ async def get_wind_data(
         target_datetime = None
         if datetime_str:
             try:
-                target_datetime = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+                target_datetime = datetime.fromisoformat(
+                    datetime_str.replace("Z", "+00:00")
+                )
                 # Validate date range: only allow up to +2 days ahead
                 # Round max_future to next hour to allow selecting any hour within 2-day window
                 now = datetime.now()
-                max_future = (now + timedelta(days=2)).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+                max_future = (now + timedelta(days=2)).replace(
+                    minute=0, second=0, microsecond=0
+                ) + timedelta(hours=1)
                 if target_datetime > max_future:
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}"
+                        detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}",
                     )
                 # Don't allow past dates (only current and future up to +2 days)
                 if target_datetime < datetime.now() - timedelta(hours=1):
                     raise HTTPException(
                         status_code=400,
-                        detail="Date/time cannot be more than 1 hour in the past"
+                        detail="Date/time cannot be more than 1 hour in the past",
                     )
             except ValueError as e:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}"
+                    detail=f"Invalid datetime format. Use ISO 8601 format (e.g., '2025-12-01T14:00:00'): {str(e)}",
                 )
-        
+
         # Validate input: must have either (lat, lon) or bounds
         if latitude is not None and longitude is not None:
             # Single point query
-            wind_data = fetch_wind_data_single_point(latitude, longitude, target_datetime)
+            wind_data = fetch_wind_data_single_point(
+                latitude, longitude, target_datetime
+            )
             if not wind_data:
                 raise HTTPException(
                     status_code=503,
-                    detail="Failed to fetch wind data from weather service"
+                    detail="Failed to fetch wind data from weather service",
                 )
-            
-            points = [WindDataPoint(
-                lat=latitude,
-                lon=longitude,
-                wind_speed_10m=wind_data.get("wind_speed_10m"),
-                wind_direction_10m=wind_data.get("wind_direction_10m"),
-                wind_gusts_10m=wind_data.get("wind_gusts_10m"),
-                timestamp=wind_data.get("timestamp").isoformat() if wind_data.get("timestamp") else None,
-                # Marine Data
-                wave_height=wind_data.get("wave_height"),
-                wave_direction=wind_data.get("wave_direction"),
-                wave_period=wind_data.get("wave_period"),
-                swell_wave_height=wind_data.get("swell_wave_height"),
-                swell_wave_direction=wind_data.get("swell_wave_direction"),
-                swell_wave_period=wind_data.get("swell_wave_period"),
-                sea_surface_temperature=wind_data.get("sea_surface_temperature"),
-                sea_level_height_msl=wind_data.get("sea_level_height_msl")
-            )]
-            
+
+            points = [
+                WindDataPoint(
+                    lat=latitude,
+                    lon=longitude,
+                    wind_speed_10m=wind_data.get("wind_speed_10m"),
+                    wind_direction_10m=wind_data.get("wind_direction_10m"),
+                    wind_gusts_10m=wind_data.get("wind_gusts_10m"),
+                    timestamp=wind_data.get("timestamp").isoformat()
+                    if wind_data.get("timestamp")
+                    else None,
+                    # Marine Data
+                    wave_height=wind_data.get("wave_height"),
+                    wave_direction=wind_data.get("wave_direction"),
+                    wave_period=wind_data.get("wave_period"),
+                    swell_wave_height=wind_data.get("swell_wave_height"),
+                    swell_wave_direction=wind_data.get("swell_wave_direction"),
+                    swell_wave_period=wind_data.get("swell_wave_period"),
+                    sea_surface_temperature=wind_data.get("sea_surface_temperature"),
+                    sea_level_height_msl=wind_data.get("sea_level_height_msl"),
+                )
+            ]
+
             return WindDataResponse(
-                points=points,
-                point_count=1,
-                grid_resolution="single_point"
+                points=points, point_count=1, grid_resolution="single_point"
             )
-            
+
         elif all(x is not None for x in [north, south, east, west]):
             # Grid/area query
-            bounds = {
-                "north": north,
-                "south": south,
-                "east": east,
-                "west": west
-            }
-            
+            bounds = {"north": north, "south": south, "east": east, "west": west}
+
             # Validate bounds
             if north <= south:
                 raise HTTPException(
                     status_code=400,
-                    detail="North bound must be greater than south bound"
+                    detail="North bound must be greater than south bound",
                 )
             if east <= west:
                 raise HTTPException(
-                    status_code=400,
-                    detail="East bound must be greater than west bound"
+                    status_code=400, detail="East bound must be greater than west bound"
                 )
-            
-            wind_data_points = fetch_wind_data_grid(bounds, zoom_level, target_datetime, jitter_factor)
-            
+
+            wind_data_points = fetch_wind_data_grid(
+                bounds, zoom_level, target_datetime, jitter_factor
+            )
+
             points = [
                 WindDataPoint(
                     lat=point["lat"],
@@ -168,7 +196,9 @@ async def get_wind_data(
                     wind_speed_10m=point.get("wind_speed_10m"),
                     wind_direction_10m=point.get("wind_direction_10m"),
                     wind_gusts_10m=point.get("wind_gusts_10m"),
-                    timestamp=point.get("timestamp").isoformat() if point.get("timestamp") else None,
+                    timestamp=point.get("timestamp").isoformat()
+                    if point.get("timestamp")
+                    else None,
                     # Marine Data
                     wave_height=point.get("wave_height"),
                     wave_direction=point.get("wave_direction"),
@@ -177,28 +207,28 @@ async def get_wind_data(
                     swell_wave_direction=point.get("swell_wave_direction"),
                     swell_wave_period=point.get("swell_wave_period"),
                     sea_surface_temperature=point.get("sea_surface_temperature"),
-                    sea_level_height_msl=point.get("sea_level_height_msl")
+                    sea_level_height_msl=point.get("sea_level_height_msl"),
                 )
                 for point in wind_data_points
             ]
-            
+
             return WindDataResponse(
                 points=points,
                 point_count=len(points),
-                grid_resolution=f"adaptive_zoom_{zoom_level}" if zoom_level else "default"
+                grid_resolution=f"adaptive_zoom_{zoom_level}"
+                if zoom_level
+                else "default",
             )
         else:
             raise HTTPException(
                 status_code=400,
-                detail="Must provide either (latitude, longitude) or bounds (north, south, east, west)"
+                detail="Must provide either (latitude, longitude) or bounds (north, south, east, west)",
             )
-            
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error fetching wind data: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500,
-            detail="Internal server error while fetching wind data"
+            status_code=500, detail="Internal server error while fetching wind data"
         )
-

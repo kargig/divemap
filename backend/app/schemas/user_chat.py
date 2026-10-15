@@ -11,44 +11,54 @@ class UserBasicInfo(BaseModel):
     avatar_url: Optional[str] = None
     avatar_type: Optional[str] = "google"
     avatar_full_url: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
+
 
 class DivingCenterBasic(BaseModel):
     id: int
     name: str
     logo_url: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
+
 
 # --- Members ---
 class ChatRoomMemberBase(BaseModel):
     user_id: int
     role: str = "MEMBER"
 
+
 class ChatRoomMemberResponse(ChatRoomMemberBase):
     joined_at: datetime
     left_at: Optional[datetime] = None
     last_read_at: datetime
     user: Optional[UserBasicInfo] = None
-    
+
     class Config:
         from_attributes = True
+
 
 # --- Rooms ---
 class ChatRoomCreate(BaseModel):
     is_group: bool = False
     name: Optional[constr(max_length=100)] = None
-    participant_ids: List[int] = Field(default_factory=list, description="IDs of users to add. Current user is added automatically.")
+    participant_ids: List[int] = Field(
+        default_factory=list,
+        description="IDs of users to add. Current user is added automatically.",
+    )
     diving_center_id: Optional[int] = None
+
 
 class ChatRoomUpdate(BaseModel):
     name: Optional[constr(max_length=100)] = None
 
+
 class ChatRoomArchiveUpdate(BaseModel):
     is_archived: bool
+
 
 class ChatRoomResponse(BaseModel):
     id: str
@@ -64,22 +74,25 @@ class ChatRoomResponse(BaseModel):
     quick_replies: Optional[List[str]] = None
     last_activity_at: datetime
     created_at: datetime
-    
+
     # Metadata added by the endpoint
     members: List[ChatRoomMemberResponse] = []
     unread_count: int = 0
     latest_message: Optional[str] = None
-    
+
     class Config:
         from_attributes = True
+
 
 # --- Messages ---
 class ChatMessageCreate(BaseModel):
     content: constr(min_length=1, max_length=5000)
     message_type: str = "TEXT"
 
+
 class ChatMessageUpdate(BaseModel):
     content: constr(min_length=1, max_length=5000)
+
 
 class ChatMessageBaseResponse(BaseModel):
     id: int
@@ -90,12 +103,14 @@ class ChatMessageBaseResponse(BaseModel):
     is_edited: bool
     updated_at: datetime
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
+
 class ChatMessageResponse(ChatMessageBaseResponse):
     sender: Optional[UserBasicInfo] = None
+
 
 class RoomMessagesResponse(BaseModel):
     messages: List[ChatMessageBaseResponse]

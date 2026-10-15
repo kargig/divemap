@@ -47,17 +47,21 @@ def check_nitrox_eligibility(
             return True
 
         # Check CertificationLevel table
-        level = db_session.query(CertificationLevel).filter(
-            CertificationLevel.name.ilike(cert_level)
-        ).first()
+        level = (
+            db_session.query(CertificationLevel)
+            .filter(CertificationLevel.name.ilike(cert_level))
+            .first()
+        )
         if level and level.gases and "nitrox" in level.gases.lower():
             return True
 
     # If user is logged in, check all their saved user_certifications
     if user_id:
-        user_certs = db_session.query(UserCertification).filter(
-            UserCertification.user_id == user_id
-        ).all()
+        user_certs = (
+            db_session.query(UserCertification)
+            .filter(UserCertification.user_id == user_id)
+            .all()
+        )
         for uc in user_certs:
             if (
                 uc.certification_level_link

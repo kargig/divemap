@@ -47,10 +47,8 @@ DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
 # Configure root logger
 logging.basicConfig(
     level=numeric_level,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler()
-    ]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 
 # Set specific logger levels
@@ -71,11 +69,11 @@ print(f"🔧 Suspicious proxy chain length threshold: {suspicious_proxy_chain_le
 import sys
 
 is_testing = (
-    "pytest" in sys.modules or
-    "pytest" in sys.argv[0] or
-    any("pytest" in arg for arg in sys.argv) or
-    os.getenv("PYTEST_CURRENT_TEST") or
-    os.getenv("TESTING") == "true"
+    "pytest" in sys.modules
+    or "pytest" in sys.argv[0]
+    or any("pytest" in arg for arg in sys.argv)
+    or os.getenv("PYTEST_CURRENT_TEST")
+    or os.getenv("TESTING") == "true"
 )
 
 # Only create tables if not testing and if tables don't exist (optimization)
@@ -84,7 +82,11 @@ if not is_testing:
         # Check if tables already exist to avoid unnecessary creation
         with engine.connect() as conn:
             # Quick check if any tables exist
-            result = conn.execute(func.count().select().select_from(Base.metadata.tables.get('dives', None)))
+            result = conn.execute(
+                func.count()
+                .select()
+                .select_from(Base.metadata.tables.get("dives", None))
+            )
             tables_exist = True
     except Exception:
         tables_exist = False
@@ -96,6 +98,7 @@ if not is_testing:
     else:
         print("✅ Database tables already exist, skipping creation")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -105,8 +108,9 @@ async def lifespan(app: FastAPI):
     # Startup logic
     from fastapi_cache import FastAPICache
     from fastapi_cache.backends.inmemory import InMemoryBackend
+
     FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
-    
+
     startup_end_time = time.time()
     total_startup_time = startup_end_time - startup_start_time
 
@@ -118,26 +122,30 @@ async def lifespan(app: FastAPI):
 
     # Warm database connections for better performance
     from app.database import warm_database_connections
+
     warm_database_connections()
 
     # Fire-and-forget Google/Bing crawler CIDR allowlist (rate-limit skip).
     # Does not block startup; fails open until loaded.
     from app.search_bot_verification import start_search_bot_ip_range_refresh
+
     start_search_bot_ip_range_refresh()
 
     yield
     # Shutdown logic (if any) can be added here
+
 
 app = FastAPI(
     title="Divemap API",
     description="Scuba diving site and center review platform",
     version="1.0.0",
     lifespan=lifespan,
-    default_response_class=ORJSONResponse
+    default_response_class=ORJSONResponse,
 )
 
 # Add rate limiter to app state
 app.state.limiter = limiter
+
 
 # Custom rate limit exception handler with reset time information
 async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
@@ -147,7 +155,7 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     For "3/day" limit, reset time is 24 hours from now.
     """
     # Try to extract limit information from the exception
-    limit_detail = str(exc.detail) if hasattr(exc, 'detail') else "rate limit exceeded"
+    limit_detail = str(exc.detail) if hasattr(exc, "detail") else "rate limit exceeded"
 
     # Calculate reset time (default to 1 minute for most limits, 24 hours for daily limits)
     # This is a best-effort calculation - slowapi doesn't expose the exact reset time
@@ -164,6 +172,7 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
     # Special handling for resend verification endpoint
     if "/resend-verification" in str(request.url.path):
         from app.routers.auth import RESEND_VERIFICATION_RATE_LIMIT
+
         response = JSONResponse(
             status_code=429,
             content={
@@ -172,14 +181,14 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
                 "limit": f"{RESEND_VERIFICATION_RATE_LIMIT} requests per day",
                 "reset_at": reset_timestamp,
                 "reset_at_iso": reset_time.isoformat(),
-                "message": f"You have reached the maximum number of verification email requests ({RESEND_VERIFICATION_RATE_LIMIT} per day). Please try again after {reset_time.strftime('%Y-%m-%d %H:%M:%S UTC')}."
+                "message": f"You have reached the maximum number of verification email requests ({RESEND_VERIFICATION_RATE_LIMIT} per day). Please try again after {reset_time.strftime('%Y-%m-%d %H:%M:%S UTC')}.",
             },
             headers={
                 "X-RateLimit-Limit": str(RESEND_VERIFICATION_RATE_LIMIT),
                 "X-RateLimit-Remaining": "0",
                 "X-RateLimit-Reset": str(reset_timestamp),
-                "Retry-After": str(retry_after_seconds)
-            }
+                "Retry-After": str(retry_after_seconds),
+            },
         )
     else:
         # General rate limit response
@@ -188,14 +197,15 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
             content={
                 "detail": "Rate limit exceeded. Please try again later.",
                 "error": "rate_limit_exceeded",
-                "message": limit_detail
+                "message": limit_detail,
             },
             headers={
                 "X-RateLimit-Reset": str(reset_timestamp),
-                "Retry-After": str(retry_after_seconds)
-            }
+                "Retry-After": str(retry_after_seconds),
+            },
         )
     return response
+
 
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)
 
@@ -205,14 +215,17 @@ allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 if allowed_origins_env:
     # Robust parsing: remove brackets, all quotes, and whitespace
     import re
-    clean_env = re.sub(r'[\[\]"\'\s]', '', allowed_origins_env)
-    allow_origins = [origin.strip() for origin in clean_env.split(",") if origin.strip()]
+
+    clean_env = re.sub(r'[\[\]"\'\s]', "", allowed_origins_env)
+    allow_origins = [
+        origin.strip() for origin in clean_env.split(",") if origin.strip()
+    ]
 else:
     # Default origins for development
     allow_origins = [
         "http://localhost",
         "http://localhost:3000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
     ]
 
 # Log the allowed origins for debugging
@@ -231,10 +244,11 @@ app.add_middleware(
         "X-Page-Size",
         "X-Has-Next-Page",
         "X-Has-Prev-Page",
-        "X-Match-Types"
+        "X-Match-Types",
     ],
     max_age=3600,
 )
+
 
 # Fix request URL scheme based on X-Forwarded-Proto header
 # This ensures FastAPI generates correct HTTPS URLs for redirects
@@ -254,6 +268,7 @@ async def fix_request_scheme(request: Request, call_next):
     response = await call_next(request)
     return response
 
+
 # Security middleware
 @app.middleware("http")
 async def add_security_headers(request, call_next):
@@ -266,7 +281,9 @@ async def add_security_headers(request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
     # Agent Discoverability Headers
-    response.headers["Link"] = '</openapi.json>; rel="api-catalog", </docs>; rel="service-doc", </llms.txt>; rel="service-desc"'
+    response.headers["Link"] = (
+        '</openapi.json>; rel="api-catalog", </docs>; rel="service-doc", </llms.txt>; rel="service-desc"'
+    )
 
     # Check if this is a documentation endpoint
     if request.url.path in DOCS_PATHS:
@@ -296,9 +313,12 @@ async def add_security_headers(request, call_next):
         )
 
     response.headers["Content-Security-Policy"] = csp_policy
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
 
     return response
+
 
 # Enhanced security logging middleware
 @app.middleware("http")
@@ -314,16 +334,18 @@ async def enhanced_security_logging(request, call_next):
     suspicious_details = []
 
     # Check X-Forwarded-For for unusual patterns (not just multiple IPs)
-    if 'X-Forwarded-For' in request.headers:
-        forwarded_for = request.headers['X-Forwarded-For']
-        ips = [ip.strip() for ip in forwarded_for.split(',')]
+    if "X-Forwarded-For" in request.headers:
+        forwarded_for = request.headers["X-Forwarded-For"]
+        ips = [ip.strip() for ip in forwarded_for.split(",")]
         suspicious_details.append(f"Suspicious IPs: {(ips)}")
 
         # Only log if there are more than the configured threshold (unusual proxy chain)
         # or if the first IP looks suspicious
         if len(ips) > suspicious_proxy_chain_length:
             suspicious_activity = True
-            suspicious_details.append(f"Unusual proxy chain length: {len(ips)} IPs (threshold: {suspicious_proxy_chain_length})")
+            suspicious_details.append(
+                f"Unusual proxy chain length: {len(ips)} IPs (threshold: {suspicious_proxy_chain_length})"
+            )
 
         # Check if first IP is private but others are public (potential spoofing)
         if len(ips) >= 2:
@@ -334,12 +356,12 @@ async def enhanced_security_logging(request, call_next):
                 suspicious_details.append("Private IP followed by public IP in chain")
 
     # Check for other suspicious patterns
-    suspicious_headers = ['X-Real-IP', 'X-Forwarded-Host', 'X-Forwarded-Proto']
+    suspicious_headers = ["X-Real-IP", "X-Forwarded-Host", "X-Forwarded-Proto"]
     for header in suspicious_headers:
         if header in request.headers:
             header_value = request.headers[header]
             # Only log if header contains multiple values (unusual)
-            if ',' in str(header_value):
+            if "," in str(header_value):
                 suspicious_activity = True
                 suspicious_details.append(f"Multiple values in {header}")
 
@@ -354,9 +376,12 @@ async def enhanced_security_logging(request, call_next):
 
     # Only log failed requests or truly suspicious activity
     if response.status_code >= 400 or suspicious_activity:
-        print(f"[SECURITY] {request.method} {request.url.path} - Status: {response.status_code} - Client IP: {formatted_ip}")
+        print(
+            f"[SECURITY] {request.method} {request.url.path} - Status: {response.status_code} - Client IP: {formatted_ip}"
+        )
 
     return response
+
 
 # Mount static files for uploads with security restrictions
 os.makedirs("uploads", exist_ok=True)
@@ -370,32 +395,41 @@ app.mount("/llm_content", StaticFiles(directory="llm_content"), name="llm_conten
 os.makedirs("static/library/avatars", exist_ok=True)
 app.mount("/library", StaticFiles(directory="static/library"), name="library")
 
+
 # Lazy router loading for faster startup
 def load_admin_dive_sites_router():
     """Load admin dive sites router lazily when first accessed"""
-    if not hasattr(app, '_admin_dive_sites_router_loaded'):
+    if not hasattr(app, "_admin_dive_sites_router_loaded"):
         print("🔧 Loading admin-dive-sites router lazily...")
         router_start = time.time()
 
         from app.routers.admin import dive_sites as admin_dive_sites
-        app.include_router(admin_dive_sites.router, prefix="/api/v1/admin", tags=["Admin Dive Sites"])
+
+        app.include_router(
+            admin_dive_sites.router, prefix="/api/v1/admin", tags=["Admin Dive Sites"]
+        )
 
         app._admin_dive_sites_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Admin-dive-sites router loaded lazily in {router_time:.2f}s")
 
+
 def load_agent_router():
     """Load agent router lazily when first accessed"""
-    if not hasattr(app, '_agent_router_loaded'):
+    if not hasattr(app, "_agent_router_loaded"):
         print("🔧 Loading agent router lazily...")
         router_start = time.time()
 
         from app.routers import agent
-        app.include_router(agent.router, prefix="/api/v1/agent", tags=["Agent Content Negotiation"])
+
+        app.include_router(
+            agent.router, prefix="/api/v1/agent", tags=["Agent Content Negotiation"]
+        )
 
         app._agent_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Agent router loaded lazily in {router_time:.2f}s")
+
 
 def load_routers():
     """Load routers lazily to improve startup time"""
@@ -409,31 +443,39 @@ def load_routers():
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
     app.include_router(settings.router, prefix="/api/v1/settings", tags=["Settings"])
-    app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
+    app.include_router(
+        notifications.router, prefix="/api/v1/notifications", tags=["Notifications"]
+    )
     app.include_router(lists.router, prefix="/api/v1/lists", tags=["Dive Site Lists"])
 
     # Import unsubscribe router
     from app.routers import unsubscribe
+
     app.include_router(unsubscribe.router, prefix="/api/v1", tags=["Unsubscribe"])
 
     # Import and register SEO Dynamic pre-rendering router
     from app.routers import seo
+
     app.include_router(seo.router, prefix="/api/v1/seo", tags=["SEO"])
 
     # Import diver gear profile and bookings router
     from app.routers import diver_gear_profile
+
     app.include_router(diver_gear_profile.router)
 
     # Import OCTO 1.0 supplier router
     from app.routers import octo
+
     app.include_router(octo.router)
 
     # Import Diver bookings and checkout router
     from app.routers import bookings
+
     app.include_router(bookings.router)
 
     # Import Center booking operations router
     from app.routers import center_booking_ops
+
     app.include_router(center_booking_ops.router)
 
     # Moved to lazy loading:
@@ -451,118 +493,154 @@ def load_routers():
     router_time = time.time() - router_start
     print(f"✅ Essential routers loaded in {router_time:.2f}s")
 
+
 def load_dive_sites_router():
     """Load dive-sites router lazily when first accessed"""
-    if not hasattr(app, '_dive_sites_router_loaded'):
+    if not hasattr(app, "_dive_sites_router_loaded"):
         print("🔧 Loading dive-sites router lazily...")
         router_start = time.time()
 
         from app.routers import dive_sites
-        app.include_router(dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"])
+
+        app.include_router(
+            dive_sites.router, prefix="/api/v1/dive-sites", tags=["Dive Sites"]
+        )
 
         app._dive_sites_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Dive-sites router loaded lazily in {router_time:.2f}s")
 
+
 def load_newsletters_router():
     """Load newsletters router lazily when first accessed"""
-    if not hasattr(app, '_newsletters_router_loaded'):
+    if not hasattr(app, "_newsletters_router_loaded"):
         print("🔧 Loading newsletters router lazily...")
         router_start = time.time()
 
         from app.routers import newsletters
-        app.include_router(newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"])
+
+        app.include_router(
+            newsletters.router, prefix="/api/v1/newsletters", tags=["Newsletters"]
+        )
 
         app._newsletters_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Newsletters router loaded lazily in {router_time:.2f}s")
 
+
 def load_system_router():
     """Load system router lazily when first accessed"""
-    if not hasattr(app, '_system_router_loaded'):
+    if not hasattr(app, "_system_router_loaded"):
         print("🔧 Loading system router lazily...")
         router_start = time.time()
 
         from app.routers import system
-        app.include_router(system.router, prefix="/api/v1/admin/system", tags=["System"])
+
+        app.include_router(
+            system.router, prefix="/api/v1/admin/system", tags=["System"]
+        )
 
         app._system_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ System router loaded lazily in {router_time:.2f}s")
 
+
 def load_privacy_router():
     """Load privacy router lazily when first accessed"""
-    if not hasattr(app, '_privacy_router_loaded'):
+    if not hasattr(app, "_privacy_router_loaded"):
         print("🔧 Loading privacy router lazily...")
         router_start = time.time()
 
         from app.routers import privacy
+
         app.include_router(privacy.router, prefix="/api/v1/privacy", tags=["Privacy"])
 
         app._privacy_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Privacy router loaded lazily in {router_time:.2f}s")
 
+
 def load_diving_organizations_router():
     """Load diving organizations router lazily when first accessed"""
-    if not hasattr(app, '_diving_organizations_router_loaded'):
+    if not hasattr(app, "_diving_organizations_router_loaded"):
         print("🔧 Loading diving organizations router lazily...")
         router_start = time.time()
 
         from app.routers import diving_organizations
-        app.include_router(diving_organizations.router, prefix="/api/v1/diving-organizations", tags=["Diving Organizations"])
+
+        app.include_router(
+            diving_organizations.router,
+            prefix="/api/v1/diving-organizations",
+            tags=["Diving Organizations"],
+        )
 
         app._diving_organizations_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Diving organizations router loaded lazily in {router_time:.2f}s")
 
+
 def load_user_certifications_router():
     """Load user certifications router lazily when first accessed"""
-    if not hasattr(app, '_user_certifications_router_loaded'):
+    if not hasattr(app, "_user_certifications_router_loaded"):
         print("🔧 Loading user certifications router lazily...")
         router_start = time.time()
 
         from app.routers import user_certifications
-        app.include_router(user_certifications.router, prefix="/api/v1/user-certifications", tags=["User Certifications"])
+
+        app.include_router(
+            user_certifications.router,
+            prefix="/api/v1/user-certifications",
+            tags=["User Certifications"],
+        )
 
         app._user_certifications_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ User certifications router loaded lazily in {router_time:.2f}s")
 
+
 def load_diving_centers_router():
     """Load diving centers router lazily when first accessed"""
-    if not hasattr(app, '_diving_centers_router_loaded'):
+    if not hasattr(app, "_diving_centers_router_loaded"):
         print("🔧 Loading diving centers router lazily...")
         router_start = time.time()
 
         from app.routers import diving_centers
-        app.include_router(diving_centers.router, prefix="/api/v1/diving-centers", tags=["Diving Centers"])
+
+        app.include_router(
+            diving_centers.router,
+            prefix="/api/v1/diving-centers",
+            tags=["Diving Centers"],
+        )
 
         app._diving_centers_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Diving centers router loaded lazily in {router_time:.2f}s")
 
+
 def load_tags_router():
     """Load tags router lazily when first accessed"""
-    if not hasattr(app, '_tags_router_loaded'):
+    if not hasattr(app, "_tags_router_loaded"):
         print("🔧 Loading tags router lazily...")
         router_start = time.time()
 
         from app.routers import tags
+
         app.include_router(tags.router, prefix="/api/v1/tags", tags=["Tags"])
 
         app._tags_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Tags router loaded lazily in {router_time:.2f}s")
 
+
 def load_dives_router():
     """Load dives router lazily when first accessed"""
-    if not hasattr(app, '_dives_router_loaded'):
+    if not hasattr(app, "_dives_router_loaded"):
         print("🔧 Loading dives router lazily...")
         router_start = time.time()
 
         try:
             from app.routers.dives import router as dives_router
+
             app.include_router(dives_router, prefix="/api/v1/dives", tags=["Dives"])
             app._dives_router_loaded = True
             router_time = time.time() - router_start
@@ -570,76 +648,93 @@ def load_dives_router():
         except Exception as e:
             print(f"❌ Error loading dives router: {e}")
             import traceback
+
             traceback.print_exc()
             raise e
 
+
 def load_dive_routes_router():
     """Load dive routes router lazily when first accessed"""
-    if not hasattr(app, '_dive_routes_router_loaded'):
+    if not hasattr(app, "_dive_routes_router_loaded"):
         print("🔧 Loading dive routes router lazily...")
         router_start = time.time()
 
         from app.routers import dive_routes
-        app.include_router(dive_routes.router, prefix="/api/v1/dive-routes", tags=["Dive Routes"])
+
+        app.include_router(
+            dive_routes.router, prefix="/api/v1/dive-routes", tags=["Dive Routes"]
+        )
 
         app._dive_routes_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Dive routes router loaded lazily in {router_time:.2f}s")
 
+
 def load_search_router():
     """Load search router lazily when first accessed"""
-    if not hasattr(app, '_search_router_loaded'):
+    if not hasattr(app, "_search_router_loaded"):
         print("🔧 Loading search router lazily...")
         router_start = time.time()
 
         from app.routers import search
+
         app.include_router(search.router, prefix="/api/v1/search", tags=["Search"])
 
         app._search_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Search router loaded lazily in {router_time:.2f}s")
 
+
 def load_share_router():
     """Load share router lazily when first accessed"""
-    if not hasattr(app, '_share_router_loaded'):
+    if not hasattr(app, "_share_router_loaded"):
         print("🔧 Loading share router lazily...")
         router_start = time.time()
 
         from app.routers import share
+
         app.include_router(share.router, prefix="/api/v1/share", tags=["Share"])
 
         app._share_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Share router loaded lazily in {router_time:.2f}s")
 
+
 def load_weather_router():
     """Load weather router lazily when first accessed"""
-    if not hasattr(app, '_weather_router_loaded'):
+    if not hasattr(app, "_weather_router_loaded"):
         print("🔧 Loading weather router lazily...")
         router_start = time.time()
 
         from app.routers import weather
+
         app.include_router(weather.router, prefix="/api/v1/weather", tags=["Weather"])
 
         app._weather_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Weather router loaded lazily in {router_time:.2f}s")
 
+
 def load_admin_chat_router():
     """Load admin chat router lazily when first accessed"""
-    if not hasattr(app, '_admin_chat_router_loaded'):
+    if not hasattr(app, "_admin_chat_router_loaded"):
         print("🔧 Loading admin-chat router lazily...")
         router_start = time.time()
 
         from app.routers.admin import chat as admin_chat
-        app.include_router(admin_chat.router, prefix="/api/v1/admin/chat", tags=["Admin Chatbot"])
+
+        app.include_router(
+            admin_chat.router, prefix="/api/v1/admin/chat", tags=["Admin Chatbot"]
+        )
 
         app._admin_chat_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Admin-chat router loaded lazily in {router_time:.2f}s")
 
+
 # Load routers
 load_routers()
+
 
 # Middleware for lazy loading routers
 @app.middleware("http")
@@ -651,155 +746,219 @@ async def lazy_router_loading(request: Request, call_next):
     is_docs = path in DOCS_PATHS
 
     # Load dive-sites router
-    if (path.startswith("/api/v1/dive-sites") or is_docs) and not hasattr(app, '_dive_sites_router_loaded'):
+    if (path.startswith("/api/v1/dive-sites") or is_docs) and not hasattr(
+        app, "_dive_sites_router_loaded"
+    ):
         load_dive_sites_router()
 
     # Load newsletters router
-    if (path.startswith("/api/v1/newsletters") or is_docs) and not hasattr(app, '_newsletters_router_loaded'):
+    if (path.startswith("/api/v1/newsletters") or is_docs) and not hasattr(
+        app, "_newsletters_router_loaded"
+    ):
         load_newsletters_router()
 
     # Load system router
-    if (path.startswith("/api/v1/admin/system") or is_docs) and not hasattr(app, '_system_router_loaded'):
+    if (path.startswith("/api/v1/admin/system") or is_docs) and not hasattr(
+        app, "_system_router_loaded"
+    ):
         load_system_router()
 
     # Load admin chat router
-    if (path.startswith("/api/v1/admin/chat") or is_docs) and not hasattr(app, '_admin_chat_router_loaded'):
+    if (path.startswith("/api/v1/admin/chat") or is_docs) and not hasattr(
+        app, "_admin_chat_router_loaded"
+    ):
         load_admin_chat_router()
 
     # Load admin dive sites router
-    if (path.startswith("/api/v1/admin/dive-sites") or is_docs) and not hasattr(app, '_admin_dive_sites_router_loaded'):
+    if (path.startswith("/api/v1/admin/dive-sites") or is_docs) and not hasattr(
+        app, "_admin_dive_sites_router_loaded"
+    ):
         load_admin_dive_sites_router()
 
     # Load privacy router
-    if (path.startswith("/api/v1/privacy") or is_docs) and not hasattr(app, '_privacy_router_loaded'):
+    if (path.startswith("/api/v1/privacy") or is_docs) and not hasattr(
+        app, "_privacy_router_loaded"
+    ):
         load_privacy_router()
 
     # Load diving organizations router
-    if (path.startswith("/api/v1/diving-organizations") or is_docs) and not hasattr(app, '_diving_organizations_router_loaded'):
+    if (path.startswith("/api/v1/diving-organizations") or is_docs) and not hasattr(
+        app, "_diving_organizations_router_loaded"
+    ):
         load_diving_organizations_router()
 
     # Load user certifications router
-    if (path.startswith("/api/v1/user-certifications") or is_docs) and not hasattr(app, '_user_certifications_router_loaded'):
+    if (path.startswith("/api/v1/user-certifications") or is_docs) and not hasattr(
+        app, "_user_certifications_router_loaded"
+    ):
         load_user_certifications_router()
 
     # Load diving centers router
-    if (path.startswith("/api/v1/diving-centers") or is_docs) and not hasattr(app, '_diving_centers_router_loaded'):
+    if (path.startswith("/api/v1/diving-centers") or is_docs) and not hasattr(
+        app, "_diving_centers_router_loaded"
+    ):
         load_diving_centers_router()
 
     # Load tags router
-    if (path.startswith("/api/v1/tags") or is_docs) and not hasattr(app, '_tags_router_loaded'):
+    if (path.startswith("/api/v1/tags") or is_docs) and not hasattr(
+        app, "_tags_router_loaded"
+    ):
         load_tags_router()
 
     # Load dives router
-    if (path.startswith("/api/v1/dives") or is_docs) and not hasattr(app, '_dives_router_loaded'):
+    if (path.startswith("/api/v1/dives") or is_docs) and not hasattr(
+        app, "_dives_router_loaded"
+    ):
         load_dives_router()
 
     # Load dive routes router
-    if (path.startswith("/api/v1/dive-routes") or is_docs) and not hasattr(app, '_dive_routes_router_loaded'):
+    if (path.startswith("/api/v1/dive-routes") or is_docs) and not hasattr(
+        app, "_dive_routes_router_loaded"
+    ):
         load_dive_routes_router()
 
     # Load search router
-    if (path.startswith("/api/v1/search") or is_docs) and not hasattr(app, '_search_router_loaded'):
+    if (path.startswith("/api/v1/search") or is_docs) and not hasattr(
+        app, "_search_router_loaded"
+    ):
         load_search_router()
 
     # Load share router
-    if (path.startswith("/api/v1/share") or is_docs) and not hasattr(app, '_share_router_loaded'):
+    if (path.startswith("/api/v1/share") or is_docs) and not hasattr(
+        app, "_share_router_loaded"
+    ):
         load_share_router()
 
     # Load weather router
-    if (path.startswith("/api/v1/weather") or is_docs) and not hasattr(app, '_weather_router_loaded'):
+    if (path.startswith("/api/v1/weather") or is_docs) and not hasattr(
+        app, "_weather_router_loaded"
+    ):
         load_weather_router()
 
     # Load short links router
-    if (path.startswith("/l/") or path.startswith("/api/v1/short-links") or is_docs) and not hasattr(app, '_short_links_router_loaded'):
+    if (
+        path.startswith("/l/") or path.startswith("/api/v1/short-links") or is_docs
+    ) and not hasattr(app, "_short_links_router_loaded"):
         load_short_links_router()
 
     # Load chat router
-    if (path.startswith("/api/v1/chat") or is_docs) and not hasattr(app, '_chat_router_loaded'):
+    if (path.startswith("/api/v1/chat") or is_docs) and not hasattr(
+        app, "_chat_router_loaded"
+    ):
         load_chat_router()
 
     # Load user chat router
-    if (path.startswith("/api/v1/user-chat") or is_docs) and not hasattr(app, '_user_chat_router_loaded'):
+    if (path.startswith("/api/v1/user-chat") or is_docs) and not hasattr(
+        app, "_user_chat_router_loaded"
+    ):
         load_user_chat_router()
 
     # Load user friendships router
-    if (path.startswith("/api/v1/user-friendships") or is_docs) and not hasattr(app, '_user_friendships_router_loaded'):
+    if (path.startswith("/api/v1/user-friendships") or is_docs) and not hasattr(
+        app, "_user_friendships_router_loaded"
+    ):
         load_user_friendships_router()
 
     # Load leaderboard router
-    if (path.startswith("/api/v1/leaderboard") or is_docs) and not hasattr(app, '_leaderboard_router_loaded'):
+    if (path.startswith("/api/v1/leaderboard") or is_docs) and not hasattr(
+        app, "_leaderboard_router_loaded"
+    ):
         load_leaderboard_router()
 
     # Load agent router
-    if (path.startswith("/api/v1/agent") or is_docs) and not hasattr(app, '_agent_router_loaded'):
+    if (path.startswith("/api/v1/agent") or is_docs) and not hasattr(
+        app, "_agent_router_loaded"
+    ):
         load_agent_router()
 
     response = await call_next(request)
     return response
 
+
 def load_short_links_router():
     """Load short links router lazily when first accessed"""
-    if not hasattr(app, '_short_links_router_loaded'):
+    if not hasattr(app, "_short_links_router_loaded"):
         print("🔧 Loading short links router lazily...")
         router_start = time.time()
 
         from app.routers import short_links
+
         # Mount the creation endpoint under API
-        app.include_router(short_links.api_router, prefix="/api/v1/short-links", tags=["Short Links"])
+        app.include_router(
+            short_links.api_router, prefix="/api/v1/short-links", tags=["Short Links"]
+        )
         # Mount the redirection endpoint at /l
-        app.include_router(short_links.redirect_router, prefix="/l", tags=["Short Links Redirection"])
+        app.include_router(
+            short_links.redirect_router, prefix="/l", tags=["Short Links Redirection"]
+        )
 
         app._short_links_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Short links router loaded lazily in {router_time:.2f}s")
 
+
 def load_chat_router():
     """Load chat router lazily when first accessed"""
-    if not hasattr(app, '_chat_router_loaded'):
+    if not hasattr(app, "_chat_router_loaded"):
         print("🔧 Loading chat router lazily...")
         router_start = time.time()
 
         from app.routers import chat
+
         app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chatbot"])
 
         app._chat_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ Chat router loaded lazily in {router_time:.2f}s")
 
+
 def load_user_chat_router():
     """Load user chat router lazily when first accessed"""
-    if not hasattr(app, '_user_chat_router_loaded'):
+    if not hasattr(app, "_user_chat_router_loaded"):
         print("🔧 Loading user chat router lazily...")
         router_start = time.time()
 
         from app.routers import user_chat
-        app.include_router(user_chat.router, prefix="/api/v1/user-chat", tags=["User Chat"])
+
+        app.include_router(
+            user_chat.router, prefix="/api/v1/user-chat", tags=["User Chat"]
+        )
 
         app._user_chat_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ User Chat router loaded lazily in {router_time:.2f}s")
 
+
 def load_user_friendships_router():
     """Load user friendships router lazily when first accessed"""
-    if not hasattr(app, '_user_friendships_router_loaded'):
+    if not hasattr(app, "_user_friendships_router_loaded"):
         print("🔧 Loading user friendships router lazily...")
         router_start = time.time()
 
         from app.routers import user_friendships
-        app.include_router(user_friendships.router, prefix="/api/v1/user-friendships", tags=["User Friendships"])
+
+        app.include_router(
+            user_friendships.router,
+            prefix="/api/v1/user-friendships",
+            tags=["User Friendships"],
+        )
 
         app._user_friendships_router_loaded = True
         router_time = time.time() - router_start
         print(f"✅ User Friendships router loaded lazily in {router_time:.2f}s")
 
+
 def load_leaderboard_router():
     """Load leaderboard router lazily when first accessed"""
-    if not hasattr(app, '_leaderboard_router_loaded'):
+    if not hasattr(app, "_leaderboard_router_loaded"):
         print("🔧 Loading leaderboard router lazily...")
         router_start = time.time()
 
         from app.routers import leaderboard
-        app.include_router(leaderboard.router, prefix="/api/v1/leaderboard", tags=["Leaderboard"])
+
+        app.include_router(
+            leaderboard.router, prefix="/api/v1/leaderboard", tags=["Leaderboard"]
+        )
 
         app._leaderboard_router_loaded = True
         router_time = time.time() - router_start
@@ -810,16 +969,20 @@ def load_leaderboard_router():
 async def root():
     return {"message": "Welcome to Divemap API"}
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 @app.get("/api/v1/stats")
 async def get_statistics(db: Session = Depends(get_db)):
     """Get platform statistics"""
     try:
         # Count dives (only public ones for unauthenticated users)
-        dive_count = db.query(func.count(Dive.id)).filter(Dive.is_private == False).scalar()
+        dive_count = (
+            db.query(func.count(Dive.id)).filter(Dive.is_private == False).scalar()
+        )
 
         # Count dive sites
         dive_site_count = db.query(func.count(DiveSite.id)).scalar()
@@ -840,7 +1003,7 @@ async def get_statistics(db: Session = Depends(get_db)):
             "dive_sites": dive_site_count,
             "reviews": total_review_count,
             "diving_centers": diving_center_count,
-            "dive_trips": dive_trips_count
+            "dive_trips": dive_trips_count,
         }
     except Exception:
         return {
@@ -848,28 +1011,32 @@ async def get_statistics(db: Session = Depends(get_db)):
             "dive_sites": 0,
             "reviews": 0,
             "diving_centers": 0,
-            "dive_trips": 0
+            "dive_trips": 0,
         }
+
 
 @app.get("/api/v1/public/recent-activity")
 async def get_public_recent_activity(db: Session = Depends(get_db)):
     """Get the 6 most recent public community activities securely with zero PII leakage."""
     try:
         from app.routers.system import fetch_recent_activities
+
         # 1. Try finding activity in the last 5 days (120 hours)
         activities = fetch_recent_activities(db, hours=120, limit=6, is_admin=False)
-        
+
         # 2. If we don't have enough (e.g. < 6), expand to 30 days (720 hours)
         if len(activities) < 6:
             activities = fetch_recent_activities(db, hours=720, limit=6, is_admin=False)
-            
+
         # 3. If still not enough, lift the lookback limit completely (hours=None)
         if len(activities) < 6:
-            activities = fetch_recent_activities(db, hours=None, limit=6, is_admin=False)
-            
+            activities = fetch_recent_activities(
+                db, hours=None, limit=6, is_admin=False
+            )
+
         return activities
     except Exception as e:
         import logging
+
         logging.error(f"Error getting public recent activity: {e}", exc_info=True)
         return []
-

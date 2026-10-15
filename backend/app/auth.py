@@ -28,6 +28,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds
 # JWT token security
 security = HTTPBearer()
 
+
 def validate_password_strength(password: str) -> bool:
     """Validate password strength requirements."""
     if len(password) < 8:
@@ -42,6 +43,7 @@ def validate_password_strength(password: str) -> bool:
         return False
     return True
 
+
 from app.models import Dive, DiveRoute, DiveSite, DivingCenter, OwnershipStatus
 
 
@@ -50,26 +52,33 @@ def is_trusted_contributor(db: Session, user: User, dive_site: DiveSite) -> bool
         return True
     if dive_site.created_by == user.id:
         return True
-    
+
     # Explicit DB counts for lightweight activity check
     dive_count = db.query(Dive).filter(Dive.user_id == user.id).count()
     site_count = db.query(DiveSite).filter(DiveSite.created_by == user.id).count()
-    center_count = db.query(DivingCenter).filter(
-        DivingCenter.owner_id == user.id,
-        DivingCenter.ownership_status == OwnershipStatus.approved
-    ).count()
+    center_count = (
+        db.query(DivingCenter)
+        .filter(
+            DivingCenter.owner_id == user.id,
+            DivingCenter.ownership_status == OwnershipStatus.approved,
+        )
+        .count()
+    )
     route_count = db.query(DiveRoute).filter(DiveRoute.created_by == user.id).count()
-    
+
     return (dive_count + site_count + center_count + route_count) >= 1
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def get_password_hash(password: str) -> str:
     # Ensure password is not longer than 72 bytes (bcrypt limitation)
-    if len(password.encode('utf-8')) > 72:
+    if len(password.encode("utf-8")) > 72:
         password = password[:72]
     return pwd_context.hash(password)
+
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
     # Try to find user by username first, then by email
@@ -77,12 +86,13 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     if not user:
         # If not found by username, try email
         user = db.query(User).filter(User.email == username).first()
-    
+
     if not user:
         return None
     if not verify_password(password, user.password_hash):
         return None
     return user
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -93,6 +103,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 def verify_token(token: str) -> Optional[TokenData]:
     try:
@@ -105,52 +116,58 @@ def verify_token(token: str) -> Optional[TokenData]:
     except InvalidTokenError:
         return None
 
+
 def verify_pat(token: str, db: Session) -> Optional[User]:
     """Verify a Personal Access Token (PAT) using efficient prefix lookup."""
     if not token.startswith("dm_pat_"):
         return None
-        
+
     try:
         # Extract prefix (first 12 chars of the part after 'dm_pat_')
         token_suffix = token[7:]
         prefix = token_suffix[:12]
-        
+
         # Look up tokens matching this prefix (using index)
         # We also filter for is_active here for efficiency
-        matching_pats = db.query(PersonalAccessToken).options(
-            joinedload(PersonalAccessToken.user)
-        ).filter(
-            PersonalAccessToken.token_prefix == prefix,
-            PersonalAccessToken.is_active == True
-        ).all()
-        
+        matching_pats = (
+            db.query(PersonalAccessToken)
+            .options(joinedload(PersonalAccessToken.user))
+            .filter(
+                PersonalAccessToken.token_prefix == prefix,
+                PersonalAccessToken.is_active == True,
+            )
+            .all()
+        )
+
         if not matching_pats:
             return None
 
         from app.utils import normalize_datetime_to_utc, utcnow
+
         now = utcnow()
         for pat in matching_pats:
             # 1. Check expiration
             expires_at = normalize_datetime_to_utc(pat.expires_at)
             if expires_at and expires_at < now:
                 continue
-            
+
             # 2. Verify slow Bcrypt hash (only for prefix matches)
             if verify_password(token, pat.token_hash):
                 # Update last used timestamp
                 pat.last_used_at = now
                 db.commit()
                 return pat.user
-                
+
     except Exception as e:
         logger.error(f"Error in verify_pat: {e}", exc_info=True)
         return None
-            
+
     return None
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -159,7 +176,7 @@ async def get_current_user(
     )
 
     token = credentials.credentials
-    
+
     # Try PAT first if it has the prefix
     if token.startswith("dm_pat_"):
         user = verify_pat(token, db)
@@ -178,42 +195,49 @@ async def get_current_user(
 
     return user
 
-async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is disabled"
         )
     return current_user
 
-async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user
 
-async def get_current_moderator_user(current_user: User = Depends(get_current_user)) -> User:
+
+async def get_current_moderator_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     if not (current_user.is_admin or current_user.is_moderator):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user
+
 
 async def is_admin_or_moderator(current_user: User = Depends(get_current_user)) -> User:
     """Check if user is admin or moderator"""
     if not (current_user.is_admin or current_user.is_moderator):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
         )
     return current_user
 
+
 # Optional bearer for endpoints that don't require authentication
 async def get_optional_bearer_token(
-    authorization: Optional[str] = Header(None)
+    authorization: Optional[str] = Header(None),
 ) -> Optional[str]:
     if not authorization:
         return None
@@ -221,9 +245,10 @@ async def get_optional_bearer_token(
         return None
     return authorization[7:]  # Remove "Bearer " prefix
 
+
 async def get_current_user_optional(
     token: Optional[str] = Depends(get_optional_bearer_token),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> Optional[User]:
     if not token:
         return None
@@ -241,52 +266,62 @@ async def get_current_user_optional(
     except Exception:
         return None
 
+
 async def can_manage_diving_center(
     diving_center_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ) -> User:
     """Check if user can manage a diving center (admin, moderator, owner, or manager)"""
     # Admins and moderators can manage any diving center
     if current_user.is_admin or current_user.is_moderator:
         return current_user
-    
+
     # Check if user is the owner or manager of this diving center
     from app.models import DivingCenter, DivingCenterManager, OwnershipStatus
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-    
-    if not diving_center:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
-        )
-    
-    # Owner check
-    if diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved:
-        return current_user
-        
-    # Manager check
-    is_manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == current_user.id
-    ).first() is not None
-    
-    if is_manager:
-        return current_user
-    
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Not enough permissions to manage this diving center"
+
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     )
 
+    if not diving_center:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
+        )
+
+    # Owner check
+    if (
+        diving_center.owner_id == current_user.id
+        and diving_center.ownership_status == OwnershipStatus.approved
+    ):
+        return current_user
+
+    # Manager check
+    is_manager = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == current_user.id,
+        )
+        .first()
+        is not None
+    )
+
+    if is_manager:
+        return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not enough permissions to manage this diving center",
+    )
 
 
 def create_can_manage_diving_center_dep(diving_center_id: int):
     """Create a dependency function for a specific diving center ID"""
+
     async def dependency(
-        current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db)
+        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
     ) -> User:
         return await can_manage_diving_center(diving_center_id, current_user, db)
-    
+
     return dependency

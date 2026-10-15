@@ -27,8 +27,9 @@ FALLBACK_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
     "https://z.overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter"
+    "https://overpass.private.coffee/api/interpreter",
 ]
+
 
 def get_shuffled_endpoints() -> List[str]:
     """
@@ -40,9 +41,11 @@ def get_shuffled_endpoints() -> List[str]:
     backup = random.sample(FALLBACK_ENDPOINTS, 1)
     return fast + backup
 
+
 def sanitize_log_url(url: str) -> str:
     """Mask sensitive keywords in URLs for security scanners."""
     return url.replace("private", "p*****")
+
 
 # Default search radius in meters
 DEFAULT_RADIUS = 1000
@@ -66,8 +69,11 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     # Haversine formula
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
 
@@ -85,7 +91,8 @@ def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
 
     bearing = math.atan2(
         math.sin(dlon) * math.cos(lat2),
-        math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
+        math.cos(lat1) * math.sin(lat2)
+        - math.sin(lat1) * math.cos(lat2) * math.cos(dlon),
     )
 
     # Convert to degrees and normalize to 0-360
@@ -93,7 +100,11 @@ def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> flo
     return (bearing + 360) % 360
 
 
-def point_to_segment_distance(point: Tuple[float, float], seg_start: Tuple[float, float], seg_end: Tuple[float, float]) -> float:
+def point_to_segment_distance(
+    point: Tuple[float, float],
+    seg_start: Tuple[float, float],
+    seg_end: Tuple[float, float],
+) -> float:
     """
     Calculate the distance from a point to a line segment.
 
@@ -104,7 +115,9 @@ def point_to_segment_distance(point: Tuple[float, float], seg_start: Tuple[float
     return haversine_distance(point[0], point[1], mid_lat, mid_lon)
 
 
-def query_overpass_api(latitude: float, longitude: float, radius: int = DEFAULT_RADIUS, timeout: int = 10) -> Optional[Dict]:
+def query_overpass_api(
+    latitude: float, longitude: float, radius: int = DEFAULT_RADIUS, timeout: int = 10
+) -> Optional[Dict]:
     """
     Query Overpass API for coastline segments near the given coordinates.
 
@@ -112,16 +125,16 @@ def query_overpass_api(latitude: float, longitude: float, radius: int = DEFAULT_
 
     Returns the JSON response or None if all endpoints fail.
     """
-    query = f'''[out:json][timeout:{timeout}];
+    query = f"""[out:json][timeout:{timeout}];
 (
   way["natural"="coastline"](around:{radius},{latitude},{longitude});
 );
-out geom;'''
+out geom;"""
 
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)",
-        "Referer": "https://divemap.blue"
+        "Referer": "https://divemap.blue",
     }
 
     for endpoint in get_shuffled_endpoints():
@@ -132,16 +145,20 @@ out geom;'''
                 endpoint,
                 data=query,
                 headers=headers,
-                timeout=timeout + 2  # Add buffer for network latency
+                timeout=timeout + 2,  # Add buffer for network latency
             )
 
             if response.status_code != 200:
-                logger.warning(f"Overpass API returned status {response.status_code} from {safe_url}")
+                logger.warning(
+                    f"Overpass API returned status {response.status_code} from {safe_url}"
+                )
                 continue
 
             # Check if response is JSON (timeouts return HTML/XML)
-            if not response.text.strip().startswith('{'):
-                logger.warning(f"Non-JSON response from {safe_url} (likely timeout): {response.text[:200]}")
+            if not response.text.strip().startswith("{"):
+                logger.warning(
+                    f"Non-JSON response from {safe_url} (likely timeout): {response.text[:200]}"
+                )
                 continue
 
             data = response.json()
@@ -161,7 +178,9 @@ out geom;'''
     return None
 
 
-def detect_shore_direction(latitude: float, longitude: float, radius: int = DEFAULT_RADIUS) -> Optional[Dict[str, any]]:
+def detect_shore_direction(
+    latitude: float, longitude: float, radius: int = DEFAULT_RADIUS
+) -> Optional[Dict[str, any]]:
     """
     Detect shore direction for a dive site using OpenStreetMap coastline data.
 
@@ -195,7 +214,7 @@ def detect_shore_direction(latitude: float, longitude: float, radius: int = DEFA
         # Find nearest coastline segment
         dive_site = (latitude, longitude)
         nearest_segment = None
-        min_distance = float('inf')
+        min_distance = float("inf")
 
         for element in elements:
             if element.get("type") != "way" or "geometry" not in element:
@@ -208,7 +227,7 @@ def detect_shore_direction(latitude: float, longitude: float, radius: int = DEFA
             # Check each segment in the way
             for i in range(len(geometry) - 1):
                 p1 = (geometry[i]["lat"], geometry[i]["lon"])
-                p2 = (geometry[i+1]["lat"], geometry[i+1]["lon"])
+                p2 = (geometry[i + 1]["lat"], geometry[i + 1]["lon"])
 
                 dist = point_to_segment_distance(dive_site, p1, p2)
 
@@ -246,10 +265,9 @@ def detect_shore_direction(latitude: float, longitude: float, radius: int = DEFA
             "shore_direction": round(shore_direction, 2),
             "confidence": confidence,
             "method": "osm_coastline",
-            "distance_to_coastline_m": round(min_distance, 2)
+            "distance_to_coastline_m": round(min_distance, 2),
         }
 
     except Exception as e:
         logger.error(f"Error detecting shore direction: {e}", exc_info=True)
         return None
-

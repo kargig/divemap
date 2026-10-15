@@ -32,6 +32,7 @@ def make_absolute_url(url: str, base_url: str) -> str:
         return url
     return f"{base_url.rstrip('/')}/{url.lstrip('/')}"
 
+
 from urllib.parse import quote
 
 
@@ -44,18 +45,26 @@ def is_flickr_url(url: str) -> bool:
 def resolve_flickr_direct_url(url: str) -> Optional[str]:
     """Converts a Flickr page URL into its direct static image URL via oEmbed API."""
     try:
-        oembed_url = f"https://www.flickr.com/services/oembed/?url={quote(url)}&format=json"
-        response = httpx.get(oembed_url, timeout=5, headers={
-            "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"
-        })
+        oembed_url = (
+            f"https://www.flickr.com/services/oembed/?url={quote(url)}&format=json"
+        )
+        response = httpx.get(
+            oembed_url,
+            timeout=5,
+            headers={"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"},
+        )
         if response.status_code == 200:
             data = response.json()
             if data.get("html"):
-                img_match = re.search(r'<img[^>]+src="([^"]+)"', data["html"], re.IGNORECASE)
+                img_match = re.search(
+                    r'<img[^>]+src="([^"]+)"', data["html"], re.IGNORECASE
+                )
                 if img_match and img_match.group(1):
                     return img_match.group(1)
     except Exception as e:
-        logger.warning(f"Failed to resolve Flickr direct URL for {url} inside SEO pre-render: {e}")
+        logger.warning(
+            f"Failed to resolve Flickr direct URL for {url} inside SEO pre-render: {e}"
+        )
     return None
 
 
@@ -77,6 +86,7 @@ def resolve_seo_image_url(media_url: str, base_url: str) -> Optional[str]:
     # 3. Handle local/R2 paths through get_r2_storage() and make_absolute_url
     try:
         from app.services.r2_storage_service import get_r2_storage
+
         r2_storage = get_r2_storage()
         r2_url = r2_storage.get_photo_url(media_url)
         return make_absolute_url(r2_url, base_url)
@@ -94,6 +104,8 @@ def get_image_mime_type(url: str) -> str:
     if clean_url.endswith(".png"):
         return "image/png"
     return "image/jpeg"
+
+
 from app.seo_geo import (
     distinct_approved_countries,
     distinct_approved_regions,
@@ -131,7 +143,9 @@ router = APIRouter()
 _spa_template_cache: Optional[str] = None
 _spa_template_fetched_at: float = 0.0
 _spa_template_lock: Optional[asyncio.Lock] = None
-SPA_TEMPLATE_CACHE_TTL: float = float(os.getenv("SPA_TEMPLATE_CACHE_TTL", "300"))  # 5 minutes default
+SPA_TEMPLATE_CACHE_TTL: float = float(
+    os.getenv("SPA_TEMPLATE_CACHE_TTL", "300")
+)  # 5 minutes default
 
 
 async def get_spa_template() -> Optional[str]:
@@ -142,7 +156,10 @@ async def get_spa_template() -> Optional[str]:
     """
     global _spa_template_cache, _spa_template_fetched_at, _spa_template_lock
     now = time.time()
-    if _spa_template_cache is not None and (now - _spa_template_fetched_at) < SPA_TEMPLATE_CACHE_TTL:
+    if (
+        _spa_template_cache is not None
+        and (now - _spa_template_fetched_at) < SPA_TEMPLATE_CACHE_TTL
+    ):
         return _spa_template_cache
 
     if _spa_template_lock is None:
@@ -151,7 +168,10 @@ async def get_spa_template() -> Optional[str]:
     async with _spa_template_lock:
         now = time.time()
         # Double check after acquiring the lock to prevent thundering herd
-        if _spa_template_cache is not None and (now - _spa_template_fetched_at) < SPA_TEMPLATE_CACHE_TTL:
+        if (
+            _spa_template_cache is not None
+            and (now - _spa_template_fetched_at) < SPA_TEMPLATE_CACHE_TTL
+        ):
             return _spa_template_cache
 
         urls = [
@@ -167,7 +187,9 @@ async def get_spa_template() -> Optional[str]:
             for url in urls:
                 try:
                     # Set Host: localhost header to bypass Vite's internal Host Validation
-                    response = await client.get(url, timeout=1.5, headers={"Host": "localhost"})
+                    response = await client.get(
+                        url, timeout=1.5, headers={"Host": "localhost"}
+                    )
                     if response.status_code == 200 and response.text:
                         logger.info(f"Successfully fetched SPA template from {url}")
                         _spa_template_cache = response.text
@@ -183,22 +205,30 @@ async def get_spa_template() -> Optional[str]:
                 with open(template_path, encoding="utf-8") as f:
                     _spa_template_cache = f.read()
                     _spa_template_fetched_at = time.time()
-                logger.info(f"Successfully read SPA template from disk: {template_path}")
+                logger.info(
+                    f"Successfully read SPA template from disk: {template_path}"
+                )
                 return _spa_template_cache
             except Exception as e:
                 logger.error(f"Failed to read SPA template from {template_path}: {e}")
 
         # If refresh failed but we have a previously cached template, serve it as stale-while-revalidate
         if _spa_template_cache is not None:
-            logger.warning("Failed to refresh SPA template from all sources; serving stale cached template.")
+            logger.warning(
+                "Failed to refresh SPA template from all sources; serving stale cached template."
+            )
             return _spa_template_cache
 
-        logger.warning("No SPA template could be loaded. Falling back to clean semantic-only HTML response.")
+        logger.warning(
+            "No SPA template could be loaded. Falling back to clean semantic-only HTML response."
+        )
         return None
 
 
 @router.get("/html/{path:path}", response_class=HTMLResponse)
-async def get_prerendered_page(request: Request, path: str, db: Session = Depends(get_db)):
+async def get_prerendered_page(
+    request: Request, path: str, db: Session = Depends(get_db)
+):
     """
     Dynamic server-side pre-rendering endpoint. Intercepts public crawler/human GET paths,
     populates meta/JSON-LD/content elements, and returns them in the SPA index.html wrapper.
@@ -249,7 +279,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
             site_links = []
             for s in sites:
                 slug = get_dive_site_slug(s)
-                link_path = f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                link_path = (
+                    f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                )
                 site_links.append((s.name, link_path))
 
             page_title = "Divemap - Discover and Rate Scuba Dive Sites Worldwide"
@@ -261,14 +293,18 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Dive Sites Directory Listing
                 sites = (
                     db.query(DiveSite)
-                    .filter(DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
+                    .filter(
+                        DiveSite.status == "approved", DiveSite.deleted_at.is_(None)
+                    )
                     .limit(100)
                     .all()
                 )
                 site_links = []
                 for s in sites:
                     slug = get_dive_site_slug(s)
-                    link_path = f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                    link_path = (
+                        f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                    )
                     site_links.append((s.name, link_path))
 
                 page_title = "Divemap - Dive Sites"
@@ -288,7 +324,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
 
                 site = (
                     db.query(DiveSite)
-                    .filter(DiveSite.id == site_id, DiveSite.status == "approved", DiveSite.deleted_at.is_(None))
+                    .filter(
+                        DiveSite.id == site_id,
+                        DiveSite.status == "approved",
+                        DiveSite.deleted_at.is_(None),
+                    )
                     .options(
                         joinedload(DiveSite.difficulty),
                         joinedload(DiveSite.ratings),
@@ -296,7 +336,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         selectinload(DiveSite.aliases),
                         selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag),
                         selectinload(DiveSite.routes),
-                        selectinload(DiveSite.center_relationships).joinedload(CenterDiveSite.diving_center),
+                        selectinload(DiveSite.center_relationships).joinedload(
+                            CenterDiveSite.diving_center
+                        ),
                     )
                     .first()
                 )
@@ -306,16 +348,25 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Extract a random photo media URL if available (combining both direct site photos and public dive log photos at this site)
                 from app.models import DiveMedia, SiteMedia
 
-                site_photos = db.query(SiteMedia).filter(
-                    SiteMedia.dive_site_id == site.id,
-                    SiteMedia.media_type == MediaType.photo
-                ).all()
+                site_photos = (
+                    db.query(SiteMedia)
+                    .filter(
+                        SiteMedia.dive_site_id == site.id,
+                        SiteMedia.media_type == MediaType.photo,
+                    )
+                    .all()
+                )
 
-                dive_photos = db.query(DiveMedia).join(Dive).filter(
-                    Dive.dive_site_id == site.id,
-                    Dive.is_private == False,
-                    DiveMedia.media_type == MediaType.photo
-                ).all()
+                dive_photos = (
+                    db.query(DiveMedia)
+                    .join(Dive)
+                    .filter(
+                        Dive.dive_site_id == site.id,
+                        Dive.is_private == False,
+                        DiveMedia.media_type == MediaType.photo,
+                    )
+                    .all()
+                )
 
                 all_photos = site_photos + dive_photos
                 if all_photos:
@@ -333,7 +384,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         preview_path = photo_media.url
                         image_width = None
                         image_height = None
-                    
+
                     image_url = resolve_seo_image_url(preview_path, base_url)
                     image_type = get_image_mime_type(image_url)
 
@@ -341,10 +392,20 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
                 requested_slug = parts[2] if len(parts) >= 3 else ""
                 if requested_slug != slug:
-                    redirect_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+                    redirect_path = (
+                        f"/dive-sites/{site.id}/{slug}"
+                        if slug
+                        else f"/dive-sites/{site.id}"
+                    )
+                    return RedirectResponse(
+                        url=f"{base_url}{redirect_path}", status_code=301
+                    )
 
-                detail_path = f"/dive-sites/{site.id}/{slug}" if slug else f"/dive-sites/{site.id}"
+                detail_path = (
+                    f"/dive-sites/{site.id}/{slug}"
+                    if slug
+                    else f"/dive-sites/{site.id}"
+                )
                 avg, total = _site_rating_stats(site)
                 location_parts = [site.region, site.country]
                 location_suffix = ", ".join(filter(None, location_parts))
@@ -373,12 +434,16 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     expected = geo_hub_path(country, region)
                     actual = f"/dive-sites/{parts[1]}/{parts[2]}"
                     if expected and actual != expected:
-                        return RedirectResponse(url=f"{base_url}{expected}", status_code=301)
+                        return RedirectResponse(
+                            url=f"{base_url}{expected}", status_code=301
+                        )
                 else:
                     expected = geo_hub_path(country)
                     actual = f"/dive-sites/{parts[1]}"
                     if expected and actual != expected:
-                        return RedirectResponse(url=f"{base_url}{expected}", status_code=301)
+                        return RedirectResponse(
+                            url=f"{base_url}{expected}", status_code=301
+                        )
 
                 q = db.query(DiveSite).filter(
                     DiveSite.status == "approved",
@@ -391,7 +456,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 site_links = []
                 for s in sites:
                     slug = get_dive_site_slug(s)
-                    link_path = f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                    link_path = (
+                        f"/dive-sites/{s.id}/{slug}" if slug else f"/dive-sites/{s.id}"
+                    )
                     site_links.append((s.name, link_path))
 
                 region_links = None
@@ -403,15 +470,23 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     ]
 
                 hub_path = geo_hub_path(country, region)
-                heading = f"Dive Sites in {region}, {country}" if region else f"Dive Sites in {country}"
+                heading = (
+                    f"Dive Sites in {region}, {country}"
+                    if region
+                    else f"Dive Sites in {country}"
+                )
                 description = (
                     f"Browse scuba dive sites in {heading.replace('Dive Sites in ', '')}. "
                     "Depths, difficulty ratings, and community reviews on Divemap."
                 )
                 page_title = f"{heading} | Divemap"
                 canonical = f"{base_url}{hub_path}"
-                main_content = render_geo_hub_main(country, region, site_links, region_links)
-                json_ld = geo_hub_schema(base_url, hub_path, heading, description, site_links)
+                main_content = render_geo_hub_main(
+                    country, region, site_links, region_links
+                )
+                json_ld = geo_hub_schema(
+                    base_url, hub_path, heading, description, site_links
+                )
 
         elif parts[0] == "map":
             countries = distinct_approved_countries(db)
@@ -440,7 +515,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 center_links = []
                 for c in centers:
                     slug = get_diving_center_slug(c)
-                    link_path = f"/diving-centers/{c.id}/{slug}" if slug else f"/diving-centers/{c.id}"
+                    link_path = (
+                        f"/diving-centers/{c.id}/{slug}"
+                        if slug
+                        else f"/diving-centers/{c.id}"
+                    )
                     center_links.append((c.name, link_path))
 
                 page_title = "Divemap - Diving Centers"
@@ -457,11 +536,17 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     center_id_str = re.sub(r"\D", "", parts[1])
                     center_id = int(center_id_str)
                 except ValueError:
-                    raise HTTPException(status_code=404, detail="Invalid Diving Center ID")
+                    raise HTTPException(
+                        status_code=404, detail="Invalid Diving Center ID"
+                    )
 
-                center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+                center = (
+                    db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
+                )
                 if not center:
-                    raise HTTPException(status_code=404, detail="Diving Center not found")
+                    raise HTTPException(
+                        status_code=404, detail="Diving Center not found"
+                    )
 
                 # Use diving center logo if it exists
                 if center.logo_url:
@@ -474,10 +559,20 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
                 requested_slug = parts[2] if len(parts) >= 3 else ""
                 if requested_slug != slug:
-                    redirect_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+                    redirect_path = (
+                        f"/diving-centers/{center.id}/{slug}"
+                        if slug
+                        else f"/diving-centers/{center.id}"
+                    )
+                    return RedirectResponse(
+                        url=f"{base_url}{redirect_path}", status_code=301
+                    )
 
-                detail_path = f"/diving-centers/{center.id}/{slug}" if slug else f"/diving-centers/{center.id}"
+                detail_path = (
+                    f"/diving-centers/{center.id}/{slug}"
+                    if slug
+                    else f"/diving-centers/{center.id}"
+                )
                 location_parts = [center.city or center.region, center.country]
                 location_suffix = ", ".join(filter(None, location_parts))
                 page_title = f"Divemap - {center.name}"
@@ -502,7 +597,11 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 route_links = []
                 for r in routes:
                     slug = slugify(r.name)
-                    link_path = f"/dive-routes/{r.id}/{slug}" if slug else f"/dive-routes/{r.id}"
+                    link_path = (
+                        f"/dive-routes/{r.id}/{slug}"
+                        if slug
+                        else f"/dive-routes/{r.id}"
+                    )
                     route_links.append((r.name, link_path))
 
                 page_title = "Divemap - Dive Routes"
@@ -534,13 +633,25 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
                 requested_slug = parts[2] if len(parts) >= 3 else ""
                 if requested_slug != slug:
-                    redirect_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+                    redirect_path = (
+                        f"/dive-routes/{route.id}/{slug}"
+                        if slug
+                        else f"/dive-routes/{route.id}"
+                    )
+                    return RedirectResponse(
+                        url=f"{base_url}{redirect_path}", status_code=301
+                    )
 
-                detail_path = f"/dive-routes/{route.id}/{slug}" if slug else f"/dive-routes/{route.id}"
+                detail_path = (
+                    f"/dive-routes/{route.id}/{slug}"
+                    if slug
+                    else f"/dive-routes/{route.id}"
+                )
                 page_title = f"Divemap - {route.name}"
 
-                main_content = render_dive_route_main(route, get_dive_site_slug=get_dive_site_slug)
+                main_content = render_dive_route_main(
+                    route, get_dive_site_slug=get_dive_site_slug
+                )
                 description = dive_route_meta_description(route)
                 json_ld = dive_route_schema(base_url, detail_path, route)
                 canonical = f"{base_url}{detail_path}"
@@ -554,7 +665,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     .filter(
                         Dive.is_private == False,
                         User.enabled == True,
-                        User.deleted_at.is_(None)
+                        User.deleted_at.is_(None),
                     )
                     .options(joinedload(Dive.user), joinedload(Dive.dive_site))
                     .order_by(Dive.id.desc())
@@ -594,16 +705,24 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         Dive.id == dive_id,
                         Dive.is_private == False,
                         User.enabled == True,
-                        User.deleted_at.is_(None)
+                        User.deleted_at.is_(None),
                     )
-                    .options(joinedload(Dive.user), joinedload(Dive.dive_site), joinedload(Dive.media))
+                    .options(
+                        joinedload(Dive.user),
+                        joinedload(Dive.dive_site),
+                        joinedload(Dive.media),
+                    )
                     .first()
                 )
                 if not dive:
                     raise HTTPException(status_code=404, detail="Dive not found")
 
                 # Extract a random photo media URL if available
-                photos = [m for m in dive.media if m.media_type == MediaType.photo] if dive.media else []
+                photos = (
+                    [m for m in dive.media if m.media_type == MediaType.photo]
+                    if dive.media
+                    else []
+                )
                 if photos:
                     photo_media = random.choice(photos)
                     # Order of preference: thumbnail, if it doesn't exist then medium, if it doesn't exist then original
@@ -619,7 +738,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         preview_path = photo_media.url
                         image_width = None
                         image_height = None
-                    
+
                     image_url = resolve_seo_image_url(preview_path, base_url)
                     image_type = get_image_mime_type(image_url)
 
@@ -632,10 +751,16 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
                 requested_slug = parts[2] if len(parts) >= 3 else ""
                 if requested_slug != slug:
-                    redirect_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
-                    return RedirectResponse(url=f"{base_url}{redirect_path}", status_code=301)
+                    redirect_path = (
+                        f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
+                    )
+                    return RedirectResponse(
+                        url=f"{base_url}{redirect_path}", status_code=301
+                    )
 
-                detail_path = f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
+                detail_path = (
+                    f"/dives/{dive.id}/{slug}" if slug else f"/dives/{dive.id}"
+                )
 
                 main_content = f"""<main class="seo-prerender">
                     <nav class="breadcrumbs">
@@ -644,12 +769,12 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                         <span>{escape_text(dive.name or f"{diver}'s dive at {site_name}")}</span>
                     </nav>
                     <h1>{escape_text(diver)}'s dive at {escape_text(site_name)}</h1>
-                    <p><strong>Title:</strong> {escape_text(dive.name or 'Unnamed Dive')}</p>
+                    <p><strong>Title:</strong> {escape_text(dive.name or "Unnamed Dive")}</p>
                     <p><strong>Diver:</strong> <a href="/users/{escape_text(diver)}">{escape_text(diver)}</a></p>
                     <p><strong>Dive Site:</strong> {escape_text(site_name)}</p>
-                    <p><strong>Max Depth:</strong> {escape_text(format_depth(dive.max_depth)) if dive.max_depth is not None else 'Unknown'} m</p>
-                    <p><strong>Duration:</strong> {escape_text(str(dive.duration)) if dive.duration is not None else 'Unknown'} mins</p>
-                    <p><strong>Notes:</strong> {escape_text(dive.dive_information or 'No notes provided.')}</p>
+                    <p><strong>Max Depth:</strong> {escape_text(format_depth(dive.max_depth)) if dive.max_depth is not None else "Unknown"} m</p>
+                    <p><strong>Duration:</strong> {escape_text(str(dive.duration)) if dive.duration is not None else "Unknown"} mins</p>
+                    <p><strong>Notes:</strong> {escape_text(dive.dive_information or "No notes provided.")}</p>
                 </main>"""
                 canonical = f"{base_url}{detail_path}"
 
@@ -658,7 +783,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 username = parts[1]
                 # Validate username structure (alphanumeric, underscores, hyphens only) to prevent malicious URL parsing
                 if not re.match(r"^[a-zA-Z0-9_\-]+$", username):
-                    raise HTTPException(status_code=404, detail="Invalid username format")
+                    raise HTTPException(
+                        status_code=404, detail="Invalid username format"
+                    )
 
                 # Fetch only active, non-deleted users
                 user = (
@@ -666,7 +793,7 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                     .filter(
                         User.username == username,
                         User.enabled == True,
-                        User.deleted_at.is_(None)
+                        User.deleted_at.is_(None),
                     )
                     .first()
                 )
@@ -759,7 +886,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
                 orgs = db.query(DivingOrganization).all()
                 org_links = []
                 for o in orgs:
-                    org_links.append((o.name, f"/resources/diving-organizations#{slugify(o.name)}"))
+                    org_links.append(
+                        (o.name, f"/resources/diving-organizations#{slugify(o.name)}")
+                    )
 
                 page_title = "Divemap - Diving Organizations"
                 description = "Directory of international scuba diving training organizations and certification bodies."
@@ -840,7 +969,9 @@ async def get_prerendered_page(request: Request, path: str, db: Session = Depend
             main_content=main_content,
             base_url=base_url,
         )
-        return HTMLResponse(content=html, status_code=he.status_code, headers={"X-Prerendered": "404"})
+        return HTMLResponse(
+            content=html, status_code=he.status_code, headers={"X-Prerendered": "404"}
+        )
 
     template_html = await get_spa_template()
     html = render_seo_page(

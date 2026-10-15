@@ -16,24 +16,26 @@ from app.utils import create_default_notification_preferences
 
 logger = logging.getLogger(__name__)
 
+
 class FacebookAuthError(Exception):
     """Exception raised for Facebook authentication errors."""
+
     pass
+
 
 def is_facebook_auth_configured() -> bool:
     """Check if Facebook OAuth is enabled with App ID and App Secret."""
     app_id = os.getenv("FACEBOOK_APP_ID")
     app_secret = os.getenv("FACEBOOK_APP_SECRET")
-    return bool(
-        app_id and app_id.strip()
-        and app_secret and app_secret.strip()
-    )
+    return bool(app_id and app_id.strip() and app_secret and app_secret.strip())
+
 
 def get_facebook_app_id() -> Optional[str]:
     """Get Facebook App ID if Facebook auth is fully configured."""
     if is_facebook_auth_configured():
         return os.getenv("FACEBOOK_APP_ID", "").strip()
     return None
+
 
 def _compute_appsecret_proof(token: str, app_secret: str) -> str:
     """HMAC-SHA256 of the access token using the app secret (Meta appsecret_proof)."""
@@ -42,6 +44,7 @@ def _compute_appsecret_proof(token: str, app_secret: str) -> str:
         token.encode("utf-8"),
         hashlib.sha256,
     ).hexdigest()
+
 
 def verify_facebook_token(token: str) -> Dict[str, Any]:
     """Verify Facebook user access token is valid and issued for this app."""
@@ -69,10 +72,9 @@ def verify_facebook_token(token: str) -> Dict[str, Any]:
         debug_data = debug_payload.get("data") or {}
 
         if debug_response.status_code != 200 or "error" in debug_payload:
-            error_msg = (
-                (debug_payload.get("error") or {}).get("message")
-                or "Facebook token validation failed."
-            )
+            error_msg = (debug_payload.get("error") or {}).get(
+                "message"
+            ) or "Facebook token validation failed."
             logger.warning(f"Facebook debug_token error: {error_msg}")
             raise FacebookAuthError(error_msg)
 
@@ -99,22 +101,30 @@ def verify_facebook_token(token: str) -> Dict[str, Any]:
         data = response.json()
 
         if response.status_code != 200 or "error" in data:
-            error_msg = data.get("error", {}).get("message", "Facebook token validation failed.")
+            error_msg = data.get("error", {}).get(
+                "message", "Facebook token validation failed."
+            )
             logger.warning(f"Facebook Graph API validation error: {error_msg}")
             raise FacebookAuthError(error_msg)
 
         fb_id = data.get("id")
         if not fb_id:
-            raise FacebookAuthError("Facebook token validation failed: missing user id.")
+            raise FacebookAuthError(
+                "Facebook token validation failed: missing user id."
+            )
 
         picture_url = None
-        if "picture" in data and "data" in data["picture"] and "url" in data["picture"]["data"]:
+        if (
+            "picture" in data
+            and "data" in data["picture"]
+            and "url" in data["picture"]["data"]
+        ):
             picture_url = data["picture"]["data"]["url"]
 
         return {
             "id": str(fb_id),
             "name": data.get("name", ""),
-            "picture_url": picture_url
+            "picture_url": picture_url,
         }
     except FacebookAuthError:
         raise
@@ -125,9 +135,10 @@ def verify_facebook_token(token: str) -> Dict[str, Any]:
         logger.error(f"Unexpected Facebook token response: {e}")
         raise FacebookAuthError("Facebook token validation failed.") from e
 
+
 def _generate_valid_username(db: Session, base_name: str, fb_id: str) -> str:
     """Generate a sanitized, unique username."""
-    clean = re.sub(r'[^a-zA-Z0-9_]', '', (base_name or "").lower().replace(' ', '_'))
+    clean = re.sub(r"[^a-zA-Z0-9_]", "", (base_name or "").lower().replace(" ", "_"))
     if len(clean) < 3:
         clean = f"fb_user_{fb_id[:6]}"
     clean = clean[:40]
@@ -136,9 +147,10 @@ def _generate_valid_username(db: Session, base_name: str, fb_id: str) -> str:
     counter = 1
     while db.query(User).filter(User.username == candidate).first() is not None:
         suffix = f"_{counter}"
-        candidate = f"{clean[:50-len(suffix)]}{suffix}"
+        candidate = f"{clean[: 50 - len(suffix)]}{suffix}"
         counter += 1
     return candidate
+
 
 def get_or_create_facebook_user(db: Session, fb_info: Dict[str, Any]) -> User:
     """Find existing Facebook user or register a new one with a synthetic email."""
@@ -172,7 +184,7 @@ def get_or_create_facebook_user(db: Session, fb_info: Dict[str, Any]) -> User:
         facebook_avatar_url=picture_url,
         enabled=True,
         email_verified=False,
-        email_notifications_opted_out=True
+        email_notifications_opted_out=True,
     )
     db.add(new_user)
     db.commit()

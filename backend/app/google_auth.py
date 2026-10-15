@@ -23,10 +23,12 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 # Set up logging
 logger = logging.getLogger(__name__)
 
+
 def is_google_auth_configured() -> bool:
     """Check if Google OAuth is configured."""
     client_id = os.getenv("GOOGLE_CLIENT_ID")
     return bool(client_id and client_id.strip())
+
 
 def get_google_client_id() -> Optional[str]:
     """Get Google OAuth client ID if configured."""
@@ -34,16 +36,22 @@ def get_google_client_id() -> Optional[str]:
         return os.getenv("GOOGLE_CLIENT_ID", "").strip()
     return None
 
+
 # Validate Google OAuth configuration (only when actually using Google OAuth)
 def validate_google_config():
     """Validate that Google OAuth configuration is available"""
     if not is_google_auth_configured():
         logger.error("GOOGLE_CLIENT_ID environment variable is not set")
-        raise ValueError("GOOGLE_CLIENT_ID environment variable is required for Google OAuth")
+        raise ValueError(
+            "GOOGLE_CLIENT_ID environment variable is required for Google OAuth"
+        )
+
 
 class GoogleAuthError(Exception):
     """Custom exception for Google authentication errors"""
+
     pass
+
 
 def verify_google_token(token: str) -> Dict[str, Any]:
     """
@@ -61,28 +69,28 @@ def verify_google_token(token: str) -> Dict[str, Any]:
     try:
         # Validate Google OAuth configuration
         validate_google_config()
-        
+
         # Basic token format validation
         if not token or not isinstance(token, str):
             raise GoogleAuthError("Token is required and must be a string")
-        
+
         # Check if token has the basic JWT structure (3 parts separated by dots)
-        token_parts = token.split('.')
+        token_parts = token.split(".")
         if len(token_parts) != 3:
-            raise GoogleAuthError("Invalid token format: JWT token must have 3 parts separated by dots")
-        
+            raise GoogleAuthError(
+                "Invalid token format: JWT token must have 3 parts separated by dots"
+            )
+
         # Verify the token
         idinfo = id_token.verify_oauth2_token(
-            token,
-            requests.Request(),
-            GOOGLE_CLIENT_ID
+            token, requests.Request(), GOOGLE_CLIENT_ID
         )
 
         # Check if the token is still valid
-        if idinfo['aud'] != GOOGLE_CLIENT_ID:
+        if idinfo["aud"] != GOOGLE_CLIENT_ID:
             raise GoogleAuthError("Wrong audience.")
 
-        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+        if idinfo["iss"] not in ["accounts.google.com", "https://accounts.google.com"]:
             raise GoogleAuthError("Wrong issuer.")
 
         return idinfo
@@ -93,6 +101,7 @@ def verify_google_token(token: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Unexpected error during token verification: {str(e)}")
         raise GoogleAuthError(f"Token verification failed: {str(e)}") from e
+
 
 def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> User:
     """
@@ -105,8 +114,8 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
     Returns:
         User object (existing or newly created)
     """
-    email = google_user_info.get('email')
-    google_id = google_user_info.get('sub')  # Google's unique user ID
+    email = google_user_info.get("email")
+    google_id = google_user_info.get("sub")  # Google's unique user ID
 
     if not email:
         raise GoogleAuthError("Email not provided by Google")
@@ -119,11 +128,11 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         if not existing_user.google_id:
             existing_user.google_id = google_id
         # Update name if not set and we have one from Google
-        if not existing_user.name and google_user_info.get('name'):
-            existing_user.name = google_user_info.get('name')
+        if not existing_user.name and google_user_info.get("name"):
+            existing_user.name = google_user_info.get("name")
         # Always update/refresh the Google avatar URL
-        if google_user_info.get('picture'):
-            existing_user.google_avatar_url = google_user_info.get('picture')
+        if google_user_info.get("picture"):
+            existing_user.google_avatar_url = google_user_info.get("picture")
         # Set email as verified (Google already verifies emails)
         if not existing_user.email_verified:
             existing_user.email_verified = True
@@ -135,24 +144,24 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
     existing_user = db.query(User).filter(User.google_id == google_id).first()
     if existing_user:
         # Update/refresh the Google avatar URL
-        if google_user_info.get('picture'):
-            existing_user.google_avatar_url = google_user_info.get('picture')
+        if google_user_info.get("picture"):
+            existing_user.google_avatar_url = google_user_info.get("picture")
             db.commit()
         return existing_user
 
     # Create new user
     # Generate username from first part of email
     username = _generate_valid_username(db, email)
-    
+
     # Get profile picture URL and name if available
-    picture_url = google_user_info.get('picture')
-    full_name = google_user_info.get('name', '')
-    
+    picture_url = google_user_info.get("picture")
+    full_name = google_user_info.get("name", "")
+
     # Create new user
     # Generate a random password hash for Google users (they won't use password login)
     random_password = f"google_oauth_{google_id}_{int(time.time())}"
     password_hash = get_password_hash(random_password)
-    
+
     new_user = User(
         username=username,
         name=full_name,  # Store the full name from Google
@@ -166,24 +175,28 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         email_verified=True,  # Google already verifies emails
         email_verified_at=datetime.now(UTC),  # Set verification timestamp
         is_admin=False,
-        is_moderator=False
+        is_moderator=False,
     )
 
     try:
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        
+
         # Create default notification preferences for new user
         try:
             from app.utils import create_default_notification_preferences
+
             create_default_notification_preferences(new_user.id, db)
         except Exception as e:
             # Log error but don't fail user creation if preference creation fails
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.warning(f"Failed to create default notification preferences for Google user {new_user.id}: {e}")
-        
+            logger.warning(
+                f"Failed to create default notification preferences for Google user {new_user.id}: {e}"
+            )
+
         # Notify admins about new Google OAuth user registration
         # Google users are auto-verified, so notify immediately
         # The notification service will check if notifications were already sent to prevent duplicates
@@ -192,7 +205,7 @@ def get_or_create_google_user(db: Session, google_user_info: Dict[str, Any]) -> 
         # For now, we'll skip notification here and let the endpoint handle it
         # This avoids event loop conflicts
         pass
-        
+
         return new_user
     except IntegrityError as e:
         db.rollback()
@@ -204,39 +217,41 @@ def _generate_valid_username(db: Session, email: str) -> str:
     Generate a valid username from the first part of the email address.
     Strips any content after a '+' sign to prevent multiple registrations from the same base email.
     If the generated username already exists, registration fails.
-    
+
     Args:
         db: Database session
         email: User's email address
-        
+
     Returns:
         Valid username string
-    
+
     Raises:
         GoogleAuthError: If the generated username is already taken.
     """
     # Extract first part of email (before @)
-    email_prefix = email.split('@')[0].lower()
-    
+    email_prefix = email.split("@")[0].lower()
+
     # Strip everything after a '+' if it exists
-    email_prefix = email_prefix.split('+')[0]
-    
+    email_prefix = email_prefix.split("+")[0]
+
     # Replace dots with underscores instead of truncating (fixes Issue #185)
-    username = email_prefix.replace('.', '_')
-    
+    username = email_prefix.replace(".", "_")
+
     # Remove any special characters that don't match the pattern ^[a-zA-Z0-9_]+$
-    username = re.sub(r'[^a-zA-Z0-9_]', '', username)
-    
+    username = re.sub(r"[^a-zA-Z0-9_]", "", username)
+
     # Ensure username is not empty
     if not username:
         username = "user"
-    
+
     # Check if username already exists
     # If it does, we fail the registration instead of appending numbers to prevent
     # a user creating multiple accounts (e.g., first.last+spam1, first.last+spam2)
     if db.query(User).filter(User.username == username).first():
-        raise GoogleAuthError(f"Cannot create account: Username '{username}' derived from email is already in use.")
-    
+        raise GoogleAuthError(
+            f"Cannot create account: Username '{username}' derived from email is already in use."
+        )
+
     return username
 
 
@@ -261,19 +276,15 @@ def authenticate_google_user(token: str, db: Session) -> str:
         # Create JWT token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-            data={"sub": user.username},
-            expires_delta=access_token_expires
+            data={"sub": user.username}, expires_delta=access_token_expires
         )
 
         return access_token
 
     except GoogleAuthError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication failed"
+            detail="Authentication failed",
         )

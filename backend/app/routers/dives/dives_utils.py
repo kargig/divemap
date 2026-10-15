@@ -26,35 +26,39 @@ from app.models import DiveSite, DiveSiteAlias
 from .dives_shared import AvailableTag
 
 
-def generate_dive_name(dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None) -> str:
+def generate_dive_name(
+    dive_site_name: str, dive_date: date, original_dive_name: Optional[str] = None
+) -> str:
     """Generate automatic dive name from dive site, date, and optional original dive name"""
-    date_str = dive_date.strftime('%Y/%m/%d')
+    date_str = dive_date.strftime("%Y/%m/%d")
     if original_dive_name:
         return f"{dive_site_name} - {date_str} - {original_dive_name}"
     return f"{dive_site_name} - {date_str}"
+
 
 def get_or_create_deco_tag(db: Session) -> AvailableTag:
     """Get or create the 'deco' tag for decompression dives."""
     deco_tag = db.query(AvailableTag).filter(AvailableTag.name == "deco").first()
     if not deco_tag:
         deco_tag = AvailableTag(
-            name="deco",
-            description="Decompression dive - requires decompression stops"
+            name="deco", description="Decompression dive - requires decompression stops"
         )
         db.add(deco_tag)
         db.commit()
         db.refresh(deco_tag)
     return deco_tag
 
+
 def has_deco_profile(profile_data: dict) -> bool:
     """Check if dive profile contains any samples with in_deco=True."""
-    if not profile_data or 'samples' not in profile_data:
+    if not profile_data or "samples" not in profile_data:
         return False
-    
-    for sample in profile_data['samples']:
-        if sample.get('in_deco') is True:
+
+    for sample in profile_data["samples"]:
+        if sample.get("in_deco") is True:
             return True
     return False
+
 
 def calculate_similarity(str1: str, str2: str) -> float:
     """Calculate string similarity using multiple algorithms"""
@@ -69,9 +73,48 @@ def calculate_similarity(str1: str, str2: str) -> float:
 
     # Method 2: Word-based similarity
     import re
-    common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'dive', 'site', 'reef', 'rock', 'point', 'bay', 'beach', 's', 'ss', 'mv', 'ms', 'hms', 'wreck', 'i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x'}
-    str1_words = set(re.findall(r'\b\w+\b', str1_lower)) - common_words
-    str2_words = set(re.findall(r'\b\w+\b', str2_lower)) - common_words
+
+    common_words = {
+        "the",
+        "a",
+        "an",
+        "and",
+        "or",
+        "but",
+        "in",
+        "on",
+        "at",
+        "to",
+        "for",
+        "of",
+        "with",
+        "by",
+        "dive",
+        "site",
+        "reef",
+        "rock",
+        "point",
+        "bay",
+        "beach",
+        "s",
+        "ss",
+        "mv",
+        "ms",
+        "hms",
+        "wreck",
+        "i",
+        "ii",
+        "iii",
+        "iv",
+        "v",
+        "vi",
+        "vii",
+        "viii",
+        "ix",
+        "x",
+    }
+    str1_words = set(re.findall(r"\b\w+\b", str1_lower)) - common_words
+    str2_words = set(re.findall(r"\b\w+\b", str2_lower)) - common_words
 
     subset_similarity = 0.0
     if not str1_words and not str2_words:
@@ -80,10 +123,14 @@ def calculate_similarity(str1: str, str2: str) -> float:
         intersection = str1_words.intersection(str2_words)
         union = str1_words.union(str2_words)
         word_similarity = len(intersection) / len(union) if union else 0.0
-        
+
         # Token-subset matching rule:
         # If all significant words of one name are present in the other name, they are highly relevant
-        if str1_words and str2_words and (str1_words.issubset(str2_words) or str2_words.issubset(str1_words)):
+        if (
+            str1_words
+            and str2_words
+            and (str1_words.issubset(str2_words) or str2_words.issubset(str1_words))
+        ):
             subset_similarity = 0.8
 
     # Method 3: Substring matching
@@ -93,7 +140,10 @@ def calculate_similarity(str1: str, str2: str) -> float:
             substring_similarity = 0.9
 
     # Return the highest similarity score
-    return max(sequence_similarity, word_similarity, substring_similarity, subset_similarity)
+    return max(
+        sequence_similarity, word_similarity, substring_similarity, subset_similarity
+    )
+
 
 def find_potential_matches(search_term, data_list, threshold=0.6):
     """Generic fuzzy matcher for a list of objects with a 'name' attribute"""
@@ -101,16 +151,19 @@ def find_potential_matches(search_term, data_list, threshold=0.6):
     for item in data_list:
         similarity = calculate_similarity(search_term, item.name)
         if similarity >= threshold:
-            matches.append({
-                "id": item.id,
-                "name": item.name,
-                "similarity": similarity,
-                "original_name": search_term
-            })
-    
+            matches.append(
+                {
+                    "id": item.id,
+                    "name": item.name,
+                    "similarity": similarity,
+                    "original_name": search_term,
+                }
+            )
+
     # Sort by similarity desc
-    matches.sort(key=lambda x: x['similarity'], reverse=True)
+    matches.sort(key=lambda x: x["similarity"], reverse=True)
     return matches
+
 
 def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None, sites=None):
     """
@@ -128,18 +181,22 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None, sites=N
             # 1. Exact Match
             for site in sites:
                 if site.name == search_name:
-                    return {"id": site.id, "name": site.name, "match_type": "exact_name"}
-            
+                    return {
+                        "id": site.id,
+                        "name": site.name,
+                        "match_type": "exact_name",
+                    }
+
             # 2. Fuzzy Match against all sites
             matches = find_potential_matches(search_name, sites, threshold=0.6)
             if matches:
                 best_match = matches[0]
                 return {
-                    "id": best_match['id'],
-                    "name": best_match['name'],
+                    "id": best_match["id"],
+                    "name": best_match["name"],
                     "match_type": "similarity",
-                    "similarity": best_match['similarity'],
-                    "proposed_sites": matches[:5]
+                    "similarity": best_match["similarity"],
+                    "proposed_sites": matches[:5],
                 }
             return None
 
@@ -150,29 +207,36 @@ def find_dive_site_by_import_id(import_site_id, db, dive_site_name=None, sites=N
             return {"id": site.id, "name": site.name, "match_type": "exact_name"}
 
         # 2. Alias Match
-        alias = db.query(DiveSiteAlias).filter(DiveSiteAlias.alias == search_name).first()
+        alias = (
+            db.query(DiveSiteAlias).filter(DiveSiteAlias.alias == search_name).first()
+        )
         if alias:
             site = db.query(DiveSite).filter(DiveSite.id == alias.dive_site_id).first()
             if site:
                 return {"id": site.id, "name": site.name, "match_type": "exact_alias"}
 
         # 3. Targeted Fuzzy
-        first_word = search_name.split()[0] if ' ' in search_name else search_name
-        candidates = db.query(DiveSite).filter(
-            (DiveSite.name.like(f"{search_name[:3]}%")) |
-            (DiveSite.name.like(f"%{first_word}%"))
-        ).limit(100).all()
+        first_word = search_name.split()[0] if " " in search_name else search_name
+        candidates = (
+            db.query(DiveSite)
+            .filter(
+                (DiveSite.name.like(f"{search_name[:3]}%"))
+                | (DiveSite.name.like(f"%{first_word}%"))
+            )
+            .limit(100)
+            .all()
+        )
 
         if candidates:
             matches = find_potential_matches(search_name, candidates, threshold=0.6)
             if matches:
                 best_match = matches[0]
                 return {
-                    "id": best_match['id'],
-                    "name": best_match['name'],
+                    "id": best_match["id"],
+                    "name": best_match["name"],
                     "match_type": "similarity",
-                    "similarity": best_match['similarity'],
-                    "proposed_sites": matches[:5]
+                    "similarity": best_match["similarity"],
+                    "proposed_sites": matches[:5],
                 }
 
         return None

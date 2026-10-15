@@ -14,6 +14,7 @@ import orjson
 try:
     import boto3
     from botocore.exceptions import ClientError
+
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -23,41 +24,43 @@ logger = logging.getLogger(__name__)
 
 class SQSService:
     """Service for sending messages to AWS SQS queue."""
-    
+
     def __init__(self):
         """Initialize SQS service with credential checking."""
         self.sqs_available = self._check_sqs_credentials() and BOTO3_AVAILABLE
         self.sqs_client = self._create_sqs_client() if self.sqs_available else None
-        self.queue_url = os.getenv('AWS_SQS_QUEUE_URL')
-        
+        self.queue_url = os.getenv("AWS_SQS_QUEUE_URL")
+
         if self.sqs_available:
             logger.info("SQS service initialized successfully")
         else:
-            logger.warning("SQS service unavailable - email notifications will not be queued")
-    
+            logger.warning(
+                "SQS service unavailable - email notifications will not be queued"
+            )
+
     def _check_sqs_credentials(self) -> bool:
         """Check if all required SQS environment variables are present."""
         required_vars = [
-            'AWS_ACCESS_KEY_ID',
-            'AWS_SECRET_ACCESS_KEY',
-            'AWS_SQS_QUEUE_URL',
-            'AWS_REGION'
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SQS_QUEUE_URL",
+            "AWS_REGION",
         ]
         return all(os.getenv(var) for var in required_vars)
-    
+
     def _create_sqs_client(self):
         """Create SQS client."""
         try:
             return boto3.client(
-                'sqs',
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                region_name=os.getenv('AWS_REGION', 'us-east-1')
+                "sqs",
+                aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+                aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+                region_name=os.getenv("AWS_REGION", "us-east-1"),
             )
         except Exception as e:
             logger.error(f"Failed to create SQS client: {e}")
             return None
-    
+
     def send_email_task(
         self,
         notification_id: int,
@@ -65,11 +68,11 @@ class SQSService:
         notification_data: Dict[str, Any],
         delay_seconds: int = 0,
         user_id: Optional[int] = None,
-        unsubscribe_token: Optional[str] = None
+        unsubscribe_token: Optional[str] = None,
     ) -> bool:
         """
         Send email notification task to SQS queue.
-        
+
         Args:
             notification_id: ID of the notification record
             user_email: Recipient email address
@@ -77,48 +80,52 @@ class SQSService:
             delay_seconds: Optional delay before processing (0-900 seconds)
             user_id: Optional user ID (for unsubscribe token lookup in Lambda)
             unsubscribe_token: Optional unsubscribe token (to avoid Lambda API call)
-        
+
         Returns:
             True if message was sent successfully, False otherwise
         """
         if not self.sqs_available or not self.sqs_client:
             logger.warning("SQS not available - cannot queue email task")
             return False
-        
+
         try:
             message_body = {
-                'notification_id': notification_id,
-                'user_email': user_email,
-                'notification': notification_data
+                "notification_id": notification_id,
+                "user_email": user_email,
+                "notification": notification_data,
             }
-            
+
             # Include user_id and unsubscribe_token if provided
             # This allows Lambda to skip the API call to fetch the token
             if user_id is not None:
-                message_body['user_id'] = user_id
+                message_body["user_id"] = user_id
             if unsubscribe_token:
-                message_body['unsubscribe_token'] = unsubscribe_token
-            
+                message_body["unsubscribe_token"] = unsubscribe_token
+
             response = self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
-                MessageBody=orjson.dumps(message_body).decode('utf-8'),
-                DelaySeconds=min(delay_seconds, 900)
+                MessageBody=orjson.dumps(message_body).decode("utf-8"),
+                DelaySeconds=min(delay_seconds, 900),
             )
-            
-            logger.info(f"Email task queued successfully: MessageId={response.get('MessageId')}")
+
+            logger.info(
+                f"Email task queued successfully: MessageId={response.get('MessageId')}"
+            )
             return True
-            
+
         except ClientError as e:
             logger.error(f"AWS SQS error: {e}")
             return False
         except Exception as e:
             logger.error(f"Unexpected error sending to SQS: {e}")
             return False
-    
-    def send_batch_email_tasks(self, tasks: list[Dict[str, Any]], delay_seconds: int = 0) -> int:
+
+    def send_batch_email_tasks(
+        self, tasks: list[Dict[str, Any]], delay_seconds: int = 0
+    ) -> int:
         """
         Send multiple email notification tasks to SQS queue in batch.
-        
+
         Args:
             tasks: List of task dictionaries, each with:
                 - 'notification_id': ID of the notification record
@@ -127,60 +134,63 @@ class SQSService:
                 - 'user_id': Optional user ID (for unsubscribe token lookup in Lambda)
                 - 'unsubscribe_token': Optional unsubscribe token (to avoid Lambda API call)
             delay_seconds: Optional delay before processing (0-900 seconds)
-        
+
         Returns:
             Number of successfully sent messages
         """
         if not self.sqs_available or not self.sqs_client:
             logger.warning("SQS not available - cannot queue email tasks")
             return 0
-        
+
         if not tasks:
             return 0
-        
+
         # SQS batch limit is 10 messages
         batch_size = 10
         success_count = 0
-        
+
         for i in range(0, len(tasks), batch_size):
-            batch = tasks[i:i + batch_size]
-            
+            batch = tasks[i : i + batch_size]
+
             try:
                 entries = []
                 for idx, task in enumerate(batch):
                     message_body = {
-                        'notification_id': task['notification_id'],
-                        'user_email': task['user_email'],
-                        'notification': task['notification']
+                        "notification_id": task["notification_id"],
+                        "user_email": task["user_email"],
+                        "notification": task["notification"],
                     }
-                    
+
                     # Include user_id and unsubscribe_token if provided
-                    if 'user_id' in task and task['user_id'] is not None:
-                        message_body['user_id'] = task['user_id']
-                    if 'unsubscribe_token' in task and task['unsubscribe_token']:
-                        message_body['unsubscribe_token'] = task['unsubscribe_token']
-                    
-                    entries.append({
-                        'Id': str(i + idx),
-                        'MessageBody': orjson.dumps(message_body).decode('utf-8'),
-                        'DelaySeconds': min(delay_seconds, 900)
-                    })
-                
+                    if "user_id" in task and task["user_id"] is not None:
+                        message_body["user_id"] = task["user_id"]
+                    if "unsubscribe_token" in task and task["unsubscribe_token"]:
+                        message_body["unsubscribe_token"] = task["unsubscribe_token"]
+
+                    entries.append(
+                        {
+                            "Id": str(i + idx),
+                            "MessageBody": orjson.dumps(message_body).decode("utf-8"),
+                            "DelaySeconds": min(delay_seconds, 900),
+                        }
+                    )
+
                 response = self.sqs_client.send_message_batch(
-                    QueueUrl=self.queue_url,
-                    Entries=entries
+                    QueueUrl=self.queue_url, Entries=entries
                 )
-                
-                success_count += len(response.get('Successful', []))
-                
-                if response.get('Failed'):
-                    logger.warning(f"Some messages failed in batch: {response['Failed']}")
-                    
+
+                success_count += len(response.get("Successful", []))
+
+                if response.get("Failed"):
+                    logger.warning(
+                        f"Some messages failed in batch: {response['Failed']}"
+                    )
+
             except ClientError as e:
                 logger.error(f"AWS SQS batch error: {e}")
             except Exception as e:
                 logger.error(f"Unexpected error sending batch to SQS: {e}")
-        
+
         logger.info(f"Queued {success_count}/{len(tasks)} email tasks")
         return success_count
 
@@ -191,11 +201,11 @@ class SQSService:
         p256dh: str,
         auth: str,
         payload: Dict[str, Any],
-        delay_seconds: int = 0
+        delay_seconds: int = 0,
     ) -> bool:
         """
         Send a single push notification task to SQS.
-        
+
         Args:
             subscription_id: ID of the push subscription record
             endpoint: Push service endpoint URL
@@ -206,89 +216,100 @@ class SQSService:
         """
         if not self.sqs_available or not self.sqs_client:
             return False
-            
+
         try:
             message_body = {
-                'type': 'push',
-                'subscription_id': subscription_id,
-                'endpoint': endpoint,
-                'p256dh': p256dh,
-                'auth': auth,
-                'payload': payload
+                "type": "push",
+                "subscription_id": subscription_id,
+                "endpoint": endpoint,
+                "p256dh": p256dh,
+                "auth": auth,
+                "payload": payload,
             }
-            
+
             self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
-                MessageBody=orjson.dumps(message_body).decode('utf-8'),
-                DelaySeconds=min(delay_seconds, 900)
+                MessageBody=orjson.dumps(message_body).decode("utf-8"),
+                DelaySeconds=min(delay_seconds, 900),
             )
             return True
         except Exception as e:
             logger.error(f"Error sending push task to SQS: {e}")
             return False
 
-    def send_push_tasks(self, tasks: list[Dict[str, Any]], delay_seconds: int = 0) -> int:
+    def send_push_tasks(
+        self, tasks: list[Dict[str, Any]], delay_seconds: int = 0
+    ) -> int:
         """
         Send multiple push notification tasks to SQS in batch.
         """
         if not self.sqs_available or not self.sqs_client or not tasks:
             return 0
-            
+
         batch_size = 10
         success_count = 0
-        
+
         for i in range(0, len(tasks), batch_size):
-            batch = tasks[i:i + batch_size]
+            batch = tasks[i : i + batch_size]
             try:
                 entries = []
                 for idx, task in enumerate(batch):
                     message_body = {
-                        'type': 'push',
-                        'subscription_id': task['subscription_id'],
-                        'endpoint': task['endpoint'],
-                        'p256dh': task['p256dh'],
-                        'auth': task['auth'],
-                        'payload': task['payload']
+                        "type": "push",
+                        "subscription_id": task["subscription_id"],
+                        "endpoint": task["endpoint"],
+                        "p256dh": task["p256dh"],
+                        "auth": task["auth"],
+                        "payload": task["payload"],
                     }
-                    entries.append({
-                        'Id': str(i + idx),
-                        'MessageBody': orjson.dumps(message_body).decode('utf-8'),
-                        'DelaySeconds': min(delay_seconds, 900)
-                    })
-                
+                    entries.append(
+                        {
+                            "Id": str(i + idx),
+                            "MessageBody": orjson.dumps(message_body).decode("utf-8"),
+                            "DelaySeconds": min(delay_seconds, 900),
+                        }
+                    )
+
                 response = self.sqs_client.send_message_batch(
-                    QueueUrl=self.queue_url,
-                    Entries=entries
+                    QueueUrl=self.queue_url, Entries=entries
                 )
-                success_count += len(response.get('Successful', []))
+                success_count += len(response.get("Successful", []))
             except Exception as e:
                 logger.error(f"Error sending push batch to SQS: {e}")
-                
+
         return success_count
 
-    def send_broadcast_relay_task(self, room_id: str, sender_id: int, message_id: int, offset: int = 0, limit: int = 100, is_update: bool = False) -> bool:
+    def send_broadcast_relay_task(
+        self,
+        room_id: str,
+        sender_id: int,
+        message_id: int,
+        offset: int = 0,
+        limit: int = 100,
+        is_update: bool = False,
+    ) -> bool:
         """
         Send a broadcast relay task to SQS.
         This task triggers a recursive Lambda relay for efficient notification fan-out.
         """
         if not self.sqs_available or not self.sqs_client:
             return False
-            
+
         message_body = {
-            'type': 'broadcast_relay',
-            'room_id': room_id,
-            'sender_id': sender_id,
-            'message_id': message_id,
-            'offset': offset,
-            'limit': limit,
-            'is_update': is_update
+            "type": "broadcast_relay",
+            "room_id": room_id,
+            "sender_id": sender_id,
+            "message_id": message_id,
+            "offset": offset,
+            "limit": limit,
+            "is_update": is_update,
         }
-        
+
         try:
             self.sqs_client.send_message(
                 QueueUrl=self.queue_url,
-                MessageBody=orjson.dumps(message_body).decode('utf-8'),
-                DelaySeconds=0
+                MessageBody=orjson.dumps(message_body).decode("utf-8"),
+                DelaySeconds=0,
             )
             return True
         except Exception as e:

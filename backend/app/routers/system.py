@@ -47,15 +47,16 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
+
 @router.get("/metrics", response_model=SystemHealthResponse)
 async def get_system_metrics(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get system-oriented metrics: health, storage, usage, and alerts"""
-    
+
     # Get system health (reuse existing endpoint logic)
     return await get_system_health(current_user, db)
+
 
 from fastapi_cache.decorator import cache
 
@@ -63,278 +64,397 @@ from fastapi_cache.decorator import cache
 @router.get("/statistics")
 @cache(expire=300)
 async def get_general_statistics(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get general statistics: platform stats, geographic distribution, and notification analytics"""
-    
+
     # Calculate date ranges
     now = datetime.now(UTC)
     thirty_days_ago = now - timedelta(days=30)
     seven_days_ago = now - timedelta(days=7)
     one_day_ago = now - timedelta(days=1)
-    
+
     # User Statistics
     total_users = db.query(func.count(User.id)).scalar()
-    active_users_30d = db.query(func.count(User.id)).filter(
-        User.created_at >= thirty_days_ago
-    ).scalar()
-    new_users_7d = db.query(func.count(User.id)).filter(
-        User.created_at >= seven_days_ago
-    ).scalar()
-    new_users_30d = db.query(func.count(User.id)).filter(
-        User.created_at >= thirty_days_ago
-    ).scalar()
-    
+    active_users_30d = (
+        db.query(func.count(User.id))
+        .filter(User.created_at >= thirty_days_ago)
+        .scalar()
+    )
+    new_users_7d = (
+        db.query(func.count(User.id)).filter(User.created_at >= seven_days_ago).scalar()
+    )
+    new_users_30d = (
+        db.query(func.count(User.id))
+        .filter(User.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
     # Calculate user growth rate
     sixty_days_ago = now - timedelta(days=60)
-    users_60d_ago = db.query(func.count(User.id)).filter(
-        User.created_at >= sixty_days_ago
-    ).scalar()
-    users_30d_ago = db.query(func.count(User.id)).filter(
-        User.created_at >= thirty_days_ago
-    ).scalar()
-    
+    users_60d_ago = (
+        db.query(func.count(User.id)).filter(User.created_at >= sixty_days_ago).scalar()
+    )
+    users_30d_ago = (
+        db.query(func.count(User.id))
+        .filter(User.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
     growth_rate = 0
     if users_30d_ago > 0:
-        growth_rate = ((new_users_30d - (users_60d_ago - users_30d_ago)) / users_30d_ago) * 100
-    
+        growth_rate = (
+            (new_users_30d - (users_60d_ago - users_30d_ago)) / users_30d_ago
+        ) * 100
+
     # Content Statistics
     total_dive_sites = db.query(func.count(DiveSite.id)).scalar()
     total_diving_centers = db.query(func.count(DivingCenter.id)).scalar()
     total_dives = db.query(func.count(Dive.id)).scalar()
-    total_dive_routes = db.query(func.count(DiveRoute.id)).filter(
-        DiveRoute.deleted_at.is_(None)
-    ).scalar()
+    total_dive_routes = (
+        db.query(func.count(DiveRoute.id))
+        .filter(DiveRoute.deleted_at.is_(None))
+        .scalar()
+    )
     total_dive_trips = db.query(func.count(ParsedDiveTrip.id)).scalar()
-    total_comments = db.query(func.count(SiteComment.id)).scalar() + db.query(func.count(CenterComment.id)).scalar()
-    total_ratings = db.query(func.count(SiteRating.id)).scalar() + db.query(func.count(CenterRating.id)).scalar()
-    total_media = db.query(func.count(SiteMedia.id)).scalar() + db.query(func.count(DiveMedia.id)).scalar()
-    
+    total_comments = (
+        db.query(func.count(SiteComment.id)).scalar()
+        + db.query(func.count(CenterComment.id)).scalar()
+    )
+    total_ratings = (
+        db.query(func.count(SiteRating.id)).scalar()
+        + db.query(func.count(CenterRating.id)).scalar()
+    )
+    total_media = (
+        db.query(func.count(SiteMedia.id)).scalar()
+        + db.query(func.count(DiveMedia.id)).scalar()
+    )
+
     # Engagement Metrics
     avg_site_rating = db.query(func.avg(SiteRating.score)).scalar() or 0
     avg_center_rating = db.query(func.avg(CenterRating.score)).scalar() or 0
-    
+
     # Recent activity (last 24 hours)
-    recent_comments = db.query(func.count(SiteComment.id)).filter(
-        SiteComment.created_at >= one_day_ago
-    ).scalar() + db.query(func.count(CenterComment.id)).filter(
-        CenterComment.created_at >= one_day_ago
-    ).scalar()
-    
-    recent_ratings = db.query(func.count(SiteRating.id)).filter(
-        SiteRating.created_at >= one_day_ago
-    ).scalar() + db.query(func.count(CenterRating.id)).filter(
-        CenterRating.created_at >= one_day_ago
-    ).scalar()
-    
-    recent_dives = db.query(func.count(Dive.id)).filter(
-        Dive.created_at >= one_day_ago
-    ).scalar()
-    
+    recent_comments = (
+        db.query(func.count(SiteComment.id))
+        .filter(SiteComment.created_at >= one_day_ago)
+        .scalar()
+        + db.query(func.count(CenterComment.id))
+        .filter(CenterComment.created_at >= one_day_ago)
+        .scalar()
+    )
+
+    recent_ratings = (
+        db.query(func.count(SiteRating.id))
+        .filter(SiteRating.created_at >= one_day_ago)
+        .scalar()
+        + db.query(func.count(CenterRating.id))
+        .filter(CenterRating.created_at >= one_day_ago)
+        .scalar()
+    )
+
+    recent_dives = (
+        db.query(func.count(Dive.id)).filter(Dive.created_at >= one_day_ago).scalar()
+    )
+
     # Geographic Distribution
-    dive_sites_by_country = db.query(
-        DiveSite.country,
-        func.count(DiveSite.id).label('count')
-    ).filter(
-        DiveSite.country.isnot(None)
-    ).group_by(DiveSite.country).order_by(desc('count')).limit(10).all()
-    
+    dive_sites_by_country = (
+        db.query(DiveSite.country, func.count(DiveSite.id).label("count"))
+        .filter(DiveSite.country.isnot(None))
+        .group_by(DiveSite.country)
+        .order_by(desc("count"))
+        .limit(10)
+        .all()
+    )
+
     # Diving Centers by Country
-    diving_centers_by_country = db.query(
-        DivingCenter.country,
-        func.count(DivingCenter.id).label('count')
-    ).filter(
-        DivingCenter.country.isnot(None)
-    ).group_by(DivingCenter.country).order_by(desc('count')).limit(10).all()
-    
+    diving_centers_by_country = (
+        db.query(DivingCenter.country, func.count(DivingCenter.id).label("count"))
+        .filter(DivingCenter.country.isnot(None))
+        .group_by(DivingCenter.country)
+        .order_by(desc("count"))
+        .limit(10)
+        .all()
+    )
+
     # User Certifications Statistics
     total_user_certifications = db.query(func.count(UserCertification.id)).scalar()
-    certifications_by_org = db.query(
-        DivingOrganization.name,
-        DivingOrganization.acronym,
-        func.count(UserCertification.id).label('count')
-    ).join(
-        UserCertification, DivingOrganization.id == UserCertification.diving_organization_id
-    ).group_by(DivingOrganization.id, DivingOrganization.name, DivingOrganization.acronym).order_by(desc('count')).all()
-    
+    certifications_by_org = (
+        db.query(
+            DivingOrganization.name,
+            DivingOrganization.acronym,
+            func.count(UserCertification.id).label("count"),
+        )
+        .join(
+            UserCertification,
+            DivingOrganization.id == UserCertification.diving_organization_id,
+        )
+        .group_by(
+            DivingOrganization.id, DivingOrganization.name, DivingOrganization.acronym
+        )
+        .order_by(desc("count"))
+        .all()
+    )
+
     # Active Users (Last 7 days) - Users who performed any action
     active_user_ids_7d = set()
     # Users who created/updated dives
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(Dive.user_id).filter(
-            Dive.created_at >= seven_days_ago
-        ).distinct().all()
-    ])
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(Dive.user_id).filter(
-            Dive.updated_at >= seven_days_ago
-        ).distinct().all()
-    ])
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(Dive.user_id)
+            .filter(Dive.created_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(Dive.user_id)
+            .filter(Dive.updated_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
     # Users who created comments
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(SiteComment.user_id).filter(
-            SiteComment.created_at >= seven_days_ago
-        ).distinct().all()
-    ])
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(CenterComment.user_id).filter(
-            CenterComment.created_at >= seven_days_ago
-        ).distinct().all()
-    ])
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(SiteComment.user_id)
+            .filter(SiteComment.created_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(CenterComment.user_id)
+            .filter(CenterComment.created_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
     # Users who created ratings
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(SiteRating.user_id).filter(
-            SiteRating.created_at >= seven_days_ago
-        ).distinct().all()
-    ])
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(CenterRating.user_id).filter(
-            CenterRating.created_at >= seven_days_ago
-        ).distinct().all()
-    ])
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(SiteRating.user_id)
+            .filter(SiteRating.created_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(CenterRating.user_id)
+            .filter(CenterRating.created_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
     # Users who viewed routes (RouteAnalytics)
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(RouteAnalytics.user_id).filter(
-            and_(
-                RouteAnalytics.created_at >= seven_days_ago,
-                RouteAnalytics.user_id.isnot(None)
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(RouteAnalytics.user_id)
+            .filter(
+                and_(
+                    RouteAnalytics.created_at >= seven_days_ago,
+                    RouteAnalytics.user_id.isnot(None),
+                )
             )
-        ).distinct().all()
-    ])
+            .distinct()
+            .all()
+        ]
+    )
     # Users who updated their profile
-    active_user_ids_7d.update([
-        user_id for user_id, in db.query(User.id).filter(
-            User.updated_at >= seven_days_ago
-        ).distinct().all()
-    ])
+    active_user_ids_7d.update(
+        [
+            user_id
+            for (user_id,) in db.query(User.id)
+            .filter(User.updated_at >= seven_days_ago)
+            .distinct()
+            .all()
+        ]
+    )
     active_users_7d = len(active_user_ids_7d)
-    
+
     # Email Verified Users
-    email_verified_count = db.query(func.count(User.id)).filter(
-        User.email_verified == True
-    ).scalar()
-    email_verified_percentage = (email_verified_count / total_users * 100) if total_users > 0 else 0
-    
+    email_verified_count = (
+        db.query(func.count(User.id)).filter(User.email_verified == True).scalar()
+    )
+    email_verified_percentage = (
+        (email_verified_count / total_users * 100) if total_users > 0 else 0
+    )
+
     # Users with Opted-Out Email Notifications
-    opted_out_count = db.query(func.count(User.id)).filter(
-        User.email_notifications_opted_out == True
-    ).scalar()
-    
+    opted_out_count = (
+        db.query(func.count(User.id))
+        .filter(User.email_notifications_opted_out == True)
+        .scalar()
+    )
+
     # Total Tags
     total_tags = db.query(func.count(AvailableTag.id)).scalar()
-    
+
     # Diving Organizations
     total_diving_organizations = db.query(func.count(DivingOrganization.id)).scalar()
-    
+
     # Newsletters
     total_newsletters = db.query(func.count(Newsletter.id)).scalar()
-    
+
     # New Content (Last 7/30 days)
-    new_dive_sites_7d = db.query(func.count(DiveSite.id)).filter(
-        DiveSite.created_at >= seven_days_ago
-    ).scalar()
-    new_dive_sites_30d = db.query(func.count(DiveSite.id)).filter(
-        DiveSite.created_at >= thirty_days_ago
-    ).scalar()
-    
-    new_diving_centers_7d = db.query(func.count(DivingCenter.id)).filter(
-        DivingCenter.created_at >= seven_days_ago
-    ).scalar()
-    new_diving_centers_30d = db.query(func.count(DivingCenter.id)).filter(
-        DivingCenter.created_at >= thirty_days_ago
-    ).scalar()
-    
-    new_dives_7d = db.query(func.count(Dive.id)).filter(
-        Dive.created_at >= seven_days_ago
-    ).scalar()
-    new_dives_30d = db.query(func.count(Dive.id)).filter(
-        Dive.created_at >= thirty_days_ago
-    ).scalar()
-    
-    new_routes_7d = db.query(func.count(DiveRoute.id)).filter(
-        and_(
-            DiveRoute.created_at >= seven_days_ago,
-            DiveRoute.deleted_at.is_(None)
+    new_dive_sites_7d = (
+        db.query(func.count(DiveSite.id))
+        .filter(DiveSite.created_at >= seven_days_ago)
+        .scalar()
+    )
+    new_dive_sites_30d = (
+        db.query(func.count(DiveSite.id))
+        .filter(DiveSite.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
+    new_diving_centers_7d = (
+        db.query(func.count(DivingCenter.id))
+        .filter(DivingCenter.created_at >= seven_days_ago)
+        .scalar()
+    )
+    new_diving_centers_30d = (
+        db.query(func.count(DivingCenter.id))
+        .filter(DivingCenter.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
+    new_dives_7d = (
+        db.query(func.count(Dive.id)).filter(Dive.created_at >= seven_days_ago).scalar()
+    )
+    new_dives_30d = (
+        db.query(func.count(Dive.id))
+        .filter(Dive.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
+    new_routes_7d = (
+        db.query(func.count(DiveRoute.id))
+        .filter(
+            and_(DiveRoute.created_at >= seven_days_ago, DiveRoute.deleted_at.is_(None))
         )
-    ).scalar()
-    new_routes_30d = db.query(func.count(DiveRoute.id)).filter(
-        and_(
-            DiveRoute.created_at >= thirty_days_ago,
-            DiveRoute.deleted_at.is_(None)
+        .scalar()
+    )
+    new_routes_30d = (
+        db.query(func.count(DiveRoute.id))
+        .filter(
+            and_(
+                DiveRoute.created_at >= thirty_days_ago, DiveRoute.deleted_at.is_(None)
+            )
         )
-    ).scalar()
-    
-    new_trips_7d = db.query(func.count(ParsedDiveTrip.id)).filter(
-        ParsedDiveTrip.created_at >= seven_days_ago
-    ).scalar()
-    new_trips_30d = db.query(func.count(ParsedDiveTrip.id)).filter(
-        ParsedDiveTrip.created_at >= thirty_days_ago
-    ).scalar()
-    
+        .scalar()
+    )
+
+    new_trips_7d = (
+        db.query(func.count(ParsedDiveTrip.id))
+        .filter(ParsedDiveTrip.created_at >= seven_days_ago)
+        .scalar()
+    )
+    new_trips_30d = (
+        db.query(func.count(ParsedDiveTrip.id))
+        .filter(ParsedDiveTrip.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
     # System Usage (simplified - in production this would come from logs/analytics)
     api_calls_today = 0  # This would be tracked in production
     peak_usage_time = "14:00-16:00"  # Placeholder
     most_accessed_endpoint = "/api/v1/dive-sites"  # Placeholder
-    
+
     # Notification Analytics (inline to avoid circular import)
     force_direct_email = os.getenv("FORCE_DIRECT_EMAIL", "false").lower() == "true"
-    
+
     # In-App Notification Statistics
     total_notifications = db.query(func.count(Notification.id)).scalar()
-    read_notifications = db.query(func.count(Notification.id)).filter(
-        Notification.is_read == True
-    ).scalar()
+    read_notifications = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.is_read == True)
+        .scalar()
+    )
     unread_notifications = total_notifications - read_notifications
-    read_rate = (read_notifications / total_notifications * 100) if total_notifications > 0 else 0
-    
+    read_rate = (
+        (read_notifications / total_notifications * 100)
+        if total_notifications > 0
+        else 0
+    )
+
     # In-app notifications by category
     in_app_by_category = {}
-    category_stats = db.query(
-        Notification.category,
-        func.count(Notification.id).label('total'),
-        func.sum(func.cast(Notification.is_read, Integer)).label('read')
-    ).group_by(Notification.category).all()
-    
+    category_stats = (
+        db.query(
+            Notification.category,
+            func.count(Notification.id).label("total"),
+            func.sum(func.cast(Notification.is_read, Integer)).label("read"),
+        )
+        .group_by(Notification.category)
+        .all()
+    )
+
     for category, total, read_count in category_stats:
         in_app_by_category[category] = {
             "total": total,
             "read": read_count or 0,
-            "unread": total - (read_count or 0)
+            "unread": total - (read_count or 0),
         }
-    
+
     # Email Delivery Statistics
-    total_email_sent = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True
-    ).scalar()
-    
-    queued_to_sqs = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == False,
-        Notification.created_at <= now
-    ).scalar()
-    
+    total_email_sent = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.email_sent == True)
+        .scalar()
+    )
+
+    queued_to_sqs = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.email_sent == False, Notification.created_at <= now)
+        .scalar()
+    )
+
     if force_direct_email:
         sent_directly_to_ses = total_email_sent
     else:
         five_minutes_ago = now - timedelta(minutes=5)
-        sent_directly_to_ses = db.query(func.count(Notification.id)).filter(
-            Notification.email_sent == True,
-            Notification.email_sent_at.isnot(None),
-            Notification.created_at >= five_minutes_ago,
-            Notification.email_sent_at <= Notification.created_at + timedelta(minutes=5)
-        ).scalar()
-    
-    total_eligible_for_email = db.query(func.count(Notification.id)).filter(
-        Notification.category != 'admin_alerts'
-    ).scalar()
-    delivery_rate = (total_email_sent / total_eligible_for_email * 100) if total_eligible_for_email > 0 else 0
-    
+        sent_directly_to_ses = (
+            db.query(func.count(Notification.id))
+            .filter(
+                Notification.email_sent == True,
+                Notification.email_sent_at.isnot(None),
+                Notification.created_at >= five_minutes_ago,
+                Notification.email_sent_at
+                <= Notification.created_at + timedelta(minutes=5),
+            )
+            .scalar()
+        )
+
+    total_eligible_for_email = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.category != "admin_alerts")
+        .scalar()
+    )
+    delivery_rate = (
+        (total_email_sent / total_eligible_for_email * 100)
+        if total_eligible_for_email > 0
+        else 0
+    )
+
     avg_delivery_time = None
-    sent_notifications = db.query(Notification).filter(
-        Notification.email_sent == True,
-        Notification.email_sent_at.isnot(None)
-    ).limit(1000).all()  # Limit for performance
-    
+    sent_notifications = (
+        db.query(Notification)
+        .filter(Notification.email_sent == True, Notification.email_sent_at.isnot(None))
+        .limit(1000)
+        .all()
+    )  # Limit for performance
+
     if sent_notifications:
         delivery_times = []
         for notif in sent_notifications:
@@ -348,92 +468,121 @@ async def get_general_statistics(
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:
                     delivery_times.append(delta)
-        
+
         if delivery_times:
             avg_delivery_time = sum(delivery_times) / len(delivery_times)
-    
-    email_by_category = db.query(
-        Notification.category,
-        func.count(Notification.id).label('total'),
-        func.sum(func.cast(Notification.email_sent, Integer)).label('sent')
-    ).group_by(Notification.category).all()
-    
+
+    email_by_category = (
+        db.query(
+            Notification.category,
+            func.count(Notification.id).label("total"),
+            func.sum(func.cast(Notification.email_sent, Integer)).label("sent"),
+        )
+        .group_by(Notification.category)
+        .all()
+    )
+
     category_stats_list = []
     for category, total, sent_count in email_by_category:
         sent = sent_count or 0
         delivery_rate_cat = (sent / total * 100) if total > 0 else 0
-        category_stats_list.append({
-            "category": category,
-            "total_notifications": total,
-            "in_app_sent": total,
-            "email_sent": sent,
-            "email_delivery_rate": round(delivery_rate_cat, 2)
-        })
-    
-    notifications_24h = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= one_day_ago
-    ).scalar()
-    notifications_7d = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= seven_days_ago
-    ).scalar()
-    notifications_30d = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= thirty_days_ago
-    ).scalar()
-    
-    emails_sent_24h = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= one_day_ago
-    ).scalar()
-    emails_sent_7d = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= seven_days_ago
-    ).scalar()
-    emails_sent_30d = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= thirty_days_ago
-    ).scalar()
-    
+        category_stats_list.append(
+            {
+                "category": category,
+                "total_notifications": total,
+                "in_app_sent": total,
+                "email_sent": sent,
+                "email_delivery_rate": round(delivery_rate_cat, 2),
+            }
+        )
+
+    notifications_24h = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= one_day_ago)
+        .scalar()
+    )
+    notifications_7d = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= seven_days_ago)
+        .scalar()
+    )
+    notifications_30d = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
+    emails_sent_24h = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.email_sent == True, Notification.created_at >= one_day_ago)
+        .scalar()
+    )
+    emails_sent_7d = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.email_sent == True, Notification.created_at >= seven_days_ago
+        )
+        .scalar()
+    )
+    emails_sent_30d = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.email_sent == True, Notification.created_at >= thirty_days_ago
+        )
+        .scalar()
+    )
+
     notification_analytics = {
         "in_app": {
             "total": total_notifications,
             "read": read_notifications,
             "unread": unread_notifications,
             "read_rate": round(read_rate, 2),
-            "by_category": in_app_by_category
+            "by_category": in_app_by_category,
         },
         "email_delivery": {
             "total_sent": total_email_sent,
             "sent_directly_to_ses": sent_directly_to_ses,
-            "queued_to_sqs": queued_to_sqs + (total_email_sent - sent_directly_to_ses if not force_direct_email else 0),
+            "queued_to_sqs": queued_to_sqs
+            + (
+                total_email_sent - sent_directly_to_ses if not force_direct_email else 0
+            ),
             "delivery_rate": round(delivery_rate, 2),
-            "avg_delivery_time_seconds": round(avg_delivery_time, 2) if avg_delivery_time else None
+            "avg_delivery_time_seconds": round(avg_delivery_time, 2)
+            if avg_delivery_time
+            else None,
         },
         "by_category": category_stats_list,
         "time_stats": {
             "last_24h": {
                 "notifications": notifications_24h,
-                "emails_sent": emails_sent_24h
+                "emails_sent": emails_sent_24h,
             },
             "last_7d": {
                 "notifications": notifications_7d,
-                "emails_sent": emails_sent_7d
+                "emails_sent": emails_sent_7d,
             },
             "last_30d": {
                 "notifications": notifications_30d,
-                "emails_sent": emails_sent_30d
-            }
+                "emails_sent": emails_sent_30d,
+            },
         },
-        "timestamp": now.isoformat()
+        "timestamp": now.isoformat(),
     }
-    
+
     from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
-    pending_site_edits_count = db.query(func.count(DiveSiteEditRequest.id)).filter(
-        DiveSiteEditRequest.status == EditRequestStatus.pending
-    ).scalar()
-    pending_ownership_requests_count = db.query(func.count(DivingCenter.id)).filter(
-        DivingCenter.ownership_status == OwnershipStatus.claimed
-    ).scalar()
-    
+
+    pending_site_edits_count = (
+        db.query(func.count(DiveSiteEditRequest.id))
+        .filter(DiveSiteEditRequest.status == EditRequestStatus.pending)
+        .scalar()
+    )
+    pending_ownership_requests_count = (
+        db.query(func.count(DivingCenter.id))
+        .filter(DivingCenter.ownership_status == OwnershipStatus.claimed)
+        .scalar()
+    )
+
     return {
         "platform_stats": {
             "users": {
@@ -445,20 +594,16 @@ async def get_general_statistics(
                 "growth_rate": round(growth_rate, 2),
                 "email_verified": {
                     "count": email_verified_count,
-                    "percentage": round(email_verified_percentage, 2)
+                    "percentage": round(email_verified_percentage, 2),
                 },
                 "email_opted_out": opted_out_count,
                 "certifications": {
                     "total": total_user_certifications,
                     "by_organization": [
-                        {
-                            "name": name,
-                            "acronym": acronym,
-                            "count": count
-                        }
+                        {"name": name, "acronym": acronym, "count": count}
                         for name, acronym, count in certifications_by_org
-                    ]
-                }
+                    ],
+                },
             },
             "content": {
                 "dive_sites": total_dive_sites,
@@ -477,54 +622,54 @@ async def get_general_statistics(
                     "diving_centers": new_diving_centers_7d,
                     "dives": new_dives_7d,
                     "routes": new_routes_7d,
-                    "trips": new_trips_7d
+                    "trips": new_trips_7d,
                 },
                 "new_content_30d": {
                     "dive_sites": new_dive_sites_30d,
                     "diving_centers": new_diving_centers_30d,
                     "dives": new_dives_30d,
                     "routes": new_routes_30d,
-                    "trips": new_trips_30d
-                }
+                    "trips": new_trips_30d,
+                },
             },
             "engagement": {
                 "avg_site_rating": round(avg_site_rating, 1),
                 "avg_center_rating": round(avg_center_rating, 1),
                 "recent_comments_24h": recent_comments,
                 "recent_ratings_24h": recent_ratings,
-                "recent_dives_24h": recent_dives
+                "recent_dives_24h": recent_dives,
             },
             "geographic": {
                 "dive_sites_by_country": [
-                    {"country": country, "count": count} 
+                    {"country": country, "count": count}
                     for country, count in dive_sites_by_country
                 ],
                 "diving_centers_by_country": [
                     {"country": country, "count": count}
                     for country, count in diving_centers_by_country
-                ]
+                ],
             },
             "system_usage": {
                 "api_calls_today": api_calls_today,
                 "peak_usage_time": peak_usage_time,
-                "most_accessed_endpoint": most_accessed_endpoint
-            }
+                "most_accessed_endpoint": most_accessed_endpoint,
+            },
         },
         "moderation_stats": {
             "pending_site_edits": pending_site_edits_count,
-            "pending_ownership_requests": pending_ownership_requests_count
+            "pending_ownership_requests": pending_ownership_requests_count,
         },
         "notification_analytics": notification_analytics,
-        "last_updated": now.isoformat()
+        "last_updated": now.isoformat(),
     }
+
 
 @router.get("/health", response_model=SystemHealthResponse)
 async def get_system_health(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get detailed system health information"""
-    
+
     # Database health check
     db_healthy = True
     db_response_time = 0
@@ -532,102 +677,107 @@ async def get_system_health(
         start_time = datetime.utcnow()
         db.execute(text("SELECT 1"))
         end_time = datetime.utcnow()
-        db_response_time = (end_time - start_time).total_seconds() * 1000  # Convert to milliseconds
+        db_response_time = (
+            end_time - start_time
+        ).total_seconds() * 1000  # Convert to milliseconds
     except Exception:
         db_healthy = False
-    
+
     # System resources
     cpu_usage = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
+    disk = psutil.disk_usage("/")
+
     # Determine overall health status
     overall_status = "healthy"
     if not db_healthy or cpu_usage > 90 or memory.percent > 90 or disk.percent > 90:
         overall_status = "critical"
     elif cpu_usage > 70 or memory.percent > 70 or disk.percent > 70:
         overall_status = "warning"
-    
+
     return {
         "status": overall_status,
         "database": {
             "healthy": db_healthy,
-            "response_time_ms": round(db_response_time, 2)
+            "response_time_ms": round(db_response_time, 2),
         },
         "resources": {
-            "cpu": {
-                "usage_percent": cpu_usage,
-                "cores": psutil.cpu_count()
-            },
+            "cpu": {"usage_percent": cpu_usage, "cores": psutil.cpu_count()},
             "memory": {
                 "usage_percent": memory.percent,
                 "total_gb": round(memory.total / (1024**3), 2),
-                "available_gb": round(memory.available / (1024**3), 2)
+                "available_gb": round(memory.available / (1024**3), 2),
             },
             "disk": {
                 "usage_percent": disk.percent,
                 "total_gb": round(disk.total / (1024**3), 2),
-                "free_gb": round(disk.free / (1024**3), 2)
-            }
+                "free_gb": round(disk.free / (1024**3), 2),
+            },
         },
         "services": {
             "database": "healthy" if db_healthy else "unhealthy",
             "api": "healthy",
-            "frontend": "healthy"
+            "frontend": "healthy",
         },
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 @router.get("/moderation-pending-counts")
 async def get_moderation_pending_counts(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get the current count of pending edit and ownership requests for real-time moderation dashboard display"""
     from app.models import DiveSiteEditRequest, EditRequestStatus, OwnershipStatus
-    
-    pending_site_edits = db.query(func.count(DiveSiteEditRequest.id)).filter(
-        DiveSiteEditRequest.status == EditRequestStatus.pending
-    ).scalar()
-    
-    pending_ownership_requests = db.query(func.count(DivingCenter.id)).filter(
-        DivingCenter.ownership_status == OwnershipStatus.claimed
-    ).scalar()
-    
+
+    pending_site_edits = (
+        db.query(func.count(DiveSiteEditRequest.id))
+        .filter(DiveSiteEditRequest.status == EditRequestStatus.pending)
+        .scalar()
+    )
+
+    pending_ownership_requests = (
+        db.query(func.count(DivingCenter.id))
+        .filter(DivingCenter.ownership_status == OwnershipStatus.claimed)
+        .scalar()
+    )
+
     return {
         "pending_site_edits": pending_site_edits,
-        "pending_ownership_requests": pending_ownership_requests
+        "pending_ownership_requests": pending_ownership_requests,
     }
+
 
 @router.get("/stats", response_model=PlatformStatsResponse)
 @cache(expire=300)
 async def get_platform_stats(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get detailed platform statistics"""
-    
+
     # User statistics with more detail
     total_users = db.query(func.count(User.id)).scalar()
     enabled_users = db.query(func.count(User.id)).filter(User.enabled == True).scalar()
     admin_users = db.query(func.count(User.id)).filter(User.is_admin == True).scalar()
-    moderator_users = db.query(func.count(User.id)).filter(User.is_moderator == True).scalar()
-    
+    moderator_users = (
+        db.query(func.count(User.id)).filter(User.is_moderator == True).scalar()
+    )
+
     # Content statistics
     total_dive_sites = db.query(func.count(DiveSite.id)).scalar()
     total_diving_centers = db.query(func.count(DivingCenter.id)).scalar()
     total_dives = db.query(func.count(Dive.id)).scalar()
     total_tags = db.query(func.count(AvailableTag.id)).scalar()
     total_organizations = db.query(func.count(DivingOrganization.id)).scalar()
-    
+
     # Media statistics
     total_site_media = db.query(func.count(SiteMedia.id)).scalar()
     total_dive_media = db.query(func.count(DiveMedia.id)).scalar()
-    
+
     # Trip statistics
     total_trips = db.query(func.count(ParsedDiveTrip.id)).scalar()
     total_newsletters = db.query(func.count(Newsletter.id)).scalar()
-    
+
     return {
         "users": {
             "total": total_users,
@@ -635,59 +785,61 @@ async def get_platform_stats(
             "disabled": total_users - enabled_users,
             "admins": admin_users,
             "moderators": moderator_users,
-            "regular": total_users - admin_users - moderator_users
+            "regular": total_users - admin_users - moderator_users,
         },
         "content": {
             "dive_sites": total_dive_sites,
             "diving_centers": total_diving_centers,
             "dives": total_dives,
             "tags": total_tags,
-            "organizations": total_organizations
+            "organizations": total_organizations,
         },
         "media": {
             "site_media": total_site_media,
             "dive_media": total_dive_media,
-            "total": total_site_media + total_dive_media
+            "total": total_site_media + total_dive_media,
         },
-        "trips": {
-            "parsed_trips": total_trips,
-            "newsletters": total_newsletters
-        },
-        "timestamp": datetime.utcnow().isoformat()
+        "trips": {"parsed_trips": total_trips, "newsletters": total_newsletters},
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
-def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False) -> List[dict]:
+
+def fetch_recent_activities(
+    db: Session, hours: Optional[int] = 168, limit: int = 100, is_admin: bool = False
+) -> List[dict]:
     """Helper to fetch and format recent user and system activity securely with zero PII leakage for public users."""
     from sqlalchemy.orm import joinedload
 
     from app.models import OwnershipRequest
-    
+
     # Calculate time range
     if hours is not None:
         end_time = datetime.utcnow()
         start_time = end_time - timedelta(hours=hours)
     else:
         start_time = None
-    
+
     activities = []
-    
+
     # 1. User registrations (ADMIN ONLY)
     if is_admin:
         user_query = db.query(User)
         if start_time is not None:
             user_query = user_query.filter(User.created_at >= start_time)
         new_users = user_query.order_by(desc(User.created_at)).limit(limit).all()
-        
+
         for user in new_users:
-            activities.append({
-                "timestamp": user.created_at.isoformat(),
-                "type": "user_registration",
-                "action": "User registered",
-                "details": f"New user {user.username} joined the platform",
-                "status": "success",
-                "username": user.username,
-                "user_id": user.id
-            })
+            activities.append(
+                {
+                    "timestamp": user.created_at.isoformat(),
+                    "type": "user_registration",
+                    "action": "User registered",
+                    "details": f"New user {user.username} joined the platform",
+                    "status": "success",
+                    "username": user.username,
+                    "user_id": user.id,
+                }
+            )
 
     # 2. Dive Sites (Created)
     site_query = db.query(DiveSite).options(joinedload(DiveSite.creator))
@@ -696,273 +848,380 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
     if not is_admin:
         site_query = site_query.filter(DiveSite.status == "approved")
     new_dive_sites = site_query.order_by(desc(DiveSite.created_at)).limit(limit).all()
-    
+
     for site in new_dive_sites:
         username = site.creator.username if site.creator else "Anonymous"
-        activities.append({
-            "timestamp": site.created_at.isoformat(),
-            "type": "content_creation",
-            "event_type": "site_added",
-            "action": "Dive site created",
-            "details": f"New dive site: {site.name}",
-            "status": "success",
-            "username": username,
-            "site_id": site.id,
-            "site_name": site.name
-        })
+        activities.append(
+            {
+                "timestamp": site.created_at.isoformat(),
+                "type": "content_creation",
+                "event_type": "site_added",
+                "action": "Dive site created",
+                "details": f"New dive site: {site.name}",
+                "status": "success",
+                "username": username,
+                "site_id": site.id,
+                "site_name": site.name,
+            }
+        )
 
     # 3. Diving Centers (Created)
     center_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner))
     if start_time is not None:
         center_query = center_query.filter(DivingCenter.created_at >= start_time)
-    new_diving_centers = center_query.order_by(desc(DivingCenter.created_at)).limit(limit).all()
-    
+    new_diving_centers = (
+        center_query.order_by(desc(DivingCenter.created_at)).limit(limit).all()
+    )
+
     for center in new_diving_centers:
         username = center.owner.username if center.owner else "Anonymous"
-        activities.append({
-            "timestamp": center.created_at.isoformat(),
-            "type": "content_creation",
-            "event_type": "center_added",
-            "action": "Diving center created",
-            "details": f"New diving center: {center.name}",
-            "status": "success",
-            "username": username,
-            "center_id": center.id,
-            "center_name": center.name
-        })
+        activities.append(
+            {
+                "timestamp": center.created_at.isoformat(),
+                "type": "content_creation",
+                "event_type": "center_added",
+                "action": "Diving center created",
+                "details": f"New diving center: {center.name}",
+                "status": "success",
+                "username": username,
+                "center_id": center.id,
+                "center_name": center.name,
+            }
+        )
 
     # 4. Dives Logged (Created)
-    dive_query = db.query(Dive).options(joinedload(Dive.user), joinedload(Dive.dive_site))
+    dive_query = db.query(Dive).options(
+        joinedload(Dive.user), joinedload(Dive.dive_site)
+    )
     if start_time is not None:
         dive_query = dive_query.filter(Dive.created_at >= start_time)
     if not is_admin:
-        dive_query = dive_query.filter(Dive.is_private == False, Dive.dive_site_id.is_not(None))
+        dive_query = dive_query.filter(
+            Dive.is_private == False, Dive.dive_site_id.is_not(None)
+        )
     new_dives = dive_query.order_by(desc(Dive.created_at)).limit(limit).all()
-    
+
     for dive in new_dives:
-        activities.append({
-            "timestamp": dive.created_at.isoformat(),
-            "type": "content_creation",
-            "event_type": "dive_logged",
-            "action": "Dive logged",
-            "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
-            "status": "success",
-            "username": dive.user.username if dive.user else "Anonymous",
-            "dive_id": dive.id,
-            "dive_name": dive.name or 'Unnamed dive',
-            "site_id": dive.dive_site_id,
-            "site_name": dive.dive_site.name if dive.dive_site else "Unknown Site"
-        })
+        activities.append(
+            {
+                "timestamp": dive.created_at.isoformat(),
+                "type": "content_creation",
+                "event_type": "dive_logged",
+                "action": "Dive logged",
+                "details": f"New dive logged: {dive.name or 'Unnamed dive'}",
+                "status": "success",
+                "username": dive.user.username if dive.user else "Anonymous",
+                "dive_id": dive.id,
+                "dive_name": dive.name or "Unnamed dive",
+                "site_id": dive.dive_site_id,
+                "site_name": dive.dive_site.name if dive.dive_site else "Unknown Site",
+            }
+        )
 
     # 5. Dive Trips (Created)
-    trip_query = db.query(ParsedDiveTrip).options(joinedload(ParsedDiveTrip.diving_center))
+    trip_query = db.query(ParsedDiveTrip).options(
+        joinedload(ParsedDiveTrip.diving_center)
+    )
     if start_time is not None:
         trip_query = trip_query.filter(ParsedDiveTrip.created_at >= start_time)
     new_trips = trip_query.order_by(desc(ParsedDiveTrip.created_at)).limit(limit).all()
 
     for trip in new_trips:
-        activities.append({
-            "timestamp": trip.created_at.isoformat(),
-            "type": "content_creation",
-            "event_type": "trip_added",
-            "action": "Dive trip created",
-            "details": f"New trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
-            "status": "success",
-            "trip_id": trip.id,
-            "center_id": trip.diving_center_id,
-            "center_name": trip.diving_center.name if trip.diving_center else "Unknown Center"
-        })
+        activities.append(
+            {
+                "timestamp": trip.created_at.isoformat(),
+                "type": "content_creation",
+                "event_type": "trip_added",
+                "action": "Dive trip created",
+                "details": f"New trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
+                "status": "success",
+                "trip_id": trip.id,
+                "center_id": trip.diving_center_id,
+                "center_name": trip.diving_center.name
+                if trip.diving_center
+                else "Unknown Center",
+            }
+        )
 
     # 6. Dive Routes (Created)
-    route_query = db.query(DiveRoute).options(joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site))
+    route_query = db.query(DiveRoute).options(
+        joinedload(DiveRoute.creator), joinedload(DiveRoute.dive_site)
+    )
     if start_time is not None:
         route_query = route_query.filter(DiveRoute.created_at >= start_time)
-    new_routes = route_query.filter(DiveRoute.deleted_at.is_(None)).order_by(desc(DiveRoute.created_at)).limit(limit).all()
+    new_routes = (
+        route_query.filter(DiveRoute.deleted_at.is_(None))
+        .order_by(desc(DiveRoute.created_at))
+        .limit(limit)
+        .all()
+    )
 
     for route in new_routes:
-        activities.append({
-            "timestamp": route.created_at.isoformat(),
-            "type": "content_creation",
-            "event_type": "route_added",
-            "action": "Dive route created",
-            "details": f"New dive route: {route.name}",
-            "status": "success",
-            "username": route.creator.username if route.creator else "Anonymous",
-            "route_id": route.id,
-            "route_name": route.name,
-            "site_id": route.dive_site_id,
-            "site_name": route.dive_site.name if route.dive_site else "Unknown Site"
-        })
+        activities.append(
+            {
+                "timestamp": route.created_at.isoformat(),
+                "type": "content_creation",
+                "event_type": "route_added",
+                "action": "Dive route created",
+                "details": f"New dive route: {route.name}",
+                "status": "success",
+                "username": route.creator.username if route.creator else "Anonymous",
+                "route_id": route.id,
+                "route_name": route.name,
+                "site_id": route.dive_site_id,
+                "site_name": route.dive_site.name
+                if route.dive_site
+                else "Unknown Site",
+            }
+        )
 
     # 7. Site Comments (Engagement - ADMIN ONLY)
     if is_admin:
-        comment_query = db.query(SiteComment).options(joinedload(SiteComment.dive_site), joinedload(SiteComment.user))
+        comment_query = db.query(SiteComment).options(
+            joinedload(SiteComment.dive_site), joinedload(SiteComment.user)
+        )
         if start_time is not None:
             comment_query = comment_query.filter(SiteComment.created_at >= start_time)
-        new_comments = comment_query.order_by(desc(SiteComment.created_at)).limit(limit).all()
-        
+        new_comments = (
+            comment_query.order_by(desc(SiteComment.created_at)).limit(limit).all()
+        )
+
         for comment in new_comments:
-            activities.append({
-                "timestamp": comment.created_at.isoformat(),
-                "type": "engagement",
-                "action": "Comment posted",
-                "details": f"Comment on dive site: {comment.dive_site.name if comment.dive_site else 'Unknown Site'}",
-                "status": "success",
-                "username": comment.user.username if comment.user else "Anonymous"
-            })
+            activities.append(
+                {
+                    "timestamp": comment.created_at.isoformat(),
+                    "type": "engagement",
+                    "action": "Comment posted",
+                    "details": f"Comment on dive site: {comment.dive_site.name if comment.dive_site else 'Unknown Site'}",
+                    "status": "success",
+                    "username": comment.user.username if comment.user else "Anonymous",
+                }
+            )
 
     # 8. Site Ratings (Engagement)
-    rating_query = db.query(SiteRating).options(joinedload(SiteRating.user), joinedload(SiteRating.dive_site))
+    rating_query = db.query(SiteRating).options(
+        joinedload(SiteRating.user), joinedload(SiteRating.dive_site)
+    )
     if start_time is not None:
         rating_query = rating_query.filter(SiteRating.created_at >= start_time)
     new_ratings = rating_query.order_by(desc(SiteRating.created_at)).limit(limit).all()
-    
+
     for rating in new_ratings:
-        activities.append({
-            "timestamp": rating.created_at.isoformat(),
-            "type": "engagement",
-            "event_type": "site_review",
-            "action": "Rating submitted",
-            "details": f"Rating: {rating.score}/10",
-            "status": "success",
-            "username": rating.user.username if rating.user else "Anonymous",
-            "site_id": rating.dive_site_id,
-            "site_name": rating.dive_site.name if rating.dive_site else "Unknown Site",
-            "rating": int(rating.score / 2) if rating.score else None
-        })
+        activities.append(
+            {
+                "timestamp": rating.created_at.isoformat(),
+                "type": "engagement",
+                "event_type": "site_review",
+                "action": "Rating submitted",
+                "details": f"Rating: {rating.score}/10",
+                "status": "success",
+                "username": rating.user.username if rating.user else "Anonymous",
+                "site_id": rating.dive_site_id,
+                "site_name": rating.dive_site.name
+                if rating.dive_site
+                else "Unknown Site",
+                "rating": int(rating.score / 2) if rating.score else None,
+            }
+        )
 
     # 9. Approved Ownership Requests
-    claim_query = db.query(OwnershipRequest).options(joinedload(OwnershipRequest.diving_center), joinedload(OwnershipRequest.user)).filter(
-        OwnershipRequest.request_status == "approved"
+    claim_query = (
+        db.query(OwnershipRequest)
+        .options(
+            joinedload(OwnershipRequest.diving_center),
+            joinedload(OwnershipRequest.user),
+        )
+        .filter(OwnershipRequest.request_status == "approved")
     )
     if start_time is not None:
         claim_query = claim_query.filter(OwnershipRequest.request_date >= start_time)
-    approved_claims = claim_query.order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
+    approved_claims = (
+        claim_query.order_by(desc(OwnershipRequest.request_date)).limit(limit).all()
+    )
 
     for claim in approved_claims:
-        activities.append({
-            "timestamp": (claim.processed_date or claim.request_date).isoformat(),
-            "type": "engagement" if not is_admin else "edit_request",
-            "event_type": "claim_approved",
-            "action": "Ownership claimed",
-            "details": f"Diving center '{claim.diving_center.name if claim.diving_center else 'Unknown'}' ownership approved",
-            "status": "success",
-            "username": claim.user.username if claim.user else "Anonymous",
-            "center_id": claim.diving_center_id,
-            "center_name": claim.diving_center.name if claim.diving_center else "Unknown Center"
-        })
+        activities.append(
+            {
+                "timestamp": (claim.processed_date or claim.request_date).isoformat(),
+                "type": "engagement" if not is_admin else "edit_request",
+                "event_type": "claim_approved",
+                "action": "Ownership claimed",
+                "details": f"Diving center '{claim.diving_center.name if claim.diving_center else 'Unknown'}' ownership approved",
+                "status": "success",
+                "username": claim.user.username if claim.user else "Anonymous",
+                "center_id": claim.diving_center_id,
+                "center_name": claim.diving_center.name
+                if claim.diving_center
+                else "Unknown Center",
+            }
+        )
 
     # ADMIN ONLY: Content updates and edit requests
     if is_admin:
         # 10. Dive Site Updates
         site_update_query = db.query(DiveSite).options(joinedload(DiveSite.creator))
         if start_time is not None:
-            site_update_query = site_update_query.filter(DiveSite.updated_at >= start_time)
-        updated_dive_sites = site_update_query.filter(
-            DiveSite.updated_at > DiveSite.created_at
-        ).order_by(desc(DiveSite.updated_at)).limit(limit).all()
+            site_update_query = site_update_query.filter(
+                DiveSite.updated_at >= start_time
+            )
+        updated_dive_sites = (
+            site_update_query.filter(DiveSite.updated_at > DiveSite.created_at)
+            .order_by(desc(DiveSite.updated_at))
+            .limit(limit)
+            .all()
+        )
 
         for site in updated_dive_sites:
-            activities.append({
-                "timestamp": site.updated_at.isoformat(),
-                "type": "content_update",
-                "action": "Dive site updated",
-                "details": f"Updated dive site: {site.name}",
-                "status": "success",
-                "username": site.creator.username if site.creator else "Anonymous"
-            })
+            activities.append(
+                {
+                    "timestamp": site.updated_at.isoformat(),
+                    "type": "content_update",
+                    "action": "Dive site updated",
+                    "details": f"Updated dive site: {site.name}",
+                    "status": "success",
+                    "username": site.creator.username if site.creator else "Anonymous",
+                }
+            )
 
         # 11. Diving Center Updates
-        center_update_query = db.query(DivingCenter).options(joinedload(DivingCenter.owner))
+        center_update_query = db.query(DivingCenter).options(
+            joinedload(DivingCenter.owner)
+        )
         if start_time is not None:
-            center_update_query = center_update_query.filter(DivingCenter.updated_at >= start_time)
-        updated_diving_centers = center_update_query.filter(
-            DivingCenter.updated_at > DivingCenter.created_at
-        ).order_by(desc(DivingCenter.updated_at)).limit(limit).all()
+            center_update_query = center_update_query.filter(
+                DivingCenter.updated_at >= start_time
+            )
+        updated_diving_centers = (
+            center_update_query.filter(
+                DivingCenter.updated_at > DivingCenter.created_at
+            )
+            .order_by(desc(DivingCenter.updated_at))
+            .limit(limit)
+            .all()
+        )
 
         for center in updated_diving_centers:
-            activities.append({
-                "timestamp": center.updated_at.isoformat(),
-                "type": "content_update",
-                "action": "Diving center updated",
-                "details": f"Updated diving center: {center.name}",
-                "status": "success",
-                "username": center.owner.username if center.owner else "Anonymous"
-            })
+            activities.append(
+                {
+                    "timestamp": center.updated_at.isoformat(),
+                    "type": "content_update",
+                    "action": "Diving center updated",
+                    "details": f"Updated diving center: {center.name}",
+                    "status": "success",
+                    "username": center.owner.username if center.owner else "Anonymous",
+                }
+            )
 
         # 12. Dive Updates
         dive_update_query = db.query(Dive).options(joinedload(Dive.user))
         if start_time is not None:
             dive_update_query = dive_update_query.filter(Dive.updated_at >= start_time)
-        updated_dives = dive_update_query.filter(
-            Dive.updated_at > Dive.created_at
-        ).order_by(desc(Dive.updated_at)).limit(limit).all()
+        updated_dives = (
+            dive_update_query.filter(Dive.updated_at > Dive.created_at)
+            .order_by(desc(Dive.updated_at))
+            .limit(limit)
+            .all()
+        )
 
         for dive in updated_dives:
-            activities.append({
-                "timestamp": dive.updated_at.isoformat(),
-                "type": "content_update",
-                "action": "Dive updated",
-                "details": f"Updated dive: {dive.name or 'Unnamed dive'}",
-                "status": "success",
-                "username": dive.user.username if dive.user else "Anonymous"
-            })
+            activities.append(
+                {
+                    "timestamp": dive.updated_at.isoformat(),
+                    "type": "content_update",
+                    "action": "Dive updated",
+                    "details": f"Updated dive: {dive.name or 'Unnamed dive'}",
+                    "status": "success",
+                    "username": dive.user.username if dive.user else "Anonymous",
+                }
+            )
 
         # 13. Dive Trip Updates
         trip_update_query = db.query(ParsedDiveTrip)
         if start_time is not None:
-            trip_update_query = trip_update_query.filter(ParsedDiveTrip.updated_at >= start_time)
-        updated_trips = trip_update_query.filter(
-            ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
-        ).order_by(desc(ParsedDiveTrip.updated_at)).limit(limit).all()
+            trip_update_query = trip_update_query.filter(
+                ParsedDiveTrip.updated_at >= start_time
+            )
+        updated_trips = (
+            trip_update_query.filter(
+                ParsedDiveTrip.updated_at > ParsedDiveTrip.created_at
+            )
+            .order_by(desc(ParsedDiveTrip.updated_at))
+            .limit(limit)
+            .all()
+        )
 
         for trip in updated_trips:
-            activities.append({
-                "timestamp": trip.updated_at.isoformat(),
-                "type": "content_update",
-                "action": "Dive trip updated",
-                "details": f"Updated trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
-                "status": "success"
-            })
+            activities.append(
+                {
+                    "timestamp": trip.updated_at.isoformat(),
+                    "type": "content_update",
+                    "action": "Dive trip updated",
+                    "details": f"Updated trip: {getattr(trip, 'title', None) or ('Trip on ' + str(trip.trip_date))}",
+                    "status": "success",
+                }
+            )
 
         # 14. Dive Route Updates
         route_update_query = db.query(DiveRoute).options(joinedload(DiveRoute.creator))
         if start_time is not None:
-            route_update_query = route_update_query.filter(DiveRoute.updated_at >= start_time)
-        updated_routes = route_update_query.filter(
-            and_(
-                DiveRoute.updated_at > DiveRoute.created_at,
-                DiveRoute.deleted_at.is_(None)
+            route_update_query = route_update_query.filter(
+                DiveRoute.updated_at >= start_time
             )
-        ).order_by(desc(DiveRoute.updated_at)).limit(limit).all()
+        updated_routes = (
+            route_update_query.filter(
+                and_(
+                    DiveRoute.updated_at > DiveRoute.created_at,
+                    DiveRoute.deleted_at.is_(None),
+                )
+            )
+            .order_by(desc(DiveRoute.updated_at))
+            .limit(limit)
+            .all()
+        )
 
         for route in updated_routes:
-            activities.append({
-                "timestamp": route.updated_at.isoformat(),
-                "type": "content_update",
-                "action": "Dive route updated",
-                "details": f"Updated dive route: {route.name}",
-                "status": "success",
-                "username": route.creator.username if route.creator else "Anonymous"
-            })
+            activities.append(
+                {
+                    "timestamp": route.updated_at.isoformat(),
+                    "type": "content_update",
+                    "action": "Dive route updated",
+                    "details": f"Updated dive route: {route.name}",
+                    "status": "success",
+                    "username": route.creator.username
+                    if route.creator
+                    else "Anonymous",
+                }
+            )
 
         # 15. Edit Requests (Moderation)
         from sqlalchemy.orm import joinedload
 
         from app.models import DiveSiteEditRequest
-        
+
         edit_request_query = db.query(DiveSiteEditRequest).options(
             joinedload(DiveSiteEditRequest.requested_by),
-            joinedload(DiveSiteEditRequest.dive_site)
+            joinedload(DiveSiteEditRequest.dive_site),
         )
         if start_time is not None:
-            edit_request_query = edit_request_query.filter(DiveSiteEditRequest.created_at >= start_time)
-        new_edit_requests = edit_request_query.order_by(desc(DiveSiteEditRequest.created_at)).limit(limit).all()
-        
+            edit_request_query = edit_request_query.filter(
+                DiveSiteEditRequest.created_at >= start_time
+            )
+        new_edit_requests = (
+            edit_request_query.order_by(desc(DiveSiteEditRequest.created_at))
+            .limit(limit)
+            .all()
+        )
+
         for req in new_edit_requests:
-            user_name = req.requested_by.username if req.requested_by else f"User {req.requested_by_id}"
-            site_name = req.dive_site.name if req.dive_site else f"Site {req.dive_site_id}"
-            
+            user_name = (
+                req.requested_by.username
+                if req.requested_by
+                else f"User {req.requested_by_id}"
+            )
+            site_name = (
+                req.dive_site.name if req.dive_site else f"Site {req.dive_site_id}"
+            )
+
             status_color = "warning"
             action_verb = "submitted"
             if req.status == "approved":
@@ -971,31 +1230,35 @@ def fetch_recent_activities(db: Session, hours: Optional[int] = 168, limit: int 
             elif req.status == "rejected":
                 status_color = "error"
                 action_verb = "rejected"
-                
-            activities.append({
-                "timestamp": req.created_at.isoformat(),
-                "type": "edit_request",
-                "action": f"Edit request {action_verb}",
-                "details": f"User {user_name} {action_verb} a {req.edit_type.replace('_', ' ')} edit for {site_name}",
-                "status": status_color,
-                "username": user_name,
-                "user_id": req.requested_by_id
-            })
+
+            activities.append(
+                {
+                    "timestamp": req.created_at.isoformat(),
+                    "type": "edit_request",
+                    "action": f"Edit request {action_verb}",
+                    "details": f"User {user_name} {action_verb} a {req.edit_type.replace('_', ' ')} edit for {site_name}",
+                    "status": status_color,
+                    "username": user_name,
+                    "user_id": req.requested_by_id,
+                }
+            )
 
     # Sort all activities by timestamp (most recent first)
     activities.sort(key=lambda x: x["timestamp"], reverse=True)
-    
+
     return activities[:limit]
+
 
 @router.get("/activity", response_model=List[dict])
 async def get_recent_activity(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
     hours: int = 24,
-    limit: int = 100
+    limit: int = 100,
 ):
     """Get recent user and system activity"""
     return fetch_recent_activities(db, hours, limit, is_admin=True)
+
 
 @router.get("/client-ip")
 async def get_client_ip_info(request: Request):
@@ -1006,66 +1269,78 @@ async def get_client_ip_info(request: Request):
     """
     # Get the real client IP using our utility function
     real_client_ip = get_client_ip(request)
-    
+
     # Get all relevant headers for debugging
     headers_info = {}
     for header_name in [
-        'Fly-Client-IP', 'X-Real-IP', 'X-Forwarded-For', 
-        'X-Forwarded-Host', 'X-Forwarded-Proto', 'CF-Connecting-IP',
-        'True-Client-IP', 'X-Client-IP', 'X-Originating-IP'
+        "Fly-Client-IP",
+        "X-Real-IP",
+        "X-Forwarded-For",
+        "X-Forwarded-Host",
+        "X-Forwarded-Proto",
+        "CF-Connecting-IP",
+        "True-Client-IP",
+        "X-Client-IP",
+        "X-Originating-IP",
     ]:
         if header_name in request.headers:
             headers_info[header_name] = request.headers[header_name]
-    
+
     # Get connection information
     connection_info = {
-        "client_host": getattr(request.client, 'host', None) if request.client else None,
-        "client_port": getattr(request.client, 'port', None) if request.client else None,
-        "remote_addr": getattr(request, 'remote_addr', None),
+        "client_host": getattr(request.client, "host", None)
+        if request.client
+        else None,
+        "client_port": getattr(request.client, "port", None)
+        if request.client
+        else None,
+        "remote_addr": getattr(request, "remote_addr", None),
         "url": str(request.url),
         "method": request.method,
-        "user_agent": request.headers.get("User-Agent", "Unknown")
+        "user_agent": request.headers.get("User-Agent", "Unknown"),
     }
-    
+
     return {
         "detected_client_ip": real_client_ip,
         "formatted_ip": format_ip_for_logging(real_client_ip),
         "is_localhost": real_client_ip in ["127.0.0.1", "::1", "localhost"],
         "headers": headers_info,
         "connection": connection_info,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat(),
     }
+
 
 @router.get("/turnstile-stats")
 async def get_turnstile_statistics(
     current_user: User = Depends(get_current_admin_user),
-    time_window: Optional[int] = Query(24, description="Time window in hours")
+    time_window: Optional[int] = Query(24, description="Time window in hours"),
 ):
     """Get Turnstile verification statistics for admin monitoring"""
-    
+
     try:
         # Convert hours to timedelta if specified
         if time_window and time_window > 0:
             window = timedelta(hours=time_window)
         else:
             window = None
-        
+
         # Get Turnstile statistics
         stats = get_turnstile_stats(window)
-        
+
         # Add additional context
         stats["timestamp"] = datetime.utcnow().isoformat()
         stats["time_window_hours"] = time_window if time_window else None
         stats["monitoring_active"] = True
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"Error retrieving Turnstile statistics: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve Turnstile statistics"
+            detail="Failed to retrieve Turnstile statistics",
         )
+
 
 @router.get("/storage/health")
 def storage_health_check():
@@ -1082,21 +1357,18 @@ def storage_health_check():
             "bucket_accessible": False,
             "credentials_present": False,
             "boto3_available": False,
-            "local_storage_writable": False
+            "local_storage_writable": False,
         }
 
+
 # Constants for growth data periods
-PERIOD_DAYS = {
-    "week": 7,
-    "month": 30,
-    "3months": 90,
-    "6months": 180,
-    "year": 365
-}
+PERIOD_DAYS = {"week": 7, "month": 30, "3months": 90, "6months": 180, "year": 365}
+
 
 def date_to_datetime(date_obj):
     """Convert date object to timezone-aware datetime at start of day"""
     return datetime.combine(date_obj, datetime.min.time()).replace(tzinfo=UTC)
+
 
 def calculate_growth_rate(start, end):
     """Calculate percentage growth rate between two values"""
@@ -1104,21 +1376,22 @@ def calculate_growth_rate(start, end):
         return round(((end - start) / start * 100), 2)
     return 0.0
 
+
 @router.get("/growth", response_model=GrowthResponse)
 async def get_growth_data(
     period: str = Query("3months", pattern="^(week|month|3months|6months|year)$"),
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get growth data over time for dive sites, diving centers, dives, routes, and trips"""
-    
+
     try:
         now = datetime.now(UTC)
-        
+
         # Calculate date range based on period
         days_back = PERIOD_DAYS.get(period, 30)
         start_date = now - timedelta(days=days_back)
-        
+
         # Generate date points (daily for week/month, weekly for longer periods)
         date_points = []
         if period in ("year", "6months", "3months"):
@@ -1133,7 +1406,7 @@ async def get_growth_data(
             while current <= now:
                 date_points.append(current.date())
                 current += timedelta(days=1)
-        
+
         # Validate date points
         if not date_points:
             return {
@@ -1143,54 +1416,72 @@ async def get_growth_data(
                     "diving_centers": [],
                     "dives": [],
                     "dive_routes": [],
-                    "dive_trips": []
+                    "dive_trips": [],
                 },
                 "growth_rates": {
                     "dive_sites": 0.0,
                     "diving_centers": 0.0,
                     "dives": 0.0,
                     "dive_routes": 0.0,
-                    "dive_trips": 0.0
+                    "dive_trips": 0.0,
                 },
                 "start_date": start_date.date().isoformat(),
-                "end_date": now.date().isoformat()
+                "end_date": now.date().isoformat(),
             }
-        
+
         # OPTIMIZATION: Query all items once instead of per date point (6 queries total vs 6*N queries)
         # Get all created_at dates for each entity type and sort them for efficient counting
-        dive_sites_dates = sorted([
-            item[0].date() for item in db.query(DiveSite.created_at).all()
-            if item[0] and item[0].date()
-        ])
-        diving_centers_dates = sorted([
-            item[0].date() for item in db.query(DivingCenter.created_at).all()
-            if item[0] and item[0].date()
-        ])
-        dives_dates = sorted([
-            item[0].date() for item in db.query(Dive.created_at).all()
-            if item[0] and item[0].date()
-        ])
-        dive_routes_dates = sorted([
-            item[0].date() for item in db.query(DiveRoute.created_at).filter(
-                DiveRoute.deleted_at.is_(None)
-            ).all()
-            if item[0] and item[0].date()
-        ])
-        dive_trips_dates = sorted([
-            item[0].date() for item in db.query(ParsedDiveTrip.created_at).all()
-            if item[0] and item[0].date()
-        ])
-        users_dates = sorted([
-            item[0].date() for item in db.query(User.created_at).all()
-            if item[0] and item[0].date()
-        ])
-        
+        dive_sites_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(DiveSite.created_at).all()
+                if item[0] and item[0].date()
+            ]
+        )
+        diving_centers_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(DivingCenter.created_at).all()
+                if item[0] and item[0].date()
+            ]
+        )
+        dives_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(Dive.created_at).all()
+                if item[0] and item[0].date()
+            ]
+        )
+        dive_routes_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(DiveRoute.created_at)
+                .filter(DiveRoute.deleted_at.is_(None))
+                .all()
+                if item[0] and item[0].date()
+            ]
+        )
+        dive_trips_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(ParsedDiveTrip.created_at).all()
+                if item[0] and item[0].date()
+            ]
+        )
+        users_dates = sorted(
+            [
+                item[0].date()
+                for item in db.query(User.created_at).all()
+                if item[0] and item[0].date()
+            ]
+        )
+
         # Helper function to count items <= date using binary search
         def count_up_to_date(sorted_dates, target_date):
             """Count how many dates are <= target_date using binary search"""
             # Find insertion point (all items before this index are <= target_date)
             return bisect.bisect_right(sorted_dates, target_date)
-        
+
         # Calculate cumulative counts for each date point
         growth_data = {
             "dive_sites": [],
@@ -1198,9 +1489,9 @@ async def get_growth_data(
             "dives": [],
             "dive_routes": [],
             "dive_trips": [],
-            "users": []
+            "users": [],
         }
-        
+
         for date_point in date_points:
             # Count items created on or before this date using binary search
             dive_sites_count = count_up_to_date(dive_sites_dates, date_point)
@@ -1209,59 +1500,57 @@ async def get_growth_data(
             dive_routes_count = count_up_to_date(dive_routes_dates, date_point)
             dive_trips_count = count_up_to_date(dive_trips_dates, date_point)
             users_count = count_up_to_date(users_dates, date_point)
-            
-            growth_data["dive_sites"].append({
-                "date": date_point.isoformat(),
-                "count": dive_sites_count
-            })
-            growth_data["diving_centers"].append({
-                "date": date_point.isoformat(),
-                "count": diving_centers_count
-            })
-            growth_data["dives"].append({
-                "date": date_point.isoformat(),
-                "count": dives_count
-            })
-            growth_data["dive_routes"].append({
-                "date": date_point.isoformat(),
-                "count": dive_routes_count
-            })
-            growth_data["dive_trips"].append({
-                "date": date_point.isoformat(),
-                "count": dive_trips_count
-            })
-            growth_data["users"].append({
-                "date": date_point.isoformat(),
-                "count": users_count
-            })
-        
+
+            growth_data["dive_sites"].append(
+                {"date": date_point.isoformat(), "count": dive_sites_count}
+            )
+            growth_data["diving_centers"].append(
+                {"date": date_point.isoformat(), "count": diving_centers_count}
+            )
+            growth_data["dives"].append(
+                {"date": date_point.isoformat(), "count": dives_count}
+            )
+            growth_data["dive_routes"].append(
+                {"date": date_point.isoformat(), "count": dive_routes_count}
+            )
+            growth_data["dive_trips"].append(
+                {"date": date_point.isoformat(), "count": dive_trips_count}
+            )
+            growth_data["users"].append(
+                {"date": date_point.isoformat(), "count": users_count}
+            )
+
         # Calculate growth rates using data already collected (no duplicate queries)
         if len(date_points) >= 2:
             dive_sites_start = growth_data["dive_sites"][0]["count"]
             dive_sites_end = growth_data["dive_sites"][-1]["count"]
-            
+
             diving_centers_start = growth_data["diving_centers"][0]["count"]
             diving_centers_end = growth_data["diving_centers"][-1]["count"]
-            
+
             dives_start = growth_data["dives"][0]["count"]
             dives_end = growth_data["dives"][-1]["count"]
-            
+
             dive_routes_start = growth_data["dive_routes"][0]["count"]
             dive_routes_end = growth_data["dive_routes"][-1]["count"]
-            
+
             dive_trips_start = growth_data["dive_trips"][0]["count"]
             dive_trips_end = growth_data["dive_trips"][-1]["count"]
-            
+
             users_start = growth_data["users"][0]["count"]
             users_end = growth_data["users"][-1]["count"]
-            
+
             growth_rates = {
                 "dive_sites": calculate_growth_rate(dive_sites_start, dive_sites_end),
-                "diving_centers": calculate_growth_rate(diving_centers_start, diving_centers_end),
+                "diving_centers": calculate_growth_rate(
+                    diving_centers_start, diving_centers_end
+                ),
                 "dives": calculate_growth_rate(dives_start, dives_end),
-                "dive_routes": calculate_growth_rate(dive_routes_start, dive_routes_end),
+                "dive_routes": calculate_growth_rate(
+                    dive_routes_start, dive_routes_end
+                ),
                 "dive_trips": calculate_growth_rate(dive_trips_start, dive_trips_end),
-                "users": calculate_growth_rate(users_start, users_end)
+                "users": calculate_growth_rate(users_start, users_end),
             }
         else:
             growth_rates = {
@@ -1270,73 +1559,89 @@ async def get_growth_data(
                 "dives": 0.0,
                 "dive_routes": 0.0,
                 "dive_trips": 0.0,
-                "users": 0.0
+                "users": 0.0,
             }
-        
+
         return {
             "period": period,
             "growth_data": growth_data,
             "growth_rates": growth_rates,
             "start_date": start_date.date().isoformat(),
-            "end_date": now.date().isoformat()
+            "end_date": now.date().isoformat(),
         }
-    
+
     except Exception as e:
         logger.error(f"Error fetching growth data: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch growth data"
+            detail="Failed to fetch growth data",
         )
+
 
 @router.get("/notifications/analytics", response_model=NotificationAnalyticsResponse)
 async def get_notification_analytics(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """Get notification analytics including in-app and email delivery statistics"""
-    
+
     now = datetime.now(UTC)
     one_day_ago = now - timedelta(days=1)
     seven_days_ago = now - timedelta(days=7)
     thirty_days_ago = now - timedelta(days=30)
-    
+
     # Check if FORCE_DIRECT_EMAIL is enabled (affects delivery method tracking)
     force_direct_email = os.getenv("FORCE_DIRECT_EMAIL", "false").lower() == "true"
-    
+
     # In-App Notification Statistics
     total_notifications = db.query(func.count(Notification.id)).scalar()
-    read_notifications = db.query(func.count(Notification.id)).filter(
-        Notification.is_read == True
-    ).scalar()
+    read_notifications = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.is_read == True)
+        .scalar()
+    )
     unread_notifications = total_notifications - read_notifications
-    read_rate = (read_notifications / total_notifications * 100) if total_notifications > 0 else 0
-    
+    read_rate = (
+        (read_notifications / total_notifications * 100)
+        if total_notifications > 0
+        else 0
+    )
+
     # In-app notifications by category
     in_app_by_category = {}
-    category_stats = db.query(
-        Notification.category,
-        func.count(Notification.id).label('total'),
-        func.sum(func.cast(Notification.is_read, Integer)).label('read')
-    ).group_by(Notification.category).all()
-    
+    category_stats = (
+        db.query(
+            Notification.category,
+            func.count(Notification.id).label("total"),
+            func.sum(func.cast(Notification.is_read, Integer)).label("read"),
+        )
+        .group_by(Notification.category)
+        .all()
+    )
+
     for category, total, read_count in category_stats:
         in_app_by_category[category] = {
             "total": total,
             "read": read_count or 0,
-            "unread": total - (read_count or 0)
+            "unread": total - (read_count or 0),
         }
-    
+
     # Email Delivery Statistics
-    total_email_sent = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True
-    ).scalar()
-    
+    total_email_sent = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.email_sent == True)
+        .scalar()
+    )
+
     # Estimate: emails with email_sent=False are queued to SQS (not yet sent)
-    queued_to_sqs = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == False,
-        Notification.created_at <= now  # Only count existing notifications
-    ).scalar()
-    
+    queued_to_sqs = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.email_sent == False,
+            Notification.created_at <= now,  # Only count existing notifications
+        )
+        .scalar()
+    )
+
     # Estimate direct SES sends: if FORCE_DIRECT_EMAIL is enabled, count recent sent emails as direct
     # Otherwise, assume most sent emails went through SQS/Lambda
     if force_direct_email:
@@ -1346,26 +1651,41 @@ async def get_notification_analytics(
         # Estimate: check if email was sent very quickly (likely direct fallback)
         # Emails sent within 5 minutes of creation are likely direct
         five_minutes_ago = now - timedelta(minutes=5)
-        sent_directly_to_ses = db.query(func.count(Notification.id)).filter(
-            Notification.email_sent == True,
-            Notification.email_sent_at.isnot(None),
-            Notification.created_at >= five_minutes_ago,
-            Notification.email_sent_at <= Notification.created_at + timedelta(minutes=5)
-        ).scalar()
-    
+        sent_directly_to_ses = (
+            db.query(func.count(Notification.id))
+            .filter(
+                Notification.email_sent == True,
+                Notification.email_sent_at.isnot(None),
+                Notification.created_at >= five_minutes_ago,
+                Notification.email_sent_at
+                <= Notification.created_at + timedelta(minutes=5),
+            )
+            .scalar()
+        )
+
     # Calculate delivery rate (emails sent / total notifications eligible for email)
-    total_eligible_for_email = db.query(func.count(Notification.id)).filter(
-        Notification.category != 'admin_alerts'  # Admin alerts may not always have email
-    ).scalar()
-    delivery_rate = (total_email_sent / total_eligible_for_email * 100) if total_eligible_for_email > 0 else 0
-    
+    total_eligible_for_email = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.category
+            != "admin_alerts"  # Admin alerts may not always have email
+        )
+        .scalar()
+    )
+    delivery_rate = (
+        (total_email_sent / total_eligible_for_email * 100)
+        if total_eligible_for_email > 0
+        else 0
+    )
+
     # Calculate average delivery time (for emails that were sent)
     avg_delivery_time = None
-    sent_notifications = db.query(Notification).filter(
-        Notification.email_sent == True,
-        Notification.email_sent_at.isnot(None)
-    ).all()
-    
+    sent_notifications = (
+        db.query(Notification)
+        .filter(Notification.email_sent == True, Notification.email_sent_at.isnot(None))
+        .all()
+    )
+
     if sent_notifications:
         delivery_times = []
         for notif in sent_notifications:
@@ -1380,106 +1700,139 @@ async def get_notification_analytics(
                 delta = (sent_at - created_at).total_seconds()
                 if delta >= 0:  # Only count positive deltas
                     delivery_times.append(delta)
-        
+
         if delivery_times:
             avg_delivery_time = sum(delivery_times) / len(delivery_times)
-    
+
     # Email delivery by category
-    email_by_category = db.query(
-        Notification.category,
-        func.count(Notification.id).label('total'),
-        func.sum(func.cast(Notification.email_sent, Integer)).label('sent')
-    ).group_by(Notification.category).all()
-    
+    email_by_category = (
+        db.query(
+            Notification.category,
+            func.count(Notification.id).label("total"),
+            func.sum(func.cast(Notification.email_sent, Integer)).label("sent"),
+        )
+        .group_by(Notification.category)
+        .all()
+    )
+
     category_stats_list = []
     for category, total, sent_count in email_by_category:
         sent = sent_count or 0
         delivery_rate_cat = (sent / total * 100) if total > 0 else 0
-        category_stats_list.append({
-            "category": category,
-            "total_notifications": total,
-            "in_app_sent": total,  # All notifications are in-app
-            "email_sent": sent,
-            "email_delivery_rate": round(delivery_rate_cat, 2)
-        })
-    
+        category_stats_list.append(
+            {
+                "category": category,
+                "total_notifications": total,
+                "in_app_sent": total,  # All notifications are in-app
+                "email_sent": sent,
+                "email_delivery_rate": round(delivery_rate_cat, 2),
+            }
+        )
+
     # Time-based statistics
-    notifications_24h = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= one_day_ago
-    ).scalar()
-    notifications_7d = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= seven_days_ago
-    ).scalar()
-    notifications_30d = db.query(func.count(Notification.id)).filter(
-        Notification.created_at >= thirty_days_ago
-    ).scalar()
-    
-    emails_sent_24h = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= one_day_ago
-    ).scalar()
-    emails_sent_7d = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= seven_days_ago
-    ).scalar()
-    emails_sent_30d = db.query(func.count(Notification.id)).filter(
-        Notification.email_sent == True,
-        Notification.created_at >= thirty_days_ago
-    ).scalar()
-    
+    notifications_24h = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= one_day_ago)
+        .scalar()
+    )
+    notifications_7d = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= seven_days_ago)
+        .scalar()
+    )
+    notifications_30d = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.created_at >= thirty_days_ago)
+        .scalar()
+    )
+
+    emails_sent_24h = (
+        db.query(func.count(Notification.id))
+        .filter(Notification.email_sent == True, Notification.created_at >= one_day_ago)
+        .scalar()
+    )
+    emails_sent_7d = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.email_sent == True, Notification.created_at >= seven_days_ago
+        )
+        .scalar()
+    )
+    emails_sent_30d = (
+        db.query(func.count(Notification.id))
+        .filter(
+            Notification.email_sent == True, Notification.created_at >= thirty_days_ago
+        )
+        .scalar()
+    )
+
     return {
         "in_app": {
             "total": total_notifications,
             "read": read_notifications,
             "unread": unread_notifications,
             "read_rate": round(read_rate, 2),
-            "by_category": in_app_by_category
+            "by_category": in_app_by_category,
         },
         "email_delivery": {
             "total_sent": total_email_sent,
             "sent_directly_to_ses": sent_directly_to_ses,
-            "queued_to_sqs": queued_to_sqs + (total_email_sent - sent_directly_to_ses if not force_direct_email else 0),
+            "queued_to_sqs": queued_to_sqs
+            + (
+                total_email_sent - sent_directly_to_ses if not force_direct_email else 0
+            ),
             "delivery_rate": round(delivery_rate, 2),
-            "avg_delivery_time_seconds": round(avg_delivery_time, 2) if avg_delivery_time else None
+            "avg_delivery_time_seconds": round(avg_delivery_time, 2)
+            if avg_delivery_time
+            else None,
         },
         "by_category": category_stats_list,
         "time_stats": {
             "last_24h": {
                 "notifications": notifications_24h,
-                "emails_sent": emails_sent_24h
+                "emails_sent": emails_sent_24h,
             },
             "last_7d": {
                 "notifications": notifications_7d,
-                "emails_sent": emails_sent_7d
+                "emails_sent": emails_sent_7d,
             },
             "last_30d": {
                 "notifications": notifications_30d,
-                "emails_sent": emails_sent_30d
-            }
+                "emails_sent": emails_sent_30d,
+            },
         },
-        "timestamp": now.isoformat()
+        "timestamp": now.isoformat(),
     }
+
 
 @router.get("/audit-logs", response_model=List[AuthAuditLogResponse])
 async def get_audit_logs(
     response: Response,
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(25, ge=1, le=100, description="Items per page"),
-    category: Optional[str] = Query(None, description="Category filter: 'auth' or 'medical'"),
+    category: Optional[str] = Query(
+        None, description="Category filter: 'auth' or 'medical'"
+    ),
     action: Optional[str] = Query(None, description="Filter by action"),
-    exclude_action: Optional[List[str]] = Query(None, description="Exclude specific actions"),
+    exclude_action: Optional[List[str]] = Query(
+        None, description="Exclude specific actions"
+    ),
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
     username: Optional[str] = Query(None, description="Filter by username"),
-    target_diver: Optional[str] = Query(None, description="Filter by target diver name"),
+    target_diver: Optional[str] = Query(
+        None, description="Filter by target diver name"
+    ),
     ip_address: Optional[str] = Query(None, description="Filter by IP address"),
     success: Optional[bool] = Query(None, description="Filter by success status"),
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get auth and medical audit logs with pagination and filtering (Admin only).
     """
-    query = db.query(AuthAuditLog, User.username).join(User, AuthAuditLog.user_id == User.id)
+    query = db.query(AuthAuditLog, User.username).join(
+        User, AuthAuditLog.user_id == User.id
+    )
 
     # Category Filtering
     if category == "medical":
@@ -1510,7 +1863,7 @@ async def get_audit_logs(
     total_count = query.count()
     total_pages = (total_count + page_size - 1) // page_size
     offset = (page - 1) * page_size
-    
+
     logs = query.offset(offset).limit(page_size).all()
 
     # Format response

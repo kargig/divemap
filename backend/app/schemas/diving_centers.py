@@ -11,8 +11,10 @@ class CenterMediaCreate(BaseModel):
     thumbnail_url: Optional[str] = Field(None, max_length=500)
     medium_url: Optional[str] = Field(None, max_length=500)
 
+
 class CenterMediaUpdate(BaseModel):
     description: Optional[str] = None
+
 
 class CenterMediaResponse(BaseModel):
     id: int
@@ -26,7 +28,7 @@ class CenterMediaResponse(BaseModel):
     thumbnail_url: Optional[str] = None
     medium_url: Optional[str] = None
     download_url: Optional[str] = None
-    
+
     # Computed full URLs
     full_url: Optional[str] = None
     full_thumbnail_url: Optional[str] = None

@@ -2,26 +2,153 @@
 Canonical Cylinder and Gas Mix Constants for Divemap.
 Mirrors frontend/src/utils/diveConstants.js to ensure 100% ID consistency.
 """
+
 from typing import Any, Dict
 
 TANK_SIZES = [
-    {"id": "3", "name": "3 Liters (Pony)", "size": 3, "defaultPressure": 232, "material": "steel", "emptyWeight": 4.0},
-    {"id": "al40", "name": "AL40 (5.7L)", "size": 5.7, "defaultPressure": 207, "material": "alu", "emptyWeight": 6.9},
-    {"id": "alu7", "name": "ALU7 (7L)", "size": 7, "defaultPressure": 207, "material": "alu", "emptyWeight": 8.8},
-    {"id": "7", "name": "7 Liters Steel", "size": 7, "defaultPressure": 232, "material": "steel", "emptyWeight": 8.0},
-    {"id": "8.5", "name": "8.5 Liters", "size": 8.5, "defaultPressure": 232, "material": "steel", "emptyWeight": 10.5},
-    {"id": "10", "name": "10 Liters", "size": 10, "defaultPressure": 232, "material": "steel", "emptyWeight": 12.0},
-    {"id": "al80", "name": "AL80 (11.1L)", "size": 11.1, "defaultPressure": 207, "material": "alu", "emptyWeight": 14.3},
-    {"id": "12", "name": "12 Liters", "size": 12, "defaultPressure": 232, "material": "steel", "emptyWeight": 14.0},
-    {"id": "14", "name": "Double 7s (14L)", "size": 14, "defaultPressure": 232, "material": "steel", "emptyWeight": 17.0, "isDoubles": True},
-    {"id": "15", "name": "15 Liters", "size": 15, "defaultPressure": 232, "material": "steel", "emptyWeight": 16.5},
-    {"id": "17", "name": "Double 8.5s (17L)", "size": 17, "defaultPressure": 232, "material": "steel", "emptyWeight": 21.0, "isDoubles": True},
-    {"id": "18", "name": "18 Liters", "size": 18, "defaultPressure": 232, "material": "steel", "emptyWeight": 20.0},
-    {"id": "20_double", "name": "Double 10s (20L)", "size": 20, "defaultPressure": 232, "material": "steel", "emptyWeight": 24.0, "isDoubles": True},
-    {"id": "double_al80", "name": "Double AL80 (22.2L)", "size": 22.2, "defaultPressure": 207, "material": "alu", "emptyWeight": 28.6, "isDoubles": True},
-    {"id": "24", "name": "Double 12s (24L)", "size": 24, "defaultPressure": 232, "material": "steel", "emptyWeight": 28.0, "isDoubles": True},
-    {"id": "30", "name": "Double 15s (30L)", "size": 30, "defaultPressure": 232, "material": "steel", "emptyWeight": 33.0, "isDoubles": True},
-    {"id": "36", "name": "Double 18s (36L)", "size": 36, "defaultPressure": 232, "material": "steel", "emptyWeight": 40.0, "isDoubles": True},
+    {
+        "id": "3",
+        "name": "3 Liters (Pony)",
+        "size": 3,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 4.0,
+    },
+    {
+        "id": "al40",
+        "name": "AL40 (5.7L)",
+        "size": 5.7,
+        "defaultPressure": 207,
+        "material": "alu",
+        "emptyWeight": 6.9,
+    },
+    {
+        "id": "alu7",
+        "name": "ALU7 (7L)",
+        "size": 7,
+        "defaultPressure": 207,
+        "material": "alu",
+        "emptyWeight": 8.8,
+    },
+    {
+        "id": "7",
+        "name": "7 Liters Steel",
+        "size": 7,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 8.0,
+    },
+    {
+        "id": "8.5",
+        "name": "8.5 Liters",
+        "size": 8.5,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 10.5,
+    },
+    {
+        "id": "10",
+        "name": "10 Liters",
+        "size": 10,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 12.0,
+    },
+    {
+        "id": "al80",
+        "name": "AL80 (11.1L)",
+        "size": 11.1,
+        "defaultPressure": 207,
+        "material": "alu",
+        "emptyWeight": 14.3,
+    },
+    {
+        "id": "12",
+        "name": "12 Liters",
+        "size": 12,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 14.0,
+    },
+    {
+        "id": "14",
+        "name": "Double 7s (14L)",
+        "size": 14,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 17.0,
+        "isDoubles": True,
+    },
+    {
+        "id": "15",
+        "name": "15 Liters",
+        "size": 15,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 16.5,
+    },
+    {
+        "id": "17",
+        "name": "Double 8.5s (17L)",
+        "size": 17,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 21.0,
+        "isDoubles": True,
+    },
+    {
+        "id": "18",
+        "name": "18 Liters",
+        "size": 18,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 20.0,
+    },
+    {
+        "id": "20_double",
+        "name": "Double 10s (20L)",
+        "size": 20,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 24.0,
+        "isDoubles": True,
+    },
+    {
+        "id": "double_al80",
+        "name": "Double AL80 (22.2L)",
+        "size": 22.2,
+        "defaultPressure": 207,
+        "material": "alu",
+        "emptyWeight": 28.6,
+        "isDoubles": True,
+    },
+    {
+        "id": "24",
+        "name": "Double 12s (24L)",
+        "size": 24,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 28.0,
+        "isDoubles": True,
+    },
+    {
+        "id": "30",
+        "name": "Double 15s (30L)",
+        "size": 30,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 33.0,
+        "isDoubles": True,
+    },
+    {
+        "id": "36",
+        "name": "Double 18s (36L)",
+        "size": 36,
+        "defaultPressure": 232,
+        "material": "steel",
+        "emptyWeight": 40.0,
+        "isDoubles": True,
+    },
 ]
 
 TANK_SIZES_BY_ID: Dict[str, Dict[str, Any]] = {t["id"]: t for t in TANK_SIZES}
@@ -40,8 +167,10 @@ GAS_MIXES = [
 
 GAS_MIXES_BY_ID: Dict[str, Dict[str, Any]] = {g["id"]: g for g in GAS_MIXES}
 
+
 def get_tank_spec(tank_id: str) -> Dict[str, Any]:
     return TANK_SIZES_BY_ID.get(tank_id, TANK_SIZES_BY_ID["12"])
+
 
 def get_gas_mix_spec(gas_id: str) -> Dict[str, Any]:
     return GAS_MIXES_BY_ID.get(gas_id, GAS_MIXES_BY_ID["air"])

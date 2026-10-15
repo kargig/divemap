@@ -24,8 +24,13 @@ def get_dive_by_id(db: Session, dive_id: int) -> Optional[Dive]:
 
 def get_dive_with_relations(db: Session, dive_id: int) -> Optional[Dive]:
     """Get dive by ID with all relations loaded."""
-    return db.query(Dive).options(
-        joinedload(Dive.dive_site),
-        selectinload(Dive.tags),
-        selectinload(Dive.media)
-    ).filter(Dive.id == dive_id).first()
+    return (
+        db.query(Dive)
+        .options(
+            joinedload(Dive.dive_site),
+            selectinload(Dive.tags),
+            selectinload(Dive.media),
+        )
+        .filter(Dive.id == dive_id)
+        .first()
+    )

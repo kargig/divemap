@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
+
     JINJA2_AVAILABLE = True
 except ImportError:
     JINJA2_AVAILABLE = False
@@ -28,6 +29,7 @@ try:
 
     from app.models import EmailConfig
     from app.services.unsubscribe_token_service import unsubscribe_token_service
+
     DB_AVAILABLE = True
 except ImportError:
     EmailConfig = None
@@ -40,53 +42,57 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     """Service for sending notification emails via AWS SES with template rendering."""
-    
+
     def __init__(self):
         """Initialize email service with SES and template engine."""
         self.ses_service = SESService()
         self.template_env = self._create_template_env() if JINJA2_AVAILABLE else None
-        
+
         if not JINJA2_AVAILABLE:
-            logger.warning("Jinja2 not available - email templates will not be rendered")
-    
+            logger.warning(
+                "Jinja2 not available - email templates will not be rendered"
+            )
+
     def _create_template_env(self):
         """Create Jinja2 template environment."""
         try:
-            template_dir = Path(__file__).parent.parent / 'templates' / 'emails'
+            template_dir = Path(__file__).parent.parent / "templates" / "emails"
             template_dir.mkdir(parents=True, exist_ok=True)
-            
+
             env = Environment(
                 loader=FileSystemLoader(str(template_dir)),
-                autoescape=select_autoescape(['html', 'xml'])
+                autoescape=select_autoescape(["html", "xml"]),
             )
             return env
         except Exception as e:
             logger.error(f"Failed to create template environment: {e}")
             return None
-    
-    def _render_template(self, template_name: str, context: Dict[str, Any], extension: str = 'html') -> Optional[str]:
+
+    def _render_template(
+        self, template_name: str, context: Dict[str, Any], extension: str = "html"
+    ) -> Optional[str]:
         """
         Render email template with context.
-        
+
         Args:
             template_name: Name of template (without extension)
             context: Template context variables
             extension: Template file extension ('html' or 'txt')
-        
+
         Returns:
             Rendered template string or None if rendering fails
         """
         if not self.template_env:
             logger.error("Template environment not available")
             return None
-        
+
         try:
             template = self.template_env.get_template(f"{template_name}.{extension}")
             return template.render(**context)
         except Exception as e:
             logger.error(f"Failed to render template {template_name}.{extension}: {e}")
             return None
-    
+
     def send_notification_email(
         self,
         user_email: str,
@@ -96,11 +102,11 @@ class EmailService:
         from_name: Optional[str] = None,
         user_id: Optional[int] = None,
         db: Optional[Session] = None,
-        unsubscribe_token: Optional[str] = None
+        unsubscribe_token: Optional[str] = None,
     ) -> bool:
         """
         Send notification email using template.
-        
+
         Args:
             user_email: Recipient email address
             notification: Notification data dict with title, message, link_url, etc.
@@ -109,77 +115,86 @@ class EmailService:
             from_name: Sender name (optional, uses SES default)
             user_id: User ID (optional, required for unsubscribe links)
             db: Database session (optional, required for unsubscribe links)
-        
+
         Returns:
             True if email was sent successfully, False otherwise
         """
         # Prepare template context
         context = {
-            'notification': notification,
-            'user_email': user_email,
-            'site_name': 'Divemap',
-            'site_url': os.getenv('FRONTEND_URL', 'https://divemap.com'),
-            'current_year': datetime.now().year
+            "notification": notification,
+            "user_email": user_email,
+            "site_name": "Divemap",
+            "site_url": os.getenv("FRONTEND_URL", "https://divemap.com"),
+            "current_year": datetime.now().year,
         }
-        
+
         # Add unsubscribe links if:
         # 1. unsubscribe_token is provided directly (Lambda path), OR
         # 2. user_id and db are provided (backend path)
         # Do NOT add unsubscribe links to admin_alert or email_verification templates
-        if template_name not in ['admin_alert', 'email_verification']:
+        if template_name not in ["admin_alert", "email_verification"]:
             token_to_use = None
-            
+
             if unsubscribe_token:
                 # Use token provided directly (from Lambda API call)
                 token_to_use = unsubscribe_token
             elif user_id and db:
                 # Generate token from database (backend direct path)
                 try:
-                    unsubscribe_token_obj = unsubscribe_token_service.get_or_create_unsubscribe_token(user_id, db)
+                    unsubscribe_token_obj = (
+                        unsubscribe_token_service.get_or_create_unsubscribe_token(
+                            user_id, db
+                        )
+                    )
                     token_to_use = unsubscribe_token_obj.token
                 except Exception as e:
-                    logger.warning(f"Failed to generate unsubscribe token for user {user_id}: {e}")
+                    logger.warning(
+                        f"Failed to generate unsubscribe token for user {user_id}: {e}"
+                    )
                     # Continue without unsubscribe links if token generation fails
-            
+
             if token_to_use:
-                category = notification.get('category', '')
-                base_url = os.getenv('FRONTEND_URL', 'https://divemap.com').rstrip('/')
-                
+                category = notification.get("category", "")
+                base_url = os.getenv("FRONTEND_URL", "https://divemap.com").rstrip("/")
+
                 # Category-specific unsubscribe URL
                 unsubscribe_url = f"{base_url}/api/v1/unsubscribe?token={token_to_use}&category={category}"
                 # Global unsubscribe URL
-                unsubscribe_all_url = f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
-                
-                context['unsubscribe_url'] = unsubscribe_url
-                context['unsubscribe_all_url'] = unsubscribe_all_url
-                context['unsubscribe_token'] = token_to_use
-                context['category'] = category
-        
+                unsubscribe_all_url = (
+                    f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
+                )
+
+                context["unsubscribe_url"] = unsubscribe_url
+                context["unsubscribe_all_url"] = unsubscribe_all_url
+                context["unsubscribe_token"] = token_to_use
+                context["category"] = category
+
         # Render HTML template
-        html_body = self._render_template(template_name, context, 'html')
+        html_body = self._render_template(template_name, context, "html")
         if not html_body:
             logger.error(f"Failed to render HTML template: {template_name}")
             return False
-        
+
         # Render text template (fallback to HTML if text template doesn't exist)
-        text_body = self._render_template(template_name, context, 'txt')
+        text_body = self._render_template(template_name, context, "txt")
         if not text_body:
             # Generate basic text version from HTML
             import re
-            text_body = re.sub(r'<[^>]+>', '', html_body)  # Strip HTML tags
-            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)  # Normalize whitespace
-        
+
+            text_body = re.sub(r"<[^>]+>", "", html_body)  # Strip HTML tags
+            text_body = re.sub(r"\n\s*\n", "\n\n", text_body)  # Normalize whitespace
+
         # Send email via SES
-        subject = notification.get('title', 'Notification from Divemap')
+        subject = notification.get("title", "Notification from Divemap")
         return self.ses_service.send_email(
             to_email=user_email,
             subject=subject,
             html_body=html_body,
             text_body=text_body,
             from_email=from_email,
-            from_name=from_name
+            from_name=from_name,
         )
-    
+
     def send_digest_email(
         self,
         user_email: str,
@@ -189,11 +204,11 @@ class EmailService:
         from_name: Optional[str] = None,
         user_id: Optional[int] = None,
         db: Optional[Session] = None,
-        unsubscribe_token: Optional[str] = None
+        unsubscribe_token: Optional[str] = None,
     ) -> bool:
         """
         Send digest email with multiple notifications.
-        
+
         Args:
             user_email: Recipient email address
             notifications: List of notification dicts
@@ -202,138 +217,154 @@ class EmailService:
             from_name: Sender name (optional)
             user_id: User ID (optional, required for unsubscribe links)
             db: Database session (optional, required for unsubscribe links)
-        
+
         Returns:
             True if email was sent successfully, False otherwise
         """
         # Prepare template context
         context = {
-            'notifications': notifications,
-            'user_email': user_email,
-            'frequency': frequency,
-            'count': len(notifications),
-            'site_name': 'Divemap',
-            'site_url': os.getenv('FRONTEND_URL', 'https://divemap.com'),
-            'current_year': datetime.now().year
+            "notifications": notifications,
+            "user_email": user_email,
+            "frequency": frequency,
+            "count": len(notifications),
+            "site_name": "Divemap",
+            "site_url": os.getenv("FRONTEND_URL", "https://divemap.com"),
+            "current_year": datetime.now().year,
         }
-        
+
         # Add unsubscribe links if:
         # 1. unsubscribe_token is provided directly (Lambda path), OR
         # 2. user_id and db are provided (backend path)
         token_to_use = None
-        
+
         if unsubscribe_token:
             # Use token provided directly (from Lambda API call)
             token_to_use = unsubscribe_token
         elif user_id and db:
             # Generate token from database (backend direct path)
             try:
-                unsubscribe_token_obj = unsubscribe_token_service.get_or_create_unsubscribe_token(user_id, db)
+                unsubscribe_token_obj = (
+                    unsubscribe_token_service.get_or_create_unsubscribe_token(
+                        user_id, db
+                    )
+                )
                 token_to_use = unsubscribe_token_obj.token
             except Exception as e:
-                logger.warning(f"Failed to generate unsubscribe token for user {user_id}: {e}")
+                logger.warning(
+                    f"Failed to generate unsubscribe token for user {user_id}: {e}"
+                )
                 # Continue without unsubscribe links if token generation fails
-        
+
         if token_to_use:
-            base_url = os.getenv('FRONTEND_URL', 'https://divemap.com').rstrip('/')
-            
+            base_url = os.getenv("FRONTEND_URL", "https://divemap.com").rstrip("/")
+
             # For digest emails, use a generic category or the first notification's category
-            category = notifications[0].get('category', '') if notifications else ''
+            category = notifications[0].get("category", "") if notifications else ""
             # Category-specific unsubscribe URL
             unsubscribe_url = f"{base_url}/api/v1/unsubscribe?token={token_to_use}&category={category}"
             # Global unsubscribe URL
-            unsubscribe_all_url = f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
-            
-            context['unsubscribe_url'] = unsubscribe_url
-            context['unsubscribe_all_url'] = unsubscribe_all_url
-            context['unsubscribe_token'] = token_to_use
-            context['category'] = category
-        
+            unsubscribe_all_url = (
+                f"{base_url}/api/v1/unsubscribe/all?token={token_to_use}"
+            )
+
+            context["unsubscribe_url"] = unsubscribe_url
+            context["unsubscribe_all_url"] = unsubscribe_all_url
+            context["unsubscribe_token"] = token_to_use
+            context["category"] = category
+
         # Render HTML template
-        html_body = self._render_template(frequency, context, 'html')
+        html_body = self._render_template(frequency, context, "html")
         if not html_body:
             logger.error(f"Failed to render HTML template: {frequency}")
             return False
-        
+
         # Render text template
-        text_body = self._render_template(frequency, context, 'txt')
+        text_body = self._render_template(frequency, context, "txt")
         if not text_body:
             import re
-            text_body = re.sub(r'<[^>]+>', '', html_body)
-            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)
-        
+
+            text_body = re.sub(r"<[^>]+>", "", html_body)
+            text_body = re.sub(r"\n\s*\n", "\n\n", text_body)
+
         # Determine subject based on frequency
-        if frequency == 'daily_digest':
-            subject = f"Your Daily Divemap Digest - {len(notifications)} new notifications"
+        if frequency == "daily_digest":
+            subject = (
+                f"Your Daily Divemap Digest - {len(notifications)} new notifications"
+            )
         else:
-            subject = f"Your Weekly Divemap Digest - {len(notifications)} new notifications"
-        
+            subject = (
+                f"Your Weekly Divemap Digest - {len(notifications)} new notifications"
+            )
+
         return self.ses_service.send_email(
             to_email=user_email,
             subject=subject,
             html_body=html_body,
             text_body=text_body,
             from_email=from_email,
-            from_name=from_name
+            from_name=from_name,
         )
-    
+
     def send_verification_email(
         self,
         user_email: str,
         verification_token: str,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
     ) -> bool:
         """
         Send email verification email with verification link.
-        
+
         Args:
             user_email: Recipient email address
             verification_token: Verification token to include in link
             from_email: Sender email (optional, uses SES default)
             from_name: Sender name (optional, uses SES default)
-        
+
         Returns:
             True if email was sent successfully, False otherwise
         """
         # Build verification link - should point to backend API endpoint
         # The backend will then redirect to frontend with success/error parameters
         # Use FRONTEND_URL as base since nginx proxies both frontend and backend
-        base_url = os.getenv('FRONTEND_URL', 'http://localhost')
+        base_url = os.getenv("FRONTEND_URL", "http://localhost")
         # Remove trailing slash if present
-        base_url = base_url.rstrip('/')
-        verification_link = f"{base_url}/api/v1/auth/verify-email?token={verification_token}"
-        
+        base_url = base_url.rstrip("/")
+        verification_link = (
+            f"{base_url}/api/v1/auth/verify-email?token={verification_token}"
+        )
+
         # Get token expiry hours from env
         expiry_hours = int(os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRY_HOURS", "24"))
-        
+
         # Get frontend URL for site_url in template
-        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost')
-        
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost")
+
         # Prepare template context
         context = {
-            'verification_link': verification_link,
-            'user_email': user_email,
-            'expires_in_hours': expiry_hours,
-            'site_name': 'Divemap',
-            'site_url': frontend_url,
-            'current_year': datetime.now().year
+            "verification_link": verification_link,
+            "user_email": user_email,
+            "expires_in_hours": expiry_hours,
+            "site_name": "Divemap",
+            "site_url": frontend_url,
+            "current_year": datetime.now().year,
         }
-        
+
         # Render HTML template
-        html_body = self._render_template('email_verification', context, 'html')
+        html_body = self._render_template("email_verification", context, "html")
         if not html_body:
             logger.error("Failed to render HTML template: email_verification")
             return False
-        
+
         # Render text template
-        text_body = self._render_template('email_verification', context, 'txt')
+        text_body = self._render_template("email_verification", context, "txt")
         if not text_body:
             # Generate basic text version from HTML
             import re
-            text_body = re.sub(r'<[^>]+>', '', html_body)  # Strip HTML tags
-            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)  # Normalize whitespace
-        
+
+            text_body = re.sub(r"<[^>]+>", "", html_body)  # Strip HTML tags
+            text_body = re.sub(r"\n\s*\n", "\n\n", text_body)  # Normalize whitespace
+
         # Send email via SES
         subject = "Verify your email address - Divemap"
         return self.ses_service.send_email(
@@ -342,7 +373,7 @@ class EmailService:
             html_body=html_body,
             text_body=text_body,
             from_email=from_email,
-            from_name=from_name
+            from_name=from_name,
         )
 
     def send_password_reset_email(
@@ -350,47 +381,48 @@ class EmailService:
         user_email: str,
         reset_token: str,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
     ) -> bool:
         """
         Send password reset email with reset link.
-        
+
         Args:
             user_email: Recipient email address
             reset_token: Password reset token to include in link
             from_email: Sender email (optional)
             from_name: Sender name (optional)
-        
+
         Returns:
             True if email was sent successfully
         """
         # Build reset link - points to frontend page
         # Use FRONTEND_URL as base
-        base_url = os.getenv('FRONTEND_URL', 'http://localhost').rstrip('/')
+        base_url = os.getenv("FRONTEND_URL", "http://localhost").rstrip("/")
         reset_link = f"{base_url}/reset-password?token={reset_token}"
-        
+
         # Prepare template context
         context = {
-            'reset_link': reset_link,
-            'user_email': user_email,
-            'site_name': 'Divemap',
-            'site_url': base_url,
-            'current_year': datetime.now().year
+            "reset_link": reset_link,
+            "user_email": user_email,
+            "site_name": "Divemap",
+            "site_url": base_url,
+            "current_year": datetime.now().year,
         }
-        
+
         # Render HTML template
-        html_body = self._render_template('password_reset', context, 'html')
+        html_body = self._render_template("password_reset", context, "html")
         if not html_body:
             logger.error("Failed to render HTML template: password_reset")
             return False
-        
+
         # Render text template
-        text_body = self._render_template('password_reset', context, 'txt')
+        text_body = self._render_template("password_reset", context, "txt")
         if not text_body:
             import re
-            text_body = re.sub(r'<[^>]+>', '', html_body)
-            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)
-        
+
+            text_body = re.sub(r"<[^>]+>", "", html_body)
+            text_body = re.sub(r"\n\s*\n", "\n\n", text_body)
+
         # Send email via SES
         subject = "Reset your password - Divemap"
         return self.ses_service.send_email(
@@ -399,48 +431,49 @@ class EmailService:
             html_body=html_body,
             text_body=text_body,
             from_email=from_email,
-            from_name=from_name
+            from_name=from_name,
         )
 
     def send_password_changed_email(
         self,
         user_email: str,
         from_email: Optional[str] = None,
-        from_name: Optional[str] = None
+        from_name: Optional[str] = None,
     ) -> bool:
         """
         Send password changed confirmation email.
-        
+
         Args:
             user_email: Recipient email address
             from_email: Sender email (optional)
             from_name: Sender name (optional)
-        
+
         Returns:
             True if email was sent successfully
         """
-        base_url = os.getenv('FRONTEND_URL', 'http://localhost').rstrip('/')
+        base_url = os.getenv("FRONTEND_URL", "http://localhost").rstrip("/")
         login_url = f"{base_url}/login"
-        
+
         context = {
-            'login_url': login_url,
-            'user_email': user_email,
-            'site_name': 'Divemap',
-            'site_url': base_url,
-            'current_year': datetime.now().year
+            "login_url": login_url,
+            "user_email": user_email,
+            "site_name": "Divemap",
+            "site_url": base_url,
+            "current_year": datetime.now().year,
         }
-        
-        html_body = self._render_template('password_changed', context, 'html')
+
+        html_body = self._render_template("password_changed", context, "html")
         if not html_body:
             logger.error("Failed to render HTML template: password_changed")
             return False
-        
-        text_body = self._render_template('password_changed', context, 'txt')
+
+        text_body = self._render_template("password_changed", context, "txt")
         if not text_body:
             import re
-            text_body = re.sub(r'<[^>]+>', '', html_body)
-            text_body = re.sub(r'\n\s*\n', '\n\n', text_body)
-        
+
+            text_body = re.sub(r"<[^>]+>", "", html_body)
+            text_body = re.sub(r"\n\s*\n", "\n\n", text_body)
+
         subject = "Password Changed - Divemap"
         return self.ses_service.send_email(
             to_email=user_email,
@@ -448,16 +481,16 @@ class EmailService:
             html_body=html_body,
             text_body=text_body,
             from_email=from_email,
-            from_name=from_name
+            from_name=from_name,
         )
-    
+
     def get_email_config(self, db: Optional[Session] = None) -> Optional[Any]:
         """
         Get active email configuration from database.
-        
+
         Args:
             db: Database session (optional, only needed if DB_AVAILABLE)
-        
+
         Returns:
             EmailConfig instance or None if not found or DB not available
         """
@@ -469,21 +502,23 @@ class EmailService:
         except Exception as e:
             logger.error(f"Error fetching email config: {e}")
             return None
-    
+
     def test_email_connection(self, config: Optional[Any] = None) -> bool:
         """
         Test email configuration by sending a test email.
-        
+
         Note: This is for SMTP testing. For AWS SES, we use SES verification instead.
-        
+
         Args:
             config: EmailConfig instance (optional, not used for SES)
-        
+
         Returns:
             True if test email was sent successfully
         """
         # For AWS SES, we don't need SMTP connection testing
         # Instead, we can verify the SES email address
         logger.info("AWS SES doesn't require SMTP connection testing")
-        logger.info("Use SES verify_email_address() to verify email addresses in sandbox mode")
+        logger.info(
+            "Use SES verify_email_address() to verify email addresses in sandbox mode"
+        )
         return True

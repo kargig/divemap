@@ -17,24 +17,26 @@ redirect_router = APIRouter()
 
 DEFAULT_EXPIRATION_WEEKS = 1
 
+
 class ShortLinkCreate(BaseModel):
     url: HttpUrl
+
 
 class ShortLinkResponse(BaseModel):
     short_url: str
     expires_at: datetime
 
+
 def generate_short_id(length=6):
     """Generate a random short ID"""
     chars = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(chars) for _ in range(length))
+    return "".join(secrets.choice(chars) for _ in range(length))
+
 
 @api_router.post("/create", response_model=ShortLinkResponse)
 @limiter.limit("10/minute")
 async def create_short_link(
-    link_data: ShortLinkCreate,
-    request: Request,
-    db: Session = Depends(get_db)
+    link_data: ShortLinkCreate, request: Request, db: Session = Depends(get_db)
 ):
     """
     Create a shortened URL for the given original URL.
@@ -43,14 +45,14 @@ async def create_short_link(
     """
     # Parse URL and strip scheme/domain to ensure safety (relative redirect)
     parsed_url = urlparse(str(link_data.url))
-    
+
     # Reconstruct relative URL (path + params + query + fragment)
     relative_url = parsed_url.path
     if not relative_url:
         relative_url = "/"
     elif not relative_url.startswith("/"):
         relative_url = "/" + relative_url
-        
+
     if parsed_url.params:
         relative_url += f";{parsed_url.params}"
     if parsed_url.query:
@@ -60,70 +62,70 @@ async def create_short_link(
 
     # Deduplication: Check for existing active link
     now = datetime.now(UTC)
-    existing_link = db.query(ShortLink).filter(
-        ShortLink.original_url == relative_url,
-        ShortLink.expires_at > now
-    ).first()
+    existing_link = (
+        db.query(ShortLink)
+        .filter(ShortLink.original_url == relative_url, ShortLink.expires_at > now)
+        .first()
+    )
 
     if existing_link:
         # Use X-Forwarded-Proto/Host if available for correct scheme/domain
         scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
         host = request.headers.get("Host", request.url.netloc)
-        
+
         short_url = f"{scheme}://{host}/l/{existing_link.id}"
-        return ShortLinkResponse(short_url=short_url, expires_at=existing_link.expires_at)
+        return ShortLinkResponse(
+            short_url=short_url, expires_at=existing_link.expires_at
+        )
 
     # 1 week TTL
     expires_at = now + timedelta(weeks=DEFAULT_EXPIRATION_WEEKS)
-    
+
     # Try to generate a unique ID (retrying if collision occurs, though unlikely)
     for _ in range(5):
         short_id = generate_short_id()
         existing = db.query(ShortLink).filter(ShortLink.id == short_id).first()
         if not existing:
             new_link = ShortLink(
-                id=short_id,
-                original_url=relative_url,
-                expires_at=expires_at
+                id=short_id, original_url=relative_url, expires_at=expires_at
             )
             db.add(new_link)
             db.commit()
             db.refresh(new_link)
-            
+
             # Construct the full short URL
             # Use X-Forwarded-Proto/Host if available for correct scheme/domain
             scheme = request.headers.get("X-Forwarded-Proto", request.url.scheme)
             host = request.headers.get("Host", request.url.netloc)
-            
+
             short_url = f"{scheme}://{host}/l/{short_id}"
-            
+
             return ShortLinkResponse(short_url=short_url, expires_at=expires_at)
-            
+
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Failed to generate a unique short link ID"
+        detail="Failed to generate a unique short link ID",
     )
 
 
 @redirect_router.get("/{short_id}")
 async def redirect_short_link(
-    short_id: str = Path(..., title="The short link ID"),
-    db: Session = Depends(get_db)
+    short_id: str = Path(..., title="The short link ID"), db: Session = Depends(get_db)
 ):
     """
     Redirect to the original URL.
     """
     link = db.query(ShortLink).filter(ShortLink.id == short_id).first()
-    
+
     if not link:
         raise HTTPException(status_code=404, detail="Short link not found")
-    
+
     # Check expiration (ensure timezone awareness)
     now = datetime.now(UTC)
     # Ensure link.expires_at is timezone-aware.
     # If it was stored without timezone info in DB but is UTC, we might need to fix it.
     # SQLAlchemy DateTime(timezone=True) should handle this, but let's be safe.
-    
+
     if link.expires_at.tzinfo is None:
         # Assume UTC if naive
         link_expires_at = link.expires_at.replace(tzinfo=UTC)
@@ -135,5 +137,5 @@ async def redirect_short_link(
         db.delete(link)
         db.commit()
         raise HTTPException(status_code=410, detail="Short link expired")
-        
+
     return RedirectResponse(url=link.original_url)

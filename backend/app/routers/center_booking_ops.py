@@ -46,7 +46,10 @@ from app.services.nitrox_service import check_nitrox_eligibility
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/centers/{center_id}/booking-ops", tags=["Center Booking Operations"])
+router = APIRouter(
+    prefix="/api/v1/centers/{center_id}/booking-ops", tags=["Center Booking Operations"]
+)
+
 
 def is_bona_fide_center_staff(db: Session, center_id: int, user: User) -> bool:
     """
@@ -61,20 +64,29 @@ def is_bona_fide_center_staff(db: Session, center_id: int, user: User) -> bool:
     if not center:
         return False
 
-    if center.owner_id == user.id and center.ownership_status == OwnershipStatus.approved:
+    if (
+        center.owner_id == user.id
+        and center.ownership_status == OwnershipStatus.approved
+    ):
         return True
 
-    manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == center_id,
-        DivingCenterManager.user_id == user.id
-    ).first()
+    manager = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == center_id,
+            DivingCenterManager.user_id == user.id,
+        )
+        .first()
+    )
 
     return manager is not None
+
 
 def ensure_aware(dt: Optional[datetime]) -> Optional[datetime]:
     if dt is not None and dt.tzinfo is None:
         return dt.replace(tzinfo=UTC)
     return dt
+
 
 DMSC_QUESTION_TEXTS = {
     "q1": "1. Problems with lungs/breathing, heart, or blood affecting normal performance.",
@@ -92,6 +104,7 @@ DMSC_QUESTION_TEXTS = {
 
 # --- Schemas ---
 
+
 class ClearMedicalOverrideRequest(BaseModel):
     physician_name: str
     physician_clinic: Optional[str] = None
@@ -99,9 +112,11 @@ class ClearMedicalOverrideRequest(BaseModel):
     notes: Optional[str] = None
     confirmed_physical_form_inspected: bool = True
 
+
 class UpdateMedicalAnswersRequest(BaseModel):
     answers: Dict[str, bool]
     reason: str
+
 
 class WalkInParticipantCreate(BaseModel):
     diver_full_name: str
@@ -143,6 +158,7 @@ class StaffUpdateRequest(BaseModel):
 
 
 # --- Helper ---
+
 
 def reconcile_slot_seats(
     db: Session,
@@ -215,7 +231,9 @@ def reconcile_slot_seats(
     # Holds with zero unit rows still consume at least one seat placeholder
     empty_holds = (
         db.query(func.count(OctoBooking.uuid))
-        .outerjoin(OctoBookingUnitItem, OctoBookingUnitItem.booking_uuid == OctoBooking.uuid)
+        .outerjoin(
+            OctoBookingUnitItem, OctoBookingUnitItem.booking_uuid == OctoBooking.uuid
+        )
         .filter(
             OctoBooking.availability_id == slot.id,
             OctoBooking.status == "ON_HOLD",
@@ -236,13 +254,19 @@ def reconcile_slot_seats(
     return correct_seats_available
 
 
-def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabilitySlot) -> Dict[str, Any]:
+def get_slot_manifest_data(
+    db: Session, center: DivingCenter, slot: OctoAvailabilitySlot
+) -> Dict[str, Any]:
     reconcile_slot_seats(db, slot)
     vessel = slot.vessel
     vessel_data = {
         "id": vessel.id if vessel else None,
-        "name": vessel.name if vessel else (slot.product.title if slot.product else "Dive Boat"),
-        "registration_number": vessel.registration_number if vessel else "GR-DIVE-LOCAL",
+        "name": vessel.name
+        if vessel
+        else (slot.product.title if slot.product else "Dive Boat"),
+        "registration_number": vessel.registration_number
+        if vessel
+        else "GR-DIVE-LOCAL",
         "licensed_capacity": vessel.licensed_capacity if vessel else slot.seats_total,
         "has_emergency_oxygen": vessel.has_emergency_oxygen if vessel else True,
         "has_first_aid_kit": vessel.has_first_aid_kit if vessel else True,
@@ -264,14 +288,20 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         "seats_total": slot.seats_total,
         "seats_available": slot.seats_available,
         "seats_confirmed": sum(
-            len(b.unit_items) for b in slot.bookings if b.status in ("CONFIRMED", "COMPLETED")
+            len(b.unit_items)
+            for b in slot.bookings
+            if b.status in ("CONFIRMED", "COMPLETED")
         ),
         "is_closed": slot.is_closed,
         "product_title": slot.product.title if slot.product else "Dive Trip",
     }
 
     # Staff / Crew metadata
-    staff_meta = slot.assigned_guide_user_ids if isinstance(slot.assigned_guide_user_ids, dict) else {}
+    staff_meta = (
+        slot.assigned_guide_user_ids
+        if isinstance(slot.assigned_guide_user_ids, dict)
+        else {}
+    )
     staff_data = {
         "skipper_name": staff_meta.get("skipper_name", "Captain (Center Staff)"),
         "skipper_license": staff_meta.get("skipper_license", "N/A"),
@@ -282,7 +312,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     # Dives count determination (e.g. 2-tank boat dive = 2 tanks per diver)
     dives_count = 2
-    if slot.product and hasattr(slot.product, "dives_count") and slot.product.dives_count:
+    if (
+        slot.product
+        and hasattr(slot.product, "dives_count")
+        and slot.product.dives_count
+    ):
         dives_count = int(slot.product.dives_count)
     elif slot.product and "1-tank" in (slot.product.title or "").lower():
         dives_count = 1
@@ -350,7 +384,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     user_by_email: Dict[str, User] = {}
     if email_lookups:
-        for u in db.query(User).filter(func.lower(User.email).in_(list(email_lookups))).all():
+        for u in (
+            db.query(User).filter(func.lower(User.email).in_(list(email_lookups))).all()
+        ):
             if u.email:
                 user_by_email[u.email.strip().lower()] = u
 
@@ -378,7 +414,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         med_audit = None
         if med and med.status == "PHYSICIAN_APPROVED":
             med_audit = {
-                "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+                "cleared_by_name": med.cleared_by_user.username
+                if med.cleared_by_user
+                else "Manager",
                 "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
                 "physician_name": med.cleared_physician_name,
                 "physician_clinic": med.cleared_physician_clinic,
@@ -435,7 +473,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         # Rental gear breakdown (distinguish Men's, Women's, and Unisex/Other cuts)
         if eq.get("wetsuit_size") and eq.get("wetsuit_size") != "None":
             gender = str(eq.get("wetsuit_gender") or "MEN").upper()
-            gender_prefix = "Women's" if gender == "WOMEN" else ("Men's" if gender == "MEN" else "Unisex/Other")
+            gender_prefix = (
+                "Women's"
+                if gender == "WOMEN"
+                else ("Men's" if gender == "MEN" else "Unisex/Other")
+            )
             suit_label = f"{gender_prefix} {eq.get('wetsuit_size')} ({eq.get('wetsuit_thickness', '5mm')})"
             suits_summary[suit_label] = suits_summary.get(suit_label, 0) + 1
 
@@ -449,7 +491,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         )
 
         # 1. Mask & Snorkel
-        if is_rental_pkg or eq.get("rental_mask", False) or not eq.get("has_own_mask", True):
+        if (
+            is_rental_pkg
+            or eq.get("rental_mask", False)
+            or not eq.get("has_own_mask", True)
+        ):
             masks_count += 1
         if eq.get("rental_snorkel", False):
             snorkels_count += 1
@@ -460,12 +506,18 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             hoods_summary[h_label] = hoods_summary.get(h_label, 0) + 1
 
         # 3. Regulator
-        if is_rental_pkg or eq.get("rental_regulator", False) or not eq.get("has_own_regulator", True):
+        if (
+            is_rental_pkg
+            or eq.get("rental_regulator", False)
+            or not eq.get("has_own_regulator", True)
+        ):
             reg_type = "Yoke" if ("YOKE" in fitting or "INT" in fitting) else "DIN"
             regulators_summary[reg_type] = regulators_summary.get(reg_type, 0) + 1
 
         if eq.get("bcd_size") and eq.get("bcd_size") != "None":
-            bcd_gender = str(eq.get("bcd_gender") or eq.get("wetsuit_gender") or "MEN").upper()
+            bcd_gender = str(
+                eq.get("bcd_gender") or eq.get("wetsuit_gender") or "MEN"
+            ).upper()
             bcd_prefix = "Women's" if bcd_gender == "WOMEN" else "Men's"
             bcd_label = f"{bcd_prefix} {eq.get('bcd_size')}"
             bcds_summary[bcd_label] = bcds_summary.get(bcd_label, 0) + 1
@@ -483,7 +535,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         fin_sz = eq.get("fin_size")
         boot_sz = eq.get("boot_size")
 
-        is_boot_rental = eq.get("rental_boots", False) or (boot_sz and boot_sz != "None")
+        is_boot_rental = eq.get("rental_boots", False) or (
+            boot_sz and boot_sz != "None"
+        )
         if is_boot_rental:
             b_label = f"EU {boot_sz or shoe_sz or 'Standard'}"
             boots_summary[b_label] = boots_summary.get(b_label, 0) + 1
@@ -495,7 +549,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         )
         if is_fin_rental and fin_sz != "None":
             f_style_label = "Open-Heel" if fin_style == "OPEN_HEEL" else "Full-Foot"
-            sz_str = fin_sz if (fin_sz and fin_sz != "None") else (f"EU {shoe_sz}" if shoe_sz else "")
+            sz_str = (
+                fin_sz
+                if (fin_sz and fin_sz != "None")
+                else (f"EU {shoe_sz}" if shoe_sz else "")
+            )
             f_label = f"{f_style_label} ({sz_str})" if sz_str else f_style_label
             fins_summary[f_label] = fins_summary.get(f_label, 0) + 1
 
@@ -504,7 +562,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             scooters_count += 1
         if eq.get("rental_torch", False) or eq.get("has_torch", False):
             torches_count += 1
-        if eq.get("rental_dive_computer", False) or is_rental_pkg or not eq.get("has_own_dive_computer", True):
+        if (
+            eq.get("rental_dive_computer", False)
+            or is_rental_pkg
+            or not eq.get("has_own_dive_computer", True)
+        ):
             computers_count += 1
         if eq.get("stage_tank") and eq.get("stage_tank") != "None":
             st_label = str(eq.get("stage_tank"))
@@ -514,7 +576,8 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         unit = unit_by_id.get(item.unit_id) if item.unit_id else None
         if unit is None:
             fin_data = {
-                "total_due": float(b.total_amount or 0) / max(1, len(b.unit_items or [1])),
+                "total_due": float(b.total_amount or 0)
+                / max(1, len(b.unit_items or [1])),
                 "pricing": {"formatted": "€—"},
                 "lineItems": [],
             }
@@ -525,7 +588,9 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
                 center_settings=center.booking_settings,
                 unit=unit,
                 equipment_sizing=eq_pricing,
-                currency=center.booking_settings.default_currency if center.booking_settings else "EUR",
+                currency=center.booking_settings.default_currency
+                if center.booking_settings
+                else "EUR",
             )
         total_due = fin_data["total_due"]
         is_paid = b.payment_status in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
@@ -535,7 +600,11 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
         if not u and item.diver_email:
             u = user_by_email.get(item.diver_email.strip().lower())
 
-        declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
+        declared_cnt = (
+            u.number_of_dives
+            if (u and u.number_of_dives)
+            else (item.total_logged_dives or 0)
+        )
         logged_cnt = dive_count_by_user.get(u.id, 0) if u else 0
 
         diver_experience = {
@@ -545,38 +614,42 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
             "platform_logged_dives": logged_cnt,
         }
 
-        participants.append({
-            "id": item.id,
-            "booking_id": b.uuid,
-            "diver_full_name": item.diver_full_name,
-            "diver_email": item.diver_email,
-            "diver_phone": item.diver_phone,
-            "diver_nationality": item.diver_nationality,
-            "passport_number": item.passport_number,
-            "date_of_birth": str(item.date_of_birth) if item.date_of_birth else None,
-            "certification_agency": item.certification_agency or "PADI",
-            "certification_level": item.certification_level or "Open Water",
-            "certification_number": item.certification_number,
-            "diver_experience": diver_experience,
-            "selected_tank_id": item.selected_tank_id or "12",
-            "selected_gas_mix_id": item.selected_gas_mix_id or "air",
-            "tanks_count": dives_count,
-            "tank_label": f"{dives_count}x {item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} ({valve_desc.split(' ')[0]})",
-            "estimated_lead_kg": lead,
-            "equipment_sizing": eq,
-            "gear_checked": bool(eq.get("gear_checked", False)),
-            "medical_status": med_status,
-            "medical_clearance_audit": med_audit,
-            "waivers_complete": item.waivers_complete,
-            "onboard_checkin_status": item.onboard_checkin_status,
-            "payment_status": b.payment_status,
-            "payment_mode": b.payment_mode,
-            "booking_status": b.status,
-            "financials": fin_data,
-            "total_due": total_due,
-            "amount_due": 0.0 if is_paid else total_due,
-            "formatted_total_due": fin_data["pricing"]["formatted"],
-        })
+        participants.append(
+            {
+                "id": item.id,
+                "booking_id": b.uuid,
+                "diver_full_name": item.diver_full_name,
+                "diver_email": item.diver_email,
+                "diver_phone": item.diver_phone,
+                "diver_nationality": item.diver_nationality,
+                "passport_number": item.passport_number,
+                "date_of_birth": str(item.date_of_birth)
+                if item.date_of_birth
+                else None,
+                "certification_agency": item.certification_agency or "PADI",
+                "certification_level": item.certification_level or "Open Water",
+                "certification_number": item.certification_number,
+                "diver_experience": diver_experience,
+                "selected_tank_id": item.selected_tank_id or "12",
+                "selected_gas_mix_id": item.selected_gas_mix_id or "air",
+                "tanks_count": dives_count,
+                "tank_label": f"{dives_count}x {item.selected_tank_id or '12'}L {(item.selected_gas_mix_id or 'AIR').upper()} ({valve_desc.split(' ')[0]})",
+                "estimated_lead_kg": lead,
+                "equipment_sizing": eq,
+                "gear_checked": bool(eq.get("gear_checked", False)),
+                "medical_status": med_status,
+                "medical_clearance_audit": med_audit,
+                "waivers_complete": item.waivers_complete,
+                "onboard_checkin_status": item.onboard_checkin_status,
+                "payment_status": b.payment_status,
+                "payment_mode": b.payment_mode,
+                "booking_status": b.status,
+                "financials": fin_data,
+                "total_due": total_due,
+                "amount_due": 0.0 if is_paid else total_due,
+                "formatted_total_due": fin_data["pricing"]["formatted"],
+            }
+        )
 
     # Spare lead buffer calculation (+15% extra ballast)
     spare_kg = max(4.0, round(total_lead_kg * 0.15, 1))
@@ -609,8 +682,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     # Settlement counts only confirmed/completed seats (not open holds)
     settlement_participants = [
-        p for p in participants
-        if p.get("booking_status") in ("CONFIRMED", "COMPLETED")
+        p for p in participants if p.get("booking_status") in ("CONFIRMED", "COMPLETED")
     ]
     total_revenue_expected = sum(p["total_due"] for p in settlement_participants)
     total_collected = sum(
@@ -620,11 +692,15 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
     )
     total_outstanding = round(total_revenue_expected - total_collected, 2)
     paid_diver_count = sum(
-        1 for p in settlement_participants if p["payment_status"] in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
+        1
+        for p in settlement_participants
+        if p["payment_status"] in ("PAID_IN_FULL", "PAID_ONLINE", "PAID")
     )
     pending_diver_count = len(settlement_participants) - paid_diver_count
 
-    currency = center.booking_settings.default_currency if center.booking_settings else "EUR"
+    currency = (
+        center.booking_settings.default_currency if center.booking_settings else "EUR"
+    )
     financial_summary = {
         "currency": currency,
         "currencyPrecision": 2,
@@ -652,9 +728,7 @@ def get_slot_manifest_data(db: Session, center: DivingCenter, slot: OctoAvailabi
 
     # Catalog trip linked to this OCTO slot (for Edit Trip Details from ops dashboard)
     parsed_trip = (
-        db.query(ParsedDiveTrip)
-        .filter(ParsedDiveTrip.octo_slot_id == slot.id)
-        .first()
+        db.query(ParsedDiveTrip).filter(ParsedDiveTrip.octo_slot_id == slot.id).first()
     )
 
     return {
@@ -712,6 +786,7 @@ class CenterTripSummaryItem(BaseModel):
 
 # --- Endpoints ---
 
+
 @router.get("/trips-summary", response_model=List[CenterTripSummaryItem])
 def get_center_trips_summary(
     center_id: int,
@@ -724,7 +799,9 @@ def get_center_trips_summary(
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     trips = (
         db.query(ParsedDiveTrip)
@@ -744,20 +821,24 @@ def get_center_trips_summary(
         avail = max(0, total - booked)
         rate = round(booked / total, 2) if total > 0 else 0.0
 
-        results.append(CenterTripSummaryItem(
-            tripId=t.id,
-            tripDate=str(t.trip_date),
-            tripTime=str(t.trip_time) if t.trip_time else None,
-            title=t.trip_description or f"Trip on {t.trip_date}",
-            isBookable=bool(t.is_bookable and t.octo_slot_id),
-            octoSlotId=t.octo_slot_id,
-            seatsTotal=total,
-            seatsBooked=booked,
-            seatsAvailable=avail,
-            occupancyRate=rate,
-            hasBriefing=bool(t.octo_slot and t.octo_slot.briefing),
-            briefingStatus=t.octo_slot.briefing.status if (t.octo_slot and t.octo_slot.briefing) else None
-        ))
+        results.append(
+            CenterTripSummaryItem(
+                tripId=t.id,
+                tripDate=str(t.trip_date),
+                tripTime=str(t.trip_time) if t.trip_time else None,
+                title=t.trip_description or f"Trip on {t.trip_date}",
+                isBookable=bool(t.is_bookable and t.octo_slot_id),
+                octoSlotId=t.octo_slot_id,
+                seatsTotal=total,
+                seatsBooked=booked,
+                seatsAvailable=avail,
+                occupancyRate=rate,
+                hasBriefing=bool(t.octo_slot and t.octo_slot.briefing),
+                briefingStatus=t.octo_slot.briefing.status
+                if (t.octo_slot and t.octo_slot.briefing)
+                else None,
+            )
+        )
     return results
 
 
@@ -774,7 +855,9 @@ def get_trip_manifest(
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
@@ -791,7 +874,9 @@ def update_trip_staff(
 ):
     """Updates skipper, lead instructor, and crew assignments for the trip."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
@@ -821,7 +906,9 @@ def add_walkin_participant(
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     # Row-lock slot so concurrent walk-ins / online holds cannot oversell
     slot = assert_slot_belongs_to_center(db, trip_id, center_id, for_update=True)
@@ -832,14 +919,18 @@ def add_walkin_participant(
     reconcile_slot_seats(db, slot, commit=False)
 
     if slot.seats_available <= 0:
-        raise HTTPException(status_code=400, detail="Trip is fully booked. No seats available.")
+        raise HTTPException(
+            status_code=400, detail="Trip is fully booked. No seats available."
+        )
 
     # Check Nitrox Eligibility
     if req.selected_gas_mix_id and req.selected_gas_mix_id.lower() != "air":
-        if not check_nitrox_eligibility(req.certification_level, req.selected_gas_mix_id, db):
+        if not check_nitrox_eligibility(
+            req.certification_level, req.selected_gas_mix_id, db
+        ):
             raise HTTPException(
                 status_code=400,
-                detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Diver holds '{req.certification_level or 'Unspecified'}', which is not certified for Nitrox."
+                detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification. Diver holds '{req.certification_level or 'Unspecified'}', which is not certified for Nitrox.",
             )
 
     # Prefer matching unit type from product; require a real OctoUnit for pricing
@@ -854,9 +945,11 @@ def add_walkin_participant(
     sizing.pop("is_rental_package", None)
     settings = center.booking_settings if hasattr(center, "booking_settings") else None
     if settings is None:
-        settings = db.query(DivingCenterBookingSettings).filter(
-            DivingCenterBookingSettings.diving_center_id == center_id
-        ).first()
+        settings = (
+            db.query(DivingCenterBookingSettings)
+            .filter(DivingCenterBookingSettings.diving_center_id == center_id)
+            .first()
+        )
     pricing_calc = compute_participant_octo_pricing(
         center_settings=settings,
         unit=unit,
@@ -876,7 +969,7 @@ def add_walkin_participant(
         product_id=slot.product_id,
         option_id=slot.option_id,
         availability_id=slot.id,
-        user_id=None, # Walk-in
+        user_id=None,  # Walk-in
         contact_full_name=req.diver_full_name,
         contact_email=req.diver_email,
         contact_phone=req.diver_phone,
@@ -941,19 +1034,25 @@ def get_participant_details(
 ):
     """Retrieves full operational and paperwork details for a single trip participant."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
 
     med_audit = None
     if med and med.status == "PHYSICIAN_APPROVED":
         med_audit = {
-            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+            "cleared_by_name": med.cleared_by_user.username
+            if med.cleared_by_user
+            else "Manager",
             "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
             "physician_name": med.cleared_physician_name,
             "physician_clinic": med.cleared_physician_clinic,
@@ -972,7 +1071,12 @@ def get_participant_details(
         u = db.query(User).filter(User.email == item.diver_email).first()
 
     from app.models import Dive
-    declared_cnt = u.number_of_dives if (u and u.number_of_dives) else (item.total_logged_dives or 0)
+
+    declared_cnt = (
+        u.number_of_dives
+        if (u and u.number_of_dives)
+        else (item.total_logged_dives or 0)
+    )
     logged_cnt = db.query(Dive).filter(Dive.user_id == u.id).count() if u else 0
 
     diver_experience = {
@@ -1026,7 +1130,9 @@ def update_participant(
 ):
     """Updates participant equipment sizing, cylinder assignment, or certification details."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     assert_slot_belongs_to_center(db, trip_id, center_id)
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
@@ -1052,10 +1158,12 @@ def update_participant(
     if req.selected_gas_mix_id is not None:
         if req.selected_gas_mix_id.lower() != "air":
             cert_to_check = req.certification_level or item.certification_level
-            if not check_nitrox_eligibility(cert_to_check, req.selected_gas_mix_id, db, user_id=item.user_id):
+            if not check_nitrox_eligibility(
+                cert_to_check, req.selected_gas_mix_id, db, user_id=item.user_id
+            ):
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification."
+                    detail=f"Gas mix '{req.selected_gas_mix_id.upper()}' requires an Enriched Air Diver (Nitrox) or qualifying technical certification.",
                 )
         item.selected_gas_mix_id = req.selected_gas_mix_id
     if req.equipment_sizing is not None:
@@ -1090,10 +1198,14 @@ def get_participant_medical_review(
         )
         raise HTTPException(
             status_code=403,
-            detail="Access denied. Only registered managers of this diving center can review departure medical files."
+            detail="Access denied. Only registered managers of this diving center can review departure medical files.",
         )
 
-    item = db.query(OctoBookingUnitItem).filter(OctoBookingUnitItem.id == participant_id).first()
+    item = (
+        db.query(OctoBookingUnitItem)
+        .filter(OctoBookingUnitItem.id == participant_id)
+        .first()
+    )
     if not item or not item.booking or item.booking.diving_center_id != center_id:
         log_medical_access(
             db=db,
@@ -1106,7 +1218,9 @@ def get_participant_medical_review(
             diving_center_id=center_id,
             trip_id=trip_id,
         )
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center")
+        raise HTTPException(
+            status_code=404, detail="Participant not found for this diving center"
+        )
 
     if item.booking.availability_id != trip_id:
         log_medical_access(
@@ -1122,11 +1236,16 @@ def get_participant_medical_review(
             diving_center_id=center_id,
             trip_id=trip_id,
         )
-        raise HTTPException(status_code=404, detail="Participant is not registered for this trip departure")
+        raise HTTPException(
+            status_code=404,
+            detail="Participant is not registered for this trip departure",
+        )
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
     if not med or not med.encrypted_answers:
         log_medical_access(
             db=db,
@@ -1143,14 +1262,16 @@ def get_participant_medical_review(
         )
         raise HTTPException(
             status_code=404,
-            detail="No medical questionnaire has been submitted by this participant for this trip."
+            detail="No medical questionnaire has been submitted by this participant for this trip.",
         )
 
     decrypted = {}
     if med.encrypted_answers and med.encrypted_dek:
         try:
             encryption_svc = BookingMedicalEncryptionService()
-            decrypted = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+            decrypted = encryption_svc.decrypt_answers(
+                med.encrypted_dek, med.encrypted_answers
+            )
         except Exception as e:
             logger.error(f"Failed to decrypt medical review answers: {e}")
             log_medical_access(
@@ -1204,7 +1325,9 @@ def get_participant_medical_review(
     audit_info = None
     if med.status == "PHYSICIAN_APPROVED":
         audit_info = {
-            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Manager",
+            "cleared_by_name": med.cleared_by_user.username
+            if med.cleared_by_user
+            else "Manager",
             "cleared_at": med.cleared_at.isoformat() if med.cleared_at else None,
             "physician_name": med.cleared_physician_name,
             "physician_clinic": med.cleared_physician_clinic,
@@ -1222,24 +1345,42 @@ def get_participant_medical_review(
     center_approval_info = None
     physician_cert_url = None
     if item.user_id:
-        center_apps = db.query(CenterDiverMedicalApproval).filter(
-            CenterDiverMedicalApproval.diving_center_id == center_id,
-            CenterDiverMedicalApproval.user_id == item.user_id,
-        ).all()
-        active_ca = [ca for ca in center_apps if ca.expires_at and ensure_aware(ca.expires_at) >= datetime.now(UTC)]
+        center_apps = (
+            db.query(CenterDiverMedicalApproval)
+            .filter(
+                CenterDiverMedicalApproval.diving_center_id == center_id,
+                CenterDiverMedicalApproval.user_id == item.user_id,
+            )
+            .all()
+        )
+        active_ca = [
+            ca
+            for ca in center_apps
+            if ca.expires_at and ensure_aware(ca.expires_at) >= datetime.now(UTC)
+        ]
         if active_ca:
             center_app = active_ca[0]
             center_approval_info = {
                 "id": center_app.id,
-                "approved_by_name": center_app.approved_by_user.username if center_app.approved_by_user else "Manager",
+                "approved_by_name": center_app.approved_by_user.username
+                if center_app.approved_by_user
+                else "Manager",
                 "physician_name": center_app.physician_name,
                 "physician_clinic": center_app.physician_clinic,
                 "approval_notes": center_app.approval_notes,
-                "approved_at": ensure_aware(center_app.approved_at).isoformat() if center_app.approved_at else None,
-                "expires_at": ensure_aware(center_app.expires_at).isoformat() if center_app.expires_at else None,
+                "approved_at": ensure_aware(center_app.approved_at).isoformat()
+                if center_app.approved_at
+                else None,
+                "expires_at": ensure_aware(center_app.expires_at).isoformat()
+                if center_app.expires_at
+                else None,
             }
 
-        user_med_prof = db.query(UserMedicalProfile).filter(UserMedicalProfile.user_id == item.user_id).first()
+        user_med_prof = (
+            db.query(UserMedicalProfile)
+            .filter(UserMedicalProfile.user_id == item.user_id)
+            .first()
+        )
         if user_med_prof:
             physician_cert_url = user_med_prof.physician_certificate_url
 
@@ -1275,20 +1416,22 @@ def update_participant_medical_answers(
     if not is_bona_fide_center_staff(db, center_id, current_user):
         raise HTTPException(
             status_code=403,
-            detail="Access denied. Only registered managers of this diving center can update medical records."
+            detail="Access denied. Only registered managers of this diving center can update medical records.",
         )
 
     if not req.reason or not req.reason.strip():
         raise HTTPException(
             status_code=400,
-            detail="A specific audit reason for modifying medical questionnaire answers is required."
+            detail="A specific audit reason for modifying medical questionnaire answers is required.",
         )
 
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
 
     encryption_svc = BookingMedicalEncryptionService()
 
@@ -1298,7 +1441,9 @@ def update_participant_medical_answers(
 
     if med and med.encrypted_answers and med.encrypted_dek:
         try:
-            previous_answers = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+            previous_answers = encryption_svc.decrypt_answers(
+                med.encrypted_dek, med.encrypted_answers
+            )
         except Exception as e:
             logger.error(f"Failed to decrypt previous answers for audit: {e}")
 
@@ -1310,13 +1455,17 @@ def update_participant_medical_answers(
         new_val = req.answers.get(q_id, False)
         if old_val != new_val:
             # Store question ids only — no plaintext Yes/No deltas at rest
-            changed_questions.append({
-                "id": q_id,
-                "changed": True,
-            })
+            changed_questions.append(
+                {
+                    "id": q_id,
+                    "changed": True,
+                }
+            )
 
     # Re-encrypt updated answers
-    clean_answers = {f"q{i}": bool(req.answers.get(f"q{i}", False)) for i in range(1, 11)}
+    clean_answers = {
+        f"q{i}": bool(req.answers.get(f"q{i}", False)) for i in range(1, 11)
+    }
     new_dek, new_encrypted = encryption_svc.encrypt_answers(clean_answers)
 
     has_any_yes = any(clean_answers.values())
@@ -1422,13 +1571,13 @@ def clear_participant_medical(
     if not is_bona_fide_center_staff(db, center_id, current_user):
         raise HTTPException(
             status_code=403,
-            detail="Access denied. Only registered managers of this diving center can clear medical status."
+            detail="Access denied. Only registered managers of this diving center can clear medical status.",
         )
 
     if not req.confirmed_physical_form_inspected:
         raise HTTPException(
             status_code=400,
-            detail="Staff must confirm physical verification of the signed physician medical clearance form."
+            detail="Staff must confirm physical verification of the signed physician medical clearance form.",
         )
 
     if not req.physician_name or not req.physician_name.strip():
@@ -1436,18 +1585,27 @@ def clear_participant_medical(
 
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
     if not med:
-        raise HTTPException(status_code=404, detail="Medical record not found for this participant")
+        raise HTTPException(
+            status_code=404, detail="Medical record not found for this participant"
+        )
 
     med.status = "PHYSICIAN_APPROVED"
     med.cleared_by_user_id = current_user.id
     med.cleared_at = datetime.now(UTC)
     med.cleared_physician_name = req.physician_name.strip()
-    med.cleared_physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
-    med.cleared_reason = req.notes or f"Physician clearance by Dr. {req.physician_name.strip()} verified by {current_user.username}"
+    med.cleared_physician_clinic = (
+        req.physician_clinic.strip() if req.physician_clinic else None
+    )
+    med.cleared_reason = (
+        req.notes
+        or f"Physician clearance by Dr. {req.physician_name.strip()} verified by {current_user.username}"
+    )
 
     db.commit()
     db.refresh(med)
@@ -1505,19 +1663,26 @@ def grant_annual_center_medical_approval(
     if not is_bona_fide_center_staff(db, center_id, current_user):
         raise HTTPException(
             status_code=403,
-            detail="Access denied. Only registered managers of this diving center can grant annual medical approvals."
+            detail="Access denied. Only registered managers of this diving center can grant annual medical approvals.",
         )
 
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
     if not item.user_id:
-        raise HTTPException(status_code=400, detail="Participant must have a linked user account to store annual center approval")
+        raise HTTPException(
+            status_code=400,
+            detail="Participant must have a linked user account to store annual center approval",
+        )
 
     now_dt = datetime.now(UTC)
-    approval = db.query(CenterDiverMedicalApproval).filter(
-        CenterDiverMedicalApproval.diving_center_id == center_id,
-        CenterDiverMedicalApproval.user_id == item.user_id
-    ).first()
+    approval = (
+        db.query(CenterDiverMedicalApproval)
+        .filter(
+            CenterDiverMedicalApproval.diving_center_id == center_id,
+            CenterDiverMedicalApproval.user_id == item.user_id,
+        )
+        .first()
+    )
 
     if not approval:
         approval = CenterDiverMedicalApproval(
@@ -1525,7 +1690,9 @@ def grant_annual_center_medical_approval(
             user_id=item.user_id,
             approved_by_user_id=current_user.id,
             physician_name=req.physician_name.strip(),
-            physician_clinic=req.physician_clinic.strip() if req.physician_clinic else None,
+            physician_clinic=req.physician_clinic.strip()
+            if req.physician_clinic
+            else None,
             approval_notes=req.approval_notes,
             approved_at=now_dt,
             expires_at=now_dt + timedelta(days=req.validity_days),
@@ -1534,21 +1701,30 @@ def grant_annual_center_medical_approval(
     else:
         approval.approved_by_user_id = current_user.id
         approval.physician_name = req.physician_name.strip()
-        approval.physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
+        approval.physician_clinic = (
+            req.physician_clinic.strip() if req.physician_clinic else None
+        )
         approval.approval_notes = req.approval_notes
         approval.approved_at = now_dt
         approval.expires_at = now_dt + timedelta(days=req.validity_days)
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
     if med:
         med.status = "PHYSICIAN_APPROVED"
         med.cleared_by_user_id = current_user.id
         med.cleared_at = now_dt
         med.cleared_physician_name = req.physician_name.strip()
-        med.cleared_physician_clinic = req.physician_clinic.strip() if req.physician_clinic else None
-        med.cleared_reason = req.approval_notes or f"Granted 1-year center medical approval by {current_user.username}"
+        med.cleared_physician_clinic = (
+            req.physician_clinic.strip() if req.physician_clinic else None
+        )
+        med.cleared_reason = (
+            req.approval_notes
+            or f"Granted 1-year center medical approval by {current_user.username}"
+        )
 
     db.commit()
     db.refresh(approval)
@@ -1609,7 +1785,7 @@ def get_emergency_dossier_pdf(
         )
         raise HTTPException(
             status_code=403,
-            detail="Access denied. Only registered managers of this diving center can export incident dossiers."
+            detail="Access denied. Only registered managers of this diving center can export incident dossiers.",
         )
 
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
@@ -1634,9 +1810,11 @@ def get_emergency_dossier_pdf(
         )
         raise
 
-    med = db.query(DiverMedicalRecord).filter(
-        DiverMedicalRecord.booking_unit_item_id == participant_id
-    ).first()
+    med = (
+        db.query(DiverMedicalRecord)
+        .filter(DiverMedicalRecord.booking_unit_item_id == participant_id)
+        .first()
+    )
 
     # Log successful emergency dossier generation
     log_medical_access(
@@ -1659,7 +1837,9 @@ def get_emergency_dossier_pdf(
     if med and med.encrypted_answers and med.encrypted_dek:
         try:
             encryption_svc = BookingMedicalEncryptionService()
-            decrypted_answers = encryption_svc.decrypt_answers(med.encrypted_dek, med.encrypted_answers)
+            decrypted_answers = encryption_svc.decrypt_answers(
+                med.encrypted_dek, med.encrypted_answers
+            )
         except Exception as e:
             logger.error(f"Failed to decrypt answers for emergency dossier: {e}")
             decrypt_ok = False
@@ -1674,28 +1854,36 @@ def get_emergency_dossier_pdf(
         for q_idx in range(1, 11):
             q_id = f"q{q_idx}"
             is_yes = decrypted_answers.get(q_id, False) is True
-            questions_list.append({
-                "number": q_idx,
-                "id": q_id,
-                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
-                "answered_yes": is_yes,
-            })
+            questions_list.append(
+                {
+                    "number": q_idx,
+                    "id": q_id,
+                    "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+                    "answered_yes": is_yes,
+                }
+            )
     elif not med:
         for q_idx in range(1, 11):
             q_id = f"q{q_idx}"
-            questions_list.append({
-                "number": q_idx,
-                "id": q_id,
-                "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
-                "answered_yes": None,
-                "missing": True,
-            })
+            questions_list.append(
+                {
+                    "number": q_idx,
+                    "id": q_id,
+                    "text": DMSC_QUESTION_TEXTS.get(q_id, f"Question {q_idx}"),
+                    "answered_yes": None,
+                    "missing": True,
+                }
+            )
 
     clearance_audit = None
     if med and med.status == "PHYSICIAN_APPROVED":
         clearance_audit = {
-            "cleared_by_name": med.cleared_by_user.username if med.cleared_by_user else "Duty Manager",
-            "cleared_at": med.cleared_at.strftime("%Y-%m-%d %H:%M:%S UTC") if med.cleared_at else "N/A",
+            "cleared_by_name": med.cleared_by_user.username
+            if med.cleared_by_user
+            else "Duty Manager",
+            "cleared_at": med.cleared_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+            if med.cleared_at
+            else "N/A",
             "physician_name": med.cleared_physician_name or "N/A",
             "physician_clinic": med.cleared_physician_clinic or "N/A",
             "reason": med.cleared_reason or "Verified signed evaluation form",
@@ -1703,8 +1891,12 @@ def get_emergency_dossier_pdf(
 
     vessel = slot.vessel
     vessel_data = {
-        "name": vessel.name if vessel else (slot.product.title if slot.product else "Dive Boat"),
-        "registration_number": vessel.registration_number if vessel else "GR-DIVE-LOCAL",
+        "name": vessel.name
+        if vessel
+        else (slot.product.title if slot.product else "Dive Boat"),
+        "registration_number": vessel.registration_number
+        if vessel
+        else "GR-DIVE-LOCAL",
     }
 
     center_data = {
@@ -1730,16 +1922,26 @@ def get_emergency_dossier_pdf(
         "certification_number": item.certification_number,
         "selected_tank_id": item.selected_tank_id or "12",
         "selected_gas_mix_id": item.selected_gas_mix_id or "air",
-        "estimated_lead_kg": item.equipment_sizing.get("estimated_lead_kg") if item.equipment_sizing else 0,
+        "estimated_lead_kg": item.equipment_sizing.get("estimated_lead_kg")
+        if item.equipment_sizing
+        else 0,
         "equipment_sizing": item.equipment_sizing or {},
         "medical_status": med.status if med else "MISSING",
     }
 
     waiver_data = {
         "signature_name": item.diver_full_name,
-        "signed_at": item.signed_at.strftime("%Y-%m-%d %H:%M:%S UTC") if item.signed_at else slot.start_datetime.strftime("%Y-%m-%d %H:%M:%S UTC"),
-        "bundle_id": slot.product.waiver_bundle_id if (slot.product and slot.product.waiver_bundle_id) else "padi_10086_eu",
-        "audit_hash": (med.audit_signature_hash if med and med.audit_signature_hash else "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+        "signed_at": item.signed_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+        if item.signed_at
+        else slot.start_datetime.strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "bundle_id": slot.product.waiver_bundle_id
+        if (slot.product and slot.product.waiver_bundle_id)
+        else "padi_10086_eu",
+        "audit_hash": (
+            med.audit_signature_hash
+            if med and med.audit_signature_hash
+            else "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        ),
     }
 
     dossier_data = {
@@ -1754,7 +1956,9 @@ def get_emergency_dossier_pdf(
 
     pdf_bytes = ManifestExportService.generate_emergency_dossier_pdf(dossier_data)
     clean_name = item.diver_full_name.replace(" ", "_").lower()
-    filename = f"emergency_dossier_{clean_name}_{slot.start_datetime.strftime('%Y%m%d')}.pdf"
+    filename = (
+        f"emergency_dossier_{clean_name}_{slot.start_datetime.strftime('%Y%m%d')}.pdf"
+    )
 
     return Response(
         content=pdf_bytes,
@@ -1773,7 +1977,9 @@ def delete_participant(
 ):
     """Cancels a participant and immediately releases the seat back to the trip availability slot."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id, for_update=True)
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
@@ -1798,7 +2004,10 @@ def delete_participant(
 
     reconcile_slot_seats(db, slot, commit=False, already_locked=True)
     db.commit()
-    return {"message": "Participant cancelled and seat released.", "seats_available": slot.seats_available}
+    return {
+        "message": "Participant cancelled and seat released.",
+        "seats_available": slot.seats_available,
+    }
 
 
 @router.post("/trips/{trip_id}/participants/{participant_id}/toggle-checkin")
@@ -1811,7 +2020,9 @@ def toggle_participant_checkin(
 ):
     """Toggles the onboard boarding / roll-call check-in status for a diver."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
@@ -1826,9 +2037,11 @@ def toggle_participant_checkin(
             )
 
         # 2. Medical Clearance Gate
-        med = db.query(DiverMedicalRecord).filter(
-            DiverMedicalRecord.booking_unit_item_id == item.id
-        ).first()
+        med = (
+            db.query(DiverMedicalRecord)
+            .filter(DiverMedicalRecord.booking_unit_item_id == item.id)
+            .first()
+        )
         is_med_cleared = (med is not None) and (
             med.status in ("CLEARED", "PHYSICIAN_APPROVED")
         )
@@ -1840,7 +2053,10 @@ def toggle_participant_checkin(
 
     item.onboard_checkin_status = not item.onboard_checkin_status
     db.commit()
-    return {"participant_id": item.id, "onboard_checkin_status": item.onboard_checkin_status}
+    return {
+        "participant_id": item.id,
+        "onboard_checkin_status": item.onboard_checkin_status,
+    }
 
 
 @router.post("/trips/{trip_id}/participants/{participant_id}/toggle-gear-check")
@@ -1853,7 +2069,9 @@ def toggle_participant_gear_check(
 ):
     """Toggles verified equipment handover / presence check for a diver before boarding/boat transfer."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     item = assert_participant_on_center_trip(db, participant_id, trip_id, center_id)
 
@@ -1875,12 +2093,18 @@ def toggle_booking_payment(
 ):
     """Toggles counter payment between PAID_IN_FULL and PENDING_AT_CHECKIN."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
-    booking = db.query(OctoBooking).filter(
-        OctoBooking.uuid == booking_id,
-        OctoBooking.diving_center_id == center_id,
-    ).first()
+    booking = (
+        db.query(OctoBooking)
+        .filter(
+            OctoBooking.uuid == booking_id,
+            OctoBooking.diving_center_id == center_id,
+        )
+        .first()
+    )
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
@@ -1907,7 +2131,9 @@ def export_port_authority_manifest(
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
@@ -1949,11 +2175,15 @@ def get_center_rental_pricing(
 ):
     """Retrieve center equipment rental pricing configuration."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
-    settings = db.query(DivingCenterBookingSettings).filter(
-        DivingCenterBookingSettings.diving_center_id == center_id
-    ).first()
+    settings = (
+        db.query(DivingCenterBookingSettings)
+        .filter(DivingCenterBookingSettings.diving_center_id == center_id)
+        .first()
+    )
     if not settings or not settings.rental_equipment_pricing:
         return {
             "currency": "EUR",
@@ -1986,11 +2216,15 @@ def update_center_rental_pricing(
 ):
     """Update center equipment rental pricing configuration."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
-    settings = db.query(DivingCenterBookingSettings).filter(
-        DivingCenterBookingSettings.diving_center_id == center_id
-    ).first()
+    settings = (
+        db.query(DivingCenterBookingSettings)
+        .filter(DivingCenterBookingSettings.diving_center_id == center_id)
+        .first()
+    )
     if not settings:
         settings = DivingCenterBookingSettings(
             diving_center_id=center_id,
@@ -2009,16 +2243,25 @@ def update_center_rental_pricing(
 
     # Synchronize active DIVER_RENTAL_GEAR units for this center
     rental_addon = float(req.full_kit_package)
-    products = db.query(OctoProduct).filter(OctoProduct.diving_center_id == center_id).all()
+    products = (
+        db.query(OctoProduct).filter(OctoProduct.diving_center_id == center_id).all()
+    )
     for prod in products:
-        own_unit = db.query(OctoUnit).filter(
-            OctoUnit.product_id == prod.id,
-            OctoUnit.unit_type == "DIVER_OWN_GEAR"
-        ).first()
-        rental_unit = db.query(OctoUnit).filter(
-            OctoUnit.product_id == prod.id,
-            OctoUnit.unit_type == "DIVER_RENTAL_GEAR"
-        ).first()
+        own_unit = (
+            db.query(OctoUnit)
+            .filter(
+                OctoUnit.product_id == prod.id, OctoUnit.unit_type == "DIVER_OWN_GEAR"
+            )
+            .first()
+        )
+        rental_unit = (
+            db.query(OctoUnit)
+            .filter(
+                OctoUnit.product_id == prod.id,
+                OctoUnit.unit_type == "DIVER_RENTAL_GEAR",
+            )
+            .first()
+        )
         if own_unit and rental_unit:
             rental_unit.retail_price = float(own_unit.retail_price) + rental_addon
             rental_unit.currency = req.currency or own_unit.currency
@@ -2048,11 +2291,15 @@ def get_trip_briefing(
 ):
     """Retrieve pre-dive briefing for a trip (or compile automated draft if not existing)."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     assert_slot_belongs_to_center(db, trip_id, center_id)
 
-    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    briefing = (
+        db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    )
     if not briefing:
         briefing = BriefingService.compile_draft_briefing(db, trip_id)
 
@@ -2088,11 +2335,15 @@ def update_trip_briefing(
 ):
     """Update pre-dive briefing customization notes and staff assignments."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     assert_slot_belongs_to_center(db, trip_id, center_id)
 
-    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    briefing = (
+        db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    )
     if not briefing:
         briefing = BriefingService.compile_draft_briefing(db, trip_id)
 
@@ -2145,11 +2396,15 @@ def dispatch_trip_briefing(
 ):
     """Approve and dispatch pre-dive briefing to confirmed participants."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     assert_slot_belongs_to_center(db, trip_id, center_id)
 
-    briefing = BriefingService.dispatch_briefing(db, trip_id, dispatched_by_user_id=current_user.id)
+    briefing = BriefingService.dispatch_briefing(
+        db, trip_id, dispatched_by_user_id=current_user.id
+    )
     return {
         "status": "APPROVED_DISPATCHED",
         "dispatched_at": briefing.dispatched_at,
@@ -2166,11 +2421,15 @@ def download_trip_briefing_pdf(
 ):
     """Download compiled pre-dive briefing PDF."""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     assert_slot_belongs_to_center(db, trip_id, center_id)
 
-    briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    briefing = (
+        db.query(TripBriefing).filter(TripBriefing.availability_id == trip_id).first()
+    )
     if not briefing:
         briefing = BriefingService.compile_draft_briefing(db, trip_id)
 
@@ -2195,7 +2454,9 @@ def download_equipment_checklist_pdf(
     Features Landscape A4 format with clean [  ] checkboxes for physical equipment checking.
     """
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
@@ -2206,7 +2467,9 @@ def download_equipment_checklist_pdf(
     manifest_data = get_slot_manifest_data(db, center, slot)
     pdf_bytes = ManifestExportService.generate_equipment_checklist_pdf(manifest_data)
 
-    clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', slot.product.title if slot.product else "trip")
+    clean_title = re.sub(
+        r"[^a-zA-Z0-9_\-]", "_", slot.product.title if slot.product else "trip"
+    )
     date_str = slot.start_datetime.strftime("%Y%m%d")
     filename = f"gear_inspection_checklist_{clean_title}_{date_str}.pdf"
 
@@ -2229,7 +2492,9 @@ def download_crate_packing_pdf(
     Features detailed cylinder breakdown, lead ballast allocations, and partitioned crate contents.
     """
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to manage this center")
+        raise HTTPException(
+            status_code=403, detail="Not authorized to manage this center"
+        )
 
     slot = assert_slot_belongs_to_center(db, trip_id, center_id)
 
@@ -2240,7 +2505,9 @@ def download_crate_packing_pdf(
     manifest_data = get_slot_manifest_data(db, center, slot)
     pdf_bytes = ManifestExportService.generate_crate_packing_pdf(manifest_data)
 
-    clean_title = re.sub(r'[^a-zA-Z0-9_\-]', '_', slot.product.title if slot.product else "trip")
+    clean_title = re.sub(
+        r"[^a-zA-Z0-9_\-]", "_", slot.product.title if slot.product else "trip"
+    )
     date_str = slot.start_datetime.strftime("%Y%m%d")
     filename = f"crate_packing_loadout_{clean_title}_{date_str}.pdf"
 
