@@ -24,14 +24,14 @@ def parse_setting_value(value: str):
 def serialize_setting_value(value) -> str:
     """Serialize Python value to JSON string for database storage."""
     # orjson.dumps returns bytes, so decode to string
-    return orjson.dumps(value).decode('utf-8')
+    return orjson.dumps(value).decode("utf-8")
 
 
 @router.get("/{key}", response_model=SettingResponse)
 async def get_setting(
     key: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user_optional),
 ):
     """
     Get a setting value by key. Public read access (no authentication required).
@@ -39,14 +39,13 @@ async def get_setting(
     setting = db.query(Setting).filter(Setting.key == key).first()
     if not setting:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Setting '{key}' not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Setting '{key}' not found"
         )
-    
+
     return {
         "key": setting.key,
         "value": parse_setting_value(setting.value),
-        "description": setting.description
+        "description": setting.description,
     }
 
 
@@ -56,8 +55,7 @@ from fastapi_cache.decorator import cache
 @router.get("", response_model=List[SettingResponse])
 @cache(expire=300)
 async def list_settings(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """
     List all settings. Admin-only access.
@@ -67,7 +65,7 @@ async def list_settings(
         {
             "key": setting.key,
             "value": parse_setting_value(setting.value),
-            "description": setting.description
+            "description": setting.description,
         }
         for setting in settings
     ]
@@ -78,7 +76,7 @@ async def update_setting(
     key: str,
     setting_update: SettingUpdate,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Update a setting value. Admin-only access.
@@ -86,18 +84,16 @@ async def update_setting(
     setting = db.query(Setting).filter(Setting.key == key).first()
     if not setting:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Setting '{key}' not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Setting '{key}' not found"
         )
-    
+
     # Serialize value to JSON string
     setting.value = serialize_setting_value(setting_update.value)
     db.commit()
     db.refresh(setting)
-    
+
     return {
         "key": setting.key,
         "value": parse_setting_value(setting.value),
-        "description": setting.description
+        "description": setting.description,
     }
-

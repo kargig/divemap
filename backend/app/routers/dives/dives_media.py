@@ -53,25 +53,24 @@ def add_dive_media(
     dive_id: int,
     media: DiveMediaCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Add media to a dive"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     db_media = DiveMedia(
@@ -81,7 +80,7 @@ def add_dive_media(
         description=media.description,
         title=media.title,
         thumbnail_url=media.thumbnail_url,
-        medium_url=media.medium_url
+        medium_url=media.medium_url,
     )
 
     db.add(db_media)
@@ -97,33 +96,32 @@ async def upload_dive_photo(
     file: UploadFile = File(...),
     description: Optional[str] = Form(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Upload a photo file to a dive. File is stored in R2 or local storage."""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Validate file type
-    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}",
         )
 
     # Validate file size (max 10MB)
@@ -131,24 +129,23 @@ async def upload_dive_photo(
     if len(file_content) > 10 * 1024 * 1024:  # 10MB
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 10MB limit"
+            detail="File size exceeds 10MB limit",
         )
 
     # Generate unique filename
-    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    file_ext = Path(file.filename).suffix if file.filename else ".jpg"
     # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
-    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
-        file_ext = '.jpg'
+    if not file_ext or file_ext.lower() not in [".jpg", ".jpeg", ".png", ".webp"]:
+        file_ext = ".jpg"
     unique_filename = f"{uuid.uuid4()}{file_ext}"
 
     # Process image (Generate variants)
     try:
-        image_streams = image_processing.process_image(file_content, file.filename or "unknown")
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+        image_streams = image_processing.process_image(
+            file_content, file.filename or "unknown"
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Upload to R2 or local storage
     try:
@@ -156,34 +153,35 @@ async def upload_dive_photo(
             user_id=current_user.id,
             original_filename=unique_filename,
             image_streams=image_streams,
-            dive_id=dive_id
+            dive_id=dive_id,
         )
-        
+
         # Get paths
         photo_path = uploaded_paths.get("original")
         medium_path = uploaded_paths.get("medium")
         thumbnail_path = uploaded_paths.get("thumbnail")
-        
+
         # Helper to generate URL
         def get_url(path):
-            if not path: return None
-            if path.startswith('user_'):
-                return path # Store path for R2, generate URL on read
-            return r2_storage.get_photo_url(path) # Local storage static URL
+            if not path:
+                return None
+            if path.startswith("user_"):
+                return path  # Store path for R2, generate URL on read
+            return r2_storage.get_photo_url(path)  # Local storage static URL
 
         photo_url = get_url(photo_path)
         medium_url = get_url(medium_path)
         thumbnail_url = get_url(thumbnail_path)
-        
+
         # Create media record
         db_media = DiveMedia(
             dive_id=dive_id,
-            media_type='photo',
+            media_type="photo",
             url=photo_url,
-            description=description or '',
-            title='',
+            description=description or "",
+            title="",
             thumbnail_url=thumbnail_url,
-            medium_url=medium_url
+            medium_url=medium_url,
         )
 
         db.add(db_media)
@@ -195,64 +193,66 @@ async def upload_dive_photo(
         response_thumb = db_media.thumbnail_url
         response_medium = db_media.medium_url
 
-        if response_url and response_url.startswith('user_'):
+        if response_url and response_url.startswith("user_"):
             response_url = r2_storage.get_photo_url(response_url)
-        if response_thumb and response_thumb.startswith('user_'):
+        if response_thumb and response_thumb.startswith("user_"):
             response_thumb = r2_storage.get_photo_url(response_thumb)
-        if response_medium and response_medium.startswith('user_'):
+        if response_medium and response_medium.startswith("user_"):
             response_medium = r2_storage.get_photo_url(response_medium)
 
         return DiveMediaResponse(
             id=db_media.id,
             dive_id=db_media.dive_id,
-            media_type=db_media.media_type.value if hasattr(db_media.media_type, 'value') else str(db_media.media_type),
+            media_type=db_media.media_type.value
+            if hasattr(db_media.media_type, "value")
+            else str(db_media.media_type),
             url=response_url,
             description=db_media.description,
             title=db_media.title,
             thumbnail_url=response_thumb,
             medium_url=response_medium,
-            created_at=db_media.created_at
+            created_at=db_media.created_at,
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to upload photo: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload photo"
+            detail="Failed to upload photo",
         )
+
 
 @router.post("/{dive_id}/media/upload-photo-r2-only")
 async def upload_photo_r2_only(
     dive_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Upload a photo file to R2 only (no database record created). Returns R2 path and presigned URL."""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Validate file type
-    allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}"
+            detail=f"Invalid file type. Allowed types: {', '.join(allowed_types)}",
         )
 
     # Validate file size (max 10MB)
@@ -260,24 +260,23 @@ async def upload_photo_r2_only(
     if len(file_content) > 10 * 1024 * 1024:  # 10MB
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File size exceeds 10MB limit"
+            detail="File size exceeds 10MB limit",
         )
 
     # Generate unique filename
-    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
+    file_ext = Path(file.filename).suffix if file.filename else ".jpg"
     # Default to .jpg if extension is missing or weird, ImageProcessing will sanitize format anyway
-    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
-        file_ext = '.jpg'
+    if not file_ext or file_ext.lower() not in [".jpg", ".jpeg", ".png", ".webp"]:
+        file_ext = ".jpg"
     unique_filename = f"{uuid.uuid4()}{file_ext}"
 
     # Process image (Generate variants)
     try:
-        image_streams = image_processing.process_image(file_content, file.filename or "unknown")
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+        image_streams = image_processing.process_image(
+            file_content, file.filename or "unknown"
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     # Upload to R2 or local storage only (no database record)
     try:
@@ -285,37 +284,40 @@ async def upload_photo_r2_only(
             user_id=current_user.id,
             original_filename=unique_filename,
             image_streams=image_streams,
-            dive_id=dive_id
+            dive_id=dive_id,
         )
-        
+
         response_data = {}
-        
+
         # Helper to generate URL
         def get_url(path):
-            if not path: return None
-            if path.startswith('user_'):
+            if not path:
+                return None
+            if path.startswith("user_"):
                 return r2_storage.get_photo_url(path)
-            return r2_storage.get_photo_url(path) # Local storage static URL, handled by get_photo_url
+            return r2_storage.get_photo_url(
+                path
+            )  # Local storage static URL, handled by get_photo_url
 
         # Populate response with paths and signed URLs
         response_data["r2_path"] = uploaded_paths.get("original")
         response_data["url"] = get_url(uploaded_paths.get("original"))
-        
+
         if uploaded_paths.get("medium"):
             response_data["medium_path"] = uploaded_paths.get("medium")
             response_data["medium_url"] = get_url(uploaded_paths.get("medium"))
-            
+
         if uploaded_paths.get("thumbnail"):
             response_data["thumbnail_path"] = uploaded_paths.get("thumbnail")
             response_data["thumbnail_url"] = get_url(uploaded_paths.get("thumbnail"))
-        
+
         return response_data
 
     except Exception as e:
         logger.error(f"Failed to upload photo to R2: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload photo to R2"
+            detail="Failed to upload photo to R2",
         )
 
 
@@ -324,25 +326,24 @@ async def delete_r2_photo(
     dive_id: int,
     request: DeleteR2PhotoRequest = Body(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Delete a photo from R2 only (no database record deletion)."""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Validate that the R2 path belongs to this user's dive
@@ -351,7 +352,7 @@ async def delete_r2_photo(
     if not request.r2_path.startswith(expected_path_prefix):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Photo does not belong to this dive"
+            detail="Photo does not belong to this dive",
         )
 
     # Delete from R2 or local storage
@@ -360,7 +361,7 @@ async def delete_r2_photo(
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete photo from storage"
+                detail="Failed to delete photo from storage",
             )
         return {"message": "Photo deleted from R2 successfully"}
     except HTTPException:
@@ -369,7 +370,7 @@ async def delete_r2_photo(
         logger.error(f"Failed to delete photo from R2 {request.r2_path}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete photo from R2"
+            detail="Failed to delete photo from R2",
         )
 
 
@@ -377,14 +378,13 @@ async def delete_r2_photo(
 def get_dive_media(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Get all media for a dive. Unauthenticated users can view media for public dives."""
     # Check if user is authenticated and enabled
     if current_user and not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and check access permissions
@@ -392,8 +392,7 @@ def get_dive_media(
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Check access permissions
@@ -401,54 +400,62 @@ def get_dive_media(
         # Authenticated user - can see own dives and public dives from others
         if dive.user_id != current_user.id and dive.is_private:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This dive is private"
+                status_code=status.HTTP_403_FORBIDDEN, detail="This dive is private"
             )
     else:
         # Unauthenticated user - can only see public dives
         if dive.is_private:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This dive is private"
+                status_code=status.HTTP_403_FORBIDDEN, detail="This dive is private"
             )
 
     # Get all media for the dive
     media_query = db.query(DiveMedia).filter(DiveMedia.dive_id == dive_id)
     media = media_query.all()
-    
+
     # Generate presigned URLs for R2 photos on-demand
     r2_storage = get_r2_storage()
-    
+
     result = []
     for item in media:
         # Create a dictionary from the ORM object
         media_dict = {
             "id": item.id,
             "dive_id": item.dive_id,
-            "media_type": item.media_type.value if hasattr(item.media_type, 'value') else str(item.media_type),
+            "media_type": item.media_type.value
+            if hasattr(item.media_type, "value")
+            else str(item.media_type),
             "url": item.url,
             "description": item.description,
             "title": item.title,
             "thumbnail_url": item.thumbnail_url,
             "medium_url": item.medium_url,
             "created_at": item.created_at,
-            "download_url": None
+            "download_url": None,
         }
 
         # Generate presigned URLs for R2 paths
-        if media_dict["url"] and media_dict["url"].startswith('user_'):
+        if media_dict["url"] and media_dict["url"].startswith("user_"):
             # Generate download URL for the original
-            media_dict["download_url"] = r2_storage.get_photo_url(media_dict["url"], download=True)
+            media_dict["download_url"] = r2_storage.get_photo_url(
+                media_dict["url"], download=True
+            )
             media_dict["url"] = r2_storage.get_photo_url(media_dict["url"])
-            
-        if media_dict["thumbnail_url"] and media_dict["thumbnail_url"].startswith('user_'):
-            media_dict["thumbnail_url"] = r2_storage.get_photo_url(media_dict["thumbnail_url"])
-            
-        if media_dict["medium_url"] and media_dict["medium_url"].startswith('user_'):
-            media_dict["medium_url"] = r2_storage.get_photo_url(media_dict["medium_url"])
-            
+
+        if media_dict["thumbnail_url"] and media_dict["thumbnail_url"].startswith(
+            "user_"
+        ):
+            media_dict["thumbnail_url"] = r2_storage.get_photo_url(
+                media_dict["thumbnail_url"]
+            )
+
+        if media_dict["medium_url"] and media_dict["medium_url"].startswith("user_"):
+            media_dict["medium_url"] = r2_storage.get_photo_url(
+                media_dict["medium_url"]
+            )
+
         result.append(DiveMediaResponse(**media_dict))
-    
+
     return result
 
 
@@ -457,52 +464,51 @@ def delete_dive_media(
     dive_id: int,
     media_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Delete media from a dive"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Verify media exists and belongs to the dive
-    media = db.query(DiveMedia).filter(
-        DiveMedia.id == media_id,
-        DiveMedia.dive_id == dive_id
-    ).first()
+    media = (
+        db.query(DiveMedia)
+        .filter(DiveMedia.id == media_id, DiveMedia.dive_id == dive_id)
+        .first()
+    )
 
     if not media:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Media not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Media not found"
         )
 
     # Delete from R2 or local storage if it's a photo stored in R2
     # Check if URL is an R2 path (starts with 'user_') or if it's a local upload
     photo_path = None
-    if media.media_type.value == 'photo':
+    if media.media_type.value == "photo":
         # If URL is an R2 path, use it directly
-        if media.url.startswith('user_'):
+        if media.url.startswith("user_"):
             photo_path = media.url
         # If URL is a local path (starts with /uploads/), extract the path
-        elif media.url.startswith('/uploads/'):
+        elif media.url.startswith("/uploads/"):
             photo_path = media.url[1:]  # Remove leading /
-        elif media.url.startswith('uploads/'):
+        elif media.url.startswith("uploads/"):
             photo_path = media.url
-    
+
     # Delete from storage if it's a stored photo
     if photo_path:
         try:
@@ -523,37 +529,36 @@ def update_dive_media(
     media_id: int,
     media_update: DiveMediaUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Update media description and/or visibility"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Verify media exists and belongs to the dive
-    media = db.query(DiveMedia).filter(
-        DiveMedia.id == media_id,
-        DiveMedia.dive_id == dive_id
-    ).first()
+    media = (
+        db.query(DiveMedia)
+        .filter(DiveMedia.id == media_id, DiveMedia.dive_id == dive_id)
+        .first()
+    )
 
     if not media:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Media not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Media not found"
         )
 
     # Update fields if provided
@@ -573,51 +578,47 @@ def add_dive_tag(
     dive_id: int,
     tag: DiveTagCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Add a tag to a dive"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Verify tag exists
     available_tag = db.query(AvailableTag).filter(AvailableTag.id == tag.tag_id).first()
     if not available_tag:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tag not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
         )
 
     # Check if tag is already added to this dive
-    existing_tag = db.query(DiveTag).filter(
-        DiveTag.dive_id == dive_id,
-        DiveTag.tag_id == tag.tag_id
-    ).first()
+    existing_tag = (
+        db.query(DiveTag)
+        .filter(DiveTag.dive_id == dive_id, DiveTag.tag_id == tag.tag_id)
+        .first()
+    )
 
     if existing_tag:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tag already added to this dive"
+            detail="Tag already added to this dive",
         )
 
-    db_tag = DiveTag(
-        dive_id=dive_id,
-        tag_id=tag.tag_id
-    )
+    db_tag = DiveTag(dive_id=dive_id, tag_id=tag.tag_id)
 
     db.add(db_tag)
     db.commit()
@@ -631,37 +632,36 @@ def remove_dive_tag(
     dive_id: int,
     tag_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Remove a tag from a dive"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Verify dive exists and belongs to user
-    dive = db.query(Dive).filter(
-        Dive.id == dive_id,
-        Dive.user_id == current_user.id
-    ).first()
+    dive = (
+        db.query(Dive)
+        .filter(Dive.id == dive_id, Dive.user_id == current_user.id)
+        .first()
+    )
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Find and delete the tag association
-    dive_tag = db.query(DiveTag).filter(
-        DiveTag.dive_id == dive_id,
-        DiveTag.tag_id == tag_id
-    ).first()
+    dive_tag = (
+        db.query(DiveTag)
+        .filter(DiveTag.dive_id == dive_id, DiveTag.tag_id == tag_id)
+        .first()
+    )
 
     if not dive_tag:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tag not found on this dive"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found on this dive"
         )
 
     db.delete(dive_tag)
@@ -673,53 +673,54 @@ def remove_dive_tag(
 @router.get("/media/flickr-oembed")
 async def get_flickr_oembed(
     url: str = Query(..., description="Flickr URL (short or full) to convert"),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Proxy endpoint for Flickr oEmbed API to convert Flickr URLs to direct image URLs.
     This endpoint bypasses CORS restrictions by making the request server-side.
     """
     # Validate that it's a Flickr URL
-    if not url or ('flic.kr/p/' not in url and 'flickr.com/photos/' not in url):
+    if not url or ("flic.kr/p/" not in url and "flickr.com/photos/" not in url):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid Flickr URL"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Flickr URL"
         )
 
     try:
         # Call Flickr's oEmbed API
-        oembed_url = f"https://www.flickr.com/services/oembed/?url={quote(url)}&format=json"
-        
-        response = requests.get(oembed_url, timeout=10, headers={
-            "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"
-        })
-        
+        oembed_url = (
+            f"https://www.flickr.com/services/oembed/?url={quote(url)}&format=json"
+        )
+
+        response = requests.get(
+            oembed_url,
+            timeout=10,
+            headers={"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"},
+        )
+
         response.raise_for_status()
         data = response.json()
-        
+
         # Extract the direct image URL from the HTML embed code
         direct_image_url = None
         if data.get("html"):
-            img_match = re.search(r'<img[^>]+src="([^"]+)"', data["html"], re.IGNORECASE)
+            img_match = re.search(
+                r'<img[^>]+src="([^"]+)"', data["html"], re.IGNORECASE
+            )
             if img_match and img_match.group(1):
                 direct_image_url = img_match.group(1)
-        
+
         # Return the oEmbed data with extracted direct image URL
-        return {
-            "url": url,
-            "direct_image_url": direct_image_url,
-            "oembed_data": data
-        }
-        
+        return {"url": url, "direct_image_url": direct_image_url, "oembed_data": data}
+
     except requests.exceptions.RequestException as e:
         logger.warning(f"Failed to fetch Flickr oEmbed data for {url}: {e}")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Failed to fetch Flickr oEmbed data"
+            detail="Failed to fetch Flickr oEmbed data",
         )
     except Exception as e:
         logger.error(f"Unexpected error fetching Flickr oEmbed data for {url}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail="Internal server error",
         )

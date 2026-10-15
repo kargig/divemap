@@ -16,20 +16,20 @@ logger = logging.getLogger(__name__)
 
 class DiveProfileParser:
     """Parser for Subsurface XML dive profile data."""
-    
+
     def __init__(self):
-        self.supported_formats = ['subsurface']
-    
+        self.supported_formats = ["subsurface"]
+
     def parse_xml_file(self, xml_file_path: str) -> Dict[str, Any]:
         """
         Parse a Subsurface XML file and extract dive profile data.
-        
+
         Args:
             xml_file_path: Path to the XML file
-            
+
         Returns:
             Dictionary containing parsed dive profile data or None if file not found/invalid
-            
+
         Raises:
             ET.ParseError: If XML is malformed
             ValueError: If dive data is invalid
@@ -37,7 +37,7 @@ class DiveProfileParser:
         if not os.path.exists(xml_file_path):
             logger.warning(f"XML file not found: {xml_file_path}")
             return None
-        
+
         try:
             tree = ET.parse(xml_file_path)
             root = tree.getroot()
@@ -48,14 +48,14 @@ class DiveProfileParser:
         except Exception as e:
             logger.error(f"Error parsing dive profile: {e}")
             raise ValueError(f"Error parsing dive profile: {str(e)}")
-    
+
     def parse_xml_content(self, xml_content: str) -> Dict[str, Any]:
         """
         Parse XML content string and extract dive profile data.
-        
+
         Args:
             xml_content: XML content as string
-            
+
         Returns:
             Dictionary containing parsed dive profile data
         """
@@ -68,311 +68,331 @@ class DiveProfileParser:
         except Exception as e:
             logger.error(f"Error parsing dive profile: {e}")
             raise ValueError(f"Failed to parse dive profile: {e}")
-    
+
     def _parse_dive_element(self, root: ET.Element) -> Dict[str, Any]:
         """Parse the root dive element and extract all dive data."""
         # Handle different XML structures
-        if root.tag == 'dives':
+        if root.tag == "dives":
             # Full XML structure with dives container
-            dive = root.find('dive')
+            dive = root.find("dive")
             if dive is None:
                 raise ValueError("No dive element found in XML")
-        elif root.tag == 'divelog':
+        elif root.tag == "divelog":
             # Subsurface divelog structure
             # Try finding 'dive' directly (older versions?) or via 'dives' container
-            dive = root.find('dive')
+            dive = root.find("dive")
             if dive is None:
-                dives = root.find('dives')
+                dives = root.find("dives")
                 if dives is not None:
-                    dive = dives.find('dive')
-            
+                    dive = dives.find("dive")
+
             if dive is None:
                 raise ValueError("No dive element found in XML")
-        elif root.tag == 'dive':
+        elif root.tag == "dive":
             # Single dive element
             dive = root
         else:
-            raise ValueError("Invalid XML structure - expected 'dives', 'divelog', or 'dive' element")
-        
+            raise ValueError(
+                "Invalid XML structure - expected 'dives', 'divelog', or 'dive' element"
+            )
+
         # Parse dive metadata
         dive_data = self._parse_dive_metadata(dive)
-        
+
         # Parse computer data (for model and deviceid)
-        computer = dive.find('computer')
+        computer = dive.find("computer")
         if computer is not None:
-            dive_data['model'] = computer.get('model')
-            dive_data['deviceid'] = computer.get('deviceid')
-        
+            dive_data["model"] = computer.get("model")
+            dive_data["deviceid"] = computer.get("deviceid")
+
         # Parse extra data
-        extra_data = dive.find('extra_data')
+        extra_data = dive.find("extra_data")
         if extra_data is not None:
-            dive_data['extra_data'] = {}
+            dive_data["extra_data"] = {}
             # Handle child elements
             for child in extra_data:
                 if child.text:
-                    dive_data['extra_data'][child.tag] = child.text
+                    dive_data["extra_data"][child.tag] = child.text
             # Handle attributes (for test compatibility)
             for key, value in extra_data.attrib.items():
-                dive_data['extra_data'][key] = value
-        
+                dive_data["extra_data"][key] = value
+
         # Parse dive computer data
-        divecomputer = dive.find('divecomputer')
+        divecomputer = dive.find("divecomputer")
         if divecomputer is not None:
             dive_data.update(self._parse_divecomputer_data(divecomputer))
-        
+
         # Parse sample data
         samples = self._parse_sample_data(dive)
-        dive_data['samples'] = samples
-        
+        dive_data["samples"] = samples
+
         # Parse events
         events = self._parse_events(dive)
-        dive_data['events'] = events
-        
+        dive_data["events"] = events
+
         # Calculate derived metrics
         dive_data.update(self._calculate_derived_metrics(samples))
-        
+
         return dive_data
-    
+
     def _parse_dive_metadata(self, dive: ET.Element) -> Dict[str, Any]:
         """Parse basic dive metadata from dive element."""
         metadata = {}
-        
+
         # Basic dive information
-        metadata['dive_number'] = dive.get('number')
-        metadata['rating'] = dive.get('rating')
-        metadata['visibility'] = dive.get('visibility')
-        metadata['sac'] = dive.get('sac')  # Surface Air Consumption
-        metadata['otu'] = dive.get('otu')  # Oxygen Toxicity Units
-        metadata['cns'] = dive.get('cns')  # Central Nervous System
-        metadata['tags'] = dive.get('tags')
-        metadata['divesiteid'] = dive.get('divesiteid')
-        metadata['date'] = dive.get('date')
-        metadata['time'] = dive.get('time')
-        metadata['duration'] = dive.get('duration')
-        
+        metadata["dive_number"] = dive.get("number")
+        metadata["rating"] = dive.get("rating")
+        metadata["visibility"] = dive.get("visibility")
+        metadata["sac"] = dive.get("sac")  # Surface Air Consumption
+        metadata["otu"] = dive.get("otu")  # Oxygen Toxicity Units
+        metadata["cns"] = dive.get("cns")  # Central Nervous System
+        metadata["tags"] = dive.get("tags")
+        metadata["divesiteid"] = dive.get("divesiteid")
+        metadata["date"] = dive.get("date")
+        metadata["time"] = dive.get("time")
+        metadata["duration"] = dive.get("duration")
+
         # Parse buddy information
-        buddy = dive.find('buddy')
+        buddy = dive.find("buddy")
         if buddy is not None:
-            metadata['buddy'] = buddy.text
-        
+            metadata["buddy"] = buddy.text
+
         # Parse suit information
-        suit = dive.find('suit')
+        suit = dive.find("suit")
         if suit is not None:
-            metadata['suit'] = suit.text
-        
+            metadata["suit"] = suit.text
+
         # Parse cylinder information
-        cylinders = dive.findall('cylinder')
+        cylinders = dive.findall("cylinder")
         if cylinders:
-            metadata['cylinders'] = []
+            metadata["cylinders"] = []
             for cylinder in cylinders:
-                metadata['cylinders'].append({
-                    'size': f"{cylinder.get('size')} l" if cylinder.get('size') else None,
-                    'workpressure': f"{cylinder.get('workpressure')} bar" if cylinder.get('workpressure') else None,
-                    'description': cylinder.get('description'),
-                    'o2': f"{cylinder.get('o2')}%" if cylinder.get('o2') else None,
-                    'he': f"{cylinder.get('he')}%" if cylinder.get('he') else None,
-                    'start': f"{cylinder.get('start')} bar" if cylinder.get('start') else None,
-                    'end': f"{cylinder.get('end')} bar" if cylinder.get('end') else None,
-                    'depth': f"{cylinder.get('depth')} m" if cylinder.get('depth') else None
-                })
+                metadata["cylinders"].append(
+                    {
+                        "size": f"{cylinder.get('size')} l"
+                        if cylinder.get("size")
+                        else None,
+                        "workpressure": f"{cylinder.get('workpressure')} bar"
+                        if cylinder.get("workpressure")
+                        else None,
+                        "description": cylinder.get("description"),
+                        "o2": f"{cylinder.get('o2')}%" if cylinder.get("o2") else None,
+                        "he": f"{cylinder.get('he')}%" if cylinder.get("he") else None,
+                        "start": f"{cylinder.get('start')} bar"
+                        if cylinder.get("start")
+                        else None,
+                        "end": f"{cylinder.get('end')} bar"
+                        if cylinder.get("end")
+                        else None,
+                        "depth": f"{cylinder.get('depth')} m"
+                        if cylinder.get("depth")
+                        else None,
+                    }
+                )
             # Keep 'cylinder' for backward compatibility (first one)
-            metadata['cylinder'] = metadata['cylinders'][0]
-        
+            metadata["cylinder"] = metadata["cylinders"][0]
+
         # Parse weight system
-        weightsystem = dive.find('weightsystem')
+        weightsystem = dive.find("weightsystem")
         if weightsystem is not None:
-            metadata['weightsystem'] = {
-                'weight': f"{weightsystem.get('weight')} kg" if weightsystem.get('weight') else None,
-                'description': weightsystem.get('description')
+            metadata["weightsystem"] = {
+                "weight": f"{weightsystem.get('weight')} kg"
+                if weightsystem.get("weight")
+                else None,
+                "description": weightsystem.get("description"),
             }
-        
+
         return metadata
-    
+
     def _parse_divecomputer_data(self, divecomputer: ET.Element) -> Dict[str, Any]:
         """Parse dive computer specific data."""
         dc_data = {}
-        
+
         # Basic dive computer info
-        dc_data['model'] = divecomputer.get('model')
-        dc_data['deviceid'] = divecomputer.get('deviceid')
-        dc_data['diveid'] = divecomputer.get('diveid')
-        
+        dc_data["model"] = divecomputer.get("model")
+        dc_data["deviceid"] = divecomputer.get("deviceid")
+        dc_data["diveid"] = divecomputer.get("diveid")
+
         # Depth information
-        depth = divecomputer.find('depth')
+        depth = divecomputer.find("depth")
         if depth is not None:
-            dc_data['max_depth'] = self._parse_depth(depth.get('max'))
-            dc_data['mean_depth'] = self._parse_depth(depth.get('mean'))
-        
+            dc_data["max_depth"] = self._parse_depth(depth.get("max"))
+            dc_data["mean_depth"] = self._parse_depth(depth.get("mean"))
+
         # Temperature
-        temperature = divecomputer.find('temperature')
+        temperature = divecomputer.find("temperature")
         if temperature is not None:
-            dc_data['water_temperature'] = self._parse_temperature(temperature.get('water'))
-            dc_data['air_temperature'] = self._parse_temperature(temperature.get('air'))
-        
+            dc_data["water_temperature"] = self._parse_temperature(
+                temperature.get("water")
+            )
+            dc_data["air_temperature"] = self._parse_temperature(temperature.get("air"))
+
         # Surface pressure
-        surface = divecomputer.find('surface')
+        surface = divecomputer.find("surface")
         if surface is not None:
-            dc_data['surface_pressure'] = self._parse_pressure(surface.get('pressure'))
-        
+            dc_data["surface_pressure"] = self._parse_pressure(surface.get("pressure"))
+
         # Water salinity
-        water = divecomputer.find('water')
+        water = divecomputer.find("water")
         if water is not None:
-            dc_data['water_salinity'] = self._parse_salinity(water.get('salinity'))
-        
+            dc_data["water_salinity"] = self._parse_salinity(water.get("salinity"))
+
         # Extra data (Subsurface format: <extradata key="..." value="..." />)
-        extradata = divecomputer.findall('extradata')
-        if 'extra_data' not in dc_data:
-            dc_data['extra_data'] = {}
+        extradata = divecomputer.findall("extradata")
+        if "extra_data" not in dc_data:
+            dc_data["extra_data"] = {}
         for data in extradata:
-            key = data.get('key')
-            value = data.get('value')
+            key = data.get("key")
+            value = data.get("value")
             if key and value:
-                dc_data['extra_data'][key] = value
-        
+                dc_data["extra_data"][key] = value
+
         return dc_data
-    
+
     def _parse_sample_data(self, dive: ET.Element) -> List[Dict[str, Any]]:
         """Parse sample data from dive element."""
         samples = []
-        
+
         # Look for samples in divecomputer element (Subsurface format)
-        divecomputer = dive.find('divecomputer')
+        divecomputer = dive.find("divecomputer")
         if divecomputer is not None:
-            sample_elements = divecomputer.findall('sample')
+            sample_elements = divecomputer.findall("sample")
             for sample in sample_elements:
                 sample_data = self._parse_sample_element(sample)
-                
+
                 # Only add sample if it has essential data
-                if 'time_minutes' in sample_data and 'depth' in sample_data:
+                if "time_minutes" in sample_data and "depth" in sample_data:
                     samples.append(sample_data)
-        
+
         return samples
-    
+
     def _parse_events(self, dive: ET.Element) -> List[Dict[str, Any]]:
         """Parse dive events from dive element."""
         events = []
-        
+
         # Look for events in divecomputer element (Subsurface format)
-        divecomputer = dive.find('divecomputer')
+        divecomputer = dive.find("divecomputer")
         if divecomputer is not None:
-            event_elements = divecomputer.findall('event')
+            event_elements = divecomputer.findall("event")
             for event in event_elements:
                 event_data = self._parse_event_element(event)
                 events.append(event_data)
-        
+
         # Also look for events in separate events element (test format)
-        events_element = dive.find('events')
+        events_element = dive.find("events")
         if events_element is not None:
-            event_elements = events_element.findall('event')
+            event_elements = events_element.findall("event")
             for event in event_elements:
                 event_data = self._parse_event_element(event)
                 events.append(event_data)
-        
+
         return events
-    
-    def _calculate_derived_metrics(self, samples: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+    def _calculate_derived_metrics(
+        self, samples: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Calculate derived metrics from sample data."""
         if not samples:
             return {}
-        
+
         # Calculate average depth
-        depths = [s['depth'] for s in samples if 'depth' in s]
+        depths = [s["depth"] for s in samples if "depth" in s]
         if depths:
             avg_depth = sum(depths) / len(depths)
         else:
             avg_depth = 0
-        
+
         # Calculate max depth
         max_depth = max(depths) if depths else 0
-        
+
         # Calculate total duration
         if samples:
             last_sample = samples[-1]
-            total_duration = last_sample.get('time_minutes', 0)
+            total_duration = last_sample.get("time_minutes", 0)
         else:
             total_duration = 0
-        
+
         # Calculate temperature range
-        temperatures = [s['temperature'] for s in samples if 'temperature' in s]
+        temperatures = [s["temperature"] for s in samples if "temperature" in s]
         temp_range = {
-            'min': min(temperatures) if temperatures else None,
-            'max': max(temperatures) if temperatures else None
+            "min": min(temperatures) if temperatures else None,
+            "max": max(temperatures) if temperatures else None,
         }
-        
+
         return {
-            'calculated_avg_depth': round(avg_depth, 2),
-            'calculated_max_depth': round(max_depth, 2),
-            'calculated_duration_minutes': total_duration,
-            'sample_count': len(samples),
-            'temperature_range': temp_range
+            "calculated_avg_depth": round(avg_depth, 2),
+            "calculated_max_depth": round(max_depth, 2),
+            "calculated_duration_minutes": total_duration,
+            "sample_count": len(samples),
+            "temperature_range": temp_range,
         }
-    
+
     def _parse_depth(self, depth_str: Optional[str]) -> Optional[float]:
         """Parse depth string to float (meters)."""
         if not depth_str:
             return None
         try:
             # Remove 'm' suffix if present
-            depth_str = depth_str.replace('m', '').strip()
+            depth_str = depth_str.replace("m", "").strip()
             return float(depth_str)
         except (ValueError, AttributeError):
             return None
-    
+
     def _parse_temperature(self, temp_str: Optional[str]) -> Optional[float]:
         """Parse temperature string to float (Celsius)."""
         if not temp_str:
             return None
         try:
             # Remove 'C' suffix if present
-            temp_str = temp_str.replace('C', '').strip()
+            temp_str = temp_str.replace("C", "").strip()
             return float(temp_str)
         except (ValueError, AttributeError):
             return None
-    
+
     def _parse_pressure(self, pressure_str: Optional[str]) -> Optional[float]:
         """Parse pressure string to float (bar)."""
         if not pressure_str:
             return None
         try:
             # Remove 'bar' suffix if present
-            pressure_str = pressure_str.replace('bar', '').strip()
+            pressure_str = pressure_str.replace("bar", "").strip()
             return float(pressure_str)
         except (ValueError, AttributeError):
             return None
-    
+
     def _parse_salinity(self, salinity_str: Optional[str]) -> Optional[float]:
         """Parse salinity string to float (g/l)."""
         if not salinity_str:
             return None
         try:
             # Remove 'g/l' suffix if present
-            salinity_str = salinity_str.replace('g/l', '').strip()
+            salinity_str = salinity_str.replace("g/l", "").strip()
             return float(salinity_str)
         except (ValueError, AttributeError):
             return None
-    
+
     def _parse_cns(self, cns_str: Optional[str]) -> Optional[float]:
         """Parse CNS percentage string to float."""
         if not cns_str:
             return None
         try:
             # Remove '%' suffix if present
-            cns_str = cns_str.replace('%', '').strip()
+            cns_str = cns_str.replace("%", "").strip()
             return float(cns_str)
         except (ValueError, AttributeError):
             return None
-    
+
     def _parse_time_to_minutes(self, time_str: Optional[str]) -> float:
         """Parse time string to minutes (float)."""
         if not time_str:
             return 0.0
-        
+
         try:
             # Handle formats like "1:30 min", "30:00 min", "0:10 min", "54:30 min"
-            time_str = time_str.replace('min', '').strip()
-            
-            if ':' in time_str:
-                parts = time_str.split(':')
+            time_str = time_str.replace("min", "").strip()
+
+            if ":" in time_str:
+                parts = time_str.split(":")
                 if len(parts) == 2:
                     # Format: MM:SS
                     minutes = int(parts[0]) if parts[0] else 0
@@ -384,7 +404,7 @@ class DiveProfileParser:
                     minutes = int(parts[1]) if parts[1] else 0
                     seconds = int(parts[2]) if parts[2] else 0
                     return hours * 60 + minutes + (seconds / 60.0)
-            
+
             # If no colon, assume it's already in minutes
             return float(time_str)
         except (ValueError, AttributeError):
@@ -393,152 +413,177 @@ class DiveProfileParser:
     def _parse_sample_element(self, sample: ET.Element) -> Dict[str, Any]:
         """Parse a single sample element."""
         sample_data = {}
-        
+
         # Parse time (convert to minutes)
-        time_str = sample.get('time')
+        time_str = sample.get("time")
         if time_str:
-            sample_data['time'] = time_str
-            sample_data['time_minutes'] = self._parse_time_to_minutes(time_str)
-        
+            sample_data["time"] = time_str
+            sample_data["time_minutes"] = self._parse_time_to_minutes(time_str)
+
         # Parse depth
-        depth = sample.get('depth')
+        depth = sample.get("depth")
         if depth:
-            sample_data['depth'] = self._parse_depth(depth)
-        
+            sample_data["depth"] = self._parse_depth(depth)
+
         # Parse temperature
-        temp = sample.get('temp')
+        temp = sample.get("temp")
         if temp:
-            sample_data['temperature'] = self._parse_temperature(temp)
-        
+            sample_data["temperature"] = self._parse_temperature(temp)
+
         # Parse NDL (No Decompression Limit)
-        ndl = sample.get('ndl')
+        ndl = sample.get("ndl")
         if ndl:
-            sample_data['ndl_minutes'] = self._parse_time_to_minutes(ndl)
-        
+            sample_data["ndl_minutes"] = self._parse_time_to_minutes(ndl)
+
         # Parse in_deco status
-        in_deco = sample.get('in_deco')
+        in_deco = sample.get("in_deco")
         if in_deco is not None:
-            sample_data['in_deco'] = in_deco == '1'
-        
+            sample_data["in_deco"] = in_deco == "1"
+
         # Parse CNS
-        cns = sample.get('cns')
+        cns = sample.get("cns")
         if cns:
-            sample_data['cns_percent'] = self._parse_cns(cns)
-        
+            sample_data["cns_percent"] = self._parse_cns(cns)
+
         # Parse decompression stop time
-        stoptime = sample.get('stoptime')
+        stoptime = sample.get("stoptime")
         if stoptime:
-            sample_data['stoptime_minutes'] = self._parse_time_to_minutes(stoptime)
-        
+            sample_data["stoptime_minutes"] = self._parse_time_to_minutes(stoptime)
+
         # Parse stop depth
-        stopdepth = sample.get('stopdepth')
+        stopdepth = sample.get("stopdepth")
         if stopdepth:
-            sample_data['stopdepth'] = self._parse_depth(stopdepth)
-        
+            sample_data["stopdepth"] = self._parse_depth(stopdepth)
+
         return sample_data
-    
+
     def _parse_event_element(self, event: ET.Element) -> Dict[str, Any]:
         """Parse a single event element."""
         return {
-            'time': event.get('time'),
-            'time_minutes': self._parse_time_to_minutes(event.get('time', '0:00 min')),
-            'type': event.get('type'),
-            'flags': event.get('flags'),
-            'name': event.get('name'),
-            'cylinder': event.get('cylinder'),
-            'o2': event.get('o2'),
-            'he': event.get('he')
+            "time": event.get("time"),
+            "time_minutes": self._parse_time_to_minutes(event.get("time", "0:00 min")),
+            "type": event.get("type"),
+            "flags": event.get("flags"),
+            "name": event.get("name"),
+            "cylinder": event.get("cylinder"),
+            "o2": event.get("o2"),
+            "he": event.get("he"),
         }
-    
-    def _calculate_dive_statistics(self, samples: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+    def _calculate_dive_statistics(
+        self, samples: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Calculate dive statistics from sample data."""
         if not samples:
             return {
-                'calculated_max_depth': 0,
-                'calculated_avg_depth': 0,
-                'calculated_duration_minutes': 0,
-                'temperature_range': {'min': 0, 'max': 0}
+                "calculated_max_depth": 0,
+                "calculated_avg_depth": 0,
+                "calculated_duration_minutes": 0,
+                "temperature_range": {"min": 0, "max": 0},
             }
-        
+
         # Calculate average depth
-        depths = [s['depth'] for s in samples if 'depth' in s]
+        depths = [s["depth"] for s in samples if "depth" in s]
         if depths:
             avg_depth = sum(depths) / len(depths)
         else:
             avg_depth = 0
-        
+
         # Calculate max depth
         max_depth = max(depths) if depths else 0
-        
+
         # Calculate total duration
         if samples:
             last_sample = samples[-1]
-            total_duration = last_sample.get('time_minutes', 0)
+            total_duration = last_sample.get("time_minutes", 0)
         else:
             total_duration = 0
-        
+
         # Calculate temperature range
-        temperatures = [s['temperature'] for s in samples if 'temperature' in s]
+        temperatures = [s["temperature"] for s in samples if "temperature" in s]
         temp_range = {
-            'min': min(temperatures) if temperatures else 0,
-            'max': max(temperatures) if temperatures else 0
+            "min": min(temperatures) if temperatures else 0,
+            "max": max(temperatures) if temperatures else 0,
         }
-        
+
         return {
-            'calculated_max_depth': round(max_depth, 2),
-            'calculated_avg_depth': round(avg_depth, 2),
-            'calculated_duration_minutes': total_duration,
-            'temperature_range': temp_range
+            "calculated_max_depth": round(max_depth, 2),
+            "calculated_avg_depth": round(avg_depth, 2),
+            "calculated_duration_minutes": total_duration,
+            "temperature_range": temp_range,
         }
+
 
 def parse_dive_information_text(dive_information):
     """Parse dive information text to extract individual fields like buddy, sac, otu, etc."""
     if not dive_information:
         return {}
-    
+
     parsed_fields = {}
-    
+
     # Parse buddy - handle multiline text
-    buddy_match = re.search(r'Buddy:\s*([^\n]+?)(?=\nSAC:|$)', dive_information, re.MULTILINE | re.IGNORECASE)
+    buddy_match = re.search(
+        r"Buddy:\s*([^\n]+?)(?=\nSAC:|$)",
+        dive_information,
+        re.MULTILINE | re.IGNORECASE,
+    )
     if buddy_match:
-        parsed_fields['buddy'] = buddy_match.group(1).strip()
-    
+        parsed_fields["buddy"] = buddy_match.group(1).strip()
+
     # Parse SAC
-    sac_match = re.search(r'SAC:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    sac_match = re.search(
+        r"SAC:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if sac_match:
-        parsed_fields['sac'] = sac_match.group(1).strip()
-    
+        parsed_fields["sac"] = sac_match.group(1).strip()
+
     # Parse OTU
-    otu_match = re.search(r'OTU:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    otu_match = re.search(
+        r"OTU:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if otu_match:
-        parsed_fields['otu'] = otu_match.group(1).strip()
-    
+        parsed_fields["otu"] = otu_match.group(1).strip()
+
     # Parse CNS
-    cns_match = re.search(r'CNS:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    cns_match = re.search(
+        r"CNS:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if cns_match:
-        parsed_fields['cns'] = cns_match.group(1).strip()
-    
+        parsed_fields["cns"] = cns_match.group(1).strip()
+
     # Parse Water Temp
-    water_temp_match = re.search(r'Water Temp:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    water_temp_match = re.search(
+        r"Water Temp:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if water_temp_match:
-        parsed_fields['water_temperature'] = water_temp_match.group(1).strip()
-    
+        parsed_fields["water_temperature"] = water_temp_match.group(1).strip()
+
     # Parse Deco Model
-    deco_model_match = re.search(r'Deco Model:\s*([^\n]+?)(?=\nWeights?:|$)', dive_information, re.MULTILINE | re.IGNORECASE)
+    deco_model_match = re.search(
+        r"Deco Model:\s*([^\n]+?)(?=\nWeights?:|$)",
+        dive_information,
+        re.MULTILINE | re.IGNORECASE,
+    )
     if deco_model_match:
-        parsed_fields['deco_model'] = deco_model_match.group(1).strip()
-    
+        parsed_fields["deco_model"] = deco_model_match.group(1).strip()
+
     # Parse Computer
-    computer_match = re.search(r'Computer:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    computer_match = re.search(
+        r"Computer:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if computer_match:
-        parsed_fields['computer'] = computer_match.group(1).strip()
+        parsed_fields["computer"] = computer_match.group(1).strip()
 
     # Parse Weights (support both Weight and Weights)
-    weights_match = re.search(r'Weights?:\s*([^\n]+)', dive_information, re.MULTILINE | re.IGNORECASE)
+    weights_match = re.search(
+        r"Weights?:\s*([^\n]+)", dive_information, re.MULTILINE | re.IGNORECASE
+    )
     if weights_match:
         weights_value = weights_match.group(1).strip()
         # Clean up weights value - remove extra "weight" text and trailing artifacts
-        weights_value = re.sub(r'\s*-\s*weights?$', '', weights_value, flags=re.IGNORECASE).strip()
-        parsed_fields['weights'] = weights_value
-    
+        weights_value = re.sub(
+            r"\s*-\s*weights?$", "", weights_value, flags=re.IGNORECASE
+        ).strip()
+        parsed_fields["weights"] = weights_value
+
     return parsed_fields

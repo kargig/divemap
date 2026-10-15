@@ -28,11 +28,13 @@ def _utcnow() -> datetime:
     return datetime.now(UTC)
 
 
-def mint_booking_access_token(booking: OctoBooking, expires_at: Optional[datetime] = None) -> str:
+def mint_booking_access_token(
+    booking: OctoBooking, expires_at: Optional[datetime] = None
+) -> str:
     raw = secrets.token_urlsafe(32)
     booking.access_token_hash = hash_booking_token(raw)
-    booking.access_token_expires_at = expires_at or booking.utc_hold_expiration or (
-        _utcnow() + timedelta(minutes=20)
+    booking.access_token_expires_at = (
+        expires_at or booking.utc_hold_expiration or (_utcnow() + timedelta(minutes=20))
     )
     return raw
 
@@ -57,7 +59,9 @@ def verify_booking_access(booking: OctoBooking, raw_token: Optional[str]) -> boo
             exp = exp.replace(tzinfo=UTC)
         if exp < _utcnow():
             return False
-    return secrets.compare_digest(booking.access_token_hash, hash_booking_token(raw_token))
+    return secrets.compare_digest(
+        booking.access_token_hash, hash_booking_token(raw_token)
+    )
 
 
 def verify_claim_token(
@@ -77,7 +81,9 @@ def verify_claim_token(
             invited = invited.replace(tzinfo=UTC)
         if _utcnow() > invited + timedelta(days=14):
             return False
-    return secrets.compare_digest(unit_item.claim_token_hash, hash_booking_token(raw_token))
+    return secrets.compare_digest(
+        unit_item.claim_token_hash, hash_booking_token(raw_token)
+    )
 
 
 def bump_linked_trip_current_bookings(booking: OctoBooking, delta: int) -> None:
@@ -198,7 +204,9 @@ def assert_participant_on_center_trip(
         or item.booking.diving_center_id != center_id
         or item.booking.availability_id != trip_id
     ):
-        raise HTTPException(status_code=404, detail="Participant not found for this diving center trip")
+        raise HTTPException(
+            status_code=404, detail="Participant not found for this diving center trip"
+        )
     return item
 
 

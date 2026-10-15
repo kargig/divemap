@@ -34,10 +34,14 @@ class TripOctoProvisioningService:
             return None
 
         # 1. Resolve or create default Product for center
-        product = db.query(OctoProduct).filter(
-            OctoProduct.diving_center_id == center_id,
-            OctoProduct.title == "Guided Boat Dive"
-        ).first()
+        product = (
+            db.query(OctoProduct)
+            .filter(
+                OctoProduct.diving_center_id == center_id,
+                OctoProduct.title == "Guided Boat Dive",
+            )
+            .first()
+        )
 
         if not product:
             product = OctoProduct(
@@ -48,19 +52,27 @@ class TripOctoProvisioningService:
                 product_type="GUIDED_BOAT_TRIP",
                 dives_count=2,
                 waiver_bundle_id="dmsc_recreational",
-                is_active=True
+                is_active=True,
             )
             db.add(product)
             db.flush()
 
         # Ensure default Adult Diver unit (Own Gear) exists for product
-        price = base_price if base_price is not None else (float(trip.trip_price) if trip.trip_price else 60.0)
+        price = (
+            base_price
+            if base_price is not None
+            else (float(trip.trip_price) if trip.trip_price else 60.0)
+        )
         curr = currency or trip.trip_currency or "EUR"
 
-        unit = db.query(OctoUnit).filter(
-            OctoUnit.product_id == product.id,
-            OctoUnit.unit_type == "DIVER_OWN_GEAR"
-        ).first()
+        unit = (
+            db.query(OctoUnit)
+            .filter(
+                OctoUnit.product_id == product.id,
+                OctoUnit.unit_type == "DIVER_OWN_GEAR",
+            )
+            .first()
+        )
 
         if not unit:
             unit = OctoUnit(
@@ -70,7 +82,7 @@ class TripOctoProvisioningService:
                 title="Certified Diver (Own Gear)",
                 retail_price=price,
                 currency=curr,
-                is_active=True
+                is_active=True,
             )
             db.add(unit)
             db.flush()
@@ -85,11 +97,17 @@ class TripOctoProvisioningService:
         elif getattr(trip, "custom_rental_price", None) is not None:
             rental_price = float(trip.custom_rental_price)
         else:
-            settings = db.query(DivingCenterBookingSettings).filter(
-                DivingCenterBookingSettings.diving_center_id == center_id
-            ).first()
+            settings = (
+                db.query(DivingCenterBookingSettings)
+                .filter(DivingCenterBookingSettings.diving_center_id == center_id)
+                .first()
+            )
             rental_addon = 30.0
-            if settings and settings.rental_equipment_pricing and isinstance(settings.rental_equipment_pricing, dict):
+            if (
+                settings
+                and settings.rental_equipment_pricing
+                and isinstance(settings.rental_equipment_pricing, dict)
+            ):
                 rental_addon = float(
                     settings.rental_equipment_pricing.get("full_kit_package")
                     or settings.rental_equipment_pricing.get("full_kit")
@@ -97,10 +115,14 @@ class TripOctoProvisioningService:
                 )
             rental_price = price + rental_addon
 
-        rental_unit = db.query(OctoUnit).filter(
-            OctoUnit.product_id == product.id,
-            OctoUnit.unit_type == "DIVER_RENTAL_GEAR"
-        ).first()
+        rental_unit = (
+            db.query(OctoUnit)
+            .filter(
+                OctoUnit.product_id == product.id,
+                OctoUnit.unit_type == "DIVER_RENTAL_GEAR",
+            )
+            .first()
+        )
 
         if not rental_unit:
             rental_unit = OctoUnit(
@@ -110,7 +132,7 @@ class TripOctoProvisioningService:
                 title="Certified Diver (Full Equipment Rental)",
                 retail_price=rental_price,
                 currency=curr,
-                is_active=True
+                is_active=True,
             )
             db.add(rental_unit)
             db.flush()
@@ -119,12 +141,18 @@ class TripOctoProvisioningService:
             rental_unit.currency = curr
 
         # 2. Resolve or create default Option
-        option = db.query(OctoOption).filter(
-            OctoOption.product_id == product.id,
-            OctoOption.title == "Standard Departure"
-        ).first()
+        option = (
+            db.query(OctoOption)
+            .filter(
+                OctoOption.product_id == product.id,
+                OctoOption.title == "Standard Departure",
+            )
+            .first()
+        )
 
-        duration_mins = trip.trip_duration if isinstance(trip.trip_duration, int) else 240
+        duration_mins = (
+            trip.trip_duration if isinstance(trip.trip_duration, int) else 240
+        )
         total_seats = seats_limit or trip.group_size_limit or 12
 
         if not option:
@@ -136,7 +164,7 @@ class TripOctoProvisioningService:
                 departure_time=trip.trip_time or time(9, 30),
                 duration_minutes=duration_mins,
                 max_capacity=total_seats,
-                is_active=True
+                is_active=True,
             )
             db.add(option)
             db.flush()
@@ -153,7 +181,11 @@ class TripOctoProvisioningService:
         # 4. Resolve or create Slot
         slot = None
         if trip.octo_slot_id:
-            slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == trip.octo_slot_id).first()
+            slot = (
+                db.query(OctoAvailabilitySlot)
+                .filter(OctoAvailabilitySlot.id == trip.octo_slot_id)
+                .first()
+            )
 
         if not slot:
             slot = OctoAvailabilitySlot(
@@ -164,7 +196,7 @@ class TripOctoProvisioningService:
                 end_datetime=end_dt,
                 seats_total=total_seats,
                 seats_available=total_seats - (trip.current_bookings or 0),
-                is_closed=False
+                is_closed=False,
             )
             db.add(slot)
             db.flush()

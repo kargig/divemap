@@ -24,8 +24,10 @@ from sqlalchemy.orm import Session, joinedload
 
 class ORJSONResponse(Response):
     media_type = "application/json"
+
     def render(self, content: any) -> bytes:
         return orjson.dumps(content, default=str)
+
 
 from app.models import DiveSite, DiveSiteAlias, DivingCenter, get_difficulty_id_by_code
 from app.schemas import DiveListResponse, DiveResponse, DiveUpdate
@@ -50,11 +52,23 @@ def get_all_dives_count_admin(
     current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
-    dive_site_ids: Optional[str] = Query(None, description="Comma-separated list of dive site IDs"),
-    dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
-    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
+    dive_site_ids: Optional[str] = Query(
+        None, description="Comma-separated list of dive site IDs"
+    ),
+    dive_site_name: Optional[str] = Query(
+        None, description="Filter by dive site name (partial match)"
+    ),
+    search: Optional[str] = Query(
+        None,
+        description="Unified search across dive name, user username, dive site name, and dive information",
+    ),
+    difficulty_code: Optional[str] = Query(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
+    ),
+    exclude_unspecified_difficulty: bool = Query(
+        False, description="Exclude dives with unspecified difficulty"
+    ),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -69,7 +83,11 @@ def get_all_dives_count_admin(
     """Get total count of dives with admin privileges."""
     # Build query - admin can see all dives
     # Eager load difficulty relationship for efficient access
-    query = db.query(Dive).options(joinedload(Dive.difficulty)).join(User, Dive.user_id == User.id)
+    query = (
+        db.query(Dive)
+        .options(joinedload(Dive.difficulty))
+        .join(User, Dive.user_id == User.id)
+    )
 
     # Filter by user if specified
     if user_id:
@@ -81,13 +99,17 @@ def get_all_dives_count_admin(
 
     if dive_site_ids:
         try:
-            ds_id_list = [int(ds_id.strip()) for ds_id in dive_site_ids.split(",") if ds_id.strip().isdigit()]
+            ds_id_list = [
+                int(ds_id.strip())
+                for ds_id in dive_site_ids.split(",")
+                if ds_id.strip().isdigit()
+            ]
             if ds_id_list:
                 query = query.filter(Dive.dive_site_id.in_(ds_id_list))
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid dive_site_ids format"
+                detail="Invalid dive_site_ids format",
             )
 
     if dive_site_name:
@@ -103,7 +125,7 @@ def get_all_dives_count_admin(
                     db.query(DiveSiteAlias.dive_site_id).filter(
                         DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
                     )
-                )
+                ),
             )
         )
 
@@ -123,7 +145,7 @@ def get_all_dives_count_admin(
                 Dive.name.ilike(f"%{sanitized_search}%"),
                 User.username.ilike(f"%{sanitized_search}%"),
                 DiveSite.name.ilike(f"%{sanitized_search}%"),
-                Dive.dive_information.ilike(f"%{sanitized_search}%")
+                Dive.dive_information.ilike(f"%{sanitized_search}%"),
             )
         )
 
@@ -164,7 +186,7 @@ def get_all_dives_count_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid start_date format. Use YYYY-MM-DD"
+                detail="Invalid start_date format. Use YYYY-MM-DD",
             )
 
     if end_date:
@@ -174,12 +196,14 @@ def get_all_dives_count_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid end_date format. Use YYYY-MM-DD"
+                detail="Invalid end_date format. Use YYYY-MM-DD",
             )
 
     if tag_ids:
         # Parse comma-separated tag IDs
-        tag_id_list = [int(tid.strip()) for tid in tag_ids.split(',') if tid.strip().isdigit()]
+        tag_id_list = [
+            int(tid.strip()) for tid in tag_ids.split(",") if tid.strip().isdigit()
+        ]
         if tag_id_list:
             # Join with DiveTag table to filter by tags
             query = query.join(DiveTag, Dive.id == DiveTag.dive_id)
@@ -197,11 +221,23 @@ def get_all_dives_admin(
     current_user: User = Depends(get_current_admin_user),
     user_id: Optional[int] = Query(None, description="Filter by specific user ID"),
     dive_site_id: Optional[int] = Query(None),
-    dive_site_ids: Optional[str] = Query(None, description="Comma-separated list of dive site IDs"),
-    dive_site_name: Optional[str] = Query(None, description="Filter by dive site name (partial match)"),
-    search: Optional[str] = Query(None, description="Unified search across dive name, user username, dive site name, and dive information"),
-    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    exclude_unspecified_difficulty: bool = Query(False, description="Exclude dives with unspecified difficulty"),
+    dive_site_ids: Optional[str] = Query(
+        None, description="Comma-separated list of dive site IDs"
+    ),
+    dive_site_name: Optional[str] = Query(
+        None, description="Filter by dive site name (partial match)"
+    ),
+    search: Optional[str] = Query(
+        None,
+        description="Unified search across dive name, user username, dive site name, and dive information",
+    ),
+    difficulty_code: Optional[str] = Query(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
+    ),
+    exclude_unspecified_difficulty: bool = Query(
+        False, description="Exclude dives with unspecified difficulty"
+    ),
     suit_type: Optional[str] = Query(None, pattern=r"^(wet_suit|dry_suit|shortie|)$"),
     min_depth: Optional[float] = Query(None, ge=0, le=1000),
     max_depth: Optional[float] = Query(None, ge=0, le=1000),
@@ -212,22 +248,23 @@ def get_all_dives_admin(
     start_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     end_date: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
     tag_ids: Optional[str] = Query(None),  # Comma-separated tag IDs
-    sort_by: Optional[str] = Query(None, description="Sort field (id, dive_date, max_depth, duration, user_rating, visibility_rating, view_count, created_at, updated_at)"),
+    sort_by: Optional[str] = Query(
+        None,
+        description="Sort field (id, dive_date, max_depth, duration, user_rating, visibility_rating, view_count, created_at, updated_at)",
+    ),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
     limit: int = Query(50, ge=1, le=1000),
-    page: int = Query(1, ge=1)
+    page: int = Query(1, ge=1),
 ):
     """Get all dives with admin privileges. Can view all dives regardless of privacy settings."""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
 
     # Calculate offset from page and limit (page_size)
@@ -236,14 +273,19 @@ def get_all_dives_admin(
     # Build query - admin can see all dives
     # Eager load relationships for efficient access and to avoid N+1 queries
     from sqlalchemy.orm import selectinload
-    query = db.query(Dive).options(
-        joinedload(Dive.difficulty),
-        joinedload(Dive.user),
-        joinedload(Dive.dive_site),
-        joinedload(Dive.diving_center),
-        selectinload(Dive.buddies),
-        selectinload(Dive.tags).joinedload(DiveTag.tag)
-    ).join(User, Dive.user_id == User.id)
+
+    query = (
+        db.query(Dive)
+        .options(
+            joinedload(Dive.difficulty),
+            joinedload(Dive.user),
+            joinedload(Dive.dive_site),
+            joinedload(Dive.diving_center),
+            selectinload(Dive.buddies),
+            selectinload(Dive.tags).joinedload(DiveTag.tag),
+        )
+        .join(User, Dive.user_id == User.id)
+    )
 
     # Filter by user if specified
     if user_id:
@@ -255,13 +297,17 @@ def get_all_dives_admin(
 
     if dive_site_ids:
         try:
-            ds_id_list = [int(ds_id.strip()) for ds_id in dive_site_ids.split(",") if ds_id.strip().isdigit()]
+            ds_id_list = [
+                int(ds_id.strip())
+                for ds_id in dive_site_ids.split(",")
+                if ds_id.strip().isdigit()
+            ]
             if ds_id_list:
                 query = query.filter(Dive.dive_site_id.in_(ds_id_list))
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid dive_site_ids format"
+                detail="Invalid dive_site_ids format",
             )
 
     if dive_site_name:
@@ -277,7 +323,7 @@ def get_all_dives_admin(
                     db.query(DiveSiteAlias.dive_site_id).filter(
                         DiveSiteAlias.alias.ilike(f"%{sanitized_name}%")
                     )
-                )
+                ),
             )
         )
 
@@ -298,7 +344,7 @@ def get_all_dives_admin(
                 Dive.name.ilike(f"%{sanitized_search}%"),
                 User.username.ilike(f"%{sanitized_search}%"),
                 DiveSite.name.ilike(f"%{sanitized_search}%"),
-                Dive.dive_information.ilike(f"%{sanitized_search}%")
+                Dive.dive_information.ilike(f"%{sanitized_search}%"),
             )
         )
 
@@ -339,7 +385,7 @@ def get_all_dives_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid start_date format"
+                detail="Invalid start_date format",
             )
 
     if end_date:
@@ -349,7 +395,7 @@ def get_all_dives_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid end_date format"
+                detail="Invalid end_date format",
             )
 
     if tag_ids:
@@ -359,60 +405,70 @@ def get_all_dives_admin(
             query = query.join(DiveTag).filter(DiveTag.tag_id.in_(tag_id_list))
         except ValueError:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid tag_ids format"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid tag_ids format"
             )
 
     # Apply sorting
     if sort_by:
         valid_sort_fields = {
-            'id', 'dive_date', 'max_depth', 'duration', 'user_rating',
-            'visibility_rating', 'view_count', 'created_at', 'updated_at',
-            'name', 'user_username', 'dive_site_name'
+            "id",
+            "dive_date",
+            "max_depth",
+            "duration",
+            "user_rating",
+            "visibility_rating",
+            "view_count",
+            "created_at",
+            "updated_at",
+            "name",
+            "user_username",
+            "dive_site_name",
         }
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}",
             )
 
-        if sort_order not in ['asc', 'desc']:
+        if sort_order not in ["asc", "desc"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="sort_order must be 'asc' or 'desc'"
+                detail="sort_order must be 'asc' or 'desc'",
             )
 
         # Map sort fields to database columns
-        if sort_by == 'id':
+        if sort_by == "id":
             sort_field = Dive.id
-        elif sort_by == 'dive_date':
+        elif sort_by == "dive_date":
             sort_field = Dive.dive_date
-        elif sort_by == 'max_depth':
+        elif sort_by == "max_depth":
             sort_field = Dive.max_depth
-        elif sort_by == 'duration':
+        elif sort_by == "duration":
             sort_field = Dive.duration
-        elif sort_by == 'user_rating':
+        elif sort_by == "user_rating":
             sort_field = Dive.user_rating
-        elif sort_by == 'visibility_rating':
+        elif sort_by == "visibility_rating":
             sort_field = Dive.visibility_rating
-        elif sort_by == 'view_count':
+        elif sort_by == "view_count":
             sort_field = Dive.view_count
-        elif sort_by == 'created_at':
+        elif sort_by == "created_at":
             sort_field = Dive.created_at
-        elif sort_by == 'updated_at':
+        elif sort_by == "updated_at":
             sort_field = Dive.updated_at
-        elif sort_by == 'name':
+        elif sort_by == "name":
             sort_field = Dive.name
-        elif sort_by == 'user_username':
+        elif sort_by == "user_username":
             sort_field = User.username
-        elif sort_by == 'dive_site_name':
+        elif sort_by == "dive_site_name":
             # Ensure DiveSite is joined
             is_joined = dive_site_name is not None or search is not None
             if not is_joined:
-                query = query.join(DiveSite, Dive.dive_site_id == DiveSite.id, isouter=True)
+                query = query.join(
+                    DiveSite, Dive.dive_site_id == DiveSite.id, isouter=True
+                )
             sort_field = DiveSite.name
 
-        if sort_order == 'desc':
+        if sort_order == "desc":
             query = query.order_by(sort_field.desc())
         else:
             query = query.order_by(sort_field.asc())
@@ -436,11 +492,17 @@ def get_all_dives_admin(
                 "id": dive.dive_site.id,
                 "name": dive.dive_site.name,
                 "description": dive.dive_site.description,
-                "latitude": float(dive.dive_site.latitude) if dive.dive_site.latitude else None,
-                "longitude": float(dive.dive_site.longitude) if dive.dive_site.longitude else None,
+                "latitude": float(dive.dive_site.latitude)
+                if dive.dive_site.latitude
+                else None,
+                "longitude": float(dive.dive_site.longitude)
+                if dive.dive_site.longitude
+                else None,
                 "country": dive.dive_site.country,
                 "region": dive.dive_site.region,
-                "deleted_at": dive.dive_site.deleted_at.isoformat() if dive.dive_site.deleted_at else None
+                "deleted_at": dive.dive_site.deleted_at.isoformat()
+                if dive.dive_site.deleted_at
+                else None,
             }
 
         # Get diving center information (already eagerly loaded)
@@ -453,10 +515,16 @@ def get_all_dives_admin(
                 "email": dive.diving_center.email,
                 "phone": dive.diving_center.phone,
                 "website": dive.diving_center.website,
-                "latitude": float(dive.diving_center.latitude) if dive.diving_center.latitude else None,
-                "longitude": float(dive.diving_center.longitude) if dive.diving_center.longitude else None,
+                "latitude": float(dive.diving_center.latitude)
+                if dive.diving_center.latitude
+                else None,
+                "longitude": float(dive.diving_center.longitude)
+                if dive.diving_center.longitude
+                else None,
                 "logo_url": dive.diving_center.logo_url,
-                "logo_full_url": r2_storage.get_photo_url(dive.diving_center.logo_url) if getattr(dive.diving_center, 'logo_url', None) else None
+                "logo_full_url": r2_storage.get_photo_url(dive.diving_center.logo_url)
+                if getattr(dive.diving_center, "logo_url", None)
+                else None,
             }
 
         # Get tags (already eagerly loaded)
@@ -468,7 +536,7 @@ def get_all_dives_admin(
                 "id": buddy.id,
                 "username": buddy.username,
                 "name": buddy.name,
-                "avatar_url": buddy.avatar_url
+                "avatar_url": buddy.avatar_url,
             }
             for buddy in dive.buddies
         ]
@@ -493,8 +561,12 @@ def get_all_dives_admin(
             "difficulty_label": dive.difficulty.label if dive.difficulty else None,
             "visibility_rating": dive.visibility_rating,
             "user_rating": dive.user_rating,
-            "dive_date": dive.dive_date.strftime("%Y-%m-%d") if dive.dive_date else None,
-            "dive_time": dive.dive_time.strftime("%H:%M:%S") if dive.dive_time else None,
+            "dive_date": dive.dive_date.strftime("%Y-%m-%d")
+            if dive.dive_date
+            else None,
+            "dive_time": dive.dive_time.strftime("%H:%M:%S")
+            if dive.dive_time
+            else None,
             "duration": dive.duration,
             "view_count": dive.view_count,
             "created_at": dive.created_at,
@@ -505,13 +577,13 @@ def get_all_dives_admin(
             "tags": tags_list,
             "buddies": buddies_list,
             "user_username": dive.user.username,
-            "buddy": parsed_info.get('buddy'),
-            "sac": parsed_info.get('sac'),
-            "otu": parsed_info.get('otu'),
-            "cns": parsed_info.get('cns'),
-            "water_temperature": parsed_info.get('water_temperature'),
-            "deco_model": parsed_info.get('deco_model'),
-            "weights": parsed_info.get('weights')
+            "buddy": parsed_info.get("buddy"),
+            "sac": parsed_info.get("sac"),
+            "otu": parsed_info.get("otu"),
+            "cns": parsed_info.get("cns"),
+            "water_temperature": parsed_info.get("water_temperature"),
+            "deco_model": parsed_info.get("deco_model"),
+            "weights": parsed_info.get("weights"),
         }
         dive_list.append(dive_dict)
 
@@ -528,7 +600,7 @@ def get_all_dives_admin(
         page_size=limit,
         total_pages=total_pages,
         has_next_page=has_next_page,
-        has_prev_page=has_prev_page
+        has_prev_page=has_prev_page,
     )
 
 
@@ -537,45 +609,46 @@ def update_dive_admin(
     dive_id: int,
     dive_update: DiveUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_admin_user),
 ):
     """Update any dive with admin privileges"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
 
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     # Validate dive site if provided
     if dive_update.dive_site_id:
-        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
+        dive_site = (
+            db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
+        )
         if not dive_site:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Dive site not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Dive site not found"
             )
 
     # Validate diving center if provided
     if dive_update.diving_center_id:
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive_update.diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter)
+            .filter(DivingCenter.id == dive_update.diving_center_id)
+            .first()
+        )
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
 
     # Parse date and time if provided
@@ -586,7 +659,7 @@ def update_dive_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid date format. Use YYYY-MM-DD"
+                detail="Invalid date format. Use YYYY-MM-DD",
             )
 
     if dive_update.dive_time:
@@ -596,7 +669,7 @@ def update_dive_admin(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid time format. Use HH:MM:SS"
+                detail="Invalid time format. Use HH:MM:SS",
             )
 
     # Update name if provided, or regenerate if dive site changed
@@ -604,19 +677,23 @@ def update_dive_admin(
         dive.name = dive_update.name
     elif dive_update.dive_site_id and dive_update.dive_site_id != dive.dive_site_id:
         # Regenerate name if dive site changed
-        dive_site = db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
+        dive_site = (
+            db.query(DiveSite).filter(DiveSite.id == dive_update.dive_site_id).first()
+        )
         if dive_site:
             dive.name = generate_dive_name(dive_site.name, dive.dive_date)
     elif dive_update.name is not None and not dive_update.name.strip():
         # If name is explicitly set to empty/whitespace, regenerate it
         if dive.dive_site_id:
-            dive_site = db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            dive_site = (
+                db.query(DiveSite).filter(DiveSite.id == dive.dive_site_id).first()
+            )
             if dive_site:
                 dive.name = generate_dive_name(dive_site.name, dive.dive_date)
 
     # Update other fields
     for field, value in dive_update.model_dump(exclude_unset=True).items():
-        if field not in ['dive_date', 'dive_time', 'name', 'tags']:
+        if field not in ["dive_date", "dive_time", "name", "tags"]:
             setattr(dive, field, value)
 
     # Handle tag updates if provided
@@ -629,11 +706,13 @@ def update_dive_admin(
         for tag_id in dive_update.tags:
             if tag_id not in current_tag_ids:
                 # Verify tag exists
-                available_tag = db.query(AvailableTag).filter(AvailableTag.id == tag_id).first()
+                available_tag = (
+                    db.query(AvailableTag).filter(AvailableTag.id == tag_id).first()
+                )
                 if not available_tag:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Tag with ID {tag_id} not found"
+                        detail=f"Tag with ID {tag_id} not found",
                     )
 
                 # Create new dive tag
@@ -659,16 +738,24 @@ def update_dive_admin(
                 "name": dive_site.name,
                 "description": dive_site.description,
                 "latitude": float(dive_site.latitude) if dive_site.latitude else None,
-                "longitude": float(dive_site.longitude) if dive_site.longitude else None,
+                "longitude": float(dive_site.longitude)
+                if dive_site.longitude
+                else None,
                 "country": dive_site.country,
                 "region": dive_site.region,
-                "deleted_at": dive_site.deleted_at.isoformat() if dive_site.deleted_at else None
+                "deleted_at": dive_site.deleted_at.isoformat()
+                if dive_site.deleted_at
+                else None,
             }
 
     # Get diving center information if available
     diving_center_info = None
     if dive.diving_center_id:
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == dive.diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter)
+            .filter(DivingCenter.id == dive.diving_center_id)
+            .first()
+        )
         if diving_center:
             diving_center_info = {
                 "id": diving_center.id,
@@ -677,21 +764,33 @@ def update_dive_admin(
                 "email": diving_center.email,
                 "phone": diving_center.phone,
                 "website": diving_center.website,
-                "latitude": float(diving_center.latitude) if diving_center.latitude else None,
-                "longitude": float(diving_center.longitude) if diving_center.longitude else None,
+                "latitude": float(diving_center.latitude)
+                if diving_center.latitude
+                else None,
+                "longitude": float(diving_center.longitude)
+                if diving_center.longitude
+                else None,
                 "logo_url": diving_center.logo_url,
-                "logo_full_url": r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
+                "logo_full_url": r2_storage.get_photo_url(diving_center.logo_url)
+                if diving_center.logo_url
+                else None,
             }
 
     # Get tags for this dive
-    dive_tags = db.query(AvailableTag).join(DiveTag).filter(DiveTag.dive_id == dive.id).order_by(AvailableTag.name.asc()).all()
+    dive_tags = (
+        db.query(AvailableTag)
+        .join(DiveTag)
+        .filter(DiveTag.dive_id == dive.id)
+        .order_by(AvailableTag.name.asc())
+        .all()
+    )
     tags_dict = [
         {
             "id": tag.id,
             "name": tag.name,
             "description": tag.description,
             "created_by": tag.created_by,
-            "created_at": tag.created_at.isoformat() if tag.created_at else None
+            "created_at": tag.created_at.isoformat() if tag.created_at else None,
         }
         for tag in dive_tags
     ]
@@ -723,7 +822,7 @@ def update_dive_admin(
         "diving_center": diving_center_info,
         "media": [],
         "tags": tags_dict,
-        "user_username": dive.user.username
+        "user_username": dive.user.username,
     }
 
     return dive_dict
@@ -733,27 +832,24 @@ def update_dive_admin(
 def delete_dive_admin(
     dive_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_admin_user)
+    current_user: User = Depends(get_current_admin_user),
 ):
     """Delete any dive with admin privileges"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     if not current_user.is_admin:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
 
     dive = db.query(Dive).filter(Dive.id == dive_id).first()
 
     if not dive:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dive not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dive not found"
         )
 
     db.delete(dive)

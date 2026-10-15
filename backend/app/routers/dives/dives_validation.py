@@ -11,7 +11,9 @@ from typing import Optional
 from fastapi import HTTPException, status
 
 
-def raise_validation_error(message: str, status_code: int = status.HTTP_400_BAD_REQUEST):
+def raise_validation_error(
+    message: str, status_code: int = status.HTTP_400_BAD_REQUEST
+):
     """Raise a validation error with the given message."""
     raise HTTPException(status_code=status_code, detail=message)
 
@@ -19,6 +21,7 @@ def raise_validation_error(message: str, status_code: int = status.HTTP_400_BAD_
 def validate_dive_date(dive_date: date) -> bool:
     """Validate dive date is not in the future."""
     from datetime import date
+
     return dive_date <= date.today()
 
 

@@ -25,6 +25,7 @@ try:
         Table,
         TableStyle,
     )
+
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -38,11 +39,19 @@ class BriefingService:
     @staticmethod
     def compile_draft_briefing(db: Session, slot_id: str) -> TripBriefing:
         """Synthesize dive site details, live weather forecast, and EAP into a draft briefing."""
-        slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == slot_id).first()
+        slot = (
+            db.query(OctoAvailabilitySlot)
+            .filter(OctoAvailabilitySlot.id == slot_id)
+            .first()
+        )
         if not slot:
             raise ValueError(f"Availability slot '{slot_id}' not found")
 
-        briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == slot_id).first()
+        briefing = (
+            db.query(TripBriefing)
+            .filter(TripBriefing.availability_id == slot_id)
+            .first()
+        )
         if not briefing:
             briefing = TripBriefing(
                 availability_id=slot_id,
@@ -53,9 +62,17 @@ class BriefingService:
         # 1. Identify active dive site
         site = None
         if briefing.active_dive_site_id:
-            site = db.query(DiveSite).filter(DiveSite.id == briefing.active_dive_site_id).first()
+            site = (
+                db.query(DiveSite)
+                .filter(DiveSite.id == briefing.active_dive_site_id)
+                .first()
+            )
         elif slot.product and slot.product.dive_site_id:
-            site = db.query(DiveSite).filter(DiveSite.id == slot.product.dive_site_id).first()
+            site = (
+                db.query(DiveSite)
+                .filter(DiveSite.id == slot.product.dive_site_id)
+                .first()
+            )
             if site:
                 briefing.active_dive_site_id = site.id
         elif hasattr(slot, "dive_site_id") and getattr(slot, "dive_site_id", None):
@@ -65,33 +82,56 @@ class BriefingService:
 
         # 2. Weather & Marine forecast synthesis via Open-Meteo
         weather_data = {}
-        if site and getattr(site, "latitude", None) is not None and getattr(site, "longitude", None) is not None:
+        if (
+            site
+            and getattr(site, "latitude", None) is not None
+            and getattr(site, "longitude", None) is not None
+        ):
             try:
                 from app.services.open_meteo_service import fetch_wind_data_single_point
+
                 raw_weather = fetch_wind_data_single_point(
                     latitude=float(site.latitude),
                     longitude=float(site.longitude),
                     target_datetime=slot.start_datetime,
                 )
                 if raw_weather:
-                    w_spd = raw_weather.get("wind_speed_10m") or raw_weather.get("wind_speed")
-                    w_dir = raw_weather.get("wind_direction_10m") or raw_weather.get("wind_direction")
-                    w_gust = raw_weather.get("wind_gusts_10m") or raw_weather.get("wind_gusts")
+                    w_spd = raw_weather.get("wind_speed_10m") or raw_weather.get(
+                        "wind_speed"
+                    )
+                    w_dir = raw_weather.get("wind_direction_10m") or raw_weather.get(
+                        "wind_direction"
+                    )
+                    w_gust = raw_weather.get("wind_gusts_10m") or raw_weather.get(
+                        "wind_gusts"
+                    )
                     w_wave = raw_weather.get("wave_height")
-                    s_temp = raw_weather.get("sea_surface_temperature") or raw_weather.get("water_temperature")
+                    s_temp = raw_weather.get(
+                        "sea_surface_temperature"
+                    ) or raw_weather.get("water_temperature")
 
                     weather_data = {
                         "wind_speed_ms": w_spd,
-                        "wind_speed_kts": round(w_spd * 1.94384, 1) if w_spd is not None else None,
+                        "wind_speed_kts": round(w_spd * 1.94384, 1)
+                        if w_spd is not None
+                        else None,
                         "wind_direction_deg": w_dir,
-                        "wind_gusts_kts": round(w_gust * 1.94384, 1) if w_gust is not None else None,
+                        "wind_gusts_kts": round(w_gust * 1.94384, 1)
+                        if w_gust is not None
+                        else None,
                         "wave_height_m": w_wave,
-                        "wave_height_ft": round(w_wave * 3.28084, 1) if w_wave is not None else None,
+                        "wave_height_ft": round(w_wave * 3.28084, 1)
+                        if w_wave is not None
+                        else None,
                         "sea_surface_temp_c": s_temp,
-                        "sea_surface_temp_f": round(s_temp * 9 / 5 + 32, 1) if s_temp is not None else None,
+                        "sea_surface_temp_f": round(s_temp * 9 / 5 + 32, 1)
+                        if s_temp is not None
+                        else None,
                     }
             except Exception as e:
-                logger.warning(f"Failed to fetch marine forecast for site {site.id}: {e}")
+                logger.warning(
+                    f"Failed to fetch marine forecast for site {site.id}: {e}"
+                )
 
         if not weather_data:
             weather_data = {
@@ -124,15 +164,39 @@ class BriefingService:
 
         # 5. Marine Life Highlights
         briefing.marine_life_highlights = [
-            {"species": "Loggerhead Sea Turtle (Caretta caretta)", "likelihood": "Common", "depth": "5-15m"},
-            {"species": "Mediterranean Dusky Grouper", "likelihood": "Frequent", "depth": "12-25m"},
-            {"species": "Octopus & Moray Eels", "likelihood": "High", "depth": "All depths"},
-            {"species": "Damselfish & Anthias schools", "likelihood": "High", "depth": "Reef top"},
+            {
+                "species": "Loggerhead Sea Turtle (Caretta caretta)",
+                "likelihood": "Common",
+                "depth": "5-15m",
+            },
+            {
+                "species": "Mediterranean Dusky Grouper",
+                "likelihood": "Frequent",
+                "depth": "12-25m",
+            },
+            {
+                "species": "Octopus & Moray Eels",
+                "likelihood": "High",
+                "depth": "All depths",
+            },
+            {
+                "species": "Damselfish & Anthias schools",
+                "likelihood": "High",
+                "depth": "Reef top",
+            },
         ]
 
         # 6. Meeting & Logistics Notes
-        dep_time = slot.option.departure_time if (slot.option and slot.option.departure_time) else "09:00"
-        meet_time = slot.option.meeting_time if (slot.option and slot.option.meeting_time) else "08:30"
+        dep_time = (
+            slot.option.departure_time
+            if (slot.option and slot.option.departure_time)
+            else "09:00"
+        )
+        meet_time = (
+            slot.option.meeting_time
+            if (slot.option and slot.option.meeting_time)
+            else "08:30"
+        )
         briefing.meeting_notes = (
             f"Meeting time at dive center is {meet_time} for roll call, equipment fitment, and paperwork check. "
             f"Vessel departs prompt at {dep_time}. Please bring your scuba diving certification card (either physical or via an app), personal dive computer, "
@@ -240,8 +304,20 @@ class BriefingService:
         date_str = slot.start_datetime.strftime("%A, %d %B %Y") if slot else "Upcoming"
 
         story.append(Paragraph(f"{center_name} — Pre-Dive Briefing", title_style))
-        story.append(Paragraph(f"<b>{prod_title}</b> | {date_str} | Status: <b>{briefing.status.replace('_', ' ')}</b>", subtitle_style))
-        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#cbd5e1"), spaceAfter=10))
+        story.append(
+            Paragraph(
+                f"<b>{prod_title}</b> | {date_str} | Status: <b>{briefing.status.replace('_', ' ')}</b>",
+                subtitle_style,
+            )
+        )
+        story.append(
+            HRFlowable(
+                width="100%",
+                thickness=1,
+                color=colors.HexColor("#cbd5e1"),
+                spaceAfter=10,
+            )
+        )
 
         # Logistics Table
         opt = slot.option if slot else None
@@ -269,13 +345,17 @@ class BriefingService:
             ],
         ]
         logistics_table = Table(logistics_data, colWidths=[100, 160, 110, 150])
-        logistics_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#f1f5f9")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        logistics_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#f1f5f9")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(logistics_table)
         story.append(Spacer(1, 10))
 
@@ -285,25 +365,38 @@ class BriefingService:
         weather_table_data = [
             [
                 Paragraph("<b>Wind Velocity:</b>", body_style),
-                Paragraph(f"{w.get('wind_speed_kts', 'N/A')} knots ({round((w.get('wind_speed_kts') or 0)*1.852, 1)} km/h)", body_style),
+                Paragraph(
+                    f"{w.get('wind_speed_kts', 'N/A')} knots ({round((w.get('wind_speed_kts') or 0) * 1.852, 1)} km/h)",
+                    body_style,
+                ),
                 Paragraph("<b>Wind Gusts:</b>", body_style),
                 Paragraph(f"{w.get('wind_gusts_kts', 'N/A')} knots", body_style),
             ],
             [
                 Paragraph("<b>Wave Height:</b>", body_style),
-                Paragraph(f"<b>{w.get('wave_height_m', '0.4')}m ({w.get('wave_height_ft', '1.3')}ft)</b>", body_style),
+                Paragraph(
+                    f"<b>{w.get('wave_height_m', '0.4')}m ({w.get('wave_height_ft', '1.3')}ft)</b>",
+                    body_style,
+                ),
                 Paragraph("<b>Water Temperature:</b>", body_style),
-                Paragraph(f"<b>{w.get('sea_surface_temp_c', '22')}°C ({w.get('sea_surface_temp_f', '72')}°F)</b>", body_style),
+                Paragraph(
+                    f"<b>{w.get('sea_surface_temp_c', '22')}°C ({w.get('sea_surface_temp_f', '72')}°F)</b>",
+                    body_style,
+                ),
             ],
         ]
         weather_table = Table(weather_table_data, colWidths=[110, 150, 110, 150])
-        weather_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eff6ff")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#bfdbfe")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dbeafe")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        weather_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#eff6ff")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#bfdbfe")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dbeafe")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(weather_table)
         story.append(Spacer(1, 10))
 
@@ -319,26 +412,42 @@ class BriefingService:
 
         # Marine Life Highlights
         if briefing.marine_life_highlights:
-            story.append(Paragraph("Marine Biodiversity & Wildlife Highlights", h2_style))
-            ml_rows = [[
-                Paragraph("<b>Species</b>", body_style),
-                Paragraph("<b>Likelihood</b>", body_style),
-                Paragraph("<b>Typical Depth</b>", body_style),
-            ]]
+            story.append(
+                Paragraph("Marine Biodiversity & Wildlife Highlights", h2_style)
+            )
+            ml_rows = [
+                [
+                    Paragraph("<b>Species</b>", body_style),
+                    Paragraph("<b>Likelihood</b>", body_style),
+                    Paragraph("<b>Typical Depth</b>", body_style),
+                ]
+            ]
             for item in briefing.marine_life_highlights[:6]:
-                ml_rows.append([
-                    Paragraph(item.get("species", ""), body_style),
-                    Paragraph(item.get("likelihood", "Common"), body_style),
-                    Paragraph(item.get("depth", "5-20m"), body_style),
-                ])
+                ml_rows.append(
+                    [
+                        Paragraph(item.get("species", ""), body_style),
+                        Paragraph(item.get("likelihood", "Common"), body_style),
+                        Paragraph(item.get("depth", "5-20m"), body_style),
+                    ]
+                )
             ml_table = Table(ml_rows, colWidths=[240, 130, 150])
-            ml_table.setStyle(TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e2e8f0")),
-                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-                ("TOPPADDING", (0, 0), (-1, -1), 3),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ]))
+            ml_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e2e8f0")),
+                        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                        (
+                            "INNERGRID",
+                            (0, 0),
+                            (-1, -1),
+                            0.5,
+                            colors.HexColor("#e2e8f0"),
+                        ),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ]
+                )
+            )
             story.append(ml_table)
             story.append(Spacer(1, 8))
 
@@ -353,35 +462,54 @@ class BriefingService:
         eap_data = [
             [
                 Paragraph("<b>Coast Guard VHF:</b>", alert_box_style),
-                Paragraph(f"<b>{eap.get('coast_guard_vhf', 'VHF 16')}</b>", alert_box_style),
+                Paragraph(
+                    f"<b>{eap.get('coast_guard_vhf', 'VHF 16')}</b>", alert_box_style
+                ),
                 Paragraph("<b>Rescue Center:</b>", alert_box_style),
                 Paragraph(f"{eap.get('mrcc_phone', '112')}", alert_box_style),
             ],
             [
                 Paragraph("<b>Hyperbaric Chamber:</b>", alert_box_style),
-                Paragraph(f"{eap.get('hyperbaric_chamber', 'Navy Hospital Recompression')}", alert_box_style),
+                Paragraph(
+                    f"{eap.get('hyperbaric_chamber', 'Navy Hospital Recompression')}",
+                    alert_box_style,
+                ),
                 Paragraph("<b>Emergency O2:</b>", alert_box_style),
                 Paragraph("Verified 100% O2 Unit on board", alert_box_style),
             ],
         ]
         eap_table = Table(eap_data, colWidths=[120, 160, 110, 130])
-        eap_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fef2f2")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#fecaca")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#fee2e2")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        eap_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#fef2f2")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#fecaca")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#fee2e2")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(eap_table)
 
         doc.build(story)
         return buffer.getvalue()
 
     @staticmethod
-    def dispatch_briefing(db: Session, slot_id: str, dispatched_by_user_id: Optional[int] = None) -> TripBriefing:
+    def dispatch_briefing(
+        db: Session, slot_id: str, dispatched_by_user_id: Optional[int] = None
+    ) -> TripBriefing:
         """Approve and dispatch the pre-dive briefing to confirmed participants."""
-        slot = db.query(OctoAvailabilitySlot).filter(OctoAvailabilitySlot.id == slot_id).first()
-        briefing = db.query(TripBriefing).filter(TripBriefing.availability_id == slot_id).first()
+        slot = (
+            db.query(OctoAvailabilitySlot)
+            .filter(OctoAvailabilitySlot.id == slot_id)
+            .first()
+        )
+        briefing = (
+            db.query(TripBriefing)
+            .filter(TripBriefing.availability_id == slot_id)
+            .first()
+        )
         if not briefing:
             briefing = BriefingService.compile_draft_briefing(db, slot_id)
 
@@ -408,14 +536,19 @@ class BriefingService:
             if email and email not in recipients:
                 recipients.append(email)
 
-        logger.info(f"Dispatched briefing {briefing.id} for slot {slot_id} to {len(recipients)} recipients")
+        logger.info(
+            f"Dispatched briefing {briefing.id} for slot {slot_id} to {len(recipients)} recipients"
+        )
 
         # Asynchronously queue email notifications via SQSService
         try:
             from app.services.sqs_service import SQSService
+
             sqs = SQSService()
             if sqs.sqs_available:
-                slot_date = slot.start_datetime.strftime("%Y-%m-%d") if slot else "Upcoming"
+                slot_date = (
+                    slot.start_datetime.strftime("%Y-%m-%d") if slot else "Upcoming"
+                )
                 for email in recipients:
                     sqs.send_email_task(
                         notification_id=briefing.id,

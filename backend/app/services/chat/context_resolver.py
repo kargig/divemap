@@ -7,6 +7,7 @@ from app.models import Dive, DiveRoute, DiveSite, DivingCenter
 
 logger = logging.getLogger(__name__)
 
+
 def resolve_page_context(db: Session, page_context: Dict) -> str:
     """
     Converts the raw page context from the frontend into a human-readable summary for the LLM.
@@ -28,13 +29,21 @@ def resolve_page_context(db: Session, page_context: Dict) -> str:
             if len(site_id_parts) >= 3:
                 site_id = site_id_parts[2]
                 if site_id.isdigit():
-                    site = db.query(DiveSite).filter(DiveSite.id == int(site_id)).first()
+                    site = (
+                        db.query(DiveSite).filter(DiveSite.id == int(site_id)).first()
+                    )
                     if site:
-                        summary.append(f"Current Dive Site: '{site.name}' (ID: {site.id}, Region: {site.region})")
-                    
+                        summary.append(
+                            f"Current Dive Site: '{site.name}' (ID: {site.id}, Region: {site.region})"
+                        )
+
                     route_id = page_context.get("route_id")
                     if route_id:
-                        route = db.query(DiveRoute).filter(DiveRoute.id == int(route_id)).first()
+                        route = (
+                            db.query(DiveRoute)
+                            .filter(DiveRoute.id == int(route_id))
+                            .first()
+                        )
                         if route:
                             summary.append(f"Current Dive Route: '{route.name}'")
 
@@ -44,9 +53,15 @@ def resolve_page_context(db: Session, page_context: Dict) -> str:
             if len(center_id_parts) >= 3:
                 center_id = center_id_parts[2]
                 if center_id.isdigit():
-                    center = db.query(DivingCenter).filter(DivingCenter.id == int(center_id)).first()
+                    center = (
+                        db.query(DivingCenter)
+                        .filter(DivingCenter.id == int(center_id))
+                        .first()
+                    )
                     if center:
-                        summary.append(f"Current Diving Center: '{center.name}' in {center.city}, {center.region}")
+                        summary.append(
+                            f"Current Diving Center: '{center.name}' in {center.city}, {center.region}"
+                        )
 
         # 3. Dive Log Context
         elif "/dives/" in path:
@@ -56,7 +71,9 @@ def resolve_page_context(db: Session, page_context: Dict) -> str:
                 if dive_id.isdigit():
                     dive = db.query(Dive).filter(Dive.id == int(dive_id)).first()
                     if dive:
-                        site_name = dive.dive_site.name if dive.dive_site else "Unknown Site"
+                        site_name = (
+                            dive.dive_site.name if dive.dive_site else "Unknown Site"
+                        )
                         log_context = f"Current Dive Log ID {dive.id}: Site '{site_name}' on {dive.dive_date}. Depth: {dive.max_depth}m, Avg Depth: {dive.average_depth}m, Duration: {dive.duration}m."
                         if dive.dive_information:
                             log_context += f" Dive Info: {dive.dive_information}"
@@ -68,9 +85,11 @@ def resolve_page_context(db: Session, page_context: Dict) -> str:
         elif "/resources/tools" in path:
             tab = params.get("tab", "General")
             summary.append(f"Active Tool Tab: {tab}")
-        
+
         elif "/resources/diving-organizations" in path:
-            summary.append("Currently viewing the list of recognized Diving Organizations.")
+            summary.append(
+                "Currently viewing the list of recognized Diving Organizations."
+            )
 
         # 5. Generic List Views
         elif path == "/dive-sites":

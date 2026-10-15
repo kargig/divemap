@@ -92,47 +92,69 @@ from app.services.r2_storage_service import r2_storage
 def is_center_manager(db: Session, center_id: int, user: User) -> bool:
     if user.is_admin:
         return True
-    
+
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
     if not center:
         return False
-        
-    if center.owner_id == user.id and center.ownership_status == OwnershipStatus.approved:
+
+    if (
+        center.owner_id == user.id
+        and center.ownership_status == OwnershipStatus.approved
+    ):
         return True
-        
-    manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == center_id,
-        DivingCenterManager.user_id == user.id
-    ).first()
-    
+
+    manager = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == center_id,
+            DivingCenterManager.user_id == user.id,
+        )
+        .first()
+    )
+
     return manager is not None
 
+
 router = APIRouter()
+
 
 # Place utility endpoints before dynamic "/{diving_center_id}" routes to avoid path conflicts
 @router.get("/managed", response_model=List[DivingCenterResponse])
 async def get_my_managed_diving_centers(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Get all diving centers owned or managed by the current user."""
     # 1. Fetch centers owned
-    owned_centers = db.query(DivingCenter).filter(
-        and_(DivingCenter.owner_id == current_user.id, DivingCenter.ownership_status == OwnershipStatus.approved)
-    ).all()
+    owned_centers = (
+        db.query(DivingCenter)
+        .filter(
+            and_(
+                DivingCenter.owner_id == current_user.id,
+                DivingCenter.ownership_status == OwnershipStatus.approved,
+            )
+        )
+        .all()
+    )
 
     # 2. Fetch centers managed (from DivingCenterManager)
-    managed_centers = db.query(DivingCenter).join(
-        DivingCenterManager, DivingCenter.id == DivingCenterManager.diving_center_id
-    ).filter(DivingCenterManager.user_id == current_user.id).all()
+    managed_centers = (
+        db.query(DivingCenter)
+        .join(
+            DivingCenterManager, DivingCenter.id == DivingCenterManager.diving_center_id
+        )
+        .filter(DivingCenterManager.user_id == current_user.id)
+        .all()
+    )
 
     # Combine lists avoiding duplicates
     all_centers = {c.id: c for c in owned_centers + managed_centers}.values()
 
     response_list = []
     for center in all_centers:
-        logo_full_url = r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
-        
+        logo_full_url = (
+            r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
+        )
+
         response_list.append(
             DivingCenterResponse(
                 id=center.id,
@@ -149,12 +171,15 @@ async def get_my_managed_diving_centers(
                 city=center.city,
                 logo_url=center.logo_url,
                 logo_full_url=logo_full_url,
-                ownership_status=center.ownership_status.value if center.ownership_status else None,
+                ownership_status=center.ownership_status.value
+                if center.ownership_status
+                else None,
                 owner_username=center.owner.username if center.owner else None,
-                is_manager=True
+                is_manager=True,
             )
         )
     return response_list
+
 
 @router.get("/nearby")
 @skip_rate_limit_for_admin("250/minute")
@@ -165,21 +190,22 @@ async def get_nearby_diving_centers(
     radius_km: float = Query(100, ge=1, le=500),
     limit: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Return diving centers within radius_km sorted by distance (km)."""
     bind = db.get_bind()
     dialect = bind.dialect.name if bind is not None else None
 
-    if dialect != 'mysql':
+    if dialect != "mysql":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nearby search requires MySQL with spatial support"
+            detail="Nearby search requires MySQL with spatial support",
         )
 
     results = []
     if True:
         from sqlalchemy import text
+
         query = text(
             """
             SELECT id, name, country, region, city,
@@ -191,22 +217,23 @@ async def get_nearby_diving_centers(
             LIMIT :limit
             """
         )
-        rows = db.execute(query, {
-            "lat": lat,
-            "lng": lng,
-            "radius_m": radius_km * 1000.0,
-            "limit": limit
-        }).fetchall()
+        rows = db.execute(
+            query,
+            {"lat": lat, "lng": lng, "radius_m": radius_km * 1000.0, "limit": limit},
+        ).fetchall()
         for row in rows:
-            results.append({
-                "id": row.id,
-                "name": row.name,
-                "country": row.country,
-                "region": row.region,
-                "city": row.city,
-                "distance_km": round(float(row.distance_m) / 1000.0, 2)
-            })
+            results.append(
+                {
+                    "id": row.id,
+                    "name": row.name,
+                    "country": row.country,
+                    "region": row.region,
+                    "city": row.city,
+                    "distance_km": round(float(row.distance_m) / 1000.0, 2),
+                }
+            )
     return results
+
 
 @router.get("/search")
 @skip_rate_limit_for_admin("250/minute")
@@ -217,7 +244,7 @@ async def search_diving_centers_simple(
     lat: Optional[float] = Query(None, ge=-90, le=90),
     lng: Optional[float] = Query(None, ge=-180, le=180),
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Global name search across all diving centers, optionally ranked with distance as tiebreaker."""
     q = q.strip()
@@ -228,16 +255,17 @@ async def search_diving_centers_simple(
     dialect = bind.dialect.name if bind is not None else None
 
     from sqlalchemy import text
+
     params = {"qprefix": f"{q}%", "qsubstr": f"%{q}%", "limit": limit}
 
-    if lat is not None and lng is not None and dialect != 'mysql':
+    if lat is not None and lng is not None and dialect != "mysql":
         # Enforce MySQL-only distance ranking path
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Distance ranking requires MySQL with spatial support"
+            detail="Distance ranking requires MySQL with spatial support",
         )
 
-    if dialect == 'mysql' and lat is not None and lng is not None:
+    if dialect == "mysql" and lat is not None and lng is not None:
         sql = text(
             """
             SELECT id, name, country, region, city,
@@ -257,8 +285,9 @@ async def search_diving_centers_simple(
                 "country": r.country,
                 "region": r.region,
                 "city": r.city,
-                "distance_km": round(float(r.distance_m) / 1000.0, 2)
-            } for r in rows
+                "distance_km": round(float(r.distance_m) / 1000.0, 2),
+            }
+            for r in rows
         ]
     else:
         # No coordinates provided: rank by prefix first, then substring
@@ -279,21 +308,31 @@ async def search_diving_centers_simple(
                 "name": r.name,
                 "country": r.country,
                 "region": r.region,
-                "city": r.city
-            } for r in rows
+                "city": r.city,
+            }
+            for r in rows
         ]
 
-def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCenter], db: Session, similarity_threshold: float = UNIFIED_TYPO_TOLERANCE['overall_threshold'], max_fuzzy_results: int = 10, sort_by: str = None, sort_order: str = 'asc'):
+
+def search_diving_centers_with_fuzzy(
+    query: str,
+    exact_results: List[DivingCenter],
+    db: Session,
+    similarity_threshold: float = UNIFIED_TYPO_TOLERANCE["overall_threshold"],
+    max_fuzzy_results: int = 10,
+    sort_by: str = None,
+    sort_order: str = "asc",
+):
     """
     Enhance search results with fuzzy matching when exact results are insufficient.
-    
+
     Args:
         query: The search query string
         exact_results: List of diving centers from exact search
         db: Database session
         similarity_threshold: Minimum similarity score (0.0 to 1.0)
         max_fuzzy_results: Maximum number of fuzzy results to return
-    
+
     Returns:
         List of diving centers with exact results first, followed by fuzzy matches
     """
@@ -302,129 +341,202 @@ def search_diving_centers_with_fuzzy(query: str, exact_results: List[DivingCente
     for center in exact_results:
         # Get tags for this diving center for scoring
         center_tags = []
-        if hasattr(center, 'tags') and center.tags:
-            center_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in center.tags]
-        
-        score = calculate_unified_phrase_aware_score(query.lower(), center.name, center.description, center.country, center.region, center.city, center_tags)
-        exact_results_with_scores.append({
-            'center': center,
-            'match_type': 'exact' if score >= 0.9 else 'exact_words' if score >= 0.7 else 'partial_words',
-            'score': score,
-            'name_contains': query.lower() in center.name.lower(),
-            'description_contains': center.description and query.lower() in center.description.lower(),
-            'country_contains': False, # No longer used
-            'region_contains': False # No longer used
-        })
-        
+        if hasattr(center, "tags") and center.tags:
+            center_tags = [
+                tag.name if hasattr(tag, "name") else str(tag) for tag in center.tags
+            ]
+
+        score = calculate_unified_phrase_aware_score(
+            query.lower(),
+            center.name,
+            center.description,
+            center.country,
+            center.region,
+            center.city,
+            center_tags,
+        )
+        exact_results_with_scores.append(
+            {
+                "center": center,
+                "match_type": "exact"
+                if score >= 0.9
+                else "exact_words"
+                if score >= 0.7
+                else "partial_words",
+                "score": score,
+                "name_contains": query.lower() in center.name.lower(),
+                "description_contains": center.description
+                and query.lower() in center.description.lower(),
+                "country_contains": False,  # No longer used
+                "region_contains": False,  # No longer used
+            }
+        )
+
     # Sort exact results with scores according to the specified sort criteria
-    if sort_by == 'name':
-        exact_results_with_scores.sort(key=lambda x: x['center'].name.lower(), reverse=(sort_order == 'desc'))
-    elif sort_by == 'created_at':
-        exact_results_with_scores.sort(key=lambda x: x['center'].created_at, reverse=(sort_order == 'desc'))
-    elif sort_by == 'updated_at':
-        exact_results_with_scores.sort(key=lambda x: x['center'].updated_at, reverse=(sort_order == 'desc'))
-    elif sort_by == 'view_count':
-        exact_results_with_scores.sort(key=lambda x: x['center'].view_count, reverse=(sort_order == 'desc'))
-    elif sort_by == 'average_rating':
-        center_ids = [result['center'].id for result in exact_results_with_scores]
+    if sort_by == "name":
+        exact_results_with_scores.sort(
+            key=lambda x: x["center"].name.lower(), reverse=(sort_order == "desc")
+        )
+    elif sort_by == "created_at":
+        exact_results_with_scores.sort(
+            key=lambda x: x["center"].created_at, reverse=(sort_order == "desc")
+        )
+    elif sort_by == "updated_at":
+        exact_results_with_scores.sort(
+            key=lambda x: x["center"].updated_at, reverse=(sort_order == "desc")
+        )
+    elif sort_by == "view_count":
+        exact_results_with_scores.sort(
+            key=lambda x: x["center"].view_count, reverse=(sort_order == "desc")
+        )
+    elif sort_by == "average_rating":
+        center_ids = [result["center"].id for result in exact_results_with_scores]
         ratings_map = {}
         if center_ids:
             from app.models import CenterRating
-            ratings_data = db.query(
-                CenterRating.diving_center_id,
-                func.avg(CenterRating.score).label("avg_rating")
-            ).filter(CenterRating.diving_center_id.in_(center_ids)).group_by(CenterRating.diving_center_id).all()
-            ratings_map = {row[0]: float(row[1]) if row[1] is not None else 0.0 for row in ratings_data}
-        exact_results_with_scores.sort(key=lambda x: ratings_map.get(x['center'].id, 0.0), reverse=(sort_order == 'desc'))
-    elif sort_by == 'comment_count':
-        center_ids = [result['center'].id for result in exact_results_with_scores]
+
+            ratings_data = (
+                db.query(
+                    CenterRating.diving_center_id,
+                    func.avg(CenterRating.score).label("avg_rating"),
+                )
+                .filter(CenterRating.diving_center_id.in_(center_ids))
+                .group_by(CenterRating.diving_center_id)
+                .all()
+            )
+            ratings_map = {
+                row[0]: float(row[1]) if row[1] is not None else 0.0
+                for row in ratings_data
+            }
+        exact_results_with_scores.sort(
+            key=lambda x: ratings_map.get(x["center"].id, 0.0),
+            reverse=(sort_order == "desc"),
+        )
+    elif sort_by == "comment_count":
+        center_ids = [result["center"].id for result in exact_results_with_scores]
         comments_map = {}
         if center_ids:
             from app.models import CenterComment
-            comments_data = db.query(
-                CenterComment.diving_center_id,
-                func.count(CenterComment.id).label("comment_count")
-            ).filter(CenterComment.diving_center_id.in_(center_ids)).group_by(CenterComment.diving_center_id).all()
+
+            comments_data = (
+                db.query(
+                    CenterComment.diving_center_id,
+                    func.count(CenterComment.id).label("comment_count"),
+                )
+                .filter(CenterComment.diving_center_id.in_(center_ids))
+                .group_by(CenterComment.diving_center_id)
+                .all()
+            )
             comments_map = {row[0]: row[1] or 0 for row in comments_data}
-        exact_results_with_scores.sort(key=lambda x: comments_map.get(x['center'].id, 0), reverse=(sort_order == 'desc'))
+        exact_results_with_scores.sort(
+            key=lambda x: comments_map.get(x["center"].id, 0),
+            reverse=(sort_order == "desc"),
+        )
     else:
         # Default fallback (e.g. when sorting by relevance / sort_by is None): sort by score descending
-        exact_results_with_scores.sort(key=lambda x: x['score'], reverse=True)
-    
+        exact_results_with_scores.sort(key=lambda x: x["score"], reverse=True)
+
     # If we have enough exact results and no fuzzy search needed, return them
     if len(exact_results) >= 10:
         return exact_results_with_scores
-    
+
     # Get all diving centers for fuzzy matching
     all_diving_centers = db.query(DivingCenter).all()
-    
+
     # Create a set of exact result IDs to avoid duplicates
     exact_ids = {center.id for center in exact_results}
-    
+
     # Perform fuzzy matching on all diving centers (case-insensitive)
     fuzzy_matches = []
-    query_lower = query.lower()  # Convert query to lowercase for case-insensitive comparison
-    
+    query_lower = (
+        query.lower()
+    )  # Convert query to lowercase for case-insensitive comparison
+
     for center in all_diving_centers:
         # Skip if already in exact results
         if center.id in exact_ids:
             continue
-            
+
         # Use the new phrase-aware scoring function
         # Get tags for this diving center for scoring
         center_tags = []
-        if hasattr(center, 'tags') and center.tags:
-            center_tags = [tag.name if hasattr(tag, 'name') else str(tag) for tag in center.tags]
-        
-        weighted_score = calculate_unified_phrase_aware_score(query_lower, center.name, center.description, center.country, center.region, center.city, center_tags)
-        
+        if hasattr(center, "tags") and center.tags:
+            center_tags = [
+                tag.name if hasattr(tag, "name") else str(tag) for tag in center.tags
+            ]
+
+        weighted_score = calculate_unified_phrase_aware_score(
+            query_lower,
+            center.name,
+            center.description,
+            center.country,
+            center.region,
+            center.city,
+            center_tags,
+        )
+
         # Check for partial matches (substring matches) for match type classification
         name_contains = query_lower in center.name.lower()
-        description_contains = center.description and query_lower in center.description.lower()
-        
+        description_contains = (
+            center.description and query_lower in center.description.lower()
+        )
+
         # Include if similarity above threshold
         if weighted_score > similarity_threshold:
             # Determine match type using unified classification
             match_type = classify_match_type(weighted_score)
-            
-            fuzzy_matches.append({
-                'center': center,
-                'match_type': match_type,
-                'score': weighted_score,
-                'name_contains': name_contains,
-                'description_contains': description_contains,
-                'country_contains': False, # No longer used
-                'region_contains': False # No longer used
-            })
-    
+
+            fuzzy_matches.append(
+                {
+                    "center": center,
+                    "match_type": match_type,
+                    "score": weighted_score,
+                    "name_contains": name_contains,
+                    "description_contains": description_contains,
+                    "country_contains": False,  # No longer used
+                    "region_contains": False,  # No longer used
+                }
+            )
+
     # Sort by score (highest first)
-    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
-    
+    fuzzy_matches.sort(key=lambda x: x["score"], reverse=True)
+
     # Limit results
     fuzzy_matches = fuzzy_matches[:max_fuzzy_results]
-    
+
     # Combine exact and fuzzy results
     final_results = []
-    
+
     # Add scored exact results first
     final_results.extend(exact_results_with_scores)
-    
+
     # Add fuzzy results (already sorted by score)
     final_results.extend(fuzzy_matches)
-    
+
     return final_results
+
 
 @router.get("/count")
 async def get_diving_centers_count(
-    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
+    search: Optional[str] = Query(
+        None,
+        max_length=200,
+        description="Unified search across name, description, country, region, city",
+    ),
     name: Optional[str] = Query(None, max_length=100),
-    country: Optional[str] = Query(None, max_length=100, description="Filter by country"),
+    country: Optional[str] = Query(
+        None, max_length=100, description="Filter by country"
+    ),
     region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
     city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
-    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
-    max_rating: Optional[float] = Query(None, ge=0, le=10, description="Maximum average rating (0-10)"),
+    min_rating: Optional[float] = Query(
+        None, ge=0, le=10, description="Minimum average rating (0-10)"
+    ),
+    max_rating: Optional[float] = Query(
+        None, ge=0, le=10, description="Maximum average rating (0-10)"
+    ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user_optional),
 ):
     """Get total count of diving centers matching the filters."""
     query = db.query(DivingCenter)
@@ -432,13 +544,13 @@ async def get_diving_centers_count(
     # Apply filters
     if name:
         query = query.filter(DivingCenter.name.ilike(f"%{name}%"))
-    
+
     if country:
         query = query.filter(DivingCenter.country.ilike(f"%{country}%"))
-    
+
     if region:
         query = query.filter(DivingCenter.region.ilike(f"%{region}%"))
-    
+
     if city:
         query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
 
@@ -446,7 +558,7 @@ async def get_diving_centers_count(
     if search:
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
-        
+
         # Search across name, description, country, region, and city (case-insensitive using ilike)
         query = query.filter(
             or_(
@@ -454,7 +566,7 @@ async def get_diving_centers_count(
                 DivingCenter.description.ilike(f"%{sanitized_search}%"),
                 DivingCenter.country.ilike(f"%{sanitized_search}%"),
                 DivingCenter.region.ilike(f"%{sanitized_search}%"),
-                DivingCenter.city.ilike(f"%{sanitized_search}%")
+                DivingCenter.city.ilike(f"%{sanitized_search}%"),
             )
         )
 
@@ -463,25 +575,25 @@ async def get_diving_centers_count(
         # Create a subquery to filter by ratings
         ratings_filter_subquery = db.query(
             CenterRating.diving_center_id,
-            func.avg(CenterRating.score).label('avg_rating')
+            func.avg(CenterRating.score).label("avg_rating"),
         ).group_by(CenterRating.diving_center_id)
-        
+
         if min_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
                 func.avg(CenterRating.score) >= min_rating
             )
-        
+
         if max_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
                 func.avg(CenterRating.score) <= max_rating
             )
-        
+
         ratings_filter_subquery = ratings_filter_subquery.subquery()
-        
+
         # Join with the filtered ratings
         query = query.join(
             ratings_filter_subquery,
-            DivingCenter.id == ratings_filter_subquery.c.diving_center_id
+            DivingCenter.id == ratings_filter_subquery.c.diving_center_id,
         )
 
     # Get total count
@@ -489,14 +601,17 @@ async def get_diving_centers_count(
 
     return {"total": total_count}
 
+
 @router.get("/reverse-geocode")
 @skip_rate_limit_for_admin("75/minute")
 async def reverse_geocode(
     request: Request,
     latitude: float = Query(..., ge=-90, le=90),
     longitude: float = Query(..., ge=-180, le=180),
-    debug: bool = Query(False, description="Enable debug logging for Nominatim API calls"),
-    db: Session = Depends(get_db)
+    debug: bool = Query(
+        False, description="Enable debug logging for Nominatim API calls"
+    ),
+    db: Session = Depends(get_db),
 ):
     """
     Get country, region, and city suggestions based on coordinates using OpenStreetMap Nominatim API
@@ -510,100 +625,100 @@ async def reverse_geocode(
             "format": "json",
             "addressdetails": 1,
             "zoom": 10,  # Get more detailed results
-            "accept-language": "en"  # Request English language results
+            "accept-language": "en",  # Request English language results
         }
 
         # Add User-Agent header as required by Nominatim
-        headers = {
-            "User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"
-        }
+        headers = {"User-Agent": "Divemap/1.0 (https://github.com/kargig/divemap)"}
 
         response = requests.get(url, params=params, headers=headers, timeout=15)
 
         # Log the response for debugging
         if debug:
             logger.debug(f"🔍 Nominatim API Request: URL={url}, Parameters={params}")
-        
+
         response.raise_for_status()
-        
+
         data = response.json()
-        
+
         if debug:
-            logger.debug(f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}")
-        
+            logger.debug(
+                f"📡 Nominatim API Response: Status={response.status_code}, Content={orjson.dumps(data).decode('utf-8')}"
+            )
+
         address = data.get("address", {})
 
         # Extract country, region, and city information
         country = address.get("country")
-        
+
         # Helper function to clean "Regional Unit" from text
         # Only remove "Regional Unit" if it appears at the end, keep it if it appears at the beginning
         def clean_regional_unit(text):
             if text:
                 # Remove " Regional Unit" only if it appears at the end
                 if text.endswith(" Regional Unit"):
-                    return text[:-len(" Regional Unit")].strip()
+                    return text[: -len(" Regional Unit")].strip()
                 # Remove "Regional Unit" only if it appears at the end (no leading space)
                 elif text.endswith("Regional Unit"):
-                    return text[:-len("Regional Unit")].strip()
+                    return text[: -len("Regional Unit")].strip()
                 return text
             return text
-        
+
         # Helper function to clean "Municipal Unit" and "Municipality" from text
         def clean_municipal_suffixes(text):
             if text:
                 # Remove " Municipal Unit" if it appears at the end
                 if text.endswith(" Municipal Unit"):
-                    return text[:-len(" Municipal Unit")].strip()
+                    return text[: -len(" Municipal Unit")].strip()
                 # Remove "Municipal Unit" if it appears at the end (no leading space)
                 elif text.endswith("Municipal Unit"):
-                    return text[:-len("Municipal Unit")].strip()
+                    return text[: -len("Municipal Unit")].strip()
                 # Remove "Municipality" if it appears at the end
                 elif text.endswith(" Municipality"):
-                    return text[:-len(" Municipality")].strip()
+                    return text[: -len(" Municipality")].strip()
                 # Remove "Municipality" if it appears at the end (no leading space)
                 elif text.endswith("Municipality"):
-                    return text[:-len("Municipality")].strip()
+                    return text[: -len("Municipality")].strip()
                 # Remove "Municipality of " if it appears at the beginning
                 elif text.startswith("Municipality of "):
-                    return text[len("Municipality of "):].strip()
+                    return text[len("Municipality of ") :].strip()
                 # Remove "Municipal Unit of " if it appears at the beginning
                 elif text.startswith("Municipal Unit of "):
-                    return text[len("Municipal Unit of "):].strip()
+                    return text[len("Municipal Unit of ") :].strip()
                 return text
             return text
-        
+
         # Get and clean county and state_district fields
         county = clean_regional_unit(address.get("county"))
         state_district = clean_regional_unit(address.get("state_district"))
-        
+
         if county and state_district:
             region = f"{county}, {state_district}"
         else:
             # Fallback to previous priority order, also cleaning "Regional Unit"
             region = (
-                clean_regional_unit(address.get("state")) or
-                clean_regional_unit(address.get("province")) or
-                clean_regional_unit(address.get("region")) or
-                county  # county alone if no state_district
+                clean_regional_unit(address.get("state"))
+                or clean_regional_unit(address.get("province"))
+                or clean_regional_unit(address.get("region"))
+                or county  # county alone if no state_district
             )
-        
+
         # Clean up "Regional Unit of" prefix from the final region
         if region and region.startswith("Regional Unit of "):
-            region = region[len("Regional Unit of "):]
+            region = region[len("Regional Unit of ") :]
 
         # Extract city information with fallback hierarchy
         city_raw = (
-            address.get("city") or
-            address.get("town") or
-            address.get("village") or
-            address.get("hamlet") or
-            address.get("suburb") or
-            address.get("neighbourhood") or
-            address.get("municipality") or  # Add municipality as fallback
-            ""
+            address.get("city")
+            or address.get("town")
+            or address.get("village")
+            or address.get("hamlet")
+            or address.get("suburb")
+            or address.get("neighbourhood")
+            or address.get("municipality")  # Add municipality as fallback
+            or ""
         )
-        
+
         # Clean up municipal suffixes from the city field
         city = clean_municipal_suffixes(city_raw)
 
@@ -614,20 +729,30 @@ async def reverse_geocode(
             print(f"   Region: '{region}'")
             print(f"   City: '{city}'")
             print(f"   Full Address: '{data.get('display_name', '')}'")
-            print(f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}")
-            
+            print(
+                f"   Raw Address Object: {orjson.dumps(address, option=orjson.OPT_INDENT_2).decode('utf-8')}"
+            )
+
             # Show which region fields were found and used
             print("   Region Field Analysis:")
             print(f"     county: '{address.get('county')}' → cleaned: '{county}'")
-            print(f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'")
-            print(f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'")
-            print(f"     province: '{address.get('province')}' → cleaned: '{clean_regional_unit(address.get('province'))}'")
-            print(f"     region: '{address.get('region')}' → cleaned: '{clean_regional_unit(address.get('region'))}'")
+            print(
+                f"     state_district: '{address.get('state_district')}' → cleaned: '{state_district}'"
+            )
+            print(
+                f"     state: '{address.get('state')}' → cleaned: '{clean_regional_unit(address.get('state'))}'"
+            )
+            print(
+                f"     province: '{address.get('province')}' → cleaned: '{clean_regional_unit(address.get('province'))}'"
+            )
+            print(
+                f"     region: '{address.get('region')}' → cleaned: '{clean_regional_unit(address.get('region'))}'"
+            )
             if county and state_district:
                 print(f"     → Using concatenated: '{county}, {state_district}'")
             else:
                 print(f"     → Using fallback: '{region}'")
-            
+
             # Show which city fields were found and used
             print("   City Field Analysis:")
             print(f"     city: '{address.get('city')}'")
@@ -645,13 +770,13 @@ async def reverse_geocode(
             "country": country,
             "region": region,
             "city": city,
-            "full_address": data.get("display_name", "")
+            "full_address": data.get("display_name", ""),
         }
 
     except requests.exceptions.Timeout:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Geocoding service timeout. Please try again later."
+            detail="Geocoding service timeout. Please try again later.",
         )
     except requests.exceptions.ConnectionError:
         # Fallback to basic location detection based on coordinates
@@ -668,8 +793,9 @@ async def reverse_geocode(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error during geocoding: {str(e)}"
+            detail=f"Unexpected error during geocoding: {str(e)}",
         )
+
 
 def get_fallback_location(latitude: float, longitude: float, debug: bool = False):
     """
@@ -677,7 +803,7 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
     """
     if debug:
         print("🔄 Using fallback location detection ")
-    
+
     # Simple fallback based on coordinate ranges
     if -90 <= latitude <= 90 and -180 <= longitude <= 180:
         # Basic region detection based on longitude
@@ -713,99 +839,129 @@ def get_fallback_location(latitude: float, longitude: float, debug: bool = False
             "country": country,
             "region": region,
             "city": city,
-            "full_address": f"Coordinates: {latitude}, {longitude}"
+            "full_address": f"Coordinates: {latitude}, {longitude}",
         }
-        
+
         if debug:
             print(f"   Fallback region detection: {region}")
             print(f"   Fallback country detection: {country}")
-        
+
         return fallback_result
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid coordinates provided"
+            detail="Invalid coordinates provided",
         )
 
-@router.get("/", response_model=DivingCenterListResponse, response_model_exclude_none=True)
+
+@router.get(
+    "/", response_model=DivingCenterListResponse, response_model_exclude_none=True
+)
 async def get_diving_centers(
-    search: Optional[str] = Query(None, max_length=200, description="Unified search across name, description, country, region, city"),
+    search: Optional[str] = Query(
+        None,
+        max_length=200,
+        description="Unified search across name, description, country, region, city",
+    ),
     name: Optional[str] = Query(None, max_length=100),
-    country: Optional[str] = Query(None, max_length=100, description="Filter by country"),
+    country: Optional[str] = Query(
+        None, max_length=100, description="Filter by country"
+    ),
     region: Optional[str] = Query(None, max_length=100, description="Filter by region"),
     city: Optional[str] = Query(None, max_length=100, description="Filter by city"),
-    min_rating: Optional[float] = Query(None, ge=0, le=10, description="Minimum average rating (0-10)"),
-    max_rating: Optional[float] = Query(None, ge=0, le=10, description="Maximum average rating (0-10)"),
-    sort_by: Optional[str] = Query(None, description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)"),
+    min_rating: Optional[float] = Query(
+        None, ge=0, le=10, description="Minimum average rating (0-10)"
+    ),
+    max_rating: Optional[float] = Query(
+        None, ge=0, le=10, description="Maximum average rating (0-10)"
+    ),
+    sort_by: Optional[str] = Query(
+        None,
+        description="Sort field (name, view_count, comment_count, created_at, updated_at, country, region, city)",
+    ),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
-    north: Optional[float] = Query(None, ge=-90, le=90, description="North bound for viewport filtering"),
-    south: Optional[float] = Query(None, ge=-90, le=90, description="South bound for viewport filtering"),
-    east: Optional[float] = Query(None, ge=-180, le=180, description="East bound for viewport filtering"),
-    west: Optional[float] = Query(None, ge=-180, le=180, description="West bound for viewport filtering"),
-    detail_level: Optional[str] = Query('full', description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)"),
-    only_claimed: Optional[bool] = Query(None, description="Filter to show only claimed diving centers"),
+    north: Optional[float] = Query(
+        None, ge=-90, le=90, description="North bound for viewport filtering"
+    ),
+    south: Optional[float] = Query(
+        None, ge=-90, le=90, description="South bound for viewport filtering"
+    ),
+    east: Optional[float] = Query(
+        None, ge=-180, le=180, description="East bound for viewport filtering"
+    ),
+    west: Optional[float] = Query(
+        None, ge=-180, le=180, description="West bound for viewport filtering"
+    ),
+    detail_level: Optional[str] = Query(
+        "full",
+        description="Data detail level: 'minimal' (id, name only), 'basic' (id, name, country, region, city), 'full' (all fields)",
+    ),
+    only_claimed: Optional[bool] = Query(
+        None, description="Filter to show only claimed diving centers"
+    ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user_optional),
 ):
     """Get diving centers with filtering and pagination."""
     # Validate detail_level parameter
     if detail_level is not None:
-        valid_detail_levels = ['minimal', 'basic', 'full']
+        valid_detail_levels = ["minimal", "basic", "full"]
         if detail_level.lower() not in valid_detail_levels:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}"
+                detail=f"detail_level must be one of: {', '.join(valid_detail_levels)}",
             )
         detail_level = detail_level.lower()
     else:
-        detail_level = 'full'
-    
+        detail_level = "full"
+
     # Validate bounds if provided
     if all(x is not None for x in [north, south, east, west]):
         if north <= south:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="north must be greater than south"
+                detail="north must be greater than south",
             )
 
     # Check if reviews are enabled
     reviews_enabled = is_diving_center_reviews_enabled(db)
-    
+
     # If reviews are disabled, ignore rating filters
     if not reviews_enabled:
         min_rating = None
         max_rating = None
-    
+
     # Validate page_size
     if page_size not in [1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000"
+            detail="page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000",
         )
 
     from sqlalchemy.orm import defer
+
     query = db.query(DivingCenter)
-    if detail_level != 'full':
+    if detail_level != "full":
         query = query.options(
             defer(DivingCenter.description),
             defer(DivingCenter.address),
             defer(DivingCenter.email),
             defer(DivingCenter.phone),
-            defer(DivingCenter.website)
+            defer(DivingCenter.website),
         )
 
     # Apply filters
     if name:
         query = query.filter(DivingCenter.name.ilike(f"%{name}%"))
-    
+
     if country:
         query = query.filter(DivingCenter.country.ilike(f"%{country}%"))
-    
+
     if region:
         query = query.filter(DivingCenter.region.ilike(f"%{region}%"))
-    
+
     if city:
         query = query.filter(DivingCenter.city.ilike(f"%{city}%"))
 
@@ -813,34 +969,50 @@ async def get_diving_centers(
         query = query.filter(
             and_(
                 DivingCenter.owner_id.isnot(None),
-                DivingCenter.ownership_status == OwnershipStatus.approved
+                DivingCenter.ownership_status == OwnershipStatus.approved,
             )
         )
 
     # Apply bounds filtering if provided
     if all(x is not None for x in [north, south, east, west]):
         from app.utils import get_rounded_buffered_bounds
+
         north, south, east, west = get_rounded_buffered_bounds(north, south, east, west)
-        
+
         bind = db.get_bind()
         dialect = bind.dialect.name if bind is not None else None
 
-        if dialect == 'mysql':
+        if dialect == "mysql":
             # Create a Polygon representing the bounding box using ST_GeomFromText
             # MySQL Polygons must be closed (start point == end point)
-            
+
             if east >= west:
                 # Normal bounding box
                 polygon_wkt = f"POLYGON(({west} {south}, {east} {south}, {east} {north}, {west} {north}, {west} {south}))"
-                query = query.filter(func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326)))
+                query = query.filter(
+                    func.ST_Within(
+                        DivingCenter.location,
+                        func.ST_SRID(func.ST_GeomFromText(polygon_wkt), 4326),
+                    )
+                )
             else:
                 # Anti-meridian crossing (split into two polygons and check if within either)
                 poly1_wkt = f"POLYGON(({west} {south}, 180 {south}, 180 {north}, {west} {north}, {west} {south}))"
                 poly2_wkt = f"POLYGON((-180 {south}, {east} {south}, {east} {north}, -180 {north}, -180 {south}))"
-                
+
                 query = query.filter(
-                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326))) |
-                    (func.ST_Within(DivingCenter.location, func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326)))
+                    (
+                        func.ST_Within(
+                            DivingCenter.location,
+                            func.ST_SRID(func.ST_GeomFromText(poly1_wkt), 4326),
+                        )
+                    )
+                    | (
+                        func.ST_Within(
+                            DivingCenter.location,
+                            func.ST_SRID(func.ST_GeomFromText(poly2_wkt), 4326),
+                        )
+                    )
                 )
         else:
             # Fallback for SQLite testing (no robust spatial functions, keep slow BETWEEN)
@@ -857,7 +1029,7 @@ async def get_diving_centers(
         # Sanitize search input to prevent injection
         sanitized_search = search.strip()[:200]
         search_query_for_fuzzy = sanitized_search
-        
+
         # Use a more flexible approach: search for partial matches and let fuzzy search handle scoring
         # This ensures that "anavys" can match "Anavissos" through fuzzy matching
         query = query.filter(
@@ -868,9 +1040,15 @@ async def get_diving_centers(
                 DivingCenter.region.ilike(f"%{sanitized_search}%"),
                 DivingCenter.city.ilike(f"%{sanitized_search}%"),
                 # Add more flexible matching for geographic fields
-                DivingCenter.city.ilike(f"%{sanitized_search[:4]}%"),  # Match first 4+ characters
-                DivingCenter.city.ilike(f"%{sanitized_search[:5]}%"),  # Match first 5+ characters
-                DivingCenter.city.ilike(f"%{sanitized_search[:6]}%")   # Match first 6+ characters
+                DivingCenter.city.ilike(
+                    f"%{sanitized_search[:4]}%"
+                ),  # Match first 4+ characters
+                DivingCenter.city.ilike(
+                    f"%{sanitized_search[:5]}%"
+                ),  # Match first 5+ characters
+                DivingCenter.city.ilike(
+                    f"%{sanitized_search[:6]}%"
+                ),  # Match first 6+ characters
             )
         )
 
@@ -879,25 +1057,25 @@ async def get_diving_centers(
         # Create a subquery to filter by ratings
         ratings_filter_subquery = db.query(
             CenterRating.diving_center_id,
-            func.avg(CenterRating.score).label('avg_rating')
+            func.avg(CenterRating.score).label("avg_rating"),
         ).group_by(CenterRating.diving_center_id)
-        
+
         if min_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
                 func.avg(CenterRating.score) >= min_rating
             )
-        
+
         if max_rating is not None:
             ratings_filter_subquery = ratings_filter_subquery.having(
                 func.avg(CenterRating.score) <= max_rating
             )
-        
+
         ratings_filter_subquery = ratings_filter_subquery.subquery()
-        
+
         # Join with the filtered ratings
         query = query.join(
             ratings_filter_subquery,
-            DivingCenter.id == ratings_filter_subquery.c.diving_center_id
+            DivingCenter.id == ratings_filter_subquery.c.diving_center_id,
         )
 
     # Apply dynamic sorting based on parameters
@@ -905,71 +1083,81 @@ async def get_diving_centers(
         # All valid sort fields (including admin-only ones)
         # Exclude comment_count and rating if reviews are disabled
         valid_sort_fields = {
-            'name', 'view_count', 'created_at', 'updated_at', 'country', 'region', 'city'
+            "name",
+            "view_count",
+            "created_at",
+            "updated_at",
+            "country",
+            "region",
+            "city",
         }
         if reviews_enabled:
-            valid_sort_fields.add('comment_count')
-            valid_sort_fields.add('rating')
-            valid_sort_fields.add('average_rating')
-        
+            valid_sort_fields.add("comment_count")
+            valid_sort_fields.add("rating")
+            valid_sort_fields.add("average_rating")
+
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field. Must be one of: {', '.join(sorted(valid_sort_fields))}"
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(sorted(valid_sort_fields))}",
             )
-        
+
         # Validate sort_order parameter
-        if sort_order not in ['asc', 'desc']:
+        if sort_order not in ["asc", "desc"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="sort_order must be 'asc' or 'desc'"
+                detail="sort_order must be 'asc' or 'desc'",
             )
-        
+
         # Apply sorting based on field
-        if sort_by == 'name':
+        if sort_by == "name":
             sort_field = func.lower(DivingCenter.name)
-        elif sort_by in ['rating', 'average_rating']:
-            ratings_sort_subquery = db.query(
-                CenterRating.diving_center_id,
-                func.avg(CenterRating.score).label('avg_rating')
-            ).group_by(CenterRating.diving_center_id).subquery()
-            
+        elif sort_by in ["rating", "average_rating"]:
+            ratings_sort_subquery = (
+                db.query(
+                    CenterRating.diving_center_id,
+                    func.avg(CenterRating.score).label("avg_rating"),
+                )
+                .group_by(CenterRating.diving_center_id)
+                .subquery()
+            )
+
             query = query.outerjoin(
                 ratings_sort_subquery,
-                DivingCenter.id == ratings_sort_subquery.c.diving_center_id
+                DivingCenter.id == ratings_sort_subquery.c.diving_center_id,
             )
             sort_field = ratings_sort_subquery.c.avg_rating
-        elif sort_by == 'view_count':
+        elif sort_by == "view_count":
             # Only admin users can sort by view_count
             if not current_user or not current_user.is_admin:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sorting by view_count is only available for admin users"
+                    detail="Sorting by view_count is only available for admin users",
                 )
             sort_field = DivingCenter.view_count
-        elif sort_by == 'comment_count':
+        elif sort_by == "comment_count":
             # Only admin users can sort by comment_count
             if not current_user or not current_user.is_admin:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Sorting by comment_count is only available for admin users"
+                    detail="Sorting by comment_count is only available for admin users",
                 )
             # For comment count, we need to join with comments and group
             query = query.outerjoin(CenterComment).group_by(DivingCenter.id)
             sort_field = func.count(CenterComment.id)
-        elif sort_by == 'created_at':
+        elif sort_by == "created_at":
             sort_field = DivingCenter.created_at
-        elif sort_by == 'updated_at':
+        elif sort_by == "updated_at":
             sort_field = DivingCenter.updated_at
-        elif sort_by == 'country':
+        elif sort_by == "country":
             sort_field = func.lower(DivingCenter.country)
-        elif sort_by == 'region':
+        elif sort_by == "region":
             sort_field = func.lower(DivingCenter.region)
-        elif sort_by == 'city':
+        elif sort_by == "city":
             sort_field = func.lower(DivingCenter.city)
-        
+
         # Apply the sorting
-        if sort_order == 'desc':
+        if sort_order == "desc":
             query = query.order_by(sort_field.desc())
         else:
             query = query.order_by(sort_field.asc())
@@ -992,20 +1180,20 @@ async def get_diving_centers(
     # Only calculate ratings if reviews are enabled
     if reviews_enabled:
         # Subquery to get average ratings and total ratings
-        ratings_subquery = db.query(
-            CenterRating.diving_center_id,
-            sql_func.avg(CenterRating.score).label('avg_rating'),
-            sql_func.count(CenterRating.id).label('total_ratings')
-        ).group_by(CenterRating.diving_center_id).subquery()
+        ratings_subquery = (
+            db.query(
+                CenterRating.diving_center_id,
+                sql_func.avg(CenterRating.score).label("avg_rating"),
+                sql_func.count(CenterRating.id).label("total_ratings"),
+            )
+            .group_by(CenterRating.diving_center_id)
+            .subquery()
+        )
 
         # Join diving centers with ratings
         query_with_ratings = query.outerjoin(
-            ratings_subquery,
-            DivingCenter.id == ratings_subquery.c.diving_center_id
-        ).add_columns(
-            ratings_subquery.c.avg_rating,
-            ratings_subquery.c.total_ratings
-        )
+            ratings_subquery, DivingCenter.id == ratings_subquery.c.diving_center_id
+        ).add_columns(ratings_subquery.c.avg_rating, ratings_subquery.c.total_ratings)
     else:
         # When reviews disabled, don't join ratings - just add None columns
         query_with_ratings = query.add_columns(None, None)
@@ -1013,11 +1201,11 @@ async def get_diving_centers(
     # Check if we need fuzzy search before applying pagination
     # Always trigger fuzzy search for multi-word queries or when exact results are insufficient
     should_use_fuzzy = search and (
-        total_count < 5 or 
-        len(search.strip()) <= 10 or  # Reasonable length for fuzzy search
-        ' ' in search.strip()  # Multi-word queries (e.g., "scuba life")
+        total_count < 5
+        or len(search.strip()) <= 10  # Reasonable length for fuzzy search
+        or " " in search.strip()  # Multi-word queries (e.g., "scuba life")
     )
-    
+
     if should_use_fuzzy:
         # For fuzzy search, we need all exact results first, then we'll paginate the final results
         diving_centers_with_ratings = query_with_ratings.all()
@@ -1025,79 +1213,84 @@ async def get_diving_centers(
         diving_centers = [center_data[0] for center_data in diving_centers_with_ratings]
     else:
         # For normal search, apply pagination as usual
-        diving_centers_with_ratings = query_with_ratings.offset(offset).limit(page_size).all()
+        diving_centers_with_ratings = (
+            query_with_ratings.offset(offset).limit(page_size).all()
+        )
         # Extract diving centers from the results
         diving_centers = [center_data[0] for center_data in diving_centers_with_ratings]
-    
+
     # Apply fuzzy search if we determined we should use it
     match_types = {}
     if should_use_fuzzy:
         # Get the search query for fuzzy search
         search_query_for_fuzzy = search.strip()[:200]
-        
+
         # Perform fuzzy search to enhance results
         enhanced_results = search_diving_centers_with_fuzzy(
-            search_query_for_fuzzy, 
-            diving_centers, 
-            db, 
-            similarity_threshold=UNIFIED_TYPO_TOLERANCE['overall_threshold'], 
+            search_query_for_fuzzy,
+            diving_centers,
+            db,
+            similarity_threshold=UNIFIED_TYPO_TOLERANCE["overall_threshold"],
             max_fuzzy_results=10,
-            sort_by=sort_by if sort_by != 'name' else None,
-            sort_order=sort_order
+            sort_by=sort_by if sort_by != "name" else None,
+            sort_order=sort_order,
         )
-        
+
         # Update diving centers with enhanced results
-        all_diving_centers = [result['center'] for result in enhanced_results]
-        
+        all_diving_centers = [result["center"] for result in enhanced_results]
+
         # Apply pagination to the final fuzzy search results
-        diving_centers = all_diving_centers[offset:offset + page_size]
-        
+        diving_centers = all_diving_centers[offset : offset + page_size]
+
         # Create match types mapping for frontend (only for the paginated results)
-        for result in enhanced_results[offset:offset + page_size]:
-            match_types[result['center'].id] = {
-                'type': result['match_type'],
-                'score': result['score']
+        for result in enhanced_results[offset : offset + page_size]:
+            match_types[result["center"].id] = {
+                "type": result["match_type"],
+                "score": result["score"],
             }
-        
+
         # Update total count and pagination info for fuzzy search results
         total_count = len(all_diving_centers)
         total_pages = (total_count + page_size - 1) // page_size
         has_next_page = page < total_pages
         has_prev_page = page > 1
-        
+
         # Re-query with the enhanced results to get ratings
         if len(diving_centers) > 0:
             # We have enhanced results, need to get ratings for the paginated subset
             enhanced_query = db.query(DivingCenter).filter(
                 DivingCenter.id.in_([center.id for center in diving_centers])
             )
-            
+
             # Re-apply the same logic for ratings (only if reviews enabled)
             if reviews_enabled:
                 if min_rating is not None or max_rating is not None:
                     enhanced_query = enhanced_query.join(
                         ratings_subquery,
-                        DivingCenter.id == ratings_subquery.c.diving_center_id
+                        DivingCenter.id == ratings_subquery.c.diving_center_id,
                     )
-                
+
                 # Get enhanced results with ratings
-                enhanced_with_ratings = enhanced_query.outerjoin(
-                    ratings_subquery,
-                    DivingCenter.id == ratings_subquery.c.diving_center_id
-                ).add_columns(
-                    ratings_subquery.c.avg_rating,
-                    ratings_subquery.c.total_ratings
-                ).all()
+                enhanced_with_ratings = (
+                    enhanced_query.outerjoin(
+                        ratings_subquery,
+                        DivingCenter.id == ratings_subquery.c.diving_center_id,
+                    )
+                    .add_columns(
+                        ratings_subquery.c.avg_rating, ratings_subquery.c.total_ratings
+                    )
+                    .all()
+                )
             else:
                 # When reviews disabled, just add None for ratings
                 enhanced_with_ratings = enhanced_query.add_columns(None, None).all()
-            
+
             # Create a mapping from ID to rating data to preserve the sorted order
             rating_data_by_id = {}
             for center_data in enhanced_with_ratings:
                 center = center_data[0]
                 rating_data_by_id[center.id] = center_data
-            
+
             # Rebuild diving_centers_with_ratings in the correct sorted order
             diving_centers_with_ratings = []
             for center in diving_centers:
@@ -1114,14 +1307,14 @@ async def get_diving_centers(
         avg_rating = center_data[1]
         total_ratings = center_data[2]
 
-        if detail_level == 'minimal':
+        if detail_level == "minimal":
             center_dict = {
-                "id": center.id, 
+                "id": center.id,
                 "name": center.name,
                 "latitude": float(center.latitude) if center.latitude else None,
                 "longitude": float(center.longitude) if center.longitude else None,
             }
-        elif detail_level == 'basic':
+        elif detail_level == "basic":
             center_dict = {
                 "id": center.id,
                 "name": center.name,
@@ -1130,10 +1323,14 @@ async def get_diving_centers(
                 "country": center.country,
                 "region": center.region,
                 "city": center.city,
-                "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+                "average_rating": float(avg_rating)
+                if reviews_enabled and avg_rating
+                else None,
                 "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
                 "logo_url": center.logo_url,
-                "logo_full_url": r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
+                "logo_full_url": r2_storage.get_photo_url(center.logo_url)
+                if center.logo_url
+                else None,
             }
         else:
             owner_username = None
@@ -1156,14 +1353,20 @@ async def get_diving_centers(
                 "city": center.city,
                 "created_at": center.created_at,
                 "updated_at": center.updated_at,
-                "average_rating": float(avg_rating) if reviews_enabled and avg_rating else None,
+                "average_rating": float(avg_rating)
+                if reviews_enabled and avg_rating
+                else None,
                 "total_ratings": (total_ratings or 0) if reviews_enabled else 0,
-                "comment_count": 0, # Placeholder for now, can be optimized later if needed
+                "comment_count": 0,  # Placeholder for now, can be optimized later if needed
                 "owner_id": center.owner_id,
-                "ownership_status": center.ownership_status.value if center.ownership_status else None,
+                "ownership_status": center.ownership_status.value
+                if center.ownership_status
+                else None,
                 "owner_username": owner_username,
                 "logo_url": center.logo_url,
-                "logo_full_url": r2_storage.get_photo_url(center.logo_url) if center.logo_url else None
+                "logo_full_url": r2_storage.get_photo_url(center.logo_url)
+                if center.logo_url
+                else None,
             }
 
             if current_user and current_user.is_admin:
@@ -1184,14 +1387,15 @@ async def get_diving_centers(
         total_pages=total_pages,
         has_next_page=has_next_page,
         has_prev_page=has_prev_page,
-        match_types=str_match_types
+        match_types=str_match_types,
     )
+
 
 @router.post("/", response_model=DivingCenterResponse)
 async def create_diving_center(
     diving_center: DivingCenterCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     db_diving_center = DivingCenter(**diving_center.model_dump())
     db.add(db_diving_center)
@@ -1201,10 +1405,13 @@ async def create_diving_center(
     # Notify users about new diving center
     try:
         notification_service = NotificationService()
-        await notification_service.notify_users_for_new_diving_center(db_diving_center.id, db)
+        await notification_service.notify_users_for_new_diving_center(
+            db_diving_center.id, db
+        )
     except Exception as e:
         # Log error but don't fail diving center creation
         import logging
+
         logger = logging.getLogger(__name__)
         logger.warning(f"Failed to send notifications for new diving center: {e}")
 
@@ -1214,18 +1421,20 @@ async def create_diving_center(
         "created_at": db_diving_center.created_at,
         "updated_at": db_diving_center.updated_at,
         "average_rating": None,
-        "total_ratings": 0
+        "total_ratings": 0,
     }
+
 
 @router.get("/ownership-requests", response_model=List[DivingCenterOwnershipResponse])
 async def get_ownership_requests(
-    current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(is_admin_or_moderator), db: Session = Depends(get_db)
 ):
     """Get all diving centers with pending or approved ownership requests (admin/moderator only)"""
-    diving_centers = db.query(DivingCenter).filter(
-        DivingCenter.ownership_status.in_(["claimed", "approved"])
-    ).all()
+    diving_centers = (
+        db.query(DivingCenter)
+        .filter(DivingCenter.ownership_status.in_(["claimed", "approved"]))
+        .all()
+    )
 
     result = []
     for center in diving_centers:
@@ -1241,18 +1450,28 @@ async def get_ownership_requests(
             # For claimed status, get the request with status 'claimed'
             # For approved status, get the most recent request that led to approval
             if center.ownership_status == OwnershipStatus.claimed:
-                ownership_request = db.query(OwnershipRequest).filter(
-                    OwnershipRequest.diving_center_id == center.id,
-                    OwnershipRequest.user_id == center.owner_id,
-                    OwnershipRequest.request_status == OwnershipStatus.claimed
-                ).order_by(OwnershipRequest.request_date.desc()).first()
+                ownership_request = (
+                    db.query(OwnershipRequest)
+                    .filter(
+                        OwnershipRequest.diving_center_id == center.id,
+                        OwnershipRequest.user_id == center.owner_id,
+                        OwnershipRequest.request_status == OwnershipStatus.claimed,
+                    )
+                    .order_by(OwnershipRequest.request_date.desc())
+                    .first()
+                )
             else:
                 # For approved centers, get the most recent request
-                ownership_request = db.query(OwnershipRequest).filter(
-                    OwnershipRequest.diving_center_id == center.id,
-                    OwnershipRequest.user_id == center.owner_id
-                ).order_by(OwnershipRequest.request_date.desc()).first()
-            
+                ownership_request = (
+                    db.query(OwnershipRequest)
+                    .filter(
+                        OwnershipRequest.diving_center_id == center.id,
+                        OwnershipRequest.user_id == center.owner_id,
+                    )
+                    .order_by(OwnershipRequest.request_date.desc())
+                    .first()
+                )
+
             if ownership_request:
                 claim_reason = ownership_request.reason
                 request_date = ownership_request.request_date
@@ -1269,78 +1488,97 @@ async def get_ownership_requests(
             location_parts.append(center.country)
         location_str = ", ".join(location_parts) if location_parts else None
 
-        result.append({
-            "id": center.id,
-            "name": center.name,
-            "owner_id": center.owner_id,
-            "ownership_status": center.ownership_status.value if center.ownership_status else None,
-            "owner_username": owner_username,
-            "location": location_str,
-            "claim_reason": claim_reason,
-            "request_date": request_date,
-            "created_at": center.created_at,
-            "updated_at": center.updated_at
-        })
+        result.append(
+            {
+                "id": center.id,
+                "name": center.name,
+                "owner_id": center.owner_id,
+                "ownership_status": center.ownership_status.value
+                if center.ownership_status
+                else None,
+                "owner_username": owner_username,
+                "location": location_str,
+                "claim_reason": claim_reason,
+                "request_date": request_date,
+                "created_at": center.created_at,
+                "updated_at": center.updated_at,
+            }
+        )
 
     return result
 
-@router.get("/ownership-requests/history", response_model=List[OwnershipRequestHistoryResponse])
+
+@router.get(
+    "/ownership-requests/history", response_model=List[OwnershipRequestHistoryResponse]
+)
 async def get_ownership_request_history(
-    current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(is_admin_or_moderator), db: Session = Depends(get_db)
 ):
     """Get complete history of all ownership requests (admin/moderator only)"""
-    ownership_requests = db.query(OwnershipRequest).order_by(OwnershipRequest.request_date.desc()).all()
+    ownership_requests = (
+        db.query(OwnershipRequest).order_by(OwnershipRequest.request_date.desc()).all()
+    )
 
     result = []
     for request in ownership_requests:
         # Get diving center name
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == request.diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter)
+            .filter(DivingCenter.id == request.diving_center_id)
+            .first()
+        )
         diving_center_name = diving_center.name if diving_center else "Unknown Center"
-        
+
         # Get user username
         user = db.query(User).filter(User.id == request.user_id).first()
         username = user.username if user else "Unknown User"
-        
+
         # Get admin username if processed
         admin_username = None
         if request.processed_by:
             admin = db.query(User).filter(User.id == request.processed_by).first()
             admin_username = admin.username if admin else "Unknown Admin"
 
-        result.append({
-            "id": request.id,
-            "diving_center_id": request.diving_center_id,
-            "diving_center_name": diving_center_name,
-            "user_id": request.user_id,
-            "username": username,
-            "request_status": request.request_status.value,
-            "request_date": request.request_date,
-            "processed_date": request.processed_date,
-            "processed_by": request.processed_by,
-            "admin_username": admin_username,
-            "reason": request.reason,
-            "notes": request.notes
-        })
+        result.append(
+            {
+                "id": request.id,
+                "diving_center_id": request.diving_center_id,
+                "diving_center_name": diving_center_name,
+                "user_id": request.user_id,
+                "username": username,
+                "request_status": request.request_status.value,
+                "request_date": request.request_date,
+                "processed_date": request.processed_date,
+                "processed_by": request.processed_by,
+                "admin_username": admin_username,
+                "reason": request.reason,
+                "notes": request.notes,
+            }
+        )
 
     return result
+
 
 @router.get("/{diving_center_id}", response_model=DivingCenterResponse)
 async def get_diving_center(
     diving_center_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)  # Fix type annotation
+    current_user: Optional[User] = Depends(
+        get_current_user_optional
+    ),  # Fix type annotation
 ):
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     # Increment view count in the background without blocking the response
     from app.utils import increment_view_count
+
     background_tasks.add_task(increment_view_count, db, DivingCenter, diving_center.id)
 
     # Check if reviews are enabled
@@ -1350,34 +1588,45 @@ async def get_diving_center(
     avg_rating = None
     total_ratings = 0
     user_rating = None
-    
-    if reviews_enabled:
-        avg_rating = db.query(func.avg(CenterRating.score)).filter(
-            CenterRating.diving_center_id == diving_center.id
-        ).scalar()
 
-        total_ratings = db.query(func.count(CenterRating.id)).filter(
-            CenterRating.diving_center_id == diving_center.id
-        ).scalar()
+    if reviews_enabled:
+        avg_rating = (
+            db.query(func.avg(CenterRating.score))
+            .filter(CenterRating.diving_center_id == diving_center.id)
+            .scalar()
+        )
+
+        total_ratings = (
+            db.query(func.count(CenterRating.id))
+            .filter(CenterRating.diving_center_id == diving_center.id)
+            .scalar()
+        )
 
         # Get user's previous rating if authenticated
         if current_user:
-            user_rating_obj = db.query(CenterRating).filter(
-                CenterRating.diving_center_id == diving_center_id,
-                CenterRating.user_id == current_user.id
-            ).first()
+            user_rating_obj = (
+                db.query(CenterRating)
+                .filter(
+                    CenterRating.diving_center_id == diving_center_id,
+                    CenterRating.user_id == current_user.id,
+                )
+                .first()
+            )
             if user_rating_obj:
                 user_rating = user_rating_obj.score
 
     # Prepare response data
     from app.models import DivingCenterFollower
+
     is_user_manager = False
     if current_user:
         is_user_manager = is_center_manager(db, diving_center.id, current_user)
-        
-    follower_count = db.query(func.count(DivingCenterFollower.user_id)).filter(
-        DivingCenterFollower.diving_center_id == diving_center.id
-    ).scalar()
+
+    follower_count = (
+        db.query(func.count(DivingCenterFollower.user_id))
+        .filter(DivingCenterFollower.diving_center_id == diving_center.id)
+        .scalar()
+    )
 
     response_data = {
         "id": diving_center.id,
@@ -1397,10 +1646,12 @@ async def get_diving_center(
         "average_rating": float(avg_rating) if avg_rating else None,
         "total_ratings": total_ratings,
         "user_rating": user_rating,
-        "ownership_status": diving_center.ownership_status.value if diving_center.ownership_status else None,
+        "ownership_status": diving_center.ownership_status.value
+        if diving_center.ownership_status
+        else None,
         "owner_username": diving_center.owner.username if diving_center.owner else None,
         "is_manager": is_user_manager,
-        "follower_count": follower_count or 0
+        "follower_count": follower_count or 0,
     }
 
     # Only include view_count for admin users
@@ -1409,45 +1660,52 @@ async def get_diving_center(
 
     # Populate logo and media full URLs
     if diving_center.logo_url:
-        response_data["logo_full_url"] = r2_storage.get_photo_url(diving_center.logo_url)
+        response_data["logo_full_url"] = r2_storage.get_photo_url(
+            diving_center.logo_url
+        )
     else:
         response_data["logo_full_url"] = None
-    
+
     media_list = []
     for m in diving_center.media:
         m_dict = m.__dict__.copy()
         populate_center_media_urls(m, m_dict)
         media_list.append(m_dict)
-    
+
     response_data["media"] = media_list
 
     return response_data
+
 
 @router.put("/{diving_center_id}", response_model=DivingCenterResponse)
 async def update_diving_center(
     diving_center_id: int,
     diving_center_update: DivingCenterUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     # Check if user has permission to edit (admin, moderator, or owner)
     can_edit = (
-        current_user.is_admin or
-        current_user.is_moderator or
-        (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved)
+        current_user.is_admin
+        or current_user.is_moderator
+        or (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        )
     )
 
     if not can_edit:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You don't have permission to edit this diving center"
+            detail="You don't have permission to edit this diving center",
         )
 
     update_data = diving_center_update.model_dump(exclude_unset=True)
@@ -1463,19 +1721,27 @@ async def update_diving_center(
     # Calculate average rating (only if reviews enabled)
     avg_rating = None
     total_ratings = 0
-    
-    if reviews_enabled:
-        avg_rating = db.query(func.avg(CenterRating.score)).filter(
-            CenterRating.diving_center_id == diving_center.id
-        ).scalar()
 
-        total_ratings = db.query(func.count(CenterRating.id)).filter(
-            CenterRating.diving_center_id == diving_center.id
-        ).scalar()
+    if reviews_enabled:
+        avg_rating = (
+            db.query(func.avg(CenterRating.score))
+            .filter(CenterRating.diving_center_id == diving_center.id)
+            .scalar()
+        )
+
+        total_ratings = (
+            db.query(func.count(CenterRating.id))
+            .filter(CenterRating.diving_center_id == diving_center.id)
+            .scalar()
+        )
 
     # Populate media and logo
-    logo_full_url = r2_storage.get_photo_url(diving_center.logo_url) if diving_center.logo_url else None
-    
+    logo_full_url = (
+        r2_storage.get_photo_url(diving_center.logo_url)
+        if diving_center.logo_url
+        else None
+    )
+
     media_list = []
     for m in diving_center.media:
         m_dict = m.__dict__.copy()
@@ -1502,8 +1768,9 @@ async def update_diving_center(
         total_ratings=total_ratings,
         logo_url=diving_center.logo_url,
         logo_full_url=logo_full_url,
-        media=media_list
+        media=media_list,
     )
+
 
 @router.post("/{center_id}/logo", response_model=dict)
 @skip_rate_limit_for_admin("30/minute")
@@ -1512,74 +1779,106 @@ async def upload_center_logo(
     center_id: int,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Upload a logo for a diving center"""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
-        
+        raise HTTPException(
+            status_code=403, detail="Not authorized to edit this center"
+        )
+
     center = db.query(DivingCenter).filter(DivingCenter.id == center_id).first()
-    
+
     # 1. Protect against memory exhaustion (5MB limit)
-    if request.headers.get('content-length'):
-        if int(request.headers.get('content-length')) > 5 * 1024 * 1024:
+    if request.headers.get("content-length"):
+        if int(request.headers.get("content-length")) > 5 * 1024 * 1024:
             raise HTTPException(status_code=413, detail="Payload too large (Max 5MB)")
 
     # 2. Process image (resize, crop to square, convert to webp)
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File size exceeds 5MB limit")
-        
+
     try:
         processed_stream = image_processing.process_avatar(content)
         processed_content = processed_stream.read()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # Generate unique filename
     unique_filename = f"{uuid.uuid4()}.webp"
-    
+
     # Upload
-    url = r2_storage.upload_center_logo(processed_content, unique_filename, center_id, "image/webp")
-    
+    url = r2_storage.upload_center_logo(
+        processed_content, unique_filename, center_id, "image/webp"
+    )
+
     # Update DB
-    if center.logo_url and center.logo_url.startswith('centers/'):
+    if center.logo_url and center.logo_url.startswith("centers/"):
         try:
             r2_storage.delete_photo(center.logo_url)
         except Exception as e:
             logger.warning(f"Failed to delete old logo {center.logo_url}: {e}")
-        
+
     center.logo_url = url
     db.commit()
-    
-    return {"message": "Logo updated", "logo_url": url, "logo_full_url": r2_storage.get_photo_url(url)}
 
-@router.get("/{diving_center_id}/managers", response_model=List[DivingCenterManagerResponse])
+    return {
+        "message": "Logo updated",
+        "logo_url": url,
+        "logo_full_url": r2_storage.get_photo_url(url),
+    }
+
+
+@router.get(
+    "/{diving_center_id}/managers", response_model=List[DivingCenterManagerResponse]
+)
 async def get_diving_center_managers(
     diving_center_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """List all managers associated with a diving center."""
     # 1. Fetch diving center
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
+        )
 
     # 2. Check if current_user has access (Admin, Moderator, Owner, or Manager)
-    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
-    is_manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == current_user.id
-    ).first() is not None
+    is_owner = (
+        center.owner_id == current_user.id
+        and center.ownership_status == OwnershipStatus.approved
+    )
+    is_manager = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == current_user.id,
+        )
+        .first()
+        is not None
+    )
 
-    if not current_user.is_admin and not current_user.is_moderator and not is_owner and not is_manager:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to view managers")
+    if (
+        not current_user.is_admin
+        and not current_user.is_moderator
+        and not is_owner
+        and not is_manager
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view managers",
+        )
 
     # 3. Fetch managers
-    managers = db.query(User).join(DivingCenterManager, User.id == DivingCenterManager.user_id).filter(
-        DivingCenterManager.diving_center_id == diving_center_id
-    ).all()
+    managers = (
+        db.query(User)
+        .join(DivingCenterManager, User.id == DivingCenterManager.user_id)
+        .filter(DivingCenterManager.diving_center_id == diving_center_id)
+        .all()
+    )
 
     return [
         DivingCenterManagerResponse(
@@ -1587,8 +1886,9 @@ async def get_diving_center_managers(
             username=u.username,
             name=u.name,
             email=u.email,
-            avatar_url=u.avatar_url
-        ) for u in managers
+            avatar_url=u.avatar_url,
+        )
+        for u in managers
     ]
 
 
@@ -1597,38 +1897,62 @@ async def add_diving_center_manager(
     diving_center_id: int,
     manager_create: DivingCenterManagerCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add a new manager to a diving center. Only approved owners or admins/moderators can do this."""
     # 1. Fetch diving center
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
+        )
 
     # 2. Check permissions (Admin, Moderator, or Approved Owner)
-    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
+    is_owner = (
+        center.owner_id == current_user.id
+        and center.ownership_status == OwnershipStatus.approved
+    )
     if not current_user.is_admin and not current_user.is_moderator and not is_owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only approved owners or administrators can add managers")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approved owners or administrators can add managers",
+        )
 
     # 3. Find user to add as manager
-    target_user = db.query(User).filter(User.username == manager_create.username).first()
+    target_user = (
+        db.query(User).filter(User.username == manager_create.username).first()
+    )
     if not target_user:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="User not found"
+        )
 
     # 4. Check if already owner
     if center.owner_id == target_user.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The owner is already a manager by default")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The owner is already a manager by default",
+        )
 
     # 5. Check if already manager
-    existing_manager = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == target_user.id
-    ).first()
+    existing_manager = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == target_user.id,
+        )
+        .first()
+    )
     if existing_manager:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This user is already a manager of this center")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This user is already a manager of this center",
+        )
 
     # 6. Create manager association
-    new_manager = DivingCenterManager(diving_center_id=diving_center_id, user_id=target_user.id)
+    new_manager = DivingCenterManager(
+        diving_center_id=diving_center_id, user_id=target_user.id
+    )
     db.add(new_manager)
     db.commit()
 
@@ -1637,7 +1961,7 @@ async def add_diving_center_manager(
         username=target_user.username,
         name=target_user.name,
         email=target_user.email,
-        avatar_url=target_user.avatar_url
+        avatar_url=target_user.avatar_url,
     )
 
 
@@ -1646,32 +1970,48 @@ async def remove_diving_center_manager(
     diving_center_id: int,
     user_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove a manager from a diving center. Only approved owners or admins/moderators can do this."""
     # 1. Fetch diving center
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
+        )
 
     # 2. Check permissions (Admin, Moderator, or Approved Owner)
-    is_owner = center.owner_id == current_user.id and center.ownership_status == OwnershipStatus.approved
+    is_owner = (
+        center.owner_id == current_user.id
+        and center.ownership_status == OwnershipStatus.approved
+    )
     if not current_user.is_admin and not current_user.is_moderator and not is_owner:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only approved owners or administrators can remove managers")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only approved owners or administrators can remove managers",
+        )
 
     # 3. Find and delete manager association
-    assoc = db.query(DivingCenterManager).filter(
-        DivingCenterManager.diving_center_id == diving_center_id,
-        DivingCenterManager.user_id == user_id
-    ).first()
-    
+    assoc = (
+        db.query(DivingCenterManager)
+        .filter(
+            DivingCenterManager.diving_center_id == diving_center_id,
+            DivingCenterManager.user_id == user_id,
+        )
+        .first()
+    )
+
     if not assoc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manager association not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Manager association not found",
+        )
 
     db.delete(assoc)
     db.commit()
 
     return {"status": "success", "message": "Manager removed successfully"}
+
 
 @router.post("/{center_id}/media", response_model=CenterMediaResponse)
 @skip_rate_limit_for_admin("30/minute")
@@ -1680,42 +2020,46 @@ async def add_diving_center_media(
     center_id: int,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Upload photo media for a diving center with thumbnail generation"""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
-        
+        raise HTTPException(
+            status_code=403, detail="Not authorized to edit this center"
+        )
+
     # 1. Protect against memory exhaustion (15MB limit)
     MAX_FILE_SIZE = 15 * 1024 * 1024
-    if request.headers.get('content-length'):
-        if int(request.headers.get('content-length')) > MAX_FILE_SIZE:
+    if request.headers.get("content-length"):
+        if int(request.headers.get("content-length")) > MAX_FILE_SIZE:
             raise HTTPException(status_code=413, detail="Payload too large (Max 15MB)")
-            
+
     # Read file and validate actual size
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=413, detail="File size exceeds 15MB limit")
-        
+
     # 2. Process image into variants
-    file_ext = Path(file.filename).suffix if file.filename else '.jpg'
-    if not file_ext or file_ext.lower() not in ['.jpg', '.jpeg', '.png', '.webp']:
-        file_ext = '.jpg'
+    file_ext = Path(file.filename).suffix if file.filename else ".jpg"
+    if not file_ext or file_ext.lower() not in [".jpg", ".jpeg", ".png", ".webp"]:
+        file_ext = ".jpg"
     unique_filename = f"{uuid.uuid4()}{file_ext}"
-    
+
     try:
-        image_streams = image_processing.process_image(content, file.filename or "unknown")
+        image_streams = image_processing.process_image(
+            content, file.filename or "unknown"
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # Upload to R2 using upload_photo_set
     uploaded_paths = r2_storage.upload_photo_set(
         user_id=current_user.id,
         original_filename=unique_filename,
         image_streams=image_streams,
-        diving_center_id=center_id
+        diving_center_id=center_id,
     )
-    
+
     # Save to Database
     db_media = CenterMedia(
         diving_center_id=center_id,
@@ -1723,17 +2067,18 @@ async def add_diving_center_media(
         media_type=MediaType.photo,
         url=uploaded_paths.get("original"),
         medium_url=uploaded_paths.get("medium"),
-        thumbnail_url=uploaded_paths.get("thumbnail")
+        thumbnail_url=uploaded_paths.get("thumbnail"),
     )
     db.add(db_media)
     db.commit()
     db.refresh(db_media)
-    
+
     # Populate response with full URLs
     resp_dict = db_media.__dict__.copy()
     populate_center_media_urls(db_media, resp_dict)
-    
+
     return resp_dict
+
 
 @router.delete("/{center_id}/media/{media_id}")
 @skip_rate_limit_for_admin("30/minute")
@@ -1742,19 +2087,25 @@ async def delete_diving_center_media(
     center_id: int,
     media_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a media item and its variants from DB and R2"""
     if not is_center_manager(db, center_id, current_user):
-        raise HTTPException(status_code=403, detail="Not authorized to edit this center")
-        
-    media = db.query(CenterMedia).filter(
-        and_(CenterMedia.id == media_id, CenterMedia.diving_center_id == center_id)
-    ).first()
-    
+        raise HTTPException(
+            status_code=403, detail="Not authorized to edit this center"
+        )
+
+    media = (
+        db.query(CenterMedia)
+        .filter(
+            and_(CenterMedia.id == media_id, CenterMedia.diving_center_id == center_id)
+        )
+        .first()
+    )
+
     if not media:
         raise HTTPException(status_code=404, detail="Media not found")
-        
+
     # Delete from R2
     for path in [media.url, media.medium_url, media.thumbnail_url]:
         if path:
@@ -1762,23 +2113,25 @@ async def delete_diving_center_media(
                 r2_storage.delete_photo(path)
             except Exception as e:
                 logger.warning(f"Failed to delete media file {path}: {e}")
-                
+
     db.delete(media)
     db.commit()
-    
+
     return {"message": "Media deleted successfully"}
+
 
 @router.delete("/{diving_center_id}")
 async def delete_diving_center(
     diving_center_id: int,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     db.delete(diving_center)
@@ -1786,32 +2139,41 @@ async def delete_diving_center(
 
     return {"message": "Diving center deleted successfully"}
 
+
 @router.post("/{diving_center_id}/rate", response_model=CenterRatingResponse)
 async def rate_diving_center(
     diving_center_id: int,
     rating: CenterRatingCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if reviews are enabled
     if not is_diving_center_reviews_enabled(db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Reviews are currently disabled"
+            detail="Reviews are currently disabled",
         )
-    
+
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     # Check if user already rated this diving center
-    existing_rating = db.query(CenterRating).filter(
-        and_(CenterRating.diving_center_id == diving_center_id, CenterRating.user_id == current_user.id)
-    ).first()
+    existing_rating = (
+        db.query(CenterRating)
+        .filter(
+            and_(
+                CenterRating.diving_center_id == diving_center_id,
+                CenterRating.user_id == current_user.id,
+            )
+        )
+        .first()
+    )
 
     if existing_rating:
         # Update existing rating
@@ -1823,14 +2185,14 @@ async def rate_diving_center(
             "diving_center_id": existing_rating.diving_center_id,
             "user_id": existing_rating.user_id,
             "score": existing_rating.score,
-            "created_at": existing_rating.created_at
+            "created_at": existing_rating.created_at,
         }
     else:
         # Create new rating
         db_rating = CenterRating(
             diving_center_id=diving_center_id,
             user_id=current_user.id,
-            score=rating.score
+            score=rating.score,
         )
         db.add(db_rating)
         db.commit()
@@ -1840,46 +2202,56 @@ async def rate_diving_center(
             "diving_center_id": db_rating.diving_center_id,
             "user_id": db_rating.user_id,
             "score": db_rating.score,
-            "created_at": db_rating.created_at
+            "created_at": db_rating.created_at,
         }
+
 
 @router.get("/{diving_center_id}/comments", response_model=List[CenterCommentResponse])
 async def get_diving_center_comments(
-    diving_center_id: int,
-    db: Session = Depends(get_db)
+    diving_center_id: int, db: Session = Depends(get_db)
 ):
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
-    
+
     # If reviews are disabled, return empty list (don't error, just hide content)
     if not is_diving_center_reviews_enabled(db):
         return []
-    
+
     # Get comments with user information and their primary certification
-    comments = db.query(
-        CenterComment,
-        User.username,
-        User.number_of_dives,
-        UserCertification.certification_level,
-        DivingOrganization.acronym
-    ).join(
-        User, CenterComment.user_id == User.id
-    ).outerjoin(
-        UserCertification, User.id == UserCertification.user_id
-    ).outerjoin(
-        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
-    ).filter(
-        CenterComment.diving_center_id == diving_center_id
-    ).order_by(CenterComment.created_at.desc()).all()
+    comments = (
+        db.query(
+            CenterComment,
+            User.username,
+            User.number_of_dives,
+            UserCertification.certification_level,
+            DivingOrganization.acronym,
+        )
+        .join(User, CenterComment.user_id == User.id)
+        .outerjoin(UserCertification, User.id == UserCertification.user_id)
+        .outerjoin(
+            DivingOrganization,
+            UserCertification.diving_organization_id == DivingOrganization.id,
+        )
+        .filter(CenterComment.diving_center_id == diving_center_id)
+        .order_by(CenterComment.created_at.desc())
+        .all()
+    )
 
     # Group comments by comment ID to handle multiple certifications per user
     comment_dict = {}
-    for comment, username, number_of_dives, certification_level, org_acronym in comments:
+    for (
+        comment,
+        username,
+        number_of_dives,
+        certification_level,
+        org_acronym,
+    ) in comments:
         if comment.id not in comment_dict:
             # Format certification string
             certification_str = None
@@ -1895,52 +2267,57 @@ async def get_diving_center_comments(
                 "updated_at": comment.updated_at,
                 "username": username,
                 "user_diving_certification": certification_str,
-                "user_number_of_dives": number_of_dives
+                "user_number_of_dives": number_of_dives,
             }
 
     return list(comment_dict.values())
+
 
 @router.post("/{diving_center_id}/comments", response_model=CenterCommentResponse)
 async def create_diving_center_comment(
     diving_center_id: int,
     comment: CenterCommentCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if reviews are enabled
     if not is_diving_center_reviews_enabled(db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Reviews are currently disabled"
+            detail="Reviews are currently disabled",
         )
-    
+
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     db_comment = CenterComment(
         diving_center_id=diving_center_id,
         user_id=current_user.id,
-        comment_text=comment.comment_text
+        comment_text=comment.comment_text,
     )
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
 
     # Get user's primary certification
-    primary_certification = db.query(
-        UserCertification.certification_level,
-        DivingOrganization.acronym
-    ).join(
-        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
-    ).filter(
-        UserCertification.user_id == current_user.id,
-        UserCertification.is_active == True
-    ).first()
+    primary_certification = (
+        db.query(UserCertification.certification_level, DivingOrganization.acronym)
+        .join(
+            DivingOrganization,
+            UserCertification.diving_organization_id == DivingOrganization.id,
+        )
+        .filter(
+            UserCertification.user_id == current_user.id,
+            UserCertification.is_active == True,
+        )
+        .first()
+    )
 
     certification_str = None
     if primary_certification and primary_certification[0] and primary_certification[1]:
@@ -1955,38 +2332,47 @@ async def create_diving_center_comment(
         "updated_at": db_comment.updated_at,
         "username": current_user.username,
         "user_diving_certification": certification_str,
-        "user_number_of_dives": current_user.number_of_dives
+        "user_number_of_dives": current_user.number_of_dives,
     }
 
-@router.put("/{diving_center_id}/comments/{comment_id}", response_model=CenterCommentResponse)
+
+@router.put(
+    "/{diving_center_id}/comments/{comment_id}", response_model=CenterCommentResponse
+)
 async def update_diving_center_comment(
     diving_center_id: int,
     comment_id: int,
     comment_update: CenterCommentUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if reviews are enabled
     if not is_diving_center_reviews_enabled(db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Reviews are currently disabled"
+            detail="Reviews are currently disabled",
         )
-    
-    comment = db.query(CenterComment).filter(
-        and_(CenterComment.id == comment_id, CenterComment.diving_center_id == diving_center_id)
-    ).first()
+
+    comment = (
+        db.query(CenterComment)
+        .filter(
+            and_(
+                CenterComment.id == comment_id,
+                CenterComment.diving_center_id == diving_center_id,
+            )
+        )
+        .first()
+    )
 
     if not comment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Comment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
 
     if comment.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to edit this comment"
+            detail="Not authorized to edit this comment",
         )
 
     comment.comment_text = comment_update.comment_text
@@ -1994,15 +2380,18 @@ async def update_diving_center_comment(
     db.refresh(comment)
 
     # Get user's primary certification
-    primary_certification = db.query(
-        UserCertification.certification_level,
-        DivingOrganization.acronym
-    ).join(
-        DivingOrganization, UserCertification.diving_organization_id == DivingOrganization.id
-    ).filter(
-        UserCertification.user_id == comment.user_id,
-        UserCertification.is_active == True
-    ).first()
+    primary_certification = (
+        db.query(UserCertification.certification_level, DivingOrganization.acronym)
+        .join(
+            DivingOrganization,
+            UserCertification.diving_organization_id == DivingOrganization.id,
+        )
+        .filter(
+            UserCertification.user_id == comment.user_id,
+            UserCertification.is_active == True,
+        )
+        .first()
+    )
 
     certification_str = None
     if primary_certification and primary_certification[0] and primary_certification[1]:
@@ -2017,46 +2406,54 @@ async def update_diving_center_comment(
         "updated_at": comment.updated_at,
         "username": comment.user.username,
         "user_diving_certification": certification_str,
-        "user_number_of_dives": comment.user.number_of_dives
+        "user_number_of_dives": comment.user.number_of_dives,
     }
+
 
 @router.delete("/{diving_center_id}/comments/{comment_id}")
 async def delete_diving_center_comment(
     diving_center_id: int,
     comment_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if reviews are enabled
     if not is_diving_center_reviews_enabled(db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Reviews are currently disabled"
+            detail="Reviews are currently disabled",
         )
-    
+
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
     # Check if comment exists
-    comment = db.query(CenterComment).filter(
-        and_(CenterComment.id == comment_id, CenterComment.diving_center_id == diving_center_id)
-    ).first()
+    comment = (
+        db.query(CenterComment)
+        .filter(
+            and_(
+                CenterComment.id == comment_id,
+                CenterComment.diving_center_id == diving_center_id,
+            )
+        )
+        .first()
+    )
     if not comment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Comment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
 
     # Check if user can delete the comment
     if comment.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not authorized to delete this comment"
+            detail="Not authorized to delete this comment",
         )
 
     db.delete(comment)
@@ -2064,218 +2461,286 @@ async def delete_diving_center_comment(
 
     return {"message": "Comment deleted successfully"}
 
+
 # Gear Rental Endpoints
 @router.get("/{diving_center_id}/gear-rental")
-async def get_diving_center_gear_rental(diving_center_id: int, db: Session = Depends(get_db)):
+async def get_diving_center_gear_rental(
+    diving_center_id: int, db: Session = Depends(get_db)
+):
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Diving center not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
         )
 
-    gear_rental = db.query(GearRentalCost).filter(GearRentalCost.diving_center_id == diving_center_id).all()
+    gear_rental = (
+        db.query(GearRentalCost)
+        .filter(GearRentalCost.diving_center_id == diving_center_id)
+        .all()
+    )
     return gear_rental
+
 
 @router.post("/{diving_center_id}/gear-rental")
 async def add_diving_center_gear_rental(
     diving_center_id: int,
     gear_rental: GearRentalCostCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if user has permission to manage this diving center
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user is the owner of this diving center
         from app.models import DivingCenter
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-        
+
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
+
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
-        
-        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+
+        if not (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to manage this diving center"
+                detail="Not enough permissions to manage this diving center",
             )
 
     db_gear_rental = GearRentalCost(
         diving_center_id=diving_center_id,
         item_name=gear_rental.item_name,
         cost=gear_rental.cost,
-        currency=gear_rental.currency
+        currency=gear_rental.currency,
     )
     db.add(db_gear_rental)
     db.commit()
     db.refresh(db_gear_rental)
     return db_gear_rental
 
+
 @router.delete("/{diving_center_id}/gear-rental/{gear_id}")
 async def delete_diving_center_gear_rental(
     diving_center_id: int,
     gear_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     # Check if user has permission to manage this diving center
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user is the owner of this diving center
         from app.models import DivingCenter
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-        
+
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
+
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
-        
-        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+
+        if not (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to manage this diving center"
+                detail="Not enough permissions to manage this diving center",
             )
 
     # Check if gear rental exists
-    gear_rental = db.query(GearRentalCost).filter(
-        and_(GearRentalCost.id == gear_id, GearRentalCost.diving_center_id == diving_center_id)
-    ).first()
+    gear_rental = (
+        db.query(GearRentalCost)
+        .filter(
+            and_(
+                GearRentalCost.id == gear_id,
+                GearRentalCost.diving_center_id == diving_center_id,
+            )
+        )
+        .first()
+    )
     if not gear_rental:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Gear rental not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Gear rental not found"
         )
 
     db.delete(gear_rental)
     db.commit()
     return {"message": "Gear rental deleted successfully"}
 
+
 # Diving Center Organization Management
-@router.get("/{diving_center_id}/organizations", response_model=List[DivingCenterOrganizationResponse])
+@router.get(
+    "/{diving_center_id}/organizations",
+    response_model=List[DivingCenterOrganizationResponse],
+)
 async def get_diving_center_organizations(
-    diving_center_id: int,
-    db: Session = Depends(get_db)
+    diving_center_id: int, db: Session = Depends(get_db)
 ):
     """Get organizations associated with a diving center."""
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
-    organizations = db.query(DivingCenterOrganization).options(
-        joinedload(DivingCenterOrganization.diving_organization)
-    ).filter(
-        DivingCenterOrganization.diving_center_id == diving_center_id
-    ).all()
+    organizations = (
+        db.query(DivingCenterOrganization)
+        .options(joinedload(DivingCenterOrganization.diving_organization))
+        .filter(DivingCenterOrganization.diving_center_id == diving_center_id)
+        .all()
+    )
     return organizations
 
-@router.post("/{diving_center_id}/organizations", response_model=DivingCenterOrganizationResponse)
+
+@router.post(
+    "/{diving_center_id}/organizations", response_model=DivingCenterOrganizationResponse
+)
 async def add_diving_center_organization(
     diving_center_id: int,
     organization: DivingCenterOrganizationCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add an organization to a diving center (admin, moderator, or diving center owner)."""
     # Check if user has permission to manage this diving center
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user is the owner of this diving center
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-        
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
+
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
-        
-        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+
+        if not (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to manage this diving center"
+                detail="Not enough permissions to manage this diving center",
             )
     else:
         # Check if diving center exists
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
         if not diving_center:
             raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if diving organization exists
-    diving_org = db.query(DivingOrganization).filter(DivingOrganization.id == organization.diving_organization_id).first()
+    diving_org = (
+        db.query(DivingOrganization)
+        .filter(DivingOrganization.id == organization.diving_organization_id)
+        .first()
+    )
     if not diving_org:
         raise HTTPException(status_code=404, detail="Diving organization not found")
 
     # Check if organization is already associated with this center
-    existing_org = db.query(DivingCenterOrganization).filter(
-        DivingCenterOrganization.diving_center_id == diving_center_id,
-        DivingCenterOrganization.diving_organization_id == organization.diving_organization_id
-    ).first()
+    existing_org = (
+        db.query(DivingCenterOrganization)
+        .filter(
+            DivingCenterOrganization.diving_center_id == diving_center_id,
+            DivingCenterOrganization.diving_organization_id
+            == organization.diving_organization_id,
+        )
+        .first()
+    )
     if existing_org:
-        raise HTTPException(status_code=400, detail="Organization is already associated with this diving center")
+        raise HTTPException(
+            status_code=400,
+            detail="Organization is already associated with this diving center",
+        )
 
     # If this is marked as primary, unmark other primary organizations
     if organization.is_primary:
         db.query(DivingCenterOrganization).filter(
             DivingCenterOrganization.diving_center_id == diving_center_id,
-            DivingCenterOrganization.is_primary == True
+            DivingCenterOrganization.is_primary == True,
         ).update({"is_primary": False})
 
     db_organization = DivingCenterOrganization(
-        diving_center_id=diving_center_id,
-        **organization.model_dump()
+        diving_center_id=diving_center_id, **organization.model_dump()
     )
     db.add(db_organization)
     db.commit()
     db.refresh(db_organization)
     return db_organization
 
-@router.put("/{diving_center_id}/organizations/{organization_id}", response_model=DivingCenterOrganizationResponse)
+
+@router.put(
+    "/{diving_center_id}/organizations/{organization_id}",
+    response_model=DivingCenterOrganizationResponse,
+)
 async def update_diving_center_organization(
     diving_center_id: int,
     organization_id: int,
     organization: DivingCenterOrganizationUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update an organization association for a diving center (admin, moderator, or diving center owner)."""
     # Check if user has permission to manage this diving center
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user is the owner of this diving center
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-        
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
+
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
-        
-        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+
+        if not (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to manage this diving center"
+                detail="Not enough permissions to manage this diving center",
             )
     else:
         # Check if diving center exists
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
         if not diving_center:
             raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if organization association exists
-    db_organization = db.query(DivingCenterOrganization).filter(
-        DivingCenterOrganization.id == organization_id,
-        DivingCenterOrganization.diving_center_id == diving_center_id
-    ).first()
+    db_organization = (
+        db.query(DivingCenterOrganization)
+        .filter(
+            DivingCenterOrganization.id == organization_id,
+            DivingCenterOrganization.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
     if not db_organization:
-        raise HTTPException(status_code=404, detail="Organization association not found")
+        raise HTTPException(
+            status_code=404, detail="Organization association not found"
+        )
 
     # If this is being marked as primary, unmark other primary organizations
     if organization.is_primary:
         db.query(DivingCenterOrganization).filter(
             DivingCenterOrganization.diving_center_id == diving_center_id,
             DivingCenterOrganization.is_primary == True,
-            DivingCenterOrganization.id != organization_id
+            DivingCenterOrganization.id != organization_id,
         ).update({"is_primary": False})
 
     # Update fields
@@ -2287,49 +2752,63 @@ async def update_diving_center_organization(
     db.refresh(db_organization)
     return db_organization
 
+
 @router.delete("/{diving_center_id}/organizations/{organization_id}")
 async def remove_diving_center_organization(
     diving_center_id: int,
     organization_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove an organization association from a diving center (admin, moderator, or diving center owner)."""
     # Check if user has permission to manage this diving center
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user is the owner of this diving center
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
-        
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
+
         if not diving_center:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Diving center not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail="Diving center not found"
             )
-        
-        if not (diving_center.owner_id == current_user.id and diving_center.ownership_status == OwnershipStatus.approved):
+
+        if not (
+            diving_center.owner_id == current_user.id
+            and diving_center.ownership_status == OwnershipStatus.approved
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions to manage this diving center"
+                detail="Not enough permissions to manage this diving center",
             )
     else:
         # Check if diving center exists
-        diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        diving_center = (
+            db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+        )
         if not diving_center:
             raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if organization relationship exists
-    organization_relationship = db.query(DivingCenterOrganization).filter(
-        DivingCenterOrganization.id == organization_id,
-        DivingCenterOrganization.diving_center_id == diving_center_id
-    ).first()
+    organization_relationship = (
+        db.query(DivingCenterOrganization)
+        .filter(
+            DivingCenterOrganization.id == organization_id,
+            DivingCenterOrganization.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
 
     if not organization_relationship:
-        raise HTTPException(status_code=404, detail="Organization relationship not found")
+        raise HTTPException(
+            status_code=404, detail="Organization relationship not found"
+        )
 
     db.delete(organization_relationship)
     db.commit()
 
     return {"message": "Organization removed from diving center successfully"}
+
 
 # Diving Center Ownership endpoints
 @router.post("/{diving_center_id}/claim")
@@ -2337,25 +2816,25 @@ async def claim_diving_center_ownership(
     diving_center_id: int,
     claim: DivingCenterOwnershipClaim,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Claim ownership of a diving center"""
     if not current_user.enabled:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is disabled"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled"
         )
 
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Check if diving center is already claimed or approved
     if diving_center.ownership_status != OwnershipStatus.unclaimed:
         raise HTTPException(
-            status_code=400,
-            detail="Diving center is already claimed or has an owner"
+            status_code=400, detail="Diving center is already claimed or has an owner"
         )
 
     # Create ownership request record
@@ -2363,7 +2842,7 @@ async def claim_diving_center_ownership(
         diving_center_id=diving_center_id,
         user_id=current_user.id,
         request_status=OwnershipStatus.claimed,
-        reason=claim.reason
+        reason=claim.reason,
     )
     db.add(ownership_request)
 
@@ -2381,16 +2860,18 @@ async def claim_diving_center_ownership(
             diving_center_id=diving_center_id,
             user_id=current_user.id,
             claim_reason=claim.reason,
-            db=db
+            db=db,
         )
     except Exception as e:
         # Log error but don't fail claim if notification fails
-        logger.warning(f"Failed to send admin notifications for diving center claim {diving_center_id}: {e}")
+        logger.warning(
+            f"Failed to send admin notifications for diving center claim {diving_center_id}: {e}"
+        )
 
     return {
         "message": "Ownership claim submitted successfully. Waiting for admin approval.",
         "diving_center_id": diving_center_id,
-        "status": "claimed"
+        "status": "claimed",
     }
 
 
@@ -2399,17 +2880,19 @@ async def approve_diving_center_ownership(
     diving_center_id: int,
     approval: DivingCenterOwnershipApproval,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Approve or deny ownership claim for a diving center (admin only)"""
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
     # Capture the current owner_id before potentially changing it
     current_owner_id = diving_center.owner_id
-    
+
     if approval.approved:
         # Approve the ownership claim
         diving_center.ownership_status = OwnershipStatus.approved
@@ -2430,7 +2913,7 @@ async def approve_diving_center_ownership(
         reason=approval.reason,
         processed_date=func.now(),
         processed_by=current_user.id,
-        notes=f"Ownership {'approved' if approval.approved else 'denied'} by admin"
+        notes=f"Ownership {'approved' if approval.approved else 'denied'} by admin",
     )
     db.add(new_ownership_request)
 
@@ -2441,11 +2924,8 @@ async def approve_diving_center_ownership(
         "message": message,
         "diving_center_id": diving_center_id,
         "status": diving_center.ownership_status,
-        "reason": approval.reason
+        "reason": approval.reason,
     }
-
-
-
 
 
 @router.put("/{diving_center_id}/assign-owner")
@@ -2453,11 +2933,13 @@ async def assign_diving_center_owner(
     diving_center_id: int,
     user_id: int,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Assign a user as owner of a diving center (admin only)"""
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
@@ -2477,7 +2959,7 @@ async def assign_diving_center_owner(
         "message": f"User {user.username} assigned as owner of {diving_center.name}",
         "diving_center_id": diving_center_id,
         "owner_id": user_id,
-        "status": "approved"
+        "status": "approved",
     }
 
 
@@ -2486,7 +2968,7 @@ async def revoke_diving_center_ownership(
     diving_center_id: int,
     revocation: DivingCenterOwnershipRevocation | str | Dict[str, Any] = Body(...),
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Revoke ownership of a diving center (admin only)"""
     # Handle both object and string inputs from frontend
@@ -2501,7 +2983,9 @@ async def revoke_diving_center_ownership(
         reason = revocation.reason or reason
 
     # Check if diving center exists
-    diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    diving_center = (
+        db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
+    )
     if not diving_center:
         raise HTTPException(status_code=404, detail="Diving center not found")
 
@@ -2509,12 +2993,12 @@ async def revoke_diving_center_ownership(
     if diving_center.ownership_status != OwnershipStatus.approved:
         # Check if it was claimed but not yet approved
         if diving_center.ownership_status == OwnershipStatus.claimed:
-             # Just reset it to unclaimed
-             pass
+            # Just reset it to unclaimed
+            pass
         else:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot revoke ownership: diving center status is {diving_center.ownership_status}"
+                detail=f"Cannot revoke ownership: diving center status is {diving_center.ownership_status}",
             )
 
     # Get current owner info for the response
@@ -2533,7 +3017,7 @@ async def revoke_diving_center_ownership(
             processed_date=func.now(),
             processed_by=current_user.id,
             reason=reason,
-            notes="Ownership revocation by admin"
+            notes="Ownership revocation by admin",
         )
         db.add(revocation_request)
 
@@ -2549,106 +3033,143 @@ async def revoke_diving_center_ownership(
         "diving_center_id": diving_center_id,
         "previous_owner": current_owner_username,
         "status": "unclaimed",
-        "reason": reason
+        "reason": reason,
     }
 
+
 # --- B2C Broadcast Following Endpoints ---
+
 
 @router.post("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
 async def follow_diving_center(
     diving_center_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Subscribe a user to a diving center's broadcasts."""
     center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id).first()
     if not center:
         raise HTTPException(status_code=404, detail="Diving center not found")
-        
-    existing = db.query(DivingCenterFollower).filter(
-        DivingCenterFollower.user_id == current_user.id,
-        DivingCenterFollower.diving_center_id == diving_center_id
-    ).first()
-    
+
+    existing = (
+        db.query(DivingCenterFollower)
+        .filter(
+            DivingCenterFollower.user_id == current_user.id,
+            DivingCenterFollower.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
+
     if not existing:
-        follow = DivingCenterFollower(user_id=current_user.id, diving_center_id=diving_center_id)
+        follow = DivingCenterFollower(
+            user_id=current_user.id, diving_center_id=diving_center_id
+        )
         db.add(follow)
-        
+
         # Also add to the active broadcast room if one exists
-        broadcast_room = db.query(UserChatRoom).filter(
-            UserChatRoom.diving_center_id == diving_center_id,
-            UserChatRoom.is_broadcast == True
-        ).first()
-        
+        broadcast_room = (
+            db.query(UserChatRoom)
+            .filter(
+                UserChatRoom.diving_center_id == diving_center_id,
+                UserChatRoom.is_broadcast == True,
+            )
+            .first()
+        )
+
         if broadcast_room:
             # Check if they are already in the room
-            existing_member = db.query(UserChatRoomMember).filter(
-                UserChatRoomMember.room_id == broadcast_room.id,
-                UserChatRoomMember.user_id == current_user.id
-            ).first()
+            existing_member = (
+                db.query(UserChatRoomMember)
+                .filter(
+                    UserChatRoomMember.room_id == broadcast_room.id,
+                    UserChatRoomMember.user_id == current_user.id,
+                )
+                .first()
+            )
             if not existing_member:
-                member = UserChatRoomMember(room_id=broadcast_room.id, user_id=current_user.id, role="MEMBER")
+                member = UserChatRoomMember(
+                    room_id=broadcast_room.id, user_id=current_user.id, role="MEMBER"
+                )
                 db.add(member)
             elif existing_member.left_at:
                 existing_member.left_at = None
-                
+
         db.commit()
-    
+
     return {"status": "success", "message": "Successfully followed diving center"}
+
 
 @router.delete("/{diving_center_id}/follow", status_code=status.HTTP_200_OK)
 async def unfollow_diving_center(
     diving_center_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Unsubscribe a user from a diving center's broadcasts."""
-    existing = db.query(DivingCenterFollower).filter(
-        DivingCenterFollower.user_id == current_user.id,
-        DivingCenterFollower.diving_center_id == diving_center_id
-    ).first()
-    
+    existing = (
+        db.query(DivingCenterFollower)
+        .filter(
+            DivingCenterFollower.user_id == current_user.id,
+            DivingCenterFollower.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
+
     if existing:
         db.delete(existing)
-        
+
         # Remove from broadcast room
-        broadcast_room = db.query(UserChatRoom).filter(
-            UserChatRoom.diving_center_id == diving_center_id,
-            UserChatRoom.is_broadcast == True
-        ).first()
-        
+        broadcast_room = (
+            db.query(UserChatRoom)
+            .filter(
+                UserChatRoom.diving_center_id == diving_center_id,
+                UserChatRoom.is_broadcast == True,
+            )
+            .first()
+        )
+
         if broadcast_room:
-            member = db.query(UserChatRoomMember).filter(
-                UserChatRoomMember.room_id == broadcast_room.id,
-                UserChatRoomMember.user_id == current_user.id
-            ).first()
+            member = (
+                db.query(UserChatRoomMember)
+                .filter(
+                    UserChatRoomMember.room_id == broadcast_room.id,
+                    UserChatRoomMember.user_id == current_user.id,
+                )
+                .first()
+            )
             if member:
                 member.left_at = func.now()
-                
+
         db.commit()
-        
+
     return {"status": "success", "message": "Successfully unfollowed diving center"}
+
 
 @router.get("/{diving_center_id}/follow-status", status_code=status.HTTP_200_OK)
 async def check_follow_status(
     diving_center_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Check if the current user follows the diving center."""
-    existing = db.query(DivingCenterFollower).filter(
-        DivingCenterFollower.user_id == current_user.id,
-        DivingCenterFollower.diving_center_id == diving_center_id
-    ).first()
-    
+    existing = (
+        db.query(DivingCenterFollower)
+        .filter(
+            DivingCenterFollower.user_id == current_user.id,
+            DivingCenterFollower.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
+
     return {"is_following": existing is not None}
+
 
 @router.post("/{diving_center_id}/broadcast", status_code=status.HTTP_201_CREATED)
 async def broadcast_trip_to_followers(
     diving_center_id: int,
     request: BroadcastTripRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Broadcast a dive trip to all followers of the diving center."""
     import json
@@ -2667,74 +3188,93 @@ async def broadcast_trip_to_followers(
 
     if not (current_user.is_admin or current_user.is_moderator):
         is_owner = center.owner_id == current_user.id
-        is_manager = db.query(DivingCenterManager).filter(
-            DivingCenterManager.diving_center_id == diving_center_id,
-            DivingCenterManager.user_id == current_user.id
-        ).first() is not None
-        
+        is_manager = (
+            db.query(DivingCenterManager)
+            .filter(
+                DivingCenterManager.diving_center_id == diving_center_id,
+                DivingCenterManager.user_id == current_user.id,
+            )
+            .first()
+            is not None
+        )
+
         if not is_owner and not is_manager:
-            raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
-        
+            raise HTTPException(
+                status_code=403, detail="Not authorized to broadcast for this center"
+            )
+
     # 2. Verify Trip exists and belongs to this center
-    trip = db.query(ParsedDiveTrip).options(
-        joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
-    ).filter(
-        ParsedDiveTrip.id == request.trip_id,
-        ParsedDiveTrip.diving_center_id == diving_center_id
-    ).first()
-    
+    trip = (
+        db.query(ParsedDiveTrip)
+        .options(joinedload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site))
+        .filter(
+            ParsedDiveTrip.id == request.trip_id,
+            ParsedDiveTrip.diving_center_id == diving_center_id,
+        )
+        .first()
+    )
+
     if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found or does not belong to this center")
-        
+        raise HTTPException(
+            status_code=404, detail="Trip not found or does not belong to this center"
+        )
+
     # 3. Find or Create Broadcast Room
-    broadcast_room = db.query(UserChatRoom).filter(
-        UserChatRoom.diving_center_id == diving_center_id,
-        UserChatRoom.is_broadcast == True
-    ).first()
-    
+    broadcast_room = (
+        db.query(UserChatRoom)
+        .filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True,
+        )
+        .first()
+    )
+
     if not broadcast_room:
         # Create it
         plaintext_dek = generate_room_dek()
         encrypted_dek = encrypt_room_dek(plaintext_dek)
         broadcast_room = UserChatRoom(
             id=str(uuid.uuid4()),
-            is_group=True, # Broadcasts act as groups
+            is_group=True,  # Broadcasts act as groups
             name=f"{center.name} Announcements",
             encrypted_dek=encrypted_dek,
             created_by_id=current_user.id,
             diving_center_id=diving_center_id,
-            is_broadcast=True
+            is_broadcast=True,
         )
         db.add(broadcast_room)
         db.flush()
-        
+
         # Add Owner/Manager as Admin
         admin_member = UserChatRoomMember(
-            room_id=broadcast_room.id,
-            user_id=current_user.id,
-            role="ADMIN"
+            room_id=broadcast_room.id, user_id=current_user.id, role="ADMIN"
         )
         db.add(admin_member)
-        
+
         # Add all followers as Members
-        followers = db.query(DivingCenterFollower).filter(DivingCenterFollower.diving_center_id == diving_center_id).all()
+        followers = (
+            db.query(DivingCenterFollower)
+            .filter(DivingCenterFollower.diving_center_id == diving_center_id)
+            .all()
+        )
         for f in followers:
             if f.user_id != current_user.id:
                 member = UserChatRoomMember(
-                    room_id=broadcast_room.id,
-                    user_id=f.user_id,
-                    role="MEMBER"
+                    room_id=broadcast_room.id, user_id=f.user_id, role="MEMBER"
                 )
                 db.add(member)
         db.flush()
 
     # 4. Construct and Encrypt TRIP_AD Message
-    
+
     # Optionally get difficulty code
     difficulty_code = None
     if trip.trip_difficulty_id:
         from app.models import DifficultyLevel
-        difficulty = db.query(DifficultyLevel).filter_by(id=trip.trip_difficulty_id).first()
+
+        difficulty = (
+            db.query(DifficultyLevel).filter_by(id=trip.trip_difficulty_id).first()
+        )
         if difficulty:
             difficulty_code = difficulty.code
 
@@ -2742,57 +3282,70 @@ async def broadcast_trip_to_followers(
     dive_sites_list = []
     if trip.dives:
         for dive in sorted(trip.dives, key=lambda d: d.dive_number):
-            if dive.dive_site and not any(s['id'] == dive.dive_site.id for s in dive_sites_list):
-                dive_sites_list.append({"id": dive.dive_site.id, "name": dive.dive_site.name})
+            if dive.dive_site and not any(
+                s["id"] == dive.dive_site.id for s in dive_sites_list
+            ):
+                dive_sites_list.append(
+                    {"id": dive.dive_site.id, "name": dive.dive_site.name}
+                )
 
-    trip_payload = json.dumps({
-        "trip_id": trip.id,
-        "name": trip.trip_description[:100] + "..." if trip.trip_description and len(trip.trip_description) > 100 else (trip.trip_description or f"Dive Trip on {trip.trip_date}"),
-        "date": str(trip.trip_date),
-        "time": str(trip.trip_time) if trip.trip_time else None,
-        "price": f"{trip.trip_price} {trip.trip_currency}" if trip.trip_price else None,
-        "currency": trip.trip_currency,
-        "duration": trip.trip_duration,
-        "max_depth": float(trip.max_depth) if trip.max_depth else None,
-        "difficulty": difficulty_code,
-        "spots_total": trip.group_size_limit,
-        "spots_booked": trip.current_bookings,
-        "status": trip.trip_status.name if hasattr(trip.trip_status, 'name') else trip.trip_status,
-        "dive_sites": dive_sites_list,
-        "is_update": request.is_update or False
-    })
-    
+    trip_payload = json.dumps(
+        {
+            "trip_id": trip.id,
+            "name": trip.trip_description[:100] + "..."
+            if trip.trip_description and len(trip.trip_description) > 100
+            else (trip.trip_description or f"Dive Trip on {trip.trip_date}"),
+            "date": str(trip.trip_date),
+            "time": str(trip.trip_time) if trip.trip_time else None,
+            "price": f"{trip.trip_price} {trip.trip_currency}"
+            if trip.trip_price
+            else None,
+            "currency": trip.trip_currency,
+            "duration": trip.trip_duration,
+            "max_depth": float(trip.max_depth) if trip.max_depth else None,
+            "difficulty": difficulty_code,
+            "spots_total": trip.group_size_limit,
+            "spots_booked": trip.current_bookings,
+            "status": trip.trip_status.name
+            if hasattr(trip.trip_status, "name")
+            else trip.trip_status,
+            "dive_sites": dive_sites_list,
+            "is_update": request.is_update or False,
+        }
+    )
+
     ciphertext = encrypt_message(trip_payload, broadcast_room.encrypted_dek)
-    
+
     msg = UserChatMessage(
         room_id=broadcast_room.id,
         sender_id=current_user.id,
         content=ciphertext,
-        message_type="TRIP_AD"
+        message_type="TRIP_AD",
     )
     db.add(msg)
-    
+
     # 5. Update room activity and unarchive for all members
     broadcast_room.last_activity_at = func.now()
     broadcast_room.is_archived = False
-    
+
     # Mark as read ONLY for the sender, so followers actually see the unread tag
     db.query(UserChatRoomMember).filter(
         UserChatRoomMember.room_id == broadcast_room.id,
-        UserChatRoomMember.user_id == current_user.id
+        UserChatRoomMember.user_id == current_user.id,
     ).update({"last_read_at": func.now()}, synchronize_session=False)
 
     # Unarchive for everyone else
     db.query(UserChatRoomMember).filter(
         UserChatRoomMember.room_id == broadcast_room.id,
-        UserChatRoomMember.left_at.is_(None)
+        UserChatRoomMember.left_at.is_(None),
     ).update({"is_archived": False}, synchronize_session=False)
 
     db.commit()
     db.refresh(msg)
-    
+
     # 6. Queue notification generation in SQS for all followers using recursive relay
     from app.services.sqs_service import SQSService
+
     sqs_service = SQSService()
     if sqs_service.sqs_available:
         # Trigger the recursive relay (Step 2 of the plan)
@@ -2802,21 +3355,22 @@ async def broadcast_trip_to_followers(
             message_id=msg.id,
             offset=0,
             limit=100,
-            is_update=request.is_update or False
+            is_update=request.is_update or False,
         )
-    
+
     return {"status": "success", "message": "Trip broadcasted successfully"}
+
 
 @router.post("/{diving_center_id}/broadcast/text", status_code=status.HTTP_201_CREATED)
 async def broadcast_text_to_followers(
     diving_center_id: int,
     request: BroadcastTextRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Broadcast a text message to all followers of the diving center."""
     from app.models import DivingCenterManager
-    
+
     # 1. Verify permissions (Admin, Moderator, Owner or Manager)
     center = db.query(DivingCenter).filter_by(id=diving_center_id).first()
     if not center:
@@ -2824,14 +3378,21 @@ async def broadcast_text_to_followers(
 
     if not (current_user.is_admin or current_user.is_moderator):
         is_owner = center.owner_id == current_user.id
-        is_manager = db.query(DivingCenterManager).filter(
-            DivingCenterManager.diving_center_id == diving_center_id,
-            DivingCenterManager.user_id == current_user.id
-        ).first() is not None
-        
+        is_manager = (
+            db.query(DivingCenterManager)
+            .filter(
+                DivingCenterManager.diving_center_id == diving_center_id,
+                DivingCenterManager.user_id == current_user.id,
+            )
+            .first()
+            is not None
+        )
+
         if not is_owner and not is_manager:
-            raise HTTPException(status_code=403, detail="Not authorized to broadcast for this center")
-        
+            raise HTTPException(
+                status_code=403, detail="Not authorized to broadcast for this center"
+            )
+
     # 2. Find or Create Broadcast Room
     import uuid
 
@@ -2843,16 +3404,20 @@ async def broadcast_text_to_followers(
         encrypt_room_dek,
         generate_room_dek,
     )
-    
-    broadcast_room = db.query(UserChatRoom).filter(
-        UserChatRoom.diving_center_id == diving_center_id,
-        UserChatRoom.is_broadcast == True
-    ).first()
-    
+
+    broadcast_room = (
+        db.query(UserChatRoom)
+        .filter(
+            UserChatRoom.diving_center_id == diving_center_id,
+            UserChatRoom.is_broadcast == True,
+        )
+        .first()
+    )
+
     if not broadcast_room:
         raw_dek = generate_room_dek()
         encrypted_dek = encrypt_room_dek(raw_dek)
-        
+
         broadcast_room = UserChatRoom(
             id=str(uuid.uuid4()),
             diving_center_id=diving_center_id,
@@ -2860,61 +3425,62 @@ async def broadcast_text_to_followers(
             name=f"{center.name} Announcements",
             encrypted_dek=encrypted_dek,
             created_by_id=current_user.id,
-            business_status="READ"
+            business_status="READ",
         )
         db.add(broadcast_room)
         db.flush()
-        
+
         admin_member = UserChatRoomMember(
-            room_id=broadcast_room.id,
-            user_id=current_user.id,
-            role="ADMIN"
+            room_id=broadcast_room.id, user_id=current_user.id, role="ADMIN"
         )
         db.add(admin_member)
-        
-        followers = db.query(DivingCenterFollower).filter(DivingCenterFollower.diving_center_id == diving_center_id).all()
+
+        followers = (
+            db.query(DivingCenterFollower)
+            .filter(DivingCenterFollower.diving_center_id == diving_center_id)
+            .all()
+        )
         for f in followers:
             if f.user_id != current_user.id:
                 member = UserChatRoomMember(
-                    room_id=broadcast_room.id,
-                    user_id=f.user_id,
-                    role="MEMBER"
+                    room_id=broadcast_room.id, user_id=f.user_id, role="MEMBER"
                 )
                 db.add(member)
         db.flush()
 
     # 3. Encrypt and Save TEXT Message
     ciphertext = encrypt_message(request.message, broadcast_room.encrypted_dek)
-    
+
     msg = UserChatMessage(
         room_id=broadcast_room.id,
         sender_id=current_user.id,
         content=ciphertext,
-        message_type="TEXT"
+        message_type="TEXT",
     )
     db.add(msg)
-    
+
     # 4. Update room activity and unarchive for all members
     broadcast_room.last_activity_at = func.now()
     broadcast_room.is_archived = False
-    
+
     # Mark as read ONLY for the sender
     db.query(UserChatRoomMember).filter(
         UserChatRoomMember.room_id == broadcast_room.id,
-        UserChatRoomMember.user_id == current_user.id
+        UserChatRoomMember.user_id == current_user.id,
     ).update({"last_read_at": func.now()}, synchronize_session=False)
 
     # Unarchive for everyone else
     db.query(UserChatRoomMember).filter(
         UserChatRoomMember.room_id == broadcast_room.id,
-        UserChatRoomMember.left_at.is_(None)
+        UserChatRoomMember.left_at.is_(None),
     ).update({"is_archived": False}, synchronize_session=False)
 
     db.commit()
     db.refresh(msg)
-    
+
     # 5. Queue notification generation in SQS for all followers using recursive relay
     from app.services.sqs_service import SQSService
+
     sqs_service = SQSService()
     if sqs_service.sqs_available:
         # Trigger the recursive relay (Step 2 of the plan)
@@ -2924,7 +3490,7 @@ async def broadcast_text_to_followers(
             message_id=msg.id,
             offset=0,
             limit=100,
-            is_update=request.is_update or False
+            is_update=request.is_update or False,
         )
-    
+
     return {"status": "success", "message": "Text message broadcasted successfully"}

@@ -8,7 +8,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 logger = logging.getLogger(__name__)
 
-TEMPLATES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "templates"))
+TEMPLATES_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "templates")
+)
 
 # DMSC 2020 Standard Question Classifications
 DIRECT_PHYSICIAN_FLAG_QUESTIONS = {"q3", "q5", "q10"}
@@ -22,12 +24,13 @@ TRIGGERED_BOX_MAP = {
     "q9": "box_g",
 }
 
+
 class WaiverService:
     def __init__(self, templates_dir: Optional[str] = None):
         self.templates_dir = templates_dir or TEMPLATES_DIR
         self.jinja_env = Environment(
             loader=FileSystemLoader(self.templates_dir),
-            autoescape=select_autoescape(['html', 'xml', 'j2']),
+            autoescape=select_autoescape(["html", "xml", "j2"]),
         )
 
     @staticmethod
@@ -62,29 +65,43 @@ class WaiverService:
                     return "FLAGGED_CONTACT_CENTER"
 
                 # If ANY question in the triggered box is YES, physician sign-off is required
-                if any(val is True for val in box_answers.values() if isinstance(val, bool)):
+                if any(
+                    val is True for val in box_answers.values() if isinstance(val, bool)
+                ):
                     return "FLAGGED_CONTACT_CENTER"
 
         # 3. Check for any direct diagnostic box answers submitted that might be True
         for key, val in answers.items():
             if key.startswith("box_") and isinstance(val, dict):
-                if any(sub_val is True for sub_val in val.values() if isinstance(sub_val, bool)):
+                if any(
+                    sub_val is True
+                    for sub_val in val.values()
+                    if isinstance(sub_val, bool)
+                ):
                     return "FLAGGED_CONTACT_CENTER"
 
         return "CLEARED"
 
-    def get_questionnaire_schema(self, questionnaire_id: str = "dmsc_2020_medical") -> Dict[str, Any]:
+    def get_questionnaire_schema(
+        self, questionnaire_id: str = "dmsc_2020_medical"
+    ) -> Dict[str, Any]:
         """
         Loads the declarative JSON schema for a medical questionnaire with path-traversal protection.
         """
         if not re.match(r"^[a-zA-Z0-9_-]+$", questionnaire_id):
             raise ValueError(f"Invalid questionnaire identifier: {questionnaire_id}")
 
-        schema_dir = os.path.abspath(os.path.join(self.templates_dir, "booking", "questionnaires"))
-        schema_path = os.path.abspath(os.path.join(schema_dir, f"{questionnaire_id}.json"))
+        schema_dir = os.path.abspath(
+            os.path.join(self.templates_dir, "booking", "questionnaires")
+        )
+        schema_path = os.path.abspath(
+            os.path.join(schema_dir, f"{questionnaire_id}.json")
+        )
 
         if not schema_path.startswith(schema_dir) or not os.path.exists(schema_path):
-            raise FileNotFoundError(f"Questionnaire schema '{questionnaire_id}' not found at {schema_path}")
+            raise FileNotFoundError(
+                f"Questionnaire schema '{questionnaire_id}' not found at {schema_path}"
+            )
 
         with open(schema_path, "rb") as f:
             return orjson.loads(f.read())
@@ -102,6 +119,8 @@ class WaiverService:
             "dmsc_recreational": "booking/waivers/universal/generic_dive_center_waiver.html.j2",
         }
 
-        template_file = bundle_map.get(bundle_id, "booking/waivers/universal/generic_dive_center_waiver.html.j2")
+        template_file = bundle_map.get(
+            bundle_id, "booking/waivers/universal/generic_dive_center_waiver.html.j2"
+        )
         template = self.jinja_env.get_template(template_file)
         return template.render(**context)

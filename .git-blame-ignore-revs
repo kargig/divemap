@@ -1,0 +1,8 @@
+# Git Blame Ignore Revisions
+# See: https://git-scm.com/docs/git-blame#Documentation/git-blame.txt---ignore-revs-file
+# To configure locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub natively respects this file for blame views.
+
+# Backend: Initial full codebase formatting baseline with Ruff (v0.17+)
+# Replace with the commit SHA of the baseline formatting commit once created:
+37291a797066550dc395fe509f4a13d862ec423e

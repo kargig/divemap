@@ -70,169 +70,194 @@ logging.getLogger().setLevel(numeric_level)
 
 router = APIRouter()
 
+
 def clean_diving_terminology(dive_site_name: str) -> str:
     """
     Clean common diving terminology from dive site names to improve database matching.
-    
+
     Args:
         dive_site_name: The dive site name that may contain diving terminology
-        
+
     Returns:
         Cleaned dive site name with diving terminology removed
     """
     if not dive_site_name:
         return dive_site_name
-    
+
     # Define diving terminology patterns (case insensitive)
     diving_patterns = [
         # Wreck terminology
-        r'\bναυάγιο\b',      # Greek: ναυάγιο
-        r'\bΝΑΥΑΓΙΟ\b',      # Greek: ΝΑΥΑΓΙΟ
-        r'\bΝαυάγιο\b',      # Greek: Ναυάγιο
-        r'\bwreck\b',        # English: wreck
-        r'\bWRECK\b',        # English: WRECK
-        r'\bWreck\b',        # English: Wreck
-        r'\bπλοίο\b',        # Greek: πλοίο
-        r'\bΠλοίο\b',        # Greek: Πλοίο
-        r'\bκαράβι\b',       # Greek: καράβι
-        r'\bΚαράβι\b',       # Greek: Καράβι
-        
+        r"\bναυάγιο\b",  # Greek: ναυάγιο
+        r"\bΝΑΥΑΓΙΟ\b",  # Greek: ΝΑΥΑΓΙΟ
+        r"\bΝαυάγιο\b",  # Greek: Ναυάγιο
+        r"\bwreck\b",  # English: wreck
+        r"\bWRECK\b",  # English: WRECK
+        r"\bWreck\b",  # English: Wreck
+        r"\bπλοίο\b",  # Greek: πλοίο
+        r"\bΠλοίο\b",  # Greek: Πλοίο
+        r"\bκαράβι\b",  # Greek: καράβι
+        r"\bΚαράβι\b",  # Greek: Καράβι
         # Reef terminology
-        r'\bύφαλος\b',       # Greek: ύφαλος
-        r'\bΥΦΑΛΟΣ\b',       # Greek: ΥΦΑΛΟΣ
-        r'\bΎφαλος\b',       # Greek: Ύφαλος
-        r'\breef\b',         # English: reef
-        r'\bREEF\b',         # English: REEF
-        r'\bReef\b',         # English: Reef
-        
+        r"\bύφαλος\b",  # Greek: ύφαλος
+        r"\bΥΦΑΛΟΣ\b",  # Greek: ΥΦΑΛΟΣ
+        r"\bΎφαλος\b",  # Greek: Ύφαλος
+        r"\breef\b",  # English: reef
+        r"\bREEF\b",  # English: REEF
+        r"\bReef\b",  # English: Reef
         # Cave terminology
-        r'\bσπήλαιο\b',      # Greek: σπήλαιο
-        r'\bΣΠΗΛΑΙΟ\b',      # Greek: ΣΠΗΛΑΙΟ
-        r'\bΣπήλαιο\b',      # Greek: Σπήλαιο
-        r'\bcave\b',         # English: cave
-        r'\bCAVE\b',         # English: CAVE
-        r'\bCave\b',         # English: Cave
-        
+        r"\bσπήλαιο\b",  # Greek: σπήλαιο
+        r"\bΣΠΗΛΑΙΟ\b",  # Greek: ΣΠΗΛΑΙΟ
+        r"\bΣπήλαιο\b",  # Greek: Σπήλαιο
+        r"\bcave\b",  # English: cave
+        r"\bCAVE\b",  # English: CAVE
+        r"\bCave\b",  # English: Cave
         # Wall terminology
-        r'\bτοίχος\b',       # Greek: τοίχος
-        r'\bΤΟΙΧΟΣ\b',       # Greek: ΤΟΙΧΟΣ
-        r'\bΤοίχος\b',       # Greek: Τοίχος
-        r'\bwall\b',         # English: wall
-        r'\bWALL\b',         # English: WALL
-        r'\bWall\b',         # English: Wall
-        
+        r"\bτοίχος\b",  # Greek: τοίχος
+        r"\bΤΟΙΧΟΣ\b",  # Greek: ΤΟΙΧΟΣ
+        r"\bΤοίχος\b",  # Greek: Τοίχος
+        r"\bwall\b",  # English: wall
+        r"\bWALL\b",  # English: WALL
+        r"\bWall\b",  # English: Wall
         # Island terminology
-        r'\bνησί\b',         # Greek: νησί
-        r'\bΝΗΣΙ\b',         # Greek: ΝΗΣΙ
-        r'\bΝησί\b',         # Greek: Νησί
-        r'\bisland\b',       # English: island
-        r'\bISLAND\b',       # English: ISLAND
-        r'\bIsland\b',       # English: Island
-        
+        r"\bνησί\b",  # Greek: νησί
+        r"\bΝΗΣΙ\b",  # Greek: ΝΗΣΙ
+        r"\bΝησί\b",  # Greek: Νησί
+        r"\bisland\b",  # English: island
+        r"\bISLAND\b",  # English: ISLAND
+        r"\bIsland\b",  # English: Island
         # Cape/Point terminology
-        r'\bάκρα\b',         # Greek: άκρα
-        r'\bΑΚΡΑ\b',         # Greek: ΑΚΡΑ
-        r'\bΆκρα\b',         # Greek: Άκρα
-        r'\bcape\b',         # English: cape
-        r'\bCAPE\b',         # English: CAPE
-        r'\bCape\b',         # English: Cape
-        r'\bpoint\b',        # English: point
-        r'\bPOINT\b',        # English: POINT
-        r'\bPoint\b',        # English: Point
-
+        r"\bάκρα\b",  # Greek: άκρα
+        r"\bΑΚΡΑ\b",  # Greek: ΑΚΡΑ
+        r"\bΆκρα\b",  # Greek: Άκρα
+        r"\bcape\b",  # English: cape
+        r"\bCAPE\b",  # English: CAPE
+        r"\bCape\b",  # English: Cape
+        r"\bpoint\b",  # English: point
+        r"\bPOINT\b",  # English: POINT
+        r"\bPoint\b",  # English: Point
         # Ship/Cable Ship terminology
-        r'\bκαλωδιακό πλοίο\b', # Greek: καλωδιακό πλοίο
-        r'\bΚαλωδιακό Πλοίο\b', # Greek: Καλωδιακό Πλοίο
-        r'\bcable ship\b',     # English: cable ship
-        r'\bCable Ship\b',     # English: Cable Ship
-
+        r"\bκαλωδιακό πλοίο\b",  # Greek: καλωδιακό πλοίο
+        r"\bΚαλωδιακό Πλοίο\b",  # Greek: Καλωδιακό Πλοίο
+        r"\bcable ship\b",  # English: cable ship
+        r"\bCable Ship\b",  # English: Cable Ship
         # Technical dive terminology
-        r'\bτεχνική κατάδυση\b', # Greek: τεχνική κατάδυση
-        r'\bΤεχνική Κατάδυση\b', # Greek: Τεχνική Κατάδυση
-        r'\btechnical dive\b',  # English: technical dive
-        r'\bTechnical Dive\b',  # English: Technical Dive
+        r"\bτεχνική κατάδυση\b",  # Greek: τεχνική κατάδυση
+        r"\bΤεχνική Κατάδυση\b",  # Greek: Τεχνική Κατάδυση
+        r"\btechnical dive\b",  # English: technical dive
+        r"\bTechnical Dive\b",  # English: Technical Dive
     ]
-    
+
     cleaned_name = dive_site_name
-    
+
     # Remove each diving pattern
     for pattern in diving_patterns:
-        cleaned_name = re.sub(pattern, '', cleaned_name, flags=re.IGNORECASE)
+        cleaned_name = re.sub(pattern, "", cleaned_name, flags=re.IGNORECASE)
         # Trim after each removal to handle prepositions correctly
         cleaned_name = cleaned_name.strip()
-    
+
     # Remove Greek prepositions if they appear at the start (common in extracted names)
-    prepositions_pattern = r'^(στο|στη|στην|στον|στις|στα|το|τη|την|τον|τα|at|in)\s+'
-    cleaned_name = re.sub(prepositions_pattern, '', cleaned_name, flags=re.IGNORECASE)
+    prepositions_pattern = r"^(στο|στη|στην|στον|στις|στα|το|τη|την|τον|τα|at|in)\s+"
+    cleaned_name = re.sub(prepositions_pattern, "", cleaned_name, flags=re.IGNORECASE)
 
     # Remove emojis and special characters from start/end
     # This removes characters like 📍, 🙌, etc.
-    cleaned_name = re.sub(r'^[^\w\s\d]+', '', cleaned_name)
-    cleaned_name = re.sub(r'[^\w\s\d]+$', '', cleaned_name)
-    
+    cleaned_name = re.sub(r"^[^\w\s\d]+", "", cleaned_name)
+    cleaned_name = re.sub(r"[^\w\s\d]+$", "", cleaned_name)
+
     # Clean up extra whitespace and trim
-    cleaned_name = re.sub(r'\s+', ' ', cleaned_name).strip()
-    
+    cleaned_name = re.sub(r"\s+", " ", cleaned_name).strip()
+
     logger.info(f"🧹 Cleaned dive site name: '{dive_site_name}' -> '{cleaned_name}'")
-    
+
     return cleaned_name
 
-def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, similarity_threshold: float = 0.2, max_fuzzy_results: int = 10) -> list:
+
+def search_dive_trips_with_fuzzy(
+    query: str,
+    exact_results: list,
+    db: Session,
+    similarity_threshold: float = 0.2,
+    max_fuzzy_results: int = 10,
+) -> list:
     """
     Perform fuzzy matching on dive trips to enhance search results.
     """
     # 1. Initialize final_results properly
     final_results = []
     for trip in exact_results:
-        final_results.append({
-            'trip': trip,
-            'match_type': 'exact',
-            'score': 1.0,
-            'trip_description_contains': query.lower() in (trip.trip_description or '').lower(),
-            'special_requirements_contains': trip.special_requirements and query.lower() in trip.special_requirements.lower(),
-            'diving_center_name_contains': query.lower() in trip.diving_center.name.lower() if trip.diving_center else False,
-            'dive_site_name_contains': any(query.lower() in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
-        })
+        final_results.append(
+            {
+                "trip": trip,
+                "match_type": "exact",
+                "score": 1.0,
+                "trip_description_contains": query.lower()
+                in (trip.trip_description or "").lower(),
+                "special_requirements_contains": trip.special_requirements
+                and query.lower() in trip.special_requirements.lower(),
+                "diving_center_name_contains": query.lower()
+                in trip.diving_center.name.lower()
+                if trip.diving_center
+                else False,
+                "dive_site_name_contains": any(
+                    query.lower() in dive.dive_site.name.lower()
+                    for dive in trip.dives
+                    if dive.dive_site
+                )
+                if trip.dives
+                else False,
+            }
+        )
 
     # If we have enough exact results, return them
     if len(exact_results) >= max_fuzzy_results:
         return final_results
-    
+
     # 2. Setup for Hybrid Fuzzy Matching (Coarse-to-Fine)
     exact_ids = {trip.id for trip in exact_results}
     from sqlalchemy import or_
     from sqlalchemy.orm import joinedload, selectinload
-    
-    words = [w for w in query.lower().replace(',', ' ').split() if len(w) > 2]
+
+    words = [w for w in query.lower().replace(",", " ").split() if len(w) > 2]
     if not words:
         return final_results
-        
+
     candidate_trips = []
     from app.models import DiveSite, DivingCenter, ParsedDive, ParsedDiveTrip
-    
+
     # 3. Coarse Filter (SQL)
     for word in words:
         search_term = f"%{word}%"
-        
-        coarse_query = db.query(ParsedDiveTrip).options(
-            joinedload(ParsedDiveTrip.diving_center),
-            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
-        ).filter(
-            ParsedDiveTrip.id.notin_(exact_ids) if exact_ids else True,
-            or_(
-                ParsedDiveTrip.trip_description.ilike(search_term),
-                ParsedDiveTrip.special_requirements.ilike(search_term),
-                ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(search_term)),
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))),
-                ParsedDiveTrip.dives.any(ParsedDive.dive_description.ilike(search_term))
+
+        coarse_query = (
+            db.query(ParsedDiveTrip)
+            .options(
+                joinedload(ParsedDiveTrip.diving_center),
+                selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site),
             )
-        ).limit(50)
-        
+            .filter(
+                ParsedDiveTrip.id.notin_(exact_ids) if exact_ids else True,
+                or_(
+                    ParsedDiveTrip.trip_description.ilike(search_term),
+                    ParsedDiveTrip.special_requirements.ilike(search_term),
+                    ParsedDiveTrip.diving_center.has(
+                        DivingCenter.name.ilike(search_term)
+                    ),
+                    ParsedDiveTrip.dives.any(
+                        ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))
+                    ),
+                    ParsedDiveTrip.dives.any(
+                        ParsedDive.dive_description.ilike(search_term)
+                    ),
+                ),
+            )
+            .limit(50)
+        )
+
         for trip in coarse_query.all():
             if trip.id not in exact_ids and trip not in candidate_trips:
                 candidate_trips.append(trip)
                 exact_ids.add(trip.id)
-                
+
     if not candidate_trips:
         return final_results
 
@@ -241,69 +266,101 @@ def search_dive_trips_with_fuzzy(query: str, exact_results: list, db: Session, s
         from rapidfuzz import fuzz
     except ImportError:
         from difflib import SequenceMatcher
+
         class fuzz:
             @staticmethod
             def partial_ratio(s1, s2):
-                if not s1 or not s2: return 0
+                if not s1 or not s2:
+                    return 0
                 return SequenceMatcher(None, s1.lower(), s2.lower()).ratio() * 100
 
     fuzzy_matches = []
     query_lower = query.lower()
-    
+
     for trip in candidate_trips:
         score = 0.0
-        
+
         # Calculate RapidFuzz ratios (0-100 scale, so we divide by 100)
-        desc_score = fuzz.partial_ratio(query_lower, (trip.trip_description or '').lower()) / 100.0
+        desc_score = (
+            fuzz.partial_ratio(query_lower, (trip.trip_description or "").lower())
+            / 100.0
+        )
         if desc_score > score:
             score = desc_score
-            
-        req_score = fuzz.partial_ratio(query_lower, (trip.special_requirements or '').lower()) / 100.0
+
+        req_score = (
+            fuzz.partial_ratio(query_lower, (trip.special_requirements or "").lower())
+            / 100.0
+        )
         if req_score > score:
             score = req_score
-            
-        center_score = fuzz.partial_ratio(query_lower, trip.diving_center.name.lower()) / 100.0 if trip.diving_center else 0
+
+        center_score = (
+            fuzz.partial_ratio(query_lower, trip.diving_center.name.lower()) / 100.0
+            if trip.diving_center
+            else 0
+        )
         if center_score > score:
             score = center_score
-            
+
         if trip.dives:
             for dive in trip.dives:
                 if dive.dive_site and dive.dive_site.name:
-                    site_score = fuzz.partial_ratio(query_lower, dive.dive_site.name.lower()) / 100.0
+                    site_score = (
+                        fuzz.partial_ratio(query_lower, dive.dive_site.name.lower())
+                        / 100.0
+                    )
                     if site_score > score:
                         score = site_score
                 if dive.dive_description:
-                    dive_desc_score = fuzz.partial_ratio(query_lower, dive.dive_description.lower()) / 100.0
+                    dive_desc_score = (
+                        fuzz.partial_ratio(query_lower, dive.dive_description.lower())
+                        / 100.0
+                    )
                     if dive_desc_score > score:
                         score = dive_desc_score
-                        
+
         if score >= similarity_threshold:
             if score >= 0.8:
-                class_type = 'close'
+                class_type = "close"
             elif score >= 0.6:
-                class_type = 'partial'
+                class_type = "partial"
             else:
-                class_type = 'fuzzy'
-                
-            fuzzy_matches.append({
-                'trip': trip,
-                'match_type': class_type,
-                'score': score,
-                'trip_description_contains': query_lower in (trip.trip_description or '').lower(),
-                'special_requirements_contains': trip.special_requirements and query_lower in trip.special_requirements.lower(),
-                'diving_center_name_contains': query.lower() in trip.diving_center.name.lower() if trip.diving_center else False,
-                'dive_site_name_contains': any(query_lower in dive.dive_site.name.lower() for dive in trip.dives if dive.dive_site) if trip.dives else False
-            })
-            
+                class_type = "fuzzy"
+
+            fuzzy_matches.append(
+                {
+                    "trip": trip,
+                    "match_type": class_type,
+                    "score": score,
+                    "trip_description_contains": query_lower
+                    in (trip.trip_description or "").lower(),
+                    "special_requirements_contains": trip.special_requirements
+                    and query_lower in trip.special_requirements.lower(),
+                    "diving_center_name_contains": query.lower()
+                    in trip.diving_center.name.lower()
+                    if trip.diving_center
+                    else False,
+                    "dive_site_name_contains": any(
+                        query_lower in dive.dive_site.name.lower()
+                        for dive in trip.dives
+                        if dive.dive_site
+                    )
+                    if trip.dives
+                    else False,
+                }
+            )
+
     # Sort fuzzy matches by score (descending)
-    fuzzy_matches.sort(key=lambda x: x['score'], reverse=True)
-    
+    fuzzy_matches.sort(key=lambda x: x["score"], reverse=True)
+
     # Take top N fuzzy matches to fill the remaining slots
     slots_needed = max_fuzzy_results - len(exact_results)
     if slots_needed > 0:
         final_results.extend(fuzzy_matches[:slots_needed])
-        
+
     return final_results
+
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -312,28 +369,42 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     """
     # Convert decimal degrees to radians
     lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
-    
+
     # Haversine formula
     dlat = lat2 - lat1
     dlon = lon2 - lon1
-    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
     c = 2 * math.asin(math.sqrt(a))
-    
+
     # Radius of earth in kilometers
     r = 6371
-    
+
     return c * r
+
 
 def similarity_ratio(a: str, b: str) -> float:
     """Calculate similarity ratio between two strings"""
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
+
 def parse_greek_date(day: str, month: str, year: str = None) -> date:
     """Parse Greek date format to Python date object"""
     month_map = {
-        'Ιανουαρίου': 1, 'Φεβρουαρίου': 2, 'Μαρτίου': 3, 'Απριλίου': 4,
-        'Μαΐου': 5, 'Ιουνίου': 6, 'Ιουλίου': 7, 'Αυγούστου': 8,
-        'Σεπτεμβρίου': 9, 'Οκτωβρίου': 10, 'Νοεμβρίου': 11, 'Δεκεμβρίου': 12
+        "Ιανουαρίου": 1,
+        "Φεβρουαρίου": 2,
+        "Μαρτίου": 3,
+        "Απριλίου": 4,
+        "Μαΐου": 5,
+        "Ιουνίου": 6,
+        "Ιουλίου": 7,
+        "Αυγούστου": 8,
+        "Σεπτεμβρίου": 9,
+        "Οκτωβρίου": 10,
+        "Νοεμβρίου": 11,
+        "Δεκεμβρίου": 12,
     }
 
     month_num = month_map.get(month)
@@ -345,6 +416,7 @@ def parse_greek_date(day: str, month: str, year: str = None) -> date:
 
     return date(year_num, month_num, day_num)
 
+
 def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     """Find matching dive site in database by name similarity"""
     if not site_name:
@@ -355,52 +427,65 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
     logger.info(f"🔍 Looking for dive site match for: '{site_name}'")
 
     # First try exact match (case insensitive) on dive site names
-    exact_match = db.query(DiveSite).filter(
-        DiveSite.name.ilike(site_name)
-    ).first()
+    exact_match = db.query(DiveSite).filter(DiveSite.name.ilike(site_name)).first()
     if exact_match:
-        logger.info(f"✅ Exact match found on dive site name: '{site_name}' -> ID: {exact_match.id}")
+        logger.info(
+            f"✅ Exact match found on dive site name: '{site_name}' -> ID: {exact_match.id}"
+        )
         return exact_match.id
 
     # Try exact match on aliases
     from app.models import DiveSiteAlias
-    alias_match = db.query(DiveSiteAlias).filter(
-        DiveSiteAlias.alias.ilike(site_name)
-    ).first()
+
+    alias_match = (
+        db.query(DiveSiteAlias).filter(DiveSiteAlias.alias.ilike(site_name)).first()
+    )
     if alias_match:
-        logger.info(f"✅ Exact match found on alias: '{site_name}' -> Dive Site ID: {alias_match.dive_site_id}")
+        logger.info(
+            f"✅ Exact match found on alias: '{site_name}' -> Dive Site ID: {alias_match.dive_site_id}"
+        )
         return alias_match.dive_site_id
 
     # Try partial matches on dive site names
-    partial_matches = db.query(DiveSite).filter(
-        DiveSite.name.ilike(f"%{site_name}%")
-    ).all()
+    partial_matches = (
+        db.query(DiveSite).filter(DiveSite.name.ilike(f"%{site_name}%")).all()
+    )
 
     if partial_matches:
         # Return the first match (most likely)
-        logger.info(f"✅ Partial match found on dive site name: '{site_name}' -> ID: {partial_matches[0].id}")
+        logger.info(
+            f"✅ Partial match found on dive site name: '{site_name}' -> ID: {partial_matches[0].id}"
+        )
         return partial_matches[0].id
 
     # Try partial matches on aliases
-    alias_partial_matches = db.query(DiveSiteAlias).filter(
-        DiveSiteAlias.alias.ilike(f"%{site_name}%")
-    ).all()
+    alias_partial_matches = (
+        db.query(DiveSiteAlias)
+        .filter(DiveSiteAlias.alias.ilike(f"%{site_name}%"))
+        .all()
+    )
 
     if alias_partial_matches:
         # Return the first match (most likely)
-        logger.info(f"✅ Partial match found on alias: '{site_name}' -> Dive Site ID: {alias_partial_matches[0].dive_site_id}")
+        logger.info(
+            f"✅ Partial match found on alias: '{site_name}' -> Dive Site ID: {alias_partial_matches[0].dive_site_id}"
+        )
         return alias_partial_matches[0].dive_site_id
 
     # Try reverse partial match (site_name contains dive site name)
     for dive_site in db.query(DiveSite).all():
         if dive_site.name.lower() in site_name.lower():
-            logger.info(f"✅ Reverse partial match found: '{site_name}' contains '{dive_site.name}' -> ID: {dive_site.id}")
+            logger.info(
+                f"✅ Reverse partial match found: '{site_name}' contains '{dive_site.name}' -> ID: {dive_site.id}"
+            )
             return dive_site.id
 
     # Try reverse partial match on aliases
     for alias in db.query(DiveSiteAlias).all():
         if alias.alias.lower() in site_name.lower():
-            logger.info(f"✅ Reverse partial match found on alias: '{site_name}' contains '{alias.alias}' -> Dive Site ID: {alias.dive_site_id}")
+            logger.info(
+                f"✅ Reverse partial match found on alias: '{site_name}' contains '{alias.alias}' -> Dive Site ID: {alias.dive_site_id}"
+            )
             return alias.dive_site_id
 
     # Try similarity matching with threshold on dive site names
@@ -420,52 +505,59 @@ def find_matching_dive_site(db: Session, site_name: str) -> Optional[int]:
         if ratio > best_ratio and ratio >= threshold:
             best_ratio = ratio
             best_match = alias.dive_site_id
-            logger.info(f"✅ Similarity match found on alias: '{site_name}' ~ '{alias.alias}' (ratio: {ratio:.2f}) -> Dive Site ID: {best_match}")
+            logger.info(
+                f"✅ Similarity match found on alias: '{site_name}' ~ '{alias.alias}' (ratio: {ratio:.2f}) -> Dive Site ID: {best_match}"
+            )
             return best_match
 
     if best_match:
-        if hasattr(best_match, 'id'):
-            logger.info(f"✅ Similarity match found on dive site name: '{site_name}' ~ '{best_match.name}' (ratio: {best_ratio:.2f}) -> ID: {best_match.id}")
+        if hasattr(best_match, "id"):
+            logger.info(
+                f"✅ Similarity match found on dive site name: '{site_name}' ~ '{best_match.name}' (ratio: {best_ratio:.2f}) -> ID: {best_match.id}"
+            )
             return best_match.id
         else:
-            logger.info(f"✅ Similarity match found via alias: '{site_name}' -> dive site ID {best_match} (ratio: {best_ratio:.2f})")
+            logger.info(
+                f"✅ Similarity match found via alias: '{site_name}' -> dive site ID {best_match} (ratio: {best_ratio:.2f})"
+            )
             return best_match
 
     logger.info(f"❌ No match found for dive site: '{site_name}'")
     return None
 
+
 def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
     """Extract diving center name from email headers"""
     try:
         # Parse email headers
-        email_message = message_from_bytes(raw_email.encode('utf-8'))
+        email_message = message_from_bytes(raw_email.encode("utf-8"))
 
         # Check From header
-        from_header = email_message.get('From', '')
+        from_header = email_message.get("From", "")
         if from_header:
             # Extract name from "Name <email>" format
-            if '<' in from_header:
-                name_part = from_header.split('<')[0].strip()
+            if "<" in from_header:
+                name_part = from_header.split("<")[0].strip()
                 if name_part:
                     return name_part
 
         # Check Reply-To header
-        reply_to = email_message.get('Reply-To', '')
+        reply_to = email_message.get("Reply-To", "")
         if reply_to:
-            if '<' in reply_to:
-                name_part = reply_to.split('<')[0].strip()
+            if "<" in reply_to:
+                name_part = reply_to.split("<")[0].strip()
                 if name_part:
                     return name_part
 
         # Check Subject for diving center name patterns
-        subject = email_message.get('Subject', '')
+        subject = email_message.get("Subject", "")
         if subject:
             # Look for common diving center patterns
             patterns = [
-                r'from\s+([A-Za-z\s]+)\s+Dive',
-                r'([A-Za-z\s]+)\s+Dive\s+Adventures',
-                r'([A-Za-z\s]+)\s+Diving\s+Center',
-                r'([A-Za-z\s]+)\s+Dive\s+Club'
+                r"from\s+([A-Za-z\s]+)\s+Dive",
+                r"([A-Za-z\s]+)\s+Dive\s+Adventures",
+                r"([A-Za-z\s]+)\s+Diving\s+Center",
+                r"([A-Za-z\s]+)\s+Dive\s+Club",
             ]
             for pattern in patterns:
                 match = re.search(pattern, subject, re.IGNORECASE)
@@ -477,6 +569,7 @@ def extract_diving_center_from_headers(raw_email: str) -> Optional[str]:
         logger.error(f"Error extracting diving center from headers: {e}")
         return None
 
+
 def extract_diving_center_from_metadata(content: str) -> Optional[int]:
     """
     Extract diving center ID from newsletter metadata embedded in content.
@@ -484,13 +577,15 @@ def extract_diving_center_from_metadata(content: str) -> Optional[int]:
     """
     try:
         import re
-        pattern = r'<!--\s*DIVEMAP_METADATA:\s*diving_center_id=(\d+)\s*-->'
+
+        pattern = r"<!--\s*DIVEMAP_METADATA:\s*diving_center_id=(\d+)\s*-->"
         match = re.search(pattern, content)
         if match:
             return int(match.group(1))
     except Exception as e:
         logger.warning(f"Error extracting diving center from metadata: {e}")
     return None
+
 
 def remove_metadata_from_content(content: str) -> str:
     """
@@ -499,13 +594,17 @@ def remove_metadata_from_content(content: str) -> str:
     """
     try:
         import re
+
         # Remove metadata markers
-        content = re.sub(r'<!--\s*DIVEMAP_METADATA:.*?-->\s*', '', content, flags=re.DOTALL)
+        content = re.sub(
+            r"<!--\s*DIVEMAP_METADATA:.*?-->\s*", "", content, flags=re.DOTALL
+        )
         # Remove any leading/trailing whitespace
         return content.strip()
     except Exception as e:
         logger.warning(f"Error removing metadata from content: {e}")
         return content
+
 
 def add_diving_center_metadata(content: str, diving_center_id: Optional[int]) -> str:
     """
@@ -514,17 +613,21 @@ def add_diving_center_metadata(content: str, diving_center_id: Optional[int]) ->
     """
     if diving_center_id is None:
         return content
-    
+
     metadata = f"<!-- DIVEMAP_METADATA: diving_center_id={diving_center_id} -->\n"
     # Check if metadata already exists
     if extract_diving_center_from_metadata(content) is not None:
         # Replace existing metadata
         import re
-        content = re.sub(r'<!--\s*DIVEMAP_METADATA:.*?-->\s*', metadata, content, flags=re.DOTALL)
+
+        content = re.sub(
+            r"<!--\s*DIVEMAP_METADATA:.*?-->\s*", metadata, content, flags=re.DOTALL
+        )
         return content
     else:
         # Add new metadata at the beginning
         return metadata + content
+
 
 def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
     """Find matching diving center in database by name similarity"""
@@ -535,16 +638,16 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
     center_name = center_name.strip()
 
     # First try exact match
-    exact_match = db.query(DivingCenter).filter(
-        DivingCenter.name.ilike(center_name)
-    ).first()
+    exact_match = (
+        db.query(DivingCenter).filter(DivingCenter.name.ilike(center_name)).first()
+    )
     if exact_match:
         return exact_match.id
 
     # Try partial matches
-    partial_matches = db.query(DivingCenter).filter(
-        DivingCenter.name.ilike(f"%{center_name}%")
-    ).all()
+    partial_matches = (
+        db.query(DivingCenter).filter(DivingCenter.name.ilike(f"%{center_name}%")).all()
+    )
 
     if partial_matches:
         # Return the first match (most likely)
@@ -557,42 +660,53 @@ def find_matching_diving_center(db: Session, center_name: str) -> Optional[int]:
 
     return None
 
+
 from app.services.openai_service import openai_service
 
 
-async def parse_newsletter_with_openai(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
+async def parse_newsletter_with_openai(
+    content: str, db: Session, diving_center_id_override: Optional[int] = None
+) -> List[dict]:
     """Parse newsletter content using OpenAI API"""
     try:
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
-        
+
         # Check if content is already decoded text or needs email parsing
         clean_content = content_without_metadata
-        
+
         # If content contains email headers, try to extract the text content
-        if content_without_metadata.startswith('Delivered-To:') or 'From:' in content_without_metadata or 'Subject:' in content_without_metadata:
+        if (
+            content_without_metadata.startswith("Delivered-To:")
+            or "From:" in content_without_metadata
+            or "Subject:" in content_without_metadata
+        ):
             try:
                 # Try to parse as email
-                email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
-                subject = email_message.get('Subject', '')
-                
+                email_message = message_from_bytes(
+                    content_without_metadata.encode("utf-8")
+                )
+                subject = email_message.get("Subject", "")
+
                 # Get the text content
                 if email_message.is_multipart():
                     for part in email_message.walk():
                         if part.get_content_type() == "text/plain":
                             payload = part.get_payload(decode=True)
                             if payload:
-                                clean_content = payload.decode('utf-8', errors='ignore')
+                                clean_content = payload.decode("utf-8", errors="ignore")
                                 break
                 else:
                     payload = email_message.get_payload(decode=True)
                     if payload:
-                        clean_content = payload.decode('utf-8', errors='ignore')
-                
+                        clean_content = payload.decode("utf-8", errors="ignore")
+
                 # Decode quoted-printable if necessary
-                if '=3D' in clean_content or '=20' in clean_content:
+                if "=3D" in clean_content or "=20" in clean_content:
                     try:
-                        clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
+                        clean_content = quopri.decodestring(clean_content).decode(
+                            "utf-8", errors="ignore"
+                        )
                     except Exception:
                         pass
             except Exception as e:
@@ -609,7 +723,9 @@ async def parse_newsletter_with_openai(content: str, db: Session, diving_center_
         diving_center_id = None
         if diving_center_name:
             diving_center_id = find_matching_diving_center(db, diving_center_name)
-            logger.info(f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}")
+            logger.info(
+                f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}"
+            )
 
         current_year = date.today().year
 
@@ -631,7 +747,7 @@ Parse the following newsletter content and extract dive trip information. Return
 ⚠️ - "στον Πατροκλο" after a dive site name means "near Patroklos" - it's a location descriptor, NOT a separate dive site
 
 Newsletter Subject: {subject}
-Diving Center: {diving_center_name if diving_center_name else 'Unknown'}
+Diving Center: {diving_center_name if diving_center_name else "Unknown"}
 
 [BEGIN NEWSLETTER CONTENT]
 {clean_content}
@@ -699,9 +815,9 @@ DATE EXTRACTION RULES - THIS IS THE MOST IMPORTANT PART:
 - Greek month abbreviations: Ιαν(Jan), Φεβ(Feb), Μαρ(Mar), Απρ(Apr), Μαΐ(May), Ιουν(Jun), Ιουλ(Jul), Αυγ(Aug), Σεπ(Sep), Οκτ(Oct), Νοε(Nov), Δεκ(Dec)
 - Greek day names: Δευτέρα(Monday), Τρίτη(Tuesday), Τετάρτη(Wednesday), Πέμπτη(Thursday), Παρασκευή(Friday), Σάββατο(Saturday), Κυριακή(Sunday)
 - Greek day abbreviations: Δευ(Mon), Τρι(Tue), Τετ(Wed), Πεμ(Thu), Παρ(Fri), Σαβ(Sat), Κυρ(Sun)
-- Today's date is: {date.today().strftime('%Y-%m-%d')} (Day of week: {datetime.now().strftime('%A')})
-- If the content mentions "today", use today's date: {date.today().strftime('%Y-%m-%d')}
-- If the content mentions "tomorrow", use tomorrow's date: {(date.today() + timedelta(days=1)).strftime('%Y-%m-%d')}
+- Today's date is: {date.today().strftime("%Y-%m-%d")} (Day of week: {datetime.now().strftime("%A")})
+- If the content mentions "today", use today's date: {date.today().strftime("%Y-%m-%d")}
+- If the content mentions "tomorrow", use tomorrow's date: {(date.today() + timedelta(days=1)).strftime("%Y-%m-%d")}
 - If the content mentions "next week", add 7 days to today's date
 - If the content mentions a day name without a specific date (e.g., "Κυριακή 10:00 μόνη κατάδυση" or "Σάββατο 11:00"), you MUST calculate the date of the UPCOMING day of the week that matches the name relative to today's date.
 - For example, if today is Saturday Mar 14th 2026, and the text says "Κυριακή 10:00", you must calculate Sunday Mar 15th 2026. If today is Monday Mar 16th 2026, then "Κυριακή 10:00" would be Sunday Mar 22nd 2026.
@@ -869,10 +985,13 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
         # Call OpenAI API via OpenAIService
         content, usage = await openai_service.get_chat_completion(
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that extracts dive trip information from newsletters. Always return valid JSON arrays."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that extracts dive trip information from newsletters. Always return valid JSON arrays.",
+                },
+                {"role": "user", "content": prompt},
             ],
-            temperature=0.1
+            temperature=0.1,
         )
 
         if content:
@@ -882,56 +1001,72 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
             # Try to parse the JSON response
             try:
                 # Remove markdown code blocks if present
-                if content.startswith('```json'):
-                    content = content.replace('```json', '').replace('```', '').strip()
-                elif content.startswith('```'):
-                    content = content.replace('```', '').strip()
+                if content.startswith("```json"):
+                    content = content.replace("```json", "").replace("```", "").strip()
+                elif content.startswith("```"):
+                    content = content.replace("```", "").strip()
 
                 trips = orjson.loads(content)
                 if isinstance(trips, list):
                     # Add diving center ID to each trip if found
                     for trip in trips:
                         if diving_center_id:
-                            trip['diving_center_id'] = diving_center_id
-                            trip['diving_center_name'] = diving_center_name
+                            trip["diving_center_id"] = diving_center_id
+                            trip["diving_center_name"] = diving_center_name
 
                         # Try to match dive site if name is provided
-                        if trip.get('dives'):
-                            for dive in trip['dives']:
-                                if dive.get('dive_site_name'):
-                                    original_name = dive['dive_site_name']
-                                    cleaned_name = clean_diving_terminology(original_name)
-                                    logger.info(f"🔍 Attempting to match dive site: '{original_name}' (cleaned to: '{cleaned_name}')")
-                                    
+                        if trip.get("dives"):
+                            for dive in trip["dives"]:
+                                if dive.get("dive_site_name"):
+                                    original_name = dive["dive_site_name"]
+                                    cleaned_name = clean_diving_terminology(
+                                        original_name
+                                    )
+                                    logger.info(
+                                        f"🔍 Attempting to match dive site: '{original_name}' (cleaned to: '{cleaned_name}')"
+                                    )
+
                                     # Try with cleaned name first
-                                    dive_site_id = find_matching_dive_site(db, cleaned_name)
+                                    dive_site_id = find_matching_dive_site(
+                                        db, cleaned_name
+                                    )
                                     if dive_site_id:
-                                        dive['dive_site_id'] = dive_site_id
-                                        logger.info(f"✅ Matched dive site: '{cleaned_name}' -> ID: {dive_site_id}")
+                                        dive["dive_site_id"] = dive_site_id
+                                        logger.info(
+                                            f"✅ Matched dive site: '{cleaned_name}' -> ID: {dive_site_id}"
+                                        )
                                     else:
                                         # Fallback to original name if cleaning didn't help
-                                        dive_site_id = find_matching_dive_site(db, original_name)
+                                        dive_site_id = find_matching_dive_site(
+                                            db, original_name
+                                        )
                                         if dive_site_id:
-                                            dive['dive_site_id'] = dive_site_id
-                                            logger.info(f"✅ Matched dive site with original name: '{original_name}' -> ID: {dive_site_id}")
+                                            dive["dive_site_id"] = dive_site_id
+                                            logger.info(
+                                                f"✅ Matched dive site with original name: '{original_name}' -> ID: {dive_site_id}"
+                                            )
                                         else:
-                                            logger.info(f"❌ No dive site match found for: '{original_name}' (cleaned: '{cleaned_name}')")
+                                            logger.info(
+                                                f"❌ No dive site match found for: '{original_name}' (cleaned: '{cleaned_name}')"
+                                            )
                                 else:
                                     logger.info("⚠️ No dive_site_name found in dive")
 
                     logger.info(f"Successfully parsed {len(trips)} trips from OpenAI")
                     return trips
                 else:
-                    logger.error(f"OpenAI returned invalid format (not a list): {type(trips)}")
+                    logger.error(
+                        f"OpenAI returned invalid format (not a list): {type(trips)}"
+                    )
                     return parse_newsletter_content(clean_content, db)
             except orjson.JSONDecodeError as e:
                 logger.error(f"Failed to parse JSON from OpenAI: {str(e)}")
                 logger.error(f"Content that failed parsing: {content}")
-                
+
                 # If we have a partial JSON, it might be recoverable manually or just fail
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to parse structured data from AI service: {str(e)}"
+                    detail=f"Failed to parse structured data from AI service: {str(e)}",
                 )
         else:
             logger.error(f"OpenAI API error: {content}")
@@ -941,14 +1076,17 @@ Return ONLY the JSON array, no markdown formatting, no explanations.
         logger.error(f"Error in OpenAI parsing: {e}")
         return parse_newsletter_content(clean_content, db)
 
-def parse_newsletter_content(content: str, db: Session, diving_center_id_override: Optional[int] = None) -> List[dict]:
+
+def parse_newsletter_content(
+    content: str, db: Session, diving_center_id_override: Optional[int] = None
+) -> List[dict]:
     """Parse newsletter content using basic regex patterns"""
     try:
         # Remove metadata from content before parsing
         content_without_metadata = remove_metadata_from_content(content)
-        
+
         # Extract subject and clean content from raw email
-        email_message = message_from_bytes(content_without_metadata.encode('utf-8'))
+        email_message = message_from_bytes(content_without_metadata.encode("utf-8"))
 
         # Get the text content
         clean_content = ""
@@ -957,17 +1095,19 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
                 if part.get_content_type() == "text/plain":
                     payload = part.get_payload(decode=True)
                     if payload:
-                        clean_content = payload.decode('utf-8', errors='ignore')
+                        clean_content = payload.decode("utf-8", errors="ignore")
                         break
         else:
             payload = email_message.get_payload(decode=True)
             if payload:
-                clean_content = payload.decode('utf-8', errors='ignore')
+                clean_content = payload.decode("utf-8", errors="ignore")
 
         # Decode quoted-printable if necessary
-        if '=3D' in clean_content or '=20' in clean_content:
+        if "=3D" in clean_content or "=20" in clean_content:
             try:
-                clean_content = quopri.decodestring(clean_content).decode('utf-8', errors='ignore')
+                clean_content = quopri.decodestring(clean_content).decode(
+                    "utf-8", errors="ignore"
+                )
             except Exception:
                 pass
 
@@ -976,20 +1116,32 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
         diving_center_id = None
         if diving_center_name:
             diving_center_id = find_matching_diving_center(db, diving_center_name)
-            logger.info(f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}")
+            logger.info(
+                f"Extracted diving center: {diving_center_name} -> ID: {diving_center_id}"
+            )
 
         # Improved regex patterns for Greek dates and times
         date_patterns = [
-            r'(\d{1,2})\s+(Ιανουαρίου|Φεβρουαρίου|Μαρτίου|Απριλίου|Μαΐου|Ιουνίου|Ιουλίου|Αυγούστου|Σεπτεμβρίου|Οκτωβρίου|Νοεμβρίου|Δεκεμβρίου)(?:\s+(\d{4}))?',
-            r'(\d{1,2})/(\d{1,2})/(\d{4})',
-            r'(\d{1,2})-(\d{1,2})-(\d{4})',
-            r'(\d{1,2})\.(\d{1,2})\.(\d{4})'
+            r"(\d{1,2})\s+(Ιανουαρίου|Φεβρουαρίου|Μαρτίου|Απριλίου|Μαΐου|Ιουνίου|Ιουλίου|Αυγούστου|Σεπτεμβρίου|Οκτωβρίου|Νοεμβρίου|Δεκεμβρίου)(?:\s+(\d{4}))?",
+            r"(\d{1,2})/(\d{1,2})/(\d{4})",
+            r"(\d{1,2})-(\d{1,2})-(\d{4})",
+            r"(\d{1,2})\.(\d{1,2})\.(\d{4})",
         ]
 
         # Keywords that indicate dive trips
         dive_keywords = [
-            'βουτάμε', 'βουτιά', 'καταδύσεις', 'dive', 'diving', 'snorkel', 'snorkeling',
-            'ραντεβού', 'ραντεβού', 'departure', 'meeting', 'rendezvous'
+            "βουτάμε",
+            "βουτιά",
+            "καταδύσεις",
+            "dive",
+            "diving",
+            "snorkel",
+            "snorkeling",
+            "ραντεβού",
+            "ραντεβού",
+            "departure",
+            "meeting",
+            "rendezvous",
         ]
 
         trips = []
@@ -1003,7 +1155,9 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
                 end_pos = min(len(clean_content), match.end() + 200)
                 context = clean_content[start_pos:end_pos]
 
-                has_dive_keywords = any(keyword.lower() in context.lower() for keyword in dive_keywords)
+                has_dive_keywords = any(
+                    keyword.lower() in context.lower() for keyword in dive_keywords
+                )
 
                 if has_dive_keywords:
                     # Parse the date
@@ -1012,12 +1166,14 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
 
                     if len(groups) >= 2:
                         if len(groups) == 3 and groups[2]:  # Has year
-                            trip_date = parse_greek_date(groups[0], groups[1], groups[2])
+                            trip_date = parse_greek_date(
+                                groups[0], groups[1], groups[2]
+                            )
                         else:  # No year, use current year
                             trip_date = parse_greek_date(groups[0], groups[1])
 
                     # Extract time if available
-                    time_match = re.search(r'(\d{1,2}):(\d{2})', context)
+                    time_match = re.search(r"(\d{1,2}):(\d{2})", context)
                     trip_time = None
                     if time_match:
                         hour, minute = time_match.groups()
@@ -1027,17 +1183,17 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
                     dive_site_names = []
                     # Common Greek dive site patterns
                     dive_site_patterns = [
-                        r'στο\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'στον\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'βουτάμε\s+στο\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'βουτάμε\s+στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
-                        r'βουτάμε\s+στον\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)',
+                        r"στο\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"στον\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"βουτάμε\s+στο\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"βουτάμε\s+στην\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
+                        r"βουτάμε\s+στον\s+([Α-Ωα-ω\s]+?)(?:\s+του|\s+στη|\s+στον|\s+στην|\s+στο\s+|\s*[,\n]|\s*\.)",
                         # English patterns
-                        r'at\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)',
-                        r'dive\s+at\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)',
-                        r'wreck\s+of\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)',
+                        r"at\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)",
+                        r"dive\s+at\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)",
+                        r"wreck\s+of\s+([A-Za-z\s]+?)(?:\s+of|\s+in|\s+at|\s*[,\n]|\s*\.)",
                     ]
 
                     for pattern in dive_site_patterns:
@@ -1054,13 +1210,17 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
                         for site_name in dive_site_names:
                             # Clean diving terminology before searching
                             cleaned_site_name = clean_diving_terminology(site_name)
-                            
+
                             # Try with cleaned name first
                             matched_id = find_matching_dive_site(db, cleaned_site_name)
                             if matched_id:
                                 dive_site_id = matched_id
-                                dive_site_name = site_name  # Keep original name for display
-                                logger.info(f"✅ Basic parsing matched dive site: '{cleaned_site_name}' -> ID: {matched_id}")
+                                dive_site_name = (
+                                    site_name  # Keep original name for display
+                                )
+                                logger.info(
+                                    f"✅ Basic parsing matched dive site: '{cleaned_site_name}' -> ID: {matched_id}"
+                                )
                                 break
                             else:
                                 # Fallback to original name
@@ -1068,18 +1228,22 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
                                 if matched_id:
                                     dive_site_id = matched_id
                                     dive_site_name = site_name
-                                    logger.info(f"✅ Basic parsing matched dive site with original name: '{site_name}' -> ID: {matched_id}")
+                                    logger.info(
+                                        f"✅ Basic parsing matched dive site with original name: '{site_name}' -> ID: {matched_id}"
+                                    )
                                     break
 
                     # Create trip dictionary
                     trip = {
-                        'trip_date': trip_date,
-                        'trip_time': trip_time,
-                        'trip_description': context[:100] + '...' if len(context) > 100 else context,
-                        'diving_center_id': diving_center_id,
-                        'diving_center_name': diving_center_name,
-                        'dive_site_id': dive_site_id,
-                        'dive_site_name': dive_site_name
+                        "trip_date": trip_date,
+                        "trip_time": trip_time,
+                        "trip_description": context[:100] + "..."
+                        if len(context) > 100
+                        else context,
+                        "diving_center_id": diving_center_id,
+                        "diving_center_name": diving_center_name,
+                        "dive_site_id": dive_site_id,
+                        "dive_site_name": dive_site_name,
                     }
 
                     trips.append(trip)
@@ -1091,17 +1255,18 @@ def parse_newsletter_content(content: str, db: Session, diving_center_id_overrid
         logger.error(f"Error in basic parsing: {e}")
         return []
 
+
 @router.post("/upload", response_model=NewsletterUploadResponse)
 async def upload_newsletter(
     file: UploadFile = File(...),
     use_openai: str = Form("true"),
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Upload a newsletter file and parse it for dive trip information.
     """
-    if not file.filename.endswith('.txt'):
+    if not file.filename.endswith(".txt"):
         raise HTTPException(status_code=400, detail="Only .txt files are supported")
 
     # Limit file size to prevent memory exhaustion DoS (Finding 2: Low)
@@ -1111,35 +1276,41 @@ async def upload_newsletter(
         file.file.seek(0, os.SEEK_END)
         size = file.file.tell()
         file.file.seek(0)
-        
+
         if size > MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large. Maximum size is 1MB.")
+            raise HTTPException(
+                status_code=413, detail="File too large. Maximum size is 1MB."
+            )
 
         content = await file.read()
-        content_str = content.decode('utf-8')
+        content_str = content.decode("utf-8")
 
         # Create newsletter record
-        newsletter = Newsletter(
-            content=content_str
-        )
+        newsletter = Newsletter(content=content_str)
         db.add(newsletter)
         db.commit()
         db.refresh(newsletter)
 
         # Extract diving center from metadata if present (for file uploads, metadata might be added later)
-        diving_center_id_from_metadata = extract_diving_center_from_metadata(content_str)
-        
+        diving_center_id_from_metadata = extract_diving_center_from_metadata(
+            content_str
+        )
+
         # Parse the newsletter content
         try:
-            if use_openai.lower() == 'true':
-                parsed_trips = await parse_newsletter_with_openai(content_str, db, diving_center_id_from_metadata)
+            if use_openai.lower() == "true":
+                parsed_trips = await parse_newsletter_with_openai(
+                    content_str, db, diving_center_id_from_metadata
+                )
             else:
-                parsed_trips = parse_newsletter_content(content_str, db, diving_center_id_from_metadata)
-            
+                parsed_trips = parse_newsletter_content(
+                    content_str, db, diving_center_id_from_metadata
+                )
+
             # Ensure diving_center_id is set from metadata if available
             if diving_center_id_from_metadata is not None:
                 for trip_data in parsed_trips:
-                    trip_data['diving_center_id'] = diving_center_id_from_metadata
+                    trip_data["diving_center_id"] = diving_center_id_from_metadata
 
             created_trips = []
 
@@ -1147,15 +1318,19 @@ async def upload_newsletter(
             for trip_data in parsed_trips:
                 # Handle date parsing with better error handling
                 trip_date = None
-                if trip_data.get('trip_date'):
-                    trip_date_str = trip_data['trip_date']
+                if trip_data.get("trip_date"):
+                    trip_date_str = trip_data["trip_date"]
                     if isinstance(trip_date_str, str):
                         # Skip placeholder dates like "YYYY-MM-DD"
                         if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
-                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            logger.warning(
+                                f"Skipping placeholder date: {trip_date_str}"
+                            )
                             continue
                         try:
-                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                            trip_date = datetime.strptime(
+                                trip_date_str, "%Y-%m-%d"
+                            ).date()
                         except ValueError as e:
                             logger.error(f"Invalid date format '{trip_date_str}': {e}")
                             continue
@@ -1166,42 +1341,46 @@ async def upload_newsletter(
                     continue
 
                 # Validate and convert difficulty_code if provided
-                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_code = trip_data.get("trip_difficulty_code")
                 trip_difficulty_id = None
                 if trip_difficulty_code:
-                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    trip_difficulty_id = get_difficulty_id_by_code(
+                        db, trip_difficulty_code
+                    )
                     if trip_difficulty_id is None:
-                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        logger.warning(
+                            f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip"
+                        )
                         continue  # Skip this trip rather than fail entire import
 
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
-                    diving_center_id=trip_data.get('diving_center_id'),
+                    diving_center_id=trip_data.get("diving_center_id"),
                     trip_date=trip_date,
-                    trip_time=trip_data.get('trip_time'),
-                    trip_duration=trip_data.get('trip_duration'),
+                    trip_time=trip_data.get("trip_time"),
+                    trip_duration=trip_data.get("trip_duration"),
                     trip_difficulty_id=trip_difficulty_id,
-                    trip_price=trip_data.get('trip_price'),
-                    trip_currency=trip_data.get('trip_currency', 'EUR'),
-                    group_size_limit=trip_data.get('group_size_limit'),
-                    current_bookings=trip_data.get('current_bookings', 0),
-                    trip_description=trip_data.get('trip_description'),
-                    special_requirements=trip_data.get('special_requirements'),
-                    trip_status=trip_data.get('trip_status', 'scheduled')
+                    trip_price=trip_data.get("trip_price"),
+                    trip_currency=trip_data.get("trip_currency", "EUR"),
+                    group_size_limit=trip_data.get("group_size_limit"),
+                    current_bookings=trip_data.get("current_bookings", 0),
+                    trip_description=trip_data.get("trip_description"),
+                    special_requirements=trip_data.get("special_requirements"),
+                    trip_status=trip_data.get("trip_status", "scheduled"),
                 )
                 db.add(trip)
                 db.flush()  # Get the trip ID
 
                 # Create ParsedDive records for each dive in the trip
-                if trip_data.get('dives'):
-                    for dive_data in trip_data['dives']:
+                if trip_data.get("dives"):
+                    for dive_data in trip_data["dives"]:
                         dive = ParsedDive(
                             trip_id=trip.id,
-                            dive_site_id=dive_data.get('dive_site_id'),
-                            dive_number=dive_data.get('dive_number', 1),
-                            dive_time=dive_data.get('dive_time'),
-                            dive_duration=dive_data.get('dive_duration'),
-                            dive_description=dive_data.get('dive_description')
+                            dive_site_id=dive_data.get("dive_site_id"),
+                            dive_number=dive_data.get("dive_number", 1),
+                            dive_time=dive_data.get("dive_time"),
+                            dive_duration=dive_data.get("dive_duration"),
+                            dive_description=dive_data.get("dive_description"),
                         )
                         db.add(dive)
 
@@ -1212,7 +1391,7 @@ async def upload_newsletter(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=len(created_trips),
-                message="Newsletter uploaded and parsed successfully"
+                message="Newsletter uploaded and parsed successfully",
             )
 
         except Exception as e:
@@ -1220,18 +1399,21 @@ async def upload_newsletter(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=0,
-                message=f"Newsletter uploaded but parsing failed: {str(e)}"
+                message=f"Newsletter uploaded but parsing failed: {str(e)}",
             )
 
     except Exception as e:
         logger.error(f"Error uploading newsletter: {e}")
-        raise HTTPException(status_code=500, detail=f"Error uploading newsletter: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error uploading newsletter: {str(e)}"
+        )
+
 
 @router.post("/parse-text", response_model=NewsletterUploadResponse)
 async def parse_newsletter_text(
     request: NewsletterParseTextRequest,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Parse newsletter text content directly and extract dive trip information.
@@ -1244,17 +1426,24 @@ async def parse_newsletter_text(
 
         # Validate diving center if provided
         if diving_center_id_override is not None:
-            diving_center = db.query(DivingCenter).filter(DivingCenter.id == diving_center_id_override).first()
+            diving_center = (
+                db.query(DivingCenter)
+                .filter(DivingCenter.id == diving_center_id_override)
+                .first()
+            )
             if not diving_center:
-                raise HTTPException(status_code=400, detail=f"Diving center with ID {diving_center_id_override} not found")
-        
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Diving center with ID {diving_center_id_override} not found",
+                )
+
         # Add diving center metadata to content before saving
-        content_with_metadata = add_diving_center_metadata(content_str, diving_center_id_override)
+        content_with_metadata = add_diving_center_metadata(
+            content_str, diving_center_id_override
+        )
 
         # Create newsletter record with metadata embedded
-        newsletter = Newsletter(
-            content=content_with_metadata
-        )
+        newsletter = Newsletter(content=content_with_metadata)
         db.add(newsletter)
         db.commit()
         db.refresh(newsletter)
@@ -1262,15 +1451,19 @@ async def parse_newsletter_text(
         # Parse the newsletter content (metadata will be extracted automatically)
         try:
             if use_openai:
-                parsed_trips = await parse_newsletter_with_openai(content_with_metadata, db, diving_center_id_override)
+                parsed_trips = await parse_newsletter_with_openai(
+                    content_with_metadata, db, diving_center_id_override
+                )
             else:
-                parsed_trips = parse_newsletter_content(content_with_metadata, db, diving_center_id_override)
+                parsed_trips = parse_newsletter_content(
+                    content_with_metadata, db, diving_center_id_override
+                )
 
             # Ensure diving_center_id is set if provided or found in metadata
             final_diving_center_id = diving_center_id_override
             if final_diving_center_id is not None:
                 for trip_data in parsed_trips:
-                    trip_data['diving_center_id'] = final_diving_center_id
+                    trip_data["diving_center_id"] = final_diving_center_id
 
             created_trips = []
 
@@ -1278,15 +1471,19 @@ async def parse_newsletter_text(
             for trip_data in parsed_trips:
                 # Handle date parsing with better error handling
                 trip_date = None
-                if trip_data.get('trip_date'):
-                    trip_date_str = trip_data['trip_date']
+                if trip_data.get("trip_date"):
+                    trip_date_str = trip_data["trip_date"]
                     if isinstance(trip_date_str, str):
                         # Skip placeholder dates like "YYYY-MM-DD"
                         if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
-                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            logger.warning(
+                                f"Skipping placeholder date: {trip_date_str}"
+                            )
                             continue
                         try:
-                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                            trip_date = datetime.strptime(
+                                trip_date_str, "%Y-%m-%d"
+                            ).date()
                         except ValueError as e:
                             logger.error(f"Invalid date format '{trip_date_str}': {e}")
                             continue
@@ -1297,42 +1494,46 @@ async def parse_newsletter_text(
                     continue
 
                 # Validate and convert difficulty_code if provided
-                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_code = trip_data.get("trip_difficulty_code")
                 trip_difficulty_id = None
                 if trip_difficulty_code:
-                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    trip_difficulty_id = get_difficulty_id_by_code(
+                        db, trip_difficulty_code
+                    )
                     if trip_difficulty_id is None:
-                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        logger.warning(
+                            f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip"
+                        )
                         continue  # Skip this trip rather than fail entire import
 
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
-                    diving_center_id=trip_data.get('diving_center_id'),
+                    diving_center_id=trip_data.get("diving_center_id"),
                     trip_date=trip_date,
-                    trip_time=trip_data.get('trip_time'),
-                    trip_duration=trip_data.get('trip_duration'),
+                    trip_time=trip_data.get("trip_time"),
+                    trip_duration=trip_data.get("trip_duration"),
                     trip_difficulty_id=trip_difficulty_id,
-                    trip_price=trip_data.get('trip_price'),
-                    trip_currency=trip_data.get('trip_currency', 'EUR'),
-                    group_size_limit=trip_data.get('group_size_limit'),
-                    current_bookings=trip_data.get('current_bookings', 0),
-                    trip_description=trip_data.get('trip_description'),
-                    special_requirements=trip_data.get('special_requirements'),
-                    trip_status=trip_data.get('trip_status', 'scheduled')
+                    trip_price=trip_data.get("trip_price"),
+                    trip_currency=trip_data.get("trip_currency", "EUR"),
+                    group_size_limit=trip_data.get("group_size_limit"),
+                    current_bookings=trip_data.get("current_bookings", 0),
+                    trip_description=trip_data.get("trip_description"),
+                    special_requirements=trip_data.get("special_requirements"),
+                    trip_status=trip_data.get("trip_status", "scheduled"),
                 )
                 db.add(trip)
                 db.flush()  # Get the trip ID
 
                 # Create ParsedDive records for each dive in the trip
-                if trip_data.get('dives'):
-                    for dive_data in trip_data['dives']:
+                if trip_data.get("dives"):
+                    for dive_data in trip_data["dives"]:
                         dive = ParsedDive(
                             trip_id=trip.id,
-                            dive_site_id=dive_data.get('dive_site_id'),
-                            dive_number=dive_data.get('dive_number', 1),
-                            dive_time=dive_data.get('dive_time'),
-                            dive_duration=dive_data.get('dive_duration'),
-                            dive_description=dive_data.get('dive_description')
+                            dive_site_id=dive_data.get("dive_site_id"),
+                            dive_number=dive_data.get("dive_number", 1),
+                            dive_time=dive_data.get("dive_time"),
+                            dive_duration=dive_data.get("dive_duration"),
+                            dive_description=dive_data.get("dive_description"),
                         )
                         db.add(dive)
 
@@ -1343,7 +1544,7 @@ async def parse_newsletter_text(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=len(created_trips),
-                message="Newsletter text parsed successfully"
+                message="Newsletter text parsed successfully",
             )
 
         except Exception as e:
@@ -1351,52 +1552,76 @@ async def parse_newsletter_text(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=0,
-                message=f"Newsletter text parsed but parsing failed: {str(e)}"
+                message=f"Newsletter text parsed but parsing failed: {str(e)}",
             )
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error parsing newsletter text: {e}")
-        raise HTTPException(status_code=500, detail=f"Error parsing newsletter text: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error parsing newsletter text: {str(e)}"
+        )
+
 
 @router.get("/", response_model=List[NewsletterResponse])
 async def get_newsletters(
     limit: int = 50,
     offset: int = 0,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get all newsletters with optional pagination.
     """
 
     from sqlalchemy.orm import defer
-    newsletters = db.query(Newsletter).options(defer(Newsletter.content)).offset(offset).limit(limit).all()
+
+    newsletters = (
+        db.query(Newsletter)
+        .options(defer(Newsletter.content))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
     # Add trip count for each newsletter
     result = []
     for newsletter in newsletters:
-        trip_count = db.query(ParsedDiveTrip).filter(
-            ParsedDiveTrip.source_newsletter_id == newsletter.id
-        ).count()
+        trip_count = (
+            db.query(ParsedDiveTrip)
+            .filter(ParsedDiveTrip.source_newsletter_id == newsletter.id)
+            .count()
+        )
 
-        result.append({
-            "id": newsletter.id,
-            "content": newsletter.content,
-            "received_at": newsletter.received_at,
-            "trips_count": trip_count
-        })
+        result.append(
+            {
+                "id": newsletter.id,
+                "content": newsletter.content,
+                "received_at": newsletter.received_at,
+                "trips_count": trip_count,
+            }
+        )
 
     return result
 
 
 def get_trip_rental_price(trip: ParsedDiveTrip) -> Optional[float]:
     if trip.octo_slot and trip.octo_slot.product and trip.octo_slot.product.units:
-        rental_unit = next((u for u in trip.octo_slot.product.units if u.unit_type == "DIVER_RENTAL_GEAR"), None)
+        rental_unit = next(
+            (
+                u
+                for u in trip.octo_slot.product.units
+                if u.unit_type == "DIVER_RENTAL_GEAR"
+            ),
+            None,
+        )
         if rental_unit:
             return float(rental_unit.retail_price)
-    if not getattr(trip, "different_rental_price", True) and trip.trip_price is not None:
+    if (
+        not getattr(trip, "different_rental_price", True)
+        and trip.trip_price is not None
+    ):
         return float(trip.trip_price)
     if getattr(trip, "custom_rental_price", None) is not None:
         return float(trip.custom_rental_price)
@@ -1405,7 +1630,11 @@ def get_trip_rental_price(trip: ParsedDiveTrip) -> Optional[float]:
     return None
 
 
-@router.get("/trips", response_model=ParsedDiveTripListResponse, response_model_exclude_none=True)
+@router.get(
+    "/trips",
+    response_model=ParsedDiveTripListResponse,
+    response_model_exclude_none=True,
+)
 async def get_parsed_trips(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
@@ -1416,13 +1645,25 @@ async def get_parsed_trips(
     max_price: Optional[float] = None,
     min_duration: Optional[int] = None,
     max_duration: Optional[int] = None,
-    difficulty_code: Optional[str] = Query(None, description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"),
-    exclude_unspecified_difficulty: bool = Query(False, description="Exclude trips with unspecified difficulty"),
+    difficulty_code: Optional[str] = Query(
+        None,
+        description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
+    ),
+    exclude_unspecified_difficulty: bool = Query(
+        False, description="Exclude trips with unspecified difficulty"
+    ),
     search_query: Optional[str] = None,
     location_query: Optional[str] = None,
-    country: Optional[str] = Query(None, description="Filter by country (searches in dive sites and diving centers)"),
-    region: Optional[str] = Query(None, description="Filter by region (searches in dive sites and diving centers)"),
-    bookable_only: Optional[bool] = Query(False, description="Filter for trips with instant online booking enabled"),
+    country: Optional[str] = Query(
+        None,
+        description="Filter by country (searches in dive sites and diving centers)",
+    ),
+    region: Optional[str] = Query(
+        None, description="Filter by region (searches in dive sites and diving centers)"
+    ),
+    bookable_only: Optional[bool] = Query(
+        False, description="Filter for trips with instant online booking enabled"
+    ),
     sort_by: Optional[str] = "trip_date",
     sort_order: Optional[str] = "desc",
     user_lat: Optional[float] = None,
@@ -1430,11 +1671,11 @@ async def get_parsed_trips(
     page: int = Query(1, ge=1, description="Page number (1-based)"),
     page_size: int = Query(100, description="Page size"),
     current_user: Optional[User] = Depends(get_current_user_optional),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get parsed dive trips with advanced filtering, search, and sorting.
-    
+
     Sort options:
     - trip_date: Sort by trip date
     - trip_price: Sort by trip price
@@ -1443,9 +1684,9 @@ async def get_parsed_trips(
     - popularity: Sort by dive site popularity (view count)
     - distance: Sort by distance from user location (requires user_lat and user_lon)
     - created_at: Sort by creation date
-    
+
     Sort order: "asc" or "desc"
-    
+
     Distance sorting requires user_lat and user_lon coordinates.
     """
     # UI / legacy URLs used sort_by=price and sort_by=duration; API columns are trip_price, trip_duration.
@@ -1459,16 +1700,27 @@ async def get_parsed_trips(
     # Eager load all relationships to avoid N+1 queries
     # Use selectinload for collections (one-to-many) to allow proper SQL-level LIMIT/OFFSET
     from app.models import DiveSiteTag
+
     query = db.query(ParsedDiveTrip).options(
         joinedload(ParsedDiveTrip.difficulty),
         joinedload(ParsedDiveTrip.diving_center),
-        joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
-        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
-        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        joinedload(ParsedDiveTrip.octo_slot)
+        .joinedload(OctoAvailabilitySlot.product)
+        .selectinload(OctoProduct.units),
+        selectinload(ParsedDiveTrip.dives)
+        .joinedload(ParsedDive.dive_site)
+        .selectinload(DiveSite.ratings),
+        selectinload(ParsedDiveTrip.dives)
+        .joinedload(ParsedDive.dive_site)
+        .selectinload(DiveSite.tags)
+        .joinedload(DiveSiteTag.tag),
     )
 
     if bookable_only:
-        query = query.filter(ParsedDiveTrip.is_bookable.is_(True), ParsedDiveTrip.octo_slot_id.isnot(None))
+        query = query.filter(
+            ParsedDiveTrip.is_bookable.is_(True),
+            ParsedDiveTrip.octo_slot_id.isnot(None),
+        )
 
     # Date filtering
     if start_date:
@@ -1484,9 +1736,11 @@ async def get_parsed_trips(
     # Dive site filtering
     if dive_site_id:
         # Filter through the dives relationship to find trips with the specified dive site
-        query = query.filter(ParsedDiveTrip.dives.any(ParsedDive.dive_site_id == dive_site_id))
+        query = query.filter(
+            ParsedDiveTrip.dives.any(ParsedDive.dive_site_id == dive_site_id)
+        )
 
-            # Status filtering
+        # Status filtering
         if trip_status:
             try:
                 trip_status_enum = TripStatus(trip_status)
@@ -1527,9 +1781,13 @@ async def get_parsed_trips(
                 ParsedDiveTrip.special_requirements.ilike(search_term),
                 ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(search_term)),
                 # Search in dive site names through the dives relationship
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))),
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_site.has(DiveSite.name.ilike(search_term))
+                ),
                 # Search in dive descriptions
-                ParsedDiveTrip.dives.any(ParsedDive.dive_description.ilike(search_term))
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_description.ilike(search_term)
+                ),
             )
         )
 
@@ -1539,9 +1797,15 @@ async def get_parsed_trips(
         query = query.filter(
             or_(
                 # Search in dive site location fields through the dives relationship
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.country.ilike(location_term))),
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(location_term))),
-                ParsedDiveTrip.diving_center.has(DivingCenter.name.ilike(location_term))
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_site.has(DiveSite.country.ilike(location_term))
+                ),
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_site.has(DiveSite.region.ilike(location_term))
+                ),
+                ParsedDiveTrip.diving_center.has(
+                    DivingCenter.name.ilike(location_term)
+                ),
             )
         )
 
@@ -1551,9 +1815,13 @@ async def get_parsed_trips(
         query = query.filter(
             or_(
                 # Filter by dive site country
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.country.ilike(country_term))),
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_site.has(DiveSite.country.ilike(country_term))
+                ),
                 # Filter by diving center country
-                ParsedDiveTrip.diving_center.has(DivingCenter.country.ilike(country_term))
+                ParsedDiveTrip.diving_center.has(
+                    DivingCenter.country.ilike(country_term)
+                ),
             )
         )
 
@@ -1563,9 +1831,13 @@ async def get_parsed_trips(
         query = query.filter(
             or_(
                 # Filter by dive site region
-                ParsedDiveTrip.dives.any(ParsedDive.dive_site.has(DiveSite.region.ilike(region_term))),
+                ParsedDiveTrip.dives.any(
+                    ParsedDive.dive_site.has(DiveSite.region.ilike(region_term))
+                ),
                 # Filter by diving center region
-                ParsedDiveTrip.diving_center.has(DivingCenter.region.ilike(region_term))
+                ParsedDiveTrip.diving_center.has(
+                    DivingCenter.region.ilike(region_term)
+                ),
             )
         )
 
@@ -1583,41 +1855,58 @@ async def get_parsed_trips(
         if not current_user or not current_user.is_admin:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sorting by popularity is only available for admin users"
+                detail="Sorting by popularity is only available for admin users",
             )
         # Sort by dive site popularity (view count)
         # Join through dives to get dive site information
         if sort_order.lower() == "desc":
-            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id).order_by(DiveSite.view_count.desc())
+            query = (
+                query.join(ParsedDive, ParsedDiveTrip.dives)
+                .join(DiveSite, ParsedDive.dive_site_id == DiveSite.id)
+                .order_by(DiveSite.view_count.desc())
+            )
         else:
-            query = query.join(ParsedDive, ParsedDiveTrip.dives).join(DiveSite, ParsedDive.dive_site_id == DiveSite.id).order_by(DiveSite.view_count.asc())
+            query = (
+                query.join(ParsedDive, ParsedDiveTrip.dives)
+                .join(DiveSite, ParsedDive.dive_site_id == DiveSite.id)
+                .order_by(DiveSite.view_count.asc())
+            )
     elif sort_by == "distance":
         # Sort by distance from user location
         if user_lat is not None and user_lon is not None:
             from sqlalchemy import func
-            
+
             # Left join diving_center to get its location
             # (We sort by diving center location to avoid 1-to-many row multiplication from dives)
-            query = query.outerjoin(DivingCenter, ParsedDiveTrip.diving_center_id == DivingCenter.id)
-            
+            query = query.outerjoin(
+                DivingCenter, ParsedDiveTrip.diving_center_id == DivingCenter.id
+            )
+
             # Use MySQL ST_Distance_Sphere or fallback to haversine if SQLite
             bind = db.get_bind()
             dialect = bind.dialect.name if bind is not None else None
-            
-            if dialect == 'mysql':
+
+            if dialect == "mysql":
                 # Use diving center location
                 location_expr = DivingCenter.location
-                distance_expr = func.ST_Distance_Sphere(location_expr, func.ST_SRID(func.POINT(user_lon, user_lat), 4326))
+                distance_expr = func.ST_Distance_Sphere(
+                    location_expr, func.ST_SRID(func.POINT(user_lon, user_lat), 4326)
+                )
             else:
                 # Haversine fallback for sqlite tests
                 # Use diving center lat/lon
                 lat_expr = DivingCenter.latitude
                 lon_expr = DivingCenter.longitude
-                distance_expr = (6371 * func.acos(
-                    func.cos(func.radians(user_lat)) * func.cos(func.radians(lat_expr)) *
-                    func.cos(func.radians(lon_expr) - func.radians(user_lon)) +
-                    func.sin(func.radians(user_lat)) * func.sin(func.radians(lat_expr))
-                )) * 1000
+                distance_expr = (
+                    6371
+                    * func.acos(
+                        func.cos(func.radians(user_lat))
+                        * func.cos(func.radians(lat_expr))
+                        * func.cos(func.radians(lon_expr) - func.radians(user_lon))
+                        + func.sin(func.radians(user_lat))
+                        * func.sin(func.radians(lat_expr))
+                    )
+                ) * 1000
 
             if sort_order.lower() == "desc":
                 query = query.order_by(distance_expr.desc())
@@ -1632,7 +1921,9 @@ async def get_parsed_trips(
                 query = query.order_by(sort_field.asc())
     elif sort_by == "difficulty_level":
         # Sort by difficulty order_index via LEFT JOIN
-        query = query.outerjoin(DifficultyLevel, ParsedDiveTrip.trip_difficulty_id == DifficultyLevel.id)
+        query = query.outerjoin(
+            DifficultyLevel, ParsedDiveTrip.trip_difficulty_id == DifficultyLevel.id
+        )
         if sort_order.lower() == "desc":
             query = query.order_by(DifficultyLevel.order_index.desc())
         else:
@@ -1641,7 +1932,7 @@ async def get_parsed_trips(
         # Whitelist allowed sort fields to prevent attribute injection (Finding 3: Low)
         ALLOWED_SORT_FIELDS = {"trip_date", "trip_price", "trip_duration", "created_at"}
         safe_sort_by = sort_by if sort_by in ALLOWED_SORT_FIELDS else "trip_date"
-        
+
         sort_field = getattr(ParsedDiveTrip, safe_sort_by, ParsedDiveTrip.trip_date)
         if sort_order.lower() == "desc":
             query = query.order_by(sort_field.desc())
@@ -1653,52 +1944,55 @@ async def get_parsed_trips(
         query = query.offset(offset).limit(page_size)
 
     trips = query.all()
-    
+
     # Restrict unauthenticated users to only the 2 oldest trips per diving center
     if not current_user:
         # Group trips by diving_center_id and get only the 2 oldest (earliest trip_date) per center
         from collections import defaultdict
+
         trips_by_center = defaultdict(list)
-        
+
         for trip in trips:
             if trip.diving_center_id:  # Only include trips with a diving center
                 trips_by_center[trip.diving_center_id].append(trip)
-        
+
         # For each center, sort by trip_date (ascending = oldest first) and take only 2
         restricted_trips = []
         for center_trips in trips_by_center.values():
             # Sort by trip_date ascending (oldest first)
-            sorted_center_trips = sorted(center_trips, key=lambda t: t.trip_date or date.min)
+            sorted_center_trips = sorted(
+                center_trips, key=lambda t: t.trip_date or date.min
+            )
             # Take only the 2 oldest
             restricted_trips.extend(sorted_center_trips[:2])
-        
+
         trips = restricted_trips
-    
+
     # Apply fuzzy search if we have a search query and insufficient results (only for authenticated users)
     match_types = {}
     if current_user and search_query and len(trips) < 5:
         # Get the search query for fuzzy search
         search_query_for_fuzzy = search_query.strip()[:200]
-        
+
         # Perform fuzzy search to enhance results
         enhanced_results = search_dive_trips_with_fuzzy(
-            search_query_for_fuzzy, 
-            trips, 
-            db, 
-            similarity_threshold=0.2, 
-            max_fuzzy_results=10
+            search_query_for_fuzzy,
+            trips,
+            db,
+            similarity_threshold=0.2,
+            max_fuzzy_results=10,
         )
-        
+
         # Update trips with enhanced results
-        trips = [result['trip'] for result in enhanced_results]
-        
+        trips = [result["trip"] for result in enhanced_results]
+
         # Create match types mapping for frontend
         for result in enhanced_results:
-            match_types[result['trip'].id] = {
-                'type': result['match_type'],
-                'score': result['score']
+            match_types[result["trip"].id] = {
+                "type": result["match_type"],
+                "score": result["score"],
             }
-        
+
         # Re-query with the enhanced results to get proper pagination with eager loading
         # Note: trips already have relationships loaded from the main query, so we can skip re-querying
         # Just ensure we respect pagination limits
@@ -1711,66 +2005,104 @@ async def get_parsed_trips(
         distance = None
         latitude = None
         longitude = None
-        
+
         # The trip's root coordinates now strictly represent the diving center
-        if trip.diving_center and trip.diving_center.latitude is not None and trip.diving_center.longitude is not None:
+        if (
+            trip.diving_center
+            and trip.diving_center.latitude is not None
+            and trip.diving_center.longitude is not None
+        ):
             latitude = float(trip.diving_center.latitude)
             longitude = float(trip.diving_center.longitude)
-            
+
         if sort_by == "distance" and user_lat is not None and user_lon is not None:
             # For distance calculation, still prioritize the actual dive site if available
             calc_lat, calc_lon = None, None
             for dive in trip.dives:
-                if dive.dive_site and dive.dive_site.latitude is not None and dive.dive_site.longitude is not None:
+                if (
+                    dive.dive_site
+                    and dive.dive_site.latitude is not None
+                    and dive.dive_site.longitude is not None
+                ):
                     calc_lat = float(dive.dive_site.latitude)
                     calc_lon = float(dive.dive_site.longitude)
                     break
-            
+
             if calc_lat is None:
                 calc_lat, calc_lon = latitude, longitude
-                
+
             if calc_lat is not None and calc_lon is not None:
                 distance = calculate_distance(user_lat, user_lon, calc_lat, calc_lon)
-        
-        trip_data.append({
-            'trip': trip,
-            'distance': distance,
-            'latitude': latitude,
-            'longitude': longitude
-        })
+
+        trip_data.append(
+            {
+                "trip": trip,
+                "distance": distance,
+                "latitude": latitude,
+                "longitude": longitude,
+            }
+        )
 
     # Build the response
     items = [
         ParsedDiveTripResponse(
-            id=td['trip'].id,
-            diving_center_id=td['trip'].diving_center_id,
-            trip_date=td['trip'].trip_date,
-            trip_time=td['trip'].trip_time,
-            trip_duration=td['trip'].trip_duration,
-            trip_difficulty_code=td['trip'].difficulty.code if td['trip'].difficulty else None,
-            trip_difficulty_label=td['trip'].difficulty.label if td['trip'].difficulty else None,
-            trip_price=float(td['trip'].trip_price) if td['trip'].trip_price else None,
-            trip_currency=td['trip'].trip_currency,
-            group_size_limit=td['trip'].group_size_limit,
-            current_bookings=td['trip'].current_bookings,
-            trip_description=td['trip'].trip_description,
-            special_requirements=td['trip'].special_requirements,
-            trip_status=td['trip'].trip_status.value,
-            is_bookable=bool(td['trip'].is_bookable and td['trip'].octo_slot_id),
-            different_rental_price=td['trip'].different_rental_price,
-            custom_rental_price=float(td['trip'].custom_rental_price) if td['trip'].custom_rental_price is not None else None,
-            rental_price=get_trip_rental_price(td['trip']),
-            octo_slot_id=td['trip'].octo_slot_id,
-            seats_available=td['trip'].octo_slot.seats_available if td['trip'].octo_slot else (td['trip'].group_size_limit - td['trip'].current_bookings if td['trip'].group_size_limit is not None else None),
-            base_price=float(td['trip'].octo_slot.base_price) if td['trip'].octo_slot else (float(td['trip'].trip_price) if td['trip'].trip_price is not None else None),
-            diving_center_name=td['trip'].diving_center.name if td['trip'].diving_center else None,
-            diving_center_country=td['trip'].diving_center.country if td['trip'].diving_center else None,
-            diving_center_region=td['trip'].diving_center.region if td['trip'].diving_center else None,
-            diving_center_phone=td['trip'].diving_center.phone if td['trip'].diving_center else None,
-            diving_center_email=td['trip'].diving_center.email if td['trip'].diving_center else None,
-            latitude=td['latitude'],
-            longitude=td['longitude'],
-            distance=td['distance'],
+            id=td["trip"].id,
+            diving_center_id=td["trip"].diving_center_id,
+            trip_date=td["trip"].trip_date,
+            trip_time=td["trip"].trip_time,
+            trip_duration=td["trip"].trip_duration,
+            trip_difficulty_code=td["trip"].difficulty.code
+            if td["trip"].difficulty
+            else None,
+            trip_difficulty_label=td["trip"].difficulty.label
+            if td["trip"].difficulty
+            else None,
+            trip_price=float(td["trip"].trip_price) if td["trip"].trip_price else None,
+            trip_currency=td["trip"].trip_currency,
+            group_size_limit=td["trip"].group_size_limit,
+            current_bookings=td["trip"].current_bookings,
+            trip_description=td["trip"].trip_description,
+            special_requirements=td["trip"].special_requirements,
+            trip_status=td["trip"].trip_status.value,
+            is_bookable=bool(td["trip"].is_bookable and td["trip"].octo_slot_id),
+            different_rental_price=td["trip"].different_rental_price,
+            custom_rental_price=float(td["trip"].custom_rental_price)
+            if td["trip"].custom_rental_price is not None
+            else None,
+            rental_price=get_trip_rental_price(td["trip"]),
+            octo_slot_id=td["trip"].octo_slot_id,
+            seats_available=td["trip"].octo_slot.seats_available
+            if td["trip"].octo_slot
+            else (
+                td["trip"].group_size_limit - td["trip"].current_bookings
+                if td["trip"].group_size_limit is not None
+                else None
+            ),
+            base_price=float(td["trip"].octo_slot.base_price)
+            if td["trip"].octo_slot
+            else (
+                float(td["trip"].trip_price)
+                if td["trip"].trip_price is not None
+                else None
+            ),
+            diving_center_name=td["trip"].diving_center.name
+            if td["trip"].diving_center
+            else None,
+            diving_center_country=td["trip"].diving_center.country
+            if td["trip"].diving_center
+            else None,
+            diving_center_region=td["trip"].diving_center.region
+            if td["trip"].diving_center
+            else None,
+            diving_center_phone=td["trip"].diving_center.phone
+            if td["trip"].diving_center
+            else None,
+            diving_center_email=td["trip"].diving_center.email
+            if td["trip"].diving_center
+            else None,
+            latitude=td["latitude"],
+            longitude=td["longitude"],
+            distance=td["distance"],
             dives=[
                 ParsedDiveResponse(
                     id=dive.id,
@@ -1781,20 +2113,37 @@ async def get_parsed_trips(
                     dive_duration=dive.dive_duration,
                     dive_description=dive.dive_description,
                     dive_site_name=dive.dive_site.name if dive.dive_site else None,
-                    dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
-                    dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
-                    latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
-                    longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
+                    dive_site_average_rating=sum(
+                        r.score for r in dive.dive_site.ratings
+                    )
+                    / len(dive.dive_site.ratings)
+                    if dive.dive_site and dive.dive_site.ratings
+                    else None,
+                    dive_site_tags=[
+                        {"id": t.tag.id, "name": t.tag.name}
+                        for t in dive.dive_site.tags
+                        if t.tag
+                    ]
+                    if dive.dive_site and dive.dive_site.tags
+                    else [],
+                    latitude=float(dive.dive_site.latitude)
+                    if dive.dive_site and dive.dive_site.latitude is not None
+                    else None,
+                    longitude=float(dive.dive_site.longitude)
+                    if dive.dive_site and dive.dive_site.longitude is not None
+                    else None,
                     created_at=dive.created_at,
-                    updated_at=dive.updated_at
+                    updated_at=dive.updated_at,
                 )
-                for dive in td['trip'].dives
+                for dive in td["trip"].dives
             ],
-            source_newsletter_id=td['trip'].source_newsletter_id,
-            newsletter_content=td['trip'].newsletter_content if hasattr(td['trip'], 'newsletter_content') else None,
-            extracted_at=td['trip'].extracted_at,
-            created_at=td['trip'].created_at,
-            updated_at=td['trip'].updated_at
+            source_newsletter_id=td["trip"].source_newsletter_id,
+            newsletter_content=td["trip"].newsletter_content
+            if hasattr(td["trip"], "newsletter_content")
+            else None,
+            extracted_at=td["trip"].extracted_at,
+            created_at=td["trip"].created_at,
+            updated_at=td["trip"].updated_at,
         )
         for td in trip_data
     ]
@@ -1803,13 +2152,9 @@ async def get_parsed_trips(
     from fastapi.responses import Response
 
     response_data = ParsedDiveTripListResponse(
-        items=items,
-        total=total_count,
-        page=page,
-        size=page_size,
-        pages=total_pages
+        items=items, total=total_count, page=page, size=page_size, pages=total_pages
     )
-    
+
     # Create response with custom headers if match types are available
     if match_types:
         # Optimize match_types to prevent extremely large headers
@@ -1818,75 +2163,92 @@ async def get_parsed_trips(
         for trip_id, match_info in match_types.items():
             # Include only essential fields to reduce header size
             optimized_match_types[trip_id] = {
-                'type': match_info.get('type', 'unknown'),
-                'score': round(match_info.get('score', 0), 2) if match_info.get('score') else 0
+                "type": match_info.get("type", "unknown"),
+                "score": round(match_info.get("score", 0), 2)
+                if match_info.get("score")
+                else 0,
             }
-        
+
         # Convert to JSON and check size
-        match_types_json = orjson.dumps(optimized_match_types, option=orjson.OPT_NON_STR_KEYS).decode('utf-8')
-        
+        match_types_json = orjson.dumps(
+            optimized_match_types, option=orjson.OPT_NON_STR_KEYS
+        ).decode("utf-8")
+
         # If header is still too large, truncate or omit it
         if len(match_types_json) > 8000:  # 8KB limit for headers
             # Log warning about large header
             import logging
+
             logger = logging.getLogger(__name__)
-            logger.warning(f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors")
+            logger.warning(
+                f"X-Match-Types header too large ({len(match_types_json)} chars), omitting to prevent nginx errors"
+            )
             # Return response without the header
             return Response(
                 content=orjson.dumps(response_data.model_dump()),
-                media_type="application/json"
+                media_type="application/json",
             )
-        
+
         response = Response(
             content=orjson.dumps(response_data.model_dump()),
             media_type="application/json",
-            headers={"X-Match-Types": match_types_json}
+            headers={"X-Match-Types": match_types_json},
         )
         return response
-    
+
     return response_data
+
 
 @router.get("/{newsletter_id}", response_model=NewsletterResponse)
 async def get_newsletter(
     newsletter_id: int,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get a specific newsletter by ID.
     """
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can view newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can view newsletters"
+        )
 
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
 
-    trip_count = db.query(ParsedDiveTrip).filter(
-        ParsedDiveTrip.source_newsletter_id == newsletter.id
-    ).count()
+    trip_count = (
+        db.query(ParsedDiveTrip)
+        .filter(ParsedDiveTrip.source_newsletter_id == newsletter.id)
+        .count()
+    )
 
     return {
         "id": newsletter.id,
         "content": newsletter.content,
         "received_at": newsletter.received_at,
-        "trips_count": trip_count
+        "trips_count": trip_count,
     }
+
 
 @router.put("/{newsletter_id}", response_model=NewsletterResponse)
 async def update_newsletter(
     newsletter_id: int,
     newsletter_data: NewsletterUpdateRequest,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can update newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can update newsletters"
+        )
     """
     Update a newsletter's content.
     """
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can update newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can update newsletters"
+        )
 
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
@@ -1898,39 +2260,48 @@ async def update_newsletter(
     db.commit()
     db.refresh(newsletter)
 
-    trip_count = db.query(ParsedDiveTrip).filter(
-        ParsedDiveTrip.source_newsletter_id == newsletter.id
-    ).count()
+    trip_count = (
+        db.query(ParsedDiveTrip)
+        .filter(ParsedDiveTrip.source_newsletter_id == newsletter.id)
+        .count()
+    )
 
     return {
         "id": newsletter.id,
         "content": newsletter.content,
         "received_at": newsletter.received_at,
-        "trips_count": trip_count
+        "trips_count": trip_count,
     }
+
 
 @router.delete("/{newsletter_id}")
 async def delete_newsletter(
     newsletter_id: int,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can delete newsletters"
+        )
     """
     Delete a newsletter and all its associated trips.
     """
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can delete newsletters"
+        )
 
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
 
     # Delete associated trips first
-    trips = db.query(ParsedDiveTrip).filter(
-        ParsedDiveTrip.source_newsletter_id == newsletter_id
-    ).all()
+    trips = (
+        db.query(ParsedDiveTrip)
+        .filter(ParsedDiveTrip.source_newsletter_id == newsletter_id)
+        .all()
+    )
 
     for trip in trips:
         db.delete(trip)
@@ -1939,21 +2310,28 @@ async def delete_newsletter(
     db.delete(newsletter)
     db.commit()
 
-    return {"message": f"Newsletter and {len(trips)} associated trips deleted successfully"}
+    return {
+        "message": f"Newsletter and {len(trips)} associated trips deleted successfully"
+    }
+
 
 @router.delete("/", response_model=NewsletterDeleteResponse)
 async def delete_newsletters(
     delete_request: NewsletterDeleteRequest,
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can delete newsletters"
+        )
     """
     Mass delete multiple newsletters and their associated trips.
     """
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can delete newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can delete newsletters"
+        )
 
     deleted_count = 0
     total_trips_deleted = 0
@@ -1962,9 +2340,11 @@ async def delete_newsletters(
         newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
         if newsletter:
             # Delete associated trips first
-            trips = db.query(ParsedDiveTrip).filter(
-                ParsedDiveTrip.source_newsletter_id == newsletter_id
-            ).all()
+            trips = (
+                db.query(ParsedDiveTrip)
+                .filter(ParsedDiveTrip.source_newsletter_id == newsletter_id)
+                .all()
+            )
 
             for trip in trips:
                 db.delete(trip)
@@ -1979,14 +2359,15 @@ async def delete_newsletters(
 
     return NewsletterDeleteResponse(
         deleted_count=deleted_count,
-        message=f"Deleted {deleted_count} newsletters and {total_trips_deleted} associated trips"
+        message=f"Deleted {deleted_count} newsletters and {total_trips_deleted} associated trips",
     )
+
 
 @router.delete("/trips/{trip_id}")
 async def delete_parsed_trip(
     trip_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Delete a parsed dive trip. Admins, moderators, and center managers can delete trips.
@@ -1998,14 +2379,19 @@ async def delete_parsed_trip(
     # Permission check: admin/moderator OR owner/manager of the trip's diving center
     if not current_user.is_admin and not current_user.is_moderator:
         if not trip.diving_center_id:
-            raise HTTPException(status_code=403, detail="Only admins and moderators can delete trips without a diving center")
-        
+            raise HTTPException(
+                status_code=403,
+                detail="Only admins and moderators can delete trips without a diving center",
+            )
+
         # Use can_manage_diving_center for consistent permission checking
         try:
             await can_manage_diving_center(trip.diving_center_id, current_user, db)
         except HTTPException as e:
             if e.status_code == 403:
-                raise HTTPException(status_code=403, detail="Not authorized to delete this trip")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to delete this trip"
+                )
             raise e
 
     db.delete(trip)
@@ -2013,21 +2399,26 @@ async def delete_parsed_trip(
 
     return {"message": "Trip deleted successfully"}
 
+
 @router.post("/{newsletter_id}/reparse")
 async def reparse_newsletter(
     newsletter_id: int,
     use_openai: str = Form("true"),
     current_user: User = Depends(is_admin_or_moderator),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can reparse newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can reparse newsletters"
+        )
     """
     Re-parse a previously uploaded newsletter for dive trip information.
     This will delete existing parsed trips and create new ones.
     """
     if not current_user.is_admin and not current_user.is_moderator:
-        raise HTTPException(status_code=403, detail="Only admins and moderators can reparse newsletters")
+        raise HTTPException(
+            status_code=403, detail="Only admins and moderators can reparse newsletters"
+        )
 
     newsletter = db.query(Newsletter).filter(Newsletter.id == newsletter_id).first()
     if not newsletter:
@@ -2035,9 +2426,11 @@ async def reparse_newsletter(
 
     try:
         # Delete existing parsed trips for this newsletter
-        existing_trips = db.query(ParsedDiveTrip).filter(
-            ParsedDiveTrip.source_newsletter_id == newsletter_id
-        ).all()
+        existing_trips = (
+            db.query(ParsedDiveTrip)
+            .filter(ParsedDiveTrip.source_newsletter_id == newsletter_id)
+            .all()
+        )
 
         for trip in existing_trips:
             db.delete(trip)
@@ -2047,17 +2440,23 @@ async def reparse_newsletter(
         # Parse the newsletter content again (metadata will be extracted automatically)
         try:
             # Extract diving center from metadata if present
-            diving_center_id_from_metadata = extract_diving_center_from_metadata(newsletter.content)
-            
-            if use_openai.lower() == 'true':
-                parsed_trips = await parse_newsletter_with_openai(newsletter.content, db, diving_center_id_from_metadata)
+            diving_center_id_from_metadata = extract_diving_center_from_metadata(
+                newsletter.content
+            )
+
+            if use_openai.lower() == "true":
+                parsed_trips = await parse_newsletter_with_openai(
+                    newsletter.content, db, diving_center_id_from_metadata
+                )
             else:
-                parsed_trips = parse_newsletter_content(newsletter.content, db, diving_center_id_from_metadata)
-            
+                parsed_trips = parse_newsletter_content(
+                    newsletter.content, db, diving_center_id_from_metadata
+                )
+
             # Ensure diving_center_id is set from metadata if available
             if diving_center_id_from_metadata is not None:
                 for trip_data in parsed_trips:
-                    trip_data['diving_center_id'] = diving_center_id_from_metadata
+                    trip_data["diving_center_id"] = diving_center_id_from_metadata
 
             created_trips = []
 
@@ -2065,15 +2464,19 @@ async def reparse_newsletter(
             for trip_data in parsed_trips:
                 # Handle date parsing with better error handling
                 trip_date = None
-                if trip_data.get('trip_date'):
-                    trip_date_str = trip_data['trip_date']
+                if trip_data.get("trip_date"):
+                    trip_date_str = trip_data["trip_date"]
                     if isinstance(trip_date_str, str):
                         # Skip placeholder dates like "YYYY-MM-DD"
                         if trip_date_str == "YYYY-MM-DD" or "YYYY" in trip_date_str:
-                            logger.warning(f"Skipping placeholder date: {trip_date_str}")
+                            logger.warning(
+                                f"Skipping placeholder date: {trip_date_str}"
+                            )
                             continue
                         try:
-                            trip_date = datetime.strptime(trip_date_str, '%Y-%m-%d').date()
+                            trip_date = datetime.strptime(
+                                trip_date_str, "%Y-%m-%d"
+                            ).date()
                         except ValueError as e:
                             logger.error(f"Invalid date format '{trip_date_str}': {e}")
                             continue
@@ -2084,42 +2487,46 @@ async def reparse_newsletter(
                     continue
 
                 # Validate and convert difficulty_code if provided
-                trip_difficulty_code = trip_data.get('trip_difficulty_code')
+                trip_difficulty_code = trip_data.get("trip_difficulty_code")
                 trip_difficulty_id = None
                 if trip_difficulty_code:
-                    trip_difficulty_id = get_difficulty_id_by_code(db, trip_difficulty_code)
+                    trip_difficulty_id = get_difficulty_id_by_code(
+                        db, trip_difficulty_code
+                    )
                     if trip_difficulty_id is None:
-                        logger.warning(f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip")
+                        logger.warning(
+                            f"Invalid difficulty_code: {trip_difficulty_code} for trip, skipping this trip"
+                        )
                         continue  # Skip this trip rather than fail entire import
 
                 trip = ParsedDiveTrip(
                     source_newsletter_id=newsletter.id,
-                    diving_center_id=trip_data.get('diving_center_id'),
+                    diving_center_id=trip_data.get("diving_center_id"),
                     trip_date=trip_date,
-                    trip_time=trip_data.get('trip_time'),
-                    trip_duration=trip_data.get('trip_duration'),
+                    trip_time=trip_data.get("trip_time"),
+                    trip_duration=trip_data.get("trip_duration"),
                     trip_difficulty_id=trip_difficulty_id,
-                    trip_price=trip_data.get('trip_price'),
-                    trip_currency=trip_data.get('trip_currency', 'EUR'),
-                    group_size_limit=trip_data.get('group_size_limit'),
-                    current_bookings=trip_data.get('current_bookings', 0),
-                    trip_description=trip_data.get('trip_description'),
-                    special_requirements=trip_data.get('special_requirements'),
-                    trip_status=trip_data.get('trip_status', 'scheduled')
+                    trip_price=trip_data.get("trip_price"),
+                    trip_currency=trip_data.get("trip_currency", "EUR"),
+                    group_size_limit=trip_data.get("group_size_limit"),
+                    current_bookings=trip_data.get("current_bookings", 0),
+                    trip_description=trip_data.get("trip_description"),
+                    special_requirements=trip_data.get("special_requirements"),
+                    trip_status=trip_data.get("trip_status", "scheduled"),
                 )
                 db.add(trip)
                 db.flush()  # Get the trip ID
 
                 # Create ParsedDive records for each dive in the trip
-                if trip_data.get('dives'):
-                    for dive_data in trip_data['dives']:
+                if trip_data.get("dives"):
+                    for dive_data in trip_data["dives"]:
                         dive = ParsedDive(
                             trip_id=trip.id,
-                            dive_site_id=dive_data.get('dive_site_id'),
-                            dive_number=dive_data.get('dive_number', 1),
-                            dive_time=dive_data.get('dive_time'),
-                            dive_duration=dive_data.get('dive_duration'),
-                            dive_description=dive_data.get('dive_description')
+                            dive_site_id=dive_data.get("dive_site_id"),
+                            dive_number=dive_data.get("dive_number", 1),
+                            dive_time=dive_data.get("dive_time"),
+                            dive_duration=dive_data.get("dive_duration"),
+                            dive_description=dive_data.get("dive_description"),
                         )
                         db.add(dive)
 
@@ -2130,7 +2537,7 @@ async def reparse_newsletter(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=len(created_trips),
-                message=f"Newsletter re-parsed successfully. {len(existing_trips)} old trips deleted, {len(created_trips)} new trips created."
+                message=f"Newsletter re-parsed successfully. {len(existing_trips)} old trips deleted, {len(created_trips)} new trips created.",
             )
 
         except Exception as e:
@@ -2138,18 +2545,21 @@ async def reparse_newsletter(
             return NewsletterUploadResponse(
                 newsletter_id=newsletter.id,
                 trips_created=0,
-                message=f"Newsletter re-parsing failed: {str(e)}"
+                message=f"Newsletter re-parsing failed: {str(e)}",
             )
 
     except Exception as e:
         logger.error(f"Error re-parsing newsletter: {e}")
-        raise HTTPException(status_code=500, detail=f"Error re-parsing newsletter: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error re-parsing newsletter: {str(e)}"
+        )
+
 
 @router.post("/trips", response_model=ParsedDiveTripResponse)
 async def create_parsed_trip(
     trip_data: ParsedDiveTripCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a new parsed dive trip manually.
@@ -2160,40 +2570,49 @@ async def create_parsed_trip(
     if not (current_user.is_admin or current_user.is_moderator):
         # Check if user owns or manages any approved diving centers
         from app.models import DivingCenterManager, OwnershipStatus
-        has_manageable_center = db.query(DivingCenter).filter(
-            or_(
-                and_(
-                    DivingCenter.owner_id == current_user.id,
-                    DivingCenter.ownership_status == OwnershipStatus.approved
-                ),
-                DivingCenter.managers.any(DivingCenterManager.user_id == current_user.id)
+
+        has_manageable_center = (
+            db.query(DivingCenter)
+            .filter(
+                or_(
+                    and_(
+                        DivingCenter.owner_id == current_user.id,
+                        DivingCenter.ownership_status == OwnershipStatus.approved,
+                    ),
+                    DivingCenter.managers.any(
+                        DivingCenterManager.user_id == current_user.id
+                    ),
+                )
             )
-        ).count() > 0
-        
+            .count()
+            > 0
+        )
+
         if not has_manageable_center:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions"
             )
-    
+
     # Check if diving_center_id is provided (required for all users)
     if not trip_data.diving_center_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="diving_center_id is required"
+            detail="diving_center_id is required",
         )
-    
+
     # Verify user can manage this diving center (admin/moderator can manage any, owners only their own)
     await can_manage_diving_center(trip_data.diving_center_id, current_user, db)
 
     # Validate and convert difficulty_code if provided
     trip_difficulty_id = None
     if trip_data.trip_difficulty_code:
-        trip_difficulty_id = get_difficulty_id_by_code(db, trip_data.trip_difficulty_code)
+        trip_difficulty_id = get_difficulty_id_by_code(
+            db, trip_data.trip_difficulty_code
+        )
         if trip_difficulty_id is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"
+                detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
             )
 
     try:
@@ -2210,7 +2629,9 @@ async def create_parsed_trip(
             trip_description=trip_data.trip_description,
             special_requirements=trip_data.special_requirements,
             trip_status=trip_data.trip_status,
-            different_rental_price=trip_data.different_rental_price if trip_data.different_rental_price is not None else True,
+            different_rental_price=trip_data.different_rental_price
+            if trip_data.different_rental_price is not None
+            else True,
             custom_rental_price=trip_data.custom_rental_price,
         )
         db.add(trip)
@@ -2225,7 +2646,7 @@ async def create_parsed_trip(
                 dive_number=dive_data.dive_number,
                 dive_time=dive_data.dive_time,
                 dive_duration=dive_data.dive_duration,
-                dive_description=dive_data.dive_description
+                dive_description=dive_data.dive_description,
             )
             db.add(dive)
             dives.append(dive)
@@ -2237,48 +2658,81 @@ async def create_parsed_trip(
             from app.services.trip_octo_provisioning_service import (
                 TripOctoProvisioningService,
             )
+
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
                 trip=trip,
                 enable_booking=True,
-                base_price=float(trip_data.trip_price) if trip_data.trip_price is not None else None,
+                base_price=float(trip_data.trip_price)
+                if trip_data.trip_price is not None
+                else None,
                 currency=trip_data.trip_currency,
-                seats_limit=trip_data.group_size_limit
+                seats_limit=trip_data.group_size_limit,
             )
 
         # Build the response with dives
         # We need to fetch dive sites with ratings/tags for accurate response
         db.commit()
         db.refresh(trip)
-        
+
         # Load the newly created trip with relations
         from app.models import DiveSiteTag
-        trip = db.query(ParsedDiveTrip).options(
-            joinedload(ParsedDiveTrip.difficulty),
-            joinedload(ParsedDiveTrip.diving_center),
-            joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
-            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
-            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
-        ).filter(ParsedDiveTrip.id == trip.id).first()
+
+        trip = (
+            db.query(ParsedDiveTrip)
+            .options(
+                joinedload(ParsedDiveTrip.difficulty),
+                joinedload(ParsedDiveTrip.diving_center),
+                joinedload(ParsedDiveTrip.octo_slot)
+                .joinedload(OctoAvailabilitySlot.product)
+                .selectinload(OctoProduct.units),
+                selectinload(ParsedDiveTrip.dives)
+                .joinedload(ParsedDive.dive_site)
+                .selectinload(DiveSite.ratings),
+                selectinload(ParsedDiveTrip.dives)
+                .joinedload(ParsedDive.dive_site)
+                .selectinload(DiveSite.tags)
+                .joinedload(DiveSiteTag.tag),
+            )
+            .filter(ParsedDiveTrip.id == trip.id)
+            .first()
+        )
 
         dive_responses = []
         for dive in trip.dives:
-            dive_responses.append(ParsedDiveResponse(
-                id=dive.id,
-                trip_id=dive.trip_id,
-                dive_site_id=dive.dive_site_id,
-                dive_number=dive.dive_number,
-                dive_time=dive.dive_time,
-                dive_duration=dive.dive_duration,
-                dive_description=dive.dive_description,
-                dive_site_name=dive.dive_site.name if dive.dive_site else None,
-                dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
-                dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
-                latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
-                longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
-                created_at=dive.created_at,
-                updated_at=dive.updated_at
-            ))
+            dive_responses.append(
+                ParsedDiveResponse(
+                    id=dive.id,
+                    trip_id=dive.trip_id,
+                    dive_site_id=dive.dive_site_id,
+                    dive_number=dive.dive_number,
+                    dive_time=dive.dive_time,
+                    dive_duration=dive.dive_duration,
+                    dive_description=dive.dive_description,
+                    dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                    dive_site_average_rating=sum(
+                        r.score for r in dive.dive_site.ratings
+                    )
+                    / len(dive.dive_site.ratings)
+                    if dive.dive_site and dive.dive_site.ratings
+                    else None,
+                    dive_site_tags=[
+                        {"id": t.tag.id, "name": t.tag.name}
+                        for t in dive.dive_site.tags
+                        if t.tag
+                    ]
+                    if dive.dive_site and dive.dive_site.tags
+                    else [],
+                    latitude=float(dive.dive_site.latitude)
+                    if dive.dive_site and dive.dive_site.latitude is not None
+                    else None,
+                    longitude=float(dive.dive_site.longitude)
+                    if dive.dive_site and dive.dive_site.longitude is not None
+                    else None,
+                    created_at=dive.created_at,
+                    updated_at=dive.updated_at,
+                )
+            )
 
         return ParsedDiveTripResponse(
             id=trip.id,
@@ -2297,34 +2751,57 @@ async def create_parsed_trip(
             trip_status=trip.trip_status.value,
             is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
             different_rental_price=trip.different_rental_price,
-            custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+            custom_rental_price=float(trip.custom_rental_price)
+            if trip.custom_rental_price is not None
+            else None,
             rental_price=get_trip_rental_price(trip),
             octo_slot_id=trip.octo_slot_id,
-            seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
-            base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
+            seats_available=trip.octo_slot.seats_available
+            if trip.octo_slot
+            else (
+                trip.group_size_limit - trip.current_bookings
+                if trip.group_size_limit is not None
+                else None
+            ),
+            base_price=float(trip.octo_slot.base_price)
+            if trip.octo_slot
+            else (float(trip.trip_price) if trip.trip_price is not None else None),
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
-            diving_center_country=trip.diving_center.country if trip.diving_center else None,
-            diving_center_region=trip.diving_center.region if trip.diving_center else None,
-            diving_center_phone=trip.diving_center.phone if trip.diving_center else None,
-            diving_center_email=trip.diving_center.email if trip.diving_center else None,
-            latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
-            longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
+            diving_center_country=trip.diving_center.country
+            if trip.diving_center
+            else None,
+            diving_center_region=trip.diving_center.region
+            if trip.diving_center
+            else None,
+            diving_center_phone=trip.diving_center.phone
+            if trip.diving_center
+            else None,
+            diving_center_email=trip.diving_center.email
+            if trip.diving_center
+            else None,
+            latitude=float(trip.diving_center.latitude)
+            if trip.diving_center and trip.diving_center.latitude is not None
+            else None,
+            longitude=float(trip.diving_center.longitude)
+            if trip.diving_center and trip.diving_center.longitude is not None
+            else None,
             dives=dive_responses,
             extracted_at=trip.extracted_at,
             created_at=trip.created_at,
-            updated_at=trip.updated_at
+            updated_at=trip.updated_at,
         )
 
     except Exception as e:
         logger.error(f"Error creating parsed trip: {e}")
         raise HTTPException(status_code=500, detail=f"Error creating trip: {str(e)}")
 
+
 @router.get("/trips/{trip_id}", response_model=ParsedDiveTripResponse)
 async def get_parsed_trip(
     trip_id: int,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get a specific parsed dive trip by ID.
@@ -2332,43 +2809,68 @@ async def get_parsed_trip(
     """
 
     # Eager load difficulty relationship and dives collection to prevent N+1 queries
-    trip = db.query(ParsedDiveTrip).options(
-        joinedload(ParsedDiveTrip.difficulty),
-        joinedload(ParsedDiveTrip.diving_center),
-        joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
-        selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site)
-    ).filter(ParsedDiveTrip.id == trip_id).first()
+    trip = (
+        db.query(ParsedDiveTrip)
+        .options(
+            joinedload(ParsedDiveTrip.difficulty),
+            joinedload(ParsedDiveTrip.diving_center),
+            joinedload(ParsedDiveTrip.octo_slot)
+            .joinedload(OctoAvailabilitySlot.product)
+            .selectinload(OctoProduct.units),
+            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site),
+        )
+        .filter(ParsedDiveTrip.id == trip_id)
+        .first()
+    )
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
 
     # Increment view count in the background without blocking the response
     from app.utils import increment_view_count
+
     background_tasks.add_task(increment_view_count, db, ParsedDiveTrip, trip.id)
 
     # Find matching user dives for this trip date to allow re-uploading profiles
     matching_user_dives_map = {}
     if current_user:
         # Fetch all dives by this user on the same date as the trip
-        user_dives = db.query(Dive).filter(
-            Dive.user_id == current_user.id,
-            Dive.dive_date == trip.trip_date
-        ).all()
-        
+        user_dives = (
+            db.query(Dive)
+            .filter(Dive.user_id == current_user.id, Dive.dive_date == trip.trip_date)
+            .all()
+        )
+
         # Track which user dives have been matched to avoid double-matching
         matched_user_dive_ids = set()
-        
+
         for p_dive in trip.dives:
             if p_dive.dive_site_id:
                 # 1. Try exact match: site + time
                 if p_dive.dive_time:
-                    matched = next((ud for ud in user_dives if ud.dive_site_id == p_dive.dive_site_id and ud.dive_time == p_dive.dive_time), None)
+                    matched = next(
+                        (
+                            ud
+                            for ud in user_dives
+                            if ud.dive_site_id == p_dive.dive_site_id
+                            and ud.dive_time == p_dive.dive_time
+                        ),
+                        None,
+                    )
                     if matched:
                         matching_user_dives_map[p_dive.id] = matched
                         matched_user_dive_ids.add(matched.id)
                         continue
-                
+
                 # 2. Try site match only (excluding already matched ones)
-                matched = next((ud for ud in user_dives if ud.dive_site_id == p_dive.dive_site_id and ud.id not in matched_user_dive_ids), None)
+                matched = next(
+                    (
+                        ud
+                        for ud in user_dives
+                        if ud.dive_site_id == p_dive.dive_site_id
+                        and ud.id not in matched_user_dive_ids
+                    ),
+                    None,
+                )
                 if matched:
                     matching_user_dives_map[p_dive.id] = matched
                     matched_user_dive_ids.add(matched.id)
@@ -2390,60 +2892,100 @@ async def get_parsed_trip(
         trip_status=trip.trip_status.value,
         is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
         different_rental_price=trip.different_rental_price,
-        custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+        custom_rental_price=float(trip.custom_rental_price)
+        if trip.custom_rental_price is not None
+        else None,
         rental_price=get_trip_rental_price(trip),
         octo_slot_id=trip.octo_slot_id,
-        seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
-        base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
+        seats_available=trip.octo_slot.seats_available
+        if trip.octo_slot
+        else (
+            trip.group_size_limit - trip.current_bookings
+            if trip.group_size_limit is not None
+            else None
+        ),
+        base_price=float(trip.octo_slot.base_price)
+        if trip.octo_slot
+        else (float(trip.trip_price) if trip.trip_price is not None else None),
         diving_center_name=trip.diving_center.name if trip.diving_center else None,
-        diving_center_country=trip.diving_center.country if trip.diving_center else None,
+        diving_center_country=trip.diving_center.country
+        if trip.diving_center
+        else None,
         diving_center_region=trip.diving_center.region if trip.diving_center else None,
         diving_center_phone=trip.diving_center.phone if trip.diving_center else None,
         diving_center_email=trip.diving_center.email if trip.diving_center else None,
-        latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
-        longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
+        latitude=float(trip.diving_center.latitude)
+        if trip.diving_center and trip.diving_center.latitude is not None
+        else None,
+        longitude=float(trip.diving_center.longitude)
+        if trip.diving_center and trip.diving_center.longitude is not None
+        else None,
         # Restrict raw newsletter content access (Finding 4: Medium)
-        newsletter_content=(\
-            db.query(Newsletter).filter(Newsletter.id == trip.source_newsletter_id).first().content \
-            if trip.source_newsletter_id and (\
-                current_user.is_admin or \
-                current_user.is_moderator or \
-                (trip.diving_center_id and (\
-                    db.query(DivingCenter).filter(DivingCenter.id == trip.diving_center_id, DivingCenter.owner_id == current_user.id).first() or\
-                    db.query(DivingCenterManager).filter(DivingCenterManager.diving_center_id == trip.diving_center_id, DivingCenterManager.user_id == current_user.id).first()\
-                ))\
-            ) else None\
+        newsletter_content=(
+            db.query(Newsletter)
+            .filter(Newsletter.id == trip.source_newsletter_id)
+            .first()
+            .content
+            if trip.source_newsletter_id
+            and (
+                current_user.is_admin
+                or current_user.is_moderator
+                or (
+                    trip.diving_center_id
+                    and (
+                        db.query(DivingCenter)
+                        .filter(
+                            DivingCenter.id == trip.diving_center_id,
+                            DivingCenter.owner_id == current_user.id,
+                        )
+                        .first()
+                        or db.query(DivingCenterManager)
+                        .filter(
+                            DivingCenterManager.diving_center_id
+                            == trip.diving_center_id,
+                            DivingCenterManager.user_id == current_user.id,
+                        )
+                        .first()
+                    )
+                )
+            )
+            else None
         ),
-        dives=[\
-            ParsedDiveResponse(\
-                id=dive.id,\
-                trip_id=dive.trip_id,\
-                dive_site_id=dive.dive_site_id,\
-                dive_number=dive.dive_number,\
-                dive_time=dive.dive_time,\
-                dive_duration=dive.dive_duration,\
-                dive_description=dive.dive_description,\
-                dive_site_name=dive.dive_site.name if dive.dive_site else None,\
-                dive_site_country=dive.dive_site.country if dive.dive_site else None,\
-                dive_site_region=dive.dive_site.region if dive.dive_site else None,\
-                user_dive_id=matching_user_dives_map.get(dive.id).id if matching_user_dives_map.get(dive.id) else None,\
-                user_dive_name=matching_user_dives_map.get(dive.id).name if matching_user_dives_map.get(dive.id) else None,\
-                created_at=dive.created_at,\
-                updated_at=dive.updated_at\
-            )\
-            for dive in trip.dives\
+        dives=[
+            ParsedDiveResponse(
+                id=dive.id,
+                trip_id=dive.trip_id,
+                dive_site_id=dive.dive_site_id,
+                dive_number=dive.dive_number,
+                dive_time=dive.dive_time,
+                dive_duration=dive.dive_duration,
+                dive_description=dive.dive_description,
+                dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                dive_site_country=dive.dive_site.country if dive.dive_site else None,
+                dive_site_region=dive.dive_site.region if dive.dive_site else None,
+                user_dive_id=matching_user_dives_map.get(dive.id).id
+                if matching_user_dives_map.get(dive.id)
+                else None,
+                user_dive_name=matching_user_dives_map.get(dive.id).name
+                if matching_user_dives_map.get(dive.id)
+                else None,
+                created_at=dive.created_at,
+                updated_at=dive.updated_at,
+            )
+            for dive in trip.dives
         ],
         extracted_at=trip.extracted_at,
         created_at=trip.created_at,
-        updated_at=trip.updated_at
+        updated_at=trip.updated_at,
     )
+
 
 @router.put("/trips/{trip_id}", response_model=ParsedDiveTripResponse)
 async def update_parsed_trip(
     trip_id: int,
     trip_data: ParsedDiveTripUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Update a parsed dive trip.
@@ -2455,14 +2997,19 @@ async def update_parsed_trip(
     # Permission check: admin/moderator OR owner/manager of the trip's diving center
     if not current_user.is_admin and not current_user.is_moderator:
         if not trip.diving_center_id:
-            raise HTTPException(status_code=403, detail="Only admins and moderators can update trips without a diving center")
-        
+            raise HTTPException(
+                status_code=403,
+                detail="Only admins and moderators can update trips without a diving center",
+            )
+
         # Use can_manage_diving_center for consistent permission checking
         try:
             await can_manage_diving_center(trip.diving_center_id, current_user, db)
         except HTTPException as e:
             if e.status_code == 403:
-                raise HTTPException(status_code=403, detail="Not authorized to update this trip")
+                raise HTTPException(
+                    status_code=403, detail="Not authorized to update this trip"
+                )
             raise e
 
     try:
@@ -2476,11 +3023,13 @@ async def update_parsed_trip(
         if trip_data.trip_duration is not None:
             trip.trip_duration = trip_data.trip_duration
         if trip_data.trip_difficulty_code is not None:
-            trip_difficulty_id = get_difficulty_id_by_code(db, trip_data.trip_difficulty_code)
+            trip_difficulty_id = get_difficulty_id_by_code(
+                db, trip_data.trip_difficulty_code
+            )
             if trip_difficulty_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING"
+                    detail=f"Invalid difficulty_code: {trip_data.trip_difficulty_code}. Must be one of: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING",
                 )
             trip.trip_difficulty_id = trip_difficulty_id
         if trip_data.trip_price is not None:
@@ -2515,61 +3064,102 @@ async def update_parsed_trip(
                     dive_number=dive_data.dive_number,
                     dive_time=dive_data.dive_time,
                     dive_duration=dive_data.dive_duration,
-                    dive_description=dive_data.dive_description
+                    dive_description=dive_data.dive_description,
                 )
                 db.add(dive)
 
         db.commit()
         db.refresh(trip)
 
-        should_sync_slot = (
-            trip_data.enable_online_booking is not None
-            or (trip.is_bookable and (trip_data.trip_price is not None or trip_data.different_rental_price is not None or trip_data.custom_rental_price is not None))
+        should_sync_slot = trip_data.enable_online_booking is not None or (
+            trip.is_bookable
+            and (
+                trip_data.trip_price is not None
+                or trip_data.different_rental_price is not None
+                or trip_data.custom_rental_price is not None
+            )
         )
         if should_sync_slot:
             from app.services.trip_octo_provisioning_service import (
                 TripOctoProvisioningService,
             )
-            is_enabled = trip_data.enable_online_booking if trip_data.enable_online_booking is not None else trip.is_bookable
+
+            is_enabled = (
+                trip_data.enable_online_booking
+                if trip_data.enable_online_booking is not None
+                else trip.is_bookable
+            )
             TripOctoProvisioningService().provision_or_sync_slot(
                 db=db,
                 trip=trip,
                 enable_booking=is_enabled,
-                base_price=float(trip.trip_price) if trip.trip_price is not None else None,
+                base_price=float(trip.trip_price)
+                if trip.trip_price is not None
+                else None,
                 currency=trip.trip_currency,
-                seats_limit=trip.group_size_limit
+                seats_limit=trip.group_size_limit,
             )
 
         # Load the updated trip with relations
         db.commit()
         from app.models import DiveSiteTag
-        trip = db.query(ParsedDiveTrip).options(
-            joinedload(ParsedDiveTrip.difficulty),
-            joinedload(ParsedDiveTrip.diving_center),
-            joinedload(ParsedDiveTrip.octo_slot).joinedload(OctoAvailabilitySlot.product).selectinload(OctoProduct.units),
-            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.ratings),
-            selectinload(ParsedDiveTrip.dives).joinedload(ParsedDive.dive_site).selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
-        ).filter(ParsedDiveTrip.id == trip.id).first()
+
+        trip = (
+            db.query(ParsedDiveTrip)
+            .options(
+                joinedload(ParsedDiveTrip.difficulty),
+                joinedload(ParsedDiveTrip.diving_center),
+                joinedload(ParsedDiveTrip.octo_slot)
+                .joinedload(OctoAvailabilitySlot.product)
+                .selectinload(OctoProduct.units),
+                selectinload(ParsedDiveTrip.dives)
+                .joinedload(ParsedDive.dive_site)
+                .selectinload(DiveSite.ratings),
+                selectinload(ParsedDiveTrip.dives)
+                .joinedload(ParsedDive.dive_site)
+                .selectinload(DiveSite.tags)
+                .joinedload(DiveSiteTag.tag),
+            )
+            .filter(ParsedDiveTrip.id == trip.id)
+            .first()
+        )
 
         # Build the response with dives
         dive_responses = []
         for dive in trip.dives:
-            dive_responses.append(ParsedDiveResponse(
-                id=dive.id,
-                trip_id=dive.trip_id,
-                dive_site_id=dive.dive_site_id,
-                dive_number=dive.dive_number,
-                dive_time=dive.dive_time,
-                dive_duration=dive.dive_duration,
-                dive_description=dive.dive_description,
-                dive_site_name=dive.dive_site.name if dive.dive_site else None,
-                dive_site_average_rating=sum(r.score for r in dive.dive_site.ratings)/len(dive.dive_site.ratings) if dive.dive_site and dive.dive_site.ratings else None,
-                dive_site_tags=[{"id": t.tag.id, "name": t.tag.name} for t in dive.dive_site.tags if t.tag] if dive.dive_site and dive.dive_site.tags else [],
-                latitude=float(dive.dive_site.latitude) if dive.dive_site and dive.dive_site.latitude is not None else None,
-                longitude=float(dive.dive_site.longitude) if dive.dive_site and dive.dive_site.longitude is not None else None,
-                created_at=dive.created_at,
-                updated_at=dive.updated_at
-            ))
+            dive_responses.append(
+                ParsedDiveResponse(
+                    id=dive.id,
+                    trip_id=dive.trip_id,
+                    dive_site_id=dive.dive_site_id,
+                    dive_number=dive.dive_number,
+                    dive_time=dive.dive_time,
+                    dive_duration=dive.dive_duration,
+                    dive_description=dive.dive_description,
+                    dive_site_name=dive.dive_site.name if dive.dive_site else None,
+                    dive_site_average_rating=sum(
+                        r.score for r in dive.dive_site.ratings
+                    )
+                    / len(dive.dive_site.ratings)
+                    if dive.dive_site and dive.dive_site.ratings
+                    else None,
+                    dive_site_tags=[
+                        {"id": t.tag.id, "name": t.tag.name}
+                        for t in dive.dive_site.tags
+                        if t.tag
+                    ]
+                    if dive.dive_site and dive.dive_site.tags
+                    else [],
+                    latitude=float(dive.dive_site.latitude)
+                    if dive.dive_site and dive.dive_site.latitude is not None
+                    else None,
+                    longitude=float(dive.dive_site.longitude)
+                    if dive.dive_site and dive.dive_site.longitude is not None
+                    else None,
+                    created_at=dive.created_at,
+                    updated_at=dive.updated_at,
+                )
+            )
 
         return ParsedDiveTripResponse(
             id=trip.id,
@@ -2588,22 +3178,44 @@ async def update_parsed_trip(
             trip_status=trip.trip_status.value,
             is_bookable=bool(trip.is_bookable and trip.octo_slot_id),
             different_rental_price=trip.different_rental_price,
-            custom_rental_price=float(trip.custom_rental_price) if trip.custom_rental_price is not None else None,
+            custom_rental_price=float(trip.custom_rental_price)
+            if trip.custom_rental_price is not None
+            else None,
             rental_price=get_trip_rental_price(trip),
             octo_slot_id=trip.octo_slot_id,
-            seats_available=trip.octo_slot.seats_available if trip.octo_slot else (trip.group_size_limit - trip.current_bookings if trip.group_size_limit is not None else None),
-            base_price=float(trip.octo_slot.base_price) if trip.octo_slot else (float(trip.trip_price) if trip.trip_price is not None else None),
+            seats_available=trip.octo_slot.seats_available
+            if trip.octo_slot
+            else (
+                trip.group_size_limit - trip.current_bookings
+                if trip.group_size_limit is not None
+                else None
+            ),
+            base_price=float(trip.octo_slot.base_price)
+            if trip.octo_slot
+            else (float(trip.trip_price) if trip.trip_price is not None else None),
             diving_center_name=trip.diving_center.name if trip.diving_center else None,
-            diving_center_country=trip.diving_center.country if trip.diving_center else None,
-            diving_center_region=trip.diving_center.region if trip.diving_center else None,
-            diving_center_phone=trip.diving_center.phone if trip.diving_center else None,
-            diving_center_email=trip.diving_center.email if trip.diving_center else None,
-            latitude=float(trip.diving_center.latitude) if trip.diving_center and trip.diving_center.latitude is not None else None,
-            longitude=float(trip.diving_center.longitude) if trip.diving_center and trip.diving_center.longitude is not None else None,
+            diving_center_country=trip.diving_center.country
+            if trip.diving_center
+            else None,
+            diving_center_region=trip.diving_center.region
+            if trip.diving_center
+            else None,
+            diving_center_phone=trip.diving_center.phone
+            if trip.diving_center
+            else None,
+            diving_center_email=trip.diving_center.email
+            if trip.diving_center
+            else None,
+            latitude=float(trip.diving_center.latitude)
+            if trip.diving_center and trip.diving_center.latitude is not None
+            else None,
+            longitude=float(trip.diving_center.longitude)
+            if trip.diving_center and trip.diving_center.longitude is not None
+            else None,
             dives=dive_responses,
             extracted_at=trip.extracted_at,
             created_at=trip.created_at,
-            updated_at=trip.updated_at
+            updated_at=trip.updated_at,
         )
 
     except Exception as e:

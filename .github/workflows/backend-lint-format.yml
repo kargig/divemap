@@ -58,11 +58,12 @@ jobs:
         run: |
           CHANGED_FILES=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }} -- 'backend/**/*.py' ':!backend/migrations/**' || true)
           if [ -n "$CHANGED_FILES" ]; then
-            ruff format --check --config backend/pyproject.toml $CHANGED_FILES || echo "::warning::Formatting differences detected in changed files. Run 'make lint-backend-fix' or 'ruff format <file>' to reformat."
+            ruff format --check --config backend/pyproject.toml $CHANGED_FILES
           fi
 
       - name: Check Backend on Push / Manual Dispatch
         if: github.event_name != 'pull_request'
         run: |
           echo "Checking backend with Ruff..."
-          ruff check --config backend/pyproject.toml backend/app/ || true
+          ruff check --config backend/pyproject.toml backend/app/
+          ruff format --check --config backend/pyproject.toml backend/app/

@@ -26,15 +26,24 @@ from app.services.openai_service import openai_service
 
 logger = logging.getLogger(__name__)
 
+
 class ChatService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _get_system_prompt(self, request: ChatRequest, current_date: str, current_weekday: str, page_context_summary: str) -> str:
+    def _get_system_prompt(
+        self,
+        request: ChatRequest,
+        current_date: str,
+        current_weekday: str,
+        page_context_summary: str,
+    ) -> str:
         location_info = ""
         if request.user_location:
-            location_info = f"\nUser's Current Location: {request.user_location} (lat, lon)"
-            
+            location_info = (
+                f"\nUser's Current Location: {request.user_location} (lat, lon)"
+            )
+
         return f"""
 You are the Divemap Assistant, an expert scuba diving guide. 
 Your goal is to help users find dive sites, centers, marine life, and perform diving calculations.
@@ -63,40 +72,49 @@ Page Context: {page_context_summary}
 18. **Marine Life Queries**: When a user asks about finding specific marine life (e.g., corals, sharks, turtles), you should use BOTH `search_marine_life` AND `search_dive_routes` (using `poi_search`). `search_marine_life` finds sites tagged with species, while `search_dive_routes` finds specific user comments on map markers which often contain detailed sightings. If a location is provided (e.g., "Red Sea"), ensure you pass that `location` to BOTH tools simultaneously.
 """
 
-    async def process_message(self, request: ChatRequest, current_user: Optional[User] = None) -> ChatResponse:
+    async def process_message(
+        self, request: ChatRequest, current_user: Optional[User] = None
+    ) -> ChatResponse:
         """
         Agentic message processing loop using OpenAI Tool Calling.
         """
         # 1. Session Setup
         session_id = request.session_id or str(uuid.uuid4())
-        
+
         def _get_or_create_session():
-            session = self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            session = (
+                self.db.query(ChatSession).filter(ChatSession.id == session_id).first()
+            )
             expected_user_id = current_user.id if current_user else None
-            
+
             if session:
                 if session.user_id != expected_user_id:
                     from fastapi import HTTPException, status
+
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Not authorized to access this chat session."
+                        detail="Not authorized to access this chat session.",
                     )
             else:
                 session = ChatSession(id=session_id, user_id=expected_user_id)
                 self.db.add(session)
                 self.db.commit()
             return session
-            
+
         await run_in_threadpool(_get_or_create_session)
 
         # 2. Context Preparation
         current_dt = datetime.now()
         current_date = current_dt.date().isoformat()
-        current_weekday = current_dt.strftime('%A')
-        page_context_summary = await run_in_threadpool(lambda: resolve_page_context(self.db, request.page_context))
-        
-        system_prompt = self._get_system_prompt(request, current_date, current_weekday, page_context_summary)
-        
+        current_weekday = current_dt.strftime("%A")
+        page_context_summary = await run_in_threadpool(
+            lambda: resolve_page_context(self.db, request.page_context)
+        )
+
+        system_prompt = self._get_system_prompt(
+            request, current_date, current_weekday, page_context_summary
+        )
+
         messages = [{"role": "system", "content": system_prompt}]
         for msg in request.history[-10:]:
             messages.append({"role": msg.role.value, "content": msg.content})
@@ -107,67 +125,79 @@ Page Context: {page_context_summary}
         current_step = 0
         intermediate_steps = []
         collected_results = []
-        total_usage = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "cached_tokens": 0}
+        total_usage = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "cached_tokens": 0,
+        }
         final_response_text = ""
 
         while current_step < MAX_STEPS:
             current_step += 1
-            
+
             response, usage = await openai_service.get_chat_completion(
-                messages=messages,
-                tools=CHAT_TOOLS,
-                temperature=0.7
+                messages=messages, tools=CHAT_TOOLS, temperature=0.7
             )
-            
+
             # Update usage
             for k, v in usage.items():
                 total_usage[k] = total_usage.get(k, 0) + v
-            
+
             # If it's a tool call
-            if isinstance(response, list): # tool_calls
+            if isinstance(response, list):  # tool_calls
                 tool_calls = response
                 # Add the assistant's tool call to history
-                messages.append({
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": tc.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tc.function.name,
+                                    "arguments": tc.function.arguments,
+                                },
                             }
-                        } for tc in tool_calls
-                    ]
-                })
+                            for tc in tool_calls
+                        ],
+                    }
+                )
 
                 for tool_call in tool_calls:
                     name = tool_call.function.name
                     args = json.loads(tool_call.function.arguments)
-                    
-                    logger.info(f"Step {current_step}: Executing tool {name} with args {args}")
-                    
+
+                    logger.info(
+                        f"Step {current_step}: Executing tool {name} with args {args}"
+                    )
+
                     # Execute tool
                     tool_result = []
 
                     if name == "search_dive_sites":
                         tool_result = await run_in_threadpool(
-                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="dive_site", **a)
+                            lambda a=args: execute_discovery(
+                                db=self.db, entity_type_filter="dive_site", **a
+                            )
                         )
                     elif name == "search_dive_routes":
                         tool_result = await run_in_threadpool(
-                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="dive_route", **a)
+                            lambda a=args: execute_discovery(
+                                db=self.db, entity_type_filter="dive_route", **a
+                            )
                         )
                     elif name == "search_diving_centers":
                         tool_result = await run_in_threadpool(
-                            lambda a=args: execute_discovery(db=self.db, entity_type_filter="diving_center", **a)
+                            lambda a=args: execute_discovery(
+                                db=self.db, entity_type_filter="diving_center", **a
+                            )
                         )
                     elif name == "search_gear_rental":
                         tool_result = await run_in_threadpool(
                             lambda a=args: execute_other_intents(
-                                db=self.db,
-                                intent_type=IntentType.GEAR_RENTAL,
-                                **a
+                                db=self.db, intent_type=IntentType.GEAR_RENTAL, **a
                             )
                         )
                     elif name == "search_marine_life":
@@ -175,29 +205,29 @@ Page Context: {page_context_summary}
                         species = args.pop("marine_species", [])
                         tool_result = await run_in_threadpool(
                             lambda sp=species, a=args: execute_other_intents(
-                                db=self.db, 
-                                intent_type=IntentType.MARINE_LIFE, 
-                                keywords=sp, 
-                                **a
+                                db=self.db,
+                                intent_type=IntentType.MARINE_LIFE,
+                                keywords=sp,
+                                **a,
                             )
                         )
                     elif name == "calculate_diving_physics":
                         tool_result = await run_in_threadpool(
                             lambda a=args: execute_other_intents(
-                                db=self.db, 
-                                intent_type=IntentType.CALCULATOR, 
+                                db=self.db,
+                                intent_type=IntentType.CALCULATOR,
                                 calculator_params=a,
-                                **a
+                                **a,
                             )
                         )
                     elif name == "compare_certifications":
                         courses = args.pop("courses_to_compare", [])
                         tool_result = await run_in_threadpool(
                             lambda c=courses, a=args: execute_other_intents(
-                                db=self.db, 
-                                intent_type=IntentType.COMPARISON, 
+                                db=self.db,
+                                intent_type=IntentType.COMPARISON,
                                 keywords=c,
-                                **a
+                                **a,
                             )
                         )
                     elif name == "get_certification_path":
@@ -205,25 +235,34 @@ Page Context: {page_context_summary}
                         kws = [course_name] if course_name else []
                         tool_result = await run_in_threadpool(
                             lambda k=kws, a=args: execute_other_intents(
-                                db=self.db, 
-                                intent_type=IntentType.CAREER_PATH, 
+                                db=self.db,
+                                intent_type=IntentType.CAREER_PATH,
                                 keywords=k,
-                                **a
+                                **a,
                             )
                         )
                     elif name == "get_dive_site_details":
                         site_name = args.pop("site_name", "")
                         tool_result = await run_in_threadpool(
-                            lambda s=site_name, a=args: execute_discovery(db=self.db, entity_type_filter="dive_site", location=s, **a)
+                            lambda s=site_name, a=args: execute_discovery(
+                                db=self.db,
+                                entity_type_filter="dive_site",
+                                location=s,
+                                **a,
+                            )
                         )
                     elif name == "get_user_dive_logs":
                         tool_result = await run_in_threadpool(
-                            lambda a=args: execute_get_user_dive_logs(db=self.db, current_user=current_user, **a)
-                        ) # Dummy intent
+                            lambda a=args: execute_get_user_dive_logs(
+                                db=self.db, current_user=current_user, **a
+                            )
+                        )  # Dummy intent
                     elif name == "get_reviews_and_comments":
                         tool_result = await run_in_threadpool(
-                            lambda a=args: execute_get_reviews_and_comments(db=self.db, **a)
-                        ) # Dummy intent
+                            lambda a=args: execute_get_reviews_and_comments(
+                                db=self.db, **a
+                            )
+                        )  # Dummy intent
                     elif name == "search_diving_trips":
                         start_date = args.pop("start_date", None)
                         end_date = args.pop("end_date", None)
@@ -231,15 +270,22 @@ Page Context: {page_context_summary}
                         if start_date and end_date:
                             date_range = [start_date, end_date]
                         tool_result = await run_in_threadpool(
-                            lambda dr=date_range, a=args: execute_discovery(db=self.db, entity_type_filter="dive_trip", date_range=dr, **a)
+                            lambda dr=date_range, a=args: execute_discovery(
+                                db=self.db,
+                                entity_type_filter="dive_trip",
+                                date_range=dr,
+                                **a,
+                            )
                         )
                         # We need to create a dummy result list for weather enricher
-                        dummy_results = [{
-                            "entity_type": "location",
-                            "name": args.get("location", "Requested Location"),
-                            "latitude": args["latitude"],
-                            "longitude": args["longitude"]
-                        }]
+                        dummy_results = [
+                            {
+                                "entity_type": "location",
+                                "name": args.get("location", "Requested Location"),
+                                "latitude": args["latitude"],
+                                "longitude": args["longitude"],
+                            }
+                        ]
                         await run_in_threadpool(
                             lambda d=dummy_results, a=args: enrich_results_with_weather(
                                 db=self.db,
@@ -248,7 +294,7 @@ Page Context: {page_context_summary}
                                 intent_time=a.get("time"),
                                 intent_lat=a["latitude"],
                                 intent_lon=a["longitude"],
-                                intent_location=a.get("location")
+                                intent_location=a.get("location"),
                             )
                         )
                         tool_result = dummy_results
@@ -258,16 +304,18 @@ Page Context: {page_context_summary}
                                 db=self.db,
                                 intent_type=IntentType.PERSONAL_RECOMMENDATION,
                                 current_user=current_user,
-                                **a
+                                **a,
                             )
                         )
                     elif name == "get_weather_suitability":
-                        dummy_results = [{
-                            "entity_type": "location",
-                            "name": args.get("location", "Requested Location"),
-                            "latitude": args.get("latitude"),
-                            "longitude": args.get("longitude")
-                        }]
+                        dummy_results = [
+                            {
+                                "entity_type": "location",
+                                "name": args.get("location", "Requested Location"),
+                                "latitude": args.get("latitude"),
+                                "longitude": args.get("longitude"),
+                            }
+                        ]
                         await run_in_threadpool(
                             lambda d=dummy_results, a=args: enrich_results_with_weather(
                                 db=self.db,
@@ -276,82 +324,98 @@ Page Context: {page_context_summary}
                                 intent_time=a.get("time"),
                                 intent_lat=a.get("latitude"),
                                 intent_lon=a.get("longitude"),
-                                intent_location=a.get("location")
+                                intent_location=a.get("location"),
                             )
                         )
                         tool_result = dummy_results
                     elif name == "ask_user_for_clarification":
                         final_response_text = args["question"]
-                        intermediate_steps.append(ChatIntermediateAction(
-                            action_type="refine_intent",
-                            tool_name=name,
-                            tool_args=args,
-                            reasoning=f"Step {current_step}: Asking user for clarification: {args['question']}"
-                        ))
-                        break # Exit the loop early
-                    
+                        intermediate_steps.append(
+                            ChatIntermediateAction(
+                                action_type="refine_intent",
+                                tool_name=name,
+                                tool_args=args,
+                                reasoning=f"Step {current_step}: Asking user for clarification: {args['question']}",
+                            )
+                        )
+                        break  # Exit the loop early
+
                     # Deduplicate and collect results for final response
                     for r in tool_result:
                         # Check if already in collected_results
-                        if not any(cr.get("id") == r.get("id") and cr.get("entity_type") == r.get("entity_type") for cr in collected_results):
+                        if not any(
+                            cr.get("id") == r.get("id")
+                            and cr.get("entity_type") == r.get("entity_type")
+                            for cr in collected_results
+                        ):
                             collected_results.append(r)
-                    
+
                     # Truncate results for context to avoid bloat
                     # For COMPARISON, we need more results to show a meaningful comparison table
                     if name == "compare_certifications":
-                        context_result = tool_result[:30] # Allow up to 30 certs for comparison
+                        context_result = tool_result[
+                            :30
+                        ]  # Allow up to 30 certs for comparison
                     else:
-                        context_result = tool_result[:5] # Max 5 results per tool call in context
-                    
+                        context_result = tool_result[
+                            :5
+                        ]  # Max 5 results per tool call in context
+
                     # Use a custom encoder to handle Enums and other non-serializable objects
                     class ChatJSONEncoder(json.JSONEncoder):
                         def default(self, obj):
-                            if hasattr(obj, 'value'): # Handles Enums
+                            if hasattr(obj, "value"):  # Handles Enums
                                 return obj.value
-                            if hasattr(obj, '__dict__'):
+                            if hasattr(obj, "__dict__"):
                                 return obj.__dict__
                             return str(obj)
 
-                    messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call.id,
-                        "name": name,
-                        "content": json.dumps(context_result, cls=ChatJSONEncoder)
-                    })
-                    
-                    intermediate_steps.append(ChatIntermediateAction(
-                        action_type="tool_call",
-                        tool_name=name,
-                        tool_args=args,
-                        tool_result=context_result,
-                        reasoning=f"Step {current_step}: Executed {name}"
-                    ))
-                
-                if final_response_text: # From clarification tool
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": name,
+                            "content": json.dumps(context_result, cls=ChatJSONEncoder),
+                        }
+                    )
+
+                    intermediate_steps.append(
+                        ChatIntermediateAction(
+                            action_type="tool_call",
+                            tool_name=name,
+                            tool_args=args,
+                            tool_result=context_result,
+                            reasoning=f"Step {current_step}: Executed {name}",
+                        )
+                    )
+
+                if final_response_text:  # From clarification tool
                     break
-                continue # Let the LLM process the tool results
-            
-            else: # Final answer from LLM
+                continue  # Let the LLM process the tool results
+
+            else:  # Final answer from LLM
                 final_response_text = response
                 break
 
         # 4. Final Cleanup & Persistence
         if not final_response_text:
-            final_response_text = "I'm sorry, I encountered an issue while processing your request."
+            final_response_text = (
+                "I'm sorry, I encountered an issue while processing your request."
+            )
 
         message_id = str(uuid.uuid4())
-        
+
         # Save to DB asynchronously
         def _save_messages():
             user_msg = ChatMessageModel(
                 session_id=session_id,
                 role="user",
                 content=request.message,
-                debug_data=None
+                debug_data=None,
             )
             self.db.add(user_msg)
             self.db.flush()
-            
+
             bot_msg = ChatMessageModel(
                 session_id=session_id,
                 role="assistant",
@@ -359,12 +423,12 @@ Page Context: {page_context_summary}
                 debug_data={
                     "sources": collected_results,
                     "message_id": message_id,
-                    "intermediate_steps": [s.model_dump() for s in intermediate_steps]
+                    "intermediate_steps": [s.model_dump() for s in intermediate_steps],
                 },
                 tokens_input=total_usage["prompt_tokens"],
                 tokens_output=total_usage["completion_tokens"],
                 tokens_total=total_usage["total_tokens"],
-                tokens_cached=total_usage.get("cached_tokens", 0)
+                tokens_cached=total_usage.get("cached_tokens", 0),
             )
             self.db.add(bot_msg)
             self.db.commit()
@@ -376,5 +440,5 @@ Page Context: {page_context_summary}
             message_id=message_id,
             session_id=session_id,
             sources=collected_results,
-            intermediate_steps=intermediate_steps
+            intermediate_steps=intermediate_steps,
         )

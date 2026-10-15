@@ -36,7 +36,12 @@ _cache_ttl_seconds = 15 * 60  # 15 minutes (fallback for old cache entries)
 _max_cache_size = 2500  # Maximum number of cache entries
 
 
-def _generate_cache_key(latitude: float, longitude: float, bounds: Optional[Dict] = None, target_datetime: Optional[datetime] = None) -> str:
+def _generate_cache_key(
+    latitude: float,
+    longitude: float,
+    bounds: Optional[Dict] = None,
+    target_datetime: Optional[datetime] = None,
+) -> str:
     """
     Generate a cache key for wind data.
 
@@ -45,8 +50,8 @@ def _generate_cache_key(latitude: float, longitude: float, bounds: Optional[Dict
     """
     if bounds:
         # For bounds, use rounded center point
-        center_lat = (bounds['north'] + bounds['south']) / 2
-        center_lon = (bounds['east'] + bounds['west']) / 2
+        center_lat = (bounds["north"] + bounds["south"]) / 2
+        center_lon = (bounds["east"] + bounds["west"]) / 2
         rounded_lat = round(center_lat * 10) / 10
         rounded_lon = round(center_lon * 10) / 10
         base_key = f"wind-{rounded_lat}-{rounded_lon}"
@@ -58,13 +63,17 @@ def _generate_cache_key(latitude: float, longitude: float, bounds: Optional[Dict
     # Add date/time to cache key if specified (round to hour for cache efficiency)
     if target_datetime:
         # Round to nearest hour for cache efficiency
-        hour_key = target_datetime.replace(minute=0, second=0, microsecond=0).isoformat()
+        hour_key = target_datetime.replace(
+            minute=0, second=0, microsecond=0
+        ).isoformat()
         return f"{base_key}-{hour_key}"
 
     return base_key
 
 
-def _calculate_cache_ttl(target_datetime: Optional[datetime], now: datetime) -> timedelta:
+def _calculate_cache_ttl(
+    target_datetime: Optional[datetime], now: datetime
+) -> timedelta:
     """
     Calculate cache TTL based on forecast distance from current time.
 
@@ -109,18 +118,20 @@ def _calculate_cache_ttl(target_datetime: Optional[datetime], now: datetime) -> 
         return timedelta(hours=1)
 
 
-def _is_cache_valid(cache_entry: Dict, target_datetime: Optional[datetime] = None) -> bool:
+def _is_cache_valid(
+    cache_entry: Dict, target_datetime: Optional[datetime] = None
+) -> bool:
     """
     Check if a cache entry is still valid (not expired).
 
     Uses dynamic TTL based on target_datetime if available, otherwise falls back
     to fixed 15-minute TTL for backward compatibility with old cache entries.
     """
-    if 'timestamp' not in cache_entry:
+    if "timestamp" not in cache_entry:
         return False
 
     # Get target_datetime from cache entry or parameter
-    entry_target_datetime = cache_entry.get('target_datetime')
+    entry_target_datetime = cache_entry.get("target_datetime")
     if entry_target_datetime is None:
         entry_target_datetime = target_datetime
 
@@ -135,7 +146,7 @@ def _is_cache_valid(cache_entry: Dict, target_datetime: Optional[datetime] = Non
         ttl = timedelta(seconds=_cache_ttl_seconds)
 
     # Check if cache age is less than calculated TTL
-    age = now - cache_entry['timestamp']
+    age = now - cache_entry["timestamp"]
     return age < ttl
 
 
@@ -145,8 +156,7 @@ def _cleanup_cache():
 
     # Remove expired entries using dynamic TTL
     expired_keys = [
-        key for key, entry in _wind_cache.items()
-        if not _is_cache_valid(entry)
+        key for key, entry in _wind_cache.items() if not _is_cache_valid(entry)
     ]
     for key in expired_keys:
         del _wind_cache[key]
@@ -155,15 +165,19 @@ def _cleanup_cache():
     if len(_wind_cache) > _max_cache_size:
         # Sort by timestamp and remove oldest
         sorted_entries = sorted(
-            _wind_cache.items(),
-            key=lambda x: x[1].get('timestamp', datetime.min)
+            _wind_cache.items(), key=lambda x: x[1].get("timestamp", datetime.min)
         )
         entries_to_remove = len(_wind_cache) - _max_cache_size
         for key, _ in sorted_entries[:entries_to_remove]:
             del _wind_cache[key]
 
 
-def _get_from_database_cache(cache_key: str, latitude: float, longitude: float, target_datetime: Optional[datetime]) -> Optional[Dict]:
+def _get_from_database_cache(
+    cache_key: str,
+    latitude: float,
+    longitude: float,
+    target_datetime: Optional[datetime],
+) -> Optional[Dict]:
     """
     Retrieve wind data from database cache (Tier 2 cache).
 
@@ -181,10 +195,15 @@ def _get_from_database_cache(cache_key: str, latitude: float, longitude: float, 
             rounded_lon = round(longitude * 10) / 10
 
             # Query by cache_key first (fastest lookup)
-            cache_entry = db.query(WindDataCache).filter(
-                WindDataCache.cache_key == cache_key,
-                WindDataCache.expires_at > datetime.utcnow()  # Only return non-expired entries
-            ).first()
+            cache_entry = (
+                db.query(WindDataCache)
+                .filter(
+                    WindDataCache.cache_key == cache_key,
+                    WindDataCache.expires_at
+                    > datetime.utcnow(),  # Only return non-expired entries
+                )
+                .first()
+            )
 
             if cache_entry:
                 logger.debug(f"[DB CACHE] Found valid cache entry for key: {cache_key}")
@@ -193,40 +212,54 @@ def _get_from_database_cache(cache_key: str, latitude: float, longitude: float, 
                 db.commit()
                 # Deserialize wind_data (convert ISO string timestamp back to datetime)
                 wind_data = cache_entry.wind_data.copy()
-                if 'timestamp' in wind_data and isinstance(wind_data['timestamp'], str):
+                if "timestamp" in wind_data and isinstance(wind_data["timestamp"], str):
                     try:
-                        wind_data['timestamp'] = datetime.fromisoformat(wind_data['timestamp'])
+                        wind_data["timestamp"] = datetime.fromisoformat(
+                            wind_data["timestamp"]
+                        )
                     except (ValueError, TypeError):
                         # If deserialization fails, keep as string or use target_datetime
                         if target_datetime:
-                            wind_data['timestamp'] = target_datetime
+                            wind_data["timestamp"] = target_datetime
                 return wind_data
 
             # If not found by cache_key, try location + datetime lookup (for smart lookup)
             if target_datetime:
                 # Round datetime to hour for lookup
-                rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
-                cache_entry = db.query(WindDataCache).filter(
-                    WindDataCache.latitude == Decimal(str(rounded_lat)),
-                    WindDataCache.longitude == Decimal(str(rounded_lon)),
-                    WindDataCache.target_datetime == rounded_datetime,
-                    WindDataCache.expires_at > datetime.utcnow()
-                ).first()
+                rounded_datetime = target_datetime.replace(
+                    minute=0, second=0, microsecond=0
+                )
+                cache_entry = (
+                    db.query(WindDataCache)
+                    .filter(
+                        WindDataCache.latitude == Decimal(str(rounded_lat)),
+                        WindDataCache.longitude == Decimal(str(rounded_lon)),
+                        WindDataCache.target_datetime == rounded_datetime,
+                        WindDataCache.expires_at > datetime.utcnow(),
+                    )
+                    .first()
+                )
 
                 if cache_entry:
-                    logger.debug(f"[DB CACHE] Found valid cache entry by location+datetime for {rounded_lat}, {rounded_lon} at {rounded_datetime}")
+                    logger.debug(
+                        f"[DB CACHE] Found valid cache entry by location+datetime for {rounded_lat}, {rounded_lon} at {rounded_datetime}"
+                    )
                     # Update last_accessed_at timestamp
                     cache_entry.last_accessed_at = datetime.utcnow()
                     db.commit()
                     # Deserialize wind_data (convert ISO string timestamp back to datetime)
                     wind_data = cache_entry.wind_data.copy()
-                    if 'timestamp' in wind_data and isinstance(wind_data['timestamp'], str):
+                    if "timestamp" in wind_data and isinstance(
+                        wind_data["timestamp"], str
+                    ):
                         try:
-                            wind_data['timestamp'] = datetime.fromisoformat(wind_data['timestamp'])
+                            wind_data["timestamp"] = datetime.fromisoformat(
+                                wind_data["timestamp"]
+                            )
                         except (ValueError, TypeError):
                             # If deserialization fails, keep as string or use target_datetime
                             if target_datetime:
-                                wind_data['timestamp'] = target_datetime
+                                wind_data["timestamp"] = target_datetime
                     return wind_data
 
             logger.debug(f"[DB CACHE] No valid cache entry found for key: {cache_key}")
@@ -243,49 +276,57 @@ def _get_from_database_cache(cache_key: str, latitude: float, longitude: float, 
 def _get_batch_from_database_cache(cache_keys: List[str]) -> Dict[str, Dict]:
     """
     Retrieve multiple wind data entries from database cache (Tier 2 cache).
-    
+
     Returns a dictionary mapping cache_key -> wind_data for found entries.
     """
     if not cache_keys:
         return {}
-        
+
     try:
         # Import here to avoid circular dependencies
         from app.database import SessionLocal
         from app.models import WindDataCache
-        
+
         db = SessionLocal()
         try:
             # Query by cache_keys (bulk lookup)
             current_time = datetime.utcnow()
-            cache_entries = db.query(WindDataCache).filter(
-                WindDataCache.cache_key.in_(cache_keys),
-                WindDataCache.expires_at > current_time
-            ).all()
-            
+            cache_entries = (
+                db.query(WindDataCache)
+                .filter(
+                    WindDataCache.cache_key.in_(cache_keys),
+                    WindDataCache.expires_at > current_time,
+                )
+                .all()
+            )
+
             result = {}
             for entry in cache_entries:
                 # Deserialize wind_data
                 wind_data = entry.wind_data.copy()
-                if 'timestamp' in wind_data and isinstance(wind_data['timestamp'], str):
+                if "timestamp" in wind_data and isinstance(wind_data["timestamp"], str):
                     try:
-                        wind_data['timestamp'] = datetime.fromisoformat(wind_data['timestamp'])
+                        wind_data["timestamp"] = datetime.fromisoformat(
+                            wind_data["timestamp"]
+                        )
                     except (ValueError, TypeError):
                         # Use entry target_datetime if deserialization fails
                         if entry.target_datetime:
-                            wind_data['timestamp'] = entry.target_datetime
-                
+                            wind_data["timestamp"] = entry.target_datetime
+
                 result[entry.cache_key] = wind_data
-                
+
                 # Update last_accessed_at (could be batched but fine for now)
                 entry.last_accessed_at = current_time
-            
+
             if result:
-                db.commit() # Commit last_accessed_at updates
-                logger.debug(f"[DB CACHE BATCH] Found {len(result)}/{len(cache_keys)} valid cache entries")
-            
+                db.commit()  # Commit last_accessed_at updates
+                logger.debug(
+                    f"[DB CACHE BATCH] Found {len(result)}/{len(cache_keys)} valid cache entries"
+                )
+
             return result
-            
+
         finally:
             db.close()
     except Exception as e:
@@ -294,7 +335,13 @@ def _get_batch_from_database_cache(cache_keys: List[str]) -> Dict[str, Dict]:
         return {}
 
 
-def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, target_datetime: Optional[datetime], wind_data: Dict):
+def _store_in_database_cache(
+    cache_key: str,
+    latitude: float,
+    longitude: float,
+    target_datetime: Optional[datetime],
+    wind_data: Dict,
+):
     """
     Store wind data in database cache (Tier 2 cache).
 
@@ -314,7 +361,9 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
             # Round datetime to hour if provided
             rounded_datetime = None
             if target_datetime:
-                rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
+                rounded_datetime = target_datetime.replace(
+                    minute=0, second=0, microsecond=0
+                )
 
             # Calculate expiration time using dynamic TTL based on forecast distance
             now_utc = datetime.utcnow()
@@ -323,7 +372,9 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
             if target_datetime:
                 if target_datetime.tzinfo is not None:
                     # Timezone-aware: convert to UTC
-                    target_datetime_utc = target_datetime.astimezone(UTC).replace(tzinfo=None)
+                    target_datetime_utc = target_datetime.astimezone(UTC).replace(
+                        tzinfo=None
+                    )
                 else:
                     # Naive datetime: assume it's in local time, convert to UTC
                     # For simplicity, we'll use the naive datetime directly and compare with UTC now
@@ -337,13 +388,19 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
 
             # Serialize wind_data for JSON storage (convert datetime to ISO string)
             serialized_wind_data = wind_data.copy()
-            if 'timestamp' in serialized_wind_data and isinstance(serialized_wind_data['timestamp'], datetime):
-                serialized_wind_data['timestamp'] = serialized_wind_data['timestamp'].isoformat()
+            if "timestamp" in serialized_wind_data and isinstance(
+                serialized_wind_data["timestamp"], datetime
+            ):
+                serialized_wind_data["timestamp"] = serialized_wind_data[
+                    "timestamp"
+                ].isoformat()
 
             # Check if entry already exists
-            existing = db.query(WindDataCache).filter(
-                WindDataCache.cache_key == cache_key
-            ).first()
+            existing = (
+                db.query(WindDataCache)
+                .filter(WindDataCache.cache_key == cache_key)
+                .first()
+            )
 
             if existing:
                 # Update existing entry
@@ -359,13 +416,13 @@ def _store_in_database_cache(cache_key: str, latitude: float, longitude: float, 
                     longitude=Decimal(str(rounded_lon)),
                     target_datetime=rounded_datetime,
                     wind_data=serialized_wind_data,
-                    expires_at=expires_at
+                    expires_at=expires_at,
                 )
                 db.add(cache_entry)
                 logger.debug(f"[DB CACHE] Created new cache entry for key: {cache_key}")
 
             db.commit()
-            #logger.info(f"[DB CACHE STORE] Stored wind data in database cache for key {cache_key} at {target_datetime}")
+            # logger.info(f"[DB CACHE STORE] Stored wind data in database cache for key {cache_key} at {target_datetime}")
 
         except Exception:
             db.rollback()
@@ -407,19 +464,25 @@ def _store_batch_in_database_cache(entries: List[Dict]):
             cache_keys = []
             for entry in entries:
                 # We must recalculate the cache key exactly as it's generated when stored
-                rounded_lat = round(entry['latitude'] * 10) / 10
-                rounded_lon = round(entry['longitude'] * 10) / 10
+                rounded_lat = round(entry["latitude"] * 10) / 10
+                rounded_lon = round(entry["longitude"] * 10) / 10
                 base_key = f"wind-{rounded_lat}-{rounded_lon}"
-                if entry.get('target_datetime'):
-                    hour_key = entry['target_datetime'].replace(minute=0, second=0, microsecond=0).isoformat()
+                if entry.get("target_datetime"):
+                    hour_key = (
+                        entry["target_datetime"]
+                        .replace(minute=0, second=0, microsecond=0)
+                        .isoformat()
+                    )
                     cache_keys.append(f"{base_key}-{hour_key}")
                 else:
                     cache_keys.append(base_key)
 
             # Query all existing records matching these exact keys in one query
-            existing_records = db.query(WindDataCache).filter(
-                WindDataCache.cache_key.in_(cache_keys)
-            ).all()
+            existing_records = (
+                db.query(WindDataCache)
+                .filter(WindDataCache.cache_key.in_(cache_keys))
+                .all()
+            )
             existing_map = {r.cache_key: r for r in existing_records}
 
             updates_count = 0
@@ -427,10 +490,10 @@ def _store_batch_in_database_cache(entries: List[Dict]):
 
             for i, entry in enumerate(entries):
                 cache_key = cache_keys[i]
-                latitude = entry['latitude']
-                longitude = entry['longitude']
-                target_datetime = entry['target_datetime']
-                wind_data = entry['wind_data']
+                latitude = entry["latitude"]
+                longitude = entry["longitude"]
+                target_datetime = entry["target_datetime"]
+                wind_data = entry["wind_data"]
 
                 # Calculate rounded coordinates
                 rounded_lat = round(latitude * 10) / 10
@@ -439,13 +502,17 @@ def _store_batch_in_database_cache(entries: List[Dict]):
                 # Round datetime
                 rounded_datetime = None
                 if target_datetime:
-                    rounded_datetime = target_datetime.replace(minute=0, second=0, microsecond=0)
+                    rounded_datetime = target_datetime.replace(
+                        minute=0, second=0, microsecond=0
+                    )
 
                 # Calculate expiration
                 target_datetime_utc = None
                 if target_datetime:
                     if target_datetime.tzinfo is not None:
-                        target_datetime_utc = target_datetime.astimezone(UTC).replace(tzinfo=None)
+                        target_datetime_utc = target_datetime.astimezone(UTC).replace(
+                            tzinfo=None
+                        )
                     else:
                         target_datetime_utc = target_datetime
                 else:
@@ -456,8 +523,12 @@ def _store_batch_in_database_cache(entries: List[Dict]):
 
                 # Serialize wind_data
                 serialized_wind_data = wind_data.copy()
-                if 'timestamp' in serialized_wind_data and isinstance(serialized_wind_data['timestamp'], datetime):
-                    serialized_wind_data['timestamp'] = serialized_wind_data['timestamp'].isoformat()
+                if "timestamp" in serialized_wind_data and isinstance(
+                    serialized_wind_data["timestamp"], datetime
+                ):
+                    serialized_wind_data["timestamp"] = serialized_wind_data[
+                        "timestamp"
+                    ].isoformat()
 
                 # Update or Insert
                 if cache_key in existing_map:
@@ -474,13 +545,15 @@ def _store_batch_in_database_cache(entries: List[Dict]):
                         longitude=Decimal(str(rounded_lon)),
                         target_datetime=rounded_datetime,
                         wind_data=serialized_wind_data,
-                        expires_at=expires_at
+                        expires_at=expires_at,
                     )
                     db.add(new_rec)
                     inserts_count += 1
 
             db.commit()
-            logger.info(f"[DB CACHE BATCH] Processed {len(entries)} entries ({updates_count} updates, {inserts_count} inserts) in database cache")
+            logger.info(
+                f"[DB CACHE BATCH] Processed {len(entries)} entries ({updates_count} updates, {inserts_count} inserts) in database cache"
+            )
 
         except Exception:
             db.rollback()
@@ -492,7 +565,9 @@ def _store_batch_in_database_cache(entries: List[Dict]):
         logger.warning(f"[DB CACHE] Error storing batch in database cache: {e}")
 
 
-def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[Tuple[float, float]]:
+def _create_grid_points(
+    bounds: Dict, zoom_level: Optional[int] = None
+) -> List[Tuple[float, float]]:
     """
     Create a grid of points within the given bounds.
 
@@ -538,12 +613,12 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
 
     points = []
     # Start from slightly inside south/west bounds
-    lat = bounds['south'] + margin
+    lat = bounds["south"] + margin
 
     # End slightly before north/east bounds
-    while lat < bounds['north'] - margin:
-        lon = bounds['west'] + margin
-        while lon < bounds['east'] - margin:
+    while lat < bounds["north"] - margin:
+        lon = bounds["west"] + margin
+        while lon < bounds["east"] - margin:
             points.append((lat, lon))
             lon += spacing
         lat += spacing
@@ -573,7 +648,12 @@ def _create_grid_points(bounds: Dict, zoom_level: Optional[int] = None) -> List[
     return points
 
 
-def fetch_wind_data_single_point(latitude: float, longitude: float, target_datetime: Optional[datetime] = None, skip_validation: bool = False) -> Optional[Dict]:
+def fetch_wind_data_single_point(
+    latitude: float,
+    longitude: float,
+    target_datetime: Optional[datetime] = None,
+    skip_validation: bool = False,
+) -> Optional[Dict]:
     """
     Fetch wind data for a single point.
 
@@ -595,20 +675,28 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
     if not skip_validation:
         max_future = datetime.now() + timedelta(days=2)
         if target_datetime > max_future:
-            logger.warning(f"Requested datetime {target_datetime} is more than 2 days ahead, limiting to {max_future}")
+            logger.warning(
+                f"Requested datetime {target_datetime} is more than 2 days ahead, limiting to {max_future}"
+            )
             target_datetime = max_future
 
         # Don't allow past dates (only current and future up to +2 days)
         if target_datetime < datetime.now() - timedelta(hours=1):
-            logger.warning(f"Requested datetime {target_datetime} is in the past, using current time")
+            logger.warning(
+                f"Requested datetime {target_datetime} is in the past, using current time"
+            )
             target_datetime = datetime.now()
 
-    cache_key = _generate_cache_key(latitude, longitude, target_datetime=target_datetime)
+    cache_key = _generate_cache_key(
+        latitude, longitude, target_datetime=target_datetime
+    )
 
     # Check cache - first try exact hour match
-    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
-        #logger.info(f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (exact match)")
-        return _wind_cache[cache_key].get('data')
+    if cache_key in _wind_cache and _is_cache_valid(
+        _wind_cache[cache_key], target_datetime
+    ):
+        # logger.info(f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (exact match)")
+        return _wind_cache[cache_key].get("data")
 
     # Log cache key for debugging (only at debug level to avoid spam)
     logger.debug(f"[CACHE LOOKUP] Checking cache for key: {cache_key} ")
@@ -622,31 +710,47 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         # This is more efficient than checking all 24 hours
         check_hours = [0, 12]  # Check midnight and noon as representatives
         if target_datetime.hour not in check_hours:
-            check_hours.append(target_datetime.hour)  # Also check the requested hour itself
+            check_hours.append(
+                target_datetime.hour
+            )  # Also check the requested hour itself
 
         for hour in check_hours:
-            check_datetime = target_datetime.replace(hour=hour, minute=0, second=0, microsecond=0)
+            check_datetime = target_datetime.replace(
+                hour=hour, minute=0, second=0, microsecond=0
+            )
             # Use _generate_cache_key to ensure consistent key format
-            check_cache_key = _generate_cache_key(latitude, longitude, target_datetime=check_datetime)
+            check_cache_key = _generate_cache_key(
+                latitude, longitude, target_datetime=check_datetime
+            )
 
-            logger.debug(f"[CACHE LOOKUP] Checking for cached hour {hour:02d} with key: {check_cache_key}")
+            logger.debug(
+                f"[CACHE LOOKUP] Checking for cached hour {hour:02d} with key: {check_cache_key}"
+            )
 
             if check_cache_key in _wind_cache:
                 if _is_cache_valid(_wind_cache[check_cache_key], check_datetime):
                     # Found cached data for this date! Since we cache all 24 hours when fetching any hour,
                     # the requested hour should also be cached. Let's verify the exact hour exists.
-                    #logger.info(f"[CACHE LOOKUP] Found cached data for {target_date} hour {hour:02d}, checking if requested hour {target_datetime.hour:02d} is also cached...")
+                    # logger.info(f"[CACHE LOOKUP] Found cached data for {target_date} hour {hour:02d}, checking if requested hour {target_datetime.hour:02d} is also cached...")
 
                     # The exact hour should be in cache - check one more time (in case of race condition)
-                    if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], target_datetime):
-                        logger.info(f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (found via date lookup, originally cached for hour {hour:02d})")
-                        return _wind_cache[cache_key].get('data')
+                    if cache_key in _wind_cache and _is_cache_valid(
+                        _wind_cache[cache_key], target_datetime
+                    ):
+                        logger.info(
+                            f"[CACHE HIT] Serving wind data from cache for key {cache_key} at {target_datetime} (found via date lookup, originally cached for hour {hour:02d})"
+                        )
+                        return _wind_cache[cache_key].get("data")
                     else:
                         # This should not happen - if we cached hour {hour}, we should have cached all 24 hours
                         # Log detailed information for debugging
                         rounded_lat = round(latitude * 10) / 10
                         rounded_lon = round(longitude * 10) / 10
-                        matching_keys = [k for k in _wind_cache.keys() if k.startswith(f'wind-{rounded_lat}-{rounded_lon}')]
+                        matching_keys = [
+                            k
+                            for k in _wind_cache.keys()
+                            if k.startswith(f"wind-{rounded_lat}-{rounded_lon}")
+                        ]
                         logger.warning(
                             f"[CACHE INCONSISTENCY] Found cached data for {target_date} hour {hour:02d} "
                             f"but requested hour {target_datetime.hour:02d} (cache_key: {cache_key}) is not in cache. "
@@ -656,24 +760,32 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                         # Fall through to make API call (which will cache all 24 hours again)
                         break
                 else:
-                    logger.debug(f"[CACHE LOOKUP] Found cached hour {hour:02d} but it's expired (key: {check_cache_key})")
+                    logger.debug(
+                        f"[CACHE LOOKUP] Found cached hour {hour:02d} but it's expired (key: {check_cache_key})"
+                    )
             else:
-                logger.debug(f"[CACHE LOOKUP] Hour {hour:02d} not in cache (key: {check_cache_key})")
+                logger.debug(
+                    f"[CACHE LOOKUP] Hour {hour:02d} not in cache (key: {check_cache_key})"
+                )
 
     # Tier 2: Check database cache (if in-memory cache missed)
-    db_cache_data = _get_from_database_cache(cache_key, latitude, longitude, target_datetime)
+    db_cache_data = _get_from_database_cache(
+        cache_key, latitude, longitude, target_datetime
+    )
     if db_cache_data:
-        #logger.info(f"[DB CACHE HIT] Serving wind data from database cache for key {cache_key} at {target_datetime}")
+        # logger.info(f"[DB CACHE HIT] Serving wind data from database cache for key {cache_key} at {target_datetime}")
         # Also store in in-memory cache for faster subsequent access
         _wind_cache[cache_key] = {
-            'data': db_cache_data,
-            'timestamp': datetime.now(),
-            'target_datetime': target_datetime  # Store for TTL calculation
+            "data": db_cache_data,
+            "timestamp": datetime.now(),
+            "target_datetime": target_datetime,  # Store for TTL calculation
         }
         return db_cache_data
 
     # Cache miss - need to fetch from Open-Meteo API
-    logger.info(f"[CACHE MISS] Wind data not in cache (memory or database) for key {cache_key} at {target_datetime}. Fetching from Open-Meteo API.")
+    logger.info(
+        f"[CACHE MISS] Wind data not in cache (memory or database) for key {cache_key} at {target_datetime}. Fetching from Open-Meteo API."
+    )
 
     try:
         # OPTIMIZATION: Always use hourly forecast API (not "current") to get 24 hours of data
@@ -684,7 +796,9 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
         # Use hourly forecast for all requests (returns 24 hours, enables bulk caching)
         start_date = target_datetime.strftime("%Y-%m-%d")
         end_date = target_datetime.strftime("%Y-%m-%d")
-        logger.info(f"[API TYPE] Using 'hourly' forecast API for key {cache_key} at {target_datetime} (time_diff: {time_diff:.0f}s) - will cache all 24 hours")
+        logger.info(
+            f"[API TYPE] Using 'hourly' forecast API for key {cache_key} at {target_datetime} (time_diff: {time_diff:.0f}s) - will cache all 24 hours"
+        )
         params = {
             "latitude": latitude,
             "longitude": longitude,
@@ -692,14 +806,18 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             "start_date": start_date,
             "end_date": end_date,
             "wind_speed_unit": "ms",  # Request wind speed in m/s
-            "timezone": "auto"
+            "timezone": "auto",
         }
 
-        logger.info(f"[API CALL] Fetching wind data from Open-Meteo API for key {cache_key} at {target_datetime}")
+        logger.info(
+            f"[API CALL] Fetching wind data from Open-Meteo API for key {cache_key} at {target_datetime}"
+        )
         response = requests.get(OPEN_METEO_BASE_URL, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
-        logger.info(f"[API SUCCESS] Successfully fetched wind data from Open-Meteo API for key {cache_key} at {target_datetime}")
+        logger.info(
+            f"[API SUCCESS] Successfully fetched wind data from Open-Meteo API for key {cache_key} at {target_datetime}"
+        )
 
         # Fetch Marine Data (Waves, Swell, SST, Tides)
         marine_hourly = {}
@@ -710,17 +828,23 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 "hourly": "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,sea_level_height_msl",
                 "start_date": start_date,
                 "end_date": end_date,
-                "timezone": "auto"
+                "timezone": "auto",
             }
             # Use a shorter timeout for marine data to not block the main request too long
-            marine_response = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=5)
+            marine_response = requests.get(
+                OPEN_METEO_MARINE_URL, params=marine_params, timeout=5
+            )
             if marine_response.status_code == 200:
                 marine_data = marine_response.json()
                 if "hourly" in marine_data:
                     marine_hourly = marine_data["hourly"]
-                    logger.info(f"[MARINE API SUCCESS] Successfully fetched marine data for key {cache_key}")
+                    logger.info(
+                        f"[MARINE API SUCCESS] Successfully fetched marine data for key {cache_key}"
+                    )
             else:
-                logger.warning(f"[MARINE API ERROR] Failed to fetch marine data: Status {marine_response.status_code}")
+                logger.warning(
+                    f"[MARINE API ERROR] Failed to fetch marine data: Status {marine_response.status_code}"
+                )
         except Exception as e:
             logger.warning(f"[MARINE API ERROR] Failed to fetch marine data: {e}")
 
@@ -741,26 +865,64 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 # If exact hour not found, use the first available hour
                 if times:
                     hour_index = 0
-                    logger.warning(f"Exact hour {target_time_str} not found in forecast, using {times[0]}")
+                    logger.warning(
+                        f"Exact hour {target_time_str} not found in forecast, using {times[0]}"
+                    )
                 else:
                     logger.warning(f"No hourly data available for key {cache_key}")
                     return None
 
             # Wind speed is already in m/s due to wind_speed_unit=ms parameter
             wind_data = {
-                "wind_speed_10m": hourly.get("wind_speed_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_speed_10m", [])) else None,  # m/s
-                "wind_direction_10m": hourly.get("wind_direction_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_direction_10m", [])) else None,  # degrees
-                "wind_gusts_10m": hourly.get("wind_gusts_10m", [None])[hour_index] if hour_index < len(hourly.get("wind_gusts_10m", [])) else None,  # m/s
+                "wind_speed_10m": hourly.get("wind_speed_10m", [None])[hour_index]
+                if hour_index < len(hourly.get("wind_speed_10m", []))
+                else None,  # m/s
+                "wind_direction_10m": hourly.get("wind_direction_10m", [None])[
+                    hour_index
+                ]
+                if hour_index < len(hourly.get("wind_direction_10m", []))
+                else None,  # degrees
+                "wind_gusts_10m": hourly.get("wind_gusts_10m", [None])[hour_index]
+                if hour_index < len(hourly.get("wind_gusts_10m", []))
+                else None,  # m/s
                 "timestamp": target_datetime,
                 # Add Marine Data
-                "wave_height": marine_hourly.get("wave_height", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_height", [])) else None,
-                "wave_direction": marine_hourly.get("wave_direction", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_direction", [])) else None,
-                "wave_period": marine_hourly.get("wave_period", [None])[hour_index] if hour_index < len(marine_hourly.get("wave_period", [])) else None,
-                "swell_wave_height": marine_hourly.get("swell_wave_height", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_height", [])) else None,
-                "swell_wave_direction": marine_hourly.get("swell_wave_direction", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_direction", [])) else None,
-                "swell_wave_period": marine_hourly.get("swell_wave_period", [None])[hour_index] if hour_index < len(marine_hourly.get("swell_wave_period", [])) else None,
-                "sea_surface_temperature": marine_hourly.get("sea_surface_temperature", [None])[hour_index] if hour_index < len(marine_hourly.get("sea_surface_temperature", [])) else None,
-                "sea_level_height_msl": marine_hourly.get("sea_level_height_msl", [None])[hour_index] if hour_index < len(marine_hourly.get("sea_level_height_msl", [])) else None
+                "wave_height": marine_hourly.get("wave_height", [None])[hour_index]
+                if hour_index < len(marine_hourly.get("wave_height", []))
+                else None,
+                "wave_direction": marine_hourly.get("wave_direction", [None])[
+                    hour_index
+                ]
+                if hour_index < len(marine_hourly.get("wave_direction", []))
+                else None,
+                "wave_period": marine_hourly.get("wave_period", [None])[hour_index]
+                if hour_index < len(marine_hourly.get("wave_period", []))
+                else None,
+                "swell_wave_height": marine_hourly.get("swell_wave_height", [None])[
+                    hour_index
+                ]
+                if hour_index < len(marine_hourly.get("swell_wave_height", []))
+                else None,
+                "swell_wave_direction": marine_hourly.get(
+                    "swell_wave_direction", [None]
+                )[hour_index]
+                if hour_index < len(marine_hourly.get("swell_wave_direction", []))
+                else None,
+                "swell_wave_period": marine_hourly.get("swell_wave_period", [None])[
+                    hour_index
+                ]
+                if hour_index < len(marine_hourly.get("swell_wave_period", []))
+                else None,
+                "sea_surface_temperature": marine_hourly.get(
+                    "sea_surface_temperature", [None]
+                )[hour_index]
+                if hour_index < len(marine_hourly.get("sea_surface_temperature", []))
+                else None,
+                "sea_level_height_msl": marine_hourly.get(
+                    "sea_level_height_msl", [None]
+                )[hour_index]
+                if hour_index < len(marine_hourly.get("sea_level_height_msl", []))
+                else None,
             }
 
             # OPTIMIZATION #10: Cache all 24 hours from forecast response
@@ -768,13 +930,13 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             if times and len(times) > 0:
                 # Extract date from first time entry (format: YYYY-MM-DDTHH:00)
                 first_time = times[0]
-                forecast_date = first_time.split('T')[0]  # Get YYYY-MM-DD
+                forecast_date = first_time.split("T")[0]  # Get YYYY-MM-DD
 
                 # Cache each hour from the forecast response
                 wind_speeds = hourly.get("wind_speed_10m", [])
                 wind_directions = hourly.get("wind_direction_10m", [])
                 wind_gusts = hourly.get("wind_gusts_10m", [])
-                
+
                 # Marine data lists
                 wave_heights = marine_hourly.get("wave_height", [])
                 wave_directions = marine_hourly.get("wave_direction", [])
@@ -786,12 +948,18 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                 sea_levels = marine_hourly.get("sea_level_height_msl", [])
 
                 for idx, time_str in enumerate(times):
-                    if idx < len(wind_speeds) and idx < len(wind_directions) and idx < len(wind_gusts):
+                    if (
+                        idx < len(wind_speeds)
+                        and idx < len(wind_directions)
+                        and idx < len(wind_gusts)
+                    ):
                         # Parse the hour from time string (YYYY-MM-DDTHH:00)
                         try:
                             hour_datetime = datetime.fromisoformat(time_str)
-                            hour_cache_key = _generate_cache_key(latitude, longitude, target_datetime=hour_datetime)
-                            
+                            hour_cache_key = _generate_cache_key(
+                                latitude, longitude, target_datetime=hour_datetime
+                            )
+
                             # Prepare complete data object
                             data_obj = {
                                 "wind_speed_10m": wind_speeds[idx],
@@ -799,14 +967,30 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                                 "wind_gusts_10m": wind_gusts[idx],
                                 "timestamp": hour_datetime,
                                 # Add marine data if available for this index
-                                "wave_height": wave_heights[idx] if idx < len(wave_heights) else None,
-                                "wave_direction": wave_directions[idx] if idx < len(wave_directions) else None,
-                                "wave_period": wave_periods[idx] if idx < len(wave_periods) else None,
-                                "swell_wave_height": swell_heights[idx] if idx < len(swell_heights) else None,
-                                "swell_wave_direction": swell_directions[idx] if idx < len(swell_directions) else None,
-                                "swell_wave_period": swell_periods[idx] if idx < len(swell_periods) else None,
-                                "sea_surface_temperature": ssts[idx] if idx < len(ssts) else None,
-                                "sea_level_height_msl": sea_levels[idx] if idx < len(sea_levels) else None
+                                "wave_height": wave_heights[idx]
+                                if idx < len(wave_heights)
+                                else None,
+                                "wave_direction": wave_directions[idx]
+                                if idx < len(wave_directions)
+                                else None,
+                                "wave_period": wave_periods[idx]
+                                if idx < len(wave_periods)
+                                else None,
+                                "swell_wave_height": swell_heights[idx]
+                                if idx < len(swell_heights)
+                                else None,
+                                "swell_wave_direction": swell_directions[idx]
+                                if idx < len(swell_directions)
+                                else None,
+                                "swell_wave_period": swell_periods[idx]
+                                if idx < len(swell_periods)
+                                else None,
+                                "sea_surface_temperature": ssts[idx]
+                                if idx < len(ssts)
+                                else None,
+                                "sea_level_height_msl": sea_levels[idx]
+                                if idx < len(sea_levels)
+                                else None,
                             }
 
                             # Always cache (even if already cached) to ensure all hours are available
@@ -814,54 +998,84 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
                             _wind_cache[hour_cache_key] = {
                                 "data": data_obj,
                                 "timestamp": datetime.now(),
-                                "target_datetime": hour_datetime  # Store for TTL calculation
+                                "target_datetime": hour_datetime,  # Store for TTL calculation
                             }
                         except (ValueError, IndexError) as e:
                             logger.debug(f"Could not parse/cache hour {time_str}: {e}")
                             continue
 
-                logger.info(f"[CACHE STORE] Cached {len(times)} hours of forecast data for key {cache_key} on {forecast_date} (from Open-Meteo API response)")
+                logger.info(
+                    f"[CACHE STORE] Cached {len(times)} hours of forecast data for key {cache_key} on {forecast_date} (from Open-Meteo API response)"
+                )
 
                 # OPTIMIZATION: Store all 24 hours in database cache as well
                 # This enables persistent caching across server restarts
                 batch_entries = []
                 for idx, time_str in enumerate(times):
-                    if idx < len(wind_speeds) and idx < len(wind_directions) and idx < len(wind_gusts):
+                    if (
+                        idx < len(wind_speeds)
+                        and idx < len(wind_directions)
+                        and idx < len(wind_gusts)
+                    ):
                         try:
                             hour_datetime = datetime.fromisoformat(time_str)
-                            hour_cache_key = _generate_cache_key(latitude, longitude, target_datetime=hour_datetime)
+                            hour_cache_key = _generate_cache_key(
+                                latitude, longitude, target_datetime=hour_datetime
+                            )
                             hour_wind_data = {
                                 "wind_speed_10m": wind_speeds[idx],
                                 "wind_direction_10m": wind_directions[idx],
                                 "wind_gusts_10m": wind_gusts[idx],
                                 "timestamp": hour_datetime,
                                 # Add marine data if available for this index
-                                "wave_height": wave_heights[idx] if idx < len(wave_heights) else None,
-                                "wave_direction": wave_directions[idx] if idx < len(wave_directions) else None,
-                                "wave_period": wave_periods[idx] if idx < len(wave_periods) else None,
-                                "swell_wave_height": swell_heights[idx] if idx < len(swell_heights) else None,
-                                "swell_wave_direction": swell_directions[idx] if idx < len(swell_directions) else None,
-                                "swell_wave_period": swell_periods[idx] if idx < len(swell_periods) else None,
-                                "sea_surface_temperature": ssts[idx] if idx < len(ssts) else None,
-                                "sea_level_height_msl": sea_levels[idx] if idx < len(sea_levels) else None
+                                "wave_height": wave_heights[idx]
+                                if idx < len(wave_heights)
+                                else None,
+                                "wave_direction": wave_directions[idx]
+                                if idx < len(wave_directions)
+                                else None,
+                                "wave_period": wave_periods[idx]
+                                if idx < len(wave_periods)
+                                else None,
+                                "swell_wave_height": swell_heights[idx]
+                                if idx < len(swell_heights)
+                                else None,
+                                "swell_wave_direction": swell_directions[idx]
+                                if idx < len(swell_directions)
+                                else None,
+                                "swell_wave_period": swell_periods[idx]
+                                if idx < len(swell_periods)
+                                else None,
+                                "sea_surface_temperature": ssts[idx]
+                                if idx < len(ssts)
+                                else None,
+                                "sea_level_height_msl": sea_levels[idx]
+                                if idx < len(sea_levels)
+                                else None,
                             }
 
-                            batch_entries.append({
-                                "cache_key": hour_cache_key,
-                                "latitude": latitude,
-                                "longitude": longitude,
-                                "target_datetime": hour_datetime,
-                                "wind_data": hour_wind_data
-                            })
+                            batch_entries.append(
+                                {
+                                    "cache_key": hour_cache_key,
+                                    "latitude": latitude,
+                                    "longitude": longitude,
+                                    "target_datetime": hour_datetime,
+                                    "wind_data": hour_wind_data,
+                                }
+                            )
                         except (ValueError, IndexError) as e:
-                            logger.debug(f"Could not prepare hour {time_str} for database cache: {e}")
+                            logger.debug(
+                                f"Could not prepare hour {time_str} for database cache: {e}"
+                            )
                             continue
 
                 # Store all collected entries in one batch transaction
                 if batch_entries:
                     _store_batch_in_database_cache(batch_entries)
         if not wind_data:
-            logger.warning(f"No wind data in Open-Meteo response for key {cache_key} at {target_datetime}")
+            logger.warning(
+                f"No wind data in Open-Meteo response for key {cache_key} at {target_datetime}"
+            )
             return None
 
         # Cache the result (also cached above for forecast data, but ensure it's here for current data)
@@ -869,30 +1083,43 @@ def fetch_wind_data_single_point(latitude: float, longitude: float, target_datet
             _wind_cache[cache_key] = {
                 "data": wind_data,
                 "timestamp": datetime.now(),
-                "target_datetime": target_datetime  # Store for TTL calculation
+                "target_datetime": target_datetime,  # Store for TTL calculation
             }
-            logger.info(f"[CACHE STORE] Stored wind data in in-memory cache for key {cache_key} at {target_datetime}")
+            logger.info(
+                f"[CACHE STORE] Stored wind data in in-memory cache for key {cache_key} at {target_datetime}"
+            )
 
         # Also store in database cache (non-blocking, errors are logged but don't fail)
-        _store_in_database_cache(cache_key, latitude, longitude, target_datetime, wind_data)
+        _store_in_database_cache(
+            cache_key, latitude, longitude, target_datetime, wind_data
+        )
 
         _cleanup_cache()
 
         return wind_data
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error fetching wind data from Open-Meteo for key {cache_key} at {target_datetime}: {e}")
+        logger.error(
+            f"Error fetching wind data from Open-Meteo for key {cache_key} at {target_datetime}: {e}"
+        )
         # Return cached data even if expired
         if cache_key in _wind_cache:
-            logger.info(f"[CACHE HIT - EXPIRED] Returning expired cached data for key {cache_key} at {target_datetime} (API call failed)")
-            return _wind_cache[cache_key].get('data')
+            logger.info(
+                f"[CACHE HIT - EXPIRED] Returning expired cached data for key {cache_key} at {target_datetime} (API call failed)"
+            )
+            return _wind_cache[cache_key].get("data")
         return None
     except Exception as e:
         logger.error(f"Unexpected error fetching wind data: {e}", exc_info=True)
         return None
 
 
-def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_datetime: Optional[datetime] = None, jitter_factor: int = 5) -> List[Dict]:
+def fetch_wind_data_grid(
+    bounds: Dict,
+    zoom_level: Optional[int] = None,
+    target_datetime: Optional[datetime] = None,
+    jitter_factor: int = 5,
+) -> List[Dict]:
     """
     Fetch wind data for a grid of points within the given bounds.
 
@@ -914,40 +1141,51 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         # Validate date range: only allow up to +2 days ahead
         max_future = datetime.now() + timedelta(days=2)
         if validated_datetime > max_future:
-            logger.warning(f"Requested datetime {validated_datetime} is more than 2 days ahead, limiting to {max_future}")
+            logger.warning(
+                f"Requested datetime {validated_datetime} is more than 2 days ahead, limiting to {max_future}"
+            )
             validated_datetime = max_future
 
         # Don't allow past dates (only current and future up to +2 days)
         if validated_datetime < datetime.now() - timedelta(hours=1):
-            logger.warning(f"Requested datetime {validated_datetime} is in the past, using current time")
+            logger.warning(
+                f"Requested datetime {validated_datetime} is in the past, using current time"
+            )
             validated_datetime = datetime.now()
 
     grid_points = _create_grid_points(bounds, zoom_level)
     wind_data_points = []
 
-    logger.info(f"Fetching wind data for {len(grid_points)} grid points at {validated_datetime or 'current time'}")
+    logger.info(
+        f"Fetching wind data for {len(grid_points)} grid points at {validated_datetime or 'current time'}"
+    )
 
     # OPTIMIZATION #3: Group grid points by cache key (0.1° grid cell) before API calls
     # This reduces API calls by reusing cached data or making one call per cache cell
     from collections import defaultdict
+
     points_by_cache_key = defaultdict(list)
-    
+
     for lat, lon in grid_points:
         # Generate cache key for this point (rounded to 0.1°)
         cache_key = _generate_cache_key(lat, lon, target_datetime=validated_datetime)
         points_by_cache_key[cache_key].append((lat, lon))
-    
-    logger.debug(f"Grouped {len(grid_points)} grid points into {len(points_by_cache_key)} cache cells")
-    
+
+    logger.debug(
+        f"Grouped {len(grid_points)} grid points into {len(points_by_cache_key)} cache cells"
+    )
+
     # 1. Identify missing keys from L1 (Memory) Cache
     missing_from_l1 = []
     for cache_key in points_by_cache_key.keys():
-        if cache_key in _wind_cache and _is_cache_valid(_wind_cache[cache_key], validated_datetime):
+        if cache_key in _wind_cache and _is_cache_valid(
+            _wind_cache[cache_key], validated_datetime
+        ):
             # Cache hit L1
             pass
         else:
             missing_from_l1.append(cache_key)
-            
+
     # 2. Check L2 (DB) Cache for missing items (Batch)
     missing_from_l2 = []
     if missing_from_l1:
@@ -956,36 +1194,36 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
             if cache_key in db_cache_hits:
                 # Cache hit L2 - promote to L1
                 _wind_cache[cache_key] = {
-                    'data': db_cache_hits[cache_key],
-                    'timestamp': datetime.now(),
-                    'target_datetime': validated_datetime
+                    "data": db_cache_hits[cache_key],
+                    "timestamp": datetime.now(),
+                    "target_datetime": validated_datetime,
                 }
             else:
                 missing_from_l2.append(cache_key)
-    
+
     # 3. Batch Fetch from API for items missing from both caches
     if missing_from_l2:
         logger.info(f"Batch fetching {len(missing_from_l2)} locations from Open-Meteo")
-        
+
         # Group missing keys by location to prepare API call
         # We need representative lat/lon for each missing cache key
         locations_to_fetch = []
         for cache_key in missing_from_l2:
             lat, lon = points_by_cache_key[cache_key][0]
             locations_to_fetch.append((lat, lon, cache_key))
-            
+
         # Chunk into batches (Open-Meteo limit is high but let's be safe, e.g., 50 locations)
         batch_size = 50
-        
+
         for i in range(0, len(locations_to_fetch), batch_size):
-            chunk = locations_to_fetch[i:i + batch_size]
+            chunk = locations_to_fetch[i : i + batch_size]
             lats = [str(x[0]) for x in chunk]
             lons = [str(x[1]) for x in chunk]
-            
+
             try:
                 start_date = validated_datetime.strftime("%Y-%m-%d")
                 end_date = validated_datetime.strftime("%Y-%m-%d")
-                
+
                 params = {
                     "latitude": ",".join(lats),
                     "longitude": ",".join(lons),
@@ -993,12 +1231,12 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                     "start_date": start_date,
                     "end_date": end_date,
                     "wind_speed_unit": "ms",
-                    "timezone": "auto"
+                    "timezone": "auto",
                 }
 
                 response = requests.get(OPEN_METEO_BASE_URL, params=params, timeout=8)
                 response.raise_for_status()
-                
+
                 # Response is list of objects if multiple locations, or single object if one location
                 response_data = response.json()
                 if not isinstance(response_data, list):
@@ -1013,26 +1251,32 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                         "hourly": "wave_height,wave_direction,wave_period,swell_wave_height,swell_wave_direction,swell_wave_period,sea_surface_temperature,sea_level_height_msl",
                         "start_date": start_date,
                         "end_date": end_date,
-                        "timezone": "auto"
+                        "timezone": "auto",
                     }
-                    marine_resp = requests.get(OPEN_METEO_MARINE_URL, params=marine_params, timeout=5)
+                    marine_resp = requests.get(
+                        OPEN_METEO_MARINE_URL, params=marine_params, timeout=5
+                    )
                     if marine_resp.status_code == 200:
                         data = marine_resp.json()
                         if not isinstance(data, list):
                             data = [data]
                         marine_response_data = data
-                        logger.info(f"[MARINE BATCH] Successfully fetched marine data for {len(data)} locations")
+                        logger.info(
+                            f"[MARINE BATCH] Successfully fetched marine data for {len(data)} locations"
+                        )
                     else:
-                        logger.warning(f"[MARINE BATCH ERROR] Failed with status {marine_resp.status_code}")
+                        logger.warning(
+                            f"[MARINE BATCH ERROR] Failed with status {marine_resp.status_code}"
+                        )
                 except Exception as e:
                     logger.warning(f"[MARINE BATCH ERROR] Exception: {e}")
-                
+
                 # Collect all new entries for batch DB insert
                 all_new_db_entries = []
-                
+
                 for idx, location_data in enumerate(response_data):
                     req_lat, req_lon, req_key = chunk[idx]
-                    
+
                     # Get corresponding marine data
                     marine_loc_data = {}
                     if idx < len(marine_response_data):
@@ -1041,18 +1285,20 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                     if "hourly" in location_data:
                         hourly = location_data["hourly"]
                         times = hourly.get("time", [])
-                        
+
                         # Store all 24 hours in L1 and prepare for L2
                         wind_speeds = hourly.get("wind_speed_10m", [])
                         wind_directions = hourly.get("wind_direction_10m", [])
                         wind_gusts = hourly.get("wind_gusts_10m", [])
-                        
+
                         # Marine lists
                         wave_heights = marine_loc_data.get("wave_height", [])
                         wave_directions = marine_loc_data.get("wave_direction", [])
                         wave_periods = marine_loc_data.get("wave_period", [])
                         swell_heights = marine_loc_data.get("swell_wave_height", [])
-                        swell_directions = marine_loc_data.get("swell_wave_direction", [])
+                        swell_directions = marine_loc_data.get(
+                            "swell_wave_direction", []
+                        )
                         swell_periods = marine_loc_data.get("swell_wave_period", [])
                         ssts = marine_loc_data.get("sea_surface_temperature", [])
                         sea_levels = marine_loc_data.get("sea_level_height_msl", [])
@@ -1061,50 +1307,72 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                             if time_idx < len(wind_speeds):
                                 try:
                                     hour_dt = datetime.fromisoformat(time_str)
-                                    hour_key = _generate_cache_key(req_lat, req_lon, target_datetime=hour_dt)
-                                    
+                                    hour_key = _generate_cache_key(
+                                        req_lat, req_lon, target_datetime=hour_dt
+                                    )
+
                                     wind_entry = {
                                         "wind_speed_10m": wind_speeds[time_idx],
                                         "wind_direction_10m": wind_directions[time_idx],
                                         "wind_gusts_10m": wind_gusts[time_idx],
                                         "timestamp": hour_dt,
                                         # Add marine data
-                                        "wave_height": wave_heights[time_idx] if time_idx < len(wave_heights) else None,
-                                        "wave_direction": wave_directions[time_idx] if time_idx < len(wave_directions) else None,
-                                        "wave_period": wave_periods[time_idx] if time_idx < len(wave_periods) else None,
-                                        "swell_wave_height": swell_heights[time_idx] if time_idx < len(swell_heights) else None,
-                                        "swell_wave_direction": swell_directions[time_idx] if time_idx < len(swell_directions) else None,
-                                        "swell_wave_period": swell_periods[time_idx] if time_idx < len(swell_periods) else None,
-                                        "sea_surface_temperature": ssts[time_idx] if time_idx < len(ssts) else None,
-                                        "sea_level_height_msl": sea_levels[time_idx] if time_idx < len(sea_levels) else None
+                                        "wave_height": wave_heights[time_idx]
+                                        if time_idx < len(wave_heights)
+                                        else None,
+                                        "wave_direction": wave_directions[time_idx]
+                                        if time_idx < len(wave_directions)
+                                        else None,
+                                        "wave_period": wave_periods[time_idx]
+                                        if time_idx < len(wave_periods)
+                                        else None,
+                                        "swell_wave_height": swell_heights[time_idx]
+                                        if time_idx < len(swell_heights)
+                                        else None,
+                                        "swell_wave_direction": swell_directions[
+                                            time_idx
+                                        ]
+                                        if time_idx < len(swell_directions)
+                                        else None,
+                                        "swell_wave_period": swell_periods[time_idx]
+                                        if time_idx < len(swell_periods)
+                                        else None,
+                                        "sea_surface_temperature": ssts[time_idx]
+                                        if time_idx < len(ssts)
+                                        else None,
+                                        "sea_level_height_msl": sea_levels[time_idx]
+                                        if time_idx < len(sea_levels)
+                                        else None,
                                     }
-                                    
+
                                     # Update L1
                                     _wind_cache[hour_key] = {
                                         "data": wind_entry,
                                         "timestamp": datetime.now(),
-                                        "target_datetime": hour_dt
-                                    }
-                                    
-                                    # Collect for L2
-                                    all_new_db_entries.append({
-                                        "cache_key": hour_key,
-                                        "latitude": req_lat,
-                                        "longitude": req_lon,
                                         "target_datetime": hour_dt,
-                                        "wind_data": wind_entry
-                                    })
+                                    }
+
+                                    # Collect for L2
+                                    all_new_db_entries.append(
+                                        {
+                                            "cache_key": hour_key,
+                                            "latitude": req_lat,
+                                            "longitude": req_lon,
+                                            "target_datetime": hour_dt,
+                                            "wind_data": wind_entry,
+                                        }
+                                    )
                                 except Exception:
                                     continue
-                                    
+
                 # Batch store in DB
                 if all_new_db_entries:
                     _store_batch_in_database_cache(all_new_db_entries)
-                    
+
             except Exception as e:
                 logger.error(f"Error in batch fetch: {e}")
                 # Continue to next batch, some points will be missing
-    
+
     # Calculate jitter range based on grid spacing (small fraction of spacing)
     if zoom_level is None:
         zoom_level = 15
@@ -1126,7 +1394,7 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         base_spacing = 0.15
     else:  # zoom 10 and below
         base_spacing = 0.20
-    
+
     # Jitter range is 20% of base spacing to create visual variety without losing accuracy
     # Reduced from 40% to ensure jittered points stay within bounds
     # For lower zoom levels (10-12), use larger jitter to spread out arrows more
@@ -1134,83 +1402,110 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
         jitter_range = base_spacing * 0.4  # 40% for zoom 10-12
     else:
         jitter_range = base_spacing * 0.2  # 20% for zoom 13+
-    
+
     total_jittered_attempts = 0
     total_jittered_success = 0
-    
+
     # Process points grouped by cache key
     for cache_key, points_in_cell in points_by_cache_key.items():
         # Retrieve data from cache (it should be there now if fetch succeeded)
         wind_data = None
         if cache_key in _wind_cache:
-             wind_data = _wind_cache[cache_key].get('data')
-        
+            wind_data = _wind_cache[cache_key].get("data")
+
         # Fallback to single point fetch if still missing (e.g. batch fetch failed)
         if not wind_data:
-             representative_lat, representative_lon = points_in_cell[0]
-             wind_data = fetch_wind_data_single_point(representative_lat, representative_lon, validated_datetime, skip_validation=True)
-        
+            representative_lat, representative_lon = points_in_cell[0]
+            wind_data = fetch_wind_data_single_point(
+                representative_lat,
+                representative_lon,
+                validated_datetime,
+                skip_validation=True,
+            )
+
         if wind_data:
             # Apply the same wind data to all points in this cache cell
             for lat, lon in points_in_cell:
                 # Create base point
-                wind_data_points.append({
-                    "lat": lat,
-                    "lon": lon,
-                    "wind_speed_10m": wind_data.get("wind_speed_10m"),
-                    "wind_direction_10m": wind_data.get("wind_direction_10m"),
-                    "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
-                    "timestamp": wind_data.get("timestamp"),
-                    "wave_height": wind_data.get("wave_height"),
-                    "wave_direction": wind_data.get("wave_direction"),
-                    "wave_period": wind_data.get("wave_period"),
-                    "swell_wave_height": wind_data.get("swell_wave_height"),
-                    "swell_wave_direction": wind_data.get("swell_wave_direction"),
-                    "swell_wave_period": wind_data.get("swell_wave_period"),
-                    "sea_surface_temperature": wind_data.get("sea_surface_temperature"),
-                    "sea_level_height_msl": wind_data.get("sea_level_height_msl")
-                })
-                
+                wind_data_points.append(
+                    {
+                        "lat": lat,
+                        "lon": lon,
+                        "wind_speed_10m": wind_data.get("wind_speed_10m"),
+                        "wind_direction_10m": wind_data.get("wind_direction_10m"),
+                        "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
+                        "timestamp": wind_data.get("timestamp"),
+                        "wave_height": wind_data.get("wave_height"),
+                        "wave_direction": wind_data.get("wave_direction"),
+                        "wave_period": wind_data.get("wave_period"),
+                        "swell_wave_height": wind_data.get("swell_wave_height"),
+                        "swell_wave_direction": wind_data.get("swell_wave_direction"),
+                        "swell_wave_period": wind_data.get("swell_wave_period"),
+                        "sea_surface_temperature": wind_data.get(
+                            "sea_surface_temperature"
+                        ),
+                        "sea_level_height_msl": wind_data.get("sea_level_height_msl"),
+                    }
+                )
+
                 # Create jittered variations for visual density
                 # Use same wind data (wind doesn't change significantly over small distances)
-                for _ in range(jitter_factor - 1):  # -1 because we already added the base point
+                for _ in range(
+                    jitter_factor - 1
+                ):  # -1 because we already added the base point
                     total_jittered_attempts += 1
                     max_retries = 10  # Maximum retries to find a valid jittered point
                     jittered_point_created = False
-                    
+
                     for _retry in range(max_retries):
                         # Generate random jitter within range
                         lat_jitter = random.uniform(-jitter_range, jitter_range)
                         lon_jitter = random.uniform(-jitter_range, jitter_range)
-                        
+
                         # Calculate jittered coordinates
                         jittered_lat = lat + lat_jitter
                         jittered_lon = lon + lon_jitter
-                        
+
                         # Validate jittered coordinates are within bounds
                         # Use <= and >= to allow points at the edge (they'll be filtered by frontend if needed)
-                        if (bounds['south'] <= jittered_lat <= bounds['north'] and
-                            bounds['west'] <= jittered_lon <= bounds['east']):
+                        if (
+                            bounds["south"] <= jittered_lat <= bounds["north"]
+                            and bounds["west"] <= jittered_lon <= bounds["east"]
+                        ):
                             total_jittered_success += 1
-                            wind_data_points.append({
-                                "lat": jittered_lat,
-                                "lon": jittered_lon,
-                                "wind_speed_10m": wind_data.get("wind_speed_10m"),
-                                "wind_direction_10m": wind_data.get("wind_direction_10m"),
-                                "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
-                                "timestamp": wind_data.get("timestamp"),
-                                "wave_height": wind_data.get("wave_height"),
-                                "wave_direction": wind_data.get("wave_direction"),
-                                "wave_period": wind_data.get("wave_period"),
-                                "swell_wave_height": wind_data.get("swell_wave_height"),
-                                "swell_wave_direction": wind_data.get("swell_wave_direction"),
-                                "swell_wave_period": wind_data.get("swell_wave_period"),
-                                "sea_surface_temperature": wind_data.get("sea_surface_temperature"),
-                                "sea_level_height_msl": wind_data.get("sea_level_height_msl")
-                            })
+                            wind_data_points.append(
+                                {
+                                    "lat": jittered_lat,
+                                    "lon": jittered_lon,
+                                    "wind_speed_10m": wind_data.get("wind_speed_10m"),
+                                    "wind_direction_10m": wind_data.get(
+                                        "wind_direction_10m"
+                                    ),
+                                    "wind_gusts_10m": wind_data.get("wind_gusts_10m"),
+                                    "timestamp": wind_data.get("timestamp"),
+                                    "wave_height": wind_data.get("wave_height"),
+                                    "wave_direction": wind_data.get("wave_direction"),
+                                    "wave_period": wind_data.get("wave_period"),
+                                    "swell_wave_height": wind_data.get(
+                                        "swell_wave_height"
+                                    ),
+                                    "swell_wave_direction": wind_data.get(
+                                        "swell_wave_direction"
+                                    ),
+                                    "swell_wave_period": wind_data.get(
+                                        "swell_wave_period"
+                                    ),
+                                    "sea_surface_temperature": wind_data.get(
+                                        "sea_surface_temperature"
+                                    ),
+                                    "sea_level_height_msl": wind_data.get(
+                                        "sea_level_height_msl"
+                                    ),
+                                }
+                            )
                             jittered_point_created = True
                             break  # Successfully created jittered point, move to next
-                    
+
                     # If we couldn't create a valid jittered point after max_retries, skip it
                     # This should be rare with 20% jitter range, but can happen near bounds edges
                     if not jittered_point_created:
@@ -1218,7 +1513,7 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
                             f"Could not create valid jittered point for base point ({lat}, {lon}) "
                             f"after {max_retries} retries. Point may be too close to bounds edge."
                         )
-    
+
     # More accurate log message
     expected_total = len(grid_points) * jitter_factor
     logger.info(
@@ -1228,11 +1523,14 @@ def fetch_wind_data_grid(bounds: Dict, zoom_level: Optional[int] = None, target_
     )
     return wind_data_points
 
-def fetch_wind_data_batch(locations: List[Tuple[float, float]], target_datetime: Optional[datetime] = None) -> Dict[Tuple[float, float], Optional[Dict]]:
+
+def fetch_wind_data_batch(
+    locations: List[Tuple[float, float]], target_datetime: Optional[datetime] = None
+) -> Dict[Tuple[float, float], Optional[Dict]]:
     """
     Fetch wind data for multiple locations efficiently.
     Groups coordinates by 0.1° grid cell to minimize API calls.
-    
+
     Returns:
         Mapping of (lat, lon) -> wind_data dictionary
     """
@@ -1244,24 +1542,23 @@ def fetch_wind_data_batch(locations: List[Tuple[float, float]], target_datetime:
         target_datetime = datetime.now()
 
     results = {}
-    
+
     # 1. Group locations by cache cell (0.1°)
     cell_to_locations = defaultdict(list)
     for lat, lon in locations:
         cache_key = _generate_cache_key(lat, lon, target_datetime=target_datetime)
         cell_to_locations[cache_key].append((lat, lon))
-    
+
     # 2. Process each unique cell
     for points in cell_to_locations.values():
         # Representative point for this cell
         rep_lat, rep_lon = points[0]
-        
+
         # Use existing single point fetch (which handles Tier 1 and Tier 2 caching)
         wind_data = fetch_wind_data_single_point(rep_lat, rep_lon, target_datetime)
-        
+
         # Apply result to all original locations in this cell
         for point in points:
             results[point] = wind_data
-            
-    return results
 
+    return results

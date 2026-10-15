@@ -83,10 +83,11 @@ from app.utils import populate_avatar_full_url, utcnow
 
 router = APIRouter()
 
+
 def calculate_certification_stats(certifications) -> Optional[CertificationStats]:
     if not certifications:
         return None
-    
+
     max_depth_val = 0.0
     max_depth_str = None
     all_gases = set()
@@ -94,24 +95,33 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
     max_deco_minutes = -1
     max_deco_str = None
     is_unlimited_deco = False
-    
-    max_nitrox = 21 # Default to Air
-    max_trimix = None # None means no trimix
+
+    max_nitrox = 21  # Default to Air
+    max_trimix = None  # None means no trimix
     max_stages = 0
 
     # Keywords to look for (naive normalization)
     gas_keywords = ["Trimix", "Helitrox", "Helium", "Oxygen", "Nitrox", "Air"]
-    tank_keywords = ["CCR", "Rebreather", "Double", "Twinset", "Sidemount", "Stage", "Pony", "Single"]
+    tank_keywords = [
+        "CCR",
+        "Rebreather",
+        "Double",
+        "Twinset",
+        "Sidemount",
+        "Stage",
+        "Pony",
+        "Single",
+    ]
 
     for user_cert in certifications:
         cert_level = user_cert.certification_level_link
         if not cert_level:
             continue
-        
+
         # Max Depth
         if cert_level.max_depth:
             # Extract all numbers preceding 'm'
-            matches = re.findall(r'(\d+(?:\.\d+)?)m', cert_level.max_depth)
+            matches = re.findall(r"(\d+(?:\.\d+)?)m", cert_level.max_depth)
             if matches:
                 # Take the largest value found in the string
                 local_max = max(float(m) for m in matches)
@@ -119,9 +129,9 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
                     max_depth_val = local_max
                     max_depth_str = cert_level.max_depth
             elif "Beyond" in cert_level.max_depth:
-                 # Fallback for "Beyond Xm" if regex failed or to handle specific cases
-                 # But the regex above (\d+)m should catch "65m" in "Beyond 65m"
-                 pass
+                # Fallback for "Beyond Xm" if regex failed or to handle specific cases
+                # But the regex above (\d+)m should catch "65m" in "Beyond 65m"
+                pass
 
         # Gases
         if cert_level.gases:
@@ -131,50 +141,53 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
                 if kw.lower() in val.lower():
                     # Normalize to capitalized keyword
                     all_gases.add(kw)
-            
+
             # Nitrox / O2 Calculation
             if "Oxygen" in val or "O2" in val or "100%" in val:
                 max_nitrox = 100
             elif "Nitrox" in val:
                 # Look for percentage
-                matches = re.findall(r'(\d+)%', val)
+                matches = re.findall(r"(\d+)%", val)
                 if matches:
                     local_max = max(int(m) for m in matches)
                     if local_max > max_nitrox:
                         max_nitrox = local_max
-                elif max_nitrox < 40: # Default assumption for "Nitrox" without % is usually EAN40 max for recreational
-                     max_nitrox = 40
-            
+                elif (
+                    max_nitrox < 40
+                ):  # Default assumption for "Nitrox" without % is usually EAN40 max for recreational
+                    max_nitrox = 40
+
             # Trimix Calculation
             if "Trimix" in val or "Helitrox" in val or "Triox" in val:
                 # Check for Hypoxic vs Normoxic
                 if "Hypoxic" in val:
                     max_trimix = "Hypoxic"
                 elif "Normoxic" in val or "Triox" in val or "Helitrox" in val:
-                    if max_trimix != "Hypoxic": # Hypoxic is "higher" level
+                    if max_trimix != "Hypoxic":  # Hypoxic is "higher" level
                         max_trimix = "Normoxic"
                 else:
-                     if max_trimix is None:
-                         max_trimix = "Trimix"
+                    if max_trimix is None:
+                        max_trimix = "Trimix"
 
-        
         # Tanks & Stages
         if cert_level.tanks:
             val = cert_level.tanks
             for kw in tank_keywords:
                 if kw.lower() in val.lower():
-                    if kw == "Twinset": kw = "Double" # Normalize
-                    if kw == "Rebreather": kw = "CCR" # Normalize
+                    if kw == "Twinset":
+                        kw = "Double"  # Normalize
+                    if kw == "Rebreather":
+                        kw = "CCR"  # Normalize
                     all_tanks.add(kw)
-            
+
             # Count stages
             # Look for "X stages" or "X+ stages"
-            stage_matches = re.findall(r'(\d+)\+?\s*stages?', val.lower())
+            stage_matches = re.findall(r"(\d+)\+?\s*stages?", val.lower())
             if stage_matches:
                 local_stages = max(int(m) for m in stage_matches)
                 if local_stages > max_stages:
                     max_stages = local_stages
-            elif "stage" in val.lower(): # Single "stage" mentioned without number
+            elif "stage" in val.lower():  # Single "stage" mentioned without number
                 if max_stages < 1:
                     max_stages = 1
 
@@ -186,23 +199,31 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
                 max_deco_str = val
             elif not is_unlimited_deco:
                 # Extract minutes
-                matches = re.findall(r'(\d+)\s*minutes?', val)
+                matches = re.findall(r"(\d+)\s*minutes?", val)
                 if matches:
                     local_minutes = max(int(m) for m in matches)
                     if local_minutes > max_deco_minutes:
                         max_deco_minutes = local_minutes
                         max_deco_str = val
                 elif "No decompression" in val and max_deco_minutes == -1:
-                     if max_deco_str is None:
-                         max_deco_str = val
+                    if max_deco_str is None:
+                        max_deco_str = val
 
     # Sort sets to lists
     # Custom sort for gases: Trimix > Helitrox > Oxygen > Nitrox > Air
-    gas_order = {k: i for i, k in enumerate(["Trimix", "Helitrox", "Helium", "Oxygen", "Nitrox", "Air"])}
+    gas_order = {
+        k: i
+        for i, k in enumerate(
+            ["Trimix", "Helitrox", "Helium", "Oxygen", "Nitrox", "Air"]
+        )
+    }
     sorted_gases = sorted(list(all_gases), key=lambda x: gas_order.get(x, 99))
 
     # Custom sort for tanks: CCR > Double > Sidemount > Stage > Pony > Single
-    tank_order = {k: i for i, k in enumerate(["CCR", "Double", "Sidemount", "Stage", "Pony", "Single"])}
+    tank_order = {
+        k: i
+        for i, k in enumerate(["CCR", "Double", "Sidemount", "Stage", "Pony", "Single"])
+    }
     sorted_tanks = sorted(list(all_tanks), key=lambda x: tank_order.get(x, 99))
 
     return CertificationStats(
@@ -213,23 +234,31 @@ def calculate_certification_stats(certifications) -> Optional[CertificationStats
         max_deco_time=max_deco_str,
         max_nitrox_pct=max_nitrox,
         max_trimix_pct=max_trimix,
-        max_stages=max_stages
+        max_stages=max_stages,
     )
+
 
 # Admin user management endpoints - must be defined before regular routes
 @router.get("/admin/users", response_model=List[UserListResponse])
 async def list_all_users(
     current_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
-    search: Optional[str] = Query(None, max_length=200, description="Unified search across username and email"),
+    search: Optional[str] = Query(
+        None, max_length=200, description="Unified search across username and email"
+    ),
     is_admin: Optional[bool] = Query(None, description="Filter by admin role"),
     is_moderator: Optional[bool] = Query(None, description="Filter by moderator role"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
-    email_verified: Optional[bool] = Query(None, description="Filter by email verified status"),
-    sort_by: Optional[str] = Query(None, description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)"),
+    email_verified: Optional[bool] = Query(
+        None, description="Filter by email verified status"
+    ),
+    sort_by: Optional[str] = Query(
+        None,
+        description="Sort field (id, username, email, created_at, is_admin, enabled, email_verified)",
+    ),
     sort_order: Optional[str] = Query("asc", description="Sort order (asc/desc)"),
     page: int = Query(1, ge=1, description="Page number (1-based)"),
-    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)")
+    page_size: int = Query(25, description="Page size (25, 50, 100, or 1000)"),
 ):
     """List all users (admin only) with pagination, sorting, search, and filters"""
     # Validate page_size
@@ -237,7 +266,7 @@ async def list_all_users(
     if page_size not in valid_page_sizes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"page_size must be one of: {', '.join(map(str, valid_page_sizes))}"
+            detail=f"page_size must be one of: {', '.join(map(str, valid_page_sizes))}",
         )
 
     # Build query
@@ -247,59 +276,65 @@ async def list_all_users(
     if search:
         search_term = f"%{search.strip()}%"
         query = query.filter(
-            or_(
-                User.username.ilike(search_term),
-                User.email.ilike(search_term)
-            )
+            or_(User.username.ilike(search_term), User.email.ilike(search_term))
         )
 
     # Apply filters
     if is_admin is not None:
         query = query.filter(User.is_admin == is_admin)
-    
+
     if is_moderator is not None:
         query = query.filter(User.is_moderator == is_moderator)
-    
+
     if enabled is not None:
         query = query.filter(User.enabled == enabled)
-    
+
     if email_verified is not None:
         query = query.filter(User.email_verified == email_verified)
 
     # Apply sorting
     if sort_by:
-        valid_sort_fields = {'id', 'username', 'email', 'created_at', 'is_admin', 'enabled', 'email_verified', 'last_accessed_at'}
+        valid_sort_fields = {
+            "id",
+            "username",
+            "email",
+            "created_at",
+            "is_admin",
+            "enabled",
+            "email_verified",
+            "last_accessed_at",
+        }
         if sort_by not in valid_sort_fields:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}"
+                detail=f"Invalid sort_by field. Must be one of: {', '.join(valid_sort_fields)}",
             )
 
-        if sort_order not in ['asc', 'desc']:
+        if sort_order not in ["asc", "desc"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="sort_order must be 'asc' or 'desc'"
+                detail="sort_order must be 'asc' or 'desc'",
             )
 
         # Map sort fields to database columns
-        if sort_by == 'id':
+        if sort_by == "id":
             sort_field = User.id
-        elif sort_by == 'username':
+        elif sort_by == "username":
             sort_field = func.lower(User.username)
-        elif sort_by == 'email':
+        elif sort_by == "email":
             sort_field = func.lower(User.email)
-        elif sort_by == 'created_at':
+        elif sort_by == "created_at":
             sort_field = User.created_at
-        elif sort_by == 'is_admin':
+        elif sort_by == "is_admin":
             sort_field = User.is_admin
-        elif sort_by == 'enabled':
+        elif sort_by == "enabled":
             sort_field = User.enabled
-        elif sort_by == 'email_verified':
+        elif sort_by == "email_verified":
             sort_field = User.email_verified
-        elif sort_by == 'last_accessed_at':
+        elif sort_by == "last_accessed_at":
             sort_field = User.last_accessed_at
 
-        if sort_order == 'desc':
+        if sort_order == "desc":
             query = query.order_by(sort_field.desc())
         else:
             query = query.order_by(sort_field.asc())
@@ -323,7 +358,7 @@ async def list_all_users(
     # Use orjson for optimized serialization (handles datetime natively)
     import orjson
     from fastapi.responses import Response
-    
+
     user_list = []
     for user in users:
         dict_val = UserListResponse.model_validate(user).model_dump()
@@ -341,22 +376,25 @@ async def list_all_users(
 
     return response
 
+
 @router.post("/admin/users", response_model=UserListResponse)
 async def create_user(
     user_data: UserCreateAdmin,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Create a new user (admin only)"""
     # Check if user already exists
-    existing_user = db.query(User).filter(
-        (User.username == user_data.username) | (User.email == user_data.email)
-    ).first()
+    existing_user = (
+        db.query(User)
+        .filter((User.username == user_data.username) | (User.email == user_data.email))
+        .first()
+    )
 
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username or email already registered"
+            detail="Username or email already registered",
         )
 
     # Create new user
@@ -368,7 +406,7 @@ async def create_user(
         is_admin=user_data.is_admin,
         is_moderator=user_data.is_moderator,
         enabled=user_data.enabled,
-        email_verified=user_data.email_verified
+        email_verified=user_data.email_verified,
     )
 
     if user_data.email_verified:
@@ -381,43 +419,47 @@ async def create_user(
     # Create default notification preferences for new user
     try:
         from app.utils import create_default_notification_preferences
+
         create_default_notification_preferences(db_user.id, db)
     except Exception as e:
         # Log error but don't fail user creation if preference creation fails
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.warning(f"Failed to create default notification preferences for user {db_user.id}: {e}")
+        logger.warning(
+            f"Failed to create default notification preferences for user {db_user.id}: {e}"
+        )
 
     response_dict = UserListResponse.model_validate(db_user).model_dump()
     return populate_avatar_full_url(db_user, response_dict)
+
 
 @router.put("/admin/users/{user_id}", response_model=UserListResponse)
 async def update_user(
     user_id: int,
     user_update: UserUpdateAdmin,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update a user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
 
     if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Update only provided fields
     update_data = user_update.model_dump(exclude_unset=True)
 
     # Handle password update separately
-    if 'password' in update_data:
-        password = update_data.pop('password')
+    if "password" in update_data:
+        password = update_data.pop("password")
         db_user.password_hash = get_password_hash(password)
 
     # Handle email_verified specifically to update email_verified_at
-    if 'email_verified' in update_data:
-        new_verified_status = update_data['email_verified']
+    if "email_verified" in update_data:
+        new_verified_status = update_data["email_verified"]
         if new_verified_status and not db_user.email_verified:
             db_user.email_verified_at = utcnow()
         elif not new_verified_status:
@@ -432,33 +474,36 @@ async def update_user(
     response_dict = UserListResponse.model_validate(db_user).model_dump()
     return populate_avatar_full_url(db_user, response_dict)
 
+
 @router.delete("/admin/users/{user_id}")
 async def delete_user(
     user_id: int,
     force: bool = Query(False, description="Hard delete (admin only)"),
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete a user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
 
     if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Prevent admin from deleting themselves
     if db_user.id == current_user.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete your own account"
+            detail="Cannot delete your own account",
         )
 
     if force:
         # Delete related email verification tokens first to avoid foreign key issues
         from app.models import EmailVerificationToken
-        db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == db_user.id).delete()
+
+        db.query(EmailVerificationToken).filter(
+            EmailVerificationToken.user_id == db_user.id
+        ).delete()
 
         db.delete(db_user)
         message = "User permanently deleted"
@@ -471,25 +516,24 @@ async def delete_user(
 
     return {"message": message}
 
+
 @router.post("/admin/users/{user_id}/restore")
 async def restore_user(
     user_id: int,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Restore an archived user (admin only)"""
     db_user = db.query(User).filter(User.id == user_id).first()
 
     if not db_user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     if db_user.deleted_at is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not archived"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="User is not archived"
         )
 
     db_user.deleted_at = None
@@ -498,11 +542,11 @@ async def restore_user(
 
     return {"message": "User restored successfully"}
 
+
 # Regular user endpoints
 @router.delete("/me")
 async def delete_current_user(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Archive current user account (soft delete)"""
     current_user.deleted_at = utcnow()
@@ -510,13 +554,15 @@ async def delete_current_user(
     db.commit()
     return {"message": "Account archived successfully"}
 
+
 @router.put("/me", response_model=UserResponse)
 async def update_current_user_profile(
     user_update: UserUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     import logging
+
     logger = logging.getLogger(__name__)
 
     # Update only provided fields
@@ -524,39 +570,46 @@ async def update_current_user_profile(
     email_upgraded = False
 
     # Handle username update separately to enforce uniqueness and restrictions
-    if 'username' in update_data:
-        new_username = update_data['username']
+    if "username" in update_data:
+        new_username = update_data["username"]
         # Skip validation if it's the same username
         if new_username != current_user.username:
             # 1. Blacklist Check
-            restricted_usernames = {"admin", "divemap", "moderator", "system", "support", "root"}
+            restricted_usernames = {
+                "admin",
+                "divemap",
+                "moderator",
+                "system",
+                "support",
+                "root",
+            }
             if new_username.lower() in restricted_usernames:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="This username is reserved and cannot be used."
+                    detail="This username is reserved and cannot be used.",
                 )
             # 2. Uniqueness Check
             existing_user = db.query(User).filter(User.username == new_username).first()
             if existing_user:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Username already registered"
+                    detail="Username already registered",
                 )
 
     # Allow upgrading synthetic social emails to a real address only.
     # For normal accounts, ignore email in the payload (immutable).
-    if 'email' in update_data:
-        new_email = update_data.pop('email')
+    if "email" in update_data:
+        new_email = update_data.pop("email")
         if new_email != current_user.email:
             is_synthetic = bool(
-                current_user.email and current_user.email.endswith('.invalid')
+                current_user.email and current_user.email.endswith(".invalid")
             )
             if is_synthetic:
                 existing_email = db.query(User).filter(User.email == new_email).first()
                 if existing_email:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Email already registered"
+                        detail="Email already registered",
                     )
                 current_user.email = new_email
                 current_user.email_verified = False
@@ -565,8 +618,8 @@ async def update_current_user_profile(
                 email_upgraded = True
 
     # Handle password update separately
-    if 'password' in update_data:
-        password = update_data.pop('password')
+    if "password" in update_data:
+        password = update_data.pop("password")
         current_user.password_hash = get_password_hash(password)
 
     for field, value in update_data.items():
@@ -581,8 +634,11 @@ async def update_current_user_profile(
             from app.services.email_verification_service import (
                 email_verification_service,
             )
-            verification_token_obj = email_verification_service.create_verification_token(
-                current_user.id, db
+
+            verification_token_obj = (
+                email_verification_service.create_verification_token(
+                    current_user.id, db
+                )
             )
             EmailService().send_verification_email(
                 current_user.email, verification_token_obj.token
@@ -595,18 +651,21 @@ async def update_current_user_profile(
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 
+
 @router.post("/me/change-password")
 async def change_password(
     password_change: PasswordChangeRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Change user password"""
     # Verify current password
-    if not verify_password(password_change.current_password, current_user.password_hash):
+    if not verify_password(
+        password_change.current_password, current_user.password_hash
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
+            detail="Current password is incorrect",
         )
 
     # Update password
@@ -615,18 +674,23 @@ async def change_password(
 
     return {"message": "Password changed successfully"}
 
+
 @router.post("/me/social-links", response_model=UserSocialLinkResponse)
 async def add_social_link(
     link_data: UserSocialLinkCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add or update a social media link for the current user."""
     # Check if link for this platform already exists
-    existing_link = db.query(UserSocialLink).filter(
-        UserSocialLink.user_id == current_user.id,
-        UserSocialLink.platform == link_data.platform
-    ).first()
+    existing_link = (
+        db.query(UserSocialLink)
+        .filter(
+            UserSocialLink.user_id == current_user.id,
+            UserSocialLink.platform == link_data.platform,
+        )
+        .first()
+    )
 
     if existing_link:
         # Update existing link
@@ -637,158 +701,166 @@ async def add_social_link(
     else:
         # Create new link
         new_link = UserSocialLink(
-            user_id=current_user.id,
-            platform=link_data.platform,
-            url=link_data.url
+            user_id=current_user.id, platform=link_data.platform, url=link_data.url
         )
         db.add(new_link)
         db.commit()
         db.refresh(new_link)
         return new_link
 
+
 @router.delete("/me/social-links/{platform}")
 async def remove_social_link(
     platform: str,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Remove a social media link for the current user."""
-    link = db.query(UserSocialLink).filter(
-        UserSocialLink.user_id == current_user.id,
-        UserSocialLink.platform == platform
-    ).first()
+    link = (
+        db.query(UserSocialLink)
+        .filter(
+            UserSocialLink.user_id == current_user.id,
+            UserSocialLink.platform == platform,
+        )
+        .first()
+    )
 
     if not link:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Social link not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Social link not found"
         )
 
     db.delete(link)
     db.commit()
     return {"message": "Social link removed successfully"}
 
+
 @router.get("/search", response_model=List[UserSearchResponse])
 @skip_rate_limit_for_admin("60/minute")
 async def search_users(
     request: Request,
-    query: str = Query(..., min_length=1, max_length=100, description="Search term for username or name (max 100 characters)"),
+    query: str = Query(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Search term for username or name (max 100 characters)",
+    ),
     limit: int = Query(25, ge=1, le=100, description="Maximum number of results"),
-    include_self: bool = Query(False, description="Include current user in results (useful for filtering)"),
+    include_self: bool = Query(
+        False, description="Include current user in results (useful for filtering)"
+    ),
     current_user: Optional[User] = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Search for users by username or name. Only returns users with buddy_visibility='public' and enabled=True.
     By default excludes the current user from results, but can include with include_self=True."""
     if not current_user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required"
         )
-    
+
     # Search for users matching query in username or name
     # Only include users with buddy_visibility='public' and enabled=True
     # Exclude current user unless include_self=True
     # When include_self=True, include current user regardless of buddy_visibility
     search_term = f"%{query.strip()}%"
-    
+
     if include_self:
         # When including self, we need to handle current user separately
         # Current user should be included even if buddy_visibility is not 'public'
         # Other users still need buddy_visibility='public'
         from sqlalchemy import and_
+
         query_filter = db.query(User).filter(
             User.enabled == True,
             or_(
                 and_(
                     User.id == current_user.id,
-                    or_(
-                        User.username.ilike(search_term),
-                        User.name.ilike(search_term)
-                    )
+                    or_(User.username.ilike(search_term), User.name.ilike(search_term)),
                 ),
                 and_(
-                    User.buddy_visibility == 'public',
+                    User.buddy_visibility == "public",
                     User.id != current_user.id,
-                    or_(
-                        User.username.ilike(search_term),
-                        User.name.ilike(search_term)
-                    )
-                )
-            )
+                    or_(User.username.ilike(search_term), User.name.ilike(search_term)),
+                ),
+            ),
         )
     else:
         # Default behavior: exclude current user and require buddy_visibility='public'
         query_filter = db.query(User).filter(
             User.enabled == True,
-            User.buddy_visibility == 'public',
+            User.buddy_visibility == "public",
             User.id != current_user.id,
-            or_(
-                User.username.ilike(search_term),
-                User.name.ilike(search_term)
-            )
+            or_(User.username.ilike(search_term), User.name.ilike(search_term)),
         )
-    
+
     users = query_filter.limit(limit).all()
-    
+
     result = []
     for user in users:
         dict_val = UserSearchResponse.model_validate(user).model_dump()
         result.append(populate_avatar_full_url(user, dict_val))
-    
+
     return result
+
 
 @router.get("/{username}/public", response_model=UserPublicProfileResponse)
 @skip_rate_limit_for_admin("60/minute")
 async def get_user_public_profile(
-    request: Request,
-    username: str,
-    db: Session = Depends(get_db)
+    request: Request, username: str, db: Session = Depends(get_db)
 ):
     """Get public profile information for a user by username"""
     # Find user by username
-    user = db.query(User).filter(
-        User.username == username,
-        User.enabled == True
-    ).first()
+    user = (
+        db.query(User).filter(User.username == username, User.enabled == True).first()
+    )
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Calculate user statistics for profile display
     # These queries are optimized with scalar() for single-value results
-    
+
     # Rating and comment statistics
-    dive_sites_rated = db.query(func.count(SiteRating.id)).filter(
-        SiteRating.user_id == user.id
-    ).scalar()
+    dive_sites_rated = (
+        db.query(func.count(SiteRating.id))
+        .filter(SiteRating.user_id == user.id)
+        .scalar()
+    )
 
-    site_comments_count = db.query(func.count(SiteComment.id)).filter(
-        SiteComment.user_id == user.id
-    ).scalar()
+    site_comments_count = (
+        db.query(func.count(SiteComment.id))
+        .filter(SiteComment.user_id == user.id)
+        .scalar()
+    )
 
-    center_comments_count = db.query(func.count(CenterComment.id)).filter(
-        CenterComment.user_id == user.id
-    ).scalar()
+    center_comments_count = (
+        db.query(func.count(CenterComment.id))
+        .filter(CenterComment.user_id == user.id)
+        .scalar()
+    )
 
     # Total comments includes both dive site and diving center comments
     comments_posted = (site_comments_count or 0) + (center_comments_count or 0)
 
     # Content creation statistics
-    dive_sites_created = db.query(func.count(DiveSite.id)).filter(
-        DiveSite.created_by == user.id
-    ).scalar()
+    dive_sites_created = (
+        db.query(func.count(DiveSite.id))
+        .filter(DiveSite.created_by == user.id)
+        .scalar()
+    )
 
-    dives_created = db.query(func.count(Dive.id)).filter(
-        Dive.user_id == user.id
-    ).scalar()
+    dives_created = (
+        db.query(func.count(Dive.id)).filter(Dive.user_id == user.id).scalar()
+    )
 
-    diving_centers_owned = db.query(func.count(DivingCenter.id)).filter(
-        DivingCenter.owner_id == user.id
-    ).scalar()
+    diving_centers_owned = (
+        db.query(func.count(DivingCenter.id))
+        .filter(DivingCenter.owner_id == user.id)
+        .scalar()
+    )
 
     # Rating count is the same as dive_sites_rated (for consistency in stats display)
     site_ratings_count = dive_sites_rated or 0
@@ -797,28 +869,35 @@ async def get_user_public_profile(
     total_dives_claimed = user.number_of_dives or 0
 
     # Count dives where this user is a buddy (not the owner)
-    buddy_dives_count = db.query(func.count(DiveBuddy.id)).filter(
-        DiveBuddy.user_id == user.id
-    ).scalar()
+    buddy_dives_count = (
+        db.query(func.count(DiveBuddy.id)).filter(DiveBuddy.user_id == user.id).scalar()
+    )
 
     # Calculate count of unique visited dive sites
-    unique_dive_sites_logged = db.query(func.count(distinct(Dive.dive_site_id))).filter(
-        Dive.user_id == user.id,
-        Dive.dive_site_id.isnot(None)
-    ).scalar() or 0
+    unique_dive_sites_logged = (
+        db.query(func.count(distinct(Dive.dive_site_id)))
+        .filter(Dive.user_id == user.id, Dive.dive_site_id.isnot(None))
+        .scalar()
+        or 0
+    )
 
     # Calculate count of unique visited countries
-    countries_visited_count = db.query(func.count(distinct(DiveSite.country))).join(
-        Dive, Dive.dive_site_id == DiveSite.id
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False,
-        DiveSite.country.isnot(None),
-        DiveSite.country != ""
-    ).scalar() or 0
+    countries_visited_count = (
+        db.query(func.count(distinct(DiveSite.country)))
+        .join(Dive, Dive.dive_site_id == DiveSite.id)
+        .filter(
+            Dive.user_id == user.id,
+            Dive.is_private == False,
+            DiveSite.country.isnot(None),
+            DiveSite.country != "",
+        )
+        .scalar()
+        or 0
+    )
 
     # Leaderboard and gamification data
     from app.routers.leaderboard import get_user_leaderboard_data
+
     total_points, leaderboard_rank = get_user_leaderboard_data(db, user.id)
 
     # Create stats object
@@ -835,7 +914,7 @@ async def get_user_public_profile(
         unique_dive_sites_logged=unique_dive_sites_logged,
         countries_visited_count=countries_visited_count,
         total_points=total_points,
-        leaderboard_rank=leaderboard_rank
+        leaderboard_rank=leaderboard_rank,
     )
 
     # Filter active certifications for public profile
@@ -846,54 +925,50 @@ async def get_user_public_profile(
 
     # Calculate diving logbook stats
     from datetime import timedelta
-    
+
     # 2. Max Depth, Longest Dive, TBT
     # first() on an aggregate query returns a Row object with the values
-    stats_row = db.query(
-        func.max(Dive.max_depth).label('max_depth'),
-        func.max(Dive.duration).label('longest_dive_minutes'),
-        func.sum(Dive.duration).label('total_bottom_time_minutes')
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False
-    ).first()
-    
+    stats_row = (
+        db.query(
+            func.max(Dive.max_depth).label("max_depth"),
+            func.max(Dive.duration).label("longest_dive_minutes"),
+            func.sum(Dive.duration).label("total_bottom_time_minutes"),
+        )
+        .filter(Dive.user_id == user.id, Dive.is_private == False)
+        .first()
+    )
+
     # 3. Favorite Dive Sites (Top 3)
-    favorite_sites_query = db.query(
-        DiveSite.id,
-        DiveSite.name,
-        func.count(Dive.id).label('visit_count')
-    ).join(
-        Dive, Dive.dive_site_id == DiveSite.id
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False
-    ).group_by(
-        DiveSite.id, DiveSite.name
-    ).order_by(
-        desc(func.count(Dive.id))
-    ).limit(3).all()
-    
+    favorite_sites_query = (
+        db.query(DiveSite.id, DiveSite.name, func.count(Dive.id).label("visit_count"))
+        .join(Dive, Dive.dive_site_id == DiveSite.id)
+        .filter(Dive.user_id == user.id, Dive.is_private == False)
+        .group_by(DiveSite.id, DiveSite.name)
+        .order_by(desc(func.count(Dive.id)))
+        .limit(3)
+        .all()
+    )
+
     favorite_sites = [
         {"id": site.id, "name": site.name, "visit_count": site.visit_count}
         for site in favorite_sites_query
     ]
-    
+
     # 4. Activity Heatmap (Last 365 days)
     # Get dives from the last year
     one_year_ago = utcnow().date() - timedelta(days=365)
-    
-    heatmap_query = db.query(
-        Dive.dive_date,
-        func.count(Dive.id).label('dive_count')
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False,
-        Dive.dive_date >= one_year_ago
-    ).group_by(
-        Dive.dive_date
-    ).all()
-    
+
+    heatmap_query = (
+        db.query(Dive.dive_date, func.count(Dive.id).label("dive_count"))
+        .filter(
+            Dive.user_id == user.id,
+            Dive.is_private == False,
+            Dive.dive_date >= one_year_ago,
+        )
+        .group_by(Dive.dive_date)
+        .all()
+    )
+
     activity_heatmap = {
         date_obj.strftime("%Y-%m-%d"): count
         for date_obj, count in heatmap_query
@@ -901,127 +976,141 @@ async def get_user_public_profile(
     }
 
     # 5. Most Active Month (All time)
-    year_expr = extract('year', Dive.dive_date)
-    month_expr = extract('month', Dive.dive_date)
-    most_active_month_query = db.query(
-        year_expr.label('year'),
-        month_expr.label('month'),
-        func.count(Dive.id).label('dive_count')
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False
-    ).group_by(
-        year_expr, month_expr
-    ).order_by(
-        desc(func.count(Dive.id))
-    ).first()
+    year_expr = extract("year", Dive.dive_date)
+    month_expr = extract("month", Dive.dive_date)
+    most_active_month_query = (
+        db.query(
+            year_expr.label("year"),
+            month_expr.label("month"),
+            func.count(Dive.id).label("dive_count"),
+        )
+        .filter(Dive.user_id == user.id, Dive.is_private == False)
+        .group_by(year_expr, month_expr)
+        .order_by(desc(func.count(Dive.id)))
+        .first()
+    )
 
     most_active_month = None
     if most_active_month_query:
         import calendar
+
         month_name = calendar.month_name[int(most_active_month_query.month)]
         most_active_month = f"{month_name} {int(most_active_month_query.year)} ({most_active_month_query.dive_count} dives)"
-    
+
     # 6. Suit/Gear Preferences
-    suit_query = db.query(
-        Dive.suit_type,
-        func.count(Dive.id).label('count')
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False,
-        Dive.suit_type.isnot(None)
-    ).group_by(
-        Dive.suit_type
-    ).all()
-    
+    suit_query = (
+        db.query(Dive.suit_type, func.count(Dive.id).label("count"))
+        .filter(
+            Dive.user_id == user.id,
+            Dive.is_private == False,
+            Dive.suit_type.isnot(None),
+        )
+        .group_by(Dive.suit_type)
+        .all()
+    )
+
     suit_preferences = {}
     for suit_type, count in suit_query:
-      if suit_type:
-        # Handle both Enum members and strings
-        key = suit_type.value if hasattr(suit_type, 'value') else str(suit_type)
-        suit_preferences[key] = count
+        if suit_type:
+            # Handle both Enum members and strings
+            key = suit_type.value if hasattr(suit_type, "value") else str(suit_type)
+            suit_preferences[key] = count
 
     # 7. Gear Preferences (Singles vs Doubles vs Doubles+Stage)
-    gear_query = db.query(
-      Dive.gas_bottles_used
-    ).filter(
-      Dive.user_id == user.id,
-      Dive.is_private == False,
-      Dive.gas_bottles_used.isnot(None)
-    ).all()
+    gear_query = (
+        db.query(Dive.gas_bottles_used)
+        .filter(
+            Dive.user_id == user.id,
+            Dive.is_private == False,
+            Dive.gas_bottles_used.isnot(None),
+        )
+        .all()
+    )
 
-    gear_preferences = {"Singles": 0, "Doubles": 0, "Doubles + Stage": 0, "Singles + Stage": 0}
-    
+    gear_preferences = {
+        "Singles": 0,
+        "Doubles": 0,
+        "Doubles + Stage": 0,
+        "Singles + Stage": 0,
+    }
+
     def is_doubles_check(name):
-      if not name: return False
-      n = str(name).lower()
-      # Explicit names
-      if 'double' in n or 'twin' in n or n.startswith('d'):
-        return True
-      # Volumes that are definitely doubles (14=2x7, 16=2x8, 20=2x10, 24=2x12, 30=2x15)
-      if n in ['14', '16', '20', '24', '30']:
-        return True
-      return False
+        if not name:
+            return False
+        n = str(name).lower()
+        # Explicit names
+        if "double" in n or "twin" in n or n.startswith("d"):
+            return True
+        # Volumes that are definitely doubles (14=2x7, 16=2x8, 20=2x10, 24=2x12, 30=2x15)
+        if n in ["14", "16", "20", "24", "30"]:
+            return True
+        return False
 
     for (gear_str,) in gear_query:
-      if not gear_str:
-        continue
-      
-      try:
-        # Check for structured JSON
-        if gear_str.startswith('{'):
-          import json
-          data = json.loads(gear_str)
-          if data.get('mode') == 'structured':
-            back_gas = data.get('back_gas', {})
-            tank_name = back_gas.get('tank', '')
-            stages = data.get('stages', [])
-            
-            is_doubles = is_doubles_check(tank_name)
-            
-            if is_doubles:
-              if stages:
-                gear_preferences["Doubles + Stage"] += 1
-              else:
-                gear_preferences["Doubles"] += 1
-            else:
-              if stages:
-                gear_preferences["Singles + Stage"] += 1
-              else:
-                gear_preferences["Singles"] += 1
+        if not gear_str:
             continue
-      except Exception:
-        pass
-      
-      # Fallback for simple string format
-      lower_gear = gear_str.lower()
-      is_doubles = is_doubles_check(lower_gear)
-      has_stage = 'stage' in lower_gear or '+' in lower_gear
-      
-      if is_doubles:
-        if has_stage:
-          gear_preferences["Doubles + Stage"] += 1
+
+        try:
+            # Check for structured JSON
+            if gear_str.startswith("{"):
+                import json
+
+                data = json.loads(gear_str)
+                if data.get("mode") == "structured":
+                    back_gas = data.get("back_gas", {})
+                    tank_name = back_gas.get("tank", "")
+                    stages = data.get("stages", [])
+
+                    is_doubles = is_doubles_check(tank_name)
+
+                    if is_doubles:
+                        if stages:
+                            gear_preferences["Doubles + Stage"] += 1
+                        else:
+                            gear_preferences["Doubles"] += 1
+                    else:
+                        if stages:
+                            gear_preferences["Singles + Stage"] += 1
+                        else:
+                            gear_preferences["Singles"] += 1
+                    continue
+        except Exception:
+            pass
+
+        # Fallback for simple string format
+        lower_gear = gear_str.lower()
+        is_doubles = is_doubles_check(lower_gear)
+        has_stage = "stage" in lower_gear or "+" in lower_gear
+
+        if is_doubles:
+            if has_stage:
+                gear_preferences["Doubles + Stage"] += 1
+            else:
+                gear_preferences["Doubles"] += 1
         else:
-          gear_preferences["Doubles"] += 1
-      else:
-        if has_stage:
-          gear_preferences["Singles + Stage"] += 1
-        else:
-          gear_preferences["Singles"] += 1
+            if has_stage:
+                gear_preferences["Singles + Stage"] += 1
+            else:
+                gear_preferences["Singles"] += 1
 
     # Remove empty categories
     gear_preferences = {k: v for k, v in gear_preferences.items() if v > 0}
-    
-    
+
     diving_stats = DivingStatsResponse(
-      max_depth=float(stats_row.max_depth) if stats_row and stats_row.max_depth else None,
-      longest_dive_minutes=int(stats_row.longest_dive_minutes) if stats_row and stats_row.longest_dive_minutes else None,
-      total_bottom_time_minutes=int(stats_row.total_bottom_time_minutes) if stats_row and stats_row.total_bottom_time_minutes else None,
-      most_active_month=most_active_month,
-      favorite_sites=favorite_sites,
-      activity_heatmap=activity_heatmap,
-      suit_preferences=suit_preferences,
-      gear_preferences=gear_preferences
+        max_depth=float(stats_row.max_depth)
+        if stats_row and stats_row.max_depth
+        else None,
+        longest_dive_minutes=int(stats_row.longest_dive_minutes)
+        if stats_row and stats_row.longest_dive_minutes
+        else None,
+        total_bottom_time_minutes=int(stats_row.total_bottom_time_minutes)
+        if stats_row and stats_row.total_bottom_time_minutes
+        else None,
+        most_active_month=most_active_month,
+        favorite_sites=favorite_sites,
+        activity_heatmap=activity_heatmap,
+        suit_preferences=suit_preferences,
+        gear_preferences=gear_preferences,
     )
 
     # Create response object
@@ -1038,7 +1127,7 @@ async def get_user_public_profile(
         social_links=user.social_links,
         stats=stats,
         certification_stats=cert_stats,
-        diving_stats=diving_stats
+        diving_stats=diving_stats,
     ).model_dump()
 
     return populate_avatar_full_url(user, response_dict)
@@ -1050,14 +1139,17 @@ async def get_user_public_lists(
     request: Request,
     username: str,
     db: Session = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """Get all public lists for a specific user (Option A delegation)"""
-    user = db.query(User).filter(User.username == username, User.enabled == True).first()
+    user = (
+        db.query(User).filter(User.username == username, User.enabled == True).first()
+    )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     from app.routers.lists import ensure_default_lists, sanitize_list_for_response
+
     ensure_default_lists(db, user.id)
 
     from app.models import DiveSiteListCollaborator
@@ -1065,7 +1157,7 @@ async def get_user_public_lists(
     # Subquery to find list IDs where this profile user is a collaborator and show_on_profile is True
     collab_list_ids_stmt = select(DiveSiteListCollaborator.list_id).where(
         DiveSiteListCollaborator.user_id == user.id,
-        DiveSiteListCollaborator.show_on_profile == True
+        DiveSiteListCollaborator.show_on_profile == True,
     )
 
     # Query public lists owned by the user, or public lists where the user is a collaborator
@@ -1073,21 +1165,23 @@ async def get_user_public_lists(
         DiveSiteList.is_public == True,
         or_(
             (DiveSiteList.user_id == user.id) & (DiveSiteList.show_on_profile == True),
-            DiveSiteList.id.in_(collab_list_ids_stmt)
-        )
+            DiveSiteList.id.in_(collab_list_ids_stmt),
+        ),
     )
 
     lists = query.options(
-        joinedload(DiveSiteList.items).joinedload(DiveSiteListItem.dive_site).options(
-            selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)
+        joinedload(DiveSiteList.items)
+        .joinedload(DiveSiteListItem.dive_site)
+        .options(selectinload(DiveSite.tags).joinedload(DiveSiteTag.tag)),
+        joinedload(DiveSiteList.collaborators).joinedload(
+            DiveSiteListCollaborator.user
         ),
-        joinedload(DiveSiteList.collaborators).joinedload(DiveSiteListCollaborator.user),
-        joinedload(DiveSiteList.user)
+        joinedload(DiveSiteList.user),
     ).all()
 
     for lst in lists:
         lst.username = lst.user.username if lst.user else "unknown"
-        lst.is_collaborator = (lst.user_id != user.id)
+        lst.is_collaborator = lst.user_id != user.id
         lst.role = "owner" if lst.user_id == user.id else "editor"
         sanitize_list_for_response(lst)
     return lists
@@ -1099,25 +1193,23 @@ async def get_user_visited_sites(
     request: Request,
     username: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
 ):
     """Get unique dive sites visited/logged by the user, with visit count (Private to owner/admin)"""
-    user = db.query(User).filter(
-        User.username == username,
-        User.enabled == True
-    ).first()
+    user = (
+        db.query(User).filter(User.username == username, User.enabled == True).first()
+    )
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
     # Enforce privacy check: only the account owner or an Admin can access the list
     if current_user.username != username and not current_user.is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not authorized to view this user's visited sites list"
+            detail="You are not authorized to view this user's visited sites list",
         )
 
     from app.models import AvailableTag, DiveRoute, DiveSiteAlias, DiveSiteTag
@@ -1128,67 +1220,76 @@ async def get_user_visited_sites(
     if current_user.username != username:
         is_private_filter.append(Dive.is_private == False)
 
-    visited_sites_query = db.query(
-        DiveSite,
-        func.count(Dive.id).label('visit_count')
-    ).join(
-        Dive, Dive.dive_site_id == DiveSite.id
-    ).filter(
-        *is_private_filter
-    ).group_by(
-        DiveSite.id
-    ).order_by(
-        desc(func.count(Dive.id)),
-        DiveSite.name
-    ).all()
+    visited_sites_query = (
+        db.query(DiveSite, func.count(Dive.id).label("visit_count"))
+        .join(Dive, Dive.dive_site_id == DiveSite.id)
+        .filter(*is_private_filter)
+        .group_by(DiveSite.id)
+        .order_by(desc(func.count(Dive.id)), DiveSite.name)
+        .all()
+    )
 
     results = []
     for site, count in visited_sites_query:
         # Calculate rating/comment stats for this site
-        avg_rating = db.query(func.avg(SiteRating.score)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar()
-        
-        total_ratings = db.query(func.count(SiteRating.id)).filter(
-            SiteRating.dive_site_id == site.id
-        ).scalar() or 0
-        
-        comment_count = db.query(func.count(SiteComment.id)).filter(
-            SiteComment.dive_site_id == site.id
-        ).scalar() or 0
+        avg_rating = (
+            db.query(func.avg(SiteRating.score))
+            .filter(SiteRating.dive_site_id == site.id)
+            .scalar()
+        )
 
-        route_count = db.query(func.count(DiveRoute.id)).filter(
-            DiveRoute.dive_site_id == site.id,
-            DiveRoute.deleted_at.is_(None)
-        ).scalar() or 0
+        total_ratings = (
+            db.query(func.count(SiteRating.id))
+            .filter(SiteRating.dive_site_id == site.id)
+            .scalar()
+            or 0
+        )
+
+        comment_count = (
+            db.query(func.count(SiteComment.id))
+            .filter(SiteComment.dive_site_id == site.id)
+            .scalar()
+            or 0
+        )
+
+        route_count = (
+            db.query(func.count(DiveRoute.id))
+            .filter(DiveRoute.dive_site_id == site.id, DiveRoute.deleted_at.is_(None))
+            .scalar()
+            or 0
+        )
 
         # Get tags for this site
-        tags = db.query(AvailableTag).join(DiveSiteTag).filter(
-            DiveSiteTag.dive_site_id == site.id
-        ).order_by(AvailableTag.name.asc()).all()
-        
+        tags = (
+            db.query(AvailableTag)
+            .join(DiveSiteTag)
+            .filter(DiveSiteTag.dive_site_id == site.id)
+            .order_by(AvailableTag.name.asc())
+            .all()
+        )
+
         tags_list = [
             {
                 "id": tag.id,
                 "name": tag.name,
                 "description": tag.description,
                 "created_by": tag.created_by,
-                "created_at": tag.created_at
+                "created_at": tag.created_at,
             }
             for tag in tags
         ]
 
         # Get aliases
-        aliases = db.query(DiveSiteAlias).filter(
-            DiveSiteAlias.dive_site_id == site.id
-        ).all()
-        
+        aliases = (
+            db.query(DiveSiteAlias).filter(DiveSiteAlias.dive_site_id == site.id).all()
+        )
+
         aliases_list = [
             {
                 "id": alias.id,
                 "dive_site_id": alias.dive_site_id,
                 "alias": alias.alias,
-                "created_at": alias.created_at
+                "created_at": alias.created_at,
             }
             for alias in aliases
         ]
@@ -1196,40 +1297,46 @@ async def get_user_visited_sites(
         # Get creator username
         creator_username = None
         if site.created_by:
-            creator_user = db.query(User.username).filter(User.id == site.created_by).first()
+            creator_user = (
+                db.query(User.username).filter(User.id == site.created_by).first()
+            )
             if creator_user:
                 creator_username = creator_user.username
 
-        results.append({
-            "dive_site": {
-                "id": site.id,
-                "name": site.name,
-                "latitude": site.latitude,
-                "longitude": site.longitude,
-                "description": site.description,
-                "country": site.country,
-                "region": site.region,
-                "difficulty_id": site.difficulty_id,
-                "difficulty_label": site.difficulty.label if site.difficulty else None,
-                "created_at": site.created_at,
-                "updated_at": site.updated_at,
-                "deleted_at": site.deleted_at,
-                "created_by": site.created_by,
-                "created_by_username": creator_username,
-                "status": site.status,
-                "average_rating": avg_rating,
-                "total_ratings": total_ratings,
-                "comment_count": comment_count,
-                "route_count": route_count,
-                "tags": tags_list,
-                "aliases": aliases_list,
-                "shore_direction": site.shore_direction,
-                "shore_direction_confidence": site.shore_direction_confidence,
-                "shore_direction_method": site.shore_direction_method,
-                "shore_direction_distance_m": site.shore_direction_distance_m
-            },
-            "visit_count": count
-        })
+        results.append(
+            {
+                "dive_site": {
+                    "id": site.id,
+                    "name": site.name,
+                    "latitude": site.latitude,
+                    "longitude": site.longitude,
+                    "description": site.description,
+                    "country": site.country,
+                    "region": site.region,
+                    "difficulty_id": site.difficulty_id,
+                    "difficulty_label": site.difficulty.label
+                    if site.difficulty
+                    else None,
+                    "created_at": site.created_at,
+                    "updated_at": site.updated_at,
+                    "deleted_at": site.deleted_at,
+                    "created_by": site.created_by,
+                    "created_by_username": creator_username,
+                    "status": site.status,
+                    "average_rating": avg_rating,
+                    "total_ratings": total_ratings,
+                    "comment_count": comment_count,
+                    "route_count": route_count,
+                    "tags": tags_list,
+                    "aliases": aliases_list,
+                    "shore_direction": site.shore_direction,
+                    "shore_direction_confidence": site.shore_direction_confidence,
+                    "shore_direction_method": site.shore_direction_method,
+                    "shore_direction_distance_m": site.shore_direction_distance_m,
+                },
+                "visit_count": count,
+            }
+        )
 
     return results
 
@@ -1237,123 +1344,181 @@ async def get_user_visited_sites(
 @router.get("/{username}/analytics", response_model=AdvancedAnalyticsResponse)
 @skip_rate_limit_for_admin("60/minute")
 async def get_user_advanced_analytics(
-    request: Request,
-    username: str,
-    db: Session = Depends(get_db)
+    request: Request, username: str, db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(User.username == username, User.enabled == True).first()
+    user = (
+        db.query(User).filter(User.username == username, User.enabled == True).first()
+    )
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     import json
     import re
 
     from app.physics import calculate_sac
-    
-    advanced_query = db.query(
-        Dive.id,
-        Dive.max_depth,
-        Dive.duration,
-        Dive.suit_type,
-        Dive.dive_information,
-        Dive.gas_bottles_used,
-        Dive.average_depth,
-        Dive.dive_date
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False
-    ).order_by(Dive.dive_date.asc()).all()
+
+    advanced_query = (
+        db.query(
+            Dive.id,
+            Dive.max_depth,
+            Dive.duration,
+            Dive.suit_type,
+            Dive.dive_information,
+            Dive.gas_bottles_used,
+            Dive.average_depth,
+            Dive.dive_date,
+        )
+        .filter(Dive.user_id == user.id, Dive.is_private == False)
+        .order_by(Dive.dive_date.asc())
+        .all()
+    )
 
     from app.models import AvailableTag, DiveTag
-    deco_tag_query = db.query(DiveTag.dive_id).join(AvailableTag).filter(
-        AvailableTag.name.in_(["deco", "technical"]),
-        DiveTag.dive_id.in_([row[0] for row in advanced_query] if advanced_query else [])
-    ).all()
+
+    deco_tag_query = (
+        db.query(DiveTag.dive_id)
+        .join(AvailableTag)
+        .filter(
+            AvailableTag.name.in_(["deco", "technical"]),
+            DiveTag.dive_id.in_(
+                [row[0] for row in advanced_query] if advanced_query else []
+            ),
+        )
+        .all()
+    )
     deco_dive_ids = {row[0] for row in deco_tag_query}
 
     # Data structures
     sac_vs_depth = []
     temp_vs_suit = []
     weight_over_time = []
-    
+
     bubble_counts = {}
     year_counts = {}
     gas_config_counts = {}
-    
+
     sac_monthly_acc = {}
     depth_monthly_acc = {}
     weight_suit_acc = {}
     heatmap_counts = {}
 
     def get_max_bucket(depth):
-        if depth < 10: return "0-10"
-        if depth < 20: return "10-20"
-        if depth < 30: return "20-30"
-        if depth < 40: return "30-40"
-        if depth < 50: return "40-50"
-        if depth < 60: return "50-60"
-        if depth < 80: return "60-80"
+        if depth < 10:
+            return "0-10"
+        if depth < 20:
+            return "10-20"
+        if depth < 30:
+            return "20-30"
+        if depth < 40:
+            return "30-40"
+        if depth < 50:
+            return "40-50"
+        if depth < 60:
+            return "50-60"
+        if depth < 80:
+            return "60-80"
         return "80+"
 
     def get_avg_bucket(depth):
-        if depth < 5: return "0-5"
-        if depth < 10: return "5-10"
-        if depth < 15: return "10-15"
-        if depth < 20: return "15-20"
-        if depth < 25: return "20-25"
-        if depth < 30: return "25-30"
+        if depth < 5:
+            return "0-5"
+        if depth < 10:
+            return "5-10"
+        if depth < 15:
+            return "10-15"
+        if depth < 20:
+            return "15-20"
+        if depth < 25:
+            return "20-25"
+        if depth < 30:
+            return "25-30"
         return "30+"
 
     def parse_tank_config(gas_str):
-        if not gas_str: return None
+        if not gas_str:
+            return None
         is_doubles = False
         has_stage = False
         size_label = ""
-        
+
         try:
-            if gas_str.startswith('{'):
+            if gas_str.startswith("{"):
                 data = json.loads(gas_str)
-                if data.get('mode') == 'structured':
-                    tank = str(data.get('back_gas', {}).get('tank', '')).lower()
-                    stages = data.get('stages', [])
+                if data.get("mode") == "structured":
+                    tank = str(data.get("back_gas", {}).get("tank", "")).lower()
+                    stages = data.get("stages", [])
                     has_stage = len(stages) > 0
-                    
-                    if 'double' in tank or 'twin' in tank or tank.startswith('d') or tank in ['14', '16', '20', '24', '30']:
+
+                    if (
+                        "double" in tank
+                        or "twin" in tank
+                        or tank.startswith("d")
+                        or tank in ["14", "16", "20", "24", "30"]
+                    ):
                         is_doubles = True
-                        if '14' in tank or '7' in tank: size_label = "D7"
-                        elif '24' in tank or '12' in tank: size_label = "D12"
-                        elif '16' in tank or '8' in tank: size_label = "D8"
-                        elif '20' in tank or '10' in tank: size_label = "D10"
-                        else: size_label = "Doubles"
+                        if "14" in tank or "7" in tank:
+                            size_label = "D7"
+                        elif "24" in tank or "12" in tank:
+                            size_label = "D12"
+                        elif "16" in tank or "8" in tank:
+                            size_label = "D8"
+                        elif "20" in tank or "10" in tank:
+                            size_label = "D10"
+                        else:
+                            size_label = "Doubles"
                     else:
-                        if '80' in tank: size_label = "S80"
-                        elif '40' in tank: size_label = "S40"
-                        elif '15' in tank: size_label = "Single 15L"
-                        elif '12' in tank: size_label = "Single 12L"
-                        elif '10' in tank: size_label = "Single 10L"
-                        else: size_label = f"Single {tank.upper()}" if tank else "Single"
-                    
+                        if "80" in tank:
+                            size_label = "S80"
+                        elif "40" in tank:
+                            size_label = "S40"
+                        elif "15" in tank:
+                            size_label = "Single 15L"
+                        elif "12" in tank:
+                            size_label = "Single 12L"
+                        elif "10" in tank:
+                            size_label = "Single 10L"
+                        else:
+                            size_label = f"Single {tank.upper()}" if tank else "Single"
+
                     return f"{size_label}{' + Stage' if has_stage else ''}"
         except Exception:
             pass
 
         # Text fallback
         lower_str = gas_str.lower()
-        has_stage = 'stage' in lower_str or '+' in lower_str
-        is_doubles = 'double' in lower_str or 'twin' in lower_str or 'd12' in lower_str or 'd7' in lower_str
-        
-        if is_doubles:
-            size_label = "D12" if '12' in lower_str else ("D7" if '7' in lower_str else "Doubles")
-        else:
-            size_label = "S80" if '80' in lower_str else ("Single 15L" if '15' in lower_str else ("Single 12L" if '12' in lower_str else "Single"))
-            
-        return f"{size_label}{' + Stage' if has_stage else ''}"
+        has_stage = "stage" in lower_str or "+" in lower_str
+        is_doubles = (
+            "double" in lower_str
+            or "twin" in lower_str
+            or "d12" in lower_str
+            or "d7" in lower_str
+        )
 
+        if is_doubles:
+            size_label = (
+                "D12"
+                if "12" in lower_str
+                else ("D7" if "7" in lower_str else "Doubles")
+            )
+        else:
+            size_label = (
+                "S80"
+                if "80" in lower_str
+                else (
+                    "Single 15L"
+                    if "15" in lower_str
+                    else ("Single 12L" if "12" in lower_str else "Single")
+                )
+            )
+
+        return f"{size_label}{' + Stage' if has_stage else ''}"
 
     for d_id, d_max, d_dur, d_suit, d_info, d_gas, d_avg, d_date in advanced_query:
         date_str = d_date.strftime("%Y-%m-%d") if d_date else None
         month_str = d_date.strftime("%Y-%m") if d_date else None
-        
+
         if d_date:
             year_str = str(d_date.year)
             year_counts[year_str] = year_counts.get(year_str, 0) + 1
@@ -1361,12 +1526,12 @@ async def get_user_advanced_analytics(
         if d_max is not None and d_dur is not None:
             rounded_dur = int(round(float(d_dur) / 5.0) * 5)
             rounded_depth = int(round(float(d_max) / 5.0) * 5)
-            
+
             is_deco = d_id in deco_dive_ids
             config_label = parse_tank_config(d_gas)
             if config_label and "Stage" in config_label:
                 is_deco = True
-                
+
             dive_type = "technical" if is_deco else "recreational"
             b_key = f"{rounded_dur}|{rounded_depth}|{dive_type}"
             bubble_counts[b_key] = bubble_counts.get(b_key, 0) + 1
@@ -1389,26 +1554,30 @@ async def get_user_advanced_analytics(
             sac_match = re.search(r"SAC:\s*([0-9.]+)", str(d_info))
             if sac_match:
                 extracted_sac = float(sac_match.group(1))
-                
-            weight_match = re.search(r"Weight[s]?:\s*([0-9.]+)\s*kg", str(d_info), re.IGNORECASE)
+
+            weight_match = re.search(
+                r"Weight[s]?:\s*([0-9.]+)\s*kg", str(d_info), re.IGNORECASE
+            )
             if weight_match:
                 extracted_weight = float(weight_match.group(1))
 
         if d_gas and d_dur and d_avg:
             try:
-                if str(d_gas).startswith('{'):
+                if str(d_gas).startswith("{"):
                     gas_data = json.loads(d_gas)
-                    if gas_data.get('mode') == 'structured':
-                        bg = gas_data.get('back_gas', {})
-                        t_vol = float(bg.get('tank', 0))
-                        p_start = float(bg.get('start_pressure', 0))
-                        p_end = float(bg.get('end_pressure', 0))
+                    if gas_data.get("mode") == "structured":
+                        bg = gas_data.get("back_gas", {})
+                        t_vol = float(bg.get("tank", 0))
+                        p_start = float(bg.get("start_pressure", 0))
+                        p_end = float(bg.get("end_pressure", 0))
                         if t_vol > 0 and p_start > p_end > 0:
-                            calculated_sac = calculate_sac(float(d_avg), float(d_dur), t_vol, p_start, p_end)
+                            calculated_sac = calculate_sac(
+                                float(d_avg), float(d_dur), t_vol, p_start, p_end
+                            )
                             if calculated_sac > 0:
                                 extracted_sac = calculated_sac
             except Exception:
-                pass 
+                pass
 
         if extracted_sac and d_max:
             sac_val = round(extracted_sac, 2)
@@ -1416,7 +1585,13 @@ async def get_user_advanced_analytics(
             if month_str:
                 sac_monthly_acc.setdefault(month_str, []).append(sac_val)
 
-        s_name = d_suit.value if hasattr(d_suit, 'value') else str(d_suit) if d_suit else None
+        s_name = (
+            d_suit.value
+            if hasattr(d_suit, "value")
+            else str(d_suit)
+            if d_suit
+            else None
+        )
         config_label = parse_tank_config(d_gas)
 
         gear_combo = "Unknown"
@@ -1433,51 +1608,56 @@ async def get_user_advanced_analytics(
         if extracted_weight and gear_combo != "Unknown":
             weight_suit_acc.setdefault(gear_combo, []).append(extracted_weight)
             if date_str:
-                weight_over_time.append({"date": date_str, "weight": extracted_weight, "gear": gear_combo})
+                weight_over_time.append(
+                    {"date": date_str, "weight": extracted_weight, "gear": gear_combo}
+                )
 
         if d_max and d_avg and month_str:
             acc = depth_monthly_acc.setdefault(month_str, {"max": [], "avg": []})
             acc["max"].append(float(d_max))
             acc["avg"].append(float(d_avg))
-            
+
         if config_label:
             gas_config_counts[config_label] = gas_config_counts.get(config_label, 0) + 1
 
     depth_density_heatmap = [
-        {"max_bin": k.split('|')[0], "avg_bin": k.split('|')[1], "count": v}
+        {"max_bin": k.split("|")[0], "avg_bin": k.split("|")[1], "count": v}
         for k, v in heatmap_counts.items()
     ]
     duration_vs_depth = [
         {
-            "duration": int(k.split('|')[0]), 
-            "depth": int(k.split('|')[1]), 
-            "type": k.split('|')[2],
-            "count": v
+            "duration": int(k.split("|")[0]),
+            "depth": int(k.split("|")[1]),
+            "type": k.split("|")[2],
+            "count": v,
         }
         for k, v in bubble_counts.items()
     ]
-    dives_per_year = [
-        {"year": k, "count": v} 
-        for k, v in sorted(year_counts.items())
-    ]
+    dives_per_year = [{"year": k, "count": v} for k, v in sorted(year_counts.items())]
     dives_per_gas_config = [
-        {"config": k, "count": v} 
-        for k, v in sorted(gas_config_counts.items(), key=lambda item: item[1], reverse=True)
+        {"config": k, "count": v}
+        for k, v in sorted(
+            gas_config_counts.items(), key=lambda item: item[1], reverse=True
+        )
     ]
     weight_vs_gear = sorted(
         [
-            {"gear": k, "weight": round(sum(v) / len(v), 2)} 
+            {"gear": k, "weight": round(sum(v) / len(v), 2)}
             for k, v in weight_suit_acc.items()
         ],
         key=lambda x: x["weight"],
-        reverse=True
+        reverse=True,
     )
     sac_over_time = [
-        {"date": k, "sac": round(sum(v) / len(v), 2)} 
+        {"date": k, "sac": round(sum(v) / len(v), 2)}
         for k, v in sorted(sac_monthly_acc.items())
     ]
     depth_over_time = [
-        {"date": k, "max": round(sum(v["max"]) / len(v["max"]), 2), "avg": round(sum(v["avg"]) / len(v["avg"]), 2)} 
+        {
+            "date": k,
+            "max": round(sum(v["max"]) / len(v["max"]), 2),
+            "avg": round(sum(v["avg"]) / len(v["avg"]), 2),
+        }
         for k, v in sorted(depth_monthly_acc.items())
     ]
 
@@ -1490,7 +1670,7 @@ async def get_user_advanced_analytics(
         "Cave & Overhead": 0,
         "Night & Shadow": 0,
         "Photography": 0,
-        "Training": 0
+        "Training": 0,
     }
     boat_dives = 0
     shore_dives = 0
@@ -1501,22 +1681,34 @@ async def get_user_advanced_analytics(
     all_dive_tags = []
     if dive_ids:
         from app.models import AvailableTag, DiveTag
-        all_dive_tags = db.query(DiveTag.dive_id, AvailableTag.name).join(AvailableTag).filter(
-            DiveTag.dive_id.in_(dive_ids)
-        ).all()
+
+        all_dive_tags = (
+            db.query(DiveTag.dive_id, AvailableTag.name)
+            .join(AvailableTag)
+            .filter(DiveTag.dive_id.in_(dive_ids))
+            .all()
+        )
 
     # Map tag names to dimensions
     for _d_id, tag_name in all_dive_tags:
         lower_tag = tag_name.lower()
-        if any(term in lower_tag for term in ["reef", "coral", "shallow", "fish", "flora", "marine"]):
+        if any(
+            term in lower_tag
+            for term in ["reef", "coral", "shallow", "fish", "flora", "marine"]
+        ):
             style_counts["Reef & Eco"] += 1
-        elif any(term in lower_tag for term in ["wreck", "shipwreck", "rust", "iron", "metal"]):
+        elif any(
+            term in lower_tag
+            for term in ["wreck", "shipwreck", "rust", "iron", "metal"]
+        ):
             style_counts["Wreck & History"] += 1
         elif any(term in lower_tag for term in ["deep", "deco", "tech", "technical"]):
             style_counts["Deep & Technical"] += 1
         elif any(term in lower_tag for term in ["drift", "wall", "current"]):
             style_counts["Drift & Wall"] += 1
-        elif any(term in lower_tag for term in ["cave", "cavern", "overhead", "cenote"]):
+        elif any(
+            term in lower_tag for term in ["cave", "cavern", "overhead", "cenote"]
+        ):
             style_counts["Cave & Overhead"] += 1
         elif "night" in lower_tag:
             style_counts["Night & Shadow"] += 1
@@ -1532,27 +1724,41 @@ async def get_user_advanced_analytics(
             total_logistics_dives += 1
 
     dive_style_radar = [
-        {"subject": k, "value": v, "fullMark": max(style_counts.values()) if style_counts.values() and max(style_counts.values()) > 0 else 100}
+        {
+            "subject": k,
+            "value": v,
+            "fullMark": max(style_counts.values())
+            if style_counts.values() and max(style_counts.values()) > 0
+            else 100,
+        }
         for k, v in style_counts.items()
     ]
-    
-    boat_dive_pct = round((boat_dives / total_logistics_dives) * 100.0, 1) if total_logistics_dives > 0 else 0.0
-    shore_dive_pct = round((shore_dives / total_logistics_dives) * 100.0, 1) if total_logistics_dives > 0 else 0.0
+
+    boat_dive_pct = (
+        round((boat_dives / total_logistics_dives) * 100.0, 1)
+        if total_logistics_dives > 0
+        else 0.0
+    )
+    shore_dive_pct = (
+        round((shore_dives / total_logistics_dives) * 100.0, 1)
+        if total_logistics_dives > 0
+        else 0.0
+    )
 
     # 2. Gas Mix vs Max Depth Heatmap
     gas_mix_counts = {}
-    
+
     def parse_gas_mix(gas_str):
         if not gas_str:
             return "Air"
         try:
-            if str(gas_str).startswith('{'):
+            if str(gas_str).startswith("{"):
                 data = json.loads(gas_str)
-                if data.get('mode') == 'structured':
-                    bg = data.get('back_gas', {})
-                    gas = bg.get('gas', {})
-                    o2 = gas.get('o2')
-                    he = gas.get('he')
+                if data.get("mode") == "structured":
+                    bg = data.get("back_gas", {})
+                    gas = bg.get("gas", {})
+                    o2 = gas.get("o2")
+                    he = gas.get("he")
 
                     if o2 is not None:
                         o2_val = float(o2)
@@ -1584,27 +1790,42 @@ async def get_user_advanced_analytics(
             pass
 
         lower_str = str(gas_str).lower()
-        if 'trimix' in lower_str or 'tx' in lower_str:
+        if "trimix" in lower_str or "tx" in lower_str:
             return "Trimix"
-        elif 'nitrox 22-27' in lower_str or 'ean22' in lower_str or 'ean25' in lower_str or 'ean27' in lower_str:
+        elif (
+            "nitrox 22-27" in lower_str
+            or "ean22" in lower_str
+            or "ean25" in lower_str
+            or "ean27" in lower_str
+        ):
             return "Nitrox 22-27"
-        elif 'nitrox 28' in lower_str or 'ean28' in lower_str or 'nx28' in lower_str:
+        elif "nitrox 28" in lower_str or "ean28" in lower_str or "nx28" in lower_str:
             return "Nitrox 28"
-        elif 'nitrox 29-31' in lower_str or 'ean30' in lower_str or 'ean31' in lower_str:
+        elif (
+            "nitrox 29-31" in lower_str or "ean30" in lower_str or "ean31" in lower_str
+        ):
             return "Nitrox 29-31"
-        elif 'nitrox 32' in lower_str or 'ean32' in lower_str or 'nx32' in lower_str:
+        elif "nitrox 32" in lower_str or "ean32" in lower_str or "nx32" in lower_str:
             return "Nitrox 32"
-        elif 'nitrox 33-35' in lower_str or 'ean34' in lower_str or 'ean35' in lower_str:
+        elif (
+            "nitrox 33-35" in lower_str or "ean34" in lower_str or "ean35" in lower_str
+        ):
             return "Nitrox 33-35"
-        elif 'nitrox 36' in lower_str or 'ean36' in lower_str or 'nx36' in lower_str:
+        elif "nitrox 36" in lower_str or "ean36" in lower_str or "nx36" in lower_str:
             return "Nitrox 36"
-        elif 'nitrox 37-42' in lower_str or 'ean40' in lower_str or 'nx40' in lower_str:
+        elif "nitrox 37-42" in lower_str or "ean40" in lower_str or "nx40" in lower_str:
             return "Nitrox 37-42"
-        elif 'nitrox 43-48' in lower_str or 'ean45' in lower_str or 'nx45' in lower_str:
+        elif "nitrox 43-48" in lower_str or "ean45" in lower_str or "nx45" in lower_str:
             return "Nitrox 43-48"
-        elif 'deco' in lower_str or 'ean50' in lower_str or 'oxygen' in lower_str or 'o2' in lower_str or 'deco gas' in lower_str:
+        elif (
+            "deco" in lower_str
+            or "ean50" in lower_str
+            or "oxygen" in lower_str
+            or "o2" in lower_str
+            or "deco gas" in lower_str
+        ):
             return "Deco Gas (49+)"
-        elif 'nitrox' in lower_str or 'nx' in lower_str or 'ean' in lower_str:
+        elif "nitrox" in lower_str or "nx" in lower_str or "ean" in lower_str:
             return "Nitrox 32"  # default standard
         return "Air"
 
@@ -1612,13 +1833,26 @@ async def get_user_advanced_analytics(
         if depth is None:
             return None
         d = float(depth)
-        if d <= 18: return "0-18m"
-        if d <= 30: return "18-30m"
-        if d <= 40: return "30-40m"
-        if d <= 50: return "40-50m"
+        if d <= 18:
+            return "0-18m"
+        if d <= 30:
+            return "18-30m"
+        if d <= 40:
+            return "30-40m"
+        if d <= 50:
+            return "40-50m"
         return "50m+"
 
-    for _d_id, d_max, _d_dur, _d_suit, _d_info, d_gas, _d_avg, _d_date in advanced_query:
+    for (
+        _d_id,
+        d_max,
+        _d_dur,
+        _d_suit,
+        _d_info,
+        d_gas,
+        _d_avg,
+        _d_date,
+    ) in advanced_query:
         if d_max is not None:
             gas_mix_label = parse_gas_mix(d_gas)
             depth_bin = get_gas_depth_bin(d_max)
@@ -1627,53 +1861,55 @@ async def get_user_advanced_analytics(
                 gas_mix_counts[key] = gas_mix_counts.get(key, 0) + 1
 
     gas_mix_heatmap = [
-        {"mix": k.split('|')[0], "depth_bin": k.split('|')[1], "count": v}
+        {"mix": k.split("|")[0], "depth_bin": k.split("|")[1], "count": v}
         for k, v in gas_mix_counts.items()
     ]
 
     # 3. Country Distribution aggregation
-    country_query = db.query(DiveSite.country, func.count(Dive.id)).join(
-        Dive, Dive.dive_site_id == DiveSite.id
-    ).filter(
-        Dive.user_id == user.id,
-        Dive.is_private == False,
-        DiveSite.country.isnot(None),
-        DiveSite.country != ""
-    ).group_by(DiveSite.country).all()
-    
+    country_query = (
+        db.query(DiveSite.country, func.count(Dive.id))
+        .join(Dive, Dive.dive_site_id == DiveSite.id)
+        .filter(
+            Dive.user_id == user.id,
+            Dive.is_private == False,
+            DiveSite.country.isnot(None),
+            DiveSite.country != "",
+        )
+        .group_by(DiveSite.country)
+        .all()
+    )
+
     country_distribution = [
-        {"country": country, "count": count}
-        for country, count in country_query
+        {"country": country, "count": count} for country, count in country_query
     ]
 
     return AdvancedAnalyticsResponse(
-      depth_density_heatmap=depth_density_heatmap,
-      sac_vs_depth=sac_vs_depth,
-      duration_vs_depth=duration_vs_depth,
-      temp_vs_suit=temp_vs_suit,
-      dives_per_year=dives_per_year,
-      sac_over_time=sac_over_time,
-      depth_over_time=depth_over_time,
-      dives_per_gas_config=dives_per_gas_config,
-      weight_vs_gear=weight_vs_gear,
-      weight_over_time=weight_over_time,
-      dive_style_radar=dive_style_radar,
-      boat_dive_pct=boat_dive_pct,
-      shore_dive_pct=shore_dive_pct,
-      gas_mix_heatmap=gas_mix_heatmap,
-      country_distribution=country_distribution
+        depth_density_heatmap=depth_density_heatmap,
+        sac_vs_depth=sac_vs_depth,
+        duration_vs_depth=duration_vs_depth,
+        temp_vs_suit=temp_vs_suit,
+        dives_per_year=dives_per_year,
+        sac_over_time=sac_over_time,
+        depth_over_time=depth_over_time,
+        dives_per_gas_config=dives_per_gas_config,
+        weight_vs_gear=weight_vs_gear,
+        weight_over_time=weight_over_time,
+        dive_style_radar=dive_style_radar,
+        boat_dive_pct=boat_dive_pct,
+        shore_dive_pct=shore_dive_pct,
+        gas_mix_heatmap=gas_mix_heatmap,
+        country_distribution=country_distribution,
     )
 
 
 # API Key Management Endpoints (Admin Only)
 @router.get("/admin/api-keys", response_model=List[ApiKeyResponse])
 async def list_api_keys(
-    current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_admin_user), db: Session = Depends(get_db)
 ):
     """List all API keys (admin only)"""
     api_keys = db.query(ApiKey).order_by(ApiKey.created_at.desc()).all()
-    
+
     # Build response with created_by username
     result = []
     for key in api_keys:
@@ -1682,20 +1918,22 @@ async def list_api_keys(
             creator = db.query(User).filter(User.id == key.created_by_user_id).first()
             if creator:
                 created_by_username = creator.username
-        
-        result.append(ApiKeyResponse(
-            id=key.id,
-            name=key.name,
-            description=key.description,
-            created_by_user_id=key.created_by_user_id,
-            created_by_username=created_by_username,
-            expires_at=key.expires_at,
-            last_used_at=key.last_used_at,
-            is_active=key.is_active,
-            created_at=key.created_at,
-            updated_at=key.updated_at
-        ))
-    
+
+        result.append(
+            ApiKeyResponse(
+                id=key.id,
+                name=key.name,
+                description=key.description,
+                created_by_user_id=key.created_by_user_id,
+                created_by_username=created_by_username,
+                expires_at=key.expires_at,
+                last_used_at=key.last_used_at,
+                is_active=key.is_active,
+                created_at=key.created_at,
+                updated_at=key.updated_at,
+            )
+        )
+
     return result
 
 
@@ -1703,7 +1941,7 @@ async def list_api_keys(
 async def create_api_key(
     key_data: ApiKeyCreate,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a new API key (admin only).
@@ -1711,11 +1949,13 @@ async def create_api_key(
     """
     # Generate secure API key: "dm_" prefix + base64(32 random bytes)
     random_bytes = secrets.token_bytes(32)
-    api_key_value = "dm_" + base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
-    
+    api_key_value = "dm_" + base64.urlsafe_b64encode(random_bytes).decode(
+        "utf-8"
+    ).rstrip("=")
+
     # Hash the key for storage (using bcrypt like passwords)
     key_hash = get_password_hash(api_key_value)
-    
+
     # Create API key record
     db_api_key = ApiKey(
         name=key_data.name,
@@ -1723,13 +1963,13 @@ async def create_api_key(
         description=key_data.description,
         created_by_user_id=current_user.id,
         expires_at=key_data.expires_at,
-        is_active=True
+        is_active=True,
     )
-    
+
     db.add(db_api_key)
     db.commit()
     db.refresh(db_api_key)
-    
+
     # Return response with the actual key (only time it's shown)
     return ApiKeyCreateResponse(
         id=db_api_key.id,
@@ -1738,7 +1978,7 @@ async def create_api_key(
         description=db_api_key.description,
         expires_at=db_api_key.expires_at,
         created_at=db_api_key.created_at,
-        warning="Store this API key securely. It will not be shown again."
+        warning="Store this API key securely. It will not be shown again.",
     )
 
 
@@ -1746,24 +1986,23 @@ async def create_api_key(
 async def get_api_key(
     key_id: int,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get API key details (admin only, key value not shown)"""
     api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
-    
+
     if not api_key:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
         )
-    
+
     # Get created_by username
     created_by_username = None
     if api_key.created_by_user_id:
         creator = db.query(User).filter(User.id == api_key.created_by_user_id).first()
         if creator:
             created_by_username = creator.username
-    
+
     return ApiKeyResponse(
         id=api_key.id,
         name=api_key.name,
@@ -1774,7 +2013,7 @@ async def get_api_key(
         last_used_at=api_key.last_used_at,
         is_active=api_key.is_active,
         created_at=api_key.created_at,
-        updated_at=api_key.updated_at
+        updated_at=api_key.updated_at,
     )
 
 
@@ -1783,32 +2022,31 @@ async def update_api_key(
     key_id: int,
     key_update: ApiKeyUpdate,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update API key (admin only)"""
     api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
-    
+
     if not api_key:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
         )
-    
+
     # Update only provided fields
     update_data = key_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(api_key, field, value)
-    
+
     db.commit()
     db.refresh(api_key)
-    
+
     # Get created_by username
     created_by_username = None
     if api_key.created_by_user_id:
         creator = db.query(User).filter(User.id == api_key.created_by_user_id).first()
         if creator:
             created_by_username = creator.username
-    
+
     return ApiKeyResponse(
         id=api_key.id,
         name=api_key.name,
@@ -1819,7 +2057,7 @@ async def update_api_key(
         last_used_at=api_key.last_used_at,
         is_active=api_key.is_active,
         created_at=api_key.created_at,
-        updated_at=api_key.updated_at
+        updated_at=api_key.updated_at,
     )
 
 
@@ -1827,20 +2065,19 @@ async def update_api_key(
 async def delete_api_key(
     key_id: int,
     current_user: User = Depends(get_current_admin_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete API key (admin only)"""
     api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
-    
+
     if not api_key:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="API key not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="API key not found"
         )
-    
+
     db.delete(api_key)
     db.commit()
-    
+
     return {"message": "API key deleted successfully"}
 
 
@@ -1850,15 +2087,15 @@ async def get_my_comments(
     page: int = Query(1, ge=1),
     page_size: int = Query(15, ge=1, le=50),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieve comments made by the current logged-in user with pagination"""
     query = db.query(SiteComment).filter(SiteComment.user_id == current_user.id)
     total_count = query.count()
-    
+
     total_pages = (total_count + page_size - 1) // page_size
     offset = (page - 1) * page_size
-    
+
     comments = (
         query.options(joinedload(SiteComment.dive_site))
         .order_by(SiteComment.created_at.desc())
@@ -1866,7 +2103,7 @@ async def get_my_comments(
         .limit(page_size)
         .all()
     )
-    
+
     return {
         "items": comments,
         "total": total_count,
@@ -1874,7 +2111,7 @@ async def get_my_comments(
         "page_size": page_size,
         "total_pages": total_pages,
         "has_next_page": page < total_pages,
-        "has_prev_page": page > 1
+        "has_prev_page": page > 1,
     }
 
 
@@ -1883,15 +2120,15 @@ async def get_my_ratings(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Retrieve ratings submitted by the current logged-in user with pagination"""
     query = db.query(SiteRating).filter(SiteRating.user_id == current_user.id)
     total_count = query.count()
-    
+
     total_pages = (total_count + page_size - 1) // page_size
     offset = (page - 1) * page_size
-    
+
     ratings = (
         query.options(joinedload(SiteRating.dive_site))
         .order_by(SiteRating.created_at.desc())
@@ -1899,7 +2136,7 @@ async def get_my_ratings(
         .limit(page_size)
         .all()
     )
-    
+
     return {
         "items": ratings,
         "total": total_count,
@@ -1907,20 +2144,22 @@ async def get_my_ratings(
         "page_size": page_size,
         "total_pages": total_pages,
         "has_next_page": page < total_pages,
-        "has_prev_page": page > 1
+        "has_prev_page": page > 1,
     }
 
 
 # Personal Access Token (PAT) Management
 @router.get("/me/tokens", response_model=List[PATResponse])
 async def list_pats(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """List all Personal Access Tokens for the current user"""
-    pats = db.query(PersonalAccessToken).filter(
-        PersonalAccessToken.user_id == current_user.id
-    ).order_by(PersonalAccessToken.created_at.desc()).all()
+    pats = (
+        db.query(PersonalAccessToken)
+        .filter(PersonalAccessToken.user_id == current_user.id)
+        .order_by(PersonalAccessToken.created_at.desc())
+        .all()
+    )
     return pats
 
 
@@ -1928,41 +2167,46 @@ async def list_pats(
 async def create_pat(
     token_data: PATCreate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create a new Personal Access Token.
     The actual token value is only returned once on creation.
     """
     # Check current number of active tokens
-    count = db.query(PersonalAccessToken).filter(
-        PersonalAccessToken.user_id == current_user.id,
-        PersonalAccessToken.is_active == True
-    ).count()
-    
+    count = (
+        db.query(PersonalAccessToken)
+        .filter(
+            PersonalAccessToken.user_id == current_user.id,
+            PersonalAccessToken.is_active == True,
+        )
+        .count()
+    )
+
     if count >= 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Maximum number of active tokens (10) reached. Please revoke an old token first."
+            detail="Maximum number of active tokens (10) reached. Please revoke an old token first.",
         )
 
     # Generate secure PAT: "dm_pat_" prefix + base64(32 random bytes)
     random_bytes = secrets.token_bytes(32)
-    token_suffix = base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
+    token_suffix = base64.urlsafe_b64encode(random_bytes).decode("utf-8").rstrip("=")
     token_value = "dm_pat_" + token_suffix
-    
+
     # Prefix for lookup (e.g., first 12 chars of the suffix)
     token_prefix = token_suffix[:12]
-    
+
     # Hash the token for storage
     token_hash = get_password_hash(token_value)
-    
+
     # Calculate expiration
     expires_at = None
     if token_data.expires_in_days:
         from datetime import timedelta
+
         expires_at = utcnow() + timedelta(days=token_data.expires_in_days)
-    
+
     # Create PAT record
     db_pat = PersonalAccessToken(
         user_id=current_user.id,
@@ -1970,13 +2214,13 @@ async def create_pat(
         token_prefix=token_prefix,
         token_hash=token_hash,
         expires_at=expires_at,
-        is_active=True
+        is_active=True,
     )
-    
+
     db.add(db_pat)
     db.commit()
     db.refresh(db_pat)
-    
+
     return PATCreateResponse(
         id=db_pat.id,
         name=db_pat.name,
@@ -1985,7 +2229,7 @@ async def create_pat(
         last_used_at=db_pat.last_used_at,
         is_active=db_pat.is_active,
         created_at=db_pat.created_at,
-        updated_at=db_pat.updated_at
+        updated_at=db_pat.updated_at,
     )
 
 
@@ -1993,31 +2237,35 @@ async def create_pat(
 async def delete_pat(
     token_id: int,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Revoke/Delete a Personal Access Token"""
-    pat = db.query(PersonalAccessToken).filter(
-        PersonalAccessToken.id == token_id,
-        PersonalAccessToken.user_id == current_user.id
-    ).first()
-    
+    pat = (
+        db.query(PersonalAccessToken)
+        .filter(
+            PersonalAccessToken.id == token_id,
+            PersonalAccessToken.user_id == current_user.id,
+        )
+        .first()
+    )
+
     if not pat:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Token not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Token not found"
         )
-    
+
     db.delete(pat)
     db.commit()
-    
+
     return {"message": "Token revoked successfully"}
+
 
 # Avatar Management Endpoints
 @router.post("/me/avatar/upload", response_model=UserResponse)
 async def upload_user_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Upload a custom avatar to R2/Local storage"""
     # 1. Read and process image
@@ -2026,51 +2274,59 @@ async def upload_user_avatar(
         processed_stream = image_processing.process_avatar(content)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     # 2. Upload to storage
     filename = f"{uuid.uuid4()}.webp"
-    file_path = r2_storage.upload_avatar(current_user.id, filename, processed_stream.getvalue())
-    
+    file_path = r2_storage.upload_avatar(
+        current_user.id, filename, processed_stream.getvalue()
+    )
+
     # 3. Update user model
     # Delete old custom avatar if exists (optional cleanup)
-    
+
     current_user.avatar_url = file_path
     current_user.avatar_type = AvatarType.custom
     db.commit()
     db.refresh(current_user)
-    
+
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
+
 
 @router.post("/me/avatar/library", response_model=UserResponse)
 async def set_library_avatar(
     avatar_data: AvatarUpdate,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Set avatar from the library"""
     if avatar_data.avatar_type != AvatarType.library:
-        raise HTTPException(status_code=400, detail="Invalid avatar type for this endpoint")
-    
+        raise HTTPException(
+            status_code=400, detail="Invalid avatar type for this endpoint"
+        )
+
     # Basic security check: ensure it's a path we expect for library
     if not avatar_data.avatar_url.startswith("library/avatars/"):
         raise HTTPException(status_code=400, detail="Invalid library avatar path")
-        
+
     current_user.avatar_url = avatar_data.avatar_url
     current_user.avatar_type = AvatarType.library
     db.commit()
     db.refresh(current_user)
-    
+
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 
+
 @router.delete("/me/avatar", response_model=UserResponse)
 async def remove_avatar(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Reset avatar to Facebook, Google or None"""
-    if current_user.facebook_avatar_url and current_user.avatar_type == AvatarType.facebook:
+    if (
+        current_user.facebook_avatar_url
+        and current_user.avatar_type == AvatarType.facebook
+    ):
         current_user.avatar_url = current_user.facebook_avatar_url
     elif current_user.google_avatar_url:
         current_user.avatar_url = current_user.google_avatar_url
@@ -2081,38 +2337,44 @@ async def remove_avatar(
     else:
         current_user.avatar_url = None
         current_user.avatar_type = None
-        
+
     db.commit()
     db.refresh(current_user)
-    
+
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 
+
 class FacebookLinkRequest(BaseModel):
     token: str = Field(..., min_length=1, description="Facebook user access token")
+
 
 @router.post("/me/facebook/link", response_model=UserResponse)
 async def link_facebook(
     link_data: FacebookLinkRequest,
     current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Link Facebook account to the current user."""
     if not is_facebook_auth_configured():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Facebook authentication is not configured on this server"
+            detail="Facebook authentication is not configured on this server",
         )
 
     try:
         fb_info = verify_facebook_token(link_data.token)
         fb_id = fb_info["id"]
 
-        existing = db.query(User).filter(User.facebook_id == fb_id, User.id != current_user.id).first()
+        existing = (
+            db.query(User)
+            .filter(User.facebook_id == fb_id, User.id != current_user.id)
+            .first()
+        )
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This Facebook account is already linked to another user."
+                detail="This Facebook account is already linked to another user.",
             )
 
         current_user.facebook_id = fb_id
@@ -2125,22 +2387,22 @@ async def link_facebook(
     except FacebookAuthError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+
 @router.delete("/me/facebook/unlink", response_model=UserResponse)
 async def unlink_facebook(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ):
     """Unlink Facebook account from current user."""
     # password_hash is always set for Facebook signups (random), so do not use it
     # as proof of another login method. Require Google or a real (non-synthetic) email.
     has_google = bool(current_user.google_id)
     has_real_email = bool(
-        current_user.email and not current_user.email.endswith('.invalid')
+        current_user.email and not current_user.email.endswith(".invalid")
     )
     if not has_google and not has_real_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot unlink Facebook because you have no other login method configured."
+            detail="Cannot unlink Facebook because you have no other login method configured.",
         )
 
     current_user.facebook_id = None
@@ -2154,15 +2416,13 @@ async def unlink_facebook(
     response_dict = UserResponse.model_validate(current_user).model_dump()
     return populate_avatar_full_url(current_user, response_dict)
 
+
 @router.get("/avatars/library", response_model=List[dict])
 async def get_library_avatars():
     """List available library avatars with full URLs"""
     keys = r2_storage.list_objects("library/avatars/")
     result = []
     for k in keys:
-        if k.endswith('.webp'):
-            result.append({
-                "path": k,
-                "full_url": r2_storage.get_library_avatar_url(k)
-            })
+        if k.endswith(".webp"):
+            result.append({"path": k, "full_url": r2_storage.get_library_avatar_url(k)})
     return result

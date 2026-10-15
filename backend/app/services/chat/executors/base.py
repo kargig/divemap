@@ -32,6 +32,7 @@ from app.schemas.chat import IntentType
 def clean_results(results: List[Dict]) -> List[Dict]:
     """Ensures all objects in the results list are JSON serializable (converts Enums to strings)."""
     import enum
+
     def clean_obj(obj):
         if isinstance(obj, list):
             return [clean_obj(x) for x in obj]
@@ -39,7 +40,8 @@ def clean_results(results: List[Dict]) -> List[Dict]:
             return {k: clean_obj(v) for k, v in obj.items()}
         if isinstance(obj, enum.Enum):
             return obj.value
-        if hasattr(obj, 'value'): # SQLAlchemy Enum members
+        if hasattr(obj, "value"):  # SQLAlchemy Enum members
             return obj.value
         return obj
+
     return [clean_obj(r) for r in results]

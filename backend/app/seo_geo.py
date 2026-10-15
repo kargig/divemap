@@ -1,4 +1,5 @@
 """Shared SEO geo-hub helpers: slugs, path builders, dive-log substance checks."""
+
 from __future__ import annotations
 
 import re
@@ -15,7 +16,11 @@ def geo_slug(text: Optional[str]) -> str:
     """URL slug for a country or region name (ASCII, hyphenated)."""
     if not text:
         return ""
-    text = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode("utf-8")
+    text = (
+        unicodedata.normalize("NFKD", str(text))
+        .encode("ascii", "ignore")
+        .decode("utf-8")
+    )
     text = text.lower().strip()
     text = re.sub(r"[\s\W-]+", "-", text)
     return text.strip("-")
@@ -144,11 +149,7 @@ def query_substantial_public_dives(db: Session) -> list[Dive]:
     Substance filters run in SQL so sitemap generation does not load every
     public dive (plus media) into memory.
     """
-    has_media = (
-        db.query(DiveMedia.id)
-        .filter(DiveMedia.dive_id == Dive.id)
-        .exists()
-    )
+    has_media = db.query(DiveMedia.id).filter(DiveMedia.dive_id == Dive.id).exists()
     # Match is_substantial_public_dive: profile OR notes >= 100 chars OR media.
     # CHAR_LENGTH matches Python len() on Unicode text under MySQL.
     substantial = or_(

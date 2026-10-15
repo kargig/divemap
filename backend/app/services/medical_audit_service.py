@@ -41,8 +41,10 @@ def log_medical_access(
 
     accessor_id = accessor_user.id if accessor_user else None
     accessor_name = accessor_user.username if accessor_user else "guest"
-    accessor_role = "admin" if (accessor_user and accessor_user.is_admin) else (
-        "user" if accessor_user else "guest"
+    accessor_role = (
+        "admin"
+        if (accessor_user and accessor_user.is_admin)
+        else ("user" if accessor_user else "guest")
     )
 
     # Normalize action name to snake_case matching auth audit log conventions
