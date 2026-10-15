@@ -32,6 +32,13 @@ The test suite contains a teardown step (`Base.metadata.drop_all(bind=engine)`) 
         ```
 4.  **Preventing Database Wipes:** A hard fail-safe has been added to `conftest.py` that will abort the test suite if it detects the live database URL. However, you must still adhere to this protocol.
 
+## Mandatory Post-Change Linting (Ruff)
+
+Just as running backend tests is mandatory after code modifications, agents **MUST ALWAYS run Ruff linter checks** after any backend changes:
+* **Check lint:** `backend/divemap_venv/bin/ruff check <files>` (or `make lint-backend`)
+* **Auto-fix lint issues:** `backend/divemap_venv/bin/ruff check --fix <files>`
+* **CI note:** `ruff check` is a blocking gate in GitHub Actions CI (`.github/workflows/backend-lint-format.yml`). `ruff format` is currently advisory/non-blocking in CI.
+
 ## Quick Reference Commands
 
 | Goal | Command |
@@ -39,3 +46,5 @@ The test suite contains a teardown step (`Base.metadata.drop_all(bind=engine)`) 
 | Run Specific Test (Safe) | `cd backend && ./docker-test-github-actions.sh tests/test_file.py` |
 | Debug Full DB Test (Verbose) | `cd backend && ./docker-test-github-actions.sh -v tests/test_file.py` |
 | View Test Output | `cat backend/test-failures.txt` |
+| Run Ruff Lint Check | `backend/divemap_venv/bin/ruff check <files>` (or `make lint-backend`) |
+| Auto-fix Ruff Issues | `backend/divemap_venv/bin/ruff check --fix <files>` |

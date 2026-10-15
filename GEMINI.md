@@ -25,6 +25,16 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
   - Verify **Links** pointing to these routes are updated and working.
 - **Global Styles:** Changes to global CSS or HTML (e.g., `index.html`, `App.js` layout) MUST be verified across multiple diverse pages (e.g., Home, List Views, Detail Views) to ensure no unintended layout regressions.
 
+### Backend Verification Standards
+- **Ruff Linting (Mandatory):** ALWAYS run Ruff checks after ANY backend change, just like backend tests:
+  ```bash
+  backend/divemap_venv/bin/ruff check <files>
+  # Or check via Makefile:
+  make lint-backend
+  ```
+  `ruff check` is enforced as a blocking check in GitHub Actions CI (`.github/workflows/backend-lint-format.yml`). `ruff format` is currently non-blocking (warning only in CI), so formatting can be left as-is unless explicitly desired or using `make lint-backend-fix`.
+- **Backend Tests (Mandatory):** Run tests using `cd backend && ./docker-test-github-actions.sh [tests/test_file.py]`. NEVER run pytest in the live container.
+
 ## Git Workflow & Standards
 - **Feature Branches:** ALWAYS create a feature branch for changes: `feature/[task-name-kebab-case]`.
 - **No Direct Commits:** NEVER work directly on `main` or `master`.
@@ -167,7 +177,8 @@ Documentation is consolidated in the `docs/` directory. Major changes should be 
   - Be mindful of object creation overhead. Use `__slots__` for classes that will have many instances (thousands+) to reduce memory footprint, though this is less relevant for standard Pydantic/SQLAlchemy models which handle this internally or differently.
 
 ## Testing & Linting
--  Always run `make lint-frontend` instead of `docker exec divemap_frontend npm run lint` for frontend linting. Then check the contents of `frontend-lint-errors.log` for errors
+- **Backend Linting (Mandatory):** ALWAYS run Ruff checks (`backend/divemap_venv/bin/ruff check <files>` or `make lint-backend`) after ANY backend changes. `ruff check` is a blocking CI check in GitHub Actions (`.github/workflows/backend-lint-format.yml`). `ruff format` is currently non-blocking/advisory in CI.
+- **Frontend Linting:** Always run `make lint-frontend` instead of `docker exec divemap_frontend npm run lint` for frontend linting. Then check the contents of `frontend-lint-errors.log` for errors.
 
 ## React Best Practices
 - **Performance:** Eliminate waterfalls (parallelize async), use `React.lazy` for heavy components, and animate wrapper `div`s (not SVGs).

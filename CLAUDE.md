@@ -17,6 +17,10 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 - **All Tests:** `make test`
 
 ### 3. Linting & Formatting Commands
+- **Backend Linting (MANDATORY):** ALWAYS run Ruff checks after ANY backend change, just like backend tests:
+  - Check: `backend/divemap_venv/bin/ruff check <files>` or `make lint-backend`
+  - Auto-fix issues: `backend/divemap_venv/bin/ruff check --fix <files>`
+  - Note: `ruff check` is a blocking failure in GitHub Actions CI. `ruff format` is currently non-blocking/advisory in CI.
 - **Frontend Linting:** `make lint-frontend` (Outputs errors to `frontend-lint-errors.log`)
 
 ---
