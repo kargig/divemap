@@ -7,6 +7,7 @@ from slowapi import Limiter
 from app.auth import verify_token
 from app.database import get_db
 from app.models import User
+
 # Search-bot skip: reverse+forward DNS per Google/Bing docs (async, fail-open).
 # See module docstring in app.search_bot_verification for official URLs.
 from app.search_bot_verification import is_verified_search_bot

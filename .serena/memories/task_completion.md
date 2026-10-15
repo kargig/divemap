@@ -4,6 +4,7 @@ Commands to run before considering a task finished.
 
 ## Backend
 - Run tests: `cd backend && ./docker-test-github-actions.sh`
+- Run Ruff linter/formatter: `make lint-backend` (or `backend/divemap_venv/bin/ruff check <files>`)
 - Check logs for errors: `docker logs divemap_backend --since 5m`
 
 ## Frontend

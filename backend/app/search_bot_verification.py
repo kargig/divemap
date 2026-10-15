@@ -43,9 +43,10 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from enum import Enum
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence
 
 from cachetools import TTLCache
 
@@ -60,6 +61,7 @@ _ERROR_TTL_SECONDS = 60
 _DNS_TIMEOUT_SECONDS = 2.0
 _IP_RANGE_FETCH_TIMEOUT_SECONDS = 10.0
 _IP_RANGE_REFRESH_SECONDS = 24 * 60 * 60
+_MAX_IN_FLIGHT = 256
 
 _IP_RANGE_URLS = (
     "https://developers.google.com/static/crawling/ipranges/common-crawlers.json",
@@ -83,7 +85,7 @@ _UA_TOKENS = (
 _GOOGLE_SUFFIXES = (".googlebot.com", ".google.com", ".googleusercontent.com")
 _BING_SUFFIXES = (".search.msn.com",)
 
-IpNetwork = Union[ipaddress.IPv4Network, ipaddress.IPv6Network]
+IpNetwork = ipaddress.IPv4Network | ipaddress.IPv6Network
 
 
 class VerifyResult(Enum):
@@ -325,6 +327,9 @@ def _background_verify(ip: str) -> None:
 def _schedule_verify(ip: str) -> None:
     with _in_flight_lock:
         if ip in _in_flight:
+            return
+        if len(_in_flight) >= _MAX_IN_FLIGHT:
+            logger.debug("search bot verify queue full (%s in flight); skipping %s", len(_in_flight), ip)
             return
         _in_flight.add(ip)
     try:

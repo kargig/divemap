@@ -265,6 +265,24 @@ def test_schedule_verify_does_not_block_hot_path():
             assert not stalled.done()
 
 
+def test_schedule_verify_respects_in_flight_cap():
+    from app import search_bot_verification as mod
+
+    mock_executor = MagicMock()
+    with mod._in_flight_lock:
+        for i in range(mod._MAX_IN_FLIGHT):
+            mod._in_flight.add(f"198.51.100.{i}")
+
+    with patch("app.search_bot_verification.schedule_search_bot_ip_range_refresh"):
+        with patch("app.search_bot_verification._executor", mock_executor):
+            assert is_verified_search_bot(
+                "198.51.100.254",
+                "Mozilla/5.0 (compatible; Googlebot/2.1)",
+            ) is False
+            # Queue was full, so no new task submitted
+            mock_executor.submit.assert_not_called()
+
+
 def test_custom_key_func_skips_verified_search_bot():
     from unittest.mock import Mock
 

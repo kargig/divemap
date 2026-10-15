@@ -11,7 +11,7 @@
     - Backend: Use `backend/divemap_venv`. Add tests.
     - Frontend: Use `docker exec`. Verify with browser.
 6.  **Verify**:
-    - Backend: Run `./docker-test-github-actions.sh`.
+    - Backend: Run `./docker-test-github-actions.sh` AND `make lint-backend` (or `backend/divemap_venv/bin/ruff check <files>`).
     - Frontend: Run `make lint-frontend` and tests. MUST use `navigate_page` and `list_console_messages` to check browser console for runtime errors.
 7.  **Commit**:
     - Prepare `commit-message.txt`.
