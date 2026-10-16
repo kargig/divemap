@@ -1,8 +1,10 @@
+import json
+from datetime import UTC, datetime
+
 import pytest
 from fastapi import status
-from app.models import CenterRating, CenterComment, Setting
-from datetime import UTC, datetime
-import json
+
+from app.models import CenterComment, CenterRating, Setting
 
 
 class TestDivingCenters:
@@ -924,7 +926,7 @@ class TestDivingCenters:
     def test_get_diving_centers_pagination_with_filters(self, client, db_session):
         """Test pagination with filters applied."""
         # Create diving centers with different ratings
-        from app.models import DivingCenter, CenterRating, User
+        from app.models import CenterRating, DivingCenter, User
 
         # Create test user for ratings
         test_user = User(
@@ -940,7 +942,7 @@ class TestDivingCenters:
 
         ratings = [9.0, 3.0, 6.0]
 
-        for i, (name, rating) in enumerate(zip(center_names, ratings)):
+        for i, (name, rating) in enumerate(zip(center_names, ratings, strict=False)):
             center = DivingCenter(
                 name=name,
                 description=f"Description for {name}",
@@ -990,7 +992,7 @@ class TestDivingCenters:
         self, client, admin_headers, db_session
     ):
         """Test getting ownership requests as admin."""
-        from app.models import DivingCenter, User, OwnershipStatus
+        from app.models import DivingCenter, OwnershipStatus, User
 
         # Create a user and diving center with claimed status
         user = User(username="testuser", email="test@example.com", password_hash="hash")
@@ -1028,7 +1030,7 @@ class TestDivingCenters:
         self, client, moderator_headers, db_session
     ):
         """Test getting ownership requests as moderator."""
-        from app.models import User, OwnershipStatus
+        from app.models import OwnershipStatus, User
 
         # Create a user and set diving center as claimed
         user = User(username="testuser", email="test@example.com", password_hash="hash")
@@ -1132,7 +1134,7 @@ class TestDivingCenters:
         self, client, admin_headers, test_diving_center, db_session
     ):
         """Test approving ownership claim as admin."""
-        from app.models import User, OwnershipStatus
+        from app.models import OwnershipStatus, User
 
         # Create a user and set diving center as claimed
         user = User(username="testuser", email="test@example.com", password_hash="hash")
@@ -1160,7 +1162,7 @@ class TestDivingCenters:
         self, client, admin_headers, test_diving_center, db_session
     ):
         """Test denying ownership claim as admin."""
-        from app.models import User, OwnershipStatus
+        from app.models import OwnershipStatus, User
 
         # Create a user and set diving center as claimed
         user = User(username="testuser", email="test@example.com", password_hash="hash")
@@ -1201,7 +1203,7 @@ class TestDivingCenters:
         self, client, moderator_headers, test_diving_center, db_session
     ):
         """Test approving ownership claim as moderator."""
-        from app.models import User, OwnershipStatus
+        from app.models import OwnershipStatus, User
 
         # Create a user and set diving center as claimed
         user = User(username="testuser", email="test@example.com", password_hash="hash")
@@ -1439,7 +1441,7 @@ class TestDivingCenters:
         db_session,
     ):
         """Test that ownership request history logs all ownership actions."""
-        from app.models import OwnershipStatus, OwnershipRequest
+        from app.models import OwnershipRequest, OwnershipStatus
 
         # 1. Claim ownership
         claim_response = client.post(
@@ -1939,7 +1941,7 @@ class TestDivingCenterAuthorization:
         self, client, db_session, test_user, test_diving_center, auth_headers
     ):
         """Test that users cannot access gear rental items from other diving centers."""
-        from app.models import OwnershipStatus, GearRentalCost, DivingCenter
+        from app.models import DivingCenter, GearRentalCost, OwnershipStatus
 
         # Set the user as the owner of the diving center
         test_diving_center.owner_id = test_user.id

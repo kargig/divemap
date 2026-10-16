@@ -1,8 +1,9 @@
+import time
+from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
+
 import pytest
 from fastapi import status
-from datetime import UTC, datetime, timedelta
-import time
-from unittest.mock import patch
 
 
 class TestLastAccessedAt:

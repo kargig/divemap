@@ -1,29 +1,30 @@
+from datetime import UTC, datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
+
+import psutil
 import pytest
 from fastapi import status
-from datetime import UTC, datetime, timedelta, timezone
-from unittest.mock import patch, MagicMock
-import psutil
 
 from app.models import (
-    User,
+    AuthAuditLog,
+    AvailableTag,
+    CenterComment,
+    CenterRating,
+    Dive,
+    DiveMedia,
+    DiveRoute,
     DiveSite,
     DivingCenter,
-    Dive,
-    SiteRating,
-    CenterRating,
-    SiteComment,
-    CenterComment,
-    SiteMedia,
-    DiveMedia,
-    AvailableTag,
     DivingOrganization,
-    UserCertification,
-    ParsedDiveTrip,
     Newsletter,
     Notification,
     NotificationPreference,
-    DiveRoute,
-    AuthAuditLog,
+    ParsedDiveTrip,
+    SiteComment,
+    SiteMedia,
+    SiteRating,
+    User,
+    UserCertification,
 )
 
 
@@ -548,7 +549,7 @@ class TestGeneralStatistics:
         dive_site = DiveSite(
             name="Test Site",
             country="USA",
-            created_at=datetime.now(timezone.utc) - timedelta(days=5),
+            created_at=datetime.now(UTC) - timedelta(days=5),
         )
         db_session.add(dive_site)
         db_session.flush()
@@ -556,7 +557,7 @@ class TestGeneralStatistics:
         diving_center = DivingCenter(
             name="Test Center",
             country="USA",
-            created_at=datetime.now(timezone.utc) - timedelta(days=3),
+            created_at=datetime.now(UTC) - timedelta(days=3),
         )
         db_session.add(diving_center)
         db_session.flush()
@@ -564,9 +565,9 @@ class TestGeneralStatistics:
         dive = Dive(
             name="Test Dive",
             user_id=test_user.id,
-            dive_date=datetime.now(timezone.utc).date(),
+            dive_date=datetime.now(UTC).date(),
             difficulty_id=2,
-            created_at=datetime.now(timezone.utc) - timedelta(days=2),
+            created_at=datetime.now(UTC) - timedelta(days=2),
         )
         db_session.add(dive)
 
@@ -689,7 +690,7 @@ class TestGrowthData:
     def test_get_growth_data_default_period(self, client, admin_headers, db_session):
         """Test getting growth data with default period (3months)."""
         # Create test data at different times
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Create dive sites at different times
         for i in range(5):
@@ -827,7 +828,7 @@ class TestGrowthData:
 
     def test_get_growth_data_with_dive_routes(self, client, admin_headers, db_session):
         """Test growth data includes dive routes (excluding soft-deleted)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         test_user = User(
             username="testuser",
             email="test@example.com",
@@ -898,7 +899,7 @@ class TestNotificationAnalytics:
         db_session.add(test_user)
         db_session.flush()
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Create notifications
         notification1 = Notification(
@@ -1152,7 +1153,7 @@ class TestAuditLogs:
 
         # Test filtering by username (partial match)
         response = client.get(
-            f"/api/v1/admin/system/audit-logs?username=test", headers=admin_headers
+            "/api/v1/admin/system/audit-logs?username=test", headers=admin_headers
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -1165,7 +1166,7 @@ class TestAuditLogs:
 
         # Test filtering by IP (partial match)
         response = client.get(
-            f"/api/v1/admin/system/audit-logs?ip_address=192.168", headers=admin_headers
+            "/api/v1/admin/system/audit-logs?ip_address=192.168", headers=admin_headers
         )
 
         assert response.status_code == status.HTTP_200_OK

@@ -1,9 +1,10 @@
-import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
+
+import pytest
 from fastapi.testclient import TestClient
 
-from app.models import RefreshToken, AuthAuditLog
+from app.models import AuthAuditLog, RefreshToken
 from app.token_service import token_service
 
 
@@ -249,8 +250,8 @@ class TestTokenService:
     def test_revoke_all_user_tokens(self, test_user, mock_request, db_session):
         """Test revoking all tokens for a user"""
         # Create multiple refresh tokens
-        token1 = token_service.create_refresh_token(test_user, mock_request, db_session)
-        token2 = token_service.create_refresh_token(test_user, mock_request, db_session)
+        token_service.create_refresh_token(test_user, mock_request, db_session)
+        token_service.create_refresh_token(test_user, mock_request, db_session)
 
         # Revoke all tokens
         result = token_service.revoke_all_user_tokens(test_user.id, db_session)
@@ -269,7 +270,7 @@ class TestTokenService:
     def test_session_limit_enforcement(self, test_user, mock_request, db_session):
         """Test that users can't exceed maximum active sessions"""
         # Create maximum allowed sessions
-        for i in range(6):  # More than max_active_sessions (5)
+        for _ in range(6):  # More than max_active_sessions (5)
             token_service.create_refresh_token(test_user, mock_request, db_session)
 
         # Verify only max_active_sessions tokens are active
@@ -503,8 +504,8 @@ class TestAuthEndpoints:
     def test_list_active_tokens(self, client, test_user, mock_request, db_session):
         """Test listing user's active tokens"""
         # Create some refresh tokens
-        token1 = token_service.create_refresh_token(test_user, mock_request, db_session)
-        token2 = token_service.create_refresh_token(test_user, mock_request, db_session)
+        token_service.create_refresh_token(test_user, mock_request, db_session)
+        token_service.create_refresh_token(test_user, mock_request, db_session)
 
         # Login to get access token
         login_response = client.post(
@@ -605,8 +606,8 @@ class TestTokenSecurity:
         # Get the current UTC time and add the expiration duration
         from datetime import timezone
 
-        expected_exp = datetime.now(timezone.utc) + token_service.access_token_expire
-        actual_exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
+        expected_exp = datetime.now(UTC) + token_service.access_token_expire
+        actual_exp = datetime.fromtimestamp(decoded["exp"], tz=UTC)
 
         # Allow 5 second tolerance for test timing
         assert abs((expected_exp - actual_exp).total_seconds()) <= 5
@@ -661,16 +662,14 @@ class TestTokenSecurity:
         """Test that session limits provide security benefits"""
         # Create maximum allowed sessions
         tokens = []
-        for i in range(token_service.max_active_sessions):
+        for _ in range(token_service.max_active_sessions):
             token = token_service.create_refresh_token(
                 test_user, mock_request, db_session
             )
             tokens.append(token)
 
         # Try to create one more session
-        extra_token = token_service.create_refresh_token(
-            test_user, mock_request, db_session
-        )
+        token_service.create_refresh_token(test_user, mock_request, db_session)
 
         # Verify we still have max_active_sessions active tokens
         active_count = (

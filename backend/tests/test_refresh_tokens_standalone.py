@@ -6,9 +6,10 @@ This file can be run independently without importing the main app
 
 import os
 import sys
-import pytest
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
+
+import pytest
 
 # Set test environment variables before importing app modules
 os.environ["SECRET_KEY"] = "test-secret-key-for-testing-only"
@@ -22,9 +23,9 @@ os.environ["MAX_ACTIVE_SESSIONS_PER_USER"] = "5"
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.models import RefreshToken, AuthAuditLog
-from app.token_service import token_service
 from app.auth import get_password_hash
+from app.models import AuthAuditLog, RefreshToken
+from app.token_service import token_service
 
 
 class TestTokenServiceStandalone:
@@ -77,8 +78,8 @@ class TestTokenServiceStandalone:
         # Get the current UTC time and add the expiration duration
         from datetime import timezone
 
-        expected_exp = datetime.now(timezone.utc) + token_service.access_token_expire
-        actual_exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
+        expected_exp = datetime.now(UTC) + token_service.access_token_expire
+        actual_exp = datetime.fromtimestamp(decoded["exp"], tz=UTC)
 
         # Allow 5 second tolerance for test timing
         assert abs((expected_exp - actual_exp).total_seconds()) <= 5

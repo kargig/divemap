@@ -1,6 +1,6 @@
 """Regression tests for PR #265 inventory, medical binding, and access hardening fixes."""
 
-from datetime import datetime, time, timezone, timedelta
+from datetime import UTC, datetime, time, timedelta, timezone
 
 import pytest
 from cryptography.fernet import Fernet
@@ -9,21 +9,22 @@ from sqlalchemy.orm import Session
 
 from app.auth import create_access_token
 from app.models import (
+    CenterDiverMedicalApproval,
+    DiverMedicalRecord,
     DivingCenter,
     DivingCenterBookingSettings,
-    OctoProduct,
-    OctoOption,
-    OctoUnit,
     OctoAvailabilitySlot,
     OctoBooking,
     OctoBookingUnitItem,
-    User,
-    UserMedicalProfile,
-    CenterDiverMedicalApproval,
-    DiverMedicalRecord,
+    OctoOption,
+    OctoProduct,
+    OctoUnit,
     OwnershipStatus,
     ParsedDiveTrip,
+    User,
+    UserMedicalProfile,
 )
+from app.routers.center_booking_ops import reconcile_slot_seats
 from app.services.booking_access_service import (
     hash_booking_token,
     mint_booking_access_token,
@@ -34,7 +35,6 @@ from app.services.booking_medical_encryption_service import (
     BookingMedicalEncryptionService,
 )
 from app.services.booking_pricing_service import compute_participant_octo_pricing
-from app.routers.center_booking_ops import reconcile_slot_seats
 
 
 @pytest.fixture
@@ -87,7 +87,7 @@ def harden_setup(
     )
     db_session.add_all([option, unit_own, unit_rent])
     db_session.flush()
-    start_dt = datetime.now(timezone.utc) + timedelta(days=5)
+    start_dt = datetime.now(UTC) + timedelta(days=5)
     slot = OctoAvailabilitySlot(
         id="slot-harden-1",
         product_id=product.id,
@@ -214,7 +214,7 @@ def test_confirm_expired_rejected_for_owner(
         db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     )
     booking.user_id = test_user.id
-    booking.utc_hold_expiration = datetime.now(timezone.utc) - timedelta(minutes=5)
+    booking.utc_hold_expiration = datetime.now(UTC) - timedelta(minutes=5)
     db_session.commit()
 
     slot = (
@@ -261,7 +261,7 @@ def test_cancel_expired_does_not_double_free(
         db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
     )
     booking.user_id = test_user.id
-    booking.utc_hold_expiration = datetime.now(timezone.utc) - timedelta(minutes=1)
+    booking.utc_hold_expiration = datetime.now(UTC) - timedelta(minutes=1)
     db_session.commit()
 
     slot = (
@@ -342,8 +342,8 @@ def test_annual_medical_cannot_apply_to_guest_seat(
         status="CLEARED",
         encrypted_dek=dek,
         encrypted_answers=payload,
-        completed_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        completed_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
         audit_signature_hash="test-audit-hash",
     )
     db_session.add(profile)
@@ -387,8 +387,8 @@ def test_guest_paperwork_does_not_overwrite_booker_annual(
         status="FLAGGED",
         encrypted_dek=dek,
         encrypted_answers=payload,
-        completed_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        completed_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
         audit_signature_hash="test-audit-hash",
     )
     db_session.add(profile)
@@ -478,8 +478,8 @@ def test_gdpr_delete_revokes_center_approvals(
         status="CLEARED",
         encrypted_dek=dek,
         encrypted_answers=payload,
-        completed_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        completed_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
         audit_signature_hash="test-audit-hash",
     )
     approval = CenterDiverMedicalApproval(
@@ -487,8 +487,8 @@ def test_gdpr_delete_revokes_center_approvals(
         user_id=test_user.id,
         approved_by_user_id=test_user.id,
         physician_name="Dr Test",
-        approved_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        approved_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
     )
     db_session.add_all([profile, approval])
     db_session.commit()
@@ -518,7 +518,7 @@ def test_gdpr_delete_revokes_center_approvals(
         status="CLEARED",
         encrypted_dek=dek,
         encrypted_answers=payload,
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
     )
     db_session.add_all([booking, item, trip_med])
     db_session.commit()
@@ -605,8 +605,8 @@ def test_post_confirm_paperwork_blocked_except_own_annual_refresh(
         status="CLEARED",
         encrypted_dek=dek,
         encrypted_answers=payload,
-        completed_at=datetime.now(timezone.utc),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=365),
+        completed_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=365),
         audit_signature_hash="test-audit-hash",
     )
     db_session.add(profile)
@@ -694,7 +694,7 @@ def test_claim_token_expires(
         .filter(OctoBookingUnitItem.id == claim["unitItemId"])
         .first()
     )
-    item.claim_invited_at = datetime.now(timezone.utc) - timedelta(days=15)
+    item.claim_invited_at = datetime.now(UTC) - timedelta(days=15)
     db_session.commit()
 
     expired = client.post(
@@ -719,7 +719,7 @@ def test_reconcile_uses_aware_utc(harden_setup, db_session: Session):
         status="ON_HOLD",
         # Intentional naive UTC for the naive-hold expiry path under test.
         utc_hold_expiration=(
-            datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=1)
+            datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=1)
         ),
         total_amount=80,
         currency="EUR",

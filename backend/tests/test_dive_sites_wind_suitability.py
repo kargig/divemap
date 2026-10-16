@@ -4,9 +4,11 @@ Tests for Dive Sites Wind Suitability Filtering
 Tests the wind suitability filtering functionality in the get_dive_sites endpoint.
 """
 
+from unittest.mock import patch
+
 import pytest
 from fastapi import status
-from unittest.mock import patch
+
 from app.models import DiveSite
 
 

@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 
@@ -22,8 +23,9 @@ def test_get_public_recent_activity(client: TestClient):
 
 
 def test_get_public_recent_activity_with_dive_trip(client: TestClient, db_session):
-    from app.models import ParsedDiveTrip
     from datetime import UTC, datetime
+
+    from app.models import ParsedDiveTrip
 
     # Ensure any pre-existing dive trips are cleaned up
     db_session.query(ParsedDiveTrip).delete()
