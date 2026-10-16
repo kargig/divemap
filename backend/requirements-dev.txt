@@ -8,27 +8,21 @@ aiosignal==1.4.0
     # via aiohttp
 alembic==1.16.4
     # via divemap-backend
-amqp==5.4.1
-    # via kombu
 annotated-types==0.8.0
     # via pydantic
-anyio==3.6.2
+anyio==4.15.1
     # via
     #   divemap-backend
     #   httpx
     #   openai
     #   starlette
     #   watchfiles
-async-timeout==5.0.1 ; python_full_version <= '3.11.2'
-    # via redis
 attrs==26.1.0
     # via aiohttp
 bcrypt==4.3.0
     # via
     #   divemap-backend
     #   passlib
-billiard==4.3.1
-    # via celery
 boto3==1.35.0
     # via divemap-backend
 botocore==1.35.99
@@ -39,8 +33,6 @@ cachetools==5.5.2
     # via
     #   divemap-backend
     #   google-auth
-celery==5.3.4
-    # via divemap-backend
 certifi==2026.7.22
     # via
     #   httpcore
@@ -53,23 +45,11 @@ charset-normalizer==3.5.2
     #   reportlab
     #   requests
 click==8.5.0
-    # via
-    #   celery
-    #   click-didyoumean
-    #   click-plugins
-    #   click-repl
-    #   uvicorn
-click-didyoumean==0.3.1
-    # via celery
-click-plugins==1.1.1.2
-    # via celery
-click-repl==0.4.1
-    # via celery
+    # via uvicorn
 colorama==0.4.6 ; sys_platform == 'win32'
     # via
     #   pytest
     #   tqdm
-    #   uvicorn
 coverage==7.16.2
     # via pytest-cov
 cryptography==45.0.5
@@ -104,12 +84,8 @@ frozenlist==1.8.0
 garmin-fit-sdk==21.158.0
     # via divemap-backend
 google-auth==2.40.3
-    # via
-    #   divemap-backend
-    #   google-auth-oauthlib
-google-auth-oauthlib==1.2.2
     # via divemap-backend
-gunicorn==21.2.0
+gunicorn==26.2.0
     # via divemap-backend
 h11==0.16.0
     # via
@@ -119,7 +95,7 @@ httpcore==1.0.9
     # via httpx
 httptools==0.9.0
     # via uvicorn
-httpx==0.25.2
+httpx==0.28.1
     # via openai
 idna==3.20
     # via
@@ -130,7 +106,7 @@ idna==3.20
     #   yarl
 iniconfig==2.3.1
     # via pytest
-jinja2==3.1.2
+jinja2==3.1.6
     # via divemap-backend
 jiter==0.17.0
     # via openai
@@ -138,8 +114,6 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-kombu==5.6.2
-    # via celery
 limits==5.8.0
     # via slowapi
 mako==1.4.3
@@ -158,18 +132,14 @@ numpy==2.4.6
     # via
     #   octo-deco
     #   pandas
-oauthlib==4.0.0
-    # via requests-oauthlib
-octo-deco @ https://github.com/kargig/divemap/releases/download/deps-v1/octo_deco-2.0.3-cp311-cp311-linux_x86_64.whl
+octo-deco @ https://github.com/kargig/divemap/releases/download/deps-v1/octo_deco-2.0.3-cp313-cp313-linux_x86_64.whl
     # via divemap-backend
 openai==1.98.0
     # via divemap-backend
-orjson==3.9.10
+orjson==3.13.0
     # via divemap-backend
 packaging==26.3
     # via
-    #   gunicorn
-    #   kombu
     #   limits
     #   pytest
 pandas==3.0.6
@@ -178,14 +148,12 @@ passlib==1.7.4
     # via divemap-backend
 pendulum==3.3.0
     # via fastapi-cache2
-pillow==10.1.0
+pillow==12.3.0
     # via
     #   divemap-backend
     #   reportlab
 pluggy==1.7.0
     # via pytest
-prompt-toolkit==3.0.53
-    # via click-repl
 propcache==0.5.4
     # via
     #   aiohttp
@@ -194,34 +162,34 @@ psutil==6.1.0
     # via divemap-backend
 pyasn1==0.6.1
     # via
-    #   divemap-backend
     #   pyasn1-modules
     #   rsa
 pyasn1-modules==0.4.2
     # via google-auth
 pycparser==3.11 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
     # via cffi
-pydantic==2.9.2
+pydantic==2.14.1
     # via
     #   divemap-backend
     #   fastapi
     #   openai
-pydantic-core==2.23.4
+pydantic-core==2.50.1
     # via pydantic
+pygments==2.21.0
+    # via pytest
 pyjwt==2.10.1
     # via divemap-backend
 pymysql==1.1.1
     # via divemap-backend
-pytest==7.4.3
+pytest==9.1.1
     # via
     #   pytest-asyncio
     #   pytest-cov
-pytest-asyncio==0.21.1
+pytest-asyncio==1.4.0
 pytest-cov==4.1.0
 python-dateutil==2.9.0.post0
     # via
     #   botocore
-    #   celery
     #   freezegun
     #   pandas
     #   pendulum
@@ -237,18 +205,12 @@ pyyaml==6.0.3
     # via uvicorn
 rapidfuzz==3.14.3
     # via divemap-backend
-redis==5.0.1
-    # via divemap-backend
 regex==2026.9.29
     # via tiktoken
 reportlab==5.0.1
     # via divemap-backend
 requests==2.34.2
-    # via
-    #   requests-oauthlib
-    #   tiktoken
-requests-oauthlib==2.0.0
-    # via google-auth-oauthlib
+    # via tiktoken
 rsa==4.9.1
     # via google-auth
 ruff==0.17.1
@@ -259,10 +221,7 @@ six==1.17.0
 slowapi==0.1.9
     # via divemap-backend
 sniffio==1.3.1
-    # via
-    #   anyio
-    #   httpx
-    #   openai
+    # via openai
 sqlalchemy==2.1.4
     # via alembic
 starlette==0.47.2
@@ -273,48 +232,37 @@ tenacity==8.2.3
     # via divemap-backend
 tiktoken==0.14.0
     # via divemap-backend
-tomli==2.5.0 ; python_full_version <= '3.11'
-    # via coverage
 tqdm==4.70.1
     # via openai
 typing-extensions==4.16.0
     # via
-    #   aiohttp
-    #   aiosignal
     #   alembic
-    #   click-repl
+    #   anyio
     #   fastapi
     #   limits
     #   openai
     #   pydantic
     #   pydantic-core
     #   sqlalchemy
-    #   starlette
+    #   typing-inspection
+typing-inspection==0.4.4
+    # via pydantic
 tzdata==2026.5
     # via
-    #   celery
-    #   kombu
     #   pandas
     #   pendulum
 urllib3==2.8.0
     # via
     #   botocore
     #   requests
-uvicorn==0.24.0
+uvicorn==0.54.0
     # via
     #   divemap-backend
     #   fastapi-cache2
 uvloop==0.23.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
     # via uvicorn
-vine==5.1.0
-    # via
-    #   amqp
-    #   celery
-    #   kombu
 watchfiles==1.3.0
     # via uvicorn
-wcwidth==0.9.2
-    # via prompt-toolkit
 websockets==17.2
     # via uvicorn
 wrapt==2.5.1

@@ -7,12 +7,12 @@ Triggered by SQS events, sends emails via AWS SES and push via Web Push.
 """
 
 import json
-import os
 import logging
-from typing import Dict, Any, Optional
-import urllib.request
+import os
 import urllib.error
 import urllib.parse
+import urllib.request
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger()
@@ -20,16 +20,18 @@ logger.setLevel(logging.INFO)
 
 # Web Push imports (Must be imported before sys.path manipulation)
 try:
-    from pywebpush import webpush, WebPushException
+    from pywebpush import WebPushException, webpush
+
     WEB_PUSH_AVAILABLE = True
 except ImportError as e:
     WEB_PUSH_AVAILABLE = False
-    logger.error(f"pywebpush not available: {e}")
+    logger.warning(f"pywebpush not available: {e}")
 
 # AWS SDK imports
 try:
     import boto3
-    from botocore.exceptions import ClientError
+    from botocore.exceptions import ClientError  # noqa: F401
+
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -38,94 +40,99 @@ except ImportError:
 # Email service imports
 try:
     import sys
+
     # Add parent directory to path to import app modules
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from app.services.email_service import EmailService
+
     EMAIL_SERVICE_AVAILABLE = True
 except Exception as e:
     logger.warning(f"Email service imports not available: {e}")
     EMAIL_SERVICE_AVAILABLE = False
 
 
-def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Optional[Dict]:
+def call_backend_api(
+    endpoint: str, method: str = "GET", data: dict | None = None
+) -> dict | None:
     """
     Call backend API endpoint.
-    
+
     Args:
         endpoint: API endpoint path (e.g., "/api/v1/notifications/internal/123")
         method: HTTP method (GET, PUT, POST)
         data: Optional JSON data for PUT/POST requests
-    
+
     Returns:
         Response JSON dict or None if request failed
     """
-    backend_url = os.getenv('BACKEND_API_URL')
-    api_key = os.getenv('LAMBDA_API_KEY')
-    
+    backend_url = os.getenv("BACKEND_API_URL")
+    api_key = os.getenv("LAMBDA_API_KEY")
+
     if not backend_url:
         logger.error("BACKEND_API_URL environment variable not set")
         return None
-    
+
     if not api_key:
         logger.error("LAMBDA_API_KEY environment variable not set")
         return None
-    
+
     # Construct full URL
     url = f"{backend_url.rstrip('/')}{endpoint}"
-    
+
     # Log the full URL being called (without API key for security)
     logger.info(f"Calling backend API: {method} {url}")
-    
+
     try:
         # Prepare request
         req_data = None
-        headers = {
-            "X-API-Key": api_key,
-            "Content-Type": "application/json"
-        }
-        
+        headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+
         # Add Cloudflare API token if configured (for bypassing challenges)
-        cloudflare_token = os.getenv('CLOUDFLARE_API_TOKEN')
+        cloudflare_token = os.getenv("CLOUDFLARE_API_TOKEN")
         if cloudflare_token:
             headers["CF-Access-Token"] = cloudflare_token
-        
+
         if data and method in ["PUT", "POST"]:
-            req_data = json.dumps(data).encode('utf-8')
-        
+            req_data = json.dumps(data).encode("utf-8")
+
         # Create request - User-Agent must be set via add_header to override urllib default
         req = urllib.request.Request(url, data=req_data, headers=headers, method=method)
         req.add_header("User-Agent", "Divemap-Lambda-NotificationProcessor/1.0")
-        
+
         # Make request
         # Increased timeout to 30 seconds to handle slower backend responses or Cloudflare delays
         with urllib.request.urlopen(req, timeout=30) as response:
-            response_data = response.read().decode('utf-8')
+            response_data = response.read().decode("utf-8")
             logger.info(f"Backend API response: {response.status} {response.reason}")
             if response_data:
                 return json.loads(response_data)
             return {}
-            
+
     except urllib.error.HTTPError as e:
         # Log full error details including response body if available
         error_body = None
         try:
-            error_body = e.read().decode('utf-8')
-        except:
+            error_body = e.read().decode("utf-8")
+        except Exception:
             pass
-        
+
         logger.error(f"HTTP error calling backend API {url}: {e.code} - {e.reason}")
         if error_body:
             logger.error(f"Error response body: {error_body}")
-        
+
         # 404 is a valid response (notification doesn't exist)
         if e.code == 404:
             return None
-        
+
         # 5xx errors (500, 502, 503, 504) are retryable - raise exception to trigger SQS redelivery
         if e.code >= 500:
-            logger.warning(f"Retryable server error {e.code} - will trigger SQS redelivery")
-            raise Exception(f"Backend API returned {e.code} {e.reason}: {error_body or 'No error body'}")
-        
+            logger.warning(
+                f"Retryable server error {e.code} - will trigger SQS redelivery"
+            )
+            raise Exception(
+                f"Backend API returned {e.code} {e.reason}: {error_body or 'No error body'}"
+            )
+
         # 4xx errors (except 404) are client errors - don't retry
         return None
     except urllib.error.URLError as e:
@@ -142,76 +149,95 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
 def process_email_notification(
     notification_id: int,
     user_email: str,
-    notification_data: Dict[str, Any],
-    user_id: Optional[int] = None,
-    unsubscribe_token: Optional[str] = None
+    notification_data: dict[str, Any],
+    user_id: int | None = None,
+    unsubscribe_token: str | None = None,
 ) -> bool:
     """
     Process a single email notification task.
-    
+
     Args:
         notification_id: ID of the notification record
         user_email: Recipient email address
         notification_data: Notification data dict (title, message, link_url, category)
         user_id: Optional user ID (from SQS message, avoids API call)
         unsubscribe_token: Optional unsubscribe token (from SQS message, avoids API call)
-    
+
     Returns:
         True if email was sent successfully, False otherwise
-    
+
     Raises:
         Exception: For retryable errors (5xx) to trigger SQS redelivery
     """
     try:
         # Fetch notification from backend API to check status
         # This may raise Exception for 5xx errors (retryable)
-        notification = call_backend_api(f"/api/v1/notifications/internal/{notification_id}")
-        
+        notification = call_backend_api(
+            f"/api/v1/notifications/internal/{notification_id}"
+        )
+
         if not notification:
             logger.error(f"Notification {notification_id} not found")
             return False
-        
+
         # Check if email already sent (idempotency)
-        if notification.get('email_sent'):
+        if notification.get("email_sent"):
             logger.info(f"Email already sent for notification {notification_id}")
             return True
-        
+
         # Initialize email service
         if not EMAIL_SERVICE_AVAILABLE:
             logger.error("Email service not available")
             return False
-        
+
         email_service = EmailService()
-        
+
         # Determine template name based on category
         template_map = {
-            'new_dive_sites': 'new_dive_site',
-            'new_dives': 'new_dive',
-            'new_diving_centers': 'new_diving_center',
-            'new_dive_trips': 'new_dive_trip',
-            'admin_alerts': 'admin_alert'
+            "new_dive_sites": "new_dive_site",
+            "new_dives": "new_dive",
+            "new_diving_centers": "new_diving_center",
+            "new_dive_trips": "new_dive_trip",
+            "admin_alerts": "admin_alert",
         }
-        template_name = template_map.get(notification_data.get('category', ''), 'notification')
-        
+        template_name = template_map.get(
+            notification_data.get("category", ""), "notification"
+        )
+
         # Get user_id and unsubscribe_token from function parameters (from SQS message) or notification
         # Tokens are now included in SQS messages, eliminating the need for Lambda to call the backend API
-        final_user_id = user_id or notification_data.get('user_id') or notification.get('user_id')
-        final_unsubscribe_token = unsubscribe_token or notification_data.get('unsubscribe_token')
-        
+        final_user_id = (
+            user_id or notification_data.get("user_id") or notification.get("user_id")
+        )
+        final_unsubscribe_token = unsubscribe_token or notification_data.get(
+            "unsubscribe_token"
+        )
+
         if final_unsubscribe_token:
-            logger.debug(f"Using unsubscribe token from SQS message for user {final_user_id}")
-        elif final_user_id and template_name not in ['admin_alert', 'email_verification']:
-            logger.warning(f"No unsubscribe token found in SQS message for user {final_user_id} - email will be sent without unsubscribe links")
-        
+            logger.debug(
+                f"Using unsubscribe token from SQS message for user {final_user_id}"
+            )
+        elif final_user_id and template_name not in [
+            "admin_alert",
+            "email_verification",
+        ]:
+            logger.warning(
+                f"No unsubscribe token found in SQS message for user {final_user_id} - email will be sent without unsubscribe links"
+            )
+
         # Send email with unsubscribe token (if available)
         # Reconstruct base payload and preserve any extra metadata (like site_creator_name, site_tags, etc.)
         notification_payload = {
-            'title': notification_data.get('title', notification.get('title', '')),
-            'message': notification_data.get('message', notification.get('message', '')),
-            'link_url': notification_data.get('link_url', notification.get('link_url')),
-            'category': notification_data.get('category', notification.get('category', ''))
+            "title": notification_data.get("title", notification.get("title", "")),
+            "message": notification_data.get(
+                "message", notification.get("message", "")
+            ),
+            "link_url": notification_data.get("link_url", notification.get("link_url")),
+            "category": notification_data.get(
+                "category", notification.get("category", "")
+            ),
         }
-        
+
         # Merge any custom fields from SQS notification_data
         for key, value in notification_data.items():
             if key not in notification_payload:
@@ -223,96 +249,103 @@ def process_email_notification(
             template_name=template_name,
             user_id=final_user_id,
             db=None,  # Lambda doesn't have database access
-            unsubscribe_token=final_unsubscribe_token  # Token from SQS message or API fallback
+            unsubscribe_token=final_unsubscribe_token,  # Token from SQS message or API fallback
         )
-        
+
         if success:
             # Mark email as sent via backend API
             result = call_backend_api(
                 f"/api/v1/notifications/internal/{notification_id}/mark-email-sent",
-                method="PUT"
+                method="PUT",
             )
-            
+
             if result:
-                logger.info(f"Email sent successfully for notification {notification_id}")
+                logger.info(
+                    f"Email sent successfully for notification {notification_id}"
+                )
                 return True
             else:
-                logger.warning(f"Email sent but failed to update status for notification {notification_id}")
+                logger.warning(
+                    f"Email sent but failed to update status for notification {notification_id}"
+                )
                 # Email was sent, so return True even if status update failed
                 return True
         else:
             logger.error(f"Failed to send email for notification {notification_id}")
             return False
-            
+
     except Exception as e:
         # Check if this is a retryable error (5xx from backend API)
         error_msg = str(e)
-        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+        if "Backend API returned 5" in error_msg or any(
+            code in error_msg for code in ["504", "503", "502", "500"]
+        ):
             # Re-raise retryable errors so SQS will redeliver
-            logger.warning(f"Retryable error processing notification {notification_id}: {e} - re-raising for SQS redelivery")
+            logger.warning(
+                f"Retryable error processing notification {notification_id}: {e} - re-raising for SQS redelivery"
+            )
             raise
         else:
             # Non-retryable errors - log and return False
-            logger.error(f"Non-retryable error processing email notification {notification_id}: {e}")
+            logger.error(
+                f"Non-retryable error processing email notification {notification_id}: {e}"
+            )
             return False
 
 
 def process_push_notification(
-    subscription_id: int,
-    endpoint: str,
-    p256dh: str,
-    auth: str,
-    payload: Dict[str, Any]
+    subscription_id: int, endpoint: str, p256dh: str, auth: str, payload: dict[str, Any]
 ) -> bool:
     """
     Process a single web push notification task.
-    
+
     Args:
         subscription_id: ID of the push subscription record
         endpoint: Push service endpoint URL
         p256dh: Client public key
         auth: Client auth secret
         payload: Notification payload (generic)
-        
+
     Returns:
         True if push was sent successfully, False otherwise
     """
     if not WEB_PUSH_AVAILABLE:
         logger.error("Web push library (pywebpush) not available")
         return False
-        
-    vapid_private_key = os.getenv('VAPID_PRIVATE_KEY')
-    vapid_admin_email = os.getenv('VAPID_ADMIN_EMAIL')
-    
+
+    vapid_private_key = os.getenv("VAPID_PRIVATE_KEY")
+    vapid_admin_email = os.getenv("VAPID_ADMIN_EMAIL")
+
     if not vapid_private_key or not vapid_admin_email:
         logger.error("VAPID credentials not set in environment")
         return False
-        
+
     try:
         webpush(
             subscription_info={
                 "endpoint": endpoint,
-                "keys": {
-                    "p256dh": p256dh,
-                    "auth": auth
-                }
+                "keys": {"p256dh": p256dh, "auth": auth},
             },
             data=json.dumps(payload),
             vapid_private_key=vapid_private_key,
-            vapid_claims={"sub": vapid_admin_email}
+            vapid_claims={"sub": vapid_admin_email},
         )
-        logger.info(f"Push notification sent successfully to subscription {subscription_id}")
+        logger.info(
+            f"Push notification sent successfully to subscription {subscription_id}"
+        )
         return True
-        
+
     except WebPushException as ex:
         logger.warning(f"WebPush error for subscription {subscription_id}: {ex}")
         # 410 Gone means the subscription has expired or user has unsubscribed
         # We also treat 404 as a permanent failure for some push services
         if ex.response is not None and ex.response.status_code in [404, 410]:
-            logger.info(f"Subscription {subscription_id} is dead (status {ex.response.status_code}). Reporting failure to backend.")
+            logger.info(
+                f"Subscription {subscription_id} is dead (status {ex.response.status_code}). Reporting failure to backend."
+            )
             call_backend_api(
                 f"/api/v1/notifications/internal/push-subscriptions/{subscription_id}/fail",
-                method="PUT"
+                method="PUT",
             )
         return False
     except Exception as e:
@@ -326,22 +359,26 @@ def process_broadcast_relay(
     message_id: int,
     offset: int,
     limit: int,
-    is_update: bool = False
+    is_update: bool = False,
 ) -> bool:
     """
     Process a chunk of broadcast recipients and queue the next baton in SQS.
     """
-    logger.info(f"Processing broadcast relay for room {room_id}, offset {offset}, limit {limit}, is_update {is_update}")
-    
+    logger.info(
+        f"Processing broadcast relay for room {room_id}, offset {offset}, limit {limit}, is_update {is_update}"
+    )
+
     # 1. Fetch context (Sender/Center names)
-    context = call_backend_api(f"/api/v1/notifications/internal/broadcast-context/{message_id}")
+    context = call_backend_api(
+        f"/api/v1/notifications/internal/broadcast-context/{message_id}"
+    )
     if not context:
         logger.error(f"Failed to fetch context for message {message_id}")
         return False
-        
-    sender_name = context.get('sender_name', 'A buddy')
-    center_name = context.get('center_name', 'Divemap')
-    
+
+    sender_name = context.get("sender_name", "A buddy")
+    center_name = context.get("center_name", "Divemap")
+
     # Prefix title and message if this is an update
     title_prefix = "Updated " if is_update else "New "
     msg_prefix = "Updated " if is_update else "New "
@@ -350,109 +387,119 @@ def process_broadcast_relay(
     targets_data = call_backend_api(
         f"/api/v1/notifications/internal/broadcast-targets/{room_id}?sender_id={sender_id}&offset={offset}&limit={limit}"
     )
-    
+
     if not targets_data:
         logger.error("Failed to fetch broadcast targets")
         return False
-        
-    targets = targets_data.get('targets', [])
+
+    targets = targets_data.get("targets", [])
     if not targets:
         logger.info("No recipients found in this chunk.")
     else:
         # 3. Bulk Create In-App Notifications
         bulk_requests = []
         for target in targets:
-            if target.get('should_push') or target.get('should_email'):
-                bulk_requests.append({
-                    "user_id": target['user_id'],
-                    "category": 'user_chat_message',
-                    "title": f"{title_prefix}message from {sender_name}",
-                    "message": f"{msg_prefix}broadcast from {center_name}",
-                    "link_url": "/messages",
-                    "entity_type": 'chat_message',
-                    "entity_id": message_id
-                })
-        
+            if target.get("should_push") or target.get("should_email"):
+                bulk_requests.append(
+                    {
+                        "user_id": target["user_id"],
+                        "category": "user_chat_message",
+                        "title": f"{title_prefix}message from {sender_name}",
+                        "message": f"{msg_prefix}broadcast from {center_name}",
+                        "link_url": "/messages",
+                        "entity_type": "chat_message",
+                        "entity_id": message_id,
+                    }
+                )
+
         notif_mapping = {}
         if bulk_requests:
-            bulk_result = call_backend_api("/api/v1/notifications/internal/create-bulk", method="POST", data=bulk_requests)
-            if bulk_result and bulk_result.get('status') == 'success':
-                for item in bulk_result.get('notifications', []):
-                    notif_mapping[item['user_id']] = item['notification_id']
-        
+            bulk_result = call_backend_api(
+                "/api/v1/notifications/internal/create-bulk",
+                method="POST",
+                data=bulk_requests,
+            )
+            if bulk_result and bulk_result.get("status") == "success":
+                for item in bulk_result.get("notifications", []):
+                    notif_mapping[item["user_id"]] = item["notification_id"]
+
         # 4. Deliver Push and Email
         for target in targets:
-            user_id = target['user_id']
+            user_id = target["user_id"]
             # Send Push
-            if target.get('should_push'):
+            if target.get("should_push"):
                 payload = {
-                    'title': center_name,
-                    'body': f'{title_prefix}message from {sender_name}',
-                    'url': '/messages',
-                    'tag': f'chat_room_{room_id}'
+                    "title": center_name,
+                    "body": f"{title_prefix}message from {sender_name}",
+                    "url": "/messages",
+                    "tag": f"chat_room_{room_id}",
                 }
-                for sub in target.get('push_subscriptions', []):
+                for sub in target.get("push_subscriptions", []):
                     process_push_notification(
-                        subscription_id=sub['id'],
-                        endpoint=sub['endpoint'],
-                        p256dh=sub['p256dh'],
-                        auth=sub['auth'],
-                        payload=payload
+                        subscription_id=sub["id"],
+                        endpoint=sub["endpoint"],
+                        p256dh=sub["p256dh"],
+                        auth=sub["auth"],
+                        payload=payload,
                     )
-            
+
             # Send Email
-            if target.get('should_email') and user_id in notif_mapping:
+            if target.get("should_email") and user_id in notif_mapping:
                 process_email_notification(
                     notification_id=notif_mapping[user_id],
-                    user_email=target['email'],
+                    user_email=target["email"],
                     notification_data={
-                        'title': f"{title_prefix}message from {sender_name}",
-                        'message': f"You have a {msg_prefix.lower()}message in {center_name} announcements.",
-                        'link_url': '/messages',
-                        'category': 'user_chat_message'
+                        "title": f"{title_prefix}message from {sender_name}",
+                        "message": f"You have a {msg_prefix.lower()}message in {center_name} announcements.",
+                        "link_url": "/messages",
+                        "category": "user_chat_message",
                     },
-                    user_id=user_id
+                    user_id=user_id,
                 )
 
     # 5. Pass the baton to next SQS message if there are more
-    if targets_data.get('has_more'):
+    if targets_data.get("has_more"):
         next_offset = offset + limit
-        logger.info(f"Passing baton: queueing next SQS message with offset {next_offset}")
-        
+        logger.info(
+            f"Passing baton: queueing next SQS message with offset {next_offset}"
+        )
+
         if not BOTO3_AVAILABLE:
             logger.error("boto3 not available, cannot pass baton")
-            return True # Current chunk succeeded at least
-            
+            return True  # Current chunk succeeded at least
+
         try:
-            sqs = boto3.client('sqs')
-            queue_url = os.environ.get('SQS_QUEUE_URL')
+            sqs = boto3.client("sqs")
+            queue_url = os.environ.get("SQS_QUEUE_URL")
             if not queue_url:
                 # Try to derive it or use a fallback if possible
                 logger.error("SQS_QUEUE_URL not set in environment")
                 return True
-                
+
             sqs.send_message(
                 QueueUrl=queue_url,
-                MessageBody=json.dumps({
-                    'type': 'broadcast_relay',
-                    'room_id': room_id,
-                    'sender_id': sender_id,
-                    'message_id': message_id,
-                    'offset': next_offset,
-                    'limit': limit,
-                    'is_update': is_update
-                })
+                MessageBody=json.dumps(
+                    {
+                        "type": "broadcast_relay",
+                        "room_id": room_id,
+                        "sender_id": sender_id,
+                        "message_id": message_id,
+                        "offset": next_offset,
+                        "limit": limit,
+                        "is_update": is_update,
+                    }
+                ),
             )
         except Exception as e:
             logger.error(f"Failed to pass baton to SQS: {e}")
-            
+
     return True
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda handler for SQS notification processing.
-    
+
     Event structure:
     {
         "Records": [
@@ -465,46 +512,50 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     success_count = 0
     failure_count = 0
-    
+
     try:
         # Process each SQS record
-        for record in event.get('Records', []):
+        for record in event.get("Records", []):
             try:
                 # Parse message body
-                body = json.loads(record['body'])
-                
+                body = json.loads(record["body"])
+
                 # Branch based on task type
-                task_type = body.get('type', 'email') # Default to email for backward compatibility
-                
-                if task_type == 'push':
+                task_type = body.get(
+                    "type", "email"
+                )  # Default to email for backward compatibility
+
+                if task_type == "push":
                     # Process Web Push Notification
                     if process_push_notification(
-                        subscription_id=body.get('subscription_id'),
-                        endpoint=body.get('endpoint'),
-                        p256dh=body.get('p256dh'),
-                        auth=body.get('auth'),
-                        payload=body.get('payload')
+                        subscription_id=body.get("subscription_id"),
+                        endpoint=body.get("endpoint"),
+                        p256dh=body.get("p256dh"),
+                        auth=body.get("auth"),
+                        payload=body.get("payload"),
                     ):
                         success_count += 1
                     else:
                         failure_count += 1
-                elif task_type == 'new_chat_message' or task_type == 'broadcast_relay':
+                elif task_type == "new_chat_message" or task_type == "broadcast_relay":
                     # Support both standard chat messages and recursive broadcast relay
-                    room_id = body.get('room_id')
-                    sender_id = body.get('sender_id')
-                    message_id = body.get('message_id')
-                    
+                    room_id = body.get("room_id")
+                    sender_id = body.get("sender_id")
+                    message_id = body.get("message_id")
+
                     if not all([room_id, sender_id, message_id]):
                         logger.error(f"Invalid message format for {task_type}: {body}")
                         failure_count += 1
                         continue
 
-                    if task_type == 'broadcast_relay':
+                    if task_type == "broadcast_relay":
                         # Handle recursive chunked processing
-                        offset = body.get('offset', 0)
-                        limit = body.get('limit', 100)
-                        is_update = body.get('is_update', False)
-                        if process_broadcast_relay(room_id, sender_id, message_id, offset, limit, is_update):
+                        offset = body.get("offset", 0)
+                        limit = body.get("limit", 100)
+                        is_update = body.get("is_update", False)
+                        if process_broadcast_relay(
+                            room_id, sender_id, message_id, offset, limit, is_update
+                        ):
                             success_count += 1
                         else:
                             failure_count += 1
@@ -512,27 +563,29 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                         # Standard individual processing for normal chat messages
                         result = call_backend_api(
                             f"/api/v1/notifications/internal/notify-chat-message?room_id={room_id}&sender_id={sender_id}&message_id={message_id}",
-                            method="POST"
+                            method="POST",
                         )
-                        
-                        if result and result.get('status') == 'success':
+
+                        if result and result.get("status") == "success":
                             success_count += 1
-                            logger.info(f"Chat notifications triggered successfully for room {room_id}")
+                            logger.info(
+                                f"Chat notifications triggered successfully for room {room_id}"
+                            )
                         else:
                             failure_count += 1
                 else:
                     # Process Email Notification
-                    notification_id = body.get('notification_id')
-                    user_email = body.get('user_email')
-                    notification_data = body.get('notification')
-                    user_id = body.get('user_id')
-                    unsubscribe_token = body.get('unsubscribe_token')
-                    
+                    notification_id = body.get("notification_id")
+                    user_email = body.get("user_email")
+                    notification_data = body.get("notification")
+                    user_id = body.get("user_id")
+                    unsubscribe_token = body.get("unsubscribe_token")
+
                     if not all([notification_id, user_email, notification_data]):
                         logger.error(f"Invalid email message format: {body}")
                         failure_count += 1
                         continue
-                        
+
                     # Process email notification
                     try:
                         if process_email_notification(
@@ -540,7 +593,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                             user_email,
                             notification_data,
                             user_id=user_id,
-                            unsubscribe_token=unsubscribe_token
+                            unsubscribe_token=unsubscribe_token,
                         ):
                             success_count += 1
                         else:
@@ -548,13 +601,17 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     except Exception as e:
                         # Re-raise retryable errors (5xx) to trigger SQS redelivery
                         error_msg = str(e)
-                        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+                        if "Backend API returned 5" in error_msg or any(
+                            code in error_msg for code in ["504", "503", "502", "500"]
+                        ):
                             raise  # Re-raise to trigger SQS retry
                         else:
                             # Non-retryable errors - log and continue
-                            logger.error(f"Non-retryable error processing notification {notification_id}: {e}")
+                            logger.error(
+                                f"Non-retryable error processing notification {notification_id}: {e}"
+                            )
                             failure_count += 1
-                    
+
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse message body: {e}")
                 failure_count += 1
@@ -562,67 +619,83 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 # This catches retryable exceptions that were re-raised above
                 # Re-raise them so Lambda fails and SQS redelivers
                 error_msg = str(e)
-                if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
-                    logger.error(f"Retryable error - re-raising to trigger SQS redelivery: {e}")
+                if "Backend API returned 5" in error_msg or any(
+                    code in error_msg for code in ["504", "503", "502", "500"]
+                ):
+                    logger.error(
+                        f"Retryable error - re-raising to trigger SQS redelivery: {e}"
+                    )
                     raise  # Re-raise to fail Lambda and trigger SQS retry
                 else:
                     logger.error(f"Error processing record: {e}")
                     failure_count += 1
-        
+
         # Return result
         result = {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'Notification processing completed',
-                'success_count': success_count,
-                'failure_count': failure_count,
-                'total_processed': success_count + failure_count
-            })
+            "statusCode": 200,
+            "body": json.dumps(
+                {
+                    "message": "Notification processing completed",
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                    "total_processed": success_count + failure_count,
+                }
+            ),
         }
-        
-        logger.info(f"Processed {success_count + failure_count} notifications: {success_count} success, {failure_count} failures")
+
+        logger.info(
+            f"Processed {success_count + failure_count} notifications: {success_count} success, {failure_count} failures"
+        )
         return result
-        
+
     except Exception as e:
         # Check if this is a retryable error (5xx from backend API)
         error_msg = str(e)
-        if "Backend API returned 5" in error_msg or any(code in error_msg for code in ["504", "503", "502", "500"]):
+        if "Backend API returned 5" in error_msg or any(
+            code in error_msg for code in ["504", "503", "502", "500"]
+        ):
             # Re-raise retryable errors so Lambda fails and SQS redelivers
-            logger.error(f"Lambda handler: Retryable error - re-raising to trigger SQS redelivery: {e}")
+            logger.error(
+                f"Lambda handler: Retryable error - re-raising to trigger SQS redelivery: {e}"
+            )
             raise  # This will cause Lambda to fail and SQS to retry
-        
+
         # For non-retryable errors, return error response
         logger.error(f"Lambda handler error: {e}")
         return {
-            'statusCode': 500,
-            'body': json.dumps({
-                'error': str(e),
-                'success_count': success_count,
-                'failure_count': failure_count
-            })
+            "statusCode": 500,
+            "body": json.dumps(
+                {
+                    "error": str(e),
+                    "success_count": success_count,
+                    "failure_count": failure_count,
+                }
+            ),
         }
 
 
 # For local testing
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test event structure
     test_event = {
-        'Records': [
+        "Records": [
             {
-                'body': json.dumps({
-                    'type': 'email',
-                    'notification_id': 1,
-                    'user_email': 'test@example.com',
-                    'notification': {
-                        'title': 'Test Notification',
-                        'message': 'This is a test',
-                        'link_url': None,
-                        'category': 'new_dive_sites'
+                "body": json.dumps(
+                    {
+                        "type": "email",
+                        "notification_id": 1,
+                        "user_email": "test@example.com",
+                        "notification": {
+                            "title": "Test Notification",
+                            "message": "This is a test",
+                            "link_url": None,
+                            "category": "new_dive_sites",
+                        },
                     }
-                })
+                )
             }
         ]
     }
-    
+
     result = lambda_handler(test_event, None)
     print(json.dumps(result, indent=2))

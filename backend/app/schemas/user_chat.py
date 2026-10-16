@@ -1,27 +1,25 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, ConfigDict, Field, constr
 
 
 # --- Common/Shared ---
 class UserBasicInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     avatar_url: str | None = None
     avatar_type: str | None = "google"
     avatar_full_url: str | None = None
 
-    class Config:
-        from_attributes = True
-
 
 class DivingCenterBasic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     logo_url: str | None = None
-
-    class Config:
-        from_attributes = True
 
 
 # --- Members ---
@@ -31,13 +29,12 @@ class ChatRoomMemberBase(BaseModel):
 
 
 class ChatRoomMemberResponse(ChatRoomMemberBase):
+    model_config = ConfigDict(from_attributes=True)
+
     joined_at: datetime
     left_at: datetime | None = None
     last_read_at: datetime
     user: UserBasicInfo | None = None
-
-    class Config:
-        from_attributes = True
 
 
 # --- Rooms ---
@@ -79,8 +76,7 @@ class ChatRoomResponse(BaseModel):
     unread_count: int = 0
     latest_message: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # --- Messages ---
@@ -94,6 +90,8 @@ class ChatMessageUpdate(BaseModel):
 
 
 class ChatMessageBaseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     room_id: str
     sender_id: int | None = None
@@ -102,9 +100,6 @@ class ChatMessageBaseResponse(BaseModel):
     is_edited: bool
     updated_at: datetime
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class ChatMessageResponse(ChatMessageBaseResponse):

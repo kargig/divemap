@@ -1,7 +1,7 @@
 import hashlib
 import os
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import jwt
@@ -10,6 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import AuthAuditLog, RefreshToken, User
+from app.utils import utcnow
 
 
 class TokenService:
@@ -69,8 +70,8 @@ class TokenService:
     def create_access_token(self, data: dict[str, Any]) -> str:
         """Create short-lived access token"""
         to_encode = data.copy()
-        expire = datetime.utcnow() + self.access_token_expire
-        to_encode.update({"exp": expire, "iat": datetime.utcnow(), "type": "access"})
+        expire = utcnow() + self.access_token_expire
+        to_encode.update({"exp": expire, "iat": utcnow(), "type": "access"})
         return jwt.encode(to_encode, self.secret_key, algorithm=self.algorithm)
 
     def create_refresh_token(self, user: User, request: Request, db: Session) -> str:
@@ -83,7 +84,7 @@ class TokenService:
             self._revoke_oldest_session(user.id, db)
 
         token_id = str(uuid.uuid4())
-        token_data = f"{user.username}:{token_id}:{datetime.utcnow().timestamp()}"
+        token_data = f"{user.username}:{token_id}:{utcnow().timestamp()}"
 
         # Hash the token for storage
         token_hash = hashlib.sha256(token_data.encode()).hexdigest()
@@ -93,7 +94,7 @@ class TokenService:
             id=token_id,
             user_id=user.id,
             token_hash=token_hash,
-            expires_at=datetime.utcnow() + self.refresh_token_expire,
+            expires_at=utcnow() + self.refresh_token_expire,
             device_info=request.headers.get("User-Agent", ""),
             ip_address=request.client.host if request.client else None,
         )
@@ -117,7 +118,7 @@ class TokenService:
             token_timestamp = float(timestamp)
 
             # Check if token is too old (prevent replay attacks)
-            current_time = datetime.utcnow().timestamp()
+            current_time = utcnow().timestamp()
             time_diff = current_time - token_timestamp
             # Allow refresh tokens up to 1 week old (604800 seconds) to prevent replay attacks
             # This provides good user experience while maintaining security
@@ -130,7 +131,7 @@ class TokenService:
                 .filter(
                     RefreshToken.id == token_id,
                     RefreshToken.is_revoked == False,
-                    RefreshToken.expires_at > datetime.utcnow(),
+                    RefreshToken.expires_at > utcnow(),
                 )
                 .first()
             )
@@ -144,7 +145,7 @@ class TokenService:
                 return None
 
             # Update last used timestamp
-            db_token.last_used_at = datetime.utcnow()
+            db_token.last_used_at = utcnow()
 
             # Update user last accessed
             user.last_accessed_at = func.now()
@@ -276,7 +277,7 @@ class TokenService:
         try:
             db.query(RefreshToken).filter(
                 RefreshToken.user_id == user_id,
-                RefreshToken.expires_at < datetime.utcnow(),
+                RefreshToken.expires_at < utcnow(),
             ).delete()
             db.commit()
         except Exception:
@@ -290,7 +291,7 @@ class TokenService:
                 .filter(
                     RefreshToken.user_id == user_id,
                     RefreshToken.is_revoked == False,
-                    RefreshToken.expires_at > datetime.utcnow(),
+                    RefreshToken.expires_at > utcnow(),
                 )
                 .count()
             )
@@ -306,7 +307,7 @@ class TokenService:
                 .filter(
                     RefreshToken.user_id == user_id,
                     RefreshToken.is_revoked == False,
-                    RefreshToken.expires_at > datetime.utcnow(),
+                    RefreshToken.expires_at > utcnow(),
                 )
                 .order_by(RefreshToken.created_at.asc())
                 .first()
@@ -334,7 +335,7 @@ class TokenService:
                 action=action,
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("User-Agent"),
-                timestamp=datetime.utcnow(),
+                timestamp=utcnow(),
                 success=success,
                 details=details,
             )

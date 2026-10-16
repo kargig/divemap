@@ -1281,9 +1281,11 @@ async def get_dive_sites(
             target_datetime = datetime.fromisoformat(
                 datetime_str.replace("Z", "+00:00")
             )
+            if target_datetime.tzinfo is None:
+                target_datetime = target_datetime.replace(tzinfo=UTC)
             # Validate date range: only allow up to +2 days ahead
             # Round max_future to next hour to allow selecting any hour within 2-day window
-            now_utc = datetime.utcnow()
+            now_utc = datetime.now(UTC)
             max_future = (now_utc + timedelta(days=2)).replace(
                 minute=0, second=0, microsecond=0
             ) + timedelta(hours=1)
@@ -1293,7 +1295,7 @@ async def get_dive_sites(
                     detail=f"Date/time cannot be more than 2 days ahead. Maximum allowed: {max_future.isoformat()}",
                 )
             # Don't allow past dates (only current and future up to +2 days)
-            if target_datetime < datetime.utcnow() - timedelta(hours=1):
+            if target_datetime < now_utc - timedelta(hours=1):
                 raise HTTPException(
                     status_code=400,
                     detail="Date/time cannot be more than 1 hour in the past",
@@ -3142,7 +3144,7 @@ async def add_dive_site_media(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = media.dict()
+        update_data = media.model_dump()
         edit_request = DiveSiteEditRequest(
             dive_site_id=dive_site_id,
             requested_by_id=current_user.id,
@@ -3201,7 +3203,7 @@ async def update_dive_site_media(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = media_update.dict(exclude_unset=True)
+        update_data = media_update.model_dump(exclude_unset=True)
         update_data["id"] = media_id
         edit_request = DiveSiteEditRequest(
             dive_site_id=dive_site_id,
@@ -3697,7 +3699,7 @@ async def update_dive_site(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = dive_site_update.dict(exclude_unset=True)
+        update_data = dive_site_update.model_dump(exclude_unset=True)
         # Compute a strict diff against the current dive site
         diff_data = {}
 

@@ -6,7 +6,7 @@ validation, and soft delete support.
 """
 
 import html
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import (
@@ -92,7 +92,7 @@ def create_standard_response(
     response = {
         "success": True,
         "data": data,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     if message:
@@ -108,7 +108,7 @@ def create_error_response(
     response = {
         "success": False,
         "error": message,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     if details:
@@ -685,7 +685,7 @@ async def share_route(
         "share_url": share_url,
         "share_type": share_type,
         "shared_by": current_user.id,
-        "shared_at": datetime.utcnow().isoformat(),
+        "shared_at": datetime.now(UTC).isoformat(),
         "expires_at": None,  # No expiration for now
         "access_count": 0,  # Would be tracked in a real implementation
     }
@@ -787,9 +787,7 @@ async def get_route_community_stats(
     )
 
     # Get recent usage (last 7 days)
-    from datetime import datetime, timedelta
-
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = datetime.now(UTC) - timedelta(days=7)
     recent_dives = (
         db.query(Dive)
         .filter(
@@ -830,7 +828,7 @@ async def get_route_community_stats(
             if route.creator
             else "Unknown",
         },
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
     return stats_data
 
@@ -868,7 +866,7 @@ async def track_route_view(
             extra_data={
                 "endpoint": str(request.url),
                 "method": request.method,
-                "view_timestamp": datetime.utcnow().isoformat(),
+                "view_timestamp": datetime.now(UTC).isoformat(),
             },
         )
 

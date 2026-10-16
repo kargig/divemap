@@ -29,7 +29,7 @@ services:
       DATABASE_URL: mysql+pymysql://root:password@mysql-test:3306/divemap_test
       SECRET_KEY: test-secret-key-for-ci
       ENVIRONMENT: ci
-      PYTHONPATH: /app/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH
+      PYTHONPATH: /app/divemap_venv/lib/python3.13/site-packages:$PYTHONPATH
     volumes:
       - ./htmlcov:/app/htmlcov
       - ./.pytest_cache:/app/.pytest_cache
@@ -42,24 +42,24 @@ services:
       bash -c "
         # Create virtual environment (like GitHub Actions)
         pip install --no-cache-dir uv
-        uv venv divemap_venv --python python3.11
+        uv venv divemap_venv --python python3.13
         source divemap_venv/bin/activate
         
         # Install dependencies in virtual environment
         uv sync --active --frozen
         
         # Set PYTHONPATH
-        export PYTHONPATH=\"/app/divemap_venv/lib/python3.11/site-packages:\$PYTHONPATH\"
+        export PYTHONPATH=\"/app/divemap_venv/lib/python3.13/site-packages:\$PYTHONPATH\"
         
         # Wait for database to be ready
         echo 'Waiting for database connection...'
-        until mysql -h mysql-test -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
+        until mysql --skip-ssl-verify-server-cert -h mysql-test -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
           echo 'Waiting for MySQL...'
           sleep 2
         done
         
         # Create test database
-        mysql -h mysql-test -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
+        mysql --skip-ssl-verify-server-cert -h mysql-test -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
         
         # Run migrations
         echo 'Running database migrations...'

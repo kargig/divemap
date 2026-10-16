@@ -4,7 +4,7 @@ Route Analytics Service
 Handles tracking and analysis of user interactions with dive routes.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import and_, desc, func
@@ -79,7 +79,7 @@ class RouteAnalyticsService:
             raise ValueError(f"Route {route_id} not found or deleted")
 
         # Calculate date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         # Base query
@@ -136,7 +136,7 @@ class RouteAnalyticsService:
             "top_referrers": dict(
                 sorted(referrer_counts.items(), key=lambda x: x[1], reverse=True)[:10]
             ),
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     def get_popular_routes(
@@ -145,7 +145,7 @@ class RouteAnalyticsService:
         """Get most popular routes based on analytics"""
 
         # Calculate date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         # Query for route popularity
@@ -212,7 +212,7 @@ class RouteAnalyticsService:
         """Get analytics for a specific user's route interactions"""
 
         # Calculate date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         # Get user's interactions
@@ -270,14 +270,14 @@ class RouteAnalyticsService:
             "unique_routes": unique_routes,
             "interaction_types": interaction_counts,
             "top_routes": top_routes,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }
 
     def get_system_analytics(self, days: int = 30) -> dict[str, Any]:
         """Get system-wide analytics for all routes"""
 
         # Calculate date range
-        end_date = datetime.utcnow()
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=days)
 
         # Get all interactions in period
@@ -323,5 +323,5 @@ class RouteAnalyticsService:
             "total_routes": total_routes,
             "total_users": total_users,
             "interaction_types": interaction_counts,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         }

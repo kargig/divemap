@@ -15,6 +15,7 @@ import random
 from collections import defaultdict
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from itertools import batched
 
 import requests
 
@@ -195,7 +196,7 @@ def _get_from_database_cache(
                 .filter(
                     WindDataCache.cache_key == cache_key,
                     WindDataCache.expires_at
-                    > datetime.utcnow(),  # Only return non-expired entries
+                    > datetime.now(UTC),  # Only return non-expired entries
                 )
                 .first()
             )
@@ -203,7 +204,7 @@ def _get_from_database_cache(
             if cache_entry:
                 logger.debug(f"[DB CACHE] Found valid cache entry for key: {cache_key}")
                 # Update last_accessed_at timestamp
-                cache_entry.last_accessed_at = datetime.utcnow()
+                cache_entry.last_accessed_at = datetime.now(UTC)
                 db.commit()
                 # Deserialize wind_data (convert ISO string timestamp back to datetime)
                 wind_data = cache_entry.wind_data.copy()
@@ -230,7 +231,7 @@ def _get_from_database_cache(
                         WindDataCache.latitude == Decimal(str(rounded_lat)),
                         WindDataCache.longitude == Decimal(str(rounded_lon)),
                         WindDataCache.target_datetime == rounded_datetime,
-                        WindDataCache.expires_at > datetime.utcnow(),
+                        WindDataCache.expires_at > datetime.now(UTC),
                     )
                     .first()
                 )
@@ -240,7 +241,7 @@ def _get_from_database_cache(
                         f"[DB CACHE] Found valid cache entry by location+datetime for {rounded_lat}, {rounded_lon} at {rounded_datetime}"
                     )
                     # Update last_accessed_at timestamp
-                    cache_entry.last_accessed_at = datetime.utcnow()
+                    cache_entry.last_accessed_at = datetime.now(UTC)
                     db.commit()
                     # Deserialize wind_data (convert ISO string timestamp back to datetime)
                     wind_data = cache_entry.wind_data.copy()
@@ -285,7 +286,7 @@ def _get_batch_from_database_cache(cache_keys: list[str]) -> dict[str, dict]:
         db = SessionLocal()
         try:
             # Query by cache_keys (bulk lookup)
-            current_time = datetime.utcnow()
+            current_time = datetime.now(UTC)
             cache_entries = (
                 db.query(WindDataCache)
                 .filter(
@@ -361,7 +362,7 @@ def _store_in_database_cache(
                 )
 
             # Calculate expiration time using dynamic TTL based on forecast distance
-            now_utc = datetime.utcnow()
+            now_utc = datetime.now(UTC)
             # Convert target_datetime to UTC if it's timezone-aware, otherwise assume it's in local time
             # and convert to UTC for comparison
             if target_datetime:
@@ -452,7 +453,7 @@ def _store_batch_in_database_cache(entries: list[dict]):
 
         db = SessionLocal()
         try:
-            now_utc = datetime.utcnow()
+            now_utc = datetime.now(UTC)
 
             # 1. Fetch existing entries to decide between update vs insert
             # The cache keys were missing from the query due to a bug in how they were constructed
@@ -1210,8 +1211,7 @@ def fetch_wind_data_grid(
         # Chunk into batches (Open-Meteo limit is high but let's be safe, e.g., 50 locations)
         batch_size = 50
 
-        for i in range(0, len(locations_to_fetch), batch_size):
-            chunk = locations_to_fetch[i : i + batch_size]
+        for chunk in batched(locations_to_fetch, batch_size, strict=False):
             lats = [str(x[0]) for x in chunk]
             lons = [str(x[1]) for x in chunk]
 

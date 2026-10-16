@@ -3,7 +3,7 @@ from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -52,8 +52,7 @@ class UserGearProfileSchema(BaseModel):
     emergency_contact_phone: str | None = None
     emergency_contact_relation: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserGearProfileCreateSchema(BaseModel):

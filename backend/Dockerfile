@@ -1,7 +1,7 @@
 # Stage 1: Builder
 # All dependencies have pre-built wheels (including octo-deco via GitHub Release).
 # Zero C-compilers (gcc, build-essential, python3-dev) needed!
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
 # Create destination virtualenv
-RUN uv venv /opt/venv --python python3.11
+RUN uv venv /opt/venv --python python3.13
 ENV VIRTUAL_ENV=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --active --frozen --no-dev
 
 # Stage 2: Runtime
 # This stage is the final small image containing only the app and its runtime deps
-FROM python:3.11-slim AS runtime
+FROM python:3.13-slim AS runtime
 
 WORKDIR /app
 

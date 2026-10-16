@@ -9,6 +9,7 @@ import logging
 import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from itertools import batched
 from typing import Any
 
 import orjson
@@ -225,8 +226,7 @@ class SESService:
             success_count = 0
             failed_count = 0
 
-            for i in range(0, len(destinations), 50):
-                batch = destinations[i : i + 50]
+            for batch in batched(destinations, 50, strict=False):
                 result = self.send_bulk_email(
                     batch, subject, html_body, text_body, from_email, from_name
                 )

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ChatMessageRole(str, Enum):
@@ -72,15 +72,16 @@ class ChatFeedbackCreate(BaseModel):
 
 
 class ChatUser(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     username: str
     email: str | None = None
 
-    class Config:
-        from_attributes = True
-
 
 class ChatFeedbackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     message_id: str | None
     user_id: int | None
@@ -93,9 +94,6 @@ class ChatFeedbackResponse(BaseModel):
     comments: str | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class ChatFeedbackStats(BaseModel):
     total_feedback: int
@@ -106,6 +104,8 @@ class ChatFeedbackStats(BaseModel):
 
 
 class ChatMessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     role: str
     content: str
@@ -116,11 +116,10 @@ class ChatMessageResponse(BaseModel):
     tokens_cached: int | None = None
     tokens_total: int | None = None
 
-    class Config:
-        from_attributes = True
-
 
 class ChatSessionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     user_id: int
     user: ChatUser | None = None
@@ -129,9 +128,6 @@ class ChatSessionResponse(BaseModel):
     total_tokens: int = 0
     first_question: str | None = None
     prompt_count: int = 0
-
-    class Config:
-        from_attributes = True
 
 
 class ChatSessionDetailResponse(ChatSessionResponse):

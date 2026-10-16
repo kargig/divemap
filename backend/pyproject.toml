@@ -2,14 +2,13 @@
 name = "divemap-backend"
 version = "0.1.0"
 description = "Divemap Backend API"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "alembic==1.16.4",
-    "anyio==3.6.2",
+    "anyio>=4.4.0",
     "bcrypt==4.3.0",
     "boto3==1.35.0",
     "cachetools==5.5.2",
-    "celery==5.3.4",
     "cryptography==45.0.5",
     "email-validator>=2.1.0",
     "fastapi==0.116.1",
@@ -17,40 +16,37 @@ dependencies = [
     "fitdecode==0.11.0",
     "garmin-fit-sdk==21.158.0",
     "google-auth==2.40.3",
-    "google-auth-oauthlib==1.2.2",
-    "gunicorn==21.2.0",
-    "jinja2==3.1.2",
+    "gunicorn>=22.0.0",
+    "jinja2>=3.1.4",
     "nh3==0.2.20",
     "octo-deco==2.0.3",
     "openai==1.98.0",
-    "orjson==3.9.10",
+    "orjson>=3.10.0",
     "passlib[bcrypt]==1.7.4",
-    "pillow==10.1.0",
+    "pillow>=10.4.0",
     "psutil==6.1.0",
-    "pyasn1==0.6.1",
-    "pydantic[email]==2.9.2",
+    "pydantic[email]>=2.10.0",
     "pyjwt[crypto]==2.10.1",
     "pymysql==1.1.1",
     "python-dotenv==1.0.0",
     "python-magic==0.4.27",
     "python-multipart==0.0.20",
     "rapidfuzz==3.14.3",
-    "redis==5.0.1",
     "reportlab>=4.2.0",
     "slowapi==0.1.9",
     "starlette==0.47.2",
     "tenacity==8.2.3",
     "tiktoken>=0.7.0",
-    "uvicorn[standard]==0.24.0",
+    "uvicorn[standard]>=0.32.0",
 ]
 
 [dependency-groups]
 dev = [
     "freezegun==1.5.5",
-    "httpx==0.25.2",
-    "pytest==7.4.3",
-    "pytest-asyncio==0.21.1",
-    "pytest-cov==4.1.0",
+    "httpx>=0.27.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
     "ruff>=0.9.0",
 ]
 
@@ -58,10 +54,10 @@ dev = [
 package = false
 
 [tool.uv.sources]
-octo-deco = { url = "https://github.com/kargig/divemap/releases/download/deps-v1/octo_deco-2.0.3-cp311-cp311-linux_x86_64.whl" }
+octo-deco = { url = "https://github.com/kargig/divemap/releases/download/deps-v1/octo_deco-2.0.3-cp313-cp313-linux_x86_64.whl" }
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 88
 src = ["backend", "."]
 extend-exclude = [
@@ -78,7 +74,7 @@ select = [
     "F",      # Pyflakes (unused imports, undefined variables)
     "I",      # isort
     "B",      # flake8-bugbear
-    "UP",     # pyupgrade (Python 3.11 idioms)
+    "UP",     # pyupgrade (Python 3.13 idioms)
 ]
 ignore = [
     "B008",   # Do not perform function calls in argument defaults (FastAPI Depends/Query)

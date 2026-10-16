@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.user_chat import UserBasicInfo
 
@@ -13,6 +13,8 @@ class FriendshipBase(BaseModel):
 
 
 class FriendshipResponse(FriendshipBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     created_at: datetime
     updated_at: datetime
@@ -21,9 +23,6 @@ class FriendshipResponse(FriendshipBase):
     # So we might not just return user and friend, but the "other user"
     user: UserBasicInfo | None = None
     friend: UserBasicInfo | None = None
-
-    class Config:
-        from_attributes = True
 
 
 class FriendshipRequestCreate(BaseModel):

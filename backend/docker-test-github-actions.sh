@@ -6,6 +6,7 @@
 #   ./docker-test-github-actions.sh                                    # Run all tests (silent by default)
 #   ./docker-test-github-actions.sh -v                                 # Run all tests with verbose output
 #   ./docker-test-github-actions.sh --force-rebuild                    # Rebuild base image from scratch
+#   ./docker-test-github-actions.sh --warnings                         # Surface DeprecationWarnings (implies -v)
 #   ./docker-test-github-actions.sh tests/test_file.py                 # Run specific test file
 
 set -e  # Exit on any error
@@ -26,6 +27,7 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 VERBOSE=false
 FORCE_REBUILD=false
 SHOW_COV=false
+SHOW_WARNINGS=false
 TEST_PATHS=()
 
 for arg in "$@"; do
@@ -35,6 +37,10 @@ for arg in "$@"; do
         FORCE_REBUILD=true
     elif [ "$arg" == "--cov" ]; then
         SHOW_COV=true
+    elif [ "$arg" == "--warnings" ]; then
+        SHOW_WARNINGS=true
+        # Warnings are easy to miss in silent mode (piped/grepped output).
+        VERBOSE=true
     else
         TEST_PATHS+=("$arg")
     fi
@@ -45,6 +51,10 @@ if [ "$VERBOSE" = true ]; then
 else
     echo "P Silent mode enabled (failures saved to test-failures.txt)"
     > test-failures.txt
+fi
+
+if [ "$SHOW_WARNINGS" = true ]; then
+    echo "⚠️  DeprecationWarning sweep enabled (pytest.ini warning filters overridden)"
 fi
 
 # Helper functions
@@ -104,7 +114,7 @@ BASE_IMAGE_EXISTS=$(docker images -q divemap-test-base 2> /dev/null)
 # Dockerfile with multi-stage build
 cat > Dockerfile.test << 'EOF'
 # Stage 1: Base with OS packages and dependencies pre-installed in venv
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 RUN apt-get update && apt-get install -y \
     pkg-config \
     netcat-openbsd \
@@ -116,7 +126,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.10.2 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
 # Create venv and install dependencies here so it's cached in the base image
-RUN uv venv /app/divemap_venv --python python3.11
+RUN uv venv /app/divemap_venv --python python3.13
 ENV VIRTUAL_ENV=/app/divemap_venv PATH="/app/divemap_venv/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --active --frozen --no-install-project
@@ -153,9 +163,9 @@ run_internal() {
 }
 # Use the pre-built venv from the image
 source /app/divemap_venv/bin/activate
-export PYTHONPATH="/app/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export PYTHONPATH="/app/divemap_venv/lib/python3.13/site-packages:$PYTHONPATH"
 timeout=30; counter=0
-until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
+until mysql --skip-ssl-verify-server-cert -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
     if [ $counter -ge $timeout ]; then
         echo "💥 ERROR: MySQL did not become ready in container_test.sh within $timeout seconds"
         exit 1
@@ -163,7 +173,7 @@ until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2
     sleep 1
     counter=$((counter + 1))
 done
-run_internal mysql -h divemap-test-mysql -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
+run_internal mysql --skip-ssl-verify-server-cert -h divemap-test-mysql -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
 run_internal alembic upgrade head
 echo "Running tests..."
 EOF
@@ -173,12 +183,20 @@ if [ "$SHOW_COV" = true ]; then
     COV_FLAGS="--cov=app --cov-report=term-missing"
 fi
 
+# Default pytest args. --warnings clears pytest.ini silencing so DeprecationWarnings
+# surface (PYTHONWARNINGS + -W + empty filterwarnings + no --disable-warnings).
+PYTEST_COMMON="-o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short"
+if [ "$SHOW_WARNINGS" = true ]; then
+    echo "export PYTHONWARNINGS=default::DeprecationWarning" >> container_test.sh
+    PYTEST_COMMON="$PYTEST_COMMON -o \"addopts=--tb=short --strict-markers --asyncio-mode=auto\" -o \"filterwarnings=\" -W default::DeprecationWarning"
+fi
+
 if [ ${#TEST_PATHS[@]} -eq 0 ]; then
-    echo "python -m pytest tests/ -o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
+    echo "python -m pytest tests/ $PYTEST_COMMON" >> container_test.sh
 else
     echo -n "python -m pytest " >> container_test.sh
     for path in "${TEST_PATHS[@]}"; do echo -n "${path} " >> container_test.sh; done
-    echo "-o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
+    echo "$PYTEST_COMMON" >> container_test.sh
 fi
 chmod +x container_test.sh
 

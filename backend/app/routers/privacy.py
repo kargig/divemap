@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
@@ -24,11 +24,12 @@ from app.models import (
     User,
     UserCertification,
 )
+from app.utils import normalize_datetime_to_utc
 
 router = APIRouter()
 
 # Privacy data export schemas
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class UserDataExport(BaseModel):
@@ -54,6 +55,13 @@ class AuditLogEntry(BaseModel):
     details: dict[str, Any]
     ip_address: str | None = None
     user_agent: str | None = None
+
+    @field_validator("timestamp", mode="before")
+    @classmethod
+    def ensure_utc(cls, v: Any) -> datetime | None:
+        if isinstance(v, datetime):
+            return normalize_datetime_to_utc(v)
+        return v
 
 
 class AuditLogResponse(BaseModel):
@@ -329,7 +337,7 @@ async def export_user_data(
         "comments": comments,
         "certifications": certifications,
         "owned_diving_centers": owned_diving_centers,
-        "export_timestamp": datetime.utcnow(),
+        "export_timestamp": datetime.now(UTC),
         "total_records": total_records,
     }
 
@@ -379,7 +387,7 @@ async def get_user_audit_log(
         )
 
     # Calculate date range
-    end_date = datetime.utcnow()
+    end_date = datetime.now(UTC)
     start_date = end_date - timedelta(days=days)
 
     # Build audit log entries from various user activities
@@ -559,11 +567,18 @@ async def get_user_audit_log(
 
     # Account access events (profile updates)
     # Note: We check if user was updated in the time period
-    if current_user.updated_at >= start_date and current_user.updated_at <= end_date:
-        if current_user.created_at != current_user.updated_at:
+    user_updated_at = normalize_datetime_to_utc(current_user.updated_at)
+    user_created_at = normalize_datetime_to_utc(current_user.created_at)
+
+    if (
+        user_updated_at
+        and user_updated_at >= start_date
+        and user_updated_at <= end_date
+    ):
+        if user_created_at != user_updated_at:
             audit_entries.append(
                 AuditLogEntry(
-                    timestamp=current_user.updated_at,
+                    timestamp=user_updated_at,
                     action="UPDATE",
                     resource_type="user_profile",
                     resource_id=current_user.id,
@@ -572,10 +587,14 @@ async def get_user_audit_log(
             )
 
     # Add account creation if within period
-    if current_user.created_at >= start_date and current_user.created_at <= end_date:
+    if (
+        user_created_at
+        and user_created_at >= start_date
+        and user_created_at <= end_date
+    ):
         audit_entries.append(
             AuditLogEntry(
-                timestamp=current_user.created_at,
+                timestamp=user_created_at,
                 action="CREATE",
                 resource_type="user_account",
                 resource_id=current_user.id,
@@ -600,5 +619,5 @@ async def get_user_audit_log(
         total_entries=total_entries,
         period_start=start_date,
         period_end=end_date,
-        export_timestamp=datetime.utcnow().isoformat(),
+        export_timestamp=datetime.now(UTC).isoformat(),
     )

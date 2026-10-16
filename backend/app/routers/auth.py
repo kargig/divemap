@@ -762,7 +762,7 @@ async def list_active_tokens(
         .filter(
             RefreshToken.user_id == current_user.id,
             RefreshToken.is_revoked == False,
-            RefreshToken.expires_at > datetime.utcnow(),
+            RefreshToken.expires_at > datetime.now(UTC),
         )
         .all()
     )

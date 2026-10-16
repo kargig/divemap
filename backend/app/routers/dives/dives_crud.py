@@ -11,7 +11,7 @@ This module contains core CRUD operations for dives:
 - delete_dive
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import and_, func, or_
@@ -1698,7 +1698,7 @@ def update_dive(
             if current_tag.tag_id not in dive_update.tags:
                 db.delete(current_tag)
 
-    dive.updated_at = datetime.utcnow()
+    dive.updated_at = datetime.now(UTC)
     db.commit()
 
     # Eager load difficulty for response
