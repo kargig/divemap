@@ -359,6 +359,7 @@ const DiveTrips = () => {
       filters.max_price,
       filters.difficulty_code,
       filters.exclude_unspecified_difficulty,
+      filters.bookable_only,
       sortBy,
       sortOrder,
       sortBy === 'distance' ? userLocation : null,
@@ -377,7 +378,7 @@ const DiveTrips = () => {
           // Handle these separately using debounced versions
           return;
         }
-        if (value !== null && value !== undefined && value !== '') {
+        if (value !== null && value !== undefined && value !== '' && value !== false) {
           // For strings, also check for whitespace-only
           if (typeof value === 'string') {
             if (value.trim() !== '') {
@@ -535,6 +536,7 @@ const DiveTrips = () => {
       max_price: '',
       difficulty_code: '',
       exclude_unspecified_difficulty: false,
+      bookable_only: false,
       search_query: '',
       country: '',
       region: '',
@@ -856,7 +858,8 @@ const DiveTrips = () => {
 
             {/* Check if any filters are active */}
             {Object.values(filters).some(value => {
-              if (value === null || value === undefined || value === '') return false;
+              if (value === null || value === undefined || value === '' || value === false)
+                return false;
               if (typeof value === 'string') return value.trim() !== '';
               return true;
             }) && (
@@ -880,7 +883,8 @@ const DiveTrips = () => {
 
             {/* No filters active */}
             {!Object.values(filters).some(value => {
-              if (value === null || value === undefined || value === '') return false;
+              if (value === null || value === undefined || value === '' || value === false)
+                return false;
               if (typeof value === 'string') return value.trim() !== '';
               return true;
             }) && (
