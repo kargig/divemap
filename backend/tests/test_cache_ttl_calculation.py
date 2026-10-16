@@ -4,8 +4,10 @@ Unit tests for cache TTL calculation function.
 Tests the time-based caching strategy where TTL varies based on forecast distance.
 """
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta
+
 from app.services.open_meteo_service import _calculate_cache_ttl
 
 
@@ -104,3 +106,28 @@ class TestCacheTTLCalculation:
         # Should return approximately 2.5 hours (dynamic TTL)
         expected = timedelta(hours=2, minutes=30)
         assert abs((ttl - expected).total_seconds()) < 1  # Within 1 second
+
+    def test_mixed_naive_and_aware_datetimes(self):
+        """Test that _calculate_cache_ttl handles any combination of naive and aware datetimes."""
+        base_time = datetime(2026, 10, 17, 12, 0, 0)
+        now_aware = base_time.replace(tzinfo=UTC)
+        now_naive = base_time
+
+        future_aware = now_aware + timedelta(hours=2)
+        future_naive = now_naive + timedelta(hours=2)
+
+        # Aware now, naive future
+        ttl_1 = _calculate_cache_ttl(future_naive, now_aware)
+        assert ttl_1 == timedelta(hours=2)
+
+        # Naive now, aware future
+        ttl_2 = _calculate_cache_ttl(future_aware, now_naive)
+        assert ttl_2 == timedelta(hours=2)
+
+        # Both aware
+        ttl_3 = _calculate_cache_ttl(future_aware, now_aware)
+        assert ttl_3 == timedelta(hours=2)
+
+        # Both naive
+        ttl_4 = _calculate_cache_ttl(future_naive, now_naive)
+        assert ttl_4 == timedelta(hours=2)

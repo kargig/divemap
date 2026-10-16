@@ -86,6 +86,12 @@ def _calculate_cache_ttl(target_datetime: datetime | None, now: datetime) -> tim
     if target_datetime is None:
         return timedelta(hours=1)
 
+    # Normalize timezone awareness to avoid offset-naive vs offset-aware comparison errors
+    if target_datetime.tzinfo is None and now.tzinfo is not None:
+        target_datetime = target_datetime.replace(tzinfo=UTC)
+    elif target_datetime.tzinfo is not None and now.tzinfo is None:
+        target_datetime = target_datetime.astimezone(UTC).replace(tzinfo=None)
+
     # Past forecasts: use shortest cache (shouldn't happen, but handle gracefully)
     if target_datetime < now:
         return timedelta(hours=1)
@@ -132,7 +138,7 @@ def _is_cache_valid(cache_entry: dict, target_datetime: datetime | None = None) 
         entry_target_datetime = target_datetime
 
     # Calculate dynamic TTL based on target_datetime
-    now = datetime.now()
+    now = datetime.now(UTC)
 
     # If we have target_datetime, use dynamic TTL
     if entry_target_datetime is not None:
@@ -142,8 +148,13 @@ def _is_cache_valid(cache_entry: dict, target_datetime: datetime | None = None) 
         ttl = timedelta(seconds=_cache_ttl_seconds)
 
     # Check if cache age is less than calculated TTL
-    age = now - cache_entry["timestamp"]
-    return age < ttl
+    entry_ts = cache_entry["timestamp"]
+    if isinstance(entry_ts, datetime):
+        if entry_ts.tzinfo is None:
+            entry_ts = entry_ts.replace(tzinfo=UTC)
+        age = now - entry_ts
+        return age < ttl
+    return False
 
 
 def _cleanup_cache():
@@ -363,19 +374,11 @@ def _store_in_database_cache(
 
             # Calculate expiration time using dynamic TTL based on forecast distance
             now_utc = datetime.now(UTC)
-            # Convert target_datetime to UTC if it's timezone-aware, otherwise assume it's in local time
-            # and convert to UTC for comparison
             if target_datetime:
                 if target_datetime.tzinfo is not None:
-                    # Timezone-aware: convert to UTC
-                    target_datetime_utc = target_datetime.astimezone(UTC).replace(
-                        tzinfo=None
-                    )
+                    target_datetime_utc = target_datetime.astimezone(UTC)
                 else:
-                    # Naive datetime: assume it's in local time, convert to UTC
-                    # For simplicity, we'll use the naive datetime directly and compare with UTC now
-                    # This works because we're calculating relative time differences
-                    target_datetime_utc = target_datetime
+                    target_datetime_utc = target_datetime.replace(tzinfo=UTC)
             else:
                 target_datetime_utc = None
 
@@ -506,11 +509,9 @@ def _store_batch_in_database_cache(entries: list[dict]):
                 target_datetime_utc = None
                 if target_datetime:
                     if target_datetime.tzinfo is not None:
-                        target_datetime_utc = target_datetime.astimezone(UTC).replace(
-                            tzinfo=None
-                        )
+                        target_datetime_utc = target_datetime.astimezone(UTC)
                     else:
-                        target_datetime_utc = target_datetime
+                        target_datetime_utc = target_datetime.replace(tzinfo=UTC)
                 else:
                     target_datetime_utc = None
 
