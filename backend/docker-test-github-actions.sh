@@ -6,6 +6,7 @@
 #   ./docker-test-github-actions.sh                                    # Run all tests (silent by default)
 #   ./docker-test-github-actions.sh -v                                 # Run all tests with verbose output
 #   ./docker-test-github-actions.sh --force-rebuild                    # Rebuild base image from scratch
+#   ./docker-test-github-actions.sh --warnings                         # Surface DeprecationWarnings (implies -v)
 #   ./docker-test-github-actions.sh tests/test_file.py                 # Run specific test file
 
 set -e  # Exit on any error
@@ -26,6 +27,7 @@ print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 VERBOSE=false
 FORCE_REBUILD=false
 SHOW_COV=false
+SHOW_WARNINGS=false
 TEST_PATHS=()
 
 for arg in "$@"; do
@@ -35,6 +37,10 @@ for arg in "$@"; do
         FORCE_REBUILD=true
     elif [ "$arg" == "--cov" ]; then
         SHOW_COV=true
+    elif [ "$arg" == "--warnings" ]; then
+        SHOW_WARNINGS=true
+        # Warnings are easy to miss in silent mode (piped/grepped output).
+        VERBOSE=true
     else
         TEST_PATHS+=("$arg")
     fi
@@ -45,6 +51,10 @@ if [ "$VERBOSE" = true ]; then
 else
     echo "P Silent mode enabled (failures saved to test-failures.txt)"
     > test-failures.txt
+fi
+
+if [ "$SHOW_WARNINGS" = true ]; then
+    echo "⚠️  DeprecationWarning sweep enabled (pytest.ini warning filters overridden)"
 fi
 
 # Helper functions
@@ -173,12 +183,20 @@ if [ "$SHOW_COV" = true ]; then
     COV_FLAGS="--cov=app --cov-report=term-missing"
 fi
 
+# Default pytest args. --warnings clears pytest.ini silencing so DeprecationWarnings
+# surface (PYTHONWARNINGS + -W + empty filterwarnings + no --disable-warnings).
+PYTEST_COMMON="-o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short"
+if [ "$SHOW_WARNINGS" = true ]; then
+    echo "export PYTHONWARNINGS=default::DeprecationWarning" >> container_test.sh
+    PYTEST_COMMON="$PYTEST_COMMON -o \"addopts=--tb=short --strict-markers --asyncio-mode=auto\" -o \"filterwarnings=\" -W default::DeprecationWarning"
+fi
+
 if [ ${#TEST_PATHS[@]} -eq 0 ]; then
-    echo "python -m pytest tests/ -o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
+    echo "python -m pytest tests/ $PYTEST_COMMON" >> container_test.sh
 else
     echo -n "python -m pytest " >> container_test.sh
     for path in "${TEST_PATHS[@]}"; do echo -n "${path} " >> container_test.sh; done
-    echo "-o \"log_cli=true\" -o \"log_cli_level=ERROR\" -v $COV_FLAGS -x --maxfail=5 --tb=short" >> container_test.sh
+    echo "$PYTEST_COMMON" >> container_test.sh
 fi
 chmod +x container_test.sh
 

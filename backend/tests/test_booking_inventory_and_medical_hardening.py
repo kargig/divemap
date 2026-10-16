@@ -1,4 +1,5 @@
 """Regression tests for PR #265 inventory, medical binding, and access hardening fixes."""
+
 from datetime import datetime, time, timezone, timedelta
 
 import pytest
@@ -29,13 +30,17 @@ from app.services.booking_access_service import (
     mint_claim_token,
     verify_claim_token,
 )
-from app.services.booking_medical_encryption_service import BookingMedicalEncryptionService
+from app.services.booking_medical_encryption_service import (
+    BookingMedicalEncryptionService,
+)
 from app.services.booking_pricing_service import compute_participant_octo_pricing
 from app.routers.center_booking_ops import reconcile_slot_seats
 
 
 @pytest.fixture
-def harden_setup(db_session: Session, test_diving_center: DivingCenter, test_user: User):
+def harden_setup(
+    db_session: Session, test_diving_center: DivingCenter, test_user: User
+):
     settings = DivingCenterBookingSettings(
         diving_center_id=test_diving_center.id,
         is_booking_enabled=True,
@@ -128,7 +133,9 @@ def _auth_headers(user: User):
     return {"Authorization": f"Bearer {token}"}
 
 
-def _hold_payload(setup, *, unit_id=None, seats=1, product_id=None, option_id=None, avail_id=None):
+def _hold_payload(
+    setup, *, unit_id=None, seats=1, product_id=None, option_id=None, avail_id=None
+):
     items = []
     for i in range(seats):
         items.append(
@@ -147,7 +154,9 @@ def _hold_payload(setup, *, unit_id=None, seats=1, product_id=None, option_id=No
     }
 
 
-def test_hold_rejects_mismatched_product(client: TestClient, harden_setup, db_session: Session):
+def test_hold_rejects_mismatched_product(
+    client: TestClient, harden_setup, db_session: Session
+):
     other = OctoProduct(
         id="prod-other-center",
         diving_center_id=harden_setup["center"].id,
@@ -162,7 +171,9 @@ def test_hold_rejects_mismatched_product(client: TestClient, harden_setup, db_se
     assert "productId" in res.json()["detail"]
 
 
-def test_hold_rejects_foreign_unit(client: TestClient, harden_setup, db_session: Session):
+def test_hold_rejects_foreign_unit(
+    client: TestClient, harden_setup, db_session: Session
+):
     foreign = OctoUnit(
         id="unit-foreign",
         product_id="prod-does-not-exist",
@@ -194,21 +205,31 @@ def test_confirm_expired_rejected_for_owner(
 ):
     payload = _hold_payload(harden_setup)
     # Authenticated hold attaches user_id
-    res = client.post("/api/v1/octo/bookings", json=payload, headers=_auth_headers(test_user))
+    res = client.post(
+        "/api/v1/octo/bookings", json=payload, headers=_auth_headers(test_user)
+    )
     assert res.status_code == 201
     booking_uuid = res.json()["uuid"]
-    booking = db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    booking = (
+        db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    )
     booking.user_id = test_user.id
     booking.utc_hold_expiration = datetime.now(timezone.utc) - timedelta(minutes=5)
     db_session.commit()
 
-    slot = db_session.query(OctoAvailabilitySlot).filter_by(id=harden_setup["slot"].id).first()
+    slot = (
+        db_session.query(OctoAvailabilitySlot)
+        .filter_by(id=harden_setup["slot"].id)
+        .first()
+    )
     reconcile_slot_seats(db_session, slot)
     db_session.refresh(booking)
     assert booking.status == "EXPIRED"
 
     seats_after = (
-        db_session.query(OctoAvailabilitySlot).filter_by(id=harden_setup["slot"].id).first()
+        db_session.query(OctoAvailabilitySlot)
+        .filter_by(id=harden_setup["slot"].id)
+        .first()
     ).seats_available
 
     confirm = client.post(
@@ -219,7 +240,9 @@ def test_confirm_expired_rejected_for_owner(
     db_session.refresh(booking)
     assert booking.status == "EXPIRED"
     seats_now = (
-        db_session.query(OctoAvailabilitySlot).filter_by(id=harden_setup["slot"].id).first()
+        db_session.query(OctoAvailabilitySlot)
+        .filter_by(id=harden_setup["slot"].id)
+        .first()
     ).seats_available
     assert seats_now == seats_after
 
@@ -234,12 +257,18 @@ def test_cancel_expired_does_not_double_free(
     )
     assert res.status_code == 201
     booking_uuid = res.json()["uuid"]
-    booking = db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    booking = (
+        db_session.query(OctoBooking).filter(OctoBooking.uuid == booking_uuid).first()
+    )
     booking.user_id = test_user.id
     booking.utc_hold_expiration = datetime.now(timezone.utc) - timedelta(minutes=1)
     db_session.commit()
 
-    slot = db_session.query(OctoAvailabilitySlot).filter_by(id=harden_setup["slot"].id).first()
+    slot = (
+        db_session.query(OctoAvailabilitySlot)
+        .filter_by(id=harden_setup["slot"].id)
+        .first()
+    )
     reconcile_slot_seats(db_session, slot)
     db_session.refresh(slot)
     assert slot.seats_available == 4
@@ -267,7 +296,9 @@ def test_reconfirm_rejected(
 
     c1 = client.post(f"/api/v1/octo/bookings/{booking_uuid}/confirm", headers=headers)
     assert c1.status_code == 200
-    trip = db_session.query(ParsedDiveTrip).filter_by(id=harden_setup["trip"].id).first()
+    trip = (
+        db_session.query(ParsedDiveTrip).filter_by(id=harden_setup["trip"].id).first()
+    )
     db_session.refresh(trip)
     bookings_after = trip.current_bookings
 
@@ -405,7 +436,9 @@ def test_claim_token_not_reusable_for_write(
     client: TestClient, harden_setup, monkeypatch
 ):
     monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEYS", Fernet.generate_key().decode())
-    res = client.post("/api/v1/octo/bookings", json=_hold_payload(harden_setup, seats=2))
+    res = client.post(
+        "/api/v1/octo/bookings", json=_hold_payload(harden_setup, seats=2)
+    )
     assert res.status_code == 201
     data = res.json()
     invites = data["claimInviteTokens"]
@@ -490,18 +523,26 @@ def test_gdpr_delete_revokes_center_approvals(
     db_session.add_all([booking, item, trip_med])
     db_session.commit()
 
-    resp = client.delete("/api/v1/bookings/medical/me", headers=_auth_headers(test_user))
+    resp = client.delete(
+        "/api/v1/bookings/medical/me", headers=_auth_headers(test_user)
+    )
     assert resp.status_code == 200
     body = resp.json()
     assert body["deleted"]["annualProfile"] is True
     assert body["deleted"]["centerApprovalsRevoked"] >= 1
     assert body["retained"]["tripMedicalRecords"] is True
-    assert db_session.query(UserMedicalProfile).filter_by(user_id=test_user.id).first() is None
     assert (
-        db_session.query(CenterDiverMedicalApproval).filter_by(id=approval_id).first() is None
+        db_session.query(UserMedicalProfile).filter_by(user_id=test_user.id).first()
+        is None
     )
     assert (
-        db_session.query(DiverMedicalRecord).filter_by(booking_unit_item_id=item.id).first()
+        db_session.query(CenterDiverMedicalApproval).filter_by(id=approval_id).first()
+        is None
+    )
+    assert (
+        db_session.query(DiverMedicalRecord)
+        .filter_by(booking_unit_item_id=item.id)
+        .first()
         is not None
     )
 
@@ -544,7 +585,11 @@ def test_hold_does_not_assign_user_by_unverified_email(
     payload["contact"]["email"] = test_user.email
     res = client.post("/api/v1/octo/bookings", json=payload)  # anonymous
     assert res.status_code == 201
-    booking = db_session.query(OctoBooking).filter(OctoBooking.uuid == res.json()["uuid"]).first()
+    booking = (
+        db_session.query(OctoBooking)
+        .filter(OctoBooking.uuid == res.json()["uuid"])
+        .first()
+    )
     assert booking.user_id is None
 
 
@@ -639,7 +684,9 @@ def test_claim_token_expires(
     client: TestClient, harden_setup, db_session: Session, monkeypatch
 ):
     monkeypatch.setenv("BOOKING_MEDICAL_MASTER_KEYS", Fernet.generate_key().decode())
-    res = client.post("/api/v1/octo/bookings", json=_hold_payload(harden_setup, seats=2))
+    res = client.post(
+        "/api/v1/octo/bookings", json=_hold_payload(harden_setup, seats=2)
+    )
     data = res.json()
     claim = data["claimInviteTokens"][0]
     item = (
@@ -670,7 +717,10 @@ def test_reconcile_uses_aware_utc(harden_setup, db_session: Session):
         option_id=harden_setup["option"].id,
         availability_id=slot.id,
         status="ON_HOLD",
-        utc_hold_expiration=datetime.utcnow() - timedelta(minutes=1),  # naive
+        # Intentional naive UTC for the naive-hold expiry path under test.
+        utc_hold_expiration=(
+            datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=1)
+        ),
         total_amount=80,
         currency="EUR",
     )

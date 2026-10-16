@@ -1,14 +1,29 @@
 import pytest
 from fastapi import status
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 import psutil
 
 from app.models import (
-    User, DiveSite, DivingCenter, Dive, SiteRating, CenterRating,
-    SiteComment, CenterComment, SiteMedia, DiveMedia, AvailableTag,
-    DivingOrganization, UserCertification, ParsedDiveTrip, Newsletter,
-    Notification, NotificationPreference, DiveRoute, AuthAuditLog
+    User,
+    DiveSite,
+    DivingCenter,
+    Dive,
+    SiteRating,
+    CenterRating,
+    SiteComment,
+    CenterComment,
+    SiteMedia,
+    DiveMedia,
+    AvailableTag,
+    DivingOrganization,
+    UserCertification,
+    ParsedDiveTrip,
+    Newsletter,
+    Notification,
+    NotificationPreference,
+    DiveRoute,
+    AuthAuditLog,
 )
 
 
@@ -17,36 +32,37 @@ class TestSystemHealth:
 
     def test_get_system_health_admin_success(self, client, admin_headers):
         """Test getting system health as admin."""
-        with patch('psutil.cpu_percent', return_value=35.0), \
-             patch('psutil.virtual_memory') as mock_memory, \
-             patch('psutil.disk_usage') as mock_disk:
-            
+        with (
+            patch("psutil.cpu_percent", return_value=35.0),
+            patch("psutil.virtual_memory") as mock_memory,
+            patch("psutil.disk_usage") as mock_disk,
+        ):
             mock_memory.return_value.percent = 55.0
             mock_memory.return_value.total = 16 * 1024**3  # 16 GB
             mock_memory.return_value.available = 8 * 1024**3  # 8 GB
-            
+
             mock_disk.return_value.percent = 65.0
             mock_disk.return_value.total = 500 * 1024**3  # 500 GB
             mock_disk.return_value.free = 200 * 1024**3  # 200 GB
-            
+
             response = client.get("/api/v1/admin/system/health", headers=admin_headers)
-            
+
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
-            
+
             assert "status" in data
             assert "database" in data
             assert "resources" in data
             assert "services" in data
             assert "timestamp" in data
-            
+
             # Check status (should be "healthy" with these moderate values)
             assert data["status"] == "healthy"
-            
+
             # Check database health
             assert data["database"]["healthy"] == True
             assert "response_time_ms" in data["database"]
-            
+
             # Check resources
             resources = data["resources"]
             assert resources["cpu"]["usage_percent"] == 35.0
@@ -70,18 +86,19 @@ class TestSystemHealth:
 
     def test_get_system_health_critical_status(self, client, admin_headers):
         """Test system health with critical status."""
-        with patch('psutil.cpu_percent', return_value=95.0), \
-             patch('psutil.virtual_memory') as mock_memory, \
-             patch('psutil.disk_usage') as mock_disk:
-            
+        with (
+            patch("psutil.cpu_percent", return_value=95.0),
+            patch("psutil.virtual_memory") as mock_memory,
+            patch("psutil.disk_usage") as mock_disk,
+        ):
             mock_memory.return_value.percent = 95.0
             mock_disk.return_value.percent = 95.0
-            
+
             response = client.get("/api/v1/admin/system/health", headers=admin_headers)
-            
+
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
-            
+
             # Should be critical with these high values
             assert data["status"] == "critical"
 
@@ -104,124 +121,124 @@ class TestPlatformStats:
             password_hash="hashed_password",
             enabled=True,
             is_admin=False,
-            is_moderator=False
+            is_moderator=False,
         )
         db_session.add(test_user)
         db_session.flush()  # Flush to get the ID
-        
+
         admin_user = User(
             username="adminuser_stats",
             email="admin_stats@example.com",
             password_hash="hashed_password",
             enabled=True,
             is_admin=True,
-            is_moderator=False
+            is_moderator=False,
         )
         db_session.add(admin_user)
         db_session.flush()  # Flush to get the ID
-        
+
         moderator_user = User(
             username="moduser_stats",
             email="mod_stats@example.com",
             password_hash="hashed_password",
             enabled=True,
             is_admin=False,
-            is_moderator=True
+            is_moderator=True,
         )
         db_session.add(moderator_user)
         db_session.flush()  # Flush to get the ID
-        
+
         disabled_user = User(
             username="disableduser_stats",
             email="disabled_stats@example.com",
             password_hash="hashed_password",
             enabled=False,
             is_admin=False,
-            is_moderator=False
+            is_moderator=False,
         )
         db_session.add(disabled_user)
         db_session.flush()  # Flush to get the ID
-        
+
         # Create content
         dive_site = DiveSite(name="Test Site")
         db_session.add(dive_site)
         db_session.flush()  # Flush to get the ID
-        
+
         diving_center = DivingCenter(name="Test Center")
         db_session.add(diving_center)
         db_session.flush()  # Flush to get the ID
-        
+
         dive = Dive(
             name="Test Dive",
             user_id=test_user.id,
-            dive_date=datetime.utcnow().date(),
-            difficulty_id=2  # ADVANCED_OPEN_WATER
+            dive_date=datetime.now(UTC).date(),
+            difficulty_id=2,  # ADVANCED_OPEN_WATER
         )
         db_session.add(dive)
         db_session.flush()  # Flush to get the ID
-        
+
         tag = AvailableTag(name="Test Tag")
         db_session.add(tag)
         db_session.flush()  # Flush to get the ID
-        
-        organization = db_session.query(DivingOrganization).filter_by(acronym="TO").first()
+
+        organization = (
+            db_session.query(DivingOrganization).filter_by(acronym="TO").first()
+        )
         if not organization:
             organization = DivingOrganization(name="Test Org", acronym="TO")
             db_session.add(organization)
             db_session.flush()  # Flush to get the ID
-        
+
         # Create media
         site_media = SiteMedia(
-            dive_site_id=dive_site.id,
-            media_type="photo",
-            url="/test/path.jpg"
+            dive_site_id=dive_site.id, media_type="photo", url="/test/path.jpg"
         )
         db_session.add(site_media)
         db_session.flush()  # Flush to get the ID
-        
+
         dive_media = DiveMedia(
-            dive_id=dive.id,
-            media_type="photo",
-            url="/test/dive.jpg"
+            dive_id=dive.id, media_type="photo", url="/test/dive.jpg"
         )
         db_session.add(dive_media)
         db_session.flush()  # Flush to get the ID
-        
+
         # Create trips
         trip = ParsedDiveTrip(
-            trip_date=datetime.utcnow().date(),
+            trip_date=datetime.now(UTC).date(),
             trip_currency="EUR",
-            trip_status="scheduled"
+            trip_status="scheduled",
         )
         db_session.add(trip)
         db_session.flush()  # Flush to get the ID
-        
+
         newsletter = Newsletter(content="Test newsletter")
         db_session.add(newsletter)
         db_session.flush()  # Flush to get the ID
-        
+
         db_session.commit()
 
         response = client.get("/api/v1/admin/system/stats", headers=admin_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert "users" in data
         assert "content" in data
         assert "media" in data
         assert "trips" in data
         assert "timestamp" in data
-        
+
         # Check user statistics
         users = data["users"]
         assert users["total"] == 5  # admin user from fixture + 4 users I created
-        assert users["enabled"] == 4  # admin user from fixture + 3 enabled users I created
+        assert (
+            users["enabled"] == 4
+        )  # admin user from fixture + 3 enabled users I created
         assert users["disabled"] == 1
         assert users["admins"] == 2  # admin user from fixture + 1 admin user I created
         assert users["moderators"] == 1
         assert users["regular"] == 2  # testuser and disableduser
-        
+
         # Check content statistics
         content = data["content"]
         assert content["dive_sites"] == 1
@@ -229,13 +246,13 @@ class TestPlatformStats:
         assert content["dives"] == 1
         assert content["tags"] == 1
         assert content["organizations"] >= 1
-        
+
         # Check media statistics
         media = data["media"]
         assert media["site_media"] == 1
         assert media["dive_media"] == 1
         assert media["total"] == 2
-        
+
         # Check trip statistics
         trips = data["trips"]
         assert trips["parsed_trips"] == 1
@@ -262,106 +279,107 @@ class TestRecentActivity:
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()  # Flush to get the ID
-        
+
         # Create content at different times
-        now = datetime.utcnow()
-        
-        dive_site = DiveSite(
-            name="Test Site",
-            created_at=now - timedelta(hours=2)
-        )
+        now = datetime.now(UTC)
+
+        dive_site = DiveSite(name="Test Site", created_at=now - timedelta(hours=2))
         db_session.add(dive_site)
         db_session.flush()  # Flush to get the ID
-        
+
         diving_center = DivingCenter(
-            name="Test Center",
-            created_at=now - timedelta(hours=4)
+            name="Test Center", created_at=now - timedelta(hours=4)
         )
         db_session.add(diving_center)
         db_session.flush()  # Flush to get the ID
-        
+
         dive = Dive(
             name="Test Dive",
             user_id=test_user.id,
-            dive_date=datetime.utcnow().date(),
+            dive_date=datetime.now(UTC).date(),
             difficulty_id=2,  # ADVANCED_OPEN_WATER
-            created_at=now - timedelta(hours=6)
+            created_at=now - timedelta(hours=6),
         )
         db_session.add(dive)
         db_session.flush()  # Flush to get the ID
-        
+
         comment = SiteComment(
             user_id=test_user.id,
             dive_site_id=dive_site.id,
             comment_text="Test comment",
-            created_at=now - timedelta(hours=8)
+            created_at=now - timedelta(hours=8),
         )
         db_session.add(comment)
         db_session.flush()  # Flush to get the ID
-        
+
         rating = SiteRating(
             user_id=test_user.id,
             dive_site_id=dive_site.id,
             score=8,
-            created_at=now - timedelta(hours=10)
+            created_at=now - timedelta(hours=10),
         )
         db_session.add(rating)
         db_session.flush()  # Flush to get the ID
-        
+
         db_session.commit()
 
         response = client.get("/api/v1/admin/system/activity", headers=admin_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert isinstance(data, list)
         assert len(data) > 0
-        
+
         # Check that activities are ordered by timestamp (most recent first)
         timestamps = [item["timestamp"] for item in data]
         assert timestamps == sorted(timestamps, reverse=True)
-        
+
         # Check activity types
         activity_types = [item["type"] for item in data]
         assert "content_creation" in activity_types
         assert "engagement" in activity_types
 
-    def test_get_recent_activity_with_custom_hours(self, client, admin_headers, db_session):
+    def test_get_recent_activity_with_custom_hours(
+        self, client, admin_headers, db_session
+    ):
         """Test getting recent activity with custom hours parameter."""
         # Create test user
         test_user = User(
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()  # Flush to get the ID
-        
+
         # Create content
         dive_site = DiveSite(
-            name="Test Site",
-            created_at=datetime.utcnow() - timedelta(hours=12)
+            name="Test Site", created_at=datetime.now(UTC) - timedelta(hours=12)
         )
         db_session.add(dive_site)
         db_session.flush()  # Flush to get the ID
-        
+
         db_session.commit()
 
         # Test with 48 hours
-        response = client.get("/api/v1/admin/system/activity?hours=48", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/activity?hours=48", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Should include the dive site created 12 hours ago
         assert len(data) > 0
-        site_activities = [item for item in data if item["action"] == "Dive site created"]
+        site_activities = [
+            item for item in data if item["action"] == "Dive site created"
+        ]
         assert len(site_activities) > 0
 
     def test_get_recent_activity_with_limit(self, client, admin_headers, db_session):
@@ -371,27 +389,28 @@ class TestRecentActivity:
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()  # Flush to get the ID
-        
+
         # Create multiple dive sites
         for i in range(5):
             dive_site = DiveSite(
-                name=f"Test Site {i}",
-                created_at=datetime.utcnow() - timedelta(hours=i)
+                name=f"Test Site {i}", created_at=datetime.now(UTC) - timedelta(hours=i)
             )
             db_session.add(dive_site)
-        
+
         db_session.commit()
 
         # Test with limit=3
-        response = client.get("/api/v1/admin/system/activity?limit=3", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/activity?limit=3", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Should be limited to 3 activities
         assert len(data) <= 3
 
@@ -412,17 +431,17 @@ class TestClientIPInfo:
     def test_get_client_ip_info_success(self, client):
         """Test getting client IP info."""
         response = client.get("/api/v1/admin/system/client-ip")
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert "detected_client_ip" in data
         assert "formatted_ip" in data
         assert "is_localhost" in data
         assert "headers" in data
         assert "connection" in data
         assert "timestamp" in data
-        
+
         # Should be localhost in test environment
         assert data["is_localhost"] == True
 
@@ -431,19 +450,19 @@ class TestClientIPInfo:
         headers = {
             "X-Real-IP": "192.168.1.100",
             "X-Forwarded-For": "10.0.0.1, 192.168.1.100",
-            "CF-Connecting-IP": "203.0.113.1"
+            "CF-Connecting-IP": "203.0.113.1",
         }
-        
+
         response = client.get("/api/v1/admin/system/client-ip", headers=headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Check that headers are captured
         assert "X-Real-IP" in data["headers"]
         assert "X-Forwarded-For" in data["headers"]
         assert "CF-Connecting-IP" in data["headers"]
-        
+
         assert data["headers"]["X-Real-IP"] == "192.168.1.100"
         assert data["headers"]["X-Forwarded-For"] == "10.0.0.1, 192.168.1.100"
         assert data["headers"]["CF-Connecting-IP"] == "203.0.113.1"
@@ -451,15 +470,15 @@ class TestClientIPInfo:
     def test_get_client_ip_info_connection_details(self, client):
         """Test getting client IP info with connection details."""
         response = client.get("/api/v1/admin/system/client-ip")
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         connection = data["connection"]
         assert "url" in connection
         assert "method" in connection
         assert "user_agent" in connection
-        
+
         assert connection["method"] == "GET"
         assert "client-ip" in connection["url"]
 
@@ -469,29 +488,30 @@ class TestSystemMetrics:
 
     def test_get_system_metrics_admin_success(self, client, admin_headers):
         """Test getting system metrics as admin."""
-        with patch('psutil.cpu_percent', return_value=30.0), \
-             patch('psutil.virtual_memory') as mock_memory, \
-             patch('psutil.disk_usage') as mock_disk:
-            
+        with (
+            patch("psutil.cpu_percent", return_value=30.0),
+            patch("psutil.virtual_memory") as mock_memory,
+            patch("psutil.disk_usage") as mock_disk,
+        ):
             mock_memory.return_value.percent = 50.0
             mock_memory.return_value.total = 16 * 1024**3  # 16 GB
             mock_memory.return_value.available = 8 * 1024**3  # 8 GB
-            
+
             mock_disk.return_value.percent = 60.0
             mock_disk.return_value.total = 500 * 1024**3  # 500 GB
             mock_disk.return_value.free = 200 * 1024**3  # 200 GB
-            
+
             response = client.get("/api/v1/admin/system/metrics", headers=admin_headers)
-            
+
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
-            
+
             assert "status" in data
             assert "database" in data
             assert "resources" in data
             assert "services" in data
             assert "timestamp" in data
-            
+
             # Check that it returns system health data
             assert data["status"] in ["healthy", "warning", "critical"]
             assert data["database"]["healthy"] == True
@@ -510,7 +530,9 @@ class TestSystemMetrics:
 class TestGeneralStatistics:
     """Test general statistics endpoint."""
 
-    def test_get_general_statistics_admin_success(self, client, admin_headers, db_session):
+    def test_get_general_statistics_admin_success(
+        self, client, admin_headers, db_session
+    ):
         """Test getting general statistics as admin."""
         # Create test data
         test_user = User(
@@ -518,63 +540,65 @@ class TestGeneralStatistics:
             email="test_stats@example.com",
             password_hash="hashed_password",
             enabled=True,
-            email_verified=True
+            email_verified=True,
         )
         db_session.add(test_user)
         db_session.flush()
-        
+
         dive_site = DiveSite(
             name="Test Site",
             country="USA",
-            created_at=datetime.now(timezone.utc) - timedelta(days=5)
+            created_at=datetime.now(timezone.utc) - timedelta(days=5),
         )
         db_session.add(dive_site)
         db_session.flush()
-        
+
         diving_center = DivingCenter(
             name="Test Center",
             country="USA",
-            created_at=datetime.now(timezone.utc) - timedelta(days=3)
+            created_at=datetime.now(timezone.utc) - timedelta(days=3),
         )
         db_session.add(diving_center)
         db_session.flush()
-        
+
         dive = Dive(
             name="Test Dive",
             user_id=test_user.id,
             dive_date=datetime.now(timezone.utc).date(),
             difficulty_id=2,
-            created_at=datetime.now(timezone.utc) - timedelta(days=2)
+            created_at=datetime.now(timezone.utc) - timedelta(days=2),
         )
         db_session.add(dive)
-        
+
         # Check for existing organization
-        organization = db_session.query(DivingOrganization).filter_by(acronym="PADI").first()
+        organization = (
+            db_session.query(DivingOrganization).filter_by(acronym="PADI").first()
+        )
         if not organization:
             organization = DivingOrganization(name="PADI", acronym="PADI")
             db_session.add(organization)
             db_session.flush()
-        
+
         certification = UserCertification(
             user_id=test_user.id,
             diving_organization_id=organization.id,
-            certification_level="Open Water"
+            certification_level="Open Water",
         )
         db_session.add(certification)
-        
+
         tag = AvailableTag(name="Test Tag")
         db_session.add(tag)
-        
+
         newsletter = Newsletter(content="Test newsletter")
         db_session.add(newsletter)
-        
+
         db_session.commit()
-        
+
         response = client.get("/api/v1/admin/system/statistics", headers=admin_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Check main sections
         assert "platform_stats" in data
         assert "moderation_stats" in data
@@ -582,13 +606,13 @@ class TestGeneralStatistics:
         assert "pending_ownership_requests" in data["moderation_stats"]
         assert "notification_analytics" in data
         assert "last_updated" in data
-        
+
         # Check platform_stats structure
         platform_stats = data["platform_stats"]
         assert "users" in platform_stats
         assert "content" in platform_stats
         assert "geographic" in platform_stats
-        
+
         # Check user statistics
         users = platform_stats["users"]
         assert "total" in users
@@ -600,17 +624,17 @@ class TestGeneralStatistics:
         assert "email_verified" in users
         assert "email_opted_out" in users
         assert "certifications" in users
-        
+
         # Check email_verified structure
         email_verified = users["email_verified"]
         assert "count" in email_verified
         assert "percentage" in email_verified
-        
+
         # Check certifications structure
         certifications = users["certifications"]
         assert "total" in certifications
         assert "by_organization" in certifications
-        
+
         # Check content statistics
         content = platform_stats["content"]
         assert content["dive_sites"] >= 1
@@ -618,7 +642,7 @@ class TestGeneralStatistics:
         assert content["dives"] >= 1
         assert "dive_routes" in content
         assert "dive_trips" in content
-        
+
         # Check geographic distribution
         geographic = platform_stats["geographic"]
         assert "dive_sites_by_country" in geographic
@@ -636,7 +660,9 @@ class TestGeneralStatistics:
 
     def test_get_moderation_pending_counts(self, client, admin_headers, db_session):
         """Test getting real-time moderation pending counts."""
-        response = client.get("/api/v1/admin/system/moderation-pending-counts", headers=admin_headers)
+        response = client.get(
+            "/api/v1/admin/system/moderation-pending-counts", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "pending_site_edits" in data
@@ -647,9 +673,13 @@ class TestGeneralStatistics:
         response = client.get("/api/v1/admin/system/moderation-pending-counts")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_get_moderation_pending_counts_regular_user_forbidden(self, client, auth_headers):
+    def test_get_moderation_pending_counts_regular_user_forbidden(
+        self, client, auth_headers
+    ):
         """Test getting moderation pending counts as regular user."""
-        response = client.get("/api/v1/admin/system/moderation-pending-counts", headers=auth_headers)
+        response = client.get(
+            "/api/v1/admin/system/moderation-pending-counts", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -660,69 +690,65 @@ class TestGrowthData:
         """Test getting growth data with default period (3months)."""
         # Create test data at different times
         now = datetime.now(timezone.utc)
-        
+
         # Create dive sites at different times
         for i in range(5):
-            site = DiveSite(
-                name=f"Site {i}",
-                created_at=now - timedelta(days=30 * i)
-            )
+            site = DiveSite(name=f"Site {i}", created_at=now - timedelta(days=30 * i))
             db_session.add(site)
-        
+
         # Create diving centers
         for i in range(3):
             center = DivingCenter(
-                name=f"Center {i}",
-                created_at=now - timedelta(days=20 * i)
+                name=f"Center {i}", created_at=now - timedelta(days=20 * i)
             )
             db_session.add(center)
-        
+
         # Create dives
         test_user = User(
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()
-        
+
         for i in range(4):
             dive = Dive(
                 name=f"Dive {i}",
                 user_id=test_user.id,
                 dive_date=(now - timedelta(days=15 * i)).date(),
                 difficulty_id=2,
-                created_at=now - timedelta(days=15 * i)
+                created_at=now - timedelta(days=15 * i),
             )
             db_session.add(dive)
-        
+
         db_session.commit()
-        
+
         response = client.get("/api/v1/admin/system/growth", headers=admin_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert "period" in data
         assert data["period"] == "3months"
         assert "growth_data" in data
         assert "growth_rates" in data
         assert "start_date" in data
         assert "end_date" in data
-        
+
         growth_data = data["growth_data"]
         assert "dive_sites" in growth_data
         assert "diving_centers" in growth_data
         assert "dives" in growth_data
         assert "dive_routes" in growth_data
         assert "dive_trips" in growth_data
-        
+
         # Check that data points have date and count
         assert len(growth_data["dive_sites"]) > 0
         assert "date" in growth_data["dive_sites"][0]
         assert "count" in growth_data["dive_sites"][0]
-        
+
         # Check growth rates
         growth_rates = data["growth_rates"]
         assert "dive_sites" in growth_rates
@@ -733,50 +759,60 @@ class TestGrowthData:
 
     def test_get_growth_data_week_period(self, client, admin_headers, db_session):
         """Test getting growth data with week period."""
-        response = client.get("/api/v1/admin/system/growth?period=week", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/growth?period=week", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert data["period"] == "week"
         assert len(data["growth_data"]["dive_sites"]) <= 8  # Should be daily for week
 
     def test_get_growth_data_month_period(self, client, admin_headers, db_session):
         """Test getting growth data with month period."""
-        response = client.get("/api/v1/admin/system/growth?period=month", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/growth?period=month", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert data["period"] == "month"
         assert len(data["growth_data"]["dive_sites"]) <= 31  # Should be daily for month
 
     def test_get_growth_data_6months_period(self, client, admin_headers, db_session):
         """Test getting growth data with 6months period."""
-        response = client.get("/api/v1/admin/system/growth?period=6months", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/growth?period=6months", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert data["period"] == "6months"
         # Should use weekly intervals for 6months
         assert len(data["growth_data"]["dive_sites"]) > 0
 
     def test_get_growth_data_year_period(self, client, admin_headers, db_session):
         """Test getting growth data with year period."""
-        response = client.get("/api/v1/admin/system/growth?period=year", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/growth?period=year", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert data["period"] == "year"
         # Should use weekly intervals for year
         assert len(data["growth_data"]["dive_sites"]) > 0
 
     def test_get_growth_data_invalid_period(self, client, admin_headers):
         """Test getting growth data with invalid period."""
-        response = client.get("/api/v1/admin/system/growth?period=invalid", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/growth?period=invalid", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_get_growth_data_unauthorized(self, client):
@@ -796,16 +832,16 @@ class TestGrowthData:
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()
-        
+
         # Create dive site for routes
         dive_site = DiveSite(name="Test Site")
         db_session.add(dive_site)
         db_session.flush()
-        
+
         # Create active route
         active_route = DiveRoute(
             name="Active Route",
@@ -813,10 +849,10 @@ class TestGrowthData:
             created_by=test_user.id,
             route_type="scuba",
             route_data={"type": "FeatureCollection", "features": []},
-            created_at=now - timedelta(days=10)
+            created_at=now - timedelta(days=10),
         )
         db_session.add(active_route)
-        
+
         # Create soft-deleted route (should not be counted)
         deleted_route = DiveRoute(
             name="Deleted Route",
@@ -825,17 +861,19 @@ class TestGrowthData:
             route_type="scuba",
             route_data={"type": "FeatureCollection", "features": []},
             created_at=now - timedelta(days=5),
-            deleted_at=now - timedelta(days=2)
+            deleted_at=now - timedelta(days=2),
         )
         db_session.add(deleted_route)
-        
+
         db_session.commit()
-        
-        response = client.get("/api/v1/admin/system/growth?period=month", headers=admin_headers)
-        
+
+        response = client.get(
+            "/api/v1/admin/system/growth?period=month", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Check that dive_routes data exists
         assert len(data["growth_data"]["dive_routes"]) > 0
         # Last data point should only count active routes
@@ -846,20 +884,22 @@ class TestGrowthData:
 class TestNotificationAnalytics:
     """Test notification analytics endpoint."""
 
-    def test_get_notification_analytics_admin_success(self, client, admin_headers, db_session):
+    def test_get_notification_analytics_admin_success(
+        self, client, admin_headers, db_session
+    ):
         """Test getting notification analytics as admin."""
         # Create test user
         test_user = User(
             username="testuser",
             email="test@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user)
         db_session.flush()
-        
+
         now = datetime.now(timezone.utc)
-        
+
         # Create notifications
         notification1 = Notification(
             user_id=test_user.id,
@@ -869,10 +909,10 @@ class TestNotificationAnalytics:
             is_read=True,
             email_sent=True,
             email_sent_at=now - timedelta(hours=2),
-            created_at=now - timedelta(hours=3)
+            created_at=now - timedelta(hours=3),
         )
         db_session.add(notification1)
-        
+
         notification2 = Notification(
             user_id=test_user.id,
             category="new_dive_sites",
@@ -880,10 +920,10 @@ class TestNotificationAnalytics:
             message="Another new dive site",
             is_read=False,
             email_sent=False,
-            created_at=now - timedelta(hours=1)
+            created_at=now - timedelta(hours=1),
         )
         db_session.add(notification2)
-        
+
         notification3 = Notification(
             user_id=test_user.id,
             category="new_dives",
@@ -892,24 +932,26 @@ class TestNotificationAnalytics:
             is_read=True,
             email_sent=True,
             email_sent_at=now - timedelta(days=2),
-            created_at=now - timedelta(days=2)
+            created_at=now - timedelta(days=2),
         )
         db_session.add(notification3)
-        
+
         db_session.commit()
-        
-        response = client.get("/api/v1/admin/system/notifications/analytics", headers=admin_headers)
-        
+
+        response = client.get(
+            "/api/v1/admin/system/notifications/analytics", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Check main sections
         assert "in_app" in data
         assert "email_delivery" in data
         assert "by_category" in data
         assert "time_stats" in data
         assert "timestamp" in data
-        
+
         # Check in-app statistics
         in_app = data["in_app"]
         assert "total" in in_app
@@ -919,7 +961,7 @@ class TestNotificationAnalytics:
         assert in_app["total"] >= 3
         assert in_app["read"] >= 2
         assert in_app["unread"] >= 1
-        
+
         # Check email delivery statistics
         email_delivery = data["email_delivery"]
         assert "total_sent" in email_delivery
@@ -927,13 +969,13 @@ class TestNotificationAnalytics:
         assert "queued_to_sqs" in email_delivery
         assert "delivery_rate" in email_delivery
         assert email_delivery["total_sent"] >= 2
-        
+
         # Check category breakdown
         assert len(data["by_category"]) > 0
         categories = {cat["category"]: cat for cat in data["by_category"]}
         assert "new_dive_sites" in categories
         assert "new_dives" in categories
-        
+
         # Check time stats
         time_stats = data["time_stats"]
         assert "last_24h" in time_stats
@@ -942,11 +984,13 @@ class TestNotificationAnalytics:
 
     def test_get_notification_analytics_empty(self, client, admin_headers):
         """Test getting notification analytics with no notifications."""
-        response = client.get("/api/v1/admin/system/notifications/analytics", headers=admin_headers)
-        
+        response = client.get(
+            "/api/v1/admin/system/notifications/analytics", headers=admin_headers
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert data["in_app"]["total"] == 0
         assert data["in_app"]["read"] == 0
         assert data["in_app"]["unread"] == 0
@@ -957,45 +1001,48 @@ class TestNotificationAnalytics:
         response = client.get("/api/v1/admin/system/notifications/analytics")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_get_notification_analytics_regular_user_forbidden(self, client, auth_headers):
+    def test_get_notification_analytics_regular_user_forbidden(
+        self, client, auth_headers
+    ):
         """Test getting notification analytics as regular user."""
-        response = client.get("/api/v1/admin/system/notifications/analytics", headers=auth_headers)
+        response = client.get(
+            "/api/v1/admin/system/notifications/analytics", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 class TestAuditLogs:
     """Test auth audit logs endpoint."""
 
-    def test_get_audit_logs_admin_success(self, client, admin_headers, db_session, test_user):
+    def test_get_audit_logs_admin_success(
+        self, client, admin_headers, db_session, test_user
+    ):
         """Test getting audit logs as admin."""
         # Create test logs
         log1 = AuthAuditLog(
-            user_id=test_user.id,
-            action="login",
-            ip_address="127.0.0.1",
-            success=True
+            user_id=test_user.id, action="login", ip_address="127.0.0.1", success=True
         )
         db_session.add(log1)
-        
+
         log2 = AuthAuditLog(
             user_id=test_user.id,
             action="password_reset_request",
             ip_address="127.0.0.1",
             success=False,
-            details="Blocked: Admin account"
+            details="Blocked: Admin account",
         )
         db_session.add(log2)
-        
+
         db_session.commit()
-        
+
         response = client.get("/api/v1/admin/system/audit-logs", headers=admin_headers)
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert isinstance(data, list)
         assert len(data) >= 2
-        
+
         # Check first log
         log = data[0]
         assert "timestamp" in log
@@ -1015,121 +1062,116 @@ class TestAuditLogs:
         response = client.get("/api/v1/admin/system/audit-logs", headers=auth_headers)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_get_audit_logs_with_exclusion(self, client, admin_headers, db_session, test_user):
+    def test_get_audit_logs_with_exclusion(
+        self, client, admin_headers, db_session, test_user
+    ):
         """Test getting audit logs with action exclusion."""
         # Create test logs with different actions
         log_login = AuthAuditLog(
-            user_id=test_user.id,
-            action="login",
-            ip_address="127.0.0.1",
-            success=True
+            user_id=test_user.id, action="login", ip_address="127.0.0.1", success=True
         )
         db_session.add(log_login)
-        
+
         log_token = AuthAuditLog(
             user_id=test_user.id,
             action="token_created",
             ip_address="127.0.0.1",
-            success=True
+            success=True,
         )
         db_session.add(log_token)
-        
+
         log_reset = AuthAuditLog(
             user_id=test_user.id,
             action="password_reset_request",
             ip_address="127.0.0.1",
-            success=True
+            success=True,
         )
         db_session.add(log_reset)
-        
+
         db_session.commit()
-        
+
         # Test excluding one action
         response = client.get(
-            "/api/v1/admin/system/audit-logs?exclude_action=token_created", 
-            headers=admin_headers
+            "/api/v1/admin/system/audit-logs?exclude_action=token_created",
+            headers=admin_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Should include login and reset, but not token_created
         actions = [log["action"] for log in data]
         assert "login" in actions
         assert "password_reset_request" in actions
         assert "token_created" not in actions
-        
+
         # Test excluding multiple actions
         response = client.get(
-            "/api/v1/admin/system/audit-logs?exclude_action=token_created&exclude_action=login", 
-            headers=admin_headers
+            "/api/v1/admin/system/audit-logs?exclude_action=token_created&exclude_action=login",
+            headers=admin_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         # Should only include reset
         actions = [log["action"] for log in data]
         assert "login" not in actions
         assert "password_reset_request" in actions
         assert "token_created" not in actions
 
-    def test_get_audit_logs_with_username_and_ip(self, client, admin_headers, db_session, test_user):
+    def test_get_audit_logs_with_username_and_ip(
+        self, client, admin_headers, db_session, test_user
+    ):
         """Test getting audit logs with username and IP filtering."""
         # Create test logs with different users and IPs
         log1 = AuthAuditLog(
-            user_id=test_user.id,
-            action="login",
-            ip_address="127.0.0.1",
-            success=True
+            user_id=test_user.id, action="login", ip_address="127.0.0.1", success=True
         )
         db_session.add(log1)
-        
+
         # Create another user for testing
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.flush()
-        
+
         log2 = AuthAuditLog(
             user_id=other_user.id,
             action="login",
             ip_address="192.168.1.1",
-            success=True
+            success=True,
         )
         db_session.add(log2)
-        
+
         db_session.commit()
-        
+
         # Test filtering by username (partial match)
         response = client.get(
-            f"/api/v1/admin/system/audit-logs?username=test", 
-            headers=admin_headers
+            f"/api/v1/admin/system/audit-logs?username=test", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert len(data) >= 1
         usernames = [log["username"] for log in data]
         assert test_user.username in usernames
         assert other_user.username not in usernames
-        
+
         # Test filtering by IP (partial match)
         response = client.get(
-            f"/api/v1/admin/system/audit-logs?ip_address=192.168", 
-            headers=admin_headers
+            f"/api/v1/admin/system/audit-logs?ip_address=192.168", headers=admin_headers
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         assert len(data) >= 1
         ips = [log["ip_address"] for log in data]
         assert "192.168.1.1" in ips
         assert "127.0.0.1" not in ips
-

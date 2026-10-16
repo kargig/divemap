@@ -100,7 +100,7 @@ jobs:
         cd backend
         source divemap_venv/bin/activate
         export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/divemap_test"
-        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.13/site-packages:$PYTHONPATH"
         alembic upgrade head
 
     - name: Run backend tests

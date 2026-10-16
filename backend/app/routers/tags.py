@@ -165,7 +165,7 @@ def add_tag_to_dive_site(
             requested_by_id=current_user.id,
             status=EditRequestStatus.pending,
             edit_type=EditRequestType.tag_addition,
-            proposed_data=tag_assignment.dict(),
+            proposed_data=tag_assignment.model_dump(),
         )
         db.add(edit_request)
         db.commit()

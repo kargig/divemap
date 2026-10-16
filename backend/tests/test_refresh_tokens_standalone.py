@@ -7,7 +7,7 @@ This file can be run independently without importing the main app
 import os
 import sys
 import pytest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock, patch
 
 # Set test environment variables before importing app modules
@@ -44,13 +44,16 @@ class TestTokenServiceStandalone:
         """Test access token creation"""
         data = {"sub": "testuser"}
         token = token_service.create_access_token(data)
-        
+
         assert token is not None
         assert isinstance(token, str)
-        
+
         # Verify token structure
         import jwt
-        decoded = jwt.decode(token, token_service.secret_key, algorithms=[token_service.algorithm])
+
+        decoded = jwt.decode(
+            token, token_service.secret_key, algorithms=[token_service.algorithm]
+        )
         assert decoded["sub"] == "testuser"
         assert decoded["type"] == "access"
         assert "exp" in decoded
@@ -63,16 +66,20 @@ class TestTokenServiceStandalone:
 
         # Verify token has expiration
         import jwt
-        decoded = jwt.decode(token, token_service.secret_key, algorithms=[token_service.algorithm])
+
+        decoded = jwt.decode(
+            token, token_service.secret_key, algorithms=[token_service.algorithm]
+        )
 
         assert "exp" in decoded
-        
+
         # The token expiration is in UTC timestamp, so we need to compare properly
         # Get the current UTC time and add the expiration duration
         from datetime import timezone
+
         expected_exp = datetime.now(timezone.utc) + token_service.access_token_expire
         actual_exp = datetime.fromtimestamp(decoded["exp"], tz=timezone.utc)
-        
+
         # Allow 5 second tolerance for test timing
         assert abs((expected_exp - actual_exp).total_seconds()) <= 5
 
@@ -91,7 +98,7 @@ class TestTokenServiceStandalone:
         assert token_service.secret_key in [
             "your-secret-key-change-in-production",
             "test-secret-key-for-ci",
-            "test-secret-key-for-testing-only"
+            "test-secret-key-for-testing-only",
         ]
         assert token_service.algorithm == "HS256"
         assert token_service.access_token_expire == timedelta(minutes=15)
@@ -108,11 +115,11 @@ class TestModelsStandalone:
             id="test_id",
             user_id=1,
             token_hash="test_hash",
-            expires_at=datetime.utcnow() + timedelta(days=30),
+            expires_at=datetime.now(UTC) + timedelta(days=30),
             device_info="Test Browser",
-            ip_address="127.0.0.1"
+            ip_address="127.0.0.1",
         )
-        
+
         assert mock_token.id == "test_id"
         assert mock_token.user_id == 1
         assert mock_token.token_hash == "test_hash"
@@ -130,9 +137,9 @@ class TestModelsStandalone:
             ip_address="127.0.0.1",
             user_agent="Test Browser",
             success=True,
-            details="Test details"
+            details="Test details",
         )
-        
+
         assert mock_log.user_id == 1
         assert mock_log.action == "test_action"
         assert mock_log.ip_address == "127.0.0.1"
@@ -153,7 +160,7 @@ class TestSecurityFeatures:
         assert token_service.secret_key in [
             "your-secret-key-change-in-production",
             "test-secret-key-for-ci",
-            "test-secret-key-for-testing-only"
+            "test-secret-key-for-testing-only",
         ]
 
     def test_algorithm_validation(self):
@@ -162,8 +169,12 @@ class TestSecurityFeatures:
 
     def test_token_expiration_validation(self):
         """Test that token expiration times are reasonable"""
-        assert token_service.access_token_expire <= timedelta(hours=1)  # Should be short
-        assert token_service.refresh_token_expire >= timedelta(days=1)  # Should be longer
+        assert token_service.access_token_expire <= timedelta(
+            hours=1
+        )  # Should be short
+        assert token_service.refresh_token_expire >= timedelta(
+            days=1
+        )  # Should be longer
 
     def test_session_limit_validation(self):
         """Test that session limits are reasonable"""
@@ -175,15 +186,10 @@ def run_standalone_tests():
     """Run the standalone tests"""
     print("🧪 Running Standalone Refresh Token Tests...")
     print("=" * 50)
-    
+
     # Run tests with pytest
-    result = pytest.main([
-        __file__,
-        "-v",
-        "--tb=short",
-        "--disable-warnings"
-    ])
-    
+    result = pytest.main([__file__, "-v", "--tb=short", "--disable-warnings"])
+
     if result == 0:
         print("\n✅ All standalone tests passed!")
         return True

@@ -3144,7 +3144,7 @@ async def add_dive_site_media(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = media.dict()
+        update_data = media.model_dump()
         edit_request = DiveSiteEditRequest(
             dive_site_id=dive_site_id,
             requested_by_id=current_user.id,
@@ -3203,7 +3203,7 @@ async def update_dive_site_media(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = media_update.dict(exclude_unset=True)
+        update_data = media_update.model_dump(exclude_unset=True)
         update_data["id"] = media_id
         edit_request = DiveSiteEditRequest(
             dive_site_id=dive_site_id,
@@ -3699,7 +3699,7 @@ async def update_dive_site(
         )
 
     if not is_trusted_contributor(db, current_user, dive_site):
-        update_data = dive_site_update.dict(exclude_unset=True)
+        update_data = dive_site_update.model_dump(exclude_unset=True)
         # Compute a strict diff against the current dive site
         diff_data = {}
 

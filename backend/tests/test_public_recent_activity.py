@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
+
 def test_get_public_recent_activity(client: TestClient):
     response = client.get("/api/v1/public/recent-activity")
     assert response.status_code == 200
@@ -19,24 +20,25 @@ def test_get_public_recent_activity(client: TestClient):
         assert "site_id" in item
         assert "site_name" in item
 
+
 def test_get_public_recent_activity_with_dive_trip(client: TestClient, db_session):
     from app.models import ParsedDiveTrip
-    from datetime import datetime
-    
+    from datetime import UTC, datetime
+
     # Ensure any pre-existing dive trips are cleaned up
     db_session.query(ParsedDiveTrip).delete()
     db_session.commit()
-    
+
     # Create a parsed dive trip
     trip = ParsedDiveTrip(
-        trip_date=datetime.utcnow().date(),
+        trip_date=datetime.now(UTC).date(),
         trip_currency="EUR",
         trip_status="scheduled",
-        created_at=datetime.utcnow()
+        created_at=datetime.now(UTC),
     )
     db_session.add(trip)
     db_session.commit()
-    
+
     response = client.get("/api/v1/public/recent-activity")
     assert response.status_code == 200
     data = response.json()
