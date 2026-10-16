@@ -5,14 +5,16 @@ set -e
 # and upload them to the GitHub Release wheelhouse.
 #
 # Usage:
-#   ./scripts/publish_wheel_release.sh [package_name] [version] [release_tag]
+#   ./scripts/publish_wheel_release.sh [package_name] [version] [release_tag] [python_version]
 #
 # Examples:
-#   ./scripts/publish_wheel_release.sh octo-deco 2.0.3 deps-v1
+#   ./scripts/publish_wheel_release.sh octo-deco 2.0.3 deps-v1 3.11
+#   ./scripts/publish_wheel_release.sh octo-deco 2.0.3 deps-v1 3.13
 
 PACKAGE="${1:-octo-deco}"
 VERSION="${2:-2.0.3}"
 TAG="${3:-deps-v1}"
+PYTHON_VERSION="${4:-3.13}"
 REPO="kargig/divemap"
 
 # Check if gh CLI is available and authenticated
@@ -21,10 +23,10 @@ if ! command -v gh &> /dev/null; then
     exit 1
 fi
 
-echo "🔨 Building Linux x86_64 wheel for ${PACKAGE}==${VERSION} in python:3.11-slim container..."
+echo "🔨 Building Linux x86_64 wheel for ${PACKAGE}==${VERSION} in python:${PYTHON_VERSION}-slim container..."
 TMP_DIR=$(mktemp -d)
 
-docker run --rm -v "${TMP_DIR}:/out" python:3.11-slim bash -c "apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null && pip wheel --no-deps ${PACKAGE}==${VERSION} -w /out"
+docker run --rm -v "${TMP_DIR}:/out" "python:${PYTHON_VERSION}-slim" bash -c "apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null && pip wheel --no-deps ${PACKAGE}==${VERSION} -w /out"
 
 WHEEL_FILE=$(ls "${TMP_DIR}"/"${PACKAGE//-/_}"-"${VERSION}"-*.whl 2>/dev/null | head -n 1)
 

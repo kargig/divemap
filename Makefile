@@ -77,7 +77,7 @@ test: test-backend test-frontend
 # Run backend tests
 test-backend:
 	@echo "🧪 Running backend tests..."
-	@cd backend && source divemap_venv/bin/activate && export PYTHONPATH="$$(pwd)/divemap_venv/lib/python3.11/site-packages:$$PYTHONPATH" && python -m pytest tests/ -v
+	@cd backend && source divemap_venv/bin/activate && export PYTHONPATH="$$(pwd)/divemap_venv/lib/python3.13/site-packages:$$PYTHONPATH" && python -m pytest tests/ -v
 	@echo "✅ Backend tests completed!"
 
 # Run frontend tests

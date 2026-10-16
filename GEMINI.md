@@ -59,7 +59,7 @@ Divemap is a comprehensive web application designed for scuba diving enthusiasts
 ### Prerequisites
 - Docker & Docker Compose
 - Node.js (for local frontend dev/testing)
-- Python 3.11+ (for local backend dev/testing)
+- Python 3.13+ (for local backend dev/testing)
 
 ### Running the Application (Local)
 To start the entire stack in development mode:

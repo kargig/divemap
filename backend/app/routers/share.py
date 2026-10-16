@@ -5,7 +5,7 @@ Handles sharing functionality for dives, dive sites, and dive routes.
 Provides shareable URLs and platform-specific share links.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from slowapi.util import get_remote_address
@@ -63,7 +63,7 @@ async def share_dive(
             "metadata": {
                 "entity_type": "dive",
                 "entity_id": dive_id,
-                "shared_at": datetime.utcnow().isoformat(),
+                "shared_at": datetime.now(UTC).isoformat(),
                 "shared_by": current_user.id if current_user else None,
             },
         }
@@ -144,7 +144,7 @@ async def share_dive_site(
             "metadata": {
                 "entity_type": "dive-site",
                 "entity_id": dive_site_id,
-                "shared_at": datetime.utcnow().isoformat(),
+                "shared_at": datetime.now(UTC).isoformat(),
                 "shared_by": current_user.id if current_user else None,
             },
         }
@@ -240,7 +240,7 @@ async def share_dive_route(
             "metadata": {
                 "entity_type": "route",
                 "entity_id": route_id,
-                "shared_at": datetime.utcnow().isoformat(),
+                "shared_at": datetime.now(UTC).isoformat(),
                 "shared_by": current_user.id if current_user else None,
             },
         }

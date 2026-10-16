@@ -673,9 +673,9 @@ async def get_system_health(
     db_healthy = True
     db_response_time = 0
     try:
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
         db.execute(text("SELECT 1"))
-        end_time = datetime.utcnow()
+        end_time = datetime.now(UTC)
         db_response_time = (
             end_time - start_time
         ).total_seconds() * 1000  # Convert to milliseconds
@@ -718,7 +718,7 @@ async def get_system_health(
             "api": "healthy",
             "frontend": "healthy",
         },
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -799,7 +799,7 @@ async def get_platform_stats(
             "total": total_site_media + total_dive_media,
         },
         "trips": {"parsed_trips": total_trips, "newsletters": total_newsletters},
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -813,7 +813,7 @@ def fetch_recent_activities(
 
     # Calculate time range
     if hours is not None:
-        end_time = datetime.utcnow()
+        end_time = datetime.now(UTC)
         start_time = end_time - timedelta(hours=hours)
     else:
         start_time = None
@@ -1305,7 +1305,7 @@ async def get_client_ip_info(request: Request):
         "is_localhost": real_client_ip in ["127.0.0.1", "::1", "localhost"],
         "headers": headers_info,
         "connection": connection_info,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
 
@@ -1327,7 +1327,7 @@ async def get_turnstile_statistics(
         stats = get_turnstile_stats(window)
 
         # Add additional context
-        stats["timestamp"] = datetime.utcnow().isoformat()
+        stats["timestamp"] = datetime.now(UTC).isoformat()
         stats["time_window_hours"] = time_window if time_window else None
         stats["monitoring_active"] = True
 

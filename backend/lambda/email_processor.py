@@ -24,7 +24,7 @@ try:
     WEB_PUSH_AVAILABLE = True
 except ImportError as e:
     WEB_PUSH_AVAILABLE = False
-    logger.error(f"pywebpush not available: {e}")
+    logger.warning(f"pywebpush not available: {e}")
 
 # AWS SDK imports
 try:

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import orjson
@@ -24,6 +24,7 @@ from app.models import (
     User,
     UserCertification,
 )
+from app.utils import normalize_datetime_to_utc
 
 router = APIRouter()
 
@@ -329,7 +330,7 @@ async def export_user_data(
         "comments": comments,
         "certifications": certifications,
         "owned_diving_centers": owned_diving_centers,
-        "export_timestamp": datetime.utcnow(),
+        "export_timestamp": datetime.now(UTC),
         "total_records": total_records,
     }
 
@@ -379,7 +380,7 @@ async def get_user_audit_log(
         )
 
     # Calculate date range
-    end_date = datetime.utcnow()
+    end_date = datetime.now(UTC)
     start_date = end_date - timedelta(days=days)
 
     # Build audit log entries from various user activities
@@ -559,8 +560,15 @@ async def get_user_audit_log(
 
     # Account access events (profile updates)
     # Note: We check if user was updated in the time period
-    if current_user.updated_at >= start_date and current_user.updated_at <= end_date:
-        if current_user.created_at != current_user.updated_at:
+    user_updated_at = normalize_datetime_to_utc(current_user.updated_at)
+    user_created_at = normalize_datetime_to_utc(current_user.created_at)
+
+    if (
+        user_updated_at
+        and user_updated_at >= start_date
+        and user_updated_at <= end_date
+    ):
+        if user_created_at != user_updated_at:
             audit_entries.append(
                 AuditLogEntry(
                     timestamp=current_user.updated_at,
@@ -572,7 +580,11 @@ async def get_user_audit_log(
             )
 
     # Add account creation if within period
-    if current_user.created_at >= start_date and current_user.created_at <= end_date:
+    if (
+        user_created_at
+        and user_created_at >= start_date
+        and user_created_at <= end_date
+    ):
         audit_entries.append(
             AuditLogEntry(
                 timestamp=current_user.created_at,
@@ -600,5 +612,5 @@ async def get_user_audit_log(
         total_entries=total_entries,
         period_start=start_date,
         period_end=end_date,
-        export_timestamp=datetime.utcnow().isoformat(),
+        export_timestamp=datetime.now(UTC).isoformat(),
     )

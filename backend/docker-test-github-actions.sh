@@ -104,7 +104,7 @@ BASE_IMAGE_EXISTS=$(docker images -q divemap-test-base 2> /dev/null)
 # Dockerfile with multi-stage build
 cat > Dockerfile.test << 'EOF'
 # Stage 1: Base with OS packages and dependencies pre-installed in venv
-FROM python:3.11-slim AS base
+FROM python:3.13-slim AS base
 RUN apt-get update && apt-get install -y \
     pkg-config \
     netcat-openbsd \
@@ -116,7 +116,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.10.2 /uv /uvx /bin/
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 COPY pyproject.toml uv.lock ./
 # Create venv and install dependencies here so it's cached in the base image
-RUN uv venv /app/divemap_venv --python python3.11
+RUN uv venv /app/divemap_venv --python python3.13
 ENV VIRTUAL_ENV=/app/divemap_venv PATH="/app/divemap_venv/bin:$PATH"
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --active --frozen --no-install-project
@@ -153,9 +153,9 @@ run_internal() {
 }
 # Use the pre-built venv from the image
 source /app/divemap_venv/bin/activate
-export PYTHONPATH="/app/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+export PYTHONPATH="/app/divemap_venv/lib/python3.13/site-packages:$PYTHONPATH"
 timeout=30; counter=0
-until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
+until mysql --skip-ssl-verify-server-cert -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2>&1; do
     if [ $counter -ge $timeout ]; then
         echo "💥 ERROR: MySQL did not become ready in container_test.sh within $timeout seconds"
         exit 1
@@ -163,7 +163,7 @@ until mysql -h divemap-test-mysql -u root -ppassword -e 'SELECT 1;' >/dev/null 2
     sleep 1
     counter=$((counter + 1))
 done
-run_internal mysql -h divemap-test-mysql -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
+run_internal mysql --skip-ssl-verify-server-cert -h divemap-test-mysql -u root -ppassword -e 'CREATE DATABASE IF NOT EXISTS divemap_test;'
 run_internal alembic upgrade head
 echo "Running tests..."
 EOF

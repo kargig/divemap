@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class PATBase(BaseModel):
@@ -21,6 +21,8 @@ class PATCreate(PATBase):
 
 
 class PATResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     expires_at: datetime | None
@@ -28,9 +30,6 @@ class PATResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class PATCreateResponse(PATResponse):

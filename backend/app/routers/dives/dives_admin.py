@@ -12,7 +12,7 @@ All functions in this module require admin authentication and provide
 full access to all dives regardless of ownership.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import orjson
 from fastapi import Depends, HTTPException, Query, status
@@ -723,7 +723,7 @@ def update_dive_admin(
             if current_tag.tag_id not in dive_update.tags:
                 db.delete(current_tag)
 
-    dive.updated_at = datetime.utcnow()
+    dive.updated_at = datetime.now(UTC)
     db.commit()
     db.refresh(dive)
 

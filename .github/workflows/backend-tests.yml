@@ -60,6 +60,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
       with:
         version: "0.10.2"
+        python-version: "3.13"
         enable-cache: true
         cache-dependency-glob: "backend/uv.lock"
 
@@ -74,7 +75,7 @@ jobs:
       run: |
         cd backend
         source divemap_venv/bin/activate
-        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.11/site-packages:$PYTHONPATH"
+        export PYTHONPATH="/home/runner/work/divemap/divemap/backend/divemap_venv/lib/python3.13/site-packages:$PYTHONPATH"
         echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
         echo "DATABASE_URL=mysql+pymysql://root:password@localhost:3306/divemap_test" >> $GITHUB_ENV
         echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV

@@ -7,6 +7,7 @@ Automatically detects AWS credentials and falls back gracefully when unavailable
 
 import logging
 import os
+from itertools import batched
 from typing import Any
 
 import orjson
@@ -149,9 +150,7 @@ class SQSService:
         batch_size = 10
         success_count = 0
 
-        for i in range(0, len(tasks), batch_size):
-            batch = tasks[i : i + batch_size]
-
+        for batch_idx, batch in enumerate(batched(tasks, batch_size, strict=False)):
             try:
                 entries = []
                 for idx, task in enumerate(batch):
@@ -169,7 +168,7 @@ class SQSService:
 
                     entries.append(
                         {
-                            "Id": str(i + idx),
+                            "Id": str(batch_idx * batch_size + idx),
                             "MessageBody": orjson.dumps(message_body).decode("utf-8"),
                             "DelaySeconds": min(delay_seconds, 900),
                         }
@@ -249,8 +248,7 @@ class SQSService:
         batch_size = 10
         success_count = 0
 
-        for i in range(0, len(tasks), batch_size):
-            batch = tasks[i : i + batch_size]
+        for batch_idx, batch in enumerate(batched(tasks, batch_size, strict=False)):
             try:
                 entries = []
                 for idx, task in enumerate(batch):
@@ -264,7 +262,7 @@ class SQSService:
                     }
                     entries.append(
                         {
-                            "Id": str(i + idx),
+                            "Id": str(batch_idx * batch_size + idx),
                             "MessageBody": orjson.dumps(message_body).decode("utf-8"),
                             "DelaySeconds": min(delay_seconds, 900),
                         }
