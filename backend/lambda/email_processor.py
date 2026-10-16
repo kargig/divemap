@@ -7,12 +7,12 @@ Triggered by SQS events, sends emails via AWS SES and push via Web Push.
 """
 
 import json
-import os
 import logging
-from typing import Dict, Any, Optional
-import urllib.request
+import os
 import urllib.error
 import urllib.parse
+import urllib.request
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger()
@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 
 # Web Push imports (Must be imported before sys.path manipulation)
 try:
-    from pywebpush import webpush, WebPushException
+    from pywebpush import WebPushException, webpush
     WEB_PUSH_AVAILABLE = True
 except ImportError as e:
     WEB_PUSH_AVAILABLE = False
@@ -29,7 +29,7 @@ except ImportError as e:
 # AWS SDK imports
 try:
     import boto3
-    from botocore.exceptions import ClientError
+    from botocore.exceptions import ClientError  # noqa: F401
     BOTO3_AVAILABLE = True
 except ImportError:
     BOTO3_AVAILABLE = False
@@ -47,7 +47,7 @@ except Exception as e:
     EMAIL_SERVICE_AVAILABLE = False
 
 
-def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Optional[Dict]:
+def call_backend_api(endpoint: str, method: str = "GET", data: dict | None = None) -> dict | None:
     """
     Call backend API endpoint.
     
@@ -110,7 +110,7 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
         error_body = None
         try:
             error_body = e.read().decode('utf-8')
-        except:
+        except Exception:
             pass
         
         logger.error(f"HTTP error calling backend API {url}: {e.code} - {e.reason}")
@@ -142,9 +142,9 @@ def call_backend_api(endpoint: str, method: str = "GET", data: Optional[Dict] = 
 def process_email_notification(
     notification_id: int,
     user_email: str,
-    notification_data: Dict[str, Any],
-    user_id: Optional[int] = None,
-    unsubscribe_token: Optional[str] = None
+    notification_data: dict[str, Any],
+    user_id: int | None = None,
+    unsubscribe_token: str | None = None
 ) -> bool:
     """
     Process a single email notification task.
@@ -262,7 +262,7 @@ def process_push_notification(
     endpoint: str,
     p256dh: str,
     auth: str,
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 ) -> bool:
     """
     Process a single web push notification task.
@@ -449,7 +449,7 @@ def process_broadcast_relay(
     return True
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda handler for SQS notification processing.
     

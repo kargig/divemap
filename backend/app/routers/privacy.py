@@ -29,7 +29,7 @@ from app.utils import normalize_datetime_to_utc
 router = APIRouter()
 
 # Privacy data export schemas
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class UserDataExport(BaseModel):
@@ -55,6 +55,13 @@ class AuditLogEntry(BaseModel):
     details: dict[str, Any]
     ip_address: str | None = None
     user_agent: str | None = None
+
+    @field_validator("timestamp", mode="before")
+    @classmethod
+    def ensure_utc(cls, v: Any) -> datetime | None:
+        if isinstance(v, datetime):
+            return normalize_datetime_to_utc(v)
+        return v
 
 
 class AuditLogResponse(BaseModel):
@@ -571,7 +578,7 @@ async def get_user_audit_log(
         if user_created_at != user_updated_at:
             audit_entries.append(
                 AuditLogEntry(
-                    timestamp=current_user.updated_at,
+                    timestamp=user_updated_at,
                     action="UPDATE",
                     resource_type="user_profile",
                     resource_id=current_user.id,
@@ -587,7 +594,7 @@ async def get_user_audit_log(
     ):
         audit_entries.append(
             AuditLogEntry(
-                timestamp=current_user.created_at,
+                timestamp=user_created_at,
                 action="CREATE",
                 resource_type="user_account",
                 resource_id=current_user.id,
