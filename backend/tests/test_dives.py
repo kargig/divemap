@@ -1,22 +1,25 @@
+from datetime import date, datetime
+from decimal import Decimal
+from unittest.mock import MagicMock, patch
+
 import pytest
 from fastapi import status
-from datetime import datetime, date
-from decimal import Decimal
-from unittest.mock import patch, MagicMock
 
-from app.models import Dive, DiveSite, DiveMedia, DiveTag, AvailableTag, DifficultyLevel
+from app.models import AvailableTag, DifficultyLevel, Dive, DiveMedia, DiveSite, DiveTag
 from app.utils import (
+    UNIFIED_TYPO_TOLERANCE,
     calculate_unified_phrase_aware_score,
     classify_match_type,
     get_unified_fuzzy_trigger_conditions,
-    UNIFIED_TYPO_TOLERANCE
 )
 
 
 class TestDives:
     """Test dives endpoints."""
 
-    def test_create_dive_with_automatic_name(self, client, auth_headers, test_dive_site):
+    def test_create_dive_with_automatic_name(
+        self, client, auth_headers, test_dive_site
+    ):
         """Test creating a dive with automatic name generation."""
         dive_data = {
             "dive_site_id": test_dive_site.id,
@@ -25,9 +28,9 @@ class TestDives:
             "max_depth": 18.5,
             "average_depth": 12.0,
             "duration": 45,
-            "visibility_rating": 8,
-            "user_rating": 9,
-            "is_private": False
+            "visibility_rating": 4,
+            "user_rating": 5,
+            "is_private": False,
         }
 
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
@@ -49,9 +52,9 @@ class TestDives:
             "max_depth": 18.5,
             "average_depth": 12.0,
             "duration": 45,
-            "visibility_rating": 8,
-            "user_rating": 9,
-            "is_private": True
+            "visibility_rating": 4,
+            "user_rating": 5,
+            "is_private": True,
         }
 
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
@@ -61,11 +64,17 @@ class TestDives:
         assert data["name"] == "My Custom Dive Name"
         assert data["is_private"] == True
 
-    def test_get_own_dives(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_own_dives(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test getting user's own dives."""
         # Create a dive for the test user
         # Get ADVANCED_OPEN_WATER difficulty (id=2)
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
@@ -77,11 +86,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -94,21 +103,28 @@ class TestDives:
         assert len(data["items"]) == 1
         assert data["items"][0]["user_username"] == test_user.username
 
-    def test_get_public_dives_from_other_user(self, client, auth_headers, db_session, test_dive_site):
+    def test_get_public_dives_from_other_user(
+        self, client, auth_headers, db_session, test_dive_site
+    ):
         """Test getting public dives from another user."""
         # Create another user
         from app.models import User
+
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.commit()
 
         # Create a public dive by the other user
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         other_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -117,7 +133,7 @@ class TestDives:
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
             duration=45,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(other_dive)
         db_session.commit()
@@ -130,15 +146,18 @@ class TestDives:
         assert len(data["items"]) == 1
         assert data["items"][0]["user_username"] == other_user.username
 
-    def test_cannot_access_private_dive_from_other_user(self, client, auth_headers, db_session, test_dive_site):
+    def test_cannot_access_private_dive_from_other_user(
+        self, client, auth_headers, db_session, test_dive_site
+    ):
         """Test that users cannot access private dives from other users."""
         # Create another user
         from app.models import User
+
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.commit()
@@ -151,7 +170,7 @@ class TestDives:
             is_private=True,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(private_dive)
         db_session.commit()
@@ -163,10 +182,16 @@ class TestDives:
         assert data["total"] == 0
         assert len(data["items"]) == 0  # Should not see the private dive
 
-    def test_get_dive_details(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dive_details(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test getting detailed dive information."""
         # Get ADVANCED_OPEN_WATER difficulty
-        difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty_advanced_open_water = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -178,12 +203,14 @@ class TestDives:
             average_depth=Decimal("12.0"),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
-            visibility_rating=8,
-            user_rating=9,
+            difficulty_id=difficulty_advanced_open_water.id
+            if difficulty_advanced_open_water
+            else 2,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -200,7 +227,9 @@ class TestDives:
         assert data["dive_site"]["latitude"] == float(test_dive_site.latitude)
         assert data["dive_site"]["longitude"] == float(test_dive_site.longitude)
 
-    def test_update_dive_name(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_update_dive_name(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test updating dive name."""
         # Create a dive
         dive = Dive(
@@ -210,25 +239,27 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
-        update_data = {
-            "name": "Updated Dive Name"
-        }
+        update_data = {"name": "Updated Dive Name"}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
         assert data["name"] == "Updated Dive Name"
 
-    def test_update_dive_moderator_cannot_edit_other_user_dive(self, client, moderator_headers, db_session, test_user, test_dive_site):
+    def test_update_dive_moderator_cannot_edit_other_user_dive(
+        self, client, moderator_headers, db_session, test_user, test_dive_site
+    ):
         """Test that moderators cannot edit private logs belonging to other users."""
         from app.models import Dive
-        
+
         # Create a dive for test_user
         dive = Dive(
             user_id=test_user.id,
@@ -237,19 +268,23 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
-        update_data = {
-            "name": "Mod Tried To Edit"
-        }
+        update_data = {"name": "Mod Tried To Edit"}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=moderator_headers)
-        assert response.status_code == status.HTTP_404_NOT_FOUND  # Securely hidden/rejected
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=moderator_headers
+        )
+        assert (
+            response.status_code == status.HTTP_404_NOT_FOUND
+        )  # Securely hidden/rejected
 
-    def test_update_dive_privacy(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_update_dive_privacy(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test updating dive privacy setting."""
         # Create a dive
         dive = Dive(
@@ -259,25 +294,31 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
-        update_data = {
-            "is_private": True
-        }
+        update_data = {"is_private": True}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
         assert data["is_private"] == True
 
-    def test_filter_dives_by_user(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_filter_dives_by_user(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test filtering dives by user ID."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -287,12 +328,14 @@ class TestDives:
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
             duration=45,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(dive)
         db_session.commit()
 
-        response = client.get(f"/api/v1/dives/?user_id={test_user.id}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dives/?user_id={test_user.id}", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -300,10 +343,16 @@ class TestDives:
         assert len(data["items"]) == 1
         assert data["items"][0]["id"] == dive.id
 
-    def test_filter_dives_by_date_range(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_filter_dives_by_date_range(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test filtering dives by date range."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -313,12 +362,15 @@ class TestDives:
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
             duration=45,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(dive)
         db_session.commit()
 
-        response = client.get("/api/v1/dives/?start_date=2025-01-01&end_date=2025-01-31", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?start_date=2025-01-01&end_date=2025-01-31",
+            headers=auth_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -326,10 +378,16 @@ class TestDives:
         assert len(data["items"]) == 1
         assert data["items"][0]["id"] == dive.id
 
-    def test_filter_dives_by_depth(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_filter_dives_by_depth(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test filtering dives by depth range."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -340,12 +398,14 @@ class TestDives:
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
             duration=45,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(dive)
         db_session.commit()
 
-        response = client.get("/api/v1/dives/?min_depth=10&max_depth=20", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?min_depth=10&max_depth=20", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -353,7 +413,9 @@ class TestDives:
         assert len(data["items"]) == 1
         assert data["items"][0]["id"] == dive.id
 
-    def test_delete_dive(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_delete_dive(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test deleting a dive."""
         # Create a dive
         dive = Dive(
@@ -363,7 +425,7 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -375,15 +437,18 @@ class TestDives:
         response = client.get(f"/api/v1/dives/{dive.id}", headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_cannot_delete_other_users_dive(self, client, auth_headers, db_session, test_dive_site):
+    def test_cannot_delete_other_users_dive(
+        self, client, auth_headers, db_session, test_dive_site
+    ):
         """Test that users cannot delete dives from other users."""
         # Create another user
         from app.models import User
+
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.commit()
@@ -396,21 +461,30 @@ class TestDives:
             is_private=False,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(other_dive)
         db_session.commit()
 
         response = client.delete(f"/api/v1/dives/{other_dive.id}", headers=auth_headers)
-        assert response.status_code == status.HTTP_404_NOT_FOUND  # Should not find the dive since it's not owned by test_user
+        assert (
+            response.status_code == status.HTTP_404_NOT_FOUND
+        )  # Should not find the dive since it's not owned by test_user
 
-    def test_filter_dives_by_dive_site_name(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_filter_dives_by_dive_site_name(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test filtering dives by dive site name."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
-        
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
+
         # Create another dive site with a different name
         from app.models import DiveSite
+
         other_dive_site = DiveSite(
             name="Another Test Site",
             description="Another test dive site",
@@ -418,7 +492,7 @@ class TestDives:
             longitude=Decimal("-80.1918"),
             country="USA",
             region="Florida",
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(other_dive_site)
         db_session.commit()
@@ -432,7 +506,7 @@ class TestDives:
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
             duration=45,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(dive1)
 
@@ -445,21 +519,27 @@ class TestDives:
             dive_date=date(2025, 1, 16),
             dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
             duration=50,
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         db_session.add(dive2)
         db_session.commit()
 
         # Test filtering by dive site name (partial match)
-        response = client.get(f"/api/v1/dives/?dive_site_name=Test", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?dive_site_name=Test", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        assert data["total"] == 2  # Both dives should match since both dive sites contain "Test"
+        assert (
+            data["total"] == 2
+        )  # Both dives should match since both dive sites contain "Test"
         assert len(data["items"]) == 2
 
         # Test filtering by specific dive site name
-        response = client.get(f"/api/v1/dives/?dive_site_name={test_dive_site.name}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dives/?dive_site_name={test_dive_site.name}", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -468,28 +548,37 @@ class TestDives:
         assert data["items"][0]["dive_site_id"] == test_dive_site.id
 
         # Test filtering by non-matching dive site name
-        response = client.get("/api/v1/dives/?dive_site_name=NonExistent", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?dive_site_name=NonExistent", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
         assert data["total"] == 0
         assert len(data["items"]) == 0  # No dives should match
 
-    def test_unauthenticated_user_can_access_public_dives(self, client, db_session, test_dive_site):
+    def test_unauthenticated_user_can_access_public_dives(
+        self, client, db_session, test_dive_site
+    ):
         """Test that unauthenticated users can access public dives."""
         # Create another user
         from app.models import User
+
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.commit()
 
         # Create a public dive by the other user
-        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty_aow = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         public_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -501,16 +590,20 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty_aow.id if difficulty_aow else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(public_dive)
 
         # Create a private dive by the other user
-        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+        difficulty_deep = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "DEEP_NITROX")
+            .first()
+        )
         private_dive = Dive(
             user_id=other_user.id,
             dive_site_id=test_dive_site.id,
@@ -522,11 +615,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="dry_suit",
             difficulty_id=difficulty_deep.id if difficulty_deep else 3,
-            visibility_rating=7,
-            user_rating=8,
+            visibility_rating=3,
+            user_rating=4,
             dive_date=date(2025, 1, 16),
             dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
-            duration=50
+            duration=50,
         )
         db_session.add(private_dive)
         db_session.commit()
@@ -575,7 +668,9 @@ class TestDives:
 
     # ===== DIVE CENTER FUNCTIONALITY TESTS =====
 
-    def test_create_dive_with_diving_center(self, client, auth_headers, test_dive_site, test_diving_center):
+    def test_create_dive_with_diving_center(
+        self, client, auth_headers, test_dive_site, test_diving_center
+    ):
         """Test creating a dive with diving center association."""
         dive_data = {
             "dive_site_id": test_dive_site.id,
@@ -585,9 +680,9 @@ class TestDives:
             "max_depth": 18.5,
             "average_depth": 12.0,
             "duration": 45,
-            "visibility_rating": 8,
-            "user_rating": 9,
-            "is_private": False
+            "visibility_rating": 4,
+            "user_rating": 5,
+            "is_private": False,
         }
 
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
@@ -605,7 +700,9 @@ class TestDives:
         assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
         assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
 
-    def test_create_dive_with_invalid_diving_center(self, client, auth_headers, test_dive_site):
+    def test_create_dive_with_invalid_diving_center(
+        self, client, auth_headers, test_dive_site
+    ):
         """Test creating a dive with non-existent diving center."""
         dive_data = {
             "dive_site_id": test_dive_site.id,
@@ -615,19 +712,31 @@ class TestDives:
             "max_depth": 18.5,
             "average_depth": 12.0,
             "duration": 45,
-            "visibility_rating": 8,
-            "user_rating": 9,
-            "is_private": False
+            "visibility_rating": 4,
+            "user_rating": 5,
+            "is_private": False,
         }
 
         response = client.post("/api/v1/dives/", json=dive_data, headers=auth_headers)
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving center not found" in response.json()["detail"]
 
-    def test_get_dive_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_get_dive_with_diving_center(
+        self,
+        client,
+        auth_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test getting a dive that has diving center information."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -641,11 +750,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -665,10 +774,16 @@ class TestDives:
         assert data["diving_center"]["latitude"] == float(test_diving_center.latitude)
         assert data["diving_center"]["longitude"] == float(test_diving_center.longitude)
 
-    def test_get_dive_without_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dive_without_diving_center(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test getting a dive that has no diving center association."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive without diving center
         dive = Dive(
             user_id=test_user.id,
@@ -682,11 +797,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -698,10 +813,22 @@ class TestDives:
         assert data["diving_center_id"] is None
         assert data["diving_center"] is None
 
-    def test_update_dive_add_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_update_dive_add_diving_center(
+        self,
+        client,
+        auth_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test updating a dive to add diving center association."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive without diving center
         dive = Dive(
             user_id=test_user.id,
@@ -715,21 +842,21 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Update dive to add diving center
-        update_data = {
-            "diving_center_id": test_diving_center.id
-        }
+        update_data = {"diving_center_id": test_diving_center.id}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -738,12 +865,25 @@ class TestDives:
         assert data["diving_center"]["id"] == test_diving_center.id
         assert data["diving_center"]["name"] == test_diving_center.name
 
-    def test_update_dive_change_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_update_dive_change_diving_center(
+        self,
+        client,
+        auth_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test updating a dive to change diving center association."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create another diving center
         from app.models import DivingCenter
+
         other_diving_center = DivingCenter(
             name="Other Diving Center",
             description="Another test diving center",
@@ -751,7 +891,7 @@ class TestDives:
             phone="+1987654321",
             website="www.otherdivingcenter.com",
             latitude=20.0,
-            longitude=30.0
+            longitude=30.0,
         )
         db_session.add(other_diving_center)
         db_session.commit()
@@ -769,21 +909,21 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Update dive to change diving center
-        update_data = {
-            "diving_center_id": other_diving_center.id
-        }
+        update_data = {"diving_center_id": other_diving_center.id}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -792,10 +932,22 @@ class TestDives:
         assert data["diving_center"]["id"] == other_diving_center.id
         assert data["diving_center"]["name"] == other_diving_center.name
 
-    def test_update_dive_remove_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_update_dive_remove_diving_center(
+        self,
+        client,
+        auth_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test updating a dive to remove diving center association."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -809,31 +961,37 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Update dive to remove diving center
-        update_data = {
-            "diving_center_id": None
-        }
+        update_data = {"diving_center_id": None}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
         assert data["diving_center_id"] is None
         assert data["diving_center"] is None
 
-    def test_update_dive_with_invalid_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_update_dive_with_invalid_diving_center(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test updating a dive with non-existent diving center."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -847,29 +1005,45 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Try to update with non-existent diving center
-        update_data = {
-            "diving_center_id": 99999
-        }
+        update_data = {"diving_center_id": 99999}
 
-        response = client.put(f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dives/{dive.id}", json=update_data, headers=auth_headers
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving center not found" in response.json()["detail"]
 
-    def test_list_dives_with_diving_center(self, client, auth_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_list_dives_with_diving_center(
+        self,
+        client,
+        auth_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test listing dives that include diving center information."""
         # Get difficulty IDs
-        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
-        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+        difficulty_aow = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
+        difficulty_deep = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "DEEP_NITROX")
+            .first()
+        )
         # Create dives with and without diving center
         dive_with_center = Dive(
             user_id=test_user.id,
@@ -883,11 +1057,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty_aow.id if difficulty_aow else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive_with_center)
 
@@ -903,11 +1077,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="dry_suit",
             difficulty_id=difficulty_deep.id if difficulty_deep else 3,
-            visibility_rating=7,
-            user_rating=8,
+            visibility_rating=3,
+            user_rating=4,
             dive_date=date(2025, 1, 16),
             dive_time=datetime.strptime("11:30:00", "%H:%M:%S").time(),
-            duration=50
+            duration=50,
         )
         db_session.add(dive_without_center)
         db_session.commit()
@@ -920,23 +1094,45 @@ class TestDives:
         assert len(data["items"]) == 2
 
         # Check dive with center
-        dive_with_center_data = next(d for d in data["items"] if d["name"] == "Dive with Center")
+        dive_with_center_data = next(
+            d for d in data["items"] if d["name"] == "Dive with Center"
+        )
         assert dive_with_center_data["diving_center_id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"] is not None
         assert dive_with_center_data["diving_center"]["id"] == test_diving_center.id
         assert dive_with_center_data["diving_center"]["name"] == test_diving_center.name
 
         # Check dive without center
-        dive_without_center_data = next(d for d in data["items"] if d["name"] == "Dive without Center")
+        dive_without_center_data = next(
+            d for d in data["items"] if d["name"] == "Dive without Center"
+        )
         # With response_model_exclude_none=True, null fields are omitted entirely
-        assert "diving_center_id" not in dive_without_center_data or dive_without_center_data["diving_center_id"] is None
+        assert (
+            "diving_center_id" not in dive_without_center_data
+            or dive_without_center_data["diving_center_id"] is None
+        )
 
-        assert "diving_center_name" not in dive_without_center_data or dive_without_center_data["diving_center_name"] is None
+        assert (
+            "diving_center_name" not in dive_without_center_data
+            or dive_without_center_data["diving_center_name"] is None
+        )
 
-    def test_admin_get_dives_with_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_admin_get_dives_with_diving_center(
+        self,
+        client,
+        admin_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test admin getting dives with diving center information."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive with diving center
         dive = Dive(
             user_id=test_user.id,
@@ -950,11 +1146,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
@@ -970,10 +1166,22 @@ class TestDives:
         assert data["items"][0]["diving_center"]["id"] == test_diving_center.id
         assert data["items"][0]["diving_center"]["name"] == test_diving_center.name
 
-    def test_admin_update_dive_diving_center(self, client, admin_headers, db_session, test_user, test_dive_site, test_diving_center):
+    def test_admin_update_dive_diving_center(
+        self,
+        client,
+        admin_headers,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+    ):
         """Test admin updating dive diving center."""
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a dive
         dive = Dive(
             user_id=test_user.id,
@@ -987,21 +1195,23 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=8,
-            user_rating=9,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Admin updates the dive to add diving center
-        update_data = {
-            "diving_center_id": test_diving_center.id
-        }
+        update_data = {"diving_center_id": test_diving_center.id}
 
-        response = client.put(f"/api/v1/dives/admin/dives/{dive.id}", json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/dives/admin/dives/{dive.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -1010,21 +1220,28 @@ class TestDives:
         assert data["diving_center"]["id"] == test_diving_center.id
         assert data["diving_center"]["name"] == test_diving_center.name
 
-    def test_unauthenticated_user_can_see_public_dive_with_diving_center(self, client, db_session, test_dive_site, test_diving_center):
+    def test_unauthenticated_user_can_see_public_dive_with_diving_center(
+        self, client, db_session, test_dive_site, test_diving_center
+    ):
         """Test that unauthenticated users can see public dives with diving center."""
         # Create another user
         from app.models import User
+
         other_user = User(
             username="otheruser",
             email="other@example.com",
             password_hash="hashed_password",
-            enabled=True
+            enabled=True,
         )
         db_session.add(other_user)
         db_session.commit()
 
         # Get difficulty ID
-        difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+        difficulty = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
         # Create a public dive by the other user with diving center
         dive = Dive(
             user_id=other_user.id,
@@ -1038,11 +1255,11 @@ class TestDives:
             gas_bottles_used="Air",
             suit_type="wet_suit",
             difficulty_id=difficulty.id if difficulty else 2,
-            visibility_rating=7,
-            user_rating=8,
+            visibility_rating=3,
+            user_rating=4,
             dive_date=date(2025, 1, 15),
             dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
-            duration=40
+            duration=40,
         )
         db_session.add(dive)
         db_session.commit()
@@ -1060,7 +1277,9 @@ class TestDives:
         assert data["items"][0]["diving_center"]["id"] == test_diving_center.id
         assert data["items"][0]["diving_center"]["name"] == test_diving_center.name
 
-    def test_get_dives_pagination(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dives_pagination(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test pagination for dives endpoint."""
         # Create multiple dives for pagination testing
         dive_names = [
@@ -1068,38 +1287,62 @@ class TestDives:
             "Beta Dive - 2025/01/02",
             "Charlie Dive - 2025/01/03",
             "Delta Dive - 2025/01/04",
-            "Echo Dive - 2025/01/05"
+            "Echo Dive - 2025/01/05",
         ]
 
         # Get difficulty levels once before the loop
-        difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
-        difficulty_deep_nitrox = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
-        difficulty_codes_list = ["DEEP_NITROX", "ADVANCED_OPEN_WATER", "DEEP_NITROX", "ADVANCED_OPEN_WATER", "ADVANCED_OPEN_WATER"]
-        
-        for i, (name, difficulty_code) in enumerate(zip(dive_names, difficulty_codes_list)):
-            difficulty = difficulty_deep_nitrox if difficulty_code == "DEEP_NITROX" else difficulty_advanced_open_water
+        difficulty_advanced_open_water = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
+        difficulty_deep_nitrox = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "DEEP_NITROX")
+            .first()
+        )
+        difficulty_codes_list = [
+            "DEEP_NITROX",
+            "ADVANCED_OPEN_WATER",
+            "DEEP_NITROX",
+            "ADVANCED_OPEN_WATER",
+            "ADVANCED_OPEN_WATER",
+        ]
+
+        for i, (name, difficulty_code) in enumerate(
+            zip(dive_names, difficulty_codes_list, strict=False)
+        ):
+            difficulty = (
+                difficulty_deep_nitrox
+                if difficulty_code == "DEEP_NITROX"
+                else difficulty_advanced_open_water
+            )
             dive = Dive(
                 user_id=test_user.id,
                 dive_site_id=test_dive_site.id,
                 name=name,
                 is_private=False,
-                dive_information=f"Dive {i+1} information",
+                dive_information=f"Dive {i + 1} information",
                 max_depth=Decimal("15.0"),
                 average_depth=Decimal("10.0"),
                 gas_bottles_used="Air",
                 suit_type="wet_suit",
-                difficulty_id=difficulty.id if difficulty else (3 if difficulty_code == "DEEP_NITROX" else 2),
+                difficulty_id=difficulty.id
+                if difficulty
+                else (3 if difficulty_code == "DEEP_NITROX" else 2),
                 visibility_rating=7,
                 user_rating=8,
-                dive_date=date(2025, 1, i+1),
+                dive_date=date(2025, 1, i + 1),
                 dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
-                duration=40
+                duration=40,
             )
             db_session.add(dive)
         db_session.commit()
 
         # Test page 1 with page_size 25
-        response = client.get("/api/v1/dives/?page=1&page_size=25", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?page=1&page_size=25", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
@@ -1125,42 +1368,60 @@ class TestDives:
         """Test that invalid page_size values are rejected."""
         response = client.get(
             "/api/v1/dives/?page=1&page_size=30",  # Invalid page size
-            headers=auth_headers
+            headers=auth_headers,
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000" in response.json()["detail"]
+        assert (
+            "page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000"
+            in response.json()["detail"]
+        )
 
-    def test_get_dives_pagination_with_filters(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dives_pagination_with_filters(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test pagination with filters applied."""
         # Create dives with different difficulty levels
         dive_names = [
             "Advanced Dive - 2025/01/01",
             "Beginner Dive - 2025/01/02",
             "Expert Dive - 2025/01/03",
-            "Intermediate Dive - 2025/01/04"
+            "Intermediate Dive - 2025/01/04",
         ]
 
         # Map old difficulty integers to codes: 3=DEEP_NITROX, 2=ADVANCED_OPEN_WATER
-        difficulty_codes = ["DEEP_NITROX", "ADVANCED_OPEN_WATER", "DEEP_NITROX", "ADVANCED_OPEN_WATER"]
+        difficulty_codes = [
+            "DEEP_NITROX",
+            "ADVANCED_OPEN_WATER",
+            "DEEP_NITROX",
+            "ADVANCED_OPEN_WATER",
+        ]
 
-        for i, (name, difficulty_code) in enumerate(zip(dive_names, difficulty_codes)):
-            difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == difficulty_code).first()
+        for i, (name, difficulty_code) in enumerate(
+            zip(dive_names, difficulty_codes, strict=False)
+        ):
+            difficulty = (
+                db_session.query(DifficultyLevel)
+                .filter(DifficultyLevel.code == difficulty_code)
+                .first()
+            )
             dive = Dive(
                 user_id=test_user.id,
                 dive_site_id=test_dive_site.id,
                 name=name,
                 is_private=False,
-                dive_information=f"Dive {i+1} information",
+                dive_information=f"Dive {i + 1} information",
                 max_depth=Decimal("15.0"),
                 average_depth=Decimal("10.0"),
                 gas_bottles_used="Air",
                 suit_type="wet_suit",
-                difficulty_id=difficulty.id if difficulty else (3 if difficulty_code == "DEEP_NITROX" else 2),
+                difficulty_id=difficulty.id
+                if difficulty
+                else (3 if difficulty_code == "DEEP_NITROX" else 2),
                 visibility_rating=7,
                 user_rating=8,
-                dive_date=date(2025, 1, i+1),
+                dive_date=date(2025, 1, i + 1),
                 dive_time=datetime.strptime("09:00:00", "%H:%M:%S").time(),
-                duration=40
+                duration=40,
             )
             db_session.add(dive)
         db_session.commit()
@@ -1168,7 +1429,7 @@ class TestDives:
         # Test pagination with difficulty filter
         response = client.get(
             "/api/v1/dives/?page=1&page_size=25&difficulty_code=ADVANCED_OPEN_WATER",
-            headers=auth_headers
+            headers=auth_headers,
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -1181,7 +1442,7 @@ class TestDives:
         assert data["items"][0]["difficulty_label"] == "Advanced Open Water"
         assert data["items"][1]["difficulty_code"] == "ADVANCED_OPEN_WATER"
         assert data["items"][1]["difficulty_label"] == "Advanced Open Water"
-        
+
         # Check that we have the expected dive names (order may vary due to default sorting)
         dive_names = [dive["name"] for dive in data["items"]]
         assert "Beginner Dive - 2025/01/02" in dive_names
@@ -1191,7 +1452,9 @@ class TestDives:
         assert data["total"] == 2
         assert data["total_pages"] == 1
 
-    def test_get_dives_with_decimal_rating(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dives_with_decimal_rating(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test getting dives with decimal rating filters."""
         # Create a dive with rating 8
         dive = Dive(
@@ -1199,20 +1462,22 @@ class TestDives:
             dive_site_id=test_dive_site.id,
             name="Rating 8 Dive",
             dive_date=date(2025, 1, 15),
-            user_rating=8,
-            is_private=False
+            user_rating=4,
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Test decimal filter - should work now without 422
-        response = client.get("/api/v1/dives/?min_rating=7.5", headers=auth_headers)
+        response = client.get("/api/v1/dives/?min_rating=3.5", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
-        assert any(d["user_rating"] == 8 for d in data["items"])
+        assert any(d["user_rating"] == 4 for d in data["items"])
 
-    def test_get_dives_count_with_username(self, client, auth_headers, db_session, test_user, test_dive_site):
+    def test_get_dives_count_with_username(
+        self, client, auth_headers, db_session, test_user, test_dive_site
+    ):
         """Test getting dives count with username filter."""
         # Create a dive for the test user
         dive = Dive(
@@ -1220,13 +1485,15 @@ class TestDives:
             dive_site_id=test_dive_site.id,
             name="User Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Test count with username
-        response = client.get(f"/api/v1/dives/count?username={test_user.username}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dives/count?username={test_user.username}", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
@@ -1235,7 +1502,9 @@ class TestDives:
 class TestDivesFuzzySearch:
     """Test the fuzzy search functionality in dives endpoint."""
 
-    def test_dives_search_basic_functionality(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_basic_functionality(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test basic search functionality in dives endpoint."""
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         if response.status_code != status.HTTP_200_OK:
@@ -1245,15 +1514,21 @@ class TestDivesFuzzySearch:
         assert data["total"] > 0
         assert len(data["items"]) > 0
 
-    def test_dives_search_with_dive_site_name(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_with_dive_site_name(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search by dive site name."""
-        response = client.get("/api/v1/dives/?search=Test Dive Site", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=Test Dive Site", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] > 0
         assert len(data["items"]) > 0
 
-    def test_dives_search_with_dive_information(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_with_dive_information(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search by dive information field."""
         response = client.get("/api/v1/dives/?search=information", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
@@ -1261,7 +1536,9 @@ class TestDivesFuzzySearch:
         assert data["total"] > 0
         assert len(data["items"]) > 0
 
-    def test_dives_search_multi_word_query(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_multi_word_query(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test multi-word search query triggers fuzzy search."""
         response = client.get("/api/v1/dives/?search=test dive", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
@@ -1269,7 +1546,9 @@ class TestDivesFuzzySearch:
         assert data["total"] > 0
         assert len(data["items"]) > 0
 
-    def test_dives_search_short_query_triggers_fuzzy(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_short_query_triggers_fuzzy(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test that short queries trigger fuzzy search."""
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
@@ -1279,14 +1558,20 @@ class TestDivesFuzzySearch:
 
     def test_dives_search_with_typos(self, client, auth_headers, test_dive_with_site):
         """Test search with typos (fuzzy matching)."""
-        response = client.get("/api/v1/dives/?search=tesst", headers=auth_headers)  # Typo in "test"
+        response = client.get(
+            "/api/v1/dives/?search=tesst", headers=auth_headers
+        )  # Typo in "test"
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()
+        response.json()
         # Should still find results due to fuzzy matching
 
-    def test_dives_search_geographic_fields(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_geographic_fields(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search across geographic fields (country, region, city)."""
-        response = client.get("/api/v1/dives/?search=Test Country", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=Test Country", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data["items"]) > 0
@@ -1298,12 +1583,14 @@ class TestDivesFuzzySearch:
         data = response.json()
         assert len(data["items"]) > 0
 
-    def test_dives_search_result_ordering(self, client, auth_headers, multiple_test_dives):
+    def test_dives_search_result_ordering(
+        self, client, auth_headers, multiple_test_dives
+    ):
         """Test that search results are properly ordered by relevance."""
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        
+
         if len(data) > 1:
             # Results should be ordered by relevance (exact matches first)
             # This tests the fuzzy search scoring and ordering
@@ -1311,20 +1598,27 @@ class TestDivesFuzzySearch:
 
     def test_dives_search_with_sorting(self, client, auth_headers, test_dive_with_site):
         """Test that fuzzy search works with sorting parameters."""
-        response = client.get("/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc",
+            headers=auth_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] > 0
         assert len(data["items"]) > 0
 
-    def test_dives_search_pagination_with_fuzzy(self, client, auth_headers, multiple_test_dives):
+    def test_dives_search_pagination_with_fuzzy(
+        self, client, auth_headers, multiple_test_dives
+    ):
         """Test that pagination works correctly with fuzzy search results."""
-        response = client.get("/api/v1/dives/?search=test&page=1&page_size=5", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&page=1&page_size=5", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] > 0
         assert len(data["items"]) > 0
-        
+
         # Check pagination fields in body
         assert "total_pages" in data
         assert "page" in data
@@ -1332,17 +1626,20 @@ class TestDivesFuzzySearch:
     def test_dives_search_performance(self, client, auth_headers, multiple_test_dives):
         """Test search performance with multiple dives."""
         import time
-        
+
         start_time = time.time()
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         end_time = time.time()
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert (end_time - start_time) < 2.0  # Should complete within 2 seconds
 
     def test_dives_search_with_filters(self, client, auth_headers, test_dive_with_site):
         """Test search combined with other filters."""
-        response = client.get("/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER",
+            headers=auth_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] > 0
@@ -1353,42 +1650,58 @@ class TestDivesFuzzySearch:
         response = client.get("/api/v1/dives/?search=", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        assert data["total"] > 0
         # Should return all dives when search is empty
 
     def test_dives_search_no_results(self, client, auth_headers, test_dive_with_site):
         """Test search with query that should return no results."""
-        response = client.get("/api/v1/dives/?search=xyz123nonexistent", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=xyz123nonexistent", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
+        assert data["total"] == 0
         # Should return empty list or very few results
 
-    def test_dives_search_with_special_characters(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_with_special_characters(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search with special characters."""
         response = client.get("/api/v1/dives/?search=test@#$%", headers=auth_headers)
         assert response.status_code == status.HTTP_200_OK
 
-    def test_dives_search_case_insensitive(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_case_insensitive(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test that search is case insensitive."""
         response_lower = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         response_upper = client.get("/api/v1/dives/?search=TEST", headers=auth_headers)
-        
+
         assert response_lower.status_code == status.HTTP_200_OK
         assert response_upper.status_code == status.HTTP_200_OK
-        
+
         data_lower = response_lower.json()
         data_upper = response_upper.json()
         assert len(data_lower) == len(data_upper)  # Should return same results
 
-    def test_dives_search_with_very_long_query(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_with_very_long_query(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search with very long query."""
         long_query = "a" * 200  # Max length
-        response = client.get(f"/api/v1/dives/?search={long_query}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dives/?search={long_query}", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
 
-    def test_dives_search_with_very_long_query(self, client, auth_headers, test_dive_with_site):
+    def test_dives_search_with_very_long_query(
+        self, client, auth_headers, test_dive_with_site
+    ):
         """Test search with very long query (no max length validation in dives endpoint)."""
         long_query = "a" * 201  # Very long query
-        response = client.get(f"/api/v1/dives/?search={long_query}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dives/?search={long_query}", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         # Note: Dives endpoint doesn't have max_length validation like other endpoints
 
@@ -1396,7 +1709,9 @@ class TestDivesFuzzySearch:
 class TestAdminDivesSearch:
     """Test search functionality for admin dives endpoints."""
 
-    def test_admin_dives_search_by_dive_name(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_by_dive_name(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test searching dives by dive name."""
         # Create dive with specific name
         dive = Dive(
@@ -1404,20 +1719,24 @@ class TestAdminDivesSearch:
             dive_site_id=test_dive_site.id,
             name="Amazing Coral Reef Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search by dive name
-        response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
         assert any(d["name"] == "Amazing Coral Reef Dive" for d in data["items"])
 
-    def test_admin_dives_search_by_username(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_by_username(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test searching dives by user username."""
         # Create dive for specific user
         dive = Dive(
@@ -1425,20 +1744,25 @@ class TestAdminDivesSearch:
             dive_site_id=test_dive_site.id,
             name="Test Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search by username
-        response = client.get(f"/api/v1/dives/admin/dives?search={test_user.username}", headers=admin_headers)
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search={test_user.username}",
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
         assert any(d["user_username"] == test_user.username for d in data["items"])
 
-    def test_admin_dives_search_by_dive_site_name(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_by_dive_site_name(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test searching dives by dive site name."""
         # Create dive at specific site
         dive = Dive(
@@ -1446,20 +1770,25 @@ class TestAdminDivesSearch:
             dive_site_id=test_dive_site.id,
             name="Test Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search by dive site name
-        response = client.get(f"/api/v1/dives/admin/dives?search={test_dive_site.name}", headers=admin_headers)
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search={test_dive_site.name}",
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
         assert any(d["dive_site"]["name"] == test_dive_site.name for d in data["items"])
 
-    def test_admin_dives_search_by_dive_information(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_by_dive_information(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test searching dives by dive information field."""
         # Create dive with specific information
         dive = Dive(
@@ -1468,73 +1797,89 @@ class TestAdminDivesSearch:
             name="Test Dive",
             dive_information="Saw a beautiful sea turtle and colorful fish",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search by dive information
-        response = client.get("/api/v1/dives/admin/dives?search=sea turtle", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=sea turtle", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
         assert any("sea turtle" in d["dive_information"].lower() for d in data["items"])
 
-    def test_admin_dives_search_case_insensitive(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_case_insensitive(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that search is case-insensitive."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Test uppercase search
-        response_upper = client.get("/api/v1/dives/admin/dives?search=AMAZING", headers=admin_headers)
+        response_upper = client.get(
+            "/api/v1/dives/admin/dives?search=AMAZING", headers=admin_headers
+        )
         assert response_upper.status_code == status.HTTP_200_OK
 
         # Test lowercase search
-        response_lower = client.get("/api/v1/dives/admin/dives?search=amazing", headers=admin_headers)
+        response_lower = client.get(
+            "/api/v1/dives/admin/dives?search=amazing", headers=admin_headers
+        )
         assert response_lower.status_code == status.HTTP_200_OK
 
         # Test mixed case search
-        response_mixed = client.get("/api/v1/dives/admin/dives?search=AmAzInG", headers=admin_headers)
+        response_mixed = client.get(
+            "/api/v1/dives/admin/dives?search=AmAzInG", headers=admin_headers
+        )
         assert response_mixed.status_code == status.HTTP_200_OK
 
         # All should return the same results
         data_upper = response_upper.json()
         data_lower = response_lower.json()
         data_mixed = response_mixed.json()
-        
+
         assert data_upper["total"] == data_lower["total"]
         assert data_lower["total"] == data_mixed["total"]
         assert len(data_upper["items"]) == len(data_lower["items"])
 
-    def test_admin_dives_search_partial_match(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_partial_match(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that search matches partial strings."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Beautiful Coral Reef Exploration",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search with partial match
-        response = client.get("/api/v1/dives/admin/dives?search=Coral", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Coral", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
         assert any("Coral" in d["name"] for d in data["items"])
 
-    def test_admin_dives_search_multiple_fields(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_multiple_fields(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that search can match across multiple fields."""
         # Create multiple dives matching different fields
         dive1 = Dive(
@@ -1543,35 +1888,40 @@ class TestAdminDivesSearch:
             name="Test Dive",
             dive_information="Amazing experience",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         dive2 = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 16),
-            is_private=False
+            is_private=False,
         )
         db_session.add_all([dive1, dive2])
         db_session.commit()
 
         # Search should match both dives
-        response = client.get("/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=Amazing", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 2
         assert len(data["items"]) >= 2
 
-    def test_admin_dives_search_with_user_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_with_user_filter(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search combined with user_id filter."""
         # Create another user for testing
         from app.models import User
+
         test_user2 = User(
             username="testuser2",
             email="testuser2@example.com",
             password_hash="hashed_password",
             is_admin=False,
-            enabled=True
+            enabled=True,
         )
         db_session.add(test_user2)
         db_session.commit()
@@ -1582,14 +1932,14 @@ class TestAdminDivesSearch:
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         dive2 = Dive(
             user_id=test_user2.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 16),
-            is_private=False
+            is_private=False,
         )
         db_session.add_all([dive1, dive2])
         db_session.commit()
@@ -1597,7 +1947,7 @@ class TestAdminDivesSearch:
         # Search with user filter
         response = client.get(
             f"/api/v1/dives/admin/dives?search=Amazing&user_id={test_user.id}",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -1605,14 +1955,16 @@ class TestAdminDivesSearch:
         assert len(data["items"]) >= 1
         assert all(d["user_id"] == test_user.id for d in data["items"])
 
-    def test_admin_dives_search_with_dive_site_name_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_with_dive_site_name_filter(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search when dive_site_name filter is also used (tests JOIN logic)."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
@@ -1620,21 +1972,23 @@ class TestAdminDivesSearch:
         # Search with dive_site_name filter (DiveSite already joined)
         response = client.get(
             f"/api/v1/dives/admin/dives?search=Amazing&dive_site_name={test_dive_site.name}",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
 
-    def test_admin_dives_search_with_date_filter(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_with_date_filter(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search combined with date range filter."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
@@ -1642,14 +1996,16 @@ class TestAdminDivesSearch:
         # Search with date filter
         response = client.get(
             "/api/v1/dives/admin/dives?search=Amazing&start_date=2025-01-01&end_date=2025-01-31",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
 
-    def test_admin_dives_search_with_pagination(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_with_pagination(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search with pagination parameters."""
         # Create multiple matching dives
         for i in range(5):
@@ -1658,7 +2014,7 @@ class TestAdminDivesSearch:
                 dive_site_id=test_dive_site.id,
                 name=f"Amazing Dive {i}",
                 dive_date=date(2025, 1, 15 + i),
-                is_private=False
+                is_private=False,
             )
             db_session.add(dive)
         db_session.commit()
@@ -1666,14 +2022,16 @@ class TestAdminDivesSearch:
         # Search with pagination
         response = client.get(
             "/api/v1/dives/admin/dives?search=Amazing&limit=2&offset=0",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data["items"]) <= 2
         assert data["total"] >= 5
 
-    def test_admin_dives_count_search(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_count_search(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search functionality with count endpoint."""
         # Create matching and non-matching dives
         dive1 = Dive(
@@ -1681,113 +2039,143 @@ class TestAdminDivesSearch:
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         dive2 = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Regular Dive",
             dive_date=date(2025, 1, 16),
-            is_private=False
+            is_private=False,
         )
         db_session.add_all([dive1, dive2])
         db_session.commit()
 
         # Count with search
-        response = client.get("/api/v1/dives/admin/dives/count?search=Amazing", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives/count?search=Amazing", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
 
         # Count without search (should be higher)
-        response_all = client.get("/api/v1/dives/admin/dives/count", headers=admin_headers)
+        response_all = client.get(
+            "/api/v1/dives/admin/dives/count", headers=admin_headers
+        )
         assert response_all.status_code == status.HTTP_200_OK
         assert response_all.json()["total"] >= data["total"]
 
-    def test_admin_dives_search_empty_string(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_empty_string(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that empty search string returns all results."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Test Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Empty search should return all results
-        response = client.get("/api/v1/dives/admin/dives?search=", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
 
-    def test_admin_dives_search_long_string_truncation(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_long_string_truncation(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that search string is truncated to 200 characters."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Test Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Very long search string (over 200 chars)
         long_search = "a" * 300
-        response = client.get(f"/api/v1/dives/admin/dives?search={long_search}", headers=admin_headers)
-        assert response.status_code == status.HTTP_200_OK  # Should not error, just truncate
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search={long_search}", headers=admin_headers
+        )
+        assert (
+            response.status_code == status.HTTP_200_OK
+        )  # Should not error, just truncate
 
-    def test_admin_dives_search_whitespace_stripping(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_whitespace_stripping(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test that search string whitespace is stripped."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Amazing Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search with leading/trailing whitespace
-        response = client.get("/api/v1/dives/admin/dives?search=  Amazing  ", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=  Amazing  ", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
         assert len(data["items"]) >= 1
 
-    def test_admin_dives_search_special_characters(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_special_characters(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search with special characters (SQL injection prevention)."""
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             name="Test Dive",
             dive_date=date(2025, 1, 15),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
 
         # Search with SQL injection attempt
         malicious_search = "'; DROP TABLE dives; --"
-        response = client.get(f"/api/v1/dives/admin/dives?search={malicious_search}", headers=admin_headers)
-        assert response.status_code == status.HTTP_200_OK  # Should handle gracefully, not crash
+        response = client.get(
+            f"/api/v1/dives/admin/dives?search={malicious_search}",
+            headers=admin_headers,
+        )
+        assert (
+            response.status_code == status.HTTP_200_OK
+        )  # Should handle gracefully, not crash
         # Verify table still exists by making another request
         response2 = client.get("/api/v1/dives/admin/dives", headers=admin_headers)
         assert response2.status_code == status.HTTP_200_OK
 
     def test_admin_dives_search_no_results(self, client, admin_headers, db_session):
         """Test search that returns no results."""
-        response = client.get("/api/v1/dives/admin/dives?search=NonexistentDiveName12345", headers=admin_headers)
+        response = client.get(
+            "/api/v1/dives/admin/dives?search=NonexistentDiveName12345",
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] == 0
         assert len(data["items"]) == 0
 
-    def test_admin_dives_search_with_sorting(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_with_sorting(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test search combined with sorting."""
         # Create multiple matching dives
         for i in range(3):
@@ -1796,7 +2184,7 @@ class TestAdminDivesSearch:
                 dive_site_id=test_dive_site.id,
                 name=f"Amazing Dive {i}",
                 dive_date=date(2025, 1, 15 + i),
-                is_private=False
+                is_private=False,
             )
             db_session.add(dive)
         db_session.commit()
@@ -1804,7 +2192,7 @@ class TestAdminDivesSearch:
         # Search with sorting
         response = client.get(
             "/api/v1/dives/admin/dives?search=Amazing&sort_by=dive_date&sort_order=asc",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -1814,7 +2202,9 @@ class TestAdminDivesSearch:
         dates = [d["dive_date"] for d in data["items"]]
         assert dates == sorted(dates)
 
-    def test_admin_dives_search_end_to_end(self, client, admin_headers, db_session, test_user, test_dive_site):
+    def test_admin_dives_search_end_to_end(
+        self, client, admin_headers, db_session, test_user, test_dive_site
+    ):
         """Test complete search flow with multiple filters, pagination, and sorting."""
         # Create test data
         dive = Dive(
@@ -1824,7 +2214,7 @@ class TestAdminDivesSearch:
             dive_information="Saw beautiful fish",
             dive_date=date(2025, 1, 15),
             max_depth=Decimal("18.5"),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive)
         db_session.commit()
@@ -1840,7 +2230,7 @@ class TestAdminDivesSearch:
             f"sort_order=desc&"
             f"limit=10&"
             f"offset=0",
-            headers=admin_headers
+            headers=admin_headers,
         )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -1859,7 +2249,7 @@ class TestDivesUnifiedScoring:
             primary_name="Blue Hole Reef",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score == 1.0
 
@@ -1870,7 +2260,7 @@ class TestDivesUnifiedScoring:
             primary_name="Blue Hole Diving Site",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score > 0.8  # Should be high due to word matching
 
@@ -1881,7 +2271,7 @@ class TestDivesUnifiedScoring:
             primary_name="Test Dive Site",
             description="A beautiful reef with amazing marine life",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score > 0.1  # Should include description bonus
 
@@ -1892,7 +2282,7 @@ class TestDivesUnifiedScoring:
             primary_name="Test Dive Site",
             description="A test dive",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score > 0.2  # Should include geographic bonus
 
@@ -1904,7 +2294,7 @@ class TestDivesUnifiedScoring:
             description="A test dive",
             country="Bahamas",
             region="Caribbean",
-            tags=["Wreck Diving", "Reef Diving"]
+            tags=["Wreck Diving", "Reef Diving"],
         )
         assert score > 0.3  # Should include tag bonus
 
@@ -1915,7 +2305,7 @@ class TestDivesUnifiedScoring:
             primary_name="Nautilus Reef",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score > 0.6  # Should be boosted by high similarity
 
@@ -1926,7 +2316,7 @@ class TestDivesUnifiedScoring:
             primary_name="Bluehole Reef",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert score > 0.7  # Should include consecutive bonus
 
@@ -1938,7 +2328,7 @@ class TestDivesUnifiedScoring:
             description=None,
             country=None,
             region=None,
-            city=None
+            city=None,
         )
         assert score > 0.0  # Should still work with empty fields
 
@@ -1949,14 +2339,14 @@ class TestDivesUnifiedScoring:
             primary_name="BLUE HOLE REEF",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         score_upper = calculate_unified_phrase_aware_score(
             query="BLUE HOLE",
             primary_name="blue hole reef",
             description="A beautiful reef",
             country="Bahamas",
-            region="Caribbean"
+            region="Caribbean",
         )
         assert abs(score_lower - score_upper) < 0.01  # Should be nearly identical
 
@@ -1964,43 +2354,53 @@ class TestDivesUnifiedScoring:
 class TestDivesSearchRankingStability:
     """Test search ranking stability for dives."""
 
-    def test_ranking_consistency_same_query(self, client, auth_headers, multiple_test_dives):
+    def test_ranking_consistency_same_query(
+        self, client, auth_headers, multiple_test_dives
+    ):
         """Test that same query returns consistent ranking."""
         response1 = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         response2 = client.get("/api/v1/dives/?search=test", headers=auth_headers)
-        
+
         assert response1.status_code == status.HTTP_200_OK
         assert response2.status_code == status.HTTP_200_OK
-        
+
         data1 = response1.json()
         data2 = response2.json()
-        
+
         # Results should be in same order
         assert data1["total"] == data2["total"]
         assert len(data1["items"]) == len(data2["items"])
         for i in range(len(data1["items"])):
             assert data1["items"][i]["id"] == data2["items"][i]["id"]
 
-    def test_ranking_with_different_query_lengths(self, client, auth_headers, multiple_test_dives):
+    def test_ranking_with_different_query_lengths(
+        self, client, auth_headers, multiple_test_dives
+    ):
         """Test ranking stability with different query lengths."""
         short_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
-        long_query = client.get("/api/v1/dives/?search=test dive site", headers=auth_headers)
-        
+        long_query = client.get(
+            "/api/v1/dives/?search=test dive site", headers=auth_headers
+        )
+
         assert short_query.status_code == status.HTTP_200_OK
         assert long_query.status_code == status.HTTP_200_OK
-        
+
         # Both should return results, though potentially different counts
         assert len(short_query.json()["items"]) > 0
         assert len(long_query.json()["items"]) > 0
 
-    def test_ranking_with_special_characters(self, client, auth_headers, multiple_test_dives):
+    def test_ranking_with_special_characters(
+        self, client, auth_headers, multiple_test_dives
+    ):
         """Test ranking stability with special characters."""
         normal_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
-        special_query = client.get("/api/v1/dives/?search=test@#$%", headers=auth_headers)
-        
+        special_query = client.get(
+            "/api/v1/dives/?search=test@#$%", headers=auth_headers
+        )
+
         assert normal_query.status_code == status.HTTP_200_OK
         assert special_query.status_code == status.HTTP_200_OK
-        
+
         # Both should return results
         assert len(normal_query.json()["items"]) > 0
         assert len(special_query.json()["items"]) > 0
@@ -2009,10 +2409,10 @@ class TestDivesSearchRankingStability:
         """Test ranking stability with typos."""
         correct_query = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         typo_query = client.get("/api/v1/dives/?search=tesst", headers=auth_headers)
-        
+
         assert correct_query.status_code == status.HTTP_200_OK
         assert typo_query.status_code == status.HTTP_200_OK
-        
+
         # Both should return results
         assert len(correct_query.json()["items"]) > 0
         assert len(typo_query.json()["items"]) > 0
@@ -2021,58 +2421,80 @@ class TestDivesSearchRankingStability:
 class TestDivesSearchPerformance:
     """Test performance of dives fuzzy search."""
 
-    def test_search_performance_large_dataset(self, client, auth_headers, large_dive_dataset):
+    def test_search_performance_large_dataset(
+        self, client, auth_headers, large_dive_dataset
+    ):
         """Test search performance with large dataset."""
         import time
-        
+
         start_time = time.time()
         response = client.get("/api/v1/dives/?search=test", headers=auth_headers)
         end_time = time.time()
-        
-        assert response.status_code == status.HTTP_200_OK
-        assert (end_time - start_time) < 3.0  # Should complete within 3 seconds even with large dataset
 
-    def test_search_performance_complex_query(self, client, auth_headers, large_dive_dataset):
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            end_time - start_time
+        ) < 3.0  # Should complete within 3 seconds even with large dataset
+
+    def test_search_performance_complex_query(
+        self, client, auth_headers, large_dive_dataset
+    ):
         """Test search performance with complex multi-word query."""
         import time
-        
+
         start_time = time.time()
-        response = client.get("/api/v1/dives/?search=test dive site information", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test dive site information", headers=auth_headers
+        )
         end_time = time.time()
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
 
-    def test_search_performance_with_sorting(self, client, auth_headers, large_dive_dataset):
+    def test_search_performance_with_sorting(
+        self, client, auth_headers, large_dive_dataset
+    ):
         """Test search performance with sorting applied."""
         import time
-        
+
         start_time = time.time()
-        response = client.get("/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&sort_by=dive_date&sort_order=desc",
+            headers=auth_headers,
+        )
         end_time = time.time()
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
 
-    def test_search_performance_with_pagination(self, client, auth_headers, large_dive_dataset):
+    def test_search_performance_with_pagination(
+        self, client, auth_headers, large_dive_dataset
+    ):
         """Test search performance with pagination."""
         import time
-        
+
         start_time = time.time()
-        response = client.get("/api/v1/dives/?search=test&page=1&page_size=25", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&page=1&page_size=25", headers=auth_headers
+        )
         end_time = time.time()
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
 
-    def test_search_performance_with_filters(self, client, auth_headers, large_dive_dataset):
+    def test_search_performance_with_filters(
+        self, client, auth_headers, large_dive_dataset
+    ):
         """Test search performance with additional filters."""
         import time
-        
+
         start_time = time.time()
-        response = client.get("/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER&min_rating=5", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dives/?search=test&difficulty_code=ADVANCED_OPEN_WATER&min_rating=5",
+            headers=auth_headers,
+        )
         end_time = time.time()
-        
+
         assert response.status_code == status.HTTP_200_OK
         assert (end_time - start_time) < 3.0  # Should complete within 3 seconds
 
@@ -2082,7 +2504,11 @@ class TestDivesSearchPerformance:
 def test_dive_with_site(db_session, test_user):
     """Create a test dive with associated dive site."""
     # Get ADVANCED_OPEN_WATER difficulty
-    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty_advanced_open_water = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+        .first()
+    )
     # Create dive site
     dive_site = DiveSite(
         name="Test Dive Site",
@@ -2091,12 +2517,14 @@ def test_dive_with_site(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id
+        if difficulty_advanced_open_water
+        else 2,  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
     db_session.refresh(dive_site)
-    
+
     # Create dive
     dive = Dive(
         user_id=test_user.id,
@@ -2108,24 +2536,31 @@ def test_dive_with_site(db_session, test_user):
         average_depth=Decimal("12.0"),
         gas_bottles_used="Air",
         suit_type="wet_suit",
-        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
-        visibility_rating=8,
-        user_rating=9,
+        difficulty_id=difficulty_advanced_open_water.id
+        if difficulty_advanced_open_water
+        else 2,
+        visibility_rating=4,
+        user_rating=5,
         dive_date=date(2025, 1, 15),
         dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-        duration=45
+        duration=45,
     )
     db_session.add(dive)
     db_session.commit()
     db_session.refresh(dive)
-    
+
     return dive
+
 
 @pytest.fixture
 def test_dive_with_tags(db_session, test_user):
     """Create a test dive with tags."""
     # Get DEEP_NITROX difficulty
-    difficulty_deep_nitrox = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+    difficulty_deep_nitrox = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "DEEP_NITROX")
+        .first()
+    )
     # Create dive site
     dive_site = DiveSite(
         name="Wreck Dive Site",
@@ -2134,19 +2569,21 @@ def test_dive_with_tags(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_id=difficulty_deep_nitrox.id if difficulty_deep_nitrox else 3  # 3=advanced
+        difficulty_id=difficulty_deep_nitrox.id
+        if difficulty_deep_nitrox
+        else 3,  # 3=advanced
     )
     db_session.add(dive_site)
     db_session.commit()
     db_session.refresh(dive_site)
-    
+
     # Create tags
     wreck_tag = AvailableTag(name="Wreck Diving")
     reef_tag = AvailableTag(name="Reef Diving")
     db_session.add(wreck_tag)
     db_session.add(reef_tag)
     db_session.commit()
-    
+
     # Create dive
     dive = Dive(
         user_id=test_user.id,
@@ -2159,30 +2596,35 @@ def test_dive_with_tags(db_session, test_user):
         gas_bottles_used="Air",
         suit_type="wet_suit",
         difficulty_id=difficulty_deep_nitrox.id if difficulty_deep_nitrox else 3,
-        visibility_rating=7,
-        user_rating=8,
+        visibility_rating=3,
+        user_rating=4,
         dive_date=date(2025, 1, 15),
         dive_time=datetime.strptime("14:00:00", "%H:%M:%S").time(),
-        duration=50
+        duration=50,
     )
     db_session.add(dive)
     db_session.commit()
     db_session.refresh(dive)
-    
+
     # Link tags to dive
     dive_tag1 = DiveTag(dive_id=dive.id, tag_id=wreck_tag.id)
     dive_tag2 = DiveTag(dive_id=dive.id, tag_id=reef_tag.id)
     db_session.add(dive_tag1)
     db_session.add(dive_tag2)
     db_session.commit()
-    
+
     return dive
+
 
 @pytest.fixture
 def multiple_test_dives(db_session, test_user):
     """Create multiple test dives for testing."""
     # Get ADVANCED_OPEN_WATER difficulty
-    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty_advanced_open_water = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+        .first()
+    )
     # Create dive site
     dive_site = DiveSite(
         name="Test Dive Site",
@@ -2191,47 +2633,56 @@ def multiple_test_dives(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id
+        if difficulty_advanced_open_water
+        else 2,  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
     db_session.refresh(dive_site)
-    
+
     # Create multiple dives
     dives = []
     for i in range(10):
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=dive_site.id,
-            name=f"Test Dive {i+1} - 2025/01/{15+i:02d}",
+            name=f"Test Dive {i + 1} - 2025/01/{15 + i:02d}",
             is_private=False,
-            dive_information=f"Test dive {i+1} information for testing purposes",
+            dive_information=f"Test dive {i + 1} information for testing purposes",
             max_depth=Decimal("15.0") + Decimal(str(i)),
             average_depth=Decimal("10.0") + Decimal(str(i)),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
-            visibility_rating=8,
-            user_rating=9,
+            difficulty_id=difficulty_advanced_open_water.id
+            if difficulty_advanced_open_water
+            else 2,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15 + i),
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         dives.append(dive)
-    
+
     db_session.commit()
     for dive in dives:
         db_session.refresh(dive)
-    
+
     return dives
+
 
 @pytest.fixture
 def large_dive_dataset(db_session, test_user):
     """Create a large dataset of dives for performance testing."""
     # Get ADVANCED_OPEN_WATER difficulty once for all dives
-    difficulty_advanced_open_water = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
-    
+    difficulty_advanced_open_water = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+        .first()
+    )
+
     # Create dive site
     dive_site = DiveSite(
         name="Performance Test Dive Site",
@@ -2240,37 +2691,41 @@ def large_dive_dataset(db_session, test_user):
         longitude=30.0,
         country="Test Country",
         region="Test Region",
-        difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2  # 2=intermediate
+        difficulty_id=difficulty_advanced_open_water.id
+        if difficulty_advanced_open_water
+        else 2,  # 2=intermediate
     )
     db_session.add(dive_site)
     db_session.commit()
     db_session.refresh(dive_site)
-    
+
     # Create many dives
     dives = []
     for i in range(100):  # Create 100 dives for performance testing
         dive = Dive(
             user_id=test_user.id,
             dive_site_id=dive_site.id,
-            name=f"Performance Test Dive {i+1} - 2025/01/{15+(i%30):02d}",
+            name=f"Performance Test Dive {i + 1} - 2025/01/{15 + (i % 30):02d}",
             is_private=False,
-            dive_information=f"Performance test dive {i+1} information for testing purposes with various keywords",
+            dive_information=f"Performance test dive {i + 1} information for testing purposes with various keywords",
             max_depth=Decimal("15.0") + Decimal(str(i % 20)),
             average_depth=Decimal("10.0") + Decimal(str(i % 15)),
             gas_bottles_used="Air",
             suit_type="wet_suit",
-            difficulty_id=difficulty_advanced_open_water.id if difficulty_advanced_open_water else 2,
-            visibility_rating=8,
-            user_rating=9,
+            difficulty_id=difficulty_advanced_open_water.id
+            if difficulty_advanced_open_water
+            else 2,
+            visibility_rating=4,
+            user_rating=5,
             dive_date=date(2025, 1, 15 + (i % 16)),  # Days 15-30 (16 days)
             dive_time=datetime.strptime("10:30:00", "%H:%M:%S").time(),
-            duration=45
+            duration=45,
         )
         db_session.add(dive)
         dives.append(dive)
-    
+
     db_session.commit()
     for dive in dives:
         db_session.refresh(dive)
-    
+
     return dives

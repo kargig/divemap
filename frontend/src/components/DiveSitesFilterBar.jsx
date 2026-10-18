@@ -236,9 +236,9 @@ const DiveSitesFilterBar = ({
                   <input
                     type='number'
                     min='0'
-                    max='10'
+                    max='5'
                     step='1'
-                    placeholder='Min rating (1-10)'
+                    placeholder='Min rating (1-5)'
                     value={filters.min_rating || ''}
                     onChange={e => onFilterChange('min_rating', e.target.value)}
                     onKeyDown={e => {
@@ -247,13 +247,13 @@ const DiveSitesFilterBar = ({
                       }
                     }}
                     className={`w-full px-3 py-2.5 sm:py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px] sm:min-h-0 touch-manipulation ${
-                      filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                      filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5)
                         ? 'border-red-500 ring-1 ring-red-500'
                         : 'border-gray-300'
                     }`}
                   />
-                  {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
-                    <p className='text-red-500 text-[10px] mt-1'>Rating must be 0-10</p>
+                  {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
+                    <p className='text-red-500 text-[10px] mt-1'>Rating must be 0-5</p>
                   )}
                 </div>
 
@@ -369,9 +369,9 @@ const DiveSitesFilterBar = ({
               <input
                 type='number'
                 min='0'
-                max='10'
+                max='5'
                 step='1'
-                placeholder='Min rating (1-10)'
+                placeholder='Min rating (1-5)'
                 value={filters.min_rating || ''}
                 onChange={e => onFilterChange('min_rating', e.target.value)}
                 onKeyDown={e => {
@@ -380,13 +380,13 @@ const DiveSitesFilterBar = ({
                   }
                 }}
                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base min-h-[48px] ${
-                  filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10)
+                  filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5)
                     ? 'border-red-500 ring-1 ring-red-500'
                     : 'border-gray-300'
                 }`}
               />
-              {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
-                <p className='text-red-500 text-sm mt-1'>Rating must be between 0 and 10</p>
+              {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
+                <p className='text-red-500 text-sm mt-1'>Rating must be between 0 and 5</p>
               )}
             </div>
 

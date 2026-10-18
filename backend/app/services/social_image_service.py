@@ -329,11 +329,11 @@ class SocialImageService:
 
             # Visibility
             elif key == "VISIBILITY" and dive.visibility_rating:
-                metrics.append(f"VIS: {dive.visibility_rating}/10")
+                metrics.append(f"VIS: {dive.visibility_rating}/5")
 
             # Rating
             elif key == "RATING" and dive.user_rating:
-                metrics.append(f"RATING: {dive.user_rating}/10")
+                metrics.append(f"RATING: {dive.user_rating}/5")
 
         if not metrics:
             return

@@ -281,12 +281,11 @@ def parse_duration(duration_str):
 
 
 def parse_rating(rating):
-    """Convert Subsurface rating (1-5) to Divemap rating (1-10)"""
+    """Parse and validate Subsurface rating (1-5 scale) directly for Divemap"""
     if not isinstance(rating, int) or rating < 1 or rating > 5:
-        rating = 5
+        return 5
 
-    # Convert 1-5 scale to 1-10 scale
-    return rating * 2
+    return rating
 
 
 def parse_suit_type(suit_str):

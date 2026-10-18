@@ -1,5 +1,8 @@
+from datetime import UTC
+
 import pytest
 from fastapi import status
+
 
 class TestUsers:
     """Test users endpoints."""
@@ -23,17 +26,18 @@ class TestUsers:
 
     def test_update_current_user_success(self, client, auth_headers, test_user):
         """Test updating current user profile successfully.
-        
+
         Note: username and email cannot be updated by regular users.
         """
         update_data = {
             "name": "Updated Name",
             "username": "should_be_ignored",
-            "email": "should_be_ignored@example.com"
+            "email": "should_be_ignored@example.com",
         }
 
-        response = client.put("/api/v1/users/me",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            "/api/v1/users/me", json=update_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -54,11 +58,12 @@ class TestUsers:
         """Test updating current user with invalid data."""
         update_data = {
             "name": "",  # Too short (min_length=1)
-            "password": "short"  # Too short (min_length=8)
+            "password": "short",  # Too short (min_length=8)
         }
 
-        response = client.put("/api/v1/users/me",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            "/api/v1/users/me", json=update_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -66,8 +71,9 @@ class TestUsers:
         """Test updating current user with partial data."""
         update_data = {"name": "partialupdate"}
 
-        response = client.put("/api/v1/users/me",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            "/api/v1/users/me", json=update_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -78,8 +84,9 @@ class TestUsers:
         """Test updating current user name field."""
         update_data = {"name": "John Doe"}
 
-        response = client.put("/api/v1/users/me",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            "/api/v1/users/me", json=update_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -91,20 +98,17 @@ class TestUsers:
         """Test updating current user name field to empty string (should be rejected)."""
         update_data = {"name": ""}
 
-        response = client.put("/api/v1/users/me",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            "/api/v1/users/me", json=update_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_update_username_success(self, client, auth_headers):
         """Test successfully updating a username."""
-        update_data = {
-            "username": "new_awesome_name"
-        }
+        update_data = {"username": "new_awesome_name"}
         response = client.put(
-            "/api/v1/users/me",
-            json=update_data,
-            headers=auth_headers
+            "/api/v1/users/me", json=update_data, headers=auth_headers
         )
         assert response.status_code == 200
         data = response.json()
@@ -112,26 +116,18 @@ class TestUsers:
 
     def test_update_username_restricted(self, client, auth_headers):
         """Test that restricted usernames are rejected."""
-        update_data = {
-            "username": "Admin"
-        }
+        update_data = {"username": "Admin"}
         response = client.put(
-            "/api/v1/users/me",
-            json=update_data,
-            headers=auth_headers
+            "/api/v1/users/me", json=update_data, headers=auth_headers
         )
         assert response.status_code == 400
         assert "reserved" in response.json()["detail"].lower()
 
     def test_update_username_taken(self, client, auth_headers, test_user_other):
         """Test that taking an existing username is rejected."""
-        update_data = {
-            "username": test_user_other.username
-        }
+        update_data = {"username": test_user_other.username}
         response = client.put(
-            "/api/v1/users/me",
-            json=update_data,
-            headers=auth_headers
+            "/api/v1/users/me", json=update_data, headers=auth_headers
         )
         assert response.status_code == 400
         assert "already registered" in response.json()["detail"].lower()
@@ -188,11 +184,12 @@ class TestAdminUserManagement:
             "password": "password123",
             "is_admin": False,
             "is_moderator": True,
-            "enabled": True
+            "enabled": True,
         }
 
-        response = client.post("/api/v1/users/admin/users",
-                             json=user_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/users/admin/users", json=user_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -207,11 +204,12 @@ class TestAdminUserManagement:
         user_data = {
             "username": "newuser",
             "email": "new@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
-        response = client.post("/api/v1/users/admin/users",
-                             json=user_data, headers=auth_headers)
+        response = client.post(
+            "/api/v1/users/admin/users", json=user_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Not enough permissions" in response.json()["detail"]
@@ -221,11 +219,12 @@ class TestAdminUserManagement:
         user_data = {
             "username": "testuser",  # Already exists
             "email": "different@example.com",
-            "password": "password123"
+            "password": "password123",
         }
 
-        response = client.post("/api/v1/users/admin/users",
-                             json=user_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/users/admin/users", json=user_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Username or email already registered" in response.json()["detail"]
@@ -235,11 +234,12 @@ class TestAdminUserManagement:
         user_data = {
             "username": "differentuser",
             "email": "test@example.com",  # Already exists
-            "password": "password123"
+            "password": "password123",
         }
 
-        response = client.post("/api/v1/users/admin/users",
-                             json=user_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/users/admin/users", json=user_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Username or email already registered" in response.json()["detail"]
@@ -249,11 +249,12 @@ class TestAdminUserManagement:
         user_data = {
             "username": "a",  # Too short
             "email": "invalid-email",
-            "password": "123"  # Too short
+            "password": "123",  # Too short
         }
 
-        response = client.post("/api/v1/users/admin/users",
-                             json=user_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/users/admin/users", json=user_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -264,11 +265,14 @@ class TestAdminUserManagement:
             "email": "updatedbyadmin@example.com",
             "is_admin": True,
             "is_moderator": False,
-            "enabled": False
+            "enabled": False,
         }
 
-        response = client.put(f"/api/v1/users/admin/users/{test_user.id}",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/users/admin/users/{test_user.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -282,8 +286,11 @@ class TestAdminUserManagement:
         """Test updating user as non-admin user."""
         update_data = {"username": "updatedbyuser"}
 
-        response = client.put(f"/api/v1/users/admin/users/{test_user.id}",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/users/admin/users/{test_user.id}",
+            json=update_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Not enough permissions" in response.json()["detail"]
@@ -292,8 +299,9 @@ class TestAdminUserManagement:
         """Test updating non-existent user."""
         update_data = {"username": "updateduser"}
 
-        response = client.put("/api/v1/users/admin/users/999",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            "/api/v1/users/admin/users/999", json=update_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "User not found" in response.json()["detail"]
@@ -302,8 +310,11 @@ class TestAdminUserManagement:
         """Test updating user with partial data."""
         update_data = {"enabled": False}
 
-        response = client.put(f"/api/v1/users/admin/users/{test_user.id}",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/users/admin/users/{test_user.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -314,32 +325,34 @@ class TestAdminUserManagement:
 
     def test_delete_user_admin(self, client, admin_headers, test_user):
         """Test deleting user as admin."""
-        response = client.delete(f"/api/v1/users/admin/users/{test_user.id}",
-                               headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/users/admin/users/{test_user.id}", headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert "User archived successfully" in response.json()["message"]
 
     def test_delete_user_non_admin(self, client, auth_headers, test_user):
         """Test deleting user as non-admin user."""
-        response = client.delete(f"/api/v1/users/admin/users/{test_user.id}",
-                               headers=auth_headers)
+        response = client.delete(
+            f"/api/v1/users/admin/users/{test_user.id}", headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert "Not enough permissions" in response.json()["detail"]
 
     def test_delete_user_not_found(self, client, admin_headers):
         """Test deleting non-existent user."""
-        response = client.delete("/api/v1/users/admin/users/999",
-                               headers=admin_headers)
+        response = client.delete("/api/v1/users/admin/users/999", headers=admin_headers)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "User not found" in response.json()["detail"]
 
     def test_delete_own_account(self, client, admin_headers, test_admin_user):
         """Test admin trying to delete their own account."""
-        response = client.delete(f"/api/v1/users/admin/users/{test_admin_user.id}",
-                               headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/users/admin/users/{test_admin_user.id}", headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Cannot delete your own account" in response.json()["detail"]
@@ -347,20 +360,18 @@ class TestAdminUserManagement:
     def test_update_user_password_admin(self, client, admin_headers, test_user):
         """Test updating user password as admin."""
         new_password = "newpassword123"
-        update_data = {
-            "password": new_password
-        }
+        update_data = {"password": new_password}
 
-        response = client.put(f"/api/v1/users/admin/users/{test_user.id}",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/users/admin/users/{test_user.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Verify password login
-        login_data = {
-            "username": test_user.username,
-            "password": new_password
-        }
+        login_data = {"username": test_user.username, "password": new_password}
         login_response = client.post("/api/v1/auth/login", json=login_data)
         assert login_response.status_code == status.HTTP_200_OK
         assert "access_token" in login_response.json()
@@ -369,15 +380,18 @@ class TestAdminUserManagement:
 class TestPublicUserProfile:
     """Test public user profile endpoints."""
 
-    def test_get_user_public_profile_success(self, client, test_user, test_diving_organization, db_session):
+    def test_get_user_public_profile_success(
+        self, client, test_user, test_diving_organization, db_session
+    ):
         """Test getting public profile for an existing user."""
         # Create a certification for the user
         from app.models import UserCertification
+
         certification = UserCertification(
             user_id=test_user.id,
             diving_organization_id=test_diving_organization.id,
             certification_level="Advanced Open Water",
-            is_active=True
+            is_active=True,
         )
         db_session.add(certification)
         db_session.commit()
@@ -408,7 +422,9 @@ class TestPublicUserProfile:
         assert cert["is_active"] is True
         assert "diving_organization" in cert
         assert cert["diving_organization"]["name"] == test_diving_organization.name
-        assert cert["diving_organization"]["acronym"] == test_diving_organization.acronym
+        assert (
+            cert["diving_organization"]["acronym"] == test_diving_organization.acronym
+        )
 
     def test_get_user_public_profile_not_found(self, client):
         """Test getting public profile for non-existent user."""
@@ -420,11 +436,12 @@ class TestPublicUserProfile:
     def test_get_user_public_profile_disabled_user(self, client, db_session):
         """Test getting public profile for disabled user."""
         from app.models import User
+
         disabled_user = User(
             username="disableduser",
             email="disabled@example.com",
             password_hash="hashed_password",
-            enabled=False
+            enabled=False,
         )
         db_session.add(disabled_user)
         db_session.commit()
@@ -446,16 +463,16 @@ class TestPublicUserProfile:
         data = response.json()
         assert data["avatar_url"] == "https://example.com/avatar.jpg"
 
-    def test_get_user_public_profile_with_activity(self, client, test_user, test_dive_site, test_diving_center, db_session):
+    def test_get_user_public_profile_with_activity(
+        self, client, test_user, test_dive_site, test_diving_center, db_session
+    ):
         """Test getting public profile for user with activity."""
         # Create some ratings and comments
-        from app.models import SiteRating, SiteComment, CenterComment
+        from app.models import CenterComment, SiteComment, SiteRating
 
         # Add a site rating
         site_rating = SiteRating(
-            dive_site_id=test_dive_site.id,
-            user_id=test_user.id,
-            score=8
+            dive_site_id=test_dive_site.id, user_id=test_user.id, score=4
         )
         db_session.add(site_rating)
 
@@ -463,7 +480,7 @@ class TestPublicUserProfile:
         site_comment = SiteComment(
             dive_site_id=test_dive_site.id,
             user_id=test_user.id,
-            comment_text="Great dive site!"
+            comment_text="Great dive site!",
         )
         db_session.add(site_comment)
 
@@ -471,7 +488,7 @@ class TestPublicUserProfile:
         center_comment = CenterComment(
             diving_center_id=test_diving_center.id,
             user_id=test_user.id,
-            comment_text="Excellent service!"
+            comment_text="Excellent service!",
         )
         db_session.add(center_comment)
 
@@ -484,7 +501,9 @@ class TestPublicUserProfile:
 
         # Check stats
         assert data["stats"]["dive_sites_rated"] == 1
-        assert data["stats"]["comments_posted"] == 2  # 1 site comment + 1 center comment
+        assert (
+            data["stats"]["comments_posted"] == 2
+        )  # 1 site comment + 1 center comment
 
     def test_get_user_public_profile_no_activity(self, client, test_user):
         """Test getting public profile for user with no activity."""
@@ -511,23 +530,26 @@ class TestPublicUserProfile:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_get_user_visited_sites_and_unique_count(self, client, test_user, test_dive_site, db_session, auth_headers):
+    def test_get_user_visited_sites_and_unique_count(
+        self, client, test_user, test_dive_site, db_session, auth_headers
+    ):
         """Test getting visited sites list and unique visited count in profile stats with proper privacy checks."""
-        from app.models import Dive
         from datetime import date
+
+        from app.models import Dive
 
         # Create some logged dives for the user on the test dive site
         dive1 = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2026, 6, 1),
-            is_private=False
+            is_private=False,
         )
         dive2 = Dive(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2026, 6, 2),
-            is_private=False
+            is_private=False,
         )
         db_session.add(dive1)
         db_session.add(dive2)
@@ -540,11 +562,15 @@ class TestPublicUserProfile:
         assert data["stats"]["unique_dive_sites_logged"] == 1
 
         # 1. Check visited-sites list without authentication (should return 403 due to FastAPI HTTPBearer default)
-        response_unauth = client.get(f"/api/v1/users/{test_user.username}/visited-sites")
+        response_unauth = client.get(
+            f"/api/v1/users/{test_user.username}/visited-sites"
+        )
         assert response_unauth.status_code == status.HTTP_403_FORBIDDEN
 
         # 2. Check visited-sites list as the owner themselves (should succeed)
-        response_visited = client.get(f"/api/v1/users/{test_user.username}/visited-sites", headers=auth_headers)
+        response_visited = client.get(
+            f"/api/v1/users/{test_user.username}/visited-sites", headers=auth_headers
+        )
         assert response_visited.status_code == status.HTTP_200_OK
         visited_data = response_visited.json()
         assert len(visited_data) == 1
@@ -553,14 +579,15 @@ class TestPublicUserProfile:
 
         # 3. Check visited-sites list of another user as a regular user (should return 403)
         # Create another user and get their token/headers
-        from app.models import User
         from app.auth import get_password_hash
+        from app.models import User
+
         other_user = User(
             username="other_stalker",
             email="other_stalker@example.com",
             password_hash=get_password_hash("securepass123"),
             enabled=True,
-            email_verified=True
+            email_verified=True,
         )
         db_session.add(other_user)
         db_session.commit()
@@ -568,37 +595,42 @@ class TestPublicUserProfile:
         # Login as the other user to get auth headers
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"username": "other_stalker", "password": "securepass123"}
+            json={"username": "other_stalker", "password": "securepass123"},
         )
         assert login_response.status_code == status.HTTP_200_OK
         other_token = login_response.json()["access_token"]
         other_headers = {"Authorization": f"Bearer {other_token}"}
 
         # Attempt to access test_user's visited sites as other_stalker
-        response_forbidden = client.get(f"/api/v1/users/{test_user.username}/visited-sites", headers=other_headers)
+        response_forbidden = client.get(
+            f"/api/v1/users/{test_user.username}/visited-sites", headers=other_headers
+        )
         assert response_forbidden.status_code == status.HTTP_403_FORBIDDEN
         assert "not authorized to view" in response_forbidden.json()["detail"]
 
 
 class TestUserProfileFeedbackHistory:
-    def test_get_my_comments_success(self, client, test_user, test_dive_site, db_session, auth_headers):
+    def test_get_my_comments_success(
+        self, client, test_user, test_dive_site, db_session, auth_headers
+    ):
         """Test retrieving comments made by the current user with pagination"""
+        from datetime import datetime, timedelta, timezone
+
         from app.models import SiteComment
-        from datetime import datetime, timezone, timedelta
-        
+
         # Create some comments for the user with distinct timestamps for sorting
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         comment1 = SiteComment(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             comment_text="Great dive site!",
-            created_at=now - timedelta(minutes=5)
+            created_at=now - timedelta(minutes=5),
         )
         comment2 = SiteComment(
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             comment_text="Visibility was okay.",
-            created_at=now
+            created_at=now,
         )
         db_session.add(comment1)
         db_session.add(comment2)
@@ -619,15 +651,15 @@ class TestUserProfileFeedbackHistory:
         response = client.get("/api/v1/users/me/comments")
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_get_my_ratings_success(self, client, test_user, test_dive_site, db_session, auth_headers):
+    def test_get_my_ratings_success(
+        self, client, test_user, test_dive_site, db_session, auth_headers
+    ):
         """Test retrieving ratings submitted by the current user with pagination"""
         from app.models import SiteRating
-        
+
         # Create some ratings for the user
         rating1 = SiteRating(
-            user_id=test_user.id,
-            dive_site_id=test_dive_site.id,
-            score=8
+            user_id=test_user.id, dive_site_id=test_dive_site.id, score=4
         )
         db_session.add(rating1)
         db_session.commit()
@@ -638,7 +670,7 @@ class TestUserProfileFeedbackHistory:
         data = response.json()
         assert data["total"] == 1
         assert len(data["items"]) == 1
-        assert data["items"][0]["score"] == 8
+        assert data["items"][0]["score"] == 4
         assert data["items"][0]["dive_site"]["id"] == test_dive_site.id
         assert data["items"][0]["dive_site"]["name"] == test_dive_site.name
 

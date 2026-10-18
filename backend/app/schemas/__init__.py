@@ -506,7 +506,7 @@ class DiveSiteRegionOption(BaseModel):
 
 # Site Rating Schemas
 class SiteRatingCreate(BaseModel):
-    score: float = Field(..., ge=1, le=10)
+    score: float = Field(..., ge=1, le=5)
 
 
 class SiteRatingResponse(BaseModel):
@@ -695,7 +695,7 @@ class DivingCenterListResponse(BaseModel):
 
 # Center Rating Schemas
 class CenterRatingCreate(BaseModel):
-    score: float = Field(..., ge=1, le=10)
+    score: float = Field(..., ge=1, le=5)
 
 
 class CenterRatingResponse(BaseModel):
@@ -1244,8 +1244,8 @@ class DiveBase(BaseModel):
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    visibility_rating: int | None = Field(None, ge=1, le=10)
-    user_rating: int | None = Field(None, ge=1, le=10)
+    visibility_rating: int | None = Field(None, ge=1, le=5)
+    user_rating: int | None = Field(None, ge=1, le=5)
     dive_date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")  # YYYY-MM-DD format
     dive_time: str | None = Field(
         None, pattern=r"^\d{2}:\d{2}:\d{2}$"
@@ -1285,8 +1285,8 @@ class DiveUpdate(BaseModel):
         None,
         description="Difficulty code: OPEN_WATER, ADVANCED_OPEN_WATER, DEEP_NITROX, TECHNICAL_DIVING, or null for unspecified",
     )
-    visibility_rating: int | None = Field(None, ge=1, le=10)
-    user_rating: int | None = Field(None, ge=1, le=10)
+    visibility_rating: int | None = Field(None, ge=1, le=5)
+    user_rating: int | None = Field(None, ge=1, le=5)
     dive_date: str | None = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     dive_time: str | None = Field(None, pattern=r"^\d{2}:\d{2}:\d{2}$")
     duration: int | None = Field(None, ge=1, le=1440)

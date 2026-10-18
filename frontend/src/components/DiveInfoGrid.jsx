@@ -185,7 +185,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Eye size={15} className='text-cyan-500' />
-                    <span className='text-sm font-medium'>{dive.visibility_rating}/10</span>
+                    <span className='text-sm font-medium'>{dive.visibility_rating}/5</span>
                   </div>
                 </div>
               </Grid.Item>
@@ -203,7 +203,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                       alt='Rating'
                       className='w-5 h-5 object-contain'
                     />
-                    <span className='text-sm font-medium'>{dive.user_rating}/10</span>
+                    <span className='text-sm font-medium'>{dive.user_rating}/5</span>
                   </div>
                 </div>
               </Grid.Item>
@@ -362,7 +362,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   <div className='flex items-center gap-2'>
                     <Eye size={15} className='text-cyan-500' />
                     <span className='text-sm text-gray-600'>Visibility:</span>
-                    <span className='font-medium'>{dive.visibility_rating}/10</span>
+                    <span className='font-medium'>{dive.visibility_rating}/5</span>
                   </div>
                 </Col>
               )}
@@ -376,7 +376,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                       className='w-5 h-5 object-contain'
                     />
                     <span className='text-sm text-gray-600'>Rating:</span>
-                    <span className='font-medium'>{dive.user_rating}/10</span>
+                    <span className='font-medium'>{dive.user_rating}/5</span>
                   </div>
                 </Col>
               )}

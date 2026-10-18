@@ -528,10 +528,10 @@ async def get_diving_centers_count(
     region: str | None = Query(None, max_length=100, description="Filter by region"),
     city: str | None = Query(None, max_length=100, description="Filter by city"),
     min_rating: float | None = Query(
-        None, ge=0, le=10, description="Minimum average rating (0-10)"
+        None, ge=0, le=5, description="Minimum average rating (0-5)"
     ),
     max_rating: float | None = Query(
-        None, ge=0, le=10, description="Maximum average rating (0-10)"
+        None, ge=0, le=5, description="Maximum average rating (0-5)"
     ),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_optional),
@@ -866,10 +866,10 @@ async def get_diving_centers(
     region: str | None = Query(None, max_length=100, description="Filter by region"),
     city: str | None = Query(None, max_length=100, description="Filter by city"),
     min_rating: float | None = Query(
-        None, ge=0, le=10, description="Minimum average rating (0-10)"
+        None, ge=0, le=5, description="Minimum average rating (0-5)"
     ),
     max_rating: float | None = Query(
-        None, ge=0, le=10, description="Maximum average rating (0-10)"
+        None, ge=0, le=5, description="Maximum average rating (0-5)"
     ),
     sort_by: str | None = Query(
         None,

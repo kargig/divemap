@@ -1166,7 +1166,7 @@ async def get_dive_sites(
         False, description="Exclude dive sites with unspecified difficulty"
     ),
     min_rating: float | None = Query(
-        None, ge=0, le=10, description="Minimum average rating (0-10)"
+        None, ge=0, le=5, description="Minimum average rating (0-5)"
     ),
     tag_ids: list[int] | None = Query(None),
     country: str | None = Query(None, max_length=100),
@@ -2246,7 +2246,7 @@ async def get_dive_sites_count(
         False, description="Exclude dive sites with unspecified difficulty"
     ),
     min_rating: float | None = Query(
-        None, ge=0, le=10, description="Minimum average rating (0-10)"
+        None, ge=0, le=5, description="Minimum average rating (0-5)"
     ),
     tag_ids: list[int] | None = Query(None),
     country: str | None = Query(None, max_length=100),

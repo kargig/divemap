@@ -330,7 +330,7 @@ const AdminGeneralStatistics = () => {
               <div>
                 <p className='text-sm font-medium text-gray-600'>Avg Site Rating</p>
                 <p className='text-2xl font-bold text-gray-900'>
-                  {generalStats?.platform_stats?.engagement?.avg_site_rating}/10
+                  {generalStats?.platform_stats?.engagement?.avg_site_rating}/5
                 </p>
                 <p className='text-sm text-gray-500'>Dive sites</p>
               </div>
@@ -343,7 +343,7 @@ const AdminGeneralStatistics = () => {
               <div>
                 <p className='text-sm font-medium text-gray-600'>Avg Center Rating</p>
                 <p className='text-2xl font-bold text-gray-900'>
-                  {generalStats?.platform_stats?.engagement?.avg_center_rating}/10
+                  {generalStats?.platform_stats?.engagement?.avg_center_rating}/5
                 </p>
                 <p className='text-sm text-gray-500'>Diving centers</p>
               </div>

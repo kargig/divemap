@@ -247,7 +247,7 @@ def generate_content(db: Session, r2_client=None):
             content_sites.append(f"- **Difficulty**: {site.difficulty.label}\n")
         if site.ratings:
             avg_score = sum(r.score for r in site.ratings) / len(site.ratings)
-            content_sites.append(f"- **Rating**: {avg_score:.1f}/10 ({len(site.ratings)} reviews)\n")
+            content_sites.append(f"- **Rating**: {avg_score:.1f}/5 ({len(site.ratings)} reviews)\n")
         if site.aliases:
             alias_list = [a.alias for a in site.aliases if getattr(a, "alias", None)]
             if alias_list:
@@ -346,7 +346,7 @@ def generate_content(db: Session, r2_client=None):
         content_dives.append(f"## {title} - {date_str}\n\n")
 
         if dive.dive_site: content_dives.append(f"**Site**: {dive.dive_site.name}\n")
-        if dive.user_rating: content_dives.append(f"**Rating**: {dive.user_rating}/10\n")
+        if dive.user_rating: content_dives.append(f"**Rating**: {dive.user_rating}/5\n")
         if dive.dive_information: content_dives.append(f"\n{dive.dive_information}\n")
         content_dives.append("---\n\n")
 

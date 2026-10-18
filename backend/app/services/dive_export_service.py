@@ -98,10 +98,10 @@ class DiveExportService:
         if dive.id:
             dive_elem.set("number", str(dive.id))
         if dive.user_rating is not None:
-            dive_elem.set("rating", str(max(1, round(float(dive.user_rating) / 2))))
+            dive_elem.set("rating", str(max(1, min(5, round(float(dive.user_rating))))))
         if dive.visibility_rating is not None:
             dive_elem.set(
-                "visibility", str(max(1, round(float(dive.visibility_rating) / 2)))
+                "visibility", str(max(1, min(5, round(float(dive.visibility_rating)))))
             )
 
         if extra_info.get("sac"):

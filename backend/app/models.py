@@ -632,7 +632,7 @@ class SiteRating(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    score = Column(Integer, nullable=False)  # 1-10
+    score = Column(Integer, nullable=False)  # 1-5
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -781,7 +781,7 @@ class CenterRating(Base):
     user_id = Column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    score = Column(Integer, nullable=False)  # 1-10
+    score = Column(Integer, nullable=False)  # 1-5
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -1144,8 +1144,8 @@ class Dive(Base):
         nullable=True,
         index=True,
     )
-    visibility_rating = Column(Integer)  # 1-10 rating
-    user_rating = Column(Integer)  # 1-10 rating
+    visibility_rating = Column(Integer)  # 1-5 rating
+    user_rating = Column(Integer)  # 1-5 rating
     dive_date = Column(Date, nullable=False)
     dive_time = Column(Time, nullable=True)
     duration = Column(Integer)  # Duration in minutes

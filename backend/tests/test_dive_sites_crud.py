@@ -6,6 +6,7 @@ Tests basic create, read, update, delete operations for dive sites.
 
 import pytest
 from fastapi import status
+
 from app.models import DiveSite
 
 
@@ -57,11 +58,12 @@ class TestDiveSitesCRUD:
             "name": "New Dive Site",
             "description": "A new dive site",
             "latitude": 25.0,
-            "longitude": 30.0
+            "longitude": 30.0,
         }
 
-        response = client.post("/api/v1/dive-sites/",
-                             json=dive_site_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK  # Changed from 201
         data = response.json()
@@ -77,7 +79,7 @@ class TestDiveSitesCRUD:
             "name": "New Dive Site",
             "description": "A new dive site",
             "latitude": 25.0,
-            "longitude": 30.0
+            "longitude": 30.0,
         }
 
         response = client.post("/api/v1/dive-sites/", json=dive_site_data)
@@ -90,11 +92,12 @@ class TestDiveSitesCRUD:
             "name": "New Dive Site",
             "description": "A new dive site",
             "latitude": 25.0,
-            "longitude": 30.0
+            "longitude": 30.0,
         }
 
-        response = client.post("/api/v1/dive-sites/",
-                             json=dive_site_data, headers=auth_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -108,23 +111,29 @@ class TestDiveSitesCRUD:
         dive_site_data = {
             "name": "",  # Empty name
             "latitude": 200.0,  # Invalid latitude
-            "longitude": 300.0  # Invalid longitude
+            "longitude": 300.0,  # Invalid longitude
         }
 
-        response = client.post("/api/v1/dive-sites/",
-                             json=dive_site_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_dive_site_admin_success(self, client, admin_headers, test_dive_site):
+    def test_update_dive_site_admin_success(
+        self, client, admin_headers, test_dive_site
+    ):
         """Test updating dive site as admin."""
         update_data = {
             "name": "Updated Dive Site",
-            "description": "Updated description"
+            "description": "Updated description",
         }
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -135,7 +144,9 @@ class TestDiveSitesCRUD:
         """Test updating dive site without authentication."""
         update_data = {"name": "Updated Dive Site"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}", json=update_data)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}", json=update_data
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
@@ -143,8 +154,11 @@ class TestDiveSitesCRUD:
         """Test updating dive site as non-admin user."""
         update_data = {"name": "Updated Dive Site"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}",
+            json=update_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
 
@@ -152,15 +166,19 @@ class TestDiveSitesCRUD:
         """Test updating non-existent dive site."""
         update_data = {"name": "Updated Dive Site"}
 
-        response = client.put("/api/v1/dive-sites/999",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            "/api/v1/dive-sites/999", json=update_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_dive_site_admin_success(self, client, admin_headers, test_dive_site):
+    def test_delete_dive_site_admin_success(
+        self, client, admin_headers, test_dive_site
+    ):
         """Test deleting dive site as admin."""
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}",
-                               headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}", headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK  # Changed from 204
 
@@ -172,8 +190,9 @@ class TestDiveSitesCRUD:
 
     def test_delete_dive_site_not_admin(self, client, auth_headers, test_dive_site):
         """Test deleting dive site as non-admin user."""
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}",
-                               headers=auth_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}", headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -190,20 +209,23 @@ class TestDiveSitesCRUD:
             "name": "Test Dive Site for Null Latitude",
             "description": "A test dive site",
             "latitude": 10.0,
-            "longitude": 20.0
+            "longitude": 20.0,
         }
 
-        create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        create_response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
         assert create_response.status_code == status.HTTP_200_OK
         dive_site_id = create_response.json()["id"]
 
         # Try to update with null latitude
-        update_data = {
-            "name": "Updated Test Dive Site",
-            "latitude": None
-        }
+        update_data = {"name": "Updated Test Dive Site", "latitude": None}
 
-        update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+        update_response = client.put(
+            f"/api/v1/dive-sites/{dive_site_id}",
+            json=update_data,
+            headers=admin_headers,
+        )
         assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "Latitude cannot be empty" in update_response.json()["detail"]
 
@@ -214,20 +236,23 @@ class TestDiveSitesCRUD:
             "name": "Test Dive Site for Null Longitude",
             "description": "A test dive site",
             "latitude": 10.0,
-            "longitude": 20.0
+            "longitude": 20.0,
         }
 
-        create_response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        create_response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
         assert create_response.status_code == status.HTTP_200_OK
         dive_site_id = create_response.json()["id"]
 
         # Try to update with null longitude
-        update_data = {
-            "name": "Updated Test Dive Site",
-            "longitude": None
-        }
+        update_data = {"name": "Updated Test Dive Site", "longitude": None}
 
-        update_response = client.put(f"/api/v1/dive-sites/{dive_site_id}", json=update_data, headers=admin_headers)
+        update_response = client.put(
+            f"/api/v1/dive-sites/{dive_site_id}",
+            json=update_data,
+            headers=admin_headers,
+        )
         assert update_response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert "Longitude cannot be empty" in update_response.json()["detail"]
 
@@ -246,13 +271,15 @@ class TestDiveSitesCRUD:
             "difficulty_code": "DEEP_NITROX",
             "max_depth": 25.0,
             "average_depth": 15.0,
-            "visibility_rating": 8,
-            "current_strength": "moderate"
+            "visibility_rating": 4,
+            "current_strength": "moderate",
         }
 
-        response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["name"] == "Comprehensive Dive Site"
         assert data["country"] == "Test Country"
@@ -265,13 +292,16 @@ class TestDiveSitesCRUD:
         """Test updating dive site with partial data."""
         update_data = {
             "description": "Updated description",
-            "difficulty_code": "TECHNICAL_DIVING"
+            "difficulty_code": "TECHNICAL_DIVING",
         }
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}", 
-                             json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
-        
+
         data = response.json()
         assert data["description"] == "Updated description"
         assert data["difficulty_code"] == "TECHNICAL_DIVING"
@@ -285,9 +315,10 @@ class TestDiveSitesCRUD:
             "name": "Invalid Coordinates Site",
             "description": "Site with invalid coordinates",
             "latitude": 200.0,  # Invalid latitude
-            "longitude": 30.0
+            "longitude": 30.0,
         }
 
-        response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-

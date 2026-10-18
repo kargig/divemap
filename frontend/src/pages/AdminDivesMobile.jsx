@@ -133,7 +133,7 @@ const AdminDivesMobile = () => {
                         <span style={{ color: '#faad14', fontWeight: 'bold' }}>
                           {dive.user_rating ? dive.user_rating : '-'}
                         </span>
-                        /10
+                        /5
                       </div>
                     </Space>
                   </Card>

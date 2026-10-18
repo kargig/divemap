@@ -291,9 +291,7 @@ const AdminDiveSitesTable = ({
                     <div>
                       <span className='text-gray-500'>Rating:</span>{' '}
                       <span className='text-gray-900'>
-                        {site.average_rating
-                          ? `${site.average_rating.toFixed(1)}/10`
-                          : 'No ratings'}
+                        {site.average_rating ? `${site.average_rating.toFixed(1)}/5` : 'No ratings'}
                       </span>
                     </div>
                     <div>

@@ -492,7 +492,7 @@ const AdminDiveSites = () => {
         cell: ({ row }) => {
           const rating = row.original.average_rating;
           return (
-            <span className='text-sm'>{rating ? `${rating.toFixed(1)}/10` : 'No ratings'}</span>
+            <span className='text-sm'>{rating ? `${rating.toFixed(1)}/5` : 'No ratings'}</span>
           );
         },
       },

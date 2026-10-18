@@ -95,7 +95,7 @@ const DivingCenterSummaryCard = ({ center, user, onBack, reviewsEnabled }) => {
               </h1>
               {center.average_rating && reviewsEnabled !== false && (
                 <span className='inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0'>
-                  ★ {center.average_rating.toFixed(1)}/10
+                  ★ {center.average_rating.toFixed(1)}/5
                   <span className='text-[10px] font-normal text-gray-500'>
                     ({center.total_ratings})
                   </span>

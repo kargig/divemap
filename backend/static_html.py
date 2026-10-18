@@ -80,7 +80,7 @@ def dive_site_meta_description(site: DiveSite, avg_rating: Optional[float], tota
     if site.max_depth:
         parts.append(f"Max depth: {format_depth(site.max_depth)}m.")
     if total_ratings > 0 and avg_rating is not None:
-        parts.append(f"Rated {avg_rating:.1f}/10.")
+        parts.append(f"Rated {avg_rating:.1f}/5.")
         review_word = "review" if total_ratings == 1 else "reviews"
         parts.append(f"Read {total_ratings} {review_word} and see photos.")
     else:
@@ -336,7 +336,7 @@ def render_dive_site_main(site: DiveSite, avg_rating: Optional[float], total_rat
 
     if total_ratings > 0 and avg_rating is not None:
         lines.append(
-            f"<p><strong>Rating:</strong> {escape_text(f'{avg_rating:.1f}/10')} "
+            f"<p><strong>Rating:</strong> {escape_text(f'{avg_rating:.1f}/5')} "
             f"({escape_text(total_ratings)} reviews)</p>"
         )
 

@@ -495,7 +495,7 @@ class TestDivingCenters:
 
     def test_rate_diving_center_success(self, client, auth_headers, test_diving_center):
         """Test rating a diving center."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
@@ -505,12 +505,12 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["score"] == 8
+        assert data["score"] == 4
         assert data["diving_center_id"] == test_diving_center.id
 
     def test_rate_diving_center_unauthorized(self, client, test_diving_center):
         """Test rating diving center without authentication."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate", json=rating_data
@@ -534,7 +534,7 @@ class TestDivingCenters:
 
     def test_rate_diving_center_not_found(self, client, auth_headers):
         """Test rating non-existent diving center."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
         response = client.post(
             "/api/v1/diving-centers/999/rate", json=rating_data, headers=auth_headers
@@ -548,13 +548,13 @@ class TestDivingCenters:
         """Test updating existing rating."""
         # Create initial rating
         initial_rating = CenterRating(
-            diving_center_id=test_diving_center.id, user_id=test_user.id, score=5
+            diving_center_id=test_diving_center.id, user_id=test_user.id, score=3
         )
         db_session.add(initial_rating)
         db_session.commit()
 
         # Update rating
-        rating_data = {"score": 9}
+        rating_data = {"score": 5}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,
@@ -563,7 +563,7 @@ class TestDivingCenters:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["score"] == 9
+        assert data["score"] == 5
 
     def test_get_diving_center_comments_success(self, client, test_diving_center):
         """Test getting diving center comments."""
@@ -810,7 +810,7 @@ class TestDivingCenters:
         center_id = create_response.json()["id"]
 
         # Rate the diving center
-        rating_data = {"score": 8.0}
+        rating_data = {"score": 4.0}
         rate_response = client.post(
             f"/api/v1/diving-centers/{center_id}/rate",
             json=rating_data,
@@ -825,8 +825,8 @@ class TestDivingCenters:
         assert get_response.status_code == status.HTTP_200_OK
 
         data = get_response.json()
-        assert data["user_rating"] == 8.0
-        assert data["average_rating"] == 8.0
+        assert data["user_rating"] == 4.0
+        assert data["average_rating"] == 4.0
         assert data["total_ratings"] == 1
 
     def test_get_diving_center_without_user_rating_success(
@@ -940,7 +940,7 @@ class TestDivingCenters:
 
         center_names = ["High Rated Center", "Low Rated Center", "Medium Rated Center"]
 
-        ratings = [9.0, 3.0, 6.0]
+        ratings = [5.0, 1.0, 3.0]
 
         for i, (name, rating) in enumerate(zip(center_names, ratings, strict=False)):
             center = DivingCenter(
@@ -965,16 +965,16 @@ class TestDivingCenters:
 
         # Test pagination with rating filter
         response = client.get(
-            "/api/v1/diving-centers/?page=1&page_size=25&min_rating=5.0"
+            "/api/v1/diving-centers/?page=1&page_size=25&min_rating=2.5"
         )
         assert response.status_code == status.HTTP_200_OK
 
         data = response.json()
-        # Check that all returned centers have rating >= 5.0
+        # Check that all returned centers have rating >= 2.5
         assert data["total"] >= 2
         for center in data["items"]:
             if center["average_rating"] is not None:  # Only check centers with ratings
-                assert center["average_rating"] >= 5.0
+                assert center["average_rating"] >= 2.5
 
     def test_delete_diving_center_media_not_found(
         self, client, admin_headers, test_diving_center
@@ -2048,7 +2048,7 @@ class TestDivingCenterAuthorization:
             db_session.add(setting)
         db_session.commit()
 
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,
@@ -2281,7 +2281,7 @@ class TestDivingCenterAuthorization:
         db_session.commit()
 
         # Test rating
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,
@@ -2322,7 +2322,7 @@ class TestDivingCenterAuthorization:
         db_session.commit()
 
         # Verify rating works
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,
@@ -2339,7 +2339,7 @@ class TestDivingCenterAuthorization:
         assert response.status_code == status.HTTP_200_OK
 
         # Verify rating is now blocked (no DB refresh needed, setting check happens per request)
-        rating_data = {"score": 9}
+        rating_data = {"score": 5}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,
@@ -2356,7 +2356,7 @@ class TestDivingCenterAuthorization:
         assert response.status_code == status.HTTP_200_OK
 
         # Verify rating works again
-        rating_data = {"score": 10}
+        rating_data = {"score": 5}
         response = client.post(
             f"/api/v1/diving-centers/{test_diving_center.id}/rate",
             json=rating_data,

@@ -594,9 +594,9 @@ export const createDiveSchema = z.object({
       val => {
         if (!val || val === '' || val === null) return true;
         const num = typeof val === 'string' ? parseInt(val, 10) : val;
-        return !isNaN(num) && num >= 1 && num <= 10;
+        return !isNaN(num) && num >= 1 && num <= 5;
       },
-      { message: 'Visibility rating must be between 1 and 10' }
+      { message: 'Visibility rating must be between 1 and 5' }
     )
     .transform(val => {
       if (!val || val === '' || val === null) return null;
@@ -611,9 +611,9 @@ export const createDiveSchema = z.object({
       val => {
         if (!val || val === '' || val === null) return true;
         const num = typeof val === 'string' ? parseInt(val, 10) : val;
-        return !isNaN(num) && num >= 1 && num <= 10;
+        return !isNaN(num) && num >= 1 && num <= 5;
       },
-      { message: 'User rating must be between 1 and 10' }
+      { message: 'User rating must be between 1 and 5' }
     )
     .transform(val => {
       if (!val || val === '' || val === null) return null;

@@ -791,32 +791,32 @@ const CreateDive = () => {
               </div>
 
               <div>
-                <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                <FormField name='visibility_rating' label='Visibility Rating (1-5)'>
                   {({ register, name }) => (
                     <input
                       id='visibility-rating'
                       type='number'
                       min='1'
-                      max='10'
+                      max='5'
                       {...register(name)}
                       className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('visibility_rating')}`}
-                      placeholder='8'
+                      placeholder='4'
                     />
                   )}
                 </FormField>
               </div>
 
               <div>
-                <FormField name='user_rating' label='Your Rating (1-10)'>
+                <FormField name='user_rating' label='Your Rating (1-5)'>
                   {({ register, name }) => (
                     <input
                       id='user-rating'
                       type='number'
                       min='1'
-                      max='10'
+                      max='5'
                       {...register(name)}
                       className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${getFieldErrorClass('user_rating')}`}
-                      placeholder='9'
+                      placeholder='4'
                     />
                   )}
                 </FormField>
