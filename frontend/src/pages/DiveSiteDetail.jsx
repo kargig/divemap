@@ -84,7 +84,9 @@ import {
   isYouTubeUrl,
   isVimeoUrl,
   extractYouTubeVideoId,
+  extractVimeoVideoId,
   getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
   getYouTubeThumbnailUrl,
 } from '../utils/youtubeHelpers';
 
@@ -248,12 +250,13 @@ const DiveSiteDetail = () => {
     }
   };
 
-  // Random featured media out of the first 5 candidates
+  // Stable featured media from the first 5 candidates (deterministic per site id)
   const featuredMedia = useMemo(() => {
     if (!media || media.length === 0) return null;
     const candidates = media.slice(0, 5);
-    const randomIndex = Math.floor(Math.random() * candidates.length);
-    return candidates[randomIndex];
+    const seed = Number.parseInt(id, 10);
+    const index = Number.isFinite(seed) ? Math.abs(seed) % candidates.length : 0;
+    return candidates[index];
   }, [id, media]);
 
   const { data: nearbyDiveSites, isLoading: isNearbyLoading } = useQuery(
@@ -370,16 +373,29 @@ const DiveSiteDetail = () => {
     return media.map(item => {
       const isVideo = isVideoUrl(item.url);
       const isYT = isYouTubeUrl(item.url);
+      const isVimeo = isVimeoUrl(item.url);
       const ytId = isYT ? extractYouTubeVideoId(item.url) : null;
+      const vimeoId = isVimeo ? extractVimeoVideoId(item.url) : null;
       const thumbUrl = isYT
         ? getYouTubeThumbnailUrl(ytId, 'hq')
         : getImageUrl(item.thumbnail_url || item.medium_url || item.url);
 
       if (isVideo) {
+        // Muted autoplay so opening the lightbox (1 click) starts playback
+        let embedUrl = null;
+        if (isYT && ytId) {
+          embedUrl = getYouTubeEmbedUrl(ytId, { autoplay: true });
+        } else if (isVimeo && vimeoId) {
+          embedUrl = getVimeoEmbedUrl(vimeoId, { autoplay: true });
+        }
+
         return {
           type: 'video',
           isYouTube: isYT,
-          embedUrl: isYT ? getYouTubeEmbedUrl(ytId, { autoplay: false }) : item.url,
+          isVimeo,
+          embedUrl,
+          // Native MP4 (and similar) playback must use the media URL, not the thumbnail
+          videoUrl: !isYT && !isVimeo ? item.url : null,
           src: thumbUrl,
           thumbnail: thumbUrl,
           width: 1920,
@@ -693,6 +709,28 @@ const DiveSiteDetail = () => {
               >
                 <Edit className='w-4 h-4' />
               </RouterLink>
+            )}
+            {shouldShowDelete && (
+              <button
+                type='button'
+                onClick={handleDelete}
+                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-red-600 hover:bg-red-50 active:scale-95 transition-all'
+                aria-label='Archive dive site'
+                title='Archive dive site'
+              >
+                <Trash2 className='w-4 h-4' />
+              </button>
+            )}
+            {shouldShowRestore && (
+              <button
+                type='button'
+                onClick={handleRestore}
+                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-amber-600 hover:bg-amber-50 active:scale-95 transition-all'
+                aria-label='Restore dive site'
+                title='Restore dive site'
+              >
+                <RotateCcw className='w-4 h-4' />
+              </button>
             )}
           </div>
         </div>
@@ -1029,24 +1067,43 @@ const DiveSiteDetail = () => {
               slides={mediaSlides}
               plugins={[Captions, Download, Slideshow, Fullscreen, Thumbnails]}
               render={{
-                slide: ({ slide, offset, rect }) => {
+                slide: ({ slide, offset }) => {
                   if (slide.type === 'video') {
+                    // YARL keeps neighbor slides mounted for swipe; only mount the
+                    // player on the active slide so prior videos stop on navigate.
+                    const isActive = offset === 0;
                     return (
                       <div className='flex items-center justify-center w-full h-full p-4 max-w-4xl max-h-[85vh] mx-auto'>
                         <div className='w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10'>
-                          {slide.isYouTube ? (
-                            <iframe
-                              src={slide.embedUrl}
-                              title={slide.title || 'Dive site video'}
-                              className='w-full h-full'
-                              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-                              allowFullScreen
-                            />
+                          {isActive ? (
+                            slide.isYouTube || slide.isVimeo ? (
+                              <iframe
+                                key={slide.embedUrl}
+                                src={slide.embedUrl}
+                                title={slide.title || 'Dive site video'}
+                                className='w-full h-full'
+                                allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+                                allowFullScreen
+                              />
+                            ) : (
+                              <video
+                                key={slide.videoUrl || slide.embedUrl}
+                                controls
+                                autoPlay
+                                muted
+                                playsInline
+                                className='w-full h-full'
+                              >
+                                <source src={slide.videoUrl || slide.embedUrl} type='video/mp4' />
+                                Your browser does not support the video tag.
+                              </video>
+                            )
                           ) : (
-                            <video controls autoPlay className='w-full h-full'>
-                              <source src={slide.src} type='video/mp4' />
-                              Your browser does not support the video tag.
-                            </video>
+                            <img
+                              src={slide.thumbnail || slide.src}
+                              alt={slide.title || 'Dive site video'}
+                              className='w-full h-full object-cover'
+                            />
                           )}
                         </div>
                       </div>

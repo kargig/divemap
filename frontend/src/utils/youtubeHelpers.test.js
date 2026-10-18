@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 
 import {
   extractYouTubeVideoId,
+  extractVimeoVideoId,
   isYouTubeUrl,
   isVimeoUrl,
   getYouTubeEmbedUrl,
+  getVimeoEmbedUrl,
 } from './youtubeHelpers';
 
 describe('youtubeHelpers', () => {
@@ -88,6 +90,35 @@ describe('youtubeHelpers', () => {
       const url = getYouTubeEmbedUrl('dQw4w9WgXcQ', { autoplay: true });
       expect(url).toContain('autoplay=1');
       expect(url).toContain('mute=1');
+    });
+  });
+
+  describe('extractVimeoVideoId', () => {
+    it('should extract ID from standard Vimeo URLs', () => {
+      expect(extractVimeoVideoId('https://vimeo.com/123456789')).toBe('123456789');
+      expect(extractVimeoVideoId('https://player.vimeo.com/video/123456789')).toBe('123456789');
+    });
+
+    it('should extract ID from URLs without protocol', () => {
+      expect(extractVimeoVideoId('vimeo.com/123456789')).toBe('123456789');
+    });
+
+    it('should return null for invalid URLs', () => {
+      expect(extractVimeoVideoId('https://youtube.com/watch?v=dQw4w9WgXcQ')).toBe(null);
+      expect(extractVimeoVideoId('https://evil.com/vimeo.com/123')).toBe(null);
+      expect(extractVimeoVideoId('Not a URL')).toBe(null);
+    });
+  });
+
+  describe('getVimeoEmbedUrl', () => {
+    it('should generate a correct embed URL', () => {
+      expect(getVimeoEmbedUrl('123456789')).toBe('https://player.vimeo.com/video/123456789');
+    });
+
+    it('should handle options like autoplay', () => {
+      const url = getVimeoEmbedUrl('123456789', { autoplay: true });
+      expect(url).toContain('autoplay=1');
+      expect(url).toContain('muted=1');
     });
   });
 });

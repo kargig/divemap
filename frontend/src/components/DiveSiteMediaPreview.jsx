@@ -7,6 +7,7 @@ import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
   isYouTubeUrl,
+  isVimeoUrl,
 } from '../utils/youtubeHelpers';
 
 const DiveSiteMediaPreview = ({
@@ -28,6 +29,7 @@ const DiveSiteMediaPreview = ({
   const isVideo =
     featuredItem.media_type === 'video' ||
     isYouTubeUrl(featuredItem.url) ||
+    isVimeoUrl(featuredItem.url) ||
     featuredItem.url?.includes('.mp4');
 
   const handleClick = () => {

@@ -298,22 +298,29 @@ const CreateDive = () => {
     }
   };
 
-  // Handle pre-filling dive_site_id from URL query parameter
+  // Prefill dive site once per dive_site_id query param (avoids stale handleDiveSiteSelect deps)
+  const prefilledDiveSiteIdRef = useRef(null);
   useEffect(() => {
     const siteIdParam = searchParams.get('dive_site_id');
-    if (siteIdParam) {
-      getDiveSite(siteIdParam)
-        .then(res => {
-          const site = res?.data || res;
-          if (site && site.name) {
-            handleDiveSiteSelect(site.id, site.name);
-          }
-        })
-        .catch(() => {
-          setValue('dive_site_id', siteIdParam.toString(), { shouldValidate: true });
-        });
+    if (!siteIdParam || prefilledDiveSiteIdRef.current === siteIdParam) {
+      return;
     }
-  }, [searchParams]);
+    prefilledDiveSiteIdRef.current = siteIdParam;
+
+    getDiveSite(siteIdParam)
+      .then(res => {
+        const site = res?.data || res;
+        if (site && site.name) {
+          setValue('dive_site_id', site.id.toString(), { shouldValidate: true });
+          setDiveSiteSearch(site.name);
+          setIsDiveSiteDropdownOpen(false);
+          setDiveSiteSearchResults([site]);
+        }
+      })
+      .catch(() => {
+        setValue('dive_site_id', siteIdParam.toString(), { shouldValidate: true });
+      });
+  }, [searchParams, setValue]);
 
   const handleDiveSiteSearchChange = value => {
     setDiveSiteSearch(value);
