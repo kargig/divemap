@@ -22,8 +22,12 @@ import {
   Route,
   User,
   Bookmark,
+  Fish,
+  Play,
+  Plus,
+  Footprints,
 } from 'lucide-react';
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
@@ -33,19 +37,23 @@ import {
   useSearchParams,
   Link as RouterLink,
 } from 'react-router-dom';
+import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import Download from 'yet-another-react-lightbox/plugins/download';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
-import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Slideshow from 'yet-another-react-lightbox/plugins/slideshow';
 import Thumbnails from 'yet-another-react-lightbox/plugins/thumbnails';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/thumbnails.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
+import 'yet-another-react-lightbox/plugins/counter.css';
 
 import api from '../api';
 import Breadcrumbs from '../components/Breadcrumbs';
 import CommunityVerdict from '../components/CommunityVerdict';
+import DiveSiteMediaPreview from '../components/DiveSiteMediaPreview';
 import DiveSiteRoutes from '../components/DiveSiteRoutes';
 import DiveSiteSidebar from '../components/DiveSiteSidebar';
-import Lightbox from '../components/Lightbox/Lightbox';
 import ReactImage from '../components/Lightbox/ReactImage';
 import WeatherConditionsCard from '../components/MarineConditionsCard';
 import MaskedEmail from '../components/MaskedEmail';
@@ -72,7 +80,13 @@ import { handleRateLimitError } from '../utils/rateLimitHandler';
 import { slugify, getDiveSiteSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 import { renderTextWithLinks } from '../utils/textHelpers';
-import { isYouTubeUrl, isVimeoUrl } from '../utils/youtubeHelpers';
+import {
+  isYouTubeUrl,
+  isVimeoUrl,
+  extractYouTubeVideoId,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
+} from '../utils/youtubeHelpers';
 
 import NotFound from './NotFound';
 import UnprocessableEntity from './UnprocessableEntity';
@@ -86,7 +100,7 @@ const DiveSiteDetail = () => {
   const { id, slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -95,11 +109,8 @@ const DiveSiteDetail = () => {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
-  const [activeMediaTab, setActiveMediaTab] = useState('photos');
-  const [activeContentTab, setActiveContentTab] = useState('description');
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const [autoOpenVideoId, setAutoOpenVideoId] = useState(null);
 
   // Collapse states for lazy loading
   const [isMarineExpanded, setIsMarineExpanded] = useState(false);
@@ -197,6 +208,53 @@ const DiveSiteDetail = () => {
   // Derived media categories
   const publicVideos = (media || []).filter(item => isVideoUrl(item.url));
   const publicPhotos = (media || []).filter(item => !isVideoUrl(item.url));
+
+  const isOwner = user?.id === diveSite?.created_by;
+  const isAdmin = user?.is_admin;
+  const shouldShowEdit = !!user;
+  const shouldShowDelete = (isOwner || isAdmin) && !diveSite?.deleted_at;
+  const shouldShowRestore = isAdmin && diveSite?.deleted_at;
+
+  const handleDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to archive the dive site "${diveSite?.name}"?\n\nDives linked to this site will be preserved, but the site itself will be hidden from others (Soft Delete).`
+      )
+    ) {
+      try {
+        await api.delete(`/api/v1/dive-sites/${id}`);
+        queryClient.invalidateQueries(['dive-site', id]);
+        toast.success('Dive site archived successfully');
+        navigate('/dive-sites');
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    }
+  };
+
+  const handleRestore = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to restore the archived dive site "${diveSite?.name}"?\n\nIt will become visible to the public again.`
+      )
+    ) {
+      try {
+        await api.post(`/api/v1/dive-sites/${id}/restore`);
+        queryClient.invalidateQueries(['dive-site', id]);
+        toast.success('Dive site restored successfully');
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    }
+  };
+
+  // Random featured media out of the first 5 candidates
+  const featuredMedia = useMemo(() => {
+    if (!media || media.length === 0) return null;
+    const candidates = media.slice(0, 5);
+    const randomIndex = Math.floor(Math.random() * candidates.length);
+    return candidates[randomIndex];
+  }, [id, media]);
 
   const { data: nearbyDiveSites, isLoading: isNearbyLoading } = useQuery(
     ['dive-site-nearby', id],
@@ -305,86 +363,81 @@ const DiveSiteDetail = () => {
   const videos = publicVideos;
   const photos = publicPhotos;
 
-  const photoSlides = photos.map(item => ({
-    src: getImageUrl(item.medium_url || item.url),
-    thumbnail: getImageUrl(item.thumbnail_url || item.medium_url || item.url),
-    width: 1920,
-    height: 1080,
-    alt: decodeHtmlEntities(item.description) || 'Dive site photo',
-    description: decodeHtmlEntities(item.description) || '',
-    // Store original URL for potential future use (e.g. download)
-    // Use explicit download_url if available (signed for attachment), otherwise fallback to viewing URL
-    download: getImageUrl(item.download_url || item.url),
-  }));
+  // Unified media slides for lightbox (both photos and videos)
+  const mediaSlides = useMemo(() => {
+    if (!media || media.length === 0) return [];
 
-  // Auto-select media tab based on availability
-  useEffect(() => {
-    if (media && media.length > 0) {
-      if (publicPhotos.length === 0 && publicVideos.length > 0) {
-        setActiveMediaTab('videos');
-      } else if (publicPhotos.length > 0 && publicVideos.length === 0) {
-        setActiveMediaTab('photos');
+    return media.map(item => {
+      const isVideo = isVideoUrl(item.url);
+      const isYT = isYouTubeUrl(item.url);
+      const ytId = isYT ? extractYouTubeVideoId(item.url) : null;
+      const thumbUrl = isYT
+        ? getYouTubeThumbnailUrl(ytId, 'hq')
+        : getImageUrl(item.thumbnail_url || item.medium_url || item.url);
+
+      if (isVideo) {
+        return {
+          type: 'video',
+          isYouTube: isYT,
+          embedUrl: isYT ? getYouTubeEmbedUrl(ytId, { autoplay: false }) : item.url,
+          src: thumbUrl,
+          thumbnail: thumbUrl,
+          width: 1920,
+          height: 1080,
+          title: decodeHtmlEntities(item.description) || 'Dive site video',
+          description: decodeHtmlEntities(item.description) || '',
+          originalItem: item,
+        };
       }
-    }
-  }, [media, publicPhotos.length, publicVideos.length]);
 
-  // Set initial content tab based on available content or URL param
+      return {
+        type: 'image',
+        src: getImageUrl(item.medium_url || item.url),
+        thumbnail: thumbUrl,
+        width: 1920,
+        height: 1080,
+        title: decodeHtmlEntities(item.description) || 'Dive site photo',
+        description: decodeHtmlEntities(item.description) || '',
+        download: getImageUrl(item.download_url || item.url),
+        originalItem: item,
+      };
+    });
+  }, [media, convertedFlickrUrls, isVideoUrl]);
+
+  // Open lightbox if tab=media query param is present
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('tab');
 
-    if (diveSite && media) {
-      if (tabParam === 'media' && media.length > 0) {
-        setActiveContentTab('media');
-      } else if (diveSite.description) {
-        setActiveContentTab('description');
-      } else if (media && media.length > 0) {
-        setActiveContentTab('media');
-      }
+    if (tabParam === 'media' && mediaSlides.length > 0) {
+      setIsLightboxOpen(true);
     }
-  }, [diveSite, media, location.search]);
+  }, [location.search, mediaSlides.length]);
 
   // Handle deep linking to specific media
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const mediaId = searchParams.get('mediaId');
     const source = searchParams.get('source'); // 'site_media' or 'dive_media'
-    const type = searchParams.get('type');
-    const autoPlay = searchParams.get('autoPlay') === 'true';
 
-    // Ensure media data is loaded and we are on the media tab
-    if (media && media.length > 0 && mediaId && activeContentTab === 'media') {
-      if (type === 'photo') {
-        // ... (existing photo logic)
-        // ...
-      } else if (type === 'video') {
-        // Find video item to construct ID
-        const video = videos.find(v => {
-          const isDiveMedia = !!v.dive_id;
-          const vSource = isDiveMedia ? 'dive_media' : 'site_media';
-          if (source) {
-            return String(v.id) === String(mediaId) && vSource === source;
-          }
-          return String(v.id) === String(mediaId);
-        });
-
-        if (video) {
-          setActiveMediaTab('videos');
-          if (autoPlay) {
-            setAutoOpenVideoId(`${video.dive_id ? `dive-${video.dive_id}-` : 'site-'}${video.id}`);
-          }
-          // Scroll to video
-          setTimeout(() => {
-            const elementId = `video-${video.dive_id ? `dive-${video.dive_id}-` : 'site-'}${video.id}`;
-            const element = document.getElementById(elementId);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 500); // Delay to ensure tab content is rendered
+    if (mediaSlides.length > 0 && mediaId) {
+      const idx = mediaSlides.findIndex(s => {
+        const item = s.originalItem;
+        if (!item) return false;
+        const isDiveMedia = !!item.dive_id;
+        const sSource = isDiveMedia ? 'dive_media' : 'site_media';
+        if (source) {
+          return String(item.id) === String(mediaId) && sSource === source;
         }
+        return String(item.id) === String(mediaId);
+      });
+
+      if (idx >= 0) {
+        setLightboxIndex(idx);
+        setIsLightboxOpen(true);
       }
     }
-  }, [media, activeContentTab, location.search, photos, videos]);
+  }, [mediaSlides, location.search]);
 
   if (isLoading) {
     return (
@@ -587,105 +640,6 @@ const DiveSiteDetail = () => {
             />
           </div>
         )}
-
-        {/* Action Buttons (Share, Edit) */}
-        <div className='flex gap-2 flex-wrap sm:justify-end'>
-          {diveSite && !diveSite.deleted_at && (
-            <ShareButton
-              entityType='dive-site'
-              entityData={diveSite}
-              className='inline-flex items-center px-3 py-1.5 text-xs sm:text-sm font-medium rounded-md shadow-sm'
-            />
-          )}
-          {diveSite && !diveSite.deleted_at && user && (
-            <Button
-              onClick={() => setIsSaveOpen(true)}
-              variant='primary'
-              size='sm'
-              icon={<Bookmark className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
-            >
-              Save to List
-            </Button>
-          )}
-          {(() => {
-            const isOwner = user?.id === diveSite?.created_by;
-            const isAdmin = user?.is_admin;
-            const isModerator = user?.is_moderator;
-            const shouldShowEdit = !!user; // Let any logged in user suggest edits
-            const shouldShowDelete = (isOwner || isAdmin) && !diveSite?.deleted_at;
-            const shouldShowRestore = isAdmin && diveSite?.deleted_at;
-
-            const handleDelete = async () => {
-              if (
-                window.confirm(
-                  `Are you sure you want to archive the dive site "${diveSite.name}"?\n\nDives linked to this site will be preserved, but the site itself will be hidden from others (Soft Delete).`
-                )
-              ) {
-                try {
-                  await api.delete(`/api/v1/dive-sites/${id}`);
-                  queryClient.invalidateQueries(['dive-site', id]);
-                  toast.success('Dive site archived successfully');
-                  navigate('/dive-sites');
-                } catch (error) {
-                  toast.error(getErrorMessage(error));
-                }
-              }
-            };
-
-            const handleRestore = async () => {
-              if (
-                window.confirm(
-                  `Are you sure you want to restore the archived dive site "${diveSite.name}"?\n\nIt will become visible to the public again.`
-                )
-              ) {
-                try {
-                  await api.post(`/api/v1/dive-sites/${id}/restore`);
-                  queryClient.invalidateQueries(['dive-site', id]);
-                  toast.success('Dive site restored successfully');
-                } catch (error) {
-                  toast.error(getErrorMessage(error));
-                }
-              }
-            };
-
-            return (
-              <>
-                {shouldShowEdit && (
-                  <Button
-                    to={`/dive-sites/${id}/edit`}
-                    variant='primary'
-                    size='sm'
-                    icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
-                  >
-                    Edit
-                  </Button>
-                )}
-                {shouldShowDelete && (
-                  <Button
-                    onClick={handleDelete}
-                    variant='danger'
-                    size='sm'
-                    icon={<Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
-                    title='Archive dive site'
-                  >
-                    Archive
-                  </Button>
-                )}
-                {shouldShowRestore && (
-                  <Button
-                    onClick={handleRestore}
-                    variant='warning'
-                    size='sm'
-                    icon={<RotateCcw className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
-                    title='Restore dive site'
-                  >
-                    Restore
-                  </Button>
-                )}
-              </>
-            );
-          })()}
-        </div>
       </div>
 
       {/* Header */}
@@ -693,176 +647,222 @@ const DiveSiteDetail = () => {
         id='overview'
         className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100 mb-4 sm:mb-6 scroll-mt-20'
       >
-        <div className='flex flex-col lg:flex-row gap-2 sm:gap-6'>
-          {/* Left Column: Title & Metadata */}
-          <div className='flex-1'>
-            <div className='flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-3 sm:gap-4'>
-              <div className='flex items-center gap-1.5 sm:gap-4 w-full'>
-                <button
-                  onClick={() => {
-                    const from = location.state?.from;
-                    if (from) {
-                      navigate(from);
-                    } else {
-                      navigate('/dive-sites');
-                    }
-                  }}
-                  className='text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0'
-                >
-                  <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
-                </button>
-                <div className='min-w-0 flex-1'>
-                  <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
-                    {diveSite.name}
-                    {diveSite.deleted_at && (
-                      <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
-                        ARCHIVED
-                      </span>
-                    )}
-                  </h1>
-                  {diveSite.created_by_username && (
-                    <div className='lg:hidden mt-2 flex items-center gap-1.5 text-xs text-gray-500'>
-                      <User className='w-3.5 h-3.5 text-gray-400' />
-                      <span>
-                        Created by{' '}
-                        <RouterLink
-                          to={`/users/${diveSite.created_by_username}`}
-                          className='font-bold text-blue-600 hover:text-blue-800'
-                        >
-                          {diveSite.created_by_username}
-                        </RouterLink>
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+        {/* Mobile-Only Top Navigation & Utility Row */}
+        <div className='flex lg:hidden items-center justify-between mb-2.5'>
+          <button
+            onClick={() => {
+              const from = location.state?.from;
+              if (from) {
+                navigate(from);
+              } else {
+                navigate('/dive-sites');
+              }
+            }}
+            className='text-gray-500 hover:text-gray-800 p-1.5 -ml-1.5 rounded-full hover:bg-gray-100 transition-colors'
+            aria-label='Go back'
+          >
+            <ArrowLeft className='w-5 h-5' />
+          </button>
 
-            {/* Metadata Grid */}
-            <div className='grid grid-cols-2 sm:flex sm:flex-row sm:items-center gap-x-3 gap-y-3 sm:gap-8 pl-1 sm:pl-0'>
-              {/* Rating (Mobile Only) */}
-              <div className='flex flex-col lg:hidden'>
-                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                  Rating
-                </span>
-                <div className='flex items-center gap-1 mt-0.5'>
-                  <img
-                    src='/arts/starfish-2.svg'
-                    alt='Rating'
-                    className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
-                  />
-                  <span className='text-xs sm:text-sm font-bold text-gray-900 leading-none'>
-                    {diveSite.average_rating ? Number(diveSite.average_rating).toFixed(1) : '-'}
+          <div className='flex items-center gap-2'>
+            {diveSite && !diveSite.deleted_at && user && (
+              <button
+                type='button'
+                onClick={() => setIsSaveOpen(true)}
+                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all'
+                aria-label='Save to List'
+                title='Save to List'
+              >
+                <Bookmark className='w-4 h-4' />
+              </button>
+            )}
+            {diveSite && !diveSite.deleted_at && (
+              <ShareButton
+                entityType='dive-site'
+                entityData={diveSite}
+                variant='icon-only'
+                className='!p-2 !rounded-full !border !border-gray-200 !text-gray-600 hover:!text-blue-600 hover:!bg-blue-50 active:scale-95 transition-all'
+              />
+            )}
+            {shouldShowEdit && (
+              <RouterLink
+                to={`/dive-sites/${id}/edit`}
+                className='p-2 rounded-full border border-gray-200 text-gray-600 hover:text-blue-600 hover:bg-blue-50 active:scale-95 transition-all inline-flex items-center justify-center'
+                aria-label='Edit dive site'
+                title='Edit dive site'
+              >
+                <Edit className='w-4 h-4' />
+              </RouterLink>
+            )}
+          </div>
+        </div>
+
+        {/* Title Row (Full width on mobile, side-by-side with Community Verdict on desktop) */}
+        <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4'>
+          <div className='flex items-start gap-2.5 sm:gap-3.5 min-w-0 flex-1'>
+            {/* Desktop Back Button */}
+            <button
+              onClick={() => {
+                const from = location.state?.from;
+                if (from) {
+                  navigate(from);
+                } else {
+                  navigate('/dive-sites');
+                }
+              }}
+              className='hidden lg:flex text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100 transition-colors shrink-0 mt-1'
+              aria-label='Go back'
+            >
+              <ArrowLeft className='w-4 h-4 sm:w-6 sm:h-6' />
+            </button>
+            <div className='min-w-0 flex-1'>
+              <h1 className='text-2xl sm:text-3xl lg:text-4xl font-display font-bold text-gray-900 break-words leading-tight'>
+                {diveSite.name}
+                {diveSite.deleted_at && (
+                  <span className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 align-middle uppercase tracking-tighter'>
+                    ARCHIVED
                   </span>
-                  <span className='text-[10px] text-gray-400 font-medium ml-0.5 leading-none'>
-                    ({diveSite.total_ratings || 0})
-                  </span>
-                </div>
-              </div>
-
-              {/* Difficulty */}
-              <div className='flex flex-col'>
-                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                  Difficulty
-                </span>
-                <div className='flex items-center mt-0.5'>
-                  <DifficultyBadge
-                    code={diveSite.difficulty_code}
-                    label={diveSite.difficulty_label}
-                  />
-                </div>
-              </div>
-
-              {/* Max Depth */}
-              {diveSite.max_depth && (
-                <div className='flex flex-col'>
-                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                    Max Depth
-                  </span>
-                  <div className='flex items-center gap-1'>
-                    <DepthIcon className='text-divemap-blue font-bold' size={16} />
-                    <span className='text-xs sm:text-sm font-bold text-gray-900'>
-                      {diveSite.max_depth}
-                      <span className='text-[10px] font-normal text-gray-400 ml-0.5'>m</span>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Added Date */}
-              <div className='flex flex-col'>
-                <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                  Added
-                </span>
-                <span className='text-xs sm:text-sm font-medium text-gray-900'>
-                  {formatDate(diveSite.created_at, { month: 'short' })}
-                </span>
-              </div>
-
-              {/* Tags */}
-              {diveSite.tags && diveSite.tags.length > 0 && (
-                <div className='flex flex-col col-span-2'>
-                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                    Tags
-                  </span>
-                  <div className='flex flex-wrap gap-1.5 mt-0.5'>
-                    {diveSite.tags.map(tag => (
-                      <span
-                        key={tag.id}
-                        className={`px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getTagColor(tag.name)}`}
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Aliases */}
-              {diveSite.aliases && diveSite.aliases.length > 0 && (
-                <div className='flex flex-col col-span-2 sm:col-span-1'>
-                  <span className='text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
-                    Also Known As
-                  </span>
-                  <div className='flex flex-wrap gap-1.5 mt-0.5'>
-                    {diveSite.aliases.map(alias => (
-                      <span
-                        key={alias.id}
-                        className='px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-100'
-                      >
-                        {alias.alias}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                )}
+              </h1>
             </div>
           </div>
 
-          {/* Right Column: Community Verdict (Desktop Only) */}
-          <div className='hidden lg:block lg:w-auto lg:border-l lg:border-gray-100 lg:pl-6 lg:ml-2'>
+          {/* Community Verdict (Desktop Only, Aligned Top-Right with Title) */}
+          <div className='hidden lg:flex items-center shrink-0 pl-4 border-l border-gray-100'>
             <CommunityVerdict
               diveSite={diveSite}
               onRate={handleQuickRate}
               isSubmitting={rateMutation.isLoading}
               compact={true}
             />
-            {diveSite.created_by_username && (
-              <div className='mt-4 pt-4 border-t border-gray-50 flex items-center gap-2 text-xs text-gray-500'>
-                <User className='w-4 h-4 text-gray-400' />
-                <span>
-                  Created by{' '}
-                  <RouterLink
-                    to={`/users/${diveSite.created_by_username}`}
-                    className='font-medium text-blue-600 hover:text-blue-800 hover:underline'
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className='my-3 sm:my-4 border-t border-gray-100' />
+
+        {/* Sub-Header Strip */}
+        <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+          {/* Left: Rating (mobile), Tags & Aliases */}
+          <div className='flex flex-wrap items-center gap-2 sm:gap-3'>
+            {/* Rating (Mobile Only) */}
+            <div className='flex items-center gap-1 lg:hidden pr-1'>
+              <img
+                src='/arts/starfish-2.svg'
+                alt='Rating'
+                className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
+              />
+              <span className='text-xs sm:text-sm font-bold text-gray-900 leading-none'>
+                {diveSite.average_rating ? Number(diveSite.average_rating).toFixed(1) : '-'}
+              </span>
+              <span className='text-[10px] text-gray-400 font-medium ml-0.5 leading-none'>
+                ({diveSite.total_ratings || 0})
+              </span>
+            </div>
+
+            {/* Tags */}
+            {diveSite.tags && diveSite.tags.length > 0 && (
+              <div className='flex flex-wrap items-center gap-1.5'>
+                {diveSite.tags.map(tag => (
+                  <span
+                    key={tag.id}
+                    className={`px-2 py-0.5 rounded-full text-[11px] sm:text-xs font-medium ${getTagColor(tag.name)}`}
                   >
-                    {diveSite.created_by_username}
-                  </RouterLink>
-                </span>
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Aliases */}
+            {diveSite.aliases && diveSite.aliases.length > 0 && (
+              <div className='flex flex-wrap items-center gap-1.5 text-xs text-gray-500'>
+                <span className='text-[11px] text-gray-400 font-medium'>AKA:</span>
+                {diveSite.aliases.map(alias => (
+                  <span
+                    key={alias.id}
+                    className='px-2 py-0.5 text-[11px] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-100'
+                  >
+                    {alias.alias}
+                  </span>
+                ))}
               </div>
             )}
           </div>
+
+          {/* Desktop-Only Actions Toolbar */}
+          <div className='hidden lg:flex items-center gap-2 sm:gap-3 shrink-0'>
+            {diveSite && !diveSite.deleted_at && user && (
+              <Button
+                onClick={() => setIsSaveOpen(true)}
+                variant='secondary'
+                size='sm'
+                icon={<Bookmark className='h-4 w-4' />}
+                className='font-semibold'
+              >
+                Save to List
+              </Button>
+            )}
+
+            {diveSite && !diveSite.deleted_at && (
+              <ShareButton
+                entityType='dive-site'
+                entityData={diveSite}
+                className='inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md shadow-sm border border-gray-200 hover:bg-gray-50 text-gray-700'
+              />
+            )}
+
+            {shouldShowEdit && (
+              <Button
+                to={`/dive-sites/${id}/edit`}
+                variant='ghost'
+                size='sm'
+                icon={<Edit className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+              >
+                Edit
+              </Button>
+            )}
+
+            {shouldShowDelete && (
+              <Button
+                onClick={handleDelete}
+                variant='danger'
+                size='sm'
+                icon={<Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+                title='Archive dive site'
+              >
+                Archive
+              </Button>
+            )}
+
+            {shouldShowRestore && (
+              <Button
+                onClick={handleRestore}
+                variant='warning'
+                size='sm'
+                icon={<RotateCcw className='h-3.5 w-3.5 sm:h-4 sm:w-4' />}
+                title='Restore dive site'
+              >
+                Restore
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Mobile-Only Primary CTA: Log a Dive Here */}
+        {diveSite && !diveSite.deleted_at && (
+          <div className='mt-3.5 lg:hidden'>
+            <Button
+              to={`/dives/create?dive_site_id=${id}`}
+              variant='primary'
+              size='sm'
+              icon={<Plus className='w-4 h-4' />}
+              className='w-full justify-center font-bold text-xs shadow-sm py-2'
+            >
+              Log a Dive Here
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Horizontal Tabs Navigation */}
@@ -937,134 +937,144 @@ const DiveSiteDetail = () => {
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8'>
         {/* Main Content */}
         <div className='lg:col-span-2 space-y-4 sm:space-y-6'>
-          {/* Description & Media Gallery with Tabs */}
-          {(diveSite.description || (media && media.length > 0)) && (
+          {/* Description, Access Instructions, Marine Life & Media Showcase */}
+          {(diveSite.description ||
+            diveSite.access_instructions ||
+            diveSite.marine_life ||
+            (media && media.length > 0)) && (
             <div className='bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
-              {/* Main Tab Navigation */}
-              <div className='border-b border-gray-200 mb-3 sm:mb-4'>
-                <nav className='flex space-x-4 sm:space-x-8'>
+              <div className='flex flex-col md:flex-row gap-5 sm:gap-6 items-start'>
+                {/* Left Column: Description, Access Instructions & Marine Life */}
+                <div className='flex-1 min-w-0 w-full'>
                   {diveSite.description && (
-                    <button
-                      onClick={() =>
-                        setSearchParams(prev => {
-                          prev.set('tab', 'description');
-                          return prev;
-                        })
-                      }
-                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
-                        activeContentTab === 'description'
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      Description
-                    </button>
-                  )}
-                  {media && media.length > 0 && (
-                    <button
-                      onClick={() =>
-                        setSearchParams(prev => {
-                          prev.set('tab', 'media');
-                          return prev;
-                        })
-                      }
-                      className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
-                        activeContentTab === 'media'
-                          ? 'border-blue-500 text-blue-600'
-                          : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
-                      }`}
-                    >
-                      Photos & Videos
-                    </button>
-                  )}
-                </nav>
-              </div>
-
-              {/* Tab Content */}
-              {activeContentTab === 'description' && diveSite.description && (
-                <RichText content={diveSite.description} className='text-[13px] sm:text-base' />
-              )}
-
-              {activeContentTab === 'media' && media && media.length > 0 && (
-                <div>
-                  {/* Media Tab Navigation */}
-                  <div className='border-b border-gray-200 mb-3 sm:mb-4'>
-                    <nav className='flex space-x-4 sm:space-x-8'>
-                      {photos.length > 0 && (
-                        <button
-                          onClick={() => setActiveMediaTab('photos')}
-                          className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider ${
-                            activeMediaTab === 'photos'
-                              ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          Photos ({photos.length})
-                        </button>
-                      )}
-                      {videos.length > 0 && (
-                        <button
-                          onClick={() => setActiveMediaTab('videos')}
-                          className={`py-1.5 sm:py-2 px-0.5 sm:px-1 border-b-2 font-bold text-[10px] sm:text-sm uppercase tracking-wider flex items-center space-x-1.5 ${
-                            activeMediaTab === 'videos'
-                              ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          <Video className='w-3 h-3 sm:w-3.5 sm:h-3.5' />
-                          <span>Videos ({videos.length})</span>
-                        </button>
-                      )}
-                    </nav>
-                  </div>
-
-                  {/* Media Tab Content */}
-                  {activeMediaTab === 'photos' && photos.length > 0 && (
-                    <div>
-                      <Lightbox
-                        open={isLightboxOpen}
-                        close={() => setIsLightboxOpen(false)}
-                        index={lightboxIndex}
-                        on={{ view: ({ index }) => setLightboxIndex(index) }}
-                        slides={photoSlides}
-                        plugins={[Captions, Download, Slideshow, Fullscreen, Thumbnails]}
-                        render={{ slide: ReactImage, thumbnail: ReactImage }}
-                        thumbnails={{ position: 'bottom' }}
+                    <div className='mb-4'>
+                      <span className='block text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5'>
+                        Description
+                      </span>
+                      <RichText
+                        content={diveSite.description}
+                        className='text-[13px] sm:text-base'
                       />
                     </div>
                   )}
 
-                  {activeMediaTab === 'videos' && videos.length > 0 && (
-                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
-                      {videos.map(item => (
-                        <div
-                          key={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
-                          id={`video-${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`}
-                          className='border rounded-lg overflow-hidden'
-                        >
-                          <div className='relative'>
-                            <YouTubePreview
-                              url={item.url}
-                              description={decodeHtmlEntities(item.description)}
-                              className='w-full'
-                              openInNewTab={false}
-                              autoOpen={
-                                autoOpenVideoId ===
-                                `${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`
-                              }
-                              autoPlay={
-                                autoOpenVideoId ===
-                                `${item.dive_id ? `dive-${item.dive_id}-` : 'site-'}${item.id}`
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))}
+                  {/* Access Instructions Callout */}
+                  {diveSite.access_instructions && (
+                    <div className='mt-3.5 p-3.5 sm:p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/90 dark:border-emerald-900/40'>
+                      <div className='flex items-center gap-2 mb-1.5'>
+                        <Footprints className='w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0' />
+                        <h3 className='text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider'>
+                          Access Instructions
+                        </h3>
+                      </div>
+                      <RichText
+                        content={diveSite.access_instructions}
+                        className='text-xs sm:text-sm text-emerald-950 dark:text-emerald-100'
+                      />
+                    </div>
+                  )}
+
+                  {/* Marine Life Callout */}
+                  {diveSite.marine_life && (
+                    <div className='mt-3.5 p-3.5 sm:p-4 rounded-xl bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-100/90 dark:border-cyan-900/40'>
+                      <div className='flex items-center gap-2 mb-1.5'>
+                        <Fish className='w-4 h-4 text-cyan-700 dark:text-cyan-400 shrink-0' />
+                        <h3 className='text-xs sm:text-sm font-bold text-cyan-900 dark:text-cyan-300 uppercase tracking-wider'>
+                          Marine Life
+                        </h3>
+                      </div>
+                      <RichText
+                        content={diveSite.marine_life}
+                        className='text-xs sm:text-sm text-cyan-950 dark:text-cyan-100'
+                      />
                     </div>
                   )}
                 </div>
-              )}
+
+                {/* Right Column: Featured Media Showcase */}
+                {media && media.length > 0 && (
+                  <DiveSiteMediaPreview
+                    media={media}
+                    featuredItem={featuredMedia}
+                    photosCount={photos.length}
+                    videosCount={videos.length}
+                    getImageUrl={getImageUrl}
+                    onOpenPhoto={photoItem => {
+                      const idx = mediaSlides.findIndex(s => s.originalItem?.id === photoItem.id);
+                      setLightboxIndex(idx >= 0 ? idx : 0);
+                      setIsLightboxOpen(true);
+                    }}
+                    onOpenVideo={videoItem => {
+                      const idx = mediaSlides.findIndex(s => s.originalItem?.id === videoItem.id);
+                      setLightboxIndex(idx >= 0 ? idx : 0);
+                      setIsLightboxOpen(true);
+                    }}
+                    onViewAll={() => {
+                      setLightboxIndex(0);
+                      setIsLightboxOpen(true);
+                    }}
+                  />
+                )}
+              </div>
             </div>
+          )}
+
+          {/* Fullscreen Lightbox for Photos & Videos */}
+          {mediaSlides.length > 0 && (
+            <Lightbox
+              open={isLightboxOpen}
+              close={() => setIsLightboxOpen(false)}
+              index={lightboxIndex}
+              on={{ view: ({ index }) => setLightboxIndex(index) }}
+              slides={mediaSlides}
+              plugins={[Captions, Download, Slideshow, Fullscreen, Thumbnails]}
+              render={{
+                slide: ({ slide, offset, rect }) => {
+                  if (slide.type === 'video') {
+                    return (
+                      <div className='flex items-center justify-center w-full h-full p-4 max-w-4xl max-h-[85vh] mx-auto'>
+                        <div className='w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10'>
+                          {slide.isYouTube ? (
+                            <iframe
+                              src={slide.embedUrl}
+                              title={slide.title || 'Dive site video'}
+                              className='w-full h-full'
+                              allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video controls autoPlay className='w-full h-full'>
+                              <source src={slide.src} type='video/mp4' />
+                              Your browser does not support the video tag.
+                            </video>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return undefined;
+                },
+                thumbnail: ({ slide }) => {
+                  return (
+                    <div className='relative w-full h-full overflow-hidden rounded'>
+                      <img
+                        src={slide.thumbnail || slide.src}
+                        alt={slide.title || 'Thumbnail'}
+                        className='w-full h-full object-cover'
+                      />
+                      {slide.type === 'video' && (
+                        <div className='absolute inset-0 flex items-center justify-center bg-black/40'>
+                          <div className='w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center'>
+                            <Play className='w-2 h-2 ml-0.5 fill-current' />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                },
+              }}
+              thumbnails={{ position: 'bottom' }}
+            />
           )}
 
           {/* Location */}
@@ -1189,16 +1199,6 @@ const DiveSiteDetail = () => {
             </div>
           </div>
 
-          {/* Marine Life */}
-          {diveSite.marine_life && (
-            <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
-              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
-                Marine Life
-              </h2>
-              <RichText content={diveSite.marine_life} className='text-xs sm:text-base' />
-            </div>
-          )}
-
           {/* Safety Information */}
           {diveSite.safety_information && (
             <div className='bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
@@ -1206,16 +1206,6 @@ const DiveSiteDetail = () => {
                 Safety Information
               </h2>
               <RichText content={diveSite.safety_information} className='text-xs sm:text-base' />
-            </div>
-          )}
-
-          {/* Access Instructions - Mobile View Only */}
-          {diveSite.access_instructions && (
-            <div className='lg:hidden bg-white p-3 sm:p-6 rounded-xl shadow-sm border border-gray-100'>
-              <h2 className='text-base sm:text-xl font-bold text-gray-900 mb-2 sm:mb-4'>
-                Access Instructions
-              </h2>
-              <RichText content={diveSite.access_instructions} className='text-xs sm:text-base' />
             </div>
           )}
 

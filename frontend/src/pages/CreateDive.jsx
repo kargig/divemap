@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useMutation, useQueryClient, useQuery } from 'react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import DivingCenterSearchableDropdown from '../components/DivingCenterSearchableDropdown';
 import { FormField } from '../components/forms/FormField';
@@ -15,7 +15,7 @@ import UploadPhotosComponent from '../components/UploadPhotosComponent';
 import UserSearchInput from '../components/UserSearchInput';
 import YouTubePreview from '../components/YouTubePreview';
 import { createDive, addDiveMedia, uploadPhotoToR2Only } from '../services/dives';
-import { getDiveSites } from '../services/diveSites';
+import { getDiveSites, getDiveSite } from '../services/diveSites';
 import { getDivingCenters } from '../services/divingCenters';
 import { getAvailableTags } from '../services/tags';
 import { extractErrorMessage, extractFieldErrors } from '../utils/apiErrors';
@@ -28,6 +28,7 @@ import { isYouTubeUrl } from '../utils/youtubeHelpers';
 
 const CreateDive = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   // React Hook Form setup
@@ -296,6 +297,23 @@ const CreateDive = () => {
       setDiveSiteSearchResults([selectedSite]);
     }
   };
+
+  // Handle pre-filling dive_site_id from URL query parameter
+  useEffect(() => {
+    const siteIdParam = searchParams.get('dive_site_id');
+    if (siteIdParam) {
+      getDiveSite(siteIdParam)
+        .then(res => {
+          const site = res?.data || res;
+          if (site && site.name) {
+            handleDiveSiteSelect(site.id, site.name);
+          }
+        })
+        .catch(() => {
+          setValue('dive_site_id', siteIdParam.toString(), { shouldValidate: true });
+        });
+    }
+  }, [searchParams]);
 
   const handleDiveSiteSearchChange = value => {
     setDiveSiteSearch(value);
