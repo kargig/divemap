@@ -227,7 +227,7 @@ class ShareService:
             if entity_data.get("duration"):
                 stats.append(f"Duration: {entity_data['duration']}min")
             if entity_data.get("user_rating"):
-                stats.append(f"Rating: {entity_data['user_rating']}/10")
+                stats.append(f"Rating: {entity_data['user_rating']}/5")
 
             if stats:
                 desc_parts.append("\n\n" + " | ".join(stats))
@@ -248,7 +248,7 @@ class ShareService:
             if entity_data.get("difficulty_label"):
                 stats.append(f"Difficulty: {entity_data['difficulty_label']}")
             if entity_data.get("average_rating"):
-                stats.append(f"Rating: {entity_data['average_rating']}/10")
+                stats.append(f"Rating: {entity_data['average_rating']}/5")
 
             if stats:
                 description += "\n\n" + " | ".join(stats)

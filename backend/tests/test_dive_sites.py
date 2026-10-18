@@ -1,9 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from fastapi import status
-from unittest.mock import patch, MagicMock
 import requests
-from app.models import SiteRating, SiteComment
-from app.models import DiveSite, DifficultyLevel
+from fastapi import status
+
+from app.models import DifficultyLevel, DiveSite, SiteComment, SiteRating
+
 
 class TestDiveSites:
     """Test dive sites endpoints."""
@@ -22,7 +24,10 @@ class TestDiveSites:
         """Test that short search queries (less than 3 chars) return 400."""
         response = client.get("/api/v1/dive-sites/?search=ki")
         assert response.status_code == 400
-        assert response.json()["detail"] == "Search query must be at least 3 characters long"
+        assert (
+            response.json()["detail"]
+            == "Search query must be at least 3 characters long"
+        )
 
     def test_get_dive_sites_with_filter(self, client, test_dive_site):
         """Test getting dive sites with difficulty filter."""
@@ -35,80 +40,96 @@ class TestDiveSites:
         assert data["items"][0]["difficulty_code"] == "ADVANCED_OPEN_WATER"
         assert data["items"][0]["difficulty_label"] == "Advanced Open Water"
 
-    def test_get_dive_sites_with_dive_site_id_filter_admin(self, client, db_session, test_admin_user, admin_headers, test_dive_site):
+    def test_get_dive_sites_with_dive_site_id_filter_admin(
+        self, client, db_session, test_admin_user, admin_headers, test_dive_site
+    ):
         """Test getting dive sites with dive_site_id filter as admin."""
         # Create another dive site to make sure filtering works
         from app.models import DiveSite
+
         new_site = DiveSite(
             name="Another Site",
             latitude=10.0,
             longitude=20.0,
             status="approved",
-            created_by=test_admin_user.id
+            created_by=test_admin_user.id,
         )
         db_session.add(new_site)
         db_session.commit()
         db_session.refresh(new_site)
-        
+
         # Filter by the first dive site's ID
-        response = client.get(f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}", headers=admin_headers)
+        response = client.get(
+            f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}",
+            headers=admin_headers,
+        )
 
         assert response.status_code == 200
         data = response.json()
         assert data["total"] == 1
         assert len(data["items"]) == 1
         assert data["items"][0]["id"] == test_dive_site.id
-        
+
         # Clean up
         db_session.delete(new_site)
         db_session.commit()
 
-    def test_get_dive_sites_with_dive_site_id_filter_regular_user_ignored(self, client, db_session, test_user, auth_headers, test_dive_site):
+    def test_get_dive_sites_with_dive_site_id_filter_regular_user_ignored(
+        self, client, db_session, test_user, auth_headers, test_dive_site
+    ):
         """Test that dive_site_id filter is ignored for regular users."""
         # Create another dive site
         from app.models import DiveSite
+
         new_site = DiveSite(
             name="Another Site",
             latitude=10.0,
             longitude=20.0,
             status="approved",
-            created_by=test_user.id
+            created_by=test_user.id,
         )
         db_session.add(new_site)
         db_session.commit()
         db_session.refresh(new_site)
-        
+
         # Filter by the first dive site's ID as regular user - should be ignored
-        response = client.get(f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}", headers=auth_headers)
+        response = client.get(
+            f"/api/v1/dive-sites/?dive_site_id={test_dive_site.id}",
+            headers=auth_headers,
+        )
 
         assert response.status_code == 200
         data = response.json()
         # Should return both sites because the filter is ignored
         assert data["total"] >= 2
         assert len(data["items"]) >= 2
-        
+
         # Clean up
         db_session.delete(new_site)
         db_session.commit()
 
     def test_rate_dive_site_success(self, client, auth_headers, test_dive_site):
         """Test rating a dive site."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/rate",
-                             json=rating_data, headers=auth_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/rate",
+            json=rating_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["score"] == 8
+        assert data["score"] == 4
         assert data["dive_site_id"] == test_dive_site.id
 
     def test_rate_dive_site_unauthorized(self, client, test_dive_site):
         """Test rating dive site without authentication."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/rate",
-                             json=rating_data)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/rate", json=rating_data
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
@@ -116,39 +137,46 @@ class TestDiveSites:
         """Test rating dive site with invalid score."""
         rating_data = {"score": 15}  # Invalid score
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/rate",
-                             json=rating_data, headers=auth_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/rate",
+            json=rating_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_rate_dive_site_not_found(self, client, auth_headers):
         """Test rating non-existent dive site."""
-        rating_data = {"score": 8}
+        rating_data = {"score": 4}
 
-        response = client.post("/api/v1/dive-sites/999/rate",
-                             json=rating_data, headers=auth_headers)
+        response = client.post(
+            "/api/v1/dive-sites/999/rate", json=rating_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_rate_dive_site_update_existing(self, client, auth_headers, test_dive_site, test_user, db_session):
+    def test_rate_dive_site_update_existing(
+        self, client, auth_headers, test_dive_site, test_user, db_session
+    ):
         """Test updating existing rating."""
         # Create initial rating
         initial_rating = SiteRating(
-            dive_site_id=test_dive_site.id,
-            user_id=test_user.id,
-            score=5
+            dive_site_id=test_dive_site.id, user_id=test_user.id, score=3
         )
         db_session.add(initial_rating)
         db_session.commit()
 
         # Update rating
-        rating_data = {"score": 9}
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/rate",
-                             json=rating_data, headers=auth_headers)
+        rating_data = {"score": 5}
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/rate",
+            json=rating_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["score"] == 9
+        assert data["score"] == 5
 
     def test_get_dive_site_comments_success(self, client, test_dive_site):
         """Test getting dive site comments."""
@@ -164,15 +192,20 @@ class TestDiveSites:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_create_dive_site_comment_success(self, client, auth_headers, test_dive_site):
+    def test_create_dive_site_comment_success(
+        self, client, auth_headers, test_dive_site
+    ):
         """Test creating a comment on dive site."""
         comment_data = {
             "comment_text": "Great dive site!",
-            "dive_site_id": test_dive_site.id  # Add required field
+            "dive_site_id": test_dive_site.id,  # Add required field
         }
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/comments",
-                             json=comment_data, headers=auth_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/comments",
+            json=comment_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK  # Changed from 201
         data = response.json()
@@ -183,8 +216,9 @@ class TestDiveSites:
         """Test creating comment without authentication."""
         comment_data = {"comment_text": "Great dive site!"}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/comments",
-                             json=comment_data)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/comments", json=comment_data
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
@@ -192,8 +226,11 @@ class TestDiveSites:
         """Test creating comment with empty text."""
         comment_data = {"comment_text": ""}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/comments",
-                             json=comment_data, headers=auth_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/comments",
+            json=comment_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
@@ -201,11 +238,12 @@ class TestDiveSites:
         """Test creating comment on non-existent dive site."""
         comment_data = {
             "comment_text": "Great dive site!",
-            "dive_site_id": 999  # Add required field
+            "dive_site_id": 999,  # Add required field
         }
 
-        response = client.post("/api/v1/dive-sites/999/comments",
-                             json=comment_data, headers=auth_headers)
+        response = client.post(
+            "/api/v1/dive-sites/999/comments", json=comment_data, headers=auth_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND  # Changed back to 404
 
@@ -225,11 +263,14 @@ class TestDiveSites:
         media_data = {
             "media_type": "photo",  # Changed from "image"
             "url": "https://example.com/photo.jpg",
-            "description": "A beautiful photo"
+            "description": "A beautiful photo",
         }
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/media",
-                             json=media_data, headers=admin_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media",
+            json=media_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -238,13 +279,25 @@ class TestDiveSites:
         assert data["dive_site_id"] == test_dive_site.id
 
     def test_add_dive_site_media_unauthorized(self, client, test_dive_site):
-        media_data = {"media_type": "photo", "url": "http://example.com/image.jpg"}  # Changed from "image"
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/media", json=media_data)
+        media_data = {
+            "media_type": "photo",
+            "url": "http://example.com/image.jpg",
+        }  # Changed from "image"
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media", json=media_data
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
     def test_add_dive_site_media_not_admin(self, client, auth_headers, test_dive_site):
-        media_data = {"media_type": "photo", "url": "http://example.com/image.jpg"}  # Changed from "image"
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/media", json=media_data, headers=auth_headers)
+        media_data = {
+            "media_type": "photo",
+            "url": "http://example.com/image.jpg",
+        }  # Changed from "image"
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media",
+            json=media_data,
+            headers=auth_headers,
+        )
         assert response.status_code == status.HTTP_202_ACCEPTED
 
     def test_add_dive_site_media_not_found(self, client, admin_headers):
@@ -252,42 +305,76 @@ class TestDiveSites:
         media_data = {
             "media_type": "photo",  # Changed from "image"
             "url": "https://example.com/photo.jpg",
-            "description": "A beautiful photo"
+            "description": "A beautiful photo",
         }
 
-        response = client.post("/api/v1/dive-sites/999/media",
-                             json=media_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/999/media", json=media_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND  # Changed back to 404
 
-    def test_delete_dive_site_media_admin(self, client, admin_headers, test_dive_site, db_session):
+    def test_delete_dive_site_media_admin(
+        self, client, admin_headers, test_dive_site, db_session
+    ):
         # Add media first
         from app.models import SiteMedia
-        media = SiteMedia(dive_site_id=test_dive_site.id, media_type="photo", url="http://example.com/image.jpg")  # Changed from "image"
+
+        media = SiteMedia(
+            dive_site_id=test_dive_site.id,
+            media_type="photo",
+            url="http://example.com/image.jpg",
+        )  # Changed from "image"
         db_session.add(media)
         db_session.commit()
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}", headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}",
+            headers=admin_headers,
+        )
         assert response.status_code == status.HTTP_200_OK
         assert "deleted" in response.json()["message"]
 
-    def test_delete_dive_site_media_unauthorized(self, client, test_dive_site, db_session):
+    def test_delete_dive_site_media_unauthorized(
+        self, client, test_dive_site, db_session
+    ):
         from app.models import SiteMedia
-        media = SiteMedia(dive_site_id=test_dive_site.id, media_type="photo", url="http://example.com/image.jpg")  # Changed from "image"
+
+        media = SiteMedia(
+            dive_site_id=test_dive_site.id,
+            media_type="photo",
+            url="http://example.com/image.jpg",
+        )  # Changed from "image"
         db_session.add(media)
         db_session.commit()
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}")
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}"
+        )
         assert response.status_code == status.HTTP_403_FORBIDDEN  # Changed from 401
 
-    def test_delete_dive_site_media_not_admin(self, client, auth_headers, test_dive_site, db_session):
+    def test_delete_dive_site_media_not_admin(
+        self, client, auth_headers, test_dive_site, db_session
+    ):
         from app.models import SiteMedia
-        media = SiteMedia(dive_site_id=test_dive_site.id, media_type="photo", url="http://example.com/image.jpg")  # Changed from "image"
+
+        media = SiteMedia(
+            dive_site_id=test_dive_site.id,
+            media_type="photo",
+            url="http://example.com/image.jpg",
+        )  # Changed from "image"
         db_session.add(media)
         db_session.commit()
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}", headers=auth_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media/{media.id}",
+            headers=auth_headers,
+        )
         assert response.status_code == status.HTTP_202_ACCEPTED
 
-    def test_delete_dive_site_media_not_found(self, client, admin_headers, test_dive_site):
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/media/9999", headers=admin_headers)
+    def test_delete_dive_site_media_not_found(
+        self, client, admin_headers, test_dive_site
+    ):
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/media/9999", headers=admin_headers
+        )
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     # DIVE SITE <-> DIVING CENTER ASSOCIATION ENDPOINTS TESTS
@@ -298,10 +385,12 @@ class TestDiveSites:
             "name": "Test Dive Site with Aliases",
             "description": "A test dive site with aliases",
             "latitude": 10.0,
-            "longitude": 20.0
+            "longitude": 20.0,
         }
 
-        response = client.post("/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/", json=dive_site_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -342,14 +431,17 @@ class TestDiveSites:
         data = response.json()
         assert len(data) == 0
 
-    def test_create_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site):
+    def test_create_dive_site_alias_admin_success(
+        self, client, admin_headers, test_dive_site
+    ):
         """Test creating an alias for a dive site as admin."""
-        alias_data = {
-            "alias": "New Test Alias"
-        }
+        alias_data = {"alias": "New Test Alias"}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
-                             json=alias_data, headers=admin_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
+            json=alias_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -358,66 +450,77 @@ class TestDiveSites:
 
     def test_create_dive_site_alias_unauthorized(self, client, test_dive_site):
         """Test creating an alias without authentication."""
-        alias_data = {
-            "alias": "New Test Alias"
-        }
+        alias_data = {"alias": "New Test Alias"}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases", json=alias_data)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases", json=alias_data
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_create_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site):
+    def test_create_dive_site_alias_not_admin(
+        self, client, auth_headers, test_dive_site
+    ):
         """Test creating an alias as non-admin user."""
-        alias_data = {
-            "alias": "New Test Alias"
-        }
+        alias_data = {"alias": "New Test Alias"}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
-                             json=alias_data, headers=auth_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
+            json=alias_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_create_dive_site_alias_dive_site_not_found(self, client, admin_headers):
         """Test creating an alias for non-existent dive site."""
-        alias_data = {
-            "alias": "New Test Alias"
-        }
+        alias_data = {"alias": "New Test Alias"}
 
-        response = client.post("/api/v1/dive-sites/999/aliases",
-                             json=alias_data, headers=admin_headers)
+        response = client.post(
+            "/api/v1/dive-sites/999/aliases", json=alias_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_create_dive_site_alias_duplicate(self, client, admin_headers, test_dive_site, db_session):
+    def test_create_dive_site_alias_duplicate(
+        self, client, admin_headers, test_dive_site, db_session
+    ):
         """Test creating a duplicate alias for the same dive site."""
         from app.models import DiveSiteAlias
 
         # Create first alias
-        alias_data = {
-            "alias": "Duplicate Alias"
-        }
+        alias_data = {"alias": "Duplicate Alias"}
 
-        response1 = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
-                              json=alias_data, headers=admin_headers)
+        response1 = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
+            json=alias_data,
+            headers=admin_headers,
+        )
         assert response1.status_code == status.HTTP_200_OK
 
         # Try to create duplicate alias
-        response2 = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
-                              json=alias_data, headers=admin_headers)
+        response2 = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
+            json=alias_data,
+            headers=admin_headers,
+        )
         assert response2.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_create_dive_site_alias_empty(self, client, admin_headers, test_dive_site):
         """Test creating an alias with empty alias text."""
-        alias_data = {
-            "alias": ""
-        }
+        alias_data = {"alias": ""}
 
-        response = client.post(f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
-                             json=alias_data, headers=admin_headers)
+        response = client.post(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases",
+            json=alias_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_update_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site, db_session):
+    def test_update_dive_site_alias_admin_success(
+        self, client, admin_headers, test_dive_site, db_session
+    ):
         """Test updating an alias as admin."""
         from app.models import DiveSiteAlias
 
@@ -426,18 +529,21 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        update_data = {
-            "alias": "Updated Alias"
-        }
+        update_data = {"alias": "Updated Alias"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["alias"] == "Updated Alias"
 
-    def test_update_dive_site_alias_unauthorized(self, client, test_dive_site, db_session):
+    def test_update_dive_site_alias_unauthorized(
+        self, client, test_dive_site, db_session
+    ):
         """Test updating an alias without authentication."""
         from app.models import DiveSiteAlias
 
@@ -446,16 +552,18 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        update_data = {
-            "alias": "Updated Alias"
-        }
+        update_data = {"alias": "Updated Alias"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
-                            json=update_data)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
+            json=update_data,
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_update_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site, db_session):
+    def test_update_dive_site_alias_not_admin(
+        self, client, auth_headers, test_dive_site, db_session
+    ):
         """Test updating an alias as non-admin user."""
         from app.models import DiveSiteAlias
 
@@ -464,38 +572,43 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        update_data = {
-            "alias": "Updated Alias"
-        }
+        update_data = {"alias": "Updated Alias"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
-                            json=update_data, headers=auth_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
+            json=update_data,
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_update_dive_site_alias_not_found(self, client, admin_headers, test_dive_site):
+    def test_update_dive_site_alias_not_found(
+        self, client, admin_headers, test_dive_site
+    ):
         """Test updating non-existent alias."""
-        update_data = {
-            "alias": "Updated Alias"
-        }
+        update_data = {"alias": "Updated Alias"}
 
-        response = client.put(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999",
+            json=update_data,
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_update_dive_site_alias_dive_site_not_found(self, client, admin_headers):
         """Test updating alias for non-existent dive site."""
-        update_data = {
-            "alias": "Updated Alias"
-        }
+        update_data = {"alias": "Updated Alias"}
 
-        response = client.put("/api/v1/dive-sites/999/aliases/1",
-                            json=update_data, headers=admin_headers)
+        response = client.put(
+            "/api/v1/dive-sites/999/aliases/1", json=update_data, headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_delete_dive_site_alias_admin_success(self, client, admin_headers, test_dive_site, db_session):
+    def test_delete_dive_site_alias_admin_success(
+        self, client, admin_headers, test_dive_site, db_session
+    ):
         """Test deleting an alias as admin."""
         from app.models import DiveSiteAlias
 
@@ -504,16 +617,24 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
-                               headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
+            headers=admin_headers,
+        )
 
         assert response.status_code == status.HTTP_200_OK
 
         # Verify alias is deleted
-        aliases = db_session.query(DiveSiteAlias).filter(DiveSiteAlias.dive_site_id == test_dive_site.id).all()
+        aliases = (
+            db_session.query(DiveSiteAlias)
+            .filter(DiveSiteAlias.dive_site_id == test_dive_site.id)
+            .all()
+        )
         assert len(aliases) == 0
 
-    def test_delete_dive_site_alias_unauthorized(self, client, test_dive_site, db_session):
+    def test_delete_dive_site_alias_unauthorized(
+        self, client, test_dive_site, db_session
+    ):
         """Test deleting an alias without authentication."""
         from app.models import DiveSiteAlias
 
@@ -522,11 +643,15 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}")
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}"
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_delete_dive_site_alias_not_admin(self, client, auth_headers, test_dive_site, db_session):
+    def test_delete_dive_site_alias_not_admin(
+        self, client, auth_headers, test_dive_site, db_session
+    ):
         """Test deleting an alias as non-admin user."""
         from app.models import DiveSiteAlias
 
@@ -535,25 +660,34 @@ class TestDiveSites:
         db_session.add(alias)
         db_session.commit()
 
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
-                               headers=auth_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/{alias.id}",
+            headers=auth_headers,
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_delete_dive_site_alias_not_found(self, client, admin_headers, test_dive_site):
+    def test_delete_dive_site_alias_not_found(
+        self, client, admin_headers, test_dive_site
+    ):
         """Test deleting non-existent alias."""
-        response = client.delete(f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999",
-                               headers=admin_headers)
+        response = client.delete(
+            f"/api/v1/dive-sites/{test_dive_site.id}/aliases/999", headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
     def test_delete_dive_site_alias_dive_site_not_found(self, client, admin_headers):
         """Test deleting alias for non-existent dive site."""
-        response = client.delete("/api/v1/dive-sites/999/aliases/1", headers=admin_headers)
+        response = client.delete(
+            "/api/v1/dive-sites/999/aliases/1", headers=admin_headers
+        )
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_dive_site_with_aliases_in_response(self, client, test_dive_site, db_session):
+    def test_dive_site_with_aliases_in_response(
+        self, client, test_dive_site, db_session
+    ):
         """Test that dive site detail includes aliases in response."""
         from app.models import DiveSiteAlias
 
@@ -572,21 +706,26 @@ class TestDiveSites:
         assert any(alias["alias"] == "Alias 1" for alias in data["aliases"])
         assert any(alias["alias"] == "Alias 2" for alias in data["aliases"])
 
+
 def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_token):
     """Test pagination functionality for dive sites endpoint"""
     # Get a difficulty level for the dive sites
-    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+        .first()
+    )
     # Create multiple dive sites
     dive_sites = []
     for i in range(75):  # Create 75 dive sites
         dive_site = DiveSite(
-            name=f"Test Dive Site {i+1}",
-            description=f"Description for dive site {i+1}",
+            name=f"Test Dive Site {i + 1}",
+            description=f"Description for dive site {i + 1}",
             latitude=10.0 + (i * 0.01),
             longitude=20.0 + (i * 0.01),
             country="Test Country",
             region="Test Region",
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         dive_sites.append(dive_site)
 
@@ -597,7 +736,7 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 1, "page_size": 25},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -613,7 +752,7 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 2, "page_size": 25},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -627,7 +766,7 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 3, "page_size": 25},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -641,7 +780,7 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 1, "page_size": 50},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -654,7 +793,7 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 1, "page_size": 100},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -663,32 +802,43 @@ def test_get_dive_sites_pagination(client, db_session, test_admin_user, admin_to
     assert data["total_pages"] == 1
     assert data["page_size"] == 100
 
+
 def test_get_dive_sites_invalid_page_size(client, admin_token):
     """Test that invalid page_size values are rejected"""
     # Test invalid page_size
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 1, "page_size": 30},  # Invalid page size
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 400
-    assert "page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000" in response.json()["detail"]
+    assert (
+        "page_size must be one of: 1, 3, 5, 10, 15, 20, 25, 50, 100, 250, 1000"
+        in response.json()["detail"]
+    )
 
-def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_user, admin_token):
+
+def test_get_dive_sites_pagination_with_filters(
+    client, db_session, test_admin_user, admin_token
+):
     """Test pagination with filters applied"""
     # Get a difficulty level for the dive sites
-    difficulty = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
+    difficulty = (
+        db_session.query(DifficultyLevel)
+        .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+        .first()
+    )
     # Create dive sites with different countries
     dive_sites = []
     for i in range(50):
         dive_site = DiveSite(
-            name=f"Test Dive Site {i+1}",
-            description=f"Description for dive site {i+1}",
+            name=f"Test Dive Site {i + 1}",
+            description=f"Description for dive site {i + 1}",
             latitude=10.0 + (i * 0.01),
             longitude=20.0 + (i * 0.01),
             country="Test Country A" if i < 30 else "Test Country B",
             region="Test Region",
-            difficulty_id=difficulty.id if difficulty else 2
+            difficulty_id=difficulty.id if difficulty else 2,
         )
         dive_sites.append(dive_site)
 
@@ -699,7 +849,7 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 1, "page_size": 25, "country": "Test Country A"},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -713,7 +863,7 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
     response = client.get(
         "/api/v1/dive-sites/",
         params={"page": 2, "page_size": 25, "country": "Test Country A"},
-        headers={"Authorization": f"Bearer {admin_token}"}
+        headers={"Authorization": f"Bearer {admin_token}"},
     )
     assert response.status_code == 200
     data = response.json()
@@ -727,7 +877,7 @@ def test_get_dive_sites_pagination_with_filters(client, db_session, test_admin_u
 class TestDiveSitesHealthAndUtilities:
     """Test utility endpoints."""
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_reverse_geocode_success(self, mock_get, client):
         """Test reverse geocoding with successful API response."""
         # Mock successful response from OpenStreetMap API
@@ -737,37 +887,43 @@ class TestDiveSitesHealthAndUtilities:
             "address": {
                 "country": "Thailand",
                 "state": "Krabi Province",
-                "county": "Krabi"
+                "county": "Krabi",
             },
-            "display_name": "Krabi, Krabi Province, Thailand"
+            "display_name": "Krabi, Krabi Province, Thailand",
         }
         mock_get.return_value = mock_response
 
-        response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063")
-        
+        response = client.get(
+            "/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063"
+        )
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["country"] == "Thailand"
         assert data["region"] == "Krabi Province"
         assert "Krabi" in data["full_address"]
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_reverse_geocode_timeout(self, mock_get, client):
         """Test reverse geocoding with API timeout."""
         mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
-        
-        response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063")
-        
+
+        response = client.get(
+            "/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063"
+        )
+
         assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
         assert "timeout" in response.json()["detail"].lower()
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_reverse_geocode_connection_error(self, mock_get, client):
         """Test reverse geocoding with connection error (fallback)."""
         mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
-        
-        response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063")
-        
+
+        response = client.get(
+            "/api/v1/dive-sites/reverse-geocode?latitude=8.0863&longitude=98.9063"
+        )
+
         assert response.status_code == status.HTTP_200_OK
         # Should return fallback location
         data = response.json()
@@ -776,11 +932,15 @@ class TestDiveSitesHealthAndUtilities:
     def test_reverse_geocode_invalid_coordinates(self, client):
         """Test reverse geocoding with invalid coordinates."""
         # Test latitude out of range
-        response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=100&longitude=0")
+        response = client.get(
+            "/api/v1/dive-sites/reverse-geocode?latitude=100&longitude=0"
+        )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
         # Test longitude out of range
-        response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=0&longitude=200")
+        response = client.get(
+            "/api/v1/dive-sites/reverse-geocode?latitude=0&longitude=200"
+        )
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
         # Test missing parameters
@@ -799,61 +959,77 @@ class TestDiveSitesCount:
         assert "total" in data
         assert data["total"] >= 0
 
-    def test_get_dive_sites_count_with_name_filter(self, client, db_session, test_dive_site):
+    def test_get_dive_sites_count_with_name_filter(
+        self, client, db_session, test_dive_site
+    ):
         """Test dive sites count with name filter."""
         response = client.get(f"/api/v1/dive-sites/count?name={test_dive_site.name}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
 
-    def test_get_dive_sites_count_with_difficulty_filter(self, client, db_session, test_dive_site):
+    def test_get_dive_sites_count_with_difficulty_filter(
+        self, client, db_session, test_dive_site
+    ):
         """Test dive sites count with difficulty filter."""
-        response = client.get("/api/v1/dive-sites/count?difficulty_code=ADVANCED_OPEN_WATER")
+        response = client.get(
+            "/api/v1/dive-sites/count?difficulty_code=ADVANCED_OPEN_WATER"
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 0
 
-    def test_get_dive_sites_count_with_country_filter(self, client, db_session, test_dive_site):
+    def test_get_dive_sites_count_with_country_filter(
+        self, client, db_session, test_dive_site
+    ):
         """Test dive sites count with country filter."""
         if test_dive_site.country:
-            response = client.get(f"/api/v1/dive-sites/count?country={test_dive_site.country}")
+            response = client.get(
+                f"/api/v1/dive-sites/count?country={test_dive_site.country}"
+            )
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["total"] >= 1
 
-    def test_get_dive_sites_count_with_region_filter(self, client, db_session, test_dive_site):
+    def test_get_dive_sites_count_with_region_filter(
+        self, client, db_session, test_dive_site
+    ):
         """Test dive sites count with region filter."""
         if test_dive_site.region:
-            response = client.get(f"/api/v1/dive-sites/count?region={test_dive_site.region}")
+            response = client.get(
+                f"/api/v1/dive-sites/count?region={test_dive_site.region}"
+            )
             assert response.status_code == status.HTTP_200_OK
             data = response.json()
             assert data["total"] >= 1
 
-    def test_get_dive_sites_count_with_rating_filter(self, client, db_session, test_dive_site, test_user):
+    def test_get_dive_sites_count_with_rating_filter(
+        self, client, db_session, test_dive_site, test_user
+    ):
         """Test dive sites count with minimum rating filter."""
         # Create a rating for the dive site
         rating = SiteRating(
-            user_id=test_user.id,
-            dive_site_id=test_dive_site.id,
-            score=8.0
+            user_id=test_user.id, dive_site_id=test_dive_site.id, score=4.0
         )
         db_session.add(rating)
         db_session.commit()
 
-        response = client.get("/api/v1/dive-sites/count?min_rating=7.0")
+        response = client.get("/api/v1/dive-sites/count?min_rating=3.5")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["total"] >= 1
 
-    def test_get_dive_sites_count_with_tag_filter(self, client, db_session, test_dive_site):
+    def test_get_dive_sites_count_with_tag_filter(
+        self, client, db_session, test_dive_site
+    ):
         """Test dive sites count with tag filter."""
         from app.models import AvailableTag, DiveSiteTag
-        
+
         # Create a tag and associate it with the dive site
         tag = AvailableTag(name="Test Tag", description="Test tag for testing")
         db_session.add(tag)
         db_session.flush()
-        
+
         site_tag = DiveSiteTag(dive_site_id=test_dive_site.id, tag_id=tag.id)
         db_session.add(site_tag)
         db_session.commit()
@@ -863,9 +1039,13 @@ class TestDiveSitesCount:
         data = response.json()
         assert data["total"] >= 1
 
-    def test_get_dive_sites_count_with_my_dive_sites_filter(self, client, db_session, auth_headers, test_user):
+    def test_get_dive_sites_count_with_my_dive_sites_filter(
+        self, client, db_session, auth_headers, test_user
+    ):
         """Test dive sites count with my_dive_sites filter."""
-        response = client.get("/api/v1/dive-sites/count?my_dive_sites=true", headers=auth_headers)
+        response = client.get(
+            "/api/v1/dive-sites/count?my_dive_sites=true", headers=auth_headers
+        )
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "total" in data
@@ -890,8 +1070,7 @@ class TestDiveSitesNearby:
         """Test getting nearby dive sites for site without coordinates."""
         # Create dive site without coordinates
         site_no_coords = DiveSite(
-            name="Site No Coords",
-            description="Site without coordinates"
+            name="Site No Coords", description="Site without coordinates"
         )
         db_session.add(site_no_coords)
         db_session.commit()
@@ -901,13 +1080,17 @@ class TestDiveSitesNearby:
         assert "coordinates" in response.json()["detail"].lower()
 
     @pytest.mark.spatial
-    def test_get_nearby_dive_sites_basic_functionality(self, client, db_session, test_dive_site):
+    def test_get_nearby_dive_sites_basic_functionality(
+        self, client, db_session, test_dive_site
+    ):
         """Test basic nearby dive sites functionality without complex SQL."""
         # Test that the endpoint exists and handles basic requests
         # Note: The actual SQL query has a HAVING clause issue in SQLite
         # This test just verifies the endpoint structure
         try:
-            response = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/nearby?limit=5")
+            response = client.get(
+                f"/api/v1/dive-sites/{test_dive_site.id}/nearby?limit=5"
+            )
             # If it works, great. If it fails due to SQL issue, that's a known bug
             if response.status_code == status.HTTP_200_OK:
                 data = response.json()
@@ -920,30 +1103,41 @@ class TestDiveSitesNearby:
 class TestDiveSitesDives:
     """Test dive site dives endpoint."""
 
-    def test_get_dive_site_dives_success(self, client, db_session, test_dive_site, test_user):
+    def test_get_dive_site_dives_success(
+        self, client, db_session, test_dive_site, test_user
+    ):
         """Test getting dives for a specific dive site."""
-        from app.models import Dive
         from datetime import date
-        
+
+        from app.models import Dive
+
         # Create some dives for the dive site
         # Get difficulty IDs (IDs 1-4 map directly: 1=OPEN_WATER, 2=ADVANCED_OPEN_WATER, 3=DEEP_NITROX, 4=TECHNICAL_DIVING)
-        difficulty_aow = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER").first()
-        difficulty_deep = db_session.query(DifficultyLevel).filter(DifficultyLevel.code == "DEEP_NITROX").first()
+        difficulty_aow = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "ADVANCED_OPEN_WATER")
+            .first()
+        )
+        difficulty_deep = (
+            db_session.query(DifficultyLevel)
+            .filter(DifficultyLevel.code == "DEEP_NITROX")
+            .first()
+        )
         dive1 = Dive(
             name="Test Dive 1",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2024, 1, 15),
-            difficulty_id=difficulty_aow.id if difficulty_aow else 2
+            difficulty_id=difficulty_aow.id if difficulty_aow else 2,
         )
         dive2 = Dive(
             name="Test Dive 2",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2024, 1, 20),
-            difficulty_id=difficulty_deep.id if difficulty_deep else 3
+            difficulty_id=difficulty_deep.id if difficulty_deep else 3,
         )
-        
+
         db_session.add_all([dive1, dive2])
         db_session.commit()
 
@@ -968,63 +1162,70 @@ class TestDiveSitesDives:
         data = response.json()
         assert len(data) == 0
 
-    def test_get_dive_site_dives_sorting(self, client, db_session, test_user, test_dive_site):
+    def test_get_dive_site_dives_sorting(
+        self, client, db_session, test_user, test_dive_site
+    ):
         """Test getting dives sorted by recent (default) vs rating."""
-        from app.models import Dive
         from datetime import date
+
+        from app.models import Dive
 
         dive_older_high_rated = Dive(
             name="Older Top Rated Dive",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2023, 5, 1),
-            user_rating=10
+            user_rating=5,
         )
         dive_newer_low_rated = Dive(
             name="Newer Low Rated Dive",
             user_id=test_user.id,
             dive_site_id=test_dive_site.id,
             dive_date=date(2024, 6, 1),
-            user_rating=5
+            user_rating=2,
         )
 
         db_session.add_all([dive_older_high_rated, dive_newer_low_rated])
         db_session.commit()
 
         # Default / recent sort: Newer dive comes first
-        response_recent = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=recent")
+        response_recent = client.get(
+            f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=recent"
+        )
         assert response_recent.status_code == status.HTTP_200_OK
         data_recent = response_recent.json()
         assert len(data_recent) >= 2
         assert data_recent[0]["name"] == "Newer Low Rated Dive"
 
         # Rating sort: Higher rated dive comes first
-        response_rating = client.get(f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=rating")
+        response_rating = client.get(
+            f"/api/v1/dive-sites/{test_dive_site.id}/dives?sort_by=rating"
+        )
         assert response_rating.status_code == status.HTTP_200_OK
         data_rating = response_rating.json()
         assert len(data_rating) >= 2
         assert data_rating[0]["name"] == "Older Top Rated Dive"
 
+
 class TestDiveSitesAdvancedFeatures:
     """Test advanced dive site features and edge cases."""
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_rate_limiting_on_endpoints(self, mock_get, client, admin_headers):
         """Test rate limiting on rate-limited endpoints."""
         # Mock successful response to avoid external API calls
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "address": {
-                "country": "Test Country",
-                "state": "Test Region"
-            }
+            "address": {"country": "Test Country", "state": "Test Region"}
         }
         mock_get.return_value = mock_response
 
         # Test reverse geocoding rate limiting
         for _ in range(55):  # Try to exceed 50/minute limit
-            response = client.get("/api/v1/dive-sites/reverse-geocode?latitude=0&longitude=0")
+            response = client.get(
+                "/api/v1/dive-sites/reverse-geocode?latitude=0&longitude=0"
+            )
             if response.status_code == status.HTTP_429_TOO_MANY_REQUESTS:
                 break
         else:
@@ -1036,7 +1237,7 @@ class TestDiveSitesAdvancedFeatures:
         # Test search with special characters
         response = client.get("/api/v1/dive-sites/?search=Test@#$%")
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Test search with very long query
         long_query = "a" * 200
         response = client.get(f"/api/v1/dive-sites/?search={long_query}")
@@ -1046,18 +1247,28 @@ class TestDiveSitesAdvancedFeatures:
         """Test combining multiple filters."""
         response = client.get("/api/v1/dive-sites/?difficulty=intermediate&search=Test")
         assert response.status_code == status.HTTP_200_OK
-        
-        response = client.get("/api/v1/dive-sites/?difficulty=intermediate&country=Test")
+
+        response = client.get(
+            "/api/v1/dive-sites/?difficulty=intermediate&country=Test"
+        )
         assert response.status_code == status.HTTP_200_OK
 
 
 class TestDiveSitesAuthorization:
     """Test dive sites authorization for diving center owners, admins, and regular users."""
 
-    def test_add_diving_center_to_dive_site_owner_authorization(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_add_diving_center_to_dive_site_owner_authorization(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that diving center owners can add their centers to dive sites."""
         from app.models import OwnershipStatus
-        
+
         # Set the user as the owner of the diving center
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
@@ -1068,26 +1279,26 @@ class TestDiveSitesAuthorization:
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 50.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["dive_site_id"] == test_dive_site.id
         assert data["diving_center_id"] == test_diving_center.id
         assert float(data["dive_cost"]) == 50.00
         assert data["currency"] == "EUR"
-        
+
         # Test removing diving center from dive site as owner
         remove_response = client.delete(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-            headers=auth_headers
+            headers=auth_headers,
         )
         assert remove_response.status_code == status.HTTP_200_OK
 
@@ -1118,9 +1329,19 @@ class TestDiveSitesAuthorization:
     def test_get_unique_regions(self, client, db_session):
         """Test getting unique regions from dive sites."""
         # Create dive sites with different regions
-        site1 = DiveSite(name="Site 1", latitude=1.0, longitude=1.0, country="Greece", region="Attica")
-        site2 = DiveSite(name="Site 2", latitude=2.0, longitude=2.0, country="Greece", region="Crete")
-        site3 = DiveSite(name="Site 3", latitude=3.0, longitude=3.0, country="Italy", region="Sicily")
+        site1 = DiveSite(
+            name="Site 1",
+            latitude=1.0,
+            longitude=1.0,
+            country="Greece",
+            region="Attica",
+        )
+        site2 = DiveSite(
+            name="Site 2", latitude=2.0, longitude=2.0, country="Greece", region="Crete"
+        )
+        site3 = DiveSite(
+            name="Site 3", latitude=3.0, longitude=3.0, country="Italy", region="Sicily"
+        )
         db_session.add_all([site1, site2, site3])
         db_session.commit()
 
@@ -1156,81 +1377,93 @@ class TestDiveSitesAuthorization:
         assert data[0]["region"] == "Attica"
         assert data[0]["country"] == "Greece"
 
-    def test_add_diving_center_to_dive_site_admin_authorization(self, client, db_session, test_dive_site, test_diving_center, admin_headers):
+    def test_add_diving_center_to_dive_site_admin_authorization(
+        self, client, db_session, test_dive_site, test_diving_center, admin_headers
+    ):
         """Test that admins can add any diving center to dive sites."""
-        
+
         # Test adding diving center to dive site as admin
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 75.00,
-            "currency": "USD"
+            "currency": "USD",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=admin_headers
+            headers=admin_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["dive_site_id"] == test_dive_site.id
         assert data["diving_center_id"] == test_diving_center.id
         assert float(data["dive_cost"]) == 75.00
         assert data["currency"] == "USD"
-        
+
         # Test removing diving center from dive site as admin
         remove_response = client.delete(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-            headers=admin_headers
+            headers=admin_headers,
         )
-        
+
         assert remove_response.status_code == status.HTTP_200_OK
 
-    def test_add_diving_center_to_dive_site_moderator_authorization(self, client, db_session, test_dive_site, test_diving_center, moderator_headers):
+    def test_add_diving_center_to_dive_site_moderator_authorization(
+        self, client, db_session, test_dive_site, test_diving_center, moderator_headers
+    ):
         """Test that moderators can add any diving center to dive sites."""
-        
+
         # Test adding diving center to dive site as moderator
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 60.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=moderator_headers
+            headers=moderator_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["dive_site_id"] == test_dive_site.id
         assert data["diving_center_id"] == test_diving_center.id
         assert float(data["dive_cost"]) == 60.00
-        
+
         # Test removing diving center from dive site as moderator
         remove_response = client.delete(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-            headers=moderator_headers
+            headers=moderator_headers,
         )
-        
+
         assert remove_response.status_code == status.HTTP_200_OK
 
-    def test_add_diving_center_to_dive_site_unauthorized_user(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_add_diving_center_to_dive_site_unauthorized_user(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that non-owner users cannot add diving centers to dive sites."""
         from app.models import OwnershipStatus, User
-        
+
         # Create a second user to be the owner
         other_user = User(
             email="other3@example.com",
             username="otheruser3",
-            password_hash="hashed_password"
+            password_hash="hashed_password",
         )
         db_session.add(other_user)
         db_session.commit()
         db_session.refresh(other_user)
-        
+
         # Set the other user as the owner (not the authenticated user)
         test_diving_center.owner_id = other_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
@@ -1241,23 +1474,31 @@ class TestDiveSitesAuthorization:
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 40.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert "submitted for moderation" in response.json()["message"]
 
-    def test_add_diving_center_to_dive_site_unapproved_owner(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_add_diving_center_to_dive_site_unapproved_owner(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that unapproved owners cannot add their centers to dive sites."""
         from app.models import OwnershipStatus
-        
+
         # Set the user as the owner but with unapproved status
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.claimed
@@ -1268,78 +1509,87 @@ class TestDiveSitesAuthorization:
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 45.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert "submitted for moderation" in response.json()["message"]
 
-    def test_add_diving_center_to_dive_site_nonexistent_site(self, client, auth_headers, test_diving_center):
+    def test_add_diving_center_to_dive_site_nonexistent_site(
+        self, client, auth_headers, test_diving_center
+    ):
         """Test that requests to non-existent dive sites return 404."""
-        
+
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 50.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             "/api/v1/dive-sites/99999/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Dive site not found" in response.json()["detail"]
 
-    def test_add_diving_center_to_dive_site_nonexistent_center(self, client, auth_headers, test_dive_site):
+    def test_add_diving_center_to_dive_site_nonexistent_center(
+        self, client, auth_headers, test_dive_site
+    ):
         """Test that requests with non-existent diving center IDs return 404."""
-        
-        center_data = {
-            "diving_center_id": 99999,
-            "dive_cost": 50.00,
-            "currency": "EUR"
-        }
-        
+
+        center_data = {"diving_center_id": 99999, "dive_cost": 50.00, "currency": "EUR"}
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "Diving center not found" in response.json()["detail"]
 
-    def test_add_diving_center_to_dive_site_authentication_required(self, client, test_dive_site, test_diving_center):
+    def test_add_diving_center_to_dive_site_authentication_required(
+        self, client, test_dive_site, test_diving_center
+    ):
         """Test that authentication is required for adding diving centers to dive sites."""
-        
+
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 50.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         # Test without authentication
         response = client.post(
-            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
-            json=center_data
+            f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers", json=center_data
         )
-        
+
         # The endpoint requires authentication, so it should return 403 Forbidden
         # (not 401 Unauthorized) because it's checking authorization after authentication
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_add_diving_center_to_dive_site_invalid_data(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_add_diving_center_to_dive_site_invalid_data(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test adding diving center to dive site with invalid data."""
         from app.models import OwnershipStatus
-        
+
         # Set the user as the owner of the diving center
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
@@ -1350,36 +1600,44 @@ class TestDiveSitesAuthorization:
         invalid_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": -25.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=invalid_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
         # Test with invalid currency
         invalid_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 50.00,
-            "currency": "INVALID"
+            "currency": "INVALID",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=invalid_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    def test_remove_diving_center_from_dive_site_nonexistent_relationship(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_remove_diving_center_from_dive_site_nonexistent_relationship(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test removing a non-existent diving center relationship."""
         from app.models import OwnershipStatus
-        
+
         # Set the user as the owner of the diving center
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
@@ -1389,59 +1647,78 @@ class TestDiveSitesAuthorization:
         # Try to remove non-existent relationship
         response = client.delete(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "Diving center is not associated with this dive site" in response.json()["detail"]
 
-    def test_diving_center_dive_site_cross_center_access(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert (
+            "Diving center is not associated with this dive site"
+            in response.json()["detail"]
+        )
+
+    def test_diving_center_dive_site_cross_center_access(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that users cannot manage diving center relationships for other centers without moderation."""
-        from app.models import OwnershipStatus, DivingCenter
-        
+        from app.models import DivingCenter, OwnershipStatus
+
         # Ensure the user is NOT a trusted contributor (no ownership, no dives, etc.)
         # test_user from fixture is already clean.
-        
+
         # Create another diving center
         other_center = DivingCenter(
             name="Other Diving Center",
             description="Another test center",
             email="other@test.com",
             latitude=20.0,
-            longitude=30.0
+            longitude=30.0,
         )
         db_session.add(other_center)
         db_session.commit()
         db_session.refresh(other_center)
-        
+
         # Try to add the other center to the dive site
         center_data = {
             "diving_center_id": other_center.id,
             "dive_cost": 50.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         # New behavior: Non-owner/non-trusted users get 202 Accepted for moderation
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert "submitted for moderation" in response.json()["message"]
 
-    def test_diving_center_dive_site_ownership_status_enum_handling(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_diving_center_dive_site_ownership_status_enum_handling(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that ownership status enum is handled correctly for dive site relationships."""
         from app.models import OwnershipStatus
-        
+
         # Test with different ownership statuses
         statuses_to_test = [
             OwnershipStatus.unclaimed,
             OwnershipStatus.claimed,
-            OwnershipStatus.denied
+            OwnershipStatus.denied,
         ]
-        
+
         for ownership_status in statuses_to_test:
             # Set the ownership status
             test_diving_center.owner_id = test_user.id
@@ -1453,22 +1730,22 @@ class TestDiveSitesAuthorization:
             center_data = {
                 "diving_center_id": test_diving_center.id,
                 "dive_cost": 50.00,
-                "currency": "EUR"
+                "currency": "EUR",
             }
-            
+
             response = client.post(
                 f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
                 json=center_data,
-                headers=auth_headers
+                headers=auth_headers,
             )
-            
+
             if ownership_status == OwnershipStatus.approved:
                 assert response.status_code == status.HTTP_200_OK
-                
+
                 # Clean up - remove the relationship
                 remove_response = client.delete(
                     f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-                    headers=auth_headers
+                    headers=auth_headers,
                 )
                 assert remove_response.status_code == status.HTTP_200_OK
             else:
@@ -1481,10 +1758,18 @@ class TestDiveSitesAuthorization:
         test_diving_center.ownership_status = OwnershipStatus.approved
         db_session.commit()
 
-    def test_diving_center_dive_site_duplicate_relationship(self, client, db_session, test_user, test_dive_site, test_diving_center, auth_headers):
+    def test_diving_center_dive_site_duplicate_relationship(
+        self,
+        client,
+        db_session,
+        test_user,
+        test_dive_site,
+        test_diving_center,
+        auth_headers,
+    ):
         """Test that duplicate diving center relationships are handled correctly."""
         from app.models import OwnershipStatus
-        
+
         # Set the user as the owner of the diving center
         test_diving_center.owner_id = test_user.id
         test_diving_center.ownership_status = OwnershipStatus.approved
@@ -1495,30 +1780,34 @@ class TestDiveSitesAuthorization:
         center_data = {
             "diving_center_id": test_diving_center.id,
             "dive_cost": 50.00,
-            "currency": "EUR"
+            "currency": "EUR",
         }
-        
+
         response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         assert response.status_code == status.HTTP_200_OK
-        
+
         # Try to add the same relationship again
         duplicate_response = client.post(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers",
             json=center_data,
-            headers=auth_headers
+            headers=auth_headers,
         )
-        
+
         # Should handle duplicate gracefully (either 400 Bad Request, 409 Conflict, or 200 OK with existing data)
-        assert duplicate_response.status_code in [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST, status.HTTP_409_CONFLICT]
-        
+        assert duplicate_response.status_code in [
+            status.HTTP_200_OK,
+            status.HTTP_400_BAD_REQUEST,
+            status.HTTP_409_CONFLICT,
+        ]
+
         # Clean up
         remove_response = client.delete(
             f"/api/v1/dive-sites/{test_dive_site.id}/diving-centers/{test_diving_center.id}",
-            headers=auth_headers
+            headers=auth_headers,
         )
         assert remove_response.status_code == status.HTTP_200_OK

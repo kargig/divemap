@@ -598,7 +598,7 @@ const DiveTrips = () => {
           <div className='flex items-center gap-0.5 sm:gap-1 bg-yellow-100 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1'>
             <Star className='w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-current' />
             <span className='text-[10px] sm:text-[11px] font-medium text-yellow-800 leading-tight'>
-              {rating}/10
+              {rating}/5
             </span>
           </div>
         )}

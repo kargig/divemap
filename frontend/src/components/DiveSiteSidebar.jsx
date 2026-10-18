@@ -139,7 +139,7 @@ const DiveSiteSidebar = ({
                     <div className='flex items-center bg-yellow-50 px-1.5 py-0.5 rounded border border-yellow-100 shrink-0'>
                       <Star className='h-2.5 w-2.5 sm:h-3 sm:w-3 text-yellow-500 mr-0.5 fill-current' />
                       <span className='text-[10px] font-bold text-yellow-700'>
-                        {dive.user_rating}/10
+                        {dive.user_rating}/5
                       </span>
                     </div>
                   )}

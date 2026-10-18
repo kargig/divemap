@@ -394,7 +394,7 @@ const DiveDetail = () => {
       schema.reviewRating = {
         '@type': 'Rating',
         ratingValue: dive.user_rating,
-        bestRating: '10',
+        bestRating: '5',
         worstRating: '1',
       };
     }

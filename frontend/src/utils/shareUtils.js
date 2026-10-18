@@ -368,7 +368,7 @@ export function generateShareContent(entityType, entityData) {
         const stats = [];
         if (entityData.max_depth) stats.push(`Max depth: ${entityData.max_depth}m`);
         if (entityData.duration) stats.push(`Duration: ${entityData.duration}min`);
-        if (entityData.user_rating) stats.push(`Rating: ${entityData.user_rating}/10`);
+        if (entityData.user_rating) stats.push(`Rating: ${entityData.user_rating}/5`);
         if (stats.length > 0) {
           description += `\n\n${stats.join(' | ')}`;
         }
@@ -389,7 +389,7 @@ export function generateShareContent(entityType, entityData) {
         const stats = [];
         if (entityData.max_depth) stats.push(`Max depth: ${entityData.max_depth}m`);
         if (entityData.difficulty_label) stats.push(`Difficulty: ${entityData.difficulty_label}`);
-        if (entityData.average_rating) stats.push(`Rating: ${entityData.average_rating}/10`);
+        if (entityData.average_rating) stats.push(`Rating: ${entityData.average_rating}/5`);
         if (stats.length > 0) {
           description += `\n\n${stats.join(' | ')}`;
         }

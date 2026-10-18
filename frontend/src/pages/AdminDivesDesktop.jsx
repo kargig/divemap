@@ -245,7 +245,7 @@ const AdminDivesDesktop = () => {
           const dive = row.original;
           return (
             <span className='text-sm text-gray-900'>
-              {dive.user_rating ? `${dive.user_rating}/10` : 'N/A'}
+              {dive.user_rating ? `${dive.user_rating}/5` : 'N/A'}
             </span>
           );
         },
@@ -561,7 +561,7 @@ const AdminDivesDesktop = () => {
                 id='min-rating-filter'
                 type='number'
                 min='0'
-                max='10'
+                max='5'
                 step='1'
                 placeholder='0'
                 value={filters.min_rating}
@@ -571,10 +571,10 @@ const AdminDivesDesktop = () => {
                     e.preventDefault();
                   }
                 }}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
-              {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 10) && (
-                <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+              {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
+                <p className='text-red-500 text-xs mt-1'>Rating must be 0-5</p>
               )}
             </div>
             <div>
@@ -588,9 +588,9 @@ const AdminDivesDesktop = () => {
                 id='max-rating-filter'
                 type='number'
                 min='0'
-                max='10'
+                max='5'
                 step='1'
-                placeholder='10'
+                placeholder='5'
                 value={filters.max_rating}
                 onChange={e => handleFilterChange('max_rating', e.target.value)}
                 onKeyDown={e => {
@@ -598,10 +598,10 @@ const AdminDivesDesktop = () => {
                     e.preventDefault();
                   }
                 }}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 5) ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
               />
-              {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 10) && (
-                <p className='text-red-500 text-xs mt-1'>Rating must be 0-10</p>
+              {filters.max_rating && (filters.max_rating < 0 || filters.max_rating > 5) && (
+                <p className='text-red-500 text-xs mt-1'>Rating must be 0-5</p>
               )}
             </div>
           </div>
@@ -705,7 +705,7 @@ const AdminDivesDesktop = () => {
                     dive.user_username || '',
                     dive.dive_site?.name || 'No dive site',
                     dive.dive_date || '',
-                    dive.user_rating ? `${dive.user_rating}/10` : 'N/A',
+                    dive.user_rating ? `${dive.user_rating}/5` : 'N/A',
                     dive.is_private ? 'Private' : 'Public',
                     dive.view_count || 0,
                   ]);
@@ -821,7 +821,7 @@ const AdminDivesDesktop = () => {
                     dive.user_username || '',
                     dive.dive_site?.name || 'No dive site',
                     dive.dive_date || '',
-                    dive.user_rating ? `${dive.user_rating}/10` : 'N/A',
+                    dive.user_rating ? `${dive.user_rating}/5` : 'N/A',
                     dive.is_private ? 'Private' : 'Public',
                     dive.view_count || 0,
                   ]);

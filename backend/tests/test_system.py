@@ -320,7 +320,7 @@ class TestRecentActivity:
         rating = SiteRating(
             user_id=test_user.id,
             dive_site_id=dive_site.id,
-            score=8,
+            score=4,
             created_at=now - timedelta(hours=10),
         )
         db_session.add(rating)

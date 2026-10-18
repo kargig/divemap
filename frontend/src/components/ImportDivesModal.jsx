@@ -994,13 +994,13 @@ const ImportDivesModal = ({ isOpen, onClose, onSuccess }) => {
                     {dive.visibility_rating && (
                       <div>
                         <span className='font-medium text-gray-700'>Visibility:</span>
-                        <span className='ml-2 text-gray-600'>{dive.visibility_rating}/10</span>
+                        <span className='ml-2 text-gray-600'>{dive.visibility_rating}/5</span>
                       </div>
                     )}
                     {dive.user_rating && (
                       <div>
                         <span className='font-medium text-gray-700'>Rating:</span>
-                        <span className='ml-2 text-gray-600'>{dive.user_rating}/10</span>
+                        <span className='ml-2 text-gray-600'>{dive.user_rating}/5</span>
                       </div>
                     )}
                     {dive.suit_type && (

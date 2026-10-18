@@ -583,7 +583,7 @@ const DivingCenterDetail = () => {
   const renderStars = (rating, interactive = false) => {
     return (
       <div className='flex space-x-1'>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(star => (
+        {[1, 2, 3, 4, 5].map(star => (
           <button
             key={star}
             onClick={() => interactive && handleRating(star)}
@@ -618,7 +618,7 @@ const DivingCenterDetail = () => {
 
     if (center.average_rating) {
       parts.push(
-        `Rated ${center.average_rating.toFixed(1)}/10 from ${center.total_ratings} reviews.`
+        `Rated ${center.average_rating.toFixed(1)}/5 from ${center.total_ratings} reviews.`
       );
     }
 
@@ -707,7 +707,7 @@ const DivingCenterDetail = () => {
         '@type': 'AggregateRating',
         ratingValue: center.average_rating,
         reviewCount: center.total_ratings,
-        bestRating: '10',
+        bestRating: '5',
         worstRating: '1',
       };
     }

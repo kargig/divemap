@@ -513,7 +513,7 @@ const DiveSiteDetail = () => {
 
     if (diveSite.total_ratings > 0) {
       if (diveSite.average_rating) {
-        parts.push(`Rated ${Number(diveSite.average_rating).toFixed(1)}/10.`);
+        parts.push(`Rated ${Number(diveSite.average_rating).toFixed(1)}/5.`);
       }
       const reviewWord = diveSite.total_ratings === 1 ? 'review' : 'reviews';
       parts.push(`Read ${diveSite.total_ratings} ${reviewWord} and see photos.`);

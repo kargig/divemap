@@ -63,8 +63,8 @@ const StickyRateBar = ({ diveSite, onRate, isSubmitting }) => {
                 value={localRating}
                 onChange={handleRate}
                 disabled={isSubmitting}
-                size={24} // Restored to a legible size that should fit
-                gap={2} // Keep tight gap
+                size={28}
+                gap={6}
                 className='justify-center'
               />
               {isSubmitting && (

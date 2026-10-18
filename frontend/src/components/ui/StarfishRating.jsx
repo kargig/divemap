@@ -72,7 +72,7 @@ const StarfishRating = ({ value, onChange, disabled, readOnly, size = 28, gap = 
         </style>
         <Rate
           character={StarfishIcon}
-          count={10}
+          count={5}
           value={value}
           onChange={onChange}
           disabled={disabled || readOnly}

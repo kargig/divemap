@@ -248,7 +248,7 @@ const AdminDivingCentersTable = ({
                       <span className='text-gray-500'>Rating:</span>{' '}
                       <span className='text-gray-900'>
                         {center.average_rating
-                          ? `${center.average_rating.toFixed(1)}/10`
+                          ? `${center.average_rating.toFixed(1)}/5`
                           : 'No ratings'}
                       </span>
                     </div>

@@ -25,19 +25,21 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
   const getVerdictMessage = () => {
     if (total_ratings === 0)
       return { text: 'Be the first to discover this gem! 💎', icon: <RocketOutlined /> };
-    if (average_rating >= 9) return { text: 'A community favorite! 🏆', icon: <TrophyOutlined /> };
-    if (average_rating >= 7)
+    if (average_rating >= 4.5)
+      return { text: 'A community favorite! 🏆', icon: <TrophyOutlined /> };
+    if (average_rating >= 3.5)
       return { text: 'Highly recommended by divers.', icon: <TrophyOutlined /> };
     return { text: 'Divers have shared their thoughts.', icon: <UserOutlined /> };
   };
 
   const message = getVerdictMessage();
 
-  // Calculate percentage for progress circle (scale 0-10)
-  const percent = average_rating ? average_rating * 10 : 0;
+  // Calculate percentage for progress circle (scale 0-5)
+  const percent = average_rating ? (average_rating / 5) * 100 : 0;
 
   // Custom stroke color based on rating
-  const strokeColor = average_rating >= 8 ? '#10b981' : average_rating >= 6 ? '#f59e0b' : '#ef4444';
+  const strokeColor =
+    average_rating >= 4.0 ? '#10b981' : average_rating >= 3.0 ? '#f59e0b' : '#ef4444';
 
   return (
     <ConfigProvider
@@ -71,7 +73,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
                       <span className='text-2xl font-bold text-gray-800'>
                         {average_rating ? average_rating.toFixed(1) : '-'}
                       </span>
-                      <span className='text-xs text-gray-500'>/ 10</span>
+                      <span className='text-xs text-gray-500'>/ 5</span>
                     </div>
                   )}
                   size={compact ? 70 : 80}

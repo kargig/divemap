@@ -1061,30 +1061,30 @@ const EditDive = () => {
               </div>
 
               <div>
-                <FormField name='visibility_rating' label='Visibility Rating (1-10)'>
+                <FormField name='visibility_rating' label='Visibility Rating (1-5)'>
                   {({ register, name }) => (
                     <input
                       type='number'
                       min='1'
-                      max='10'
+                      max='5'
                       {...register(name)}
                       className='w-full border border-gray-300 rounded-md px-3 py-2'
-                      placeholder='8'
+                      placeholder='4'
                     />
                   )}
                 </FormField>
               </div>
 
               <div>
-                <FormField name='user_rating' label='Your Rating (1-10)'>
+                <FormField name='user_rating' label='Your Rating (1-5)'>
                   {({ register, name }) => (
                     <input
                       type='number'
                       min='1'
-                      max='10'
+                      max='5'
                       {...register(name)}
                       className='w-full border border-gray-300 rounded-md px-3 py-2'
-                      placeholder='9'
+                      placeholder='4'
                     />
                   )}
                 </FormField>

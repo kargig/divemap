@@ -97,7 +97,7 @@ class MockSite:
         self.access_instructions = kwargs.get("access_instructions")
         self.safety_information = kwargs.get("safety_information")
         self.difficulty = kwargs.get("difficulty", MockDifficulty())
-        self.ratings = kwargs.get("ratings", [MockRating(9), MockRating(8)])
+        self.ratings = kwargs.get("ratings", [MockRating(5), MockRating(4)])
         self.aliases = kwargs.get("aliases", [])
         self.tags = kwargs.get("tags", [])
         self.center_relationships = kwargs.get("center_relationships", [])
@@ -110,10 +110,11 @@ def test_strip_html_tags():
 
 def test_dive_site_meta_description_with_reviews():
     site = MockSite()
-    desc = dive_site_meta_description(site, 8.5, 2)
+    desc = dive_site_meta_description(site, 4.5, 2)
     assert "Agia Anna" in desc
     assert "Open Water" in desc
     assert "18" in desc
+    assert "Rated 4.5/5." in desc
     assert "2 reviews" in desc
 
 
@@ -134,12 +135,18 @@ def test_render_seo_page_injects_metadata_and_preserves_spa_shell():
         description="Test description",
         canonical="https://divemap.blue/dive-sites/104/agia-anna",
         main_content=main,
-        json_ld={"@context": "https://schema.org", "@type": "Place", "name": "Agia Anna"},
+        json_ld={
+            "@context": "https://schema.org",
+            "@type": "Place",
+            "name": "Agia Anna",
+        },
     )
 
     assert "<title>Divemap - Agia Anna - Naxos, Greece</title>" in page
     assert 'meta name="description" content="Test description"' in page
-    assert 'rel="canonical" href="https://divemap.blue/dive-sites/104/agia-anna"' in page
+    assert (
+        'rel="canonical" href="https://divemap.blue/dive-sites/104/agia-anna"' in page
+    )
     assert "<h1>Agia Anna</h1>" in page
     assert 'src="/assets/index-abc123.js"' in page
     assert "application/ld+json" in page
@@ -153,7 +160,9 @@ def test_render_seo_page_without_template():
         title="Divemap - Dive Sites",
         description="Browse dive sites.",
         canonical="https://divemap.blue/dive-sites",
-        main_content=render_listing_main("Dive Sites", "Intro", [("Site A", "/dive-sites/1/a")]),
+        main_content=render_listing_main(
+            "Dive Sites", "Intro", [("Site A", "/dive-sites/1/a")]
+        ),
     )
     assert "<title>Divemap - Dive Sites</title>" in page
     assert "<h1>Dive Sites</h1>" in page
@@ -178,7 +187,7 @@ def test_json_ld_is_valid_in_output():
     )
     # Find the script tag and locate its closing '>' to find the JSON-LD payload start robustly
     tag_index = page.index('type="application/ld+json"')
-    start = page.index('>', tag_index) + 1
+    start = page.index(">", tag_index) + 1
     end = page.index("</script>", start)
     payload = json.loads(page[start:end])
     assert payload["@type"] == "Place"
@@ -217,7 +226,11 @@ def test_render_dive_site_main_includes_aliases_tags_centers_routes():
     site = MockSite(
         aliases=[MockAlias("Fish Farm"), MockAlias("Ιχθυοτροφείο")],
         tags=[MockSiteTag("Deep"), MockSiteTag("Wall")],
-        center_relationships=[MockCenterRel(MockCenter(54, "Aqualized", city="Anavissos", country="Greece"))],
+        center_relationships=[
+            MockCenterRel(
+                MockCenter(54, "Aqualized", city="Anavissos", country="Greece")
+            )
+        ],
         routes=[MockRoute(12, "Canyon Traverse", "Wall Dive")],
     )
     html = render_dive_site_main(site, 8.5, 2)
@@ -231,4 +244,3 @@ def test_render_dive_site_main_includes_aliases_tags_centers_routes():
     assert "Dive Routes" in html
     assert "/dive-routes/12/" in html
     assert "Canyon Traverse" in html
-
