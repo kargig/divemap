@@ -281,9 +281,9 @@ def parse_duration(duration_str):
 
 
 def parse_rating(rating):
-    """Parse and validate Subsurface rating (1-5 scale) directly for Divemap"""
+    """Parse and validate Subsurface rating (1-5 scale) directly for Divemap."""
     if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return 5
+        return None
 
     return rating
 

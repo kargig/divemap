@@ -567,3 +567,16 @@ class TestDiveImportWithProfiles:
         assert result["back_gas"]["tank"] == "15"
         assert len(result["stages"]) == 1
         assert result["stages"][0]["tank"] == "alu7"
+
+    def test_parse_rating_validation(self):
+        """Test parse_rating returns valid rating or None for invalid inputs."""
+        from app.routers.dives.imports.subsurface import parse_rating
+
+        assert parse_rating(1) == 1
+        assert parse_rating(3) == 3
+        assert parse_rating(5) == 5
+        assert parse_rating(0) is None
+        assert parse_rating(6) is None
+        assert parse_rating(-1) is None
+        assert parse_rating("5") is None
+        assert parse_rating(None) is None
