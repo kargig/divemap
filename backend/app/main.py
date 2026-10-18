@@ -309,7 +309,7 @@ async def add_security_headers(request, call_next):
             "img-src 'self' data: https:; "
             "font-src 'self' https://fonts.gstatic.com; "
             "connect-src 'self' ws: wss: https:; "
-            "frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com"
+            "frame-src 'self' https://accounts.google.com https://challenges.cloudflare.com https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com https://player.vimeo.com"
         )
 
     response.headers["Content-Security-Policy"] = csp_policy

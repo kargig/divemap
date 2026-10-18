@@ -131,6 +131,71 @@ export const isVimeoUrl = url => {
 };
 
 /**
+ * Extract Vimeo video ID from common Vimeo URL formats
+ * @param {string} url - Vimeo URL
+ * @returns {string|null} - Numeric video ID or null
+ */
+export const extractVimeoVideoId = url => {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+
+  let urlObj;
+  try {
+    urlObj = new URL(url);
+  } catch (e) {
+    try {
+      urlObj = new URL(`https://${url}`);
+    } catch (e2) {
+      return null;
+    }
+  }
+
+  const host = urlObj.hostname.replace(/^www\./, '');
+  if (host !== 'vimeo.com' && host !== 'player.vimeo.com') {
+    return null;
+  }
+
+  const parts = urlObj.pathname.split('/').filter(Boolean);
+  let videoId = null;
+
+  if (host === 'player.vimeo.com' && parts[0] === 'video' && parts[1]) {
+    videoId = parts[1];
+  } else if (host === 'vimeo.com') {
+    // Prefer the first purely numeric path segment (skips channels/groups/etc.)
+    videoId = parts.find(part => /^\d+$/.test(part)) || null;
+  }
+
+  if (videoId && /^\d+$/.test(videoId)) {
+    return videoId;
+  }
+
+  return null;
+};
+
+/**
+ * Generate Vimeo embed URL from video ID
+ * @param {string} videoId - Vimeo video ID
+ * @param {Object} options - Embed options (e.g., autoplay)
+ * @returns {string|null} - Vimeo embed URL
+ */
+export const getVimeoEmbedUrl = (videoId, options = {}) => {
+  if (!videoId) {
+    return null;
+  }
+  const url = `https://player.vimeo.com/video/${videoId}`;
+  const params = new URLSearchParams();
+
+  if (options.autoplay) {
+    params.set('autoplay', '1');
+    params.set('muted', '1');
+  }
+
+  const queryString = params.toString();
+  return queryString ? `${url}?${queryString}` : url;
+};
+
+/**
  * Generate YouTube watch URL from video ID
  * @param {string} videoId - YouTube video ID
  * @returns {string} - YouTube watch URL

@@ -1,5 +1,5 @@
 import { Collapse } from 'antd';
-import { Clock, MapPin, Star } from 'lucide-react';
+import { Clock, MapPin, Star, Plus } from 'lucide-react';
 import React from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
@@ -9,6 +9,8 @@ import { decodeHtmlEntities } from '../utils/htmlDecode';
 import { slugify, getDiveSiteSlug, getDivingCenterSlug } from '../utils/slugify';
 import { getTagColor } from '../utils/tagHelpers';
 
+import DiveSiteExplorerCard from './DiveSiteExplorerCard';
+import DiveSiteSpecsCard from './DiveSiteSpecsCard';
 import WeatherConditionsCard from './MarineConditionsCard';
 import Button from './ui/Button';
 import DepthIcon from './ui/DepthIcon';
@@ -29,7 +31,28 @@ const DiveSiteSidebar = ({
   const navigate = useNavigate();
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-5'>
+      {/* Primary Action Button */}
+      {diveSite && !diveSite.deleted_at && (
+        <Button
+          to={`/dives/create?dive_site_id=${diveSite.id}`}
+          variant='primary'
+          size='lg'
+          icon={<Plus className='w-5 h-5' />}
+          className='w-full justify-center shadow-md font-bold text-sm sm:text-base'
+        >
+          Log a Dive Here
+        </Button>
+      )}
+
+      {/* Technical Dive Site Specs */}
+      <DiveSiteSpecsCard diveSite={diveSite} />
+
+      {/* Explorer Attribution */}
+      {diveSite?.created_by_username && (
+        <DiveSiteExplorerCard username={diveSite.created_by_username} />
+      )}
+
       {/* Weather Conditions - Collapsible (Desktop Only, Mobile is in main content) */}
       <div className='hidden lg:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden'>
         <Collapse
@@ -53,16 +76,6 @@ const DiveSiteSidebar = ({
           ]}
         />
       </div>
-
-      {/* Access Instructions - Desktop View Only */}
-      {diveSite.access_instructions && (
-        <div className='hidden lg:block bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-          <h3 className='text-lg font-semibold text-gray-900 mb-4'>Access Instructions</h3>
-          <p className='text-gray-700 text-sm'>
-            {decodeHtmlEntities(diveSite.access_instructions)}
-          </p>
-        </div>
-      )}
 
       {/* Associated Diving Centers - Moved to Sidebar */}
       {divingCenters && divingCenters.length > 0 && (
