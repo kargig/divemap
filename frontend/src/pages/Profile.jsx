@@ -786,9 +786,9 @@ const Profile = () => {
                 </div>
                 <div className='text-center sm:text-left flex-1'>
                   <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2'>
-                    <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                    <h2 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
                       {user.username}
-                    </h1>
+                    </h2>
                     <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'>
                       {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'Diver'}
                     </span>

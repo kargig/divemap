@@ -20,15 +20,14 @@
         try {
           var stored = localStorage.getItem('divemap_theme') || 'system';
           var isDark = stored === 'dark' || (stored === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var meta = document.querySelector('meta[name="theme-color"]');
           if (isDark) {
             document.documentElement.classList.add('dark');
             document.documentElement.setAttribute('data-prefers-color-scheme', 'dark');
-            var meta = document.querySelector('meta[name="theme-color"]');
             if (meta) meta.setAttribute('content', '#0f172a');
           } else {
             document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-prefers-color-scheme', 'light');
-            var meta = document.querySelector('meta[name="theme-color"]');
+            document.documentElement.removeAttribute('data-prefers-color-scheme');
             if (meta) meta.setAttribute('content', '#0072B2');
           }
         } catch (_) {}
