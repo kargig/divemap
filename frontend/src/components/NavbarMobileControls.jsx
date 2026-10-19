@@ -117,7 +117,6 @@ const NavbarMobileControls = () => {
       <div className='md:hidden flex items-center gap-1 sm:gap-3'>
         {user && <ChatDropdown />}
         {user && <NotificationBell />}
-        <ThemeToggle variant='desktop' />
         <button
           onClick={toggleMobileMenu}
           className='text-white hover:text-blue-200 transition-colors ml-0'

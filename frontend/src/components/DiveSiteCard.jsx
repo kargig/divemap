@@ -261,25 +261,28 @@ export const DiveSiteGridCard = ({
         )}
 
         {/* Footer */}
-        <div className='mt-auto flex items-center justify-between gap-2 pt-2'>
-          <div className='flex -space-x-1 overflow-hidden'>
-            {site.tags?.slice(0, 3).map((tag, i) => (
-              <div
+        <div className='mt-auto flex items-center justify-between gap-2 pt-2 border-t border-gray-100 dark:border-slate-700/60'>
+          <div className='flex flex-wrap items-center gap-1 min-w-0 flex-1 overflow-hidden'>
+            {site.tags?.slice(0, 2).map((tag, i) => (
+              <span
                 key={i}
-                className='h-5 w-5 rounded-full border-2 border-white bg-gray-50 flex items-center justify-center'
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium truncate max-w-[110px] ${getTagColor(tag.name || tag)}`}
                 title={tag.name || tag}
               >
-                <div
-                  className={`h-full w-full rounded-full opacity-60 ${getTagColor(tag.name || tag)}`}
-                />
-              </div>
+                {tag.name || tag}
+              </span>
             ))}
+            {site.tags?.length > 2 && (
+              <span className='text-[11px] font-medium text-gray-500 dark:text-slate-400 shrink-0'>
+                +{site.tags.length - 2}
+              </span>
+            )}
           </div>
 
           <Link
             to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
             state={{ from: location.pathname + location.search }}
-            className='text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 group'
+            className='text-xs font-bold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 flex items-center gap-0.5 group shrink-0 ml-auto'
           >
             Explore
             <ChevronRight className='w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5' />

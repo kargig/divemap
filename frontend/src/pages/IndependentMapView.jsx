@@ -37,41 +37,109 @@ import { useViewportData } from '../hooks/useViewportData';
 
 const LeafletMapView = lazy(() => import('../components/LeafletMapView'));
 
+const MAP_LAYERS = [
+  {
+    id: 'street',
+    name: 'Street Map',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  },
+  {
+    id: 'dark',
+    name: 'Dark Canvas',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    attribution:
+      '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
+  },
+  {
+    id: 'satellite',
+    name: 'Satellite',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+  },
+  {
+    id: 'terrain',
+    name: 'Terrain',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
+  },
+];
+
+const DEFAULT_MAP_FILTERS = {
+  search: '',
+  difficulty_code: '',
+  my_dives: false,
+  exclude_unspecified_difficulty: false,
+  wind_suitability: '',
+  min_rating: '',
+  max_rating: '',
+  country: '',
+  region: '',
+  date_from: '',
+  date_to: '',
+  depth_min: '',
+  depth_max: '',
+  visibility_min: '',
+  visibility_max: '',
+  suit_type: '',
+  tag_ids: [],
+  diving_center_id: '',
+  trip_status: '',
+  min_price: '',
+  max_price: '',
+  start_date: '',
+  end_date: '',
+};
+
+const parseFiltersFromSearchParams = searchParams => {
+  const urlFilters = { ...DEFAULT_MAP_FILTERS };
+  const filterKeys = Object.keys(DEFAULT_MAP_FILTERS);
+
+  filterKeys.forEach(key => {
+    const value = searchParams.get(key);
+    if (value !== null) {
+      if (key === 'tag_ids') {
+        urlFilters[key] = value
+          ? value
+              .split(',')
+              .map(id => parseInt(id, 10))
+              .filter(id => !isNaN(id))
+          : [];
+      } else if (key === 'exclude_unspecified_difficulty' || key === 'my_dives') {
+        urlFilters[key] = value === 'true';
+      } else {
+        urlFilters[key] = value;
+      }
+    }
+  });
+
+  // Default dates for dive-trips if not provided in URL
+  const entityType = searchParams.get('type');
+  if (
+    entityType === 'dive-trips' &&
+    !searchParams.get('start_date') &&
+    !searchParams.get('end_date')
+  ) {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - 7); // 7 days ago
+    const endDate = new Date(today);
+    endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
+
+    urlFilters.start_date = startDate.toISOString().split('T')[0];
+    urlFilters.end_date = endDate.toISOString().split('T')[0];
+  }
+
+  return urlFilters;
+};
+
 const IndependentMapView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();
   const { navbarVisible } = useResponsiveScroll();
   const { resolvedTheme } = useTheme();
-
-  const MAP_LAYERS = [
-    {
-      id: 'street',
-      name: 'Street Map',
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    },
-    {
-      id: 'dark',
-      name: 'Dark Canvas',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-      attribution:
-        '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
-    },
-    {
-      id: 'satellite',
-      name: 'Satellite',
-      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
-    },
-    {
-      id: 'terrain',
-      name: 'Terrain',
-      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-      attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
-    },
-  ];
 
   // Viewport state for map
   const [viewport, setViewport] = useState(() => {
@@ -300,97 +368,23 @@ const IndependentMapView = () => {
       : MAP_LAYERS[0];
   });
 
+  const layerQueryParam = searchParams.get('layer');
+
   // Automatically adapt default basemap to active theme if user hasn't explicitly chosen a layer
   useEffect(() => {
-    if (!userSelectedLayerManually && !searchParams.get('layer')) {
+    if (!userSelectedLayerManually && !layerQueryParam) {
       const targetLayer =
         resolvedTheme === 'dark'
           ? MAP_LAYERS.find(l => l.id === 'dark')
           : MAP_LAYERS.find(l => l.id === 'street');
       if (targetLayer) {
-        setSelectedLayer(targetLayer);
+        setSelectedLayer(prev => (prev?.id !== targetLayer.id ? targetLayer : prev));
       }
     }
-  }, [resolvedTheme, userSelectedLayerManually, searchParams, MAP_LAYERS]);
+  }, [resolvedTheme, userSelectedLayerManually, layerQueryParam]);
 
   // Filter state
-  const [filters, setFilters] = useState(() => {
-    const urlFilters = {};
-    const filterKeys = [
-      'search',
-      'difficulty_code',
-      'my_dives',
-      'exclude_unspecified_difficulty',
-      'wind_suitability',
-      'min_rating',
-      'max_rating',
-      'country',
-      'region',
-      'date_from',
-      'date_to',
-      'depth_min',
-      'depth_max',
-      'visibility_min',
-      'visibility_max',
-      'suit_type',
-      'tag_ids',
-      'diving_center_id',
-      'trip_status',
-      'min_price',
-      'max_price',
-      'start_date',
-      'end_date',
-    ];
-
-    filterKeys.forEach(key => {
-      const value = searchParams.get(key);
-      if (value !== null) {
-        if (key === 'tag_ids') {
-          urlFilters[key] = value
-            ? value
-                .split(',')
-                .map(id => parseInt(id))
-                .filter(id => !isNaN(id))
-            : [];
-        } else {
-          urlFilters[key] = value;
-        }
-      }
-    });
-
-    // Default dates for dive-trips if not provided in URL
-    const entityType = searchParams.get('type');
-    if (entityType === 'dive-trips' && !urlFilters.start_date && !urlFilters.end_date) {
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 7); // 7 days ago
-      const endDate = new Date(today);
-      endDate.setFullYear(today.getFullYear() + 1); // 1 year ahead
-
-      urlFilters.start_date = startDate.toISOString().split('T')[0];
-      urlFilters.end_date = endDate.toISOString().split('T')[0];
-    }
-
-    return {
-      search: '',
-      difficulty_code: '',
-      exclude_unspecified_difficulty: false,
-      wind_suitability: '',
-      min_rating: '',
-      max_rating: '',
-      country: '',
-      region: '',
-      date_from: '',
-      date_to: '',
-      depth_min: '',
-      depth_max: '',
-      visibility_min: '',
-      visibility_max: '',
-      suit_type: '',
-      tag_ids: [],
-      ...urlFilters,
-    };
-  });
+  const [filters, setFilters] = useState(() => parseFiltersFromSearchParams(searchParams));
 
   // Performance state
   const [performanceMetrics, setPerformanceMetrics] = useState({
@@ -415,73 +409,27 @@ const IndependentMapView = () => {
     return null;
   }, [searchParams]);
 
-  const parseFiltersFromURL = useCallback(() => {
-    const urlFilters = {};
-    const filterKeys = [
-      'search',
-      'difficulty_code',
-      'my_dives',
-      'exclude_unspecified_difficulty',
-      'wind_suitability',
-      'min_rating',
-      'max_rating',
-      'country',
-      'region',
-      'date_from',
-      'date_to',
-      'depth_min',
-      'depth_max',
-      'visibility_min',
-      'visibility_max',
-      'suit_type',
-      'tag_ids',
-      'diving_center_id',
-      'trip_status',
-      'min_price',
-      'max_price',
-      'start_date',
-      'end_date',
-    ];
-
-    filterKeys.forEach(key => {
-      const value = searchParams.get(key);
-      if (value !== null) {
-        if (key === 'tag_ids') {
-          urlFilters[key] = value
-            ? value
-                .split(',')
-                .map(id => parseInt(id))
-                .filter(id => !isNaN(id))
-            : [];
-        } else {
-          urlFilters[key] = value;
-        }
-      }
-    });
-
-    return urlFilters;
-  }, [searchParams]);
-
-  // Initialize state from URL on component mount
+  // Initialize state from URL on component mount and sync on external navigation
   useEffect(() => {
     // Parse entity type
     const entityType = searchParams.get('type') || 'dive-sites';
     const validTypes = ['dive-sites', 'diving-centers', 'dives', 'dive-trips'];
-    if (validTypes.includes(entityType)) {
-      setSelectedEntityType(entityType);
-    } else {
-      setSelectedEntityType('dive-sites');
-    }
+    const nextType = validTypes.includes(entityType) ? entityType : 'dive-sites';
+    setSelectedEntityType(prev => (prev !== nextType ? nextType : prev));
 
-    // Parse viewport from URL
-    // Viewport is already initialized in useState, no need to update it here
-    // unless we want to respond to subsequent URL changes (popstate)
-    // But for now, we only initialize on mount.
-
-    // Parse filters from URL
-    const urlFilters = parseFiltersFromURL();
-    setFilters(prevFilters => ({ ...prevFilters, ...urlFilters }));
-  }, [searchParams, parseViewportFromURL, parseFiltersFromURL]); // Only run on mount
+    // Parse filters from URL, resetting any filters that were removed from URL
+    const nextFilters = parseFiltersFromSearchParams(searchParams);
+    setFilters(prevFilters => {
+      let changed = false;
+      for (const [k, v] of Object.entries(nextFilters)) {
+        if (JSON.stringify(prevFilters[k]) !== JSON.stringify(v)) {
+          changed = true;
+          break;
+        }
+      }
+      return changed ? nextFilters : prevFilters;
+    });
+  }, [searchParams]);
 
   // Sync state to URL (Wind, Time, Layer, Viewport)
   useEffect(() => {
@@ -514,9 +462,9 @@ const IndependentMapView = () => {
           newParams.delete('time');
         }
 
-        if (selectedLayer && selectedLayer.id !== 'street') {
+        if (userSelectedLayerManually && selectedLayer && selectedLayer.id !== 'street') {
           newParams.set('layer', selectedLayer.id);
-        } else {
+        } else if (userSelectedLayerManually && selectedLayer && selectedLayer.id === 'street') {
           newParams.delete('layer');
         }
 
@@ -525,6 +473,10 @@ const IndependentMapView = () => {
           newParams.set('lat', viewport.latitude.toFixed(6));
           newParams.set('lng', viewport.longitude.toFixed(6));
           newParams.set('zoom', viewport.zoom.toFixed(1));
+        }
+
+        if (newParams.toString() === prev.toString()) {
+          return prev;
         }
 
         return newParams;
@@ -536,7 +488,8 @@ const IndependentMapView = () => {
     windOverlayEnabled,
     windAnimationEnabled,
     windDateTime,
-    selectedLayer,
+    selectedLayer?.id,
+    userSelectedLayerManually,
     viewport.latitude,
     viewport.longitude,
     viewport.zoom,
@@ -946,13 +899,13 @@ const IndependentMapView = () => {
         description='Explore scuba dive sites and diving centers globally on our interactive map. Filter by difficulty, view marine conditions, and plan your next dive trip.'
       />
       <div
-        className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
+        className={`${isFullscreen ? 'h-screen' : navbarVisible ? 'h-[calc(100vh-4rem)]' : 'h-screen'} bg-gray-50 dark:bg-slate-900 overflow-hidden flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''} transition-all duration-300`}
       >
         {/* Content wrapper with max-width */}
         <div className='flex-1 flex flex-col min-h-0 max-w-[95vw] xl:max-w-[1600px] w-full mx-auto'>
           {/* Header */}
           <div
-            className={`bg-white border-b border-gray-200 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
+            className={`bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shadow-sm flex-shrink-0 ${isFullscreen ? 'z-[9999]' : ''}`}
           >
             <div className='px-2 py-2'>
               {/* Top row - Title and back button */}
@@ -960,11 +913,13 @@ const IndependentMapView = () => {
                 <div className='flex items-center space-x-2'>
                   <button
                     onClick={() => navigate(-1)}
-                    className='p-1.5 hover:bg-gray-100 rounded-lg transition-colors'
+                    className='p-1.5 hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-lg transition-colors'
                   >
                     <Map className='w-4 h-4' />
                   </button>
-                  <h1 className='text-lg font-semibold text-gray-900'>Interactive Map</h1>
+                  <h1 className='text-lg font-semibold text-gray-900 dark:text-slate-100'>
+                    Interactive Map
+                  </h1>
                 </div>
                 {/* Wrench button - Mobile controls toggle */}
                 {isMobile ? (
@@ -989,13 +944,15 @@ const IndependentMapView = () => {
 
               {/* Bottom row - Description and dropdown */}
               <div className='flex items-center justify-between mt-2'>
-                <p className='text-xs text-gray-600 hidden sm:block'>
+                <p className='text-xs text-gray-600 dark:text-slate-300 hidden sm:block'>
                   Explore dive sites, centers, and dives
                 </p>
                 <div className='flex items-center gap-3 ml-auto sm:ml-0'>
                   <div className='flex items-center gap-1.5'>
-                    <Info className='w-3.5 h-3.5 text-blue-500' />
-                    <span className='text-xs font-medium text-gray-700'>Show on map:</span>
+                    <Info className='w-3.5 h-3.5 text-blue-500 dark:text-sky-400' />
+                    <span className='text-xs font-medium text-gray-700 dark:text-slate-300'>
+                      Show on map:
+                    </span>
                   </div>
                   {/* Entity type selector */}
                   {isMobile ? (
@@ -1037,17 +994,17 @@ const IndependentMapView = () => {
               {!windOverlayEnabled &&
                 !windBannerDismissed &&
                 selectedEntityType === 'dive-sites' && (
-                  <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg shadow-sm'>
+                  <div className='mt-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-slate-800 dark:to-slate-850 border border-blue-200 dark:border-slate-700 rounded-lg shadow-sm'>
                     <div className='flex items-start justify-between gap-3'>
                       <div className='flex items-start gap-3 flex-1'>
                         <div className='flex-shrink-0 mt-0.5'>
-                          <Wind className='w-5 h-5 text-blue-600' />
+                          <Wind className='w-5 h-5 text-blue-600 dark:text-sky-400' />
                         </div>
                         <div className='flex-1 min-w-0'>
-                          <h3 className='text-sm font-semibold text-gray-900 mb-1'>
+                          <h3 className='text-sm font-semibold text-gray-900 dark:text-slate-100 mb-1'>
                             New: Real-Time Wind Conditions
                           </h3>
-                          <p className='text-xs text-gray-700 mb-2'>
+                          <p className='text-xs text-gray-700 dark:text-slate-300 mb-2'>
                             View live wind speed, direction, and forecasts on the map. Plan your
                             dives based on current and future weather conditions with interactive
                             wind arrows and dive site suitability indicators. View a location on
@@ -1068,7 +1025,7 @@ const IndependentMapView = () => {
                           setWindBannerDismissed(true);
                           localStorage.setItem('windBannerDismissed', 'true');
                         }}
-                        className='flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors'
+                        className='flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200 transition-colors'
                         aria-label='Dismiss'
                       >
                         <X className='w-4 h-4' />
@@ -1079,12 +1036,12 @@ const IndependentMapView = () => {
 
               {/* Collapsible Controls Section */}
               {showMobileControls && (
-                <div className='mt-4 pt-4 border-t border-gray-200'>
+                <div className='mt-4 pt-4 border-t border-gray-200 dark:border-slate-700'>
                   <div className='flex items-center'>
                     <div className='flex items-center flex-nowrap space-x-0.5 sm:space-x-2 max-w-full overflow-x-auto pb-1 no-scrollbar'>
                       {/* Performance indicator - Hidden on mobile */}
                       {performanceMetrics.dataPoints > 0 && (
-                        <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500'>
+                        <div className='hidden sm:flex items-center space-x-2 text-xs text-gray-500 dark:text-slate-400'>
                           <span>{performanceMetrics.dataPoints} points</span>
                           <div className='w-2 h-2 bg-green-500 rounded-full'></div>
                         </div>
@@ -1095,10 +1052,10 @@ const IndependentMapView = () => {
                         onClick={() => setShowFilters(!showFilters)}
                         className={`p-1 sm:p-2 rounded-lg transition-colors ${
                           showFilters
-                            ? 'bg-blue-100 text-blue-600'
+                            ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300'
                             : hasActiveFilters()
-                              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                              : 'hover:bg-gray-100 text-gray-600'
+                              ? 'bg-orange-100 dark:bg-amber-950/60 text-orange-600 dark:text-amber-300 hover:bg-orange-200'
+                              : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                         }`}
                         title={hasActiveFilters() ? 'Filters are active' : 'Toggle filters'}
                       >
@@ -1112,8 +1069,8 @@ const IndependentMapView = () => {
                         }}
                         className={`p-1 sm:p-2 rounded-lg transition-colors ${
                           showLayers
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'hover:bg-gray-100 text-gray-600'
+                            ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300'
+                            : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                         }`}
                         title='Map layers'
                       >
@@ -1122,7 +1079,7 @@ const IndependentMapView = () => {
 
                       {/* Wind Overlay Toggle - only show for dive sites */}
                       {selectedEntityType === 'dive-sites' && (
-                        <div className='flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden scale-[0.85] sm:scale-100 origin-left'>
+                        <div className='flex items-center bg-white dark:bg-slate-700/60 rounded-lg border border-gray-300 dark:border-slate-600 shadow-sm overflow-hidden scale-[0.85] sm:scale-100 origin-left'>
                           <WindOverlayToggle
                             isOverlayEnabled={windOverlayEnabled}
                             onToggle={handleWindOverlayToggle}
@@ -1131,7 +1088,7 @@ const IndependentMapView = () => {
                             disabled={false}
                             className='!rounded-none !border-none !shadow-none !p-1 sm:!p-2'
                           />
-                          <div className='w-px h-5 bg-gray-200 my-auto'></div>
+                          <div className='w-px h-5 bg-gray-200 dark:bg-slate-600 my-auto'></div>
                           <button
                             onClick={() => setWindAnimationEnabled(!windAnimationEnabled)}
                             disabled={!windOverlayEnabled || currentZoom < 13}
@@ -1139,10 +1096,10 @@ const IndependentMapView = () => {
                             p-1 sm:p-2 transition-colors
                             ${
                               !windOverlayEnabled || currentZoom < 13
-                                ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                ? 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed'
                                 : windAnimationEnabled
-                                  ? 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                                  ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 hover:bg-blue-200'
+                                  : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-600'
                             }
                           `}
                             title={
@@ -1166,10 +1123,10 @@ const IndependentMapView = () => {
                         disabled={geolocationStatus === 'requesting'}
                         className={`p-1 sm:p-2 rounded-lg transition-colors ${
                           geolocationStatus === 'granted'
-                            ? 'bg-green-100 text-green-600'
+                            ? 'bg-green-100 dark:bg-emerald-950/60 text-green-600 dark:text-emerald-400'
                             : geolocationStatus === 'denied' || geolocationStatus === 'error'
-                              ? 'bg-red-100 text-red-600'
-                              : 'hover:bg-gray-100 text-gray-600'
+                              ? 'bg-red-100 dark:bg-rose-950/60 text-red-600 dark:text-rose-400'
+                              : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                         } ${geolocationStatus === 'requesting' ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title={
                           geolocationStatus === 'granted'
@@ -1193,7 +1150,7 @@ const IndependentMapView = () => {
                       {/* Reset zoom button - Smaller on mobile */}
                       <button
                         onClick={handleResetZoom}
-                        className='p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600'
+                        className='p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                         title={
                           geolocationStatus === 'granted'
                             ? 'Reset to your location'
@@ -1207,7 +1164,7 @@ const IndependentMapView = () => {
                       <button
                         onClick={handleShareClick}
                         disabled={isGeneratingLink}
-                        className={`p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-600 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`p-1 sm:p-2 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 ${isGeneratingLink ? 'opacity-50 cursor-not-allowed' : ''}`}
                         title='Share current map view'
                       >
                         {isGeneratingLink ? (
@@ -1225,7 +1182,7 @@ const IndependentMapView = () => {
                         className={`p-1 sm:p-2 rounded-lg transition-colors ${
                           isFullscreen
                             ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg'
-                            : 'hover:bg-gray-100 text-gray-600'
+                            : 'hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300'
                         }`}
                         title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                       >
@@ -1247,8 +1204,8 @@ const IndependentMapView = () => {
             <div
               className={`${
                 isMobile
-                  ? 'bg-blue-50 border-b border-blue-200 px-1.5 py-1'
-                  : 'bg-blue-50 border-b border-blue-200 px-4 py-2'
+                  ? 'bg-blue-50 dark:bg-slate-800 border-b border-blue-200 dark:border-slate-700 px-1.5 py-1'
+                  : 'bg-blue-50 dark:bg-slate-800 border-b border-blue-200 dark:border-slate-700 px-4 py-2'
               }`}
             >
               <div className='flex items-center justify-between'>
@@ -1259,11 +1216,11 @@ const IndependentMapView = () => {
                     <>
                       <div className='animate-spin flex-shrink-0'>
                         <Loader2
-                          className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-blue-600`}
+                          className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-blue-600 dark:text-sky-400`}
                         />
                       </div>
                       <span
-                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800`}
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-blue-800 dark:text-sky-200`}
                       >
                         Finding your location...
                       </span>
@@ -1272,10 +1229,10 @@ const IndependentMapView = () => {
                   {geolocationStatus === 'granted' && (
                     <>
                       <MapPin
-                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-green-600 flex-shrink-0`}
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-green-600 dark:text-emerald-400 flex-shrink-0`}
                       />
                       <span
-                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-green-800`}
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-green-800 dark:text-emerald-300`}
                       >
                         Location found! Map centered on your area.
                       </span>
@@ -1284,10 +1241,10 @@ const IndependentMapView = () => {
                   {geolocationStatus === 'denied' && (
                     <>
                       <MapPin
-                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 dark:text-rose-400 flex-shrink-0`}
                       />
                       <span
-                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800 dark:text-rose-300`}
                       >
                         Location access denied. Using default view.
                       </span>
@@ -1296,10 +1253,10 @@ const IndependentMapView = () => {
                   {geolocationStatus === 'error' && (
                     <>
                       <MapPin
-                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 flex-shrink-0`}
+                        className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 dark:text-rose-400 flex-shrink-0`}
                       />
                       <span
-                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800`}
+                        className={`${isMobile ? 'text-[10px] leading-tight' : 'text-sm'} text-red-800 dark:text-rose-300`}
                       >
                         Location error occurred. Using default view.
                       </span>
@@ -1313,16 +1270,18 @@ const IndependentMapView = () => {
                     <>
                       <button
                         onClick={handleGeolocationRequest}
-                        className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-blue-600 hover:text-blue-800 underline`}
+                        className={`${isMobile ? 'text-[10px]' : 'text-sm'} text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 underline`}
                       >
                         Try again
                       </button>
                       <button
                         onClick={handleDismissNotification}
-                        className={`${isMobile ? 'p-0' : 'p-0.5'} hover:bg-red-100 rounded transition-colors`}
+                        className={`${isMobile ? 'p-0' : 'p-0.5'} hover:bg-red-100 dark:hover:bg-slate-700 rounded transition-colors`}
                         aria-label='Dismiss notification'
                       >
-                        <X className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600`} />
+                        <X
+                          className={`${isMobile ? 'w-2.5 h-2.5' : 'w-4 h-4'} text-red-600 dark:text-rose-400`}
+                        />
                       </button>
                     </>
                   )}
@@ -1336,7 +1295,7 @@ const IndependentMapView = () => {
             {/* Filters sidebar */}
             {showFilters && (
               <div
-                className={`bg-white border-r border-gray-200 overflow-y-auto ${
+                className={`bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 overflow-y-auto ${
                   isMobile ? 'fixed top-16 bottom-0 left-0 w-80 z-40' : 'w-80'
                 }`}
               >
@@ -1352,7 +1311,7 @@ const IndependentMapView = () => {
 
             {/* Map area */}
             <div
-              className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container bg-gray-50 flex items-center justify-center`}
+              className={`${isMobile ? 'w-full h-full' : 'flex-1 min-h-0'} relative overflow-hidden map-container bg-gray-50 dark:bg-slate-900 flex items-center justify-center`}
             >
               <Suspense
                 fallback={

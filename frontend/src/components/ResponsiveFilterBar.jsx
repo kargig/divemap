@@ -809,25 +809,29 @@ const ResponsiveFilterBar = ({
     <>
       {/* Container for Search & Filters */}
       <div
-        className={`${variant === 'sticky' ? 'sticky top-0 left-0 right-0 z-[100] w-full' : 'bg-white border border-gray-200 rounded-xl shadow-sm mb-4'}`}
+        className={`${
+          variant === 'sticky'
+            ? 'sticky top-0 left-0 right-0 z-[100] w-full'
+            : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm mb-4'
+        }`}
       >
         {/* Mobile Search Bar */}
         {showSearch && (
           <div
             ref={searchBarRef}
             data-testid='mobile-search-bar'
-            className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : ''}`}
+            className={`${variant === 'sticky' ? 'bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shadow-sm' : ''}`}
           >
             <div className='p-2 sm:p-3'>
               <div className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400' />
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400 dark:text-slate-400' />
                 <input
                   type='text'
                   placeholder='Search (min 3 chars)...'
                   value={searchQuery}
                   onChange={e => onSearchChange(e.target.value)}
                   onKeyPress={e => e.key === 'Enter' && onSearchSubmit()}
-                  className='w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm'
+                  className='w-full pl-10 pr-4 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-slate-700/60 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400'
                 />
               </div>
             </div>
@@ -837,14 +841,14 @@ const ResponsiveFilterBar = ({
         {/* Mobile Quick Filters Bar */}
         <div
           data-testid='mobile-quick-filters'
-          className={`${variant === 'sticky' ? 'bg-white border-b border-gray-200 shadow-sm' : 'border-t border-gray-100'}`}
+          className={`${variant === 'sticky' ? 'bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 shadow-sm' : 'border-t border-gray-100 dark:border-slate-700/60'}`}
         >
           <div className='flex items-center justify-between p-2 sm:p-3'>
             {/* Filter Icon with Count */}
             <button
               data-testid='mobile-filter-button'
               onClick={handleFilterOverlayToggle}
-              className='flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors min-h-[38px] sm:min-h-[44px]'
+              className='flex items-center gap-2 px-3 py-1.5 bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors min-h-[38px] sm:min-h-[44px]'
             >
               <Wrench className='h-4 w-4' />
               {activeFiltersCount > 0 && (
@@ -866,8 +870,8 @@ const ResponsiveFilterBar = ({
                       aria-label='My Dives'
                       className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                         quickFilters.includes('my_dives')
-                          ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                          : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                          ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                          : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                       }`}
                       title='My Dives'
                     >
@@ -879,8 +883,8 @@ const ResponsiveFilterBar = ({
                     aria-label='Wreck Dives'
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('wrecks')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Wreck dives'
                   >
@@ -891,8 +895,8 @@ const ResponsiveFilterBar = ({
                     aria-label='Reef Dives'
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('reefs')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Reef dives'
                   >
@@ -903,8 +907,8 @@ const ResponsiveFilterBar = ({
                     aria-label='Boat Dives'
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('boat_dive')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Boat dives'
                   >
@@ -915,8 +919,8 @@ const ResponsiveFilterBar = ({
                     aria-label='Shore Dives'
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('shore_dive')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Shore dives'
                   >
@@ -930,8 +934,8 @@ const ResponsiveFilterBar = ({
                     onClick={() => onQuickFilter('wrecks')}
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('wrecks')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Wreck dive sites'
                   >
@@ -941,8 +945,8 @@ const ResponsiveFilterBar = ({
                     onClick={() => onQuickFilter('reefs')}
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('reefs')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Reef dive sites'
                   >
@@ -952,8 +956,8 @@ const ResponsiveFilterBar = ({
                     onClick={() => onQuickFilter('boat_dive')}
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('boat_dive')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Boat dive sites'
                   >
@@ -963,8 +967,8 @@ const ResponsiveFilterBar = ({
                     onClick={() => onQuickFilter('shore_dive')}
                     className={`flex-shrink-0 px-3 py-1.5 text-[11px] sm:text-sm font-medium rounded-lg transition-colors min-h-[38px] sm:min-h-[44px] ${
                       quickFilters.includes('shore_dive')
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-200 dark:hover:bg-slate-600'
                     }`}
                     title='Shore dive sites'
                   >
@@ -977,21 +981,21 @@ const ResponsiveFilterBar = ({
 
           {/* Mobile Active Filters Display */}
           {activeFilters.length > 0 && (
-            <div className='border-t border-gray-100 py-2 px-3 bg-blue-50/50 overflow-x-auto whitespace-nowrap scrollbar-hide'>
+            <div className='border-t border-gray-100 dark:border-slate-700/60 py-2 px-3 bg-blue-50/50 dark:bg-slate-700/40 overflow-x-auto whitespace-nowrap scrollbar-hide'>
               <div className='flex items-center gap-2'>
-                <span className='text-[10px] font-bold text-blue-900/50 uppercase tracking-tighter shrink-0'>
+                <span className='text-[10px] font-bold text-blue-900/50 dark:text-sky-300/60 uppercase tracking-tighter shrink-0'>
                   Active:
                 </span>
                 {activeFilters.map(filter => (
                   <div
                     key={filter.key}
-                    className='inline-flex items-center gap-1 px-2 py-1 bg-white text-blue-800 text-[10px] font-medium rounded-full border border-blue-100 shadow-sm'
+                    className='inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 text-blue-800 dark:text-sky-300 text-[10px] font-medium rounded-full border border-blue-100 dark:border-slate-700 shadow-sm'
                   >
                     <span>{filter.label}:</span>
                     <span className='max-w-[80px] truncate'>{filter.value}</span>
                     <button
                       onClick={() => onFilterChange(filter.key, '')}
-                      className='ml-0.5 text-blue-400 hover:text-blue-600 p-0.5'
+                      className='ml-0.5 text-blue-400 hover:text-blue-600 dark:hover:text-sky-200 p-0.5'
                       title={`Remove ${filter.label} filter`}
                     >
                       <X className='h-2.5 w-2.5' />
@@ -1015,13 +1019,13 @@ const ResponsiveFilterBar = ({
       >
         {/* Tab Navigation */}
 
-        <div className='flex border-b border-gray-200 bg-white'>
+        <div className='flex border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800'>
           <button
             onClick={() => setActiveTab('filters')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'filters'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-sky-400 border-b-2 border-blue-600 dark:border-sky-400 bg-blue-50 dark:bg-slate-700/50'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
             }`}
           >
             <Filter className='h-3.5 w-3.5 inline mr-2' />
@@ -1032,8 +1036,8 @@ const ResponsiveFilterBar = ({
             onClick={() => setActiveTab('sorting')}
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeTab === 'sorting'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                ? 'text-blue-600 dark:text-sky-400 border-b-2 border-blue-600 dark:border-sky-400 bg-blue-50 dark:bg-slate-700/50'
+                : 'text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
             }`}
           >
             <Settings className='h-3.5 w-3.5 inline mr-2' />
