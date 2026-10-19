@@ -17,7 +17,7 @@ const PageTitle = ({ children, icon: Icon, badge, className = '' }) => {
         <span>{children}</span>
       </div>
       {badge !== undefined && badge !== null && badge !== '' && (
-        <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-semibold bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30 transition-all duration-300'>
+        <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs sm:text-sm font-bold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700/50 transition-all duration-300'>
           {typeof badge === 'number' ? badge.toLocaleString() : badge}
         </span>
       )}
