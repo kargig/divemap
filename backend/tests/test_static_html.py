@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from static_html import (
     dive_site_meta_description,
     dive_site_schema,
+    get_entry_type,
     render_dive_site_main,
     render_homepage_main,
     render_listing_main,
@@ -84,6 +85,11 @@ class MockRoute:
         self.deleted_at = deleted_at
 
 
+class MockUser:
+    def __init__(self, username="ocean_explorer"):
+        self.username = username
+
+
 class MockSite:
     def __init__(self, **kwargs):
         self.name = kwargs.get("name", "Agia Anna")
@@ -102,6 +108,7 @@ class MockSite:
         self.tags = kwargs.get("tags", [])
         self.center_relationships = kwargs.get("center_relationships", [])
         self.routes = kwargs.get("routes", [])
+        self.creator = kwargs.get("creator", None)
 
 
 def test_strip_html_tags():
@@ -244,3 +251,131 @@ def test_render_dive_site_main_includes_aliases_tags_centers_routes():
     assert "Dive Routes" in html
     assert "/dive-routes/12/" in html
     assert "Canyon Traverse" in html
+
+
+def test_get_entry_type():
+    site_tag = MockSite(tags=[MockSiteTag("Boat Dive")])
+    assert get_entry_type(site_tag) == "Boat Dive"
+
+    site_access = MockSite(
+        tags=[], access_instructions="Follow the path down to the sandy beach."
+    )
+    assert get_entry_type(site_access) == "Shore Dive"
+
+    site_none = MockSite(tags=[], access_instructions=None)
+    assert get_entry_type(site_none) is None
+
+
+def test_dive_site_schema_enriched():
+    creator = MockUser(username="diver_dan")
+    site = MockSite(creator=creator, latitude=37.123456, longitude=25.654321)
+    images = [
+        "https://divemap.blue/uploads/site1.jpg",
+        "https://divemap.blue/uploads/site2.jpg",
+    ]
+    schema = dive_site_schema(
+        "https://divemap.blue",
+        "/dive-sites/104/agia-anna",
+        site,
+        avg_rating=4.8,
+        total_ratings=15,
+        image_urls=images,
+    )
+    assert schema["@type"] == "TouristAttraction"
+    assert schema["url"] == "https://divemap.blue/dive-sites/104/agia-anna"
+    assert schema["image"] == images
+    assert schema["hasMap"] == "https://www.google.com/maps?q=37.123456,25.654321"
+    assert schema["author"] == {
+        "@type": "Person",
+        "name": "diver_dan",
+        "url": "https://divemap.blue/users/diver_dan",
+    }
+
+
+def test_render_dive_site_main_semantic_structure_and_specs():
+    creator = MockUser(username="deep_diver")
+    site = MockSite(
+        creator=creator,
+        tags=[MockSiteTag("Shore Dive")],
+        max_depth=22,
+        latitude=37.1,
+        longitude=25.2,
+    )
+    html = render_dive_site_main(site, 4.6, 12)
+    assert '<main class="seo-prerender">' in html
+    assert '<header class="site-header">' in html
+    assert "Added by:" in html
+    assert 'href="/users/deep_diver"' in html
+    assert '<section id="specs" aria-labelledby="specs-heading">' in html
+    assert '<h2 id="specs-heading">Dive Site Specs</h2>' in html
+    assert '<dl class="specs-grid">' in html
+    assert "<dt>Max depth:</dt><dd>22m</dd>" in html
+    assert "<dt>Difficulty:</dt><dd>Open Water</dd>" in html
+    assert "<dt>Entry type:</dt><dd>Shore Dive</dd>" in html
+    assert "Directions on Google Maps" in html
+    assert "https://www.google.com/maps/dir/?api=1&amp;destination=37.1,25.2" in html
+    assert "<dt>Rating:</dt><dd>4.6/5 (12 reviews)</dd>" in html
+    assert '<section id="overview" aria-labelledby="overview-heading">' in html
+
+
+def test_render_dive_site_main_gallery_nearby_and_recent_dives():
+    site = MockSite()
+    photos = [
+        {
+            "url": "https://divemap.blue/media/img1.jpg",
+            "alt": "Coral reef at Agia Anna",
+            "caption": "Reef overview",
+        }
+    ]
+    nearby = [
+        {
+            "id": 105,
+            "name": "Plaka Reef",
+            "href": "/dive-sites/105/plaka-reef",
+            "distance_km": 3.42,
+        }
+    ]
+    dives = [
+        {
+            "id": 501,
+            "name": "Morning Drift",
+            "href": "/dives/501/morning-drift",
+            "diver": "alice",
+            "date": "Aug 15, 2026",
+            "max_depth": "20.5",
+            "duration": 48,
+        }
+    ]
+    html = render_dive_site_main(
+        site,
+        4.5,
+        2,
+        photos=photos,
+        nearby_sites=nearby,
+        recent_dives=dives,
+    )
+
+    # In-body Photo Gallery
+    assert '<section id="gallery" aria-labelledby="gallery-heading">' in html
+    assert '<h2 id="gallery-heading">Photos</h2>' in html
+    assert 'src="https://divemap.blue/media/img1.jpg"' in html
+    assert 'alt="Coral reef at Agia Anna"' in html
+    assert "<figcaption>Reef overview</figcaption>" in html
+
+    # Nearby Dive Sites
+    assert '<section id="nearby" aria-labelledby="nearby-heading">' in html
+    assert '<h2 id="nearby-heading">Nearby Dive Sites</h2>' in html
+    assert 'href="/dive-sites/105/plaka-reef"' in html
+    assert "Plaka Reef" in html
+    assert "3.4 km away" in html
+
+    # Recent Dives
+    assert '<section id="recent-dives" aria-labelledby="recent-dives-heading">' in html
+    assert '<h2 id="recent-dives-heading">Recent Dives</h2>' in html
+    assert 'href="/dives/501/morning-drift"' in html
+    assert "Morning Drift" in html
+    assert 'href="/users/alice"' in html
+    assert "alice" in html
+    assert "Aug 15, 2026" in html
+    assert "Depth: 20.5m" in html
+    assert "Duration: 48 min" in html

@@ -329,6 +329,7 @@ async def get_prerendered_page(
                         DiveSite.deleted_at.is_(None),
                     )
                     .options(
+                        joinedload(DiveSite.creator),
                         joinedload(DiveSite.difficulty),
                         joinedload(DiveSite.ratings),
                         joinedload(DiveSite.media),
@@ -344,7 +345,7 @@ async def get_prerendered_page(
                 if not site:
                     raise HTTPException(status_code=404, detail="Dive Site not found")
 
-                # Extract a random photo media URL if available (combining both direct site photos and public dive log photos at this site)
+                # Extract photo media (combining both direct site photos and public dive log photos at this site)
                 from app.models import DiveMedia, SiteMedia
 
                 site_photos = (
@@ -368,6 +369,22 @@ async def get_prerendered_page(
                 )
 
                 all_photos = site_photos + dive_photos
+                gallery_photos = []
+                schema_image_urls = []
+                for p in all_photos[:8]:
+                    p_path = p.medium_url or p.thumbnail_url or p.url
+                    p_url = resolve_seo_image_url(p_path, base_url)
+                    if p_url:
+                        gallery_photos.append(
+                            {
+                                "url": p_url,
+                                "alt": p.description or f"{site.name} photo",
+                                "caption": p.description or "",
+                            }
+                        )
+                        if p_url not in schema_image_urls:
+                            schema_image_urls.append(p_url)
+
                 if all_photos:
                     photo_media = random.choice(all_photos)
                     # Order of preference: thumbnail, if it doesn't exist then medium, if it doesn't exist then original
@@ -386,6 +403,119 @@ async def get_prerendered_page(
 
                     image_url = resolve_seo_image_url(preview_path, base_url)
                     image_type = get_image_mime_type(image_url)
+
+                # Query nearby dive sites for internal link graph
+                nearby_sites_data = []
+                if site.latitude is not None and site.longitude is not None:
+                    from sqlalchemy import text
+
+                    bind = db.get_bind()
+                    dialect = bind.dialect.name if bind is not None else None
+                    if dialect == "mysql":
+                        nearby_query = text("""
+                            SELECT ds.id, ds.name, ds.country, ds.region,
+                                   ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) / 1000.0 AS distance_km
+                            FROM dive_sites ds
+                            WHERE ds.id != :site_id
+                            AND ds.location IS NOT NULL
+                            AND ds.deleted_at IS NULL
+                            AND ds.status = 'approved'
+                            AND ST_Distance_Sphere(ds.location, ST_SRID(POINT(:lng, :lat), 4326)) <= 100000
+                            ORDER BY distance_km ASC
+                            LIMIT 6
+                        """)
+                    else:
+                        nearby_query = text("""
+                            SELECT ds.id, ds.name, ds.country, ds.region,
+                                (6371 * acos(
+                                    cos(radians(:lat)) * cos(radians(ds.latitude)) *
+                                    cos(radians(ds.longitude) - radians(:lng)) +
+                                    sin(radians(:lat)) * sin(radians(ds.latitude))
+                                )) AS distance_km
+                            FROM dive_sites ds
+                            WHERE ds.id != :site_id
+                            AND ds.latitude IS NOT NULL
+                            AND ds.longitude IS NOT NULL
+                            AND ds.deleted_at IS NULL
+                            AND ds.status = 'approved'
+                            HAVING distance_km <= 100
+                            ORDER BY distance_km ASC
+                            LIMIT 6
+                        """)
+                    try:
+                        rows = db.execute(
+                            nearby_query,
+                            {
+                                "lat": float(site.latitude),
+                                "lng": float(site.longitude),
+                                "site_id": site.id,
+                            },
+                        ).fetchall()
+                        for r in rows:
+                            clean_slug = get_dive_site_slug(r)
+                            r_href = (
+                                f"/dive-sites/{r.id}/{clean_slug}"
+                                if clean_slug
+                                else f"/dive-sites/{r.id}"
+                            )
+                            nearby_sites_data.append(
+                                {
+                                    "id": r.id,
+                                    "name": r.name,
+                                    "href": r_href,
+                                    "distance_km": float(r.distance_km),
+                                }
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to fetch nearby dive sites for SEO: {e}"
+                        )
+
+                # Query recent public dives for freshness & activity signals
+                recent_dives_data = []
+                try:
+                    recent_dives = (
+                        db.query(Dive)
+                        .join(User, Dive.user_id == User.id)
+                        .filter(
+                            Dive.dive_site_id == site.id,
+                            Dive.is_private == False,
+                            User.enabled == True,
+                            User.deleted_at.is_(None),
+                        )
+                        .options(joinedload(Dive.user))
+                        .order_by(
+                            Dive.dive_date.desc(),
+                            Dive.dive_time.desc(),
+                            Dive.id.desc(),
+                        )
+                        .limit(5)
+                        .all()
+                    )
+                    for d in recent_dives:
+                        diver = d.user.username if d.user else "Diver"
+                        d_slug = slugify(d.name or f"dive-by-{diver}")
+                        d_href = (
+                            f"/dives/{d.id}/{d_slug}" if d_slug else f"/dives/{d.id}"
+                        )
+                        date_str = (
+                            d.dive_date.strftime("%b %d, %Y") if d.dive_date else None
+                        )
+                        recent_dives_data.append(
+                            {
+                                "id": d.id,
+                                "name": d.name or f"Dive at {site.name}",
+                                "href": d_href,
+                                "diver": diver,
+                                "date": date_str,
+                                "max_depth": format_depth(d.max_depth)
+                                if d.max_depth is not None
+                                else None,
+                                "duration": d.duration if d.duration else None,
+                            }
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to fetch recent dives for SEO: {e}")
 
                 slug = get_dive_site_slug(site)
                 # Check for mismatched/missing slug and return 301 Redirect for canonicalization
@@ -412,9 +542,23 @@ async def get_prerendered_page(
                 if location_suffix:
                     page_title += f" - {location_suffix}"
 
-                main_content = render_dive_site_main(site, avg, total)
+                main_content = render_dive_site_main(
+                    site,
+                    avg,
+                    total,
+                    photos=gallery_photos,
+                    nearby_sites=nearby_sites_data,
+                    recent_dives=recent_dives_data,
+                )
                 description = dive_site_meta_description(site, avg, total)
-                json_ld = dive_site_schema(base_url, detail_path, site, avg, total)
+                json_ld = dive_site_schema(
+                    base_url,
+                    detail_path,
+                    site,
+                    avg,
+                    total,
+                    image_urls=schema_image_urls,
+                )
                 canonical = f"{base_url}{detail_path}"
             else:
                 # Geo hub: /dive-sites/{country-slug}[/region-slug]

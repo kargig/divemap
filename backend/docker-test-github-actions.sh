@@ -84,6 +84,9 @@ run_cleanup docker network rm divemap-test-network
 print_status "Setting up environment..."
 run_silent docker network create divemap-test-network
 INIT_SQL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/database/init.sql"
+if [ -f "$INIT_SQL_PATH" ]; then
+    chmod 644 "$INIT_SQL_PATH" 2>/dev/null || true
+fi
 run_silent docker run -d \
     --name divemap-test-mysql \
     --network divemap-test-network \

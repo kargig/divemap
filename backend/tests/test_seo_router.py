@@ -1,22 +1,34 @@
 from datetime import date
+
 import pytest
-from app.models import DiveSite, DivingCenter, DiveRoute, DifficultyLevel, User, Dive, DivingOrganization, SiteMedia, MediaType
+
+from app.models import (
+    DifficultyLevel,
+    Dive,
+    DiveRoute,
+    DiveSite,
+    DivingCenter,
+    DivingOrganization,
+    MediaType,
+    SiteMedia,
+    User,
+)
+
 
 @pytest.fixture
 def sample_data(db_session):
     # Retrieve difficulty level created by conftest.py
     diff = db_session.query(DifficultyLevel).filter_by(code="OPEN_WATER").first()
     if not diff:
-        diff = DifficultyLevel(id=1, code="OPEN_WATER", label="Open Water", order_index=1)
+        diff = DifficultyLevel(
+            id=1, code="OPEN_WATER", label="Open Water", order_index=1
+        )
         db_session.add(diff)
         db_session.commit()
 
     # Create test user for ownership/constraint checks
     user = User(
-        id=999,
-        username="seotester",
-        email="seo@test.com",
-        password_hash="dummy_hash"
+        id=999, username="seotester", email="seo@test.com", password_hash="dummy_hash"
     )
     db_session.add(user)
     db_session.commit()
@@ -32,9 +44,23 @@ def sample_data(db_session):
         latitude=37.0,
         longitude=25.0,
         status="approved",
-        difficulty_id=diff.id
+        difficulty_id=diff.id,
+        created_by=user.id,
     )
     db_session.add(site)
+
+    # Create a nearby test Dive Site
+    nearby_site = DiveSite(
+        id=124,
+        name="Nearby Test Reef",
+        country="Greece",
+        region="Cyclades",
+        latitude=37.02,
+        longitude=25.02,
+        status="approved",
+        difficulty_id=diff.id,
+    )
+    db_session.add(nearby_site)
 
     # Create a test Diving Center
     center = DivingCenter(
@@ -59,7 +85,7 @@ def sample_data(db_session):
         dive_site_id=site.id,
         created_by=user.id,
         route_type="scuba",
-        route_data={"type": "FeatureCollection", "features": []}
+        route_data={"type": "FeatureCollection", "features": []},
     )
     db_session.add(route)
 
@@ -73,18 +99,14 @@ def sample_data(db_session):
         max_depth=30.0,
         duration=45,
         dive_information="Superb dive with clear visibility.",
-        dive_date=date(2026, 8, 14)
+        dive_date=date(2026, 8, 14),
     )
     db_session.add(dive)
 
     # Retrieve or create test Diving Organization
     org = db_session.query(DivingOrganization).filter_by(acronym="PADI").first()
     if not org:
-        org = DivingOrganization(
-            id=11,
-            name="PADI Organization",
-            acronym="PADI"
-        )
+        org = DivingOrganization(id=11, name="PADI Organization", acronym="PADI")
         db_session.add(org)
         db_session.commit()
     else:
@@ -100,10 +122,14 @@ def test_seo_homepage(client, sample_data):
     assert response.status_code == 200
     assert response.headers.get("X-Prerendered") == "1"
     assert "Cache-Control" in response.headers
-    
+
     html = response.text
-    assert "<title>Divemap - Discover and Rate Scuba Dive Sites Worldwide</title>" in html
-    assert "SEO Test Site" in html  # Home page should include the popular dive site links
+    assert (
+        "<title>Divemap - Discover and Rate Scuba Dive Sites Worldwide</title>" in html
+    )
+    assert (
+        "SEO Test Site" in html
+    )  # Home page should include the popular dive site links
     assert 'href="/dive-sites/123/' in html
 
 
@@ -116,32 +142,69 @@ def test_seo_dive_sites_listing(client, sample_data):
 
 def test_seo_dive_site_detail(client, db_session, sample_data):
     site, _, _, _, _, _ = sample_data
-    
+
     # 1. Test basic pre-rendering, depth formatting, and logo fallbacks
-    response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site")
+    response = client.get(
+        f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site"
+    )
     assert response.status_code == 200
     html = response.text
     assert "<h1>SEO Test Site</h1>" in html
     assert "A wonderful pre-rendered test" in html
     assert "Max depth: 25m." in html  # Redundant decimal trailing zeros stripped
-    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' in html
+    assert (
+        'meta property="og:image"'
+        ' content="https://localhost/divemap_navbar_logo.png"' in html
+    )
     assert 'meta name="twitter:card" content="summary"' in html
 
-    # 2. Add an attached photo and assert dynamic og:image selection
+    # Assert semantic HTML structure and specs
+    assert '<main class="seo-prerender">' in html
+    assert '<header class="site-header">' in html
+    assert "Added by:" in html
+    assert 'href="/users/seotester"' in html
+    assert '<section id="specs"' in html
+    assert "<dt>Max depth:</dt><dd>25m</dd>" in html
+    assert "<dt>Difficulty:</dt><dd>Open Water</dd>" in html
+    assert "Directions on Google Maps" in html
+
+    # Assert nearby dive sites are rendered
+    assert '<section id="nearby"' in html
+    assert "Nearby Test Reef" in html
+    assert "km away" in html
+
+    # Assert recent public dives are rendered
+    assert '<section id="recent-dives"' in html
+    assert "SEO Test Dive Log" in html
+    assert 'href="/users/seotester"' in html
+
+    # 2. Add an attached photo and assert dynamic og:image selection and in-body gallery
     media = SiteMedia(
         dive_site_id=site.id,
         media_type=MediaType.photo,
-        url="uploads/test_photo.jpg"
+        url="uploads/test_photo.jpg",
     )
     db_session.add(media)
     db_session.commit()
 
-    response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site")
+    response = client.get(
+        f"/api/v1/seo/html/dive-sites/{site.id}/greece-cyclades-seo-test-site"
+    )
     assert response.status_code == 200
     html = response.text
-    assert 'meta property="og:image" content="https://localhost/uploads/test_photo.jpg"' in html
-    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' not in html
+    assert (
+        'meta property="og:image"'
+        ' content="https://localhost/uploads/test_photo.jpg"' in html
+    )
+    assert (
+        'meta property="og:image"'
+        ' content="https://localhost/divemap_navbar_logo.png"' not in html
+    )
     assert 'meta name="twitter:card" content="summary_large_image"' in html
+
+    # Assert in-body gallery
+    assert '<section id="gallery"' in html
+    assert 'src="https://localhost/uploads/test_photo.jpg"' in html
 
 
 def test_seo_diving_centers_listing(client, sample_data):
@@ -153,23 +216,33 @@ def test_seo_diving_centers_listing(client, sample_data):
 
 def test_seo_diving_center_detail(client, db_session, sample_data):
     _, center, _, _, _, _ = sample_data
-    
+
     # 1. Test standard pre-rendering
-    response = client.get(f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center")
+    response = client.get(
+        f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center"
+    )
     assert response.status_code == 200
     html = response.text
     assert "<h1>SEO Test Center</h1>" in html
     assert "A professional dive center on Naxos island." in html
-    assert 'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"' in html
+    assert (
+        'meta property="og:image" content="https://localhost/divemap_navbar_logo.png"'
+        in html
+    )
 
     # 2. Update center with a custom logo and verify it is used
     center.logo_url = "uploads/center_logo.png"
     db_session.commit()
 
-    response = client.get(f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center")
+    response = client.get(
+        f"/api/v1/seo/html/diving-centers/{center.id}/greece-naxos-seo-test-center"
+    )
     assert response.status_code == 200
     html = response.text
-    assert 'meta property="og:image" content="https://localhost/uploads/center_logo.png"' in html
+    assert (
+        'meta property="og:image" content="https://localhost/uploads/center_logo.png"'
+        in html
+    )
 
 
 def test_seo_dive_routes_listing(client, sample_data):
@@ -272,9 +345,15 @@ def test_seo_junk_path_404(client):
 def test_seo_mismatched_slug_redirect(client, sample_data):
     site, _, _, _, _, _ = sample_data
     # Access with a mismatched slug should do a 301 Redirect
-    response = client.get(f"/api/v1/seo/html/dive-sites/{site.id}/completely-wrong-slug", follow_redirects=False)
+    response = client.get(
+        f"/api/v1/seo/html/dive-sites/{site.id}/completely-wrong-slug",
+        follow_redirects=False,
+    )
     assert response.status_code == 301
-    assert f"/dive-sites/{site.id}/greece-cyclades-seo-test-site" in response.headers["location"]
+    assert (
+        f"/dive-sites/{site.id}/greece-cyclades-seo-test-site"
+        in response.headers["location"]
+    )
 
 
 def test_seo_invalid_username_404(client):
@@ -313,6 +392,7 @@ def test_seo_banned_user_dive_404(client, db_session, sample_data):
 async def test_get_spa_template_ttl_and_stale_fallback(monkeypatch):
     import time
     from unittest.mock import AsyncMock, patch
+
     from app.routers import seo
 
     # Reset cache state
@@ -342,15 +422,19 @@ async def test_get_spa_template_ttl_and_stale_fallback(monkeypatch):
 
     # 3. Expired TTL with failed re-fetch: should fall back to stale cached template
     seo._spa_template_fetched_at = time.time() - 20.0
-    with patch("httpx.AsyncClient.get", new_callable=AsyncMock, side_effect=Exception("Network error")):
+    with patch(
+        "httpx.AsyncClient.get",
+        new_callable=AsyncMock,
+        side_effect=Exception("Network error"),
+    ):
         with patch("app.routers.seo.resolve_html_template", return_value=None):
             template = await seo.get_spa_template()
             assert template == new_html  # returns stale cache instead of None
 
 
-
 def test_seo_geo_hub_country(client, sample_data):
     import app.routers.seo as seo
+
     seo._spa_template_cache = None
     seo._spa_template_fetched_at = 0.0
 
@@ -367,7 +451,10 @@ def test_seo_geo_hub_region(client, sample_data):
     response = client.get("/api/v1/seo/html/dive-sites/greece/cyclades")
     assert response.status_code == 200
     assert "Dive Sites in Cyclades, Greece" in response.text
-    assert 'rel="canonical" href="https://localhost/dive-sites/greece/cyclades"' in response.text
+    assert (
+        'rel="canonical" href="https://localhost/dive-sites/greece/cyclades"'
+        in response.text
+    )
 
 
 def test_seo_geo_hub_unknown_country(client, sample_data):
@@ -377,6 +464,7 @@ def test_seo_geo_hub_unknown_country(client, sample_data):
 
 def test_seo_map_landing(client, sample_data):
     import app.routers.seo as seo
+
     seo._spa_template_cache = None
     seo._spa_template_fetched_at = 0.0
 
