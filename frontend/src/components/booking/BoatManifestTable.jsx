@@ -184,10 +184,10 @@ const BoatManifestTable = ({
   return (
     <div>
       {/* Desktop */}
-      <div className='hidden md:block overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm'>
+      <div className='hidden md:block overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm'>
         <table className='w-full text-left border-collapse text-xs'>
           <thead>
-            <tr className='bg-gray-50 dark:bg-gray-750 text-gray-500 dark:text-gray-400 font-semibold border-b border-gray-200 dark:border-gray-700 uppercase tracking-wider text-[10px]'>
+            <tr className='bg-gray-50 dark:bg-slate-700/60 text-gray-500 dark:text-slate-300 font-semibold border-b border-gray-200 dark:border-slate-700 uppercase tracking-wider text-[10px]'>
               <th className='py-2.5 px-3 w-10 text-center'>#</th>
               <th className='py-2.5 px-3'>Diver</th>
               <th className='py-2.5 px-3'>Kit</th>
@@ -197,7 +197,7 @@ const BoatManifestTable = ({
               <th className='py-2.5 px-2 w-12 text-right'></th>
             </tr>
           </thead>
-          <tbody className='divide-y divide-gray-100 dark:divide-gray-700/60 text-gray-700 dark:text-gray-300'>
+          <tbody className='divide-y divide-gray-100 dark:divide-slate-700/60 text-gray-700 dark:text-slate-300'>
             {participants.map((p, index) => {
               const paid = isPaidStatus(p.payment_status);
               const medOk = isMedicalCleared(p.medical_status);
@@ -379,10 +379,10 @@ const BoatManifestTable = ({
           return (
             <div
               key={p.id}
-              className={`rounded-none sm:rounded-2xl border-y sm:border p-3.5 sm:p-4 bg-white dark:bg-gray-800 shadow-sm ${
+              className={`rounded-none sm:rounded-2xl border-y sm:border p-3.5 sm:p-4 bg-white dark:bg-slate-800 shadow-sm ${
                 p.onboard_checkin_status
                   ? 'border-emerald-300 dark:border-emerald-800/80'
-                  : 'border-gray-200 dark:border-gray-700'
+                  : 'border-gray-200 dark:border-slate-700'
               }`}
             >
               <div className='flex items-start justify-between gap-2'>

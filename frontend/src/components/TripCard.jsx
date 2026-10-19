@@ -86,14 +86,14 @@ const TripCard = ({
         <Link
           to={`/dive-sites/${diveSiteId}/${slug}`}
           state={{ from: window.location.pathname + window.location.search }}
-          className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-700 hover:underline transition-colors truncate !min-h-0'
+          className='text-xs sm:text-sm font-medium text-divemap-blue dark:text-sky-400 hover:text-blue-700 dark:hover:text-sky-300 hover:underline transition-colors truncate !min-h-0'
         >
           {diveSiteName}
         </Link>
       );
     }
     return (
-      <span className='text-xs sm:text-sm font-medium text-gray-700 truncate !min-h-0'>
+      <span className='text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 truncate !min-h-0'>
         {diveSiteName}
       </span>
     );
@@ -106,13 +106,13 @@ const TripCard = ({
     if (rating === null || rating <= 0) return null;
 
     return (
-      <div className='flex items-center gap-1 bg-yellow-50 dark:bg-yellow-100/50 rounded-full px-1.5 py-0.5 shrink-0 ml-auto'>
+      <div className='flex items-center gap-1 bg-yellow-50 dark:bg-amber-950/50 rounded-full px-1.5 py-0.5 shrink-0 ml-auto'>
         <img
           src='/arts/starfish-2.svg'
           alt='Rating'
           className='w-4 h-4 sm:w-5 sm:h-5 object-contain'
         />
-        <span className='text-xs sm:text-sm font-bold text-yellow-800 leading-none'>
+        <span className='text-xs sm:text-sm font-bold text-yellow-800 dark:text-amber-300 leading-none'>
           {rating.toFixed(1)}
         </span>
       </div>
@@ -126,18 +126,20 @@ const TripCard = ({
   const displayStatus = getDisplayStatus(trip);
 
   const isInactive = displayStatus === 'completed' || displayStatus === 'cancelled';
-  const borderLeftColor = isInactive ? 'border-l-gray-400' : 'border-l-[rgb(0,114,178)]';
+  const borderLeftColor = isInactive
+    ? 'border-l-gray-400 dark:border-l-slate-600'
+    : 'border-l-[rgb(0,114,178)]';
 
   // Card classes based on view mode
   const cardClasses = isGrid
-    ? `dive-item trip-card bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
-    : `dive-item trip-card bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
+    ? `dive-item trip-card bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 ${borderLeftColor} overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow duration-300`
+    : `dive-item trip-card bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 ${borderLeftColor} mb-6 hover:shadow-md transition-shadow duration-300 relative ${
         !user ? 'pointer-events-none' : ''
       }`;
 
   const cardStyle = {
     ...(!user && !isGrid ? { filter: 'blur(1.5px)' } : {}),
-    ...(isInactive ? { opacity: 0.85, backgroundColor: '#f9fafb' } : {}),
+    ...(isInactive ? { opacity: 0.85 } : {}),
   };
 
   return (
@@ -169,12 +171,12 @@ const TripCard = ({
             <div className='flex items-center gap-3'>
               <div>
                 <h3
-                  className={`font-semibold text-gray-900 ${compactLayout ? 'text-sm' : 'text-base sm:text-lg'}`}
+                  className={`font-semibold text-gray-900 dark:text-slate-100 ${compactLayout ? 'text-sm' : 'text-base sm:text-lg'}`}
                 >
                   {user ? (
                     <Link
                       to={tripUrl}
-                      className='text-divemap-blue hover:text-blue-800 transition-colors'
+                      className='text-divemap-blue dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 transition-colors'
                     >
                       {tripName}
                     </Link>
@@ -183,7 +185,7 @@ const TripCard = ({
                   )}
                 </h3>
                 <div className='flex flex-wrap items-center gap-2 mt-0.5'>
-                  <p className='text-gray-600 text-xs'>
+                  <p className='text-gray-600 dark:text-slate-400 text-xs'>
                     {trip.trip_date
                       ? formatDate(trip.trip_date, {
                           day: 'numeric',
@@ -193,8 +195,9 @@ const TripCard = ({
                       : 'N/A'}
                   </p>
                   {trip.is_bookable && trip.octo_slot_id && (
-                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200'>
-                      <Sparkles className='w-3 h-3 mr-1 text-emerald-600' /> Instant Booking
+                    <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'>
+                      <Sparkles className='w-3 h-3 mr-1 text-emerald-600 dark:text-emerald-400' />{' '}
+                      Instant Booking
                     </span>
                   )}
                   {trip.is_bookable &&
@@ -203,8 +206,8 @@ const TripCard = ({
                       <span
                         className={`inline-flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded ${
                           isFullyBooked
-                            ? 'text-amber-800 bg-amber-50 border border-amber-200'
-                            : 'text-emerald-700 bg-emerald-50'
+                            ? 'text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800'
+                            : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50'
                         }`}
                       >
                         {isFullyBooked ? 'Online spots full' : `${trip.seats_available} seats left`}
@@ -219,14 +222,14 @@ const TripCard = ({
                   <div className='flex items-center space-x-1 mr-2'>
                     <button
                       onClick={() => onEdit?.(trip)}
-                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-divemap-blue hover:bg-blue-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-divemap-blue dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-md transition-colors'
                       title='Edit Trip'
                     >
                       <Edit className='h-5 w-5' />
                     </button>
                     <button
                       onClick={() => onDelete?.(trip.id)}
-                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 rounded-md transition-colors'
+                      className='min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-md transition-colors'
                       title='Delete Trip'
                     >
                       <X className='h-5 w-5' />
@@ -240,8 +243,8 @@ const TripCard = ({
 
         {/* Location & Tags Row */}
         <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 lg:mb-2'>
-          <div className='flex items-center gap-1.5 text-gray-600 min-w-0 flex-1'>
-            <Building className='w-3.5 h-3.5 text-gray-400 shrink-0' />
+          <div className='flex items-center gap-1.5 text-gray-600 dark:text-slate-400 min-w-0 flex-1'>
+            <Building className='w-3.5 h-3.5 text-gray-400 dark:text-slate-400 shrink-0' />
             {trip.diving_center_id && trip.diving_center_name ? (
               <Link
                 to={`/diving-centers/${trip.diving_center_id}/${getDivingCenterSlug({
@@ -249,12 +252,12 @@ const TripCard = ({
                   country: trip.diving_center_country,
                   region: trip.diving_center_region,
                 })}`}
-                className='text-xs sm:text-sm font-medium text-divemap-blue hover:text-blue-800 hover:underline transition-colors truncate flex items-center'
+                className='text-xs sm:text-sm font-medium text-divemap-blue dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 hover:underline transition-colors truncate flex items-center'
               >
                 {trip.diving_center_name}
               </Link>
             ) : (
-              <span className='text-xs sm:text-sm font-medium text-gray-700 truncate flex items-center'>
+              <span className='text-xs sm:text-sm font-medium text-gray-700 dark:text-slate-300 truncate flex items-center'>
                 {trip.diving_center_name || 'Unknown Location'}
               </span>
             )}
@@ -280,7 +283,7 @@ const TripCard = ({
         {/* Description - Hidden on grid if too long */}
         {trip.trip_description && (
           <p
-            className={`hidden sm:block text-gray-700 text-sm leading-relaxed mb-3 lg:mb-2 ${isGrid ? 'sm:line-clamp-2' : 'sm:line-clamp-3'}`}
+            className={`hidden sm:block text-gray-700 dark:text-slate-300 text-sm leading-relaxed mb-3 lg:mb-2 ${isGrid ? 'sm:line-clamp-2' : 'sm:line-clamp-3'}`}
           >
             {decodeHtmlEntities(trip.trip_description)}
           </p>
@@ -290,13 +293,13 @@ const TripCard = ({
         <div
           className={`grid grid-cols-2 ${isGrid ? 'gap-2' : 'sm:grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3 lg:gap-2'} mb-4 lg:mb-3`}
         >
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-            <Calendar className='h-3.5 w-3.5 mr-2 text-divemap-blue flex-shrink-0' />
+          <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+            <Calendar className='h-3.5 w-3.5 mr-2 text-divemap-blue dark:text-sky-400 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                 Date
               </div>
-              <div className='font-medium text-xs sm:text-sm truncate'>
+              <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100 truncate'>
                 {trip.trip_date
                   ? formatDate(trip.trip_date, {
                       day: 'numeric',
@@ -307,42 +310,42 @@ const TripCard = ({
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-            <Clock className='h-3.5 w-3.5 mr-2 text-green-600 flex-shrink-0' />
+          <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+            <Clock className='h-3.5 w-3.5 mr-2 text-green-600 dark:text-emerald-400 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                 Time
               </div>
-              <div className='font-medium text-xs sm:text-sm'>
+              <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100'>
                 {trip.trip_time ? formatTime(trip.trip_time) : 'N/A'}
               </div>
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-            <Euro className='h-3.5 w-3.5 mr-2 text-amber-600 flex-shrink-0' />
+          <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+            <Euro className='h-3.5 w-3.5 mr-2 text-amber-600 dark:text-amber-400 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                 Price
               </div>
-              <div className='font-medium text-xs sm:text-sm truncate'>
+              <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100 truncate'>
                 {trip.trip_price ? `${trip.trip_price} ${trip.trip_currency}` : 'Contact'}
               </div>
               {trip.different_rental_price === false && trip.trip_price && (
-                <div className='text-[10px] text-emerald-600 font-semibold leading-none mt-0.5'>
+                <div className='text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold leading-none mt-0.5'>
                   Gear included
                 </div>
               )}
             </div>
           </div>
 
-          <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-            <Users className='h-3.5 w-3.5 mr-2 text-orange-600 flex-shrink-0' />
+          <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+            <Users className='h-3.5 w-3.5 mr-2 text-orange-600 dark:text-orange-400 flex-shrink-0' />
             <div className='min-w-0'>
-              <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+              <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                 Group
               </div>
-              <div className='font-medium text-xs sm:text-sm'>
+              <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100'>
                 Max {trip.group_size_limit || 'N/A'}
               </div>
             </div>
@@ -351,13 +354,13 @@ const TripCard = ({
           {!isGrid && (
             <>
               {trip.trip_duration ? (
-                <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-                  <Clock className='h-3.5 w-3.5 mr-2 text-purple-600 flex-shrink-0' />
+                <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+                  <Clock className='h-3.5 w-3.5 mr-2 text-purple-600 dark:text-purple-400 flex-shrink-0' />
                   <div className='min-w-0'>
-                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                       Duration
                     </div>
-                    <div className='font-medium text-xs sm:text-sm'>
+                    <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100'>
                       {trip.trip_duration >= 120
                         ? `${Math.round(trip.trip_duration / 60)}hrs`
                         : `${trip.trip_duration}m`}
@@ -368,13 +371,18 @@ const TripCard = ({
                 <div className='hidden lg:block'></div>
               )}
               {trip.max_depth ? (
-                <div className='flex items-center text-gray-600 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 rounded-lg border border-gray-100'>
-                  <DepthIcon className='mr-2 text-divemap-blue flex-shrink-0' size={16} />
+                <div className='flex items-center text-gray-600 dark:text-slate-400 p-1.5 sm:p-2 lg:p-1.5 bg-gray-50/50 dark:bg-slate-700/60 rounded-lg border border-gray-100 dark:border-slate-600'>
+                  <DepthIcon
+                    className='mr-2 text-divemap-blue dark:text-sky-400 flex-shrink-0'
+                    size={16}
+                  />
                   <div className='min-w-0'>
-                    <div className='text-xs text-gray-500 uppercase tracking-wide leading-tight'>
+                    <div className='text-xs text-gray-500 dark:text-slate-400 uppercase tracking-wide leading-tight'>
                       Max Depth
                     </div>
-                    <div className='font-medium text-xs sm:text-sm'>{trip.max_depth}m</div>
+                    <div className='font-medium text-xs sm:text-sm text-gray-900 dark:text-slate-100'>
+                      {trip.max_depth}m
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -409,7 +417,7 @@ const TripCard = ({
         {/* Compact Dive Plan */}
         {trip.dives && trip.dives.length > 0 && (
           <div className='mb-3 lg:mb-2'>
-            <h4 className='text-xs sm:text-sm font-semibold text-gray-500 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
+            <h4 className='text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400 mb-1.5 lg:mb-1 flex items-center leading-tight uppercase tracking-wider'>
               Dive Plan ({trip.dives.length})
             </h4>
             <div className='space-y-1 lg:space-y-0.5'>
@@ -420,9 +428,9 @@ const TripCard = ({
                 return (
                   <div
                     key={dive.id}
-                    className='flex gap-2 p-1.5 sm:p-2 lg:p-1.5 bg-blue-50/30 rounded-md border border-blue-100/50 overflow-hidden items-center'
+                    className='flex gap-2 p-1.5 sm:p-2 lg:p-1.5 bg-blue-50/30 dark:bg-slate-700/50 rounded-md border border-blue-100/50 dark:border-slate-600 overflow-hidden items-center'
                   >
-                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 rounded text-xs sm:text-sm font-bold text-blue-700 shrink-0'>
+                    <div className='flex justify-center items-center w-4 h-4 sm:w-5 sm:h-5 bg-blue-100 dark:bg-blue-950/60 rounded text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-300 shrink-0'>
                       {index + 1}
                     </div>
                     <div className='flex gap-1.5 items-center min-w-0'>
@@ -440,7 +448,7 @@ const TripCard = ({
                         {site.tags.map(tag => (
                           <span
                             key={tag.id}
-                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-blue-100/50 text-blue-800 border border-blue-200/50 whitespace-nowrap'
+                            className='inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-blue-100/50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200/50 dark:border-blue-800/60 whitespace-nowrap'
                           >
                             {tag.name}
                           </span>
@@ -465,11 +473,11 @@ const TripCard = ({
 
         {/* Footer info: Added/Updated */}
         {!isGrid && (
-          <div className='flex flex-row flex-wrap items-center gap-y-1 text-xs sm:text-sm text-gray-400 mt-auto pt-3 border-t border-gray-50'>
+          <div className='flex flex-row flex-wrap items-center gap-y-1 text-xs sm:text-sm text-gray-400 dark:text-slate-400 mt-auto pt-3 border-t border-gray-50 dark:border-slate-700'>
             <div className='flex flex-wrap gap-y-1 flex-1'>
               {trip.created_at && (
                 <div className='flex items-center'>
-                  <span className='font-medium text-gray-500 mr-1'>Added:</span>
+                  <span className='font-medium text-gray-500 dark:text-slate-400 mr-1'>Added:</span>
                   <span className='whitespace-nowrap'>
                     {formatDate(trip.created_at, {
                       day: 'numeric',
@@ -480,8 +488,10 @@ const TripCard = ({
                 </div>
               )}
               {trip.updated_at && trip.updated_at !== trip.created_at && (
-                <div className='flex items-center ml-2 sm:ml-3 pl-2 sm:pl-3 border-l border-gray-200'>
-                  <span className='font-medium text-gray-500 mr-1'>Updated:</span>
+                <div className='flex items-center ml-2 sm:ml-3 pl-2 sm:pl-3 border-l border-gray-200 dark:border-slate-700'>
+                  <span className='font-medium text-gray-500 dark:text-slate-400 mr-1'>
+                    Updated:
+                  </span>
                   <span className='whitespace-nowrap'>
                     {formatDate(trip.updated_at, {
                       day: 'numeric',
@@ -516,7 +526,7 @@ const TripCard = ({
                 ))}
               <Link
                 to={tripUrl}
-                className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group shrink-0'
+                className='w-8 h-8 inline-flex items-center justify-center bg-gray-50 dark:bg-slate-700/60 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 dark:text-slate-300 hover:text-gray-600 dark:hover:text-slate-100 rounded-lg transition-all group shrink-0'
                 title='View Trip Details'
               >
                 <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />

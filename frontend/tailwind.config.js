@@ -21,6 +21,12 @@ module.exports = {
         // --- Interactive Colors ---
         'interactive-hover': 'rgba(219, 234, 254, 0.5)', // blue-100/50
         'interactive-hover-dark': 'rgba(30, 58, 138, 0.4)', // blue-900/40
+
+        // --- Dark Elevation Colors ---
+        'gray-750': '#1e293b', // slate-800 / elevated dark container
+        'gray-850': '#0f172a', // slate-900 / dark deep surface
+        'slate-750': '#1e293b',
+        'slate-850': '#0f172a',
         
         // --- Legacy Colors ---
         'dive-primary': '#2563eb', // blue-600

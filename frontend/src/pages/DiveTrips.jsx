@@ -657,7 +657,7 @@ const DiveTrips = () => {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900'>
       <SEO
         title='Upcoming Scuba Dive Trips & Excursions | Divemap'
         description='Find planned scuba diving trips, boat excursions, and guided tours from diving centers. Compare prices, schedules, and destinations.'
@@ -910,16 +910,16 @@ const DiveTrips = () => {
                   return (
                     <React.Fragment key={trip.id}>
                       {showHeader && sortBy === 'trip_date' && (
-                        <div className='py-4 border-b border-gray-200 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
-                          <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                        <div className='py-4 border-b border-gray-200 dark:border-slate-700 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
+                          <h2 className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2'>
                             {trip.isUpcoming ? (
-                              <Calendar className='w-5 h-5 text-blue-600' />
+                              <Calendar className='w-5 h-5 text-blue-600 dark:text-sky-400' />
                             ) : (
-                              <Clock className='w-5 h-5 text-gray-500' />
+                              <Clock className='w-5 h-5 text-gray-500 dark:text-slate-400' />
                             )}
                             {trip.isUpcoming ? 'Upcoming Trips' : 'Past Trips'}
                           </h2>
-                          <span className='text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 px-2 py-1 rounded'>
+                          <span className='text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-1 rounded'>
                             {trip.isUpcoming ? 'Future' : 'Archive'}
                           </span>
                         </div>
@@ -995,16 +995,16 @@ const DiveTrips = () => {
                   return (
                     <React.Fragment key={trip.id}>
                       {showHeader && sortBy === 'trip_date' && (
-                        <div className='col-span-1 md:col-span-2 lg:col-span-3 py-4 border-b border-gray-200 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
-                          <h2 className='text-xl font-bold text-gray-900 flex items-center gap-2'>
+                        <div className='col-span-1 md:col-span-2 lg:col-span-3 py-4 border-b border-gray-200 dark:border-slate-700 mb-6 mt-10 first:mt-0 flex items-center justify-between'>
+                          <h2 className='text-xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2'>
                             {trip.isUpcoming ? (
-                              <Calendar className='w-5 h-5 text-blue-600' />
+                              <Calendar className='w-5 h-5 text-blue-600 dark:text-sky-400' />
                             ) : (
-                              <Clock className='w-5 h-5 text-gray-500' />
+                              <Clock className='w-5 h-5 text-gray-500 dark:text-slate-400' />
                             )}
                             {trip.isUpcoming ? 'Upcoming Trips' : 'Past Trips'}
                           </h2>
-                          <span className='text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 px-2 py-1 rounded'>
+                          <span className='text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-1 rounded'>
                             {trip.isUpcoming ? 'Future' : 'Archive'}
                           </span>
                         </div>
