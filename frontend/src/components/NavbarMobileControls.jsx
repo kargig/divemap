@@ -42,6 +42,7 @@ import Avatar from './Avatar';
 import GlobalSearchBar from './GlobalSearchBar';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 import ChatDropdown from './UserChat/ChatDropdown';
 
 const ThemedListItem = ({ label, onClick }) => (
@@ -116,6 +117,7 @@ const NavbarMobileControls = () => {
       <div className='md:hidden flex items-center gap-1 sm:gap-3'>
         {user && <ChatDropdown />}
         {user && <NotificationBell />}
+        <ThemeToggle variant='desktop' />
         <button
           onClick={toggleMobileMenu}
           className='text-white hover:text-blue-200 transition-colors ml-0'
@@ -392,6 +394,13 @@ const NavbarMobileControls = () => {
                 </>
               )}
             </List>
+
+            <div className='p-4 border-t border-blue-400/20 mt-4'>
+              <div className='text-xs font-semibold text-blue-100 uppercase tracking-wider mb-2'>
+                Appearance
+              </div>
+              <ThemeToggle variant='segmented' />
+            </div>
           </div>
         </div>
       </Popup>

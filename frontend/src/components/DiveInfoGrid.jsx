@@ -100,15 +100,15 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
                   Date & Time
                 </span>
                 <div className='flex items-center gap-1.5'>
                   <Calendar className='w-4 h-4 text-gray-400' />
-                  <span className='text-sm font-medium text-gray-900'>
+                  <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
                     {formatDate(dive.dive_date)}
                     {dive.dive_time && (
-                      <span className='text-gray-500 font-normal ml-1'>
+                      <span className='text-gray-500 dark:text-slate-400 font-normal ml-1'>
                         {formatTime(dive.dive_time)}
                       </span>
                     )}
@@ -119,12 +119,12 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
                   Max Depth
                 </span>
                 <div className='flex items-center gap-1.5'>
                   <DepthIcon className='text-divemap-blue' size={18} />
-                  <span className='text-sm font-bold text-gray-900'>
+                  <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                     {dive.max_depth || '-'}
                     <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
                   </span>
@@ -134,12 +134,12 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
                   Duration
                 </span>
                 <div className='flex items-center gap-1.5'>
                   <Clock className='w-4 h-4 text-indigo-500' />
-                  <span className='text-sm font-bold text-gray-900'>
+                  <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                     {dive.duration || '-'}
                     <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
                   </span>
@@ -259,9 +259,9 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <DepthIcon className='text-divemap-blue' size={18} />
-                    <span className='text-sm font-bold text-gray-900'>
+                    <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                       {dive.max_depth || '-'}
-                      <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                      <span className='text-xs font-normal text-gray-400 dark:text-slate-500 ml-0.5'>m</span>
                     </span>
                   </div>
                 </div>
@@ -269,14 +269,14 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
                     Duration
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Clock className='w-4 h-4 text-indigo-500' />
-                    <span className='text-sm font-bold text-gray-900'>
+                    <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                       {dive.duration || '-'}
-                      <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
+                      <span className='text-xs font-normal text-gray-400 dark:text-slate-500 ml-0.5'>min</span>
                     </span>
                   </div>
                 </div>
@@ -284,15 +284,15 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
                     Date & Time
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Calendar className='w-4 h-4 text-gray-400' />
-                    <span className='text-sm font-medium text-gray-900'>
+                    <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
                       {formatDate(dive.dive_date)}
                       {dive.dive_time && (
-                        <span className='text-gray-500 font-normal ml-1'>
+                        <span className='text-gray-500 dark:text-slate-400 font-normal ml-1'>
                           {formatTime(dive.dive_time)}
                         </span>
                       )}

@@ -30,7 +30,9 @@ import {
 } from 'recharts';
 
 import api from '../api';
+import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { getChartTheme } from '../utils/chartTheme';
 import { formatGases } from '../utils/textHelpers';
 
 import DepthIcon from './ui/DepthIcon';
@@ -52,11 +54,11 @@ const CustomTooltip = ({
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className='bg-white p-4 border border-gray-200 rounded-lg shadow-lg min-w-[200px]'>
-        <div className='font-semibold text-gray-900 mb-2'>Dive Profile</div>
+      <div className='bg-white dark:bg-slate-800 p-4 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg min-w-[200px] text-gray-900 dark:text-slate-100'>
+        <div className='font-semibold text-gray-900 dark:text-slate-100 mb-2'>Dive Profile</div>
         <div className='space-y-1 text-sm'>
           <div className='flex justify-between'>
-            <span className='text-gray-600'>Time:</span>
+            <span className='text-gray-600 dark:text-slate-400'>Time:</span>
             <span className='font-medium'>{label?.toFixed(1)} min</span>
           </div>
           <div className='flex justify-between'>
@@ -260,6 +262,8 @@ const AdvancedDiveProfileChart = ({
   const [chartOffset, setChartOffset] = useState({ x: 0, y: 0 });
   const [showLandscapeTip, setShowLandscapeTip] = useState(true);
   const { isMobile: isMobileViewport } = useResponsive();
+  const { resolvedTheme } = useTheme();
+  const chartTheme = useMemo(() => getChartTheme(resolvedTheme), [resolvedTheme]);
 
   // Determine the primary gas for display in the header
   const primaryGas = useMemo(() => {
@@ -477,7 +481,9 @@ const AdvancedDiveProfileChart = ({
   const handleExportPNG = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const canvas = await html2canvas(chartRef.current);
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: chartTheme.exportBg,
+      });
       const link = document.createElement('a');
       link.download = `dive-profile-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL();
@@ -485,12 +491,14 @@ const AdvancedDiveProfileChart = ({
     } catch {
       /* error */
     }
-  }, []);
+  }, [chartTheme.exportBg]);
 
   const handleExportPDF = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const canvas = await html2canvas(chartRef.current);
+      const canvas = await html2canvas(chartRef.current, {
+        backgroundColor: chartTheme.exportBg,
+      });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF();
       const imgWidth = 210;
@@ -931,16 +939,20 @@ const AdvancedDiveProfileChart = ({
               }
               onMouseMove={handleMouseMove}
             >
-              <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
+              <CartesianGrid strokeDasharray='3 3' stroke={chartTheme.gridStroke} />
               <XAxis
                 dataKey='time'
                 type='number'
                 domain={[0, metrics.duration]}
+                stroke={chartTheme.axisStroke}
+                tick={{ fill: chartTheme.axisText }}
                 tickFormatter={v => `${v.toFixed(0)}m`}
               />
               <YAxis
                 domain={[0, metrics.maxDepth + 2]}
                 reversed
+                stroke={chartTheme.axisStroke}
+                tick={{ fill: chartTheme.axisText }}
                 tickFormatter={v => `${v.toFixed(0)}m`}
               />
               {showTemperature && metrics.minTemp !== null && (
@@ -948,6 +960,8 @@ const AdvancedDiveProfileChart = ({
                   yAxisId='temperature'
                   orientation='right'
                   domain={[metrics.minTemp - 2, metrics.maxTemp + 2]}
+                  stroke={chartTheme.axisStroke}
+                  tick={{ fill: chartTheme.axisText }}
                   tickFormatter={v => `${v.toFixed(0)}°C`}
                 />
               )}

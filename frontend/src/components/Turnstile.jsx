@@ -1,17 +1,21 @@
 import PropTypes from 'prop-types';
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+import { useTheme } from '../contexts/ThemeContext';
+
 const Turnstile = ({
   onVerify,
   onExpire,
   onError,
   siteKey,
-  theme = 'light',
+  theme = 'auto',
   size = 'normal',
   className = '',
   disabled = false,
   enabled = true,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const effectiveTheme = theme === 'auto' ? resolvedTheme : theme;
   const [isLoaded, setIsLoaded] = useState(false);
   const [_token, setToken] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
@@ -85,7 +89,7 @@ const Turnstile = ({
     try {
       widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
         sitekey: siteKey,
-        theme: theme,
+        theme: effectiveTheme,
         size: size,
         callback: handleVerify,
         'expired-callback': handleExpire,
@@ -95,7 +99,7 @@ const Turnstile = ({
       console.error('Error rendering Turnstile widget:', error);
       onError?.();
     }
-  }, [siteKey, theme, size, handleVerify, handleExpire, handleError, onError]);
+  }, [siteKey, effectiveTheme, size, handleVerify, handleExpire, handleError, onError]);
 
   const reset = useCallback(() => {
     if (widgetIdRef.current) {
@@ -187,15 +191,21 @@ const Turnstile = ({
             : 'opacity-100 max-h-24 scale-y-100'
         }`}
       >
-        <div className='flex items-center justify-center p-3 bg-green-50 border border-green-200 rounded-md'>
-          <svg className='w-5 h-5 text-green-500 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+        <div className='flex items-center justify-center p-3 bg-green-50 dark:bg-emerald-950/40 border border-green-200 dark:border-emerald-800 rounded-md'>
+          <svg
+            className='w-5 h-5 text-green-500 dark:text-emerald-400 mr-2'
+            fill='currentColor'
+            viewBox='0 0 20 20'
+          >
             <path
               fillRule='evenodd'
               d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
               clipRule='evenodd'
             />
           </svg>
-          <span className='text-sm text-green-700 font-medium'>Verification complete</span>
+          <span className='text-sm text-green-700 dark:text-emerald-300 font-medium'>
+            Verification complete
+          </span>
         </div>
       </div>
     );
@@ -222,7 +232,7 @@ Turnstile.propTypes = {
   onExpire: PropTypes.func,
   onError: PropTypes.func,
   siteKey: PropTypes.string.isRequired,
-  theme: PropTypes.oneOf(['light', 'dark']),
+  theme: PropTypes.oneOf(['light', 'dark', 'auto']),
   size: PropTypes.oneOf(['normal', 'compact', 'invisible']),
   className: PropTypes.string,
   disabled: PropTypes.bool,

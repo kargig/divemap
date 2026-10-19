@@ -3,9 +3,13 @@ import { Waves, Thermometer, Wind } from 'lucide-react';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+import { useTheme } from '../contexts/ThemeContext';
 import { formatWindSpeed, formatWindDirection } from '../utils/windSuitabilityHelpers';
 
 const WeatherConditionsCard = ({ windData, loading }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   if (loading) {
     return (
       <div className='p-8 text-center'>
@@ -87,12 +91,17 @@ const WeatherConditionsCard = ({ windData, loading }) => {
             label: {
               fontSize: '11px',
               fontWeight: 'bold',
-              color: '#6b7280',
+              color: isDark ? '#94a3b8' : '#6b7280',
               textTransform: 'uppercase',
               padding: '6px 8px',
               width: '45%',
             },
-            content: { fontSize: '13px', color: '#374151', padding: '6px 8px', fontWeight: 500 },
+            content: {
+              fontSize: '13px',
+              color: isDark ? '#f1f5f9' : '#374151',
+              padding: '6px 8px',
+              fontWeight: 500,
+            },
           }}
         >
           <Descriptions.Item label='Wave Dir'>
@@ -179,11 +188,16 @@ const WeatherConditionsCard = ({ windData, loading }) => {
             label: {
               fontSize: '11px',
               fontWeight: 'bold',
-              color: '#6b7280',
+              color: isDark ? '#94a3b8' : '#6b7280',
               textTransform: 'uppercase',
               padding: '6px 8px',
             },
-            content: { fontSize: '13px', color: '#374151', padding: '6px 8px', fontWeight: 500 },
+            content: {
+              fontSize: '13px',
+              color: isDark ? '#f1f5f9' : '#374151',
+              padding: '6px 8px',
+              fontWeight: 500,
+            },
           }}
         >
           <Descriptions.Item label='Direction'>
@@ -197,7 +211,7 @@ const WeatherConditionsCard = ({ windData, loading }) => {
   );
 
   return (
-    <div className='bg-white p-4'>
+    <div className='bg-white dark:bg-slate-800 p-4 transition-colors'>
       <Tabs
         defaultActiveKey='marine'
         items={[

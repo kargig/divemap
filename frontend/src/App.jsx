@@ -1,3 +1,4 @@
+import { ConfigProvider, theme as antdTheme } from 'antd';
 import { X } from 'lucide-react';
 import PropTypes from 'prop-types';
 import { Suspense, lazy } from 'react';
@@ -17,6 +18,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { SessionManager } from './components/SessionManager';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 // Lazy load pages
 const AdminLayout = lazy(() => import('./components/AdminLayout'));
@@ -206,9 +208,10 @@ ProtectedTripCreationRoute.propTypes = {
 function AppContent() {
   const location = useLocation();
   const isAdminPath = location.pathname.startsWith('/admin');
+  const { resolvedTheme } = useTheme();
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200'>
       <CapacitorBackButtonHandler />
       <PWAUpdater />
       <Navbar />
@@ -587,6 +590,9 @@ function AppContent() {
           style: {
             marginTop: '4rem', // Add top margin to appear below navbar
             zIndex: 9999, // Ensure it's above other elements but below navbar dropdown
+            background: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
+            color: resolvedTheme === 'dark' ? '#f1f5f9' : '#0f172a',
+            border: resolvedTheme === 'dark' ? '1px solid #334155' : '1px solid #e2e8f0',
           },
         }}
       >
@@ -599,7 +605,7 @@ function AppContent() {
                 {t.type !== 'loading' && (
                   <button
                     onClick={() => toast.dismiss(t.id)}
-                    className='ml-2 hover:bg-black/5 rounded-full p-0.5 transition-colors focus:outline-none'
+                    className='ml-2 hover:bg-black/5 dark:hover:bg-white/10 rounded-full p-0.5 transition-colors focus:outline-none'
                     aria-label='Close'
                   >
                     <X size={14} />
@@ -614,15 +620,38 @@ function AppContent() {
   );
 }
 
+function ThemedApp() {
+  const { resolvedTheme } = useTheme();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: resolvedTheme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+        token: {
+          colorPrimary: '#0072B2',
+          fontFamily: '"DM Sans", system-ui, sans-serif',
+          colorBgBase: resolvedTheme === 'dark' ? '#0f172a' : '#ffffff',
+          colorBgContainer: resolvedTheme === 'dark' ? '#1e293b' : '#ffffff',
+          colorBorder: resolvedTheme === 'dark' ? '#334155' : '#e2e8f0',
+        },
+      }}
+    >
+      <Router>
+        <ScrollToTop />
+        <AppContent />
+      </Router>
+    </ConfigProvider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationProvider>
-          <Router>
-            <ScrollToTop />
-            <AppContent />
-          </Router>
+          <ThemeProvider>
+            <ThemedApp />
+          </ThemeProvider>
         </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>

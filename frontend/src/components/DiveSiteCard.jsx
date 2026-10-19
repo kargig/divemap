@@ -23,14 +23,14 @@ export const DiveSiteListCard = ({
 
   return (
     <div
-      className={`dive-item bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
+      className={`dive-item bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] hover:shadow-md transition-all duration-200 relative ${compactLayout ? 'p-2 sm:p-4' : 'p-3 sm:p-6'}`}
     >
       <div className='flex gap-3 sm:gap-6'>
         {/* Desktop Thumbnail */}
         {site.thumbnail && (
           <Link
             to={getMediaLink(site)}
-            className='shrink-0 w-24 h-24 sm:w-40 sm:h-32 rounded-lg overflow-hidden bg-gray-100 hidden sm:block'
+            className='shrink-0 w-24 h-24 sm:w-40 sm:h-32 rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-700 hidden sm:block'
           >
             <img
               src={getThumbnailUrl(site)}
@@ -46,17 +46,17 @@ export const DiveSiteListCard = ({
             <div className='flex-1 min-w-0'>
               {/* Compact Title & Location combo */}
               <h3
-                className={`font-semibold text-gray-900 leading-tight ${compactLayout ? 'text-sm sm:text-lg' : 'text-base sm:text-xl'}`}
+                className={`font-semibold text-gray-900 dark:text-slate-100 leading-tight ${compactLayout ? 'text-sm sm:text-lg' : 'text-base sm:text-xl'}`}
               >
                 <Link
                   to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
                   state={{ from: location.pathname + location.search }}
-                  className='hover:text-blue-600 transition-colors'
+                  className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
                 >
                   {site.name}
                 </Link>
                 {site.country && (
-                  <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
+                  <span className='text-xs sm:text-sm font-medium text-blue-500 dark:text-blue-400 ml-1.5 opacity-80'>
                     @ {site.country}
                     {site.region ? `, ${site.region}` : ''}
                   </span>
@@ -72,7 +72,7 @@ export const DiveSiteListCard = ({
                   alt='Starfish Rating'
                   className='w-5 h-5 object-contain'
                 />
-                <span className='text-sm sm:text-lg font-bold text-gray-900'>
+                <span className='text-sm sm:text-lg font-bold text-gray-900 dark:text-slate-100'>
                   {Number(site.average_rating).toFixed(1)}
                 </span>
               </div>
@@ -176,7 +176,7 @@ export const DiveSiteGridCard = ({
 
   return (
     <div
-      className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 bg-white ${compactLayout ? 'h-full' : ''}`}
+      className={`dive-item rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 bg-white dark:bg-slate-800 ${compactLayout ? 'h-full' : ''}`}
     >
       {/* Image Header */}
       <div className='relative h-48 overflow-hidden rounded-tr-xl'>
@@ -200,13 +200,13 @@ export const DiveSiteGridCard = ({
 
         {/* Floating Rating */}
         {site.average_rating !== undefined && site.average_rating !== null && (
-          <div className='absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-gray-100'>
+          <div className='absolute top-3 right-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm flex items-center gap-1 border border-gray-100 dark:border-slate-700'>
             <img
               src='/arts/starfish-2.svg'
               alt='Starfish Rating'
               className='w-5 h-5 object-contain'
             />
-            <span className='text-xs font-bold text-gray-900'>
+            <span className='text-xs font-bold text-gray-900 dark:text-slate-100'>
               {Number(site.average_rating).toFixed(1)}
             </span>
           </div>
@@ -215,41 +215,45 @@ export const DiveSiteGridCard = ({
 
       <div className='p-4 flex flex-col flex-1'>
         {/* Location Kicker */}
-        <div className='flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-blue-600 mb-1'>
+        <div className='flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1'>
           <Globe className='w-2.5 h-2.5' />
           <span className='truncate'>{site.country || 'Global'}</span>
         </div>
 
         {/* Title */}
-        <h3 className='font-semibold text-gray-900 leading-snug mb-2 line-clamp-1'>
+        <h3 className='font-semibold text-gray-900 dark:text-slate-100 leading-snug mb-2 line-clamp-1'>
           <Link
             to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
             state={{ from: location.pathname + location.search }}
-            className='hover:text-blue-600 transition-colors'
+            className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
           >
             {site.name}
           </Link>
         </h3>
 
         {/* Stats Strip */}
-        <div className='flex items-center gap-4 mb-3 pb-3 border-b border-gray-50'>
+        <div className='flex items-center gap-4 mb-3 pb-3 border-b border-gray-50 dark:border-slate-700'>
           {site.max_depth && (
             <div className='flex items-center gap-1'>
               <DepthIcon className='text-divemap-blue font-bold' size={16} />
-              <span className='text-xs font-bold text-gray-700'>{site.max_depth}m</span>
+              <span className='text-xs font-bold text-gray-700 dark:text-slate-300'>
+                {site.max_depth}m
+              </span>
             </div>
           )}
           {site.route_count > 0 && (
             <div className='flex items-center gap-1'>
               <Route className='w-3.5 h-3.5 text-blue-400' />
-              <span className='text-xs font-bold text-gray-700'>{site.route_count}</span>
+              <span className='text-xs font-bold text-gray-700 dark:text-slate-300'>
+                {site.route_count}
+              </span>
             </div>
           )}
         </div>
 
         {/* Description */}
         {!isMobile && site.description && (
-          <p className='text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed'>
+          <p className='text-xs text-gray-500 dark:text-slate-400 line-clamp-2 mb-4 leading-relaxed'>
             {decodeHtmlEntities(site.description)}
           </p>
         )}

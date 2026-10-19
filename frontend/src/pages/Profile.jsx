@@ -58,6 +58,7 @@ import MaskedEmail from '../components/MaskedEmail';
 import OrganizationLogo from '../components/OrganizationLogo';
 import SEO from '../components/SEO';
 import { getSocialMediaIcon } from '../components/SocialMediaIcons';
+import ThemeToggle from '../components/ThemeToggle';
 import Button from '../components/ui/Button';
 import DepthIcon from '../components/ui/DepthIcon';
 import { useAuth } from '../contexts/AuthContext';
@@ -2010,6 +2011,13 @@ const Profile = () => {
                   <Settings size={18} className='mr-3 text-gray-400' />
                   Preferences
                 </Link>
+
+                <div className='px-3 py-2 border-t border-gray-100 dark:border-gray-700/60 my-1'>
+                  <div className='text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-slate-400 mb-2'>
+                    Appearance
+                  </div>
+                  <ThemeToggle variant='segmented' />
+                </div>
 
                 {/* Push Notifications Toggle/Status */}
                 {pushStatus === 'supported' && (

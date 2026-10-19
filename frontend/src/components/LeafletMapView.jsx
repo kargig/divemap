@@ -11,6 +11,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster';
 
 import api from '../api';
+import { useTheme } from '../contexts/ThemeContext';
 import { formatDate } from '../utils/dateHelpers';
 import { getDifficultyLabel, getDifficultyColorClasses } from '../utils/difficultyHelpers';
 import { getTagColor } from '../utils/tagHelpers';
@@ -778,6 +779,7 @@ const LeafletMapView = ({
   windAnimationEnabled = false,
   setWindAnimationEnabled,
 }) => {
+  const { resolvedTheme } = useTheme();
   const [mapMetadata, setMapMetadata] = useState(null);
   const [internalWindOverlayEnabled, setInternalWindOverlayEnabled] = useState(false);
   const windOverlayEnabled =
@@ -1326,7 +1328,12 @@ const LeafletMapView = ({
       >
         <TileLayer
           attribution=''
-          url={selectedLayer?.url || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+          url={
+            selectedLayer?.url ||
+            (resolvedTheme === 'dark'
+              ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+              : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
+          }
           maxZoom={20}
           maxNativeZoom={selectedLayer?.id === 'satellite' ? 19 : 18}
         />

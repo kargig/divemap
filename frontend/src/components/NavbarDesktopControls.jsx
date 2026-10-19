@@ -39,6 +39,7 @@ import { slugify } from '../utils/slugify';
 
 import GlobalSearchBar from './GlobalSearchBar';
 import NotificationBell from './NotificationBell';
+import ThemeToggle from './ThemeToggle';
 import Button from './ui/Button';
 import ChatDropdown from './UserChat/ChatDropdown';
 
@@ -240,6 +241,8 @@ const NavbarDesktopControls = () => {
             <Info className='h-6 w-6' />
           </button>
         </Dropdown>
+
+        <ThemeToggle variant='desktop' />
 
         {user ? (
           <div className='flex items-center space-x-4'>

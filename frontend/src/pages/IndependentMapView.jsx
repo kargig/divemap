@@ -31,6 +31,7 @@ import Modal from '../components/ui/Modal';
 import UnifiedMapFilters from '../components/UnifiedMapFilters';
 import WindDateTimePicker from '../components/WindDateTimePicker';
 import WindOverlayToggle from '../components/WindOverlayToggle';
+import { useTheme } from '../contexts/ThemeContext';
 import { useResponsive, useResponsiveScroll } from '../hooks/useResponsive';
 import { useViewportData } from '../hooks/useViewportData';
 
@@ -41,6 +42,7 @@ const IndependentMapView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile } = useResponsive();
   const { navbarVisible } = useResponsiveScroll();
+  const { resolvedTheme } = useTheme();
 
   const MAP_LAYERS = [
     {
@@ -49,6 +51,13 @@ const IndependentMapView = () => {
       url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      id: 'dark',
+      name: 'Dark Canvas',
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+      attribution:
+        '&copy; <a href="https://www.esri.com/">Esri</a> &copy; OpenStreetMap contributors',
     },
     {
       id: 'satellite',
@@ -61,13 +70,6 @@ const IndependentMapView = () => {
       name: 'Terrain',
       url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
       attribution: '&copy; <a href="https://opentopomap.org/">OpenTopoMap</a>',
-    },
-    {
-      id: 'navigation',
-      name: 'Navigation',
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     },
   ];
 
@@ -286,10 +288,30 @@ const IndependentMapView = () => {
   const [mapInstance, setMapInstance] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [userSelectedLayerManually, setUserSelectedLayerManually] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState(() => {
     const layerId = searchParams.get('layer');
-    return MAP_LAYERS.find(l => l.id === layerId) || MAP_LAYERS[0];
+    if (layerId) {
+      const match = MAP_LAYERS.find(l => l.id === layerId);
+      if (match) return match;
+    }
+    return resolvedTheme === 'dark'
+      ? MAP_LAYERS.find(l => l.id === 'dark') || MAP_LAYERS[0]
+      : MAP_LAYERS[0];
   });
+
+  // Automatically adapt default basemap to active theme if user hasn't explicitly chosen a layer
+  useEffect(() => {
+    if (!userSelectedLayerManually && !searchParams.get('layer')) {
+      const targetLayer =
+        resolvedTheme === 'dark'
+          ? MAP_LAYERS.find(l => l.id === 'dark')
+          : MAP_LAYERS.find(l => l.id === 'street');
+      if (targetLayer) {
+        setSelectedLayer(targetLayer);
+      }
+    }
+  }, [resolvedTheme, userSelectedLayerManually, searchParams, MAP_LAYERS]);
 
   // Filter state
   const [filters, setFilters] = useState(() => {
@@ -846,6 +868,7 @@ const IndependentMapView = () => {
   // Handle layer change
   const handleLayerChange = layer => {
     setSelectedLayer(layer);
+    setUserSelectedLayerManually(true);
     setShowLayers(false);
   };
 

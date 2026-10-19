@@ -784,7 +784,7 @@ const DiveDetail = () => {
           {activeTab === 'details' && (
             <>
               {/* Basic Information */}
-              <div className='bg-white rounded-lg shadow p-6'>
+              <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6'>
                 <DiveInfoGrid
                   dive={dive}
                   hasDeco={hasDeco}
@@ -795,7 +795,7 @@ const DiveDetail = () => {
 
                 {/* Buddies */}
                 <div className='mt-4'>
-                  <h3 className='text-base font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-3'>
+                  <h3 className='text-base font-semibold text-gray-900 dark:text-slate-100 border-b border-gray-100 dark:border-slate-700 pb-2 mb-3'>
                     Dive Buddies
                   </h3>
                   {dive.buddies && dive.buddies.length > 0 ? (
@@ -804,7 +804,7 @@ const DiveDetail = () => {
                         {dive.buddies.map(buddy => (
                           <div
                             key={buddy.id}
-                            className='flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg'
+                            className='flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-lg'
                           >
                             {buddy.avatar_url ? (
                               <img
@@ -881,8 +881,8 @@ const DiveDetail = () => {
                 dive.media.filter(
                   m => m.media_type !== 'photo' && m.media_type !== 'video' && !isVideoUrl(m.url)
                 ).length > 0 && (
-                  <div className='bg-white rounded-lg shadow p-6'>
-                    <h2 className='text-xl font-semibold mb-4'>Media</h2>
+                  <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6'>
+                    <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4'>Media</h2>
                     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                       {dive.media
                         .filter(
@@ -959,10 +959,10 @@ const DiveDetail = () => {
           )}
 
           {activeTab === 'profile' && (
-            <div className='bg-white sm:rounded-lg shadow p-0 sm:p-2 -mx-4 sm:mx-0'>
+            <div className='bg-white dark:bg-slate-800 sm:rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-0 sm:p-2 -mx-4 sm:mx-0'>
               <div className='flex items-center justify-between mb-4 px-4 sm:px-0 pt-4 sm:pt-0'>
                 <div className='flex items-center gap-2'>
-                  <h2 className='text-xl font-semibold'>Dive Profile</h2>
+                  <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>Dive Profile</h2>
                   {hasDeco && (
                     <span className='text-red-500 font-medium text-sm border border-red-200 bg-red-50 px-2 py-0.5 rounded flex items-center gap-1 ml-1'>
                       <Droplets className='w-3 h-3' />
@@ -1058,10 +1058,10 @@ const DiveDetail = () => {
           )}
 
           {activeTab === 'media' && allPhotos.length === 0 && allVideos.length === 0 && (
-            <div className='bg-white rounded-lg shadow p-6 text-center py-12'>
-              <Image className='h-12 w-12 text-gray-300 mx-auto mb-4' />
-              <h3 className='text-lg font-medium text-gray-900 mb-2'>No photos or videos</h3>
-              <p className='text-gray-500 mb-6'>This dive log doesn't have any media yet.</p>
+            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6 text-center py-12'>
+              <Image className='h-12 w-12 text-gray-300 dark:text-slate-600 mx-auto mb-4' />
+              <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100 mb-2'>No photos or videos</h3>
+              <p className='text-gray-500 dark:text-slate-400 mb-6'>This dive log doesn't have any media yet.</p>
               {dive && (user?.id === dive?.user_id || user?.is_admin || !user) && (
                 <Button
                   onClick={() => {
@@ -1084,9 +1084,9 @@ const DiveDetail = () => {
           )}
 
           {activeTab === 'media' && (allPhotos.length > 0 || allVideos.length > 0) && (
-            <div className='bg-white rounded-lg shadow p-6'>
+            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6'>
               <div className='flex items-center justify-between mb-4'>
-                <h2 className='text-xl font-semibold'>Photos & Videos</h2>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>Photos & Videos</h2>
                 {dive && (user?.id === dive?.user_id || user?.is_admin || !user) && (
                   <Button
                     onClick={() => {
@@ -1181,22 +1181,22 @@ const DiveDetail = () => {
           )}
 
           {activeTab === 'route' && dive.selected_route && !dive.dive_site?.deleted_at && (
-            <div className='bg-white rounded-lg shadow p-6'>
+            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-gray-100 dark:border-slate-700 p-6'>
               <div className='flex items-center gap-2 mb-4'>
-                <Route className='h-5 w-5 text-blue-600' />
-                <h2 className='text-xl font-semibold'>Dive Route</h2>
+                <Route className='h-5 w-5 text-blue-600 dark:text-blue-400' />
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>Dive Route</h2>
               </div>
 
               <div className='space-y-4'>
                 {/* Route Information */}
-                <div className='border-b border-gray-200 pb-4'>
+                <div className='border-b border-gray-200 dark:border-slate-700 pb-4'>
                   <div className='flex items-start gap-3'>
                     <div
                       className='w-4 h-4 rounded-full mt-1 flex-shrink-0'
                       style={{ backgroundColor: getRouteTypeColor(dive.selected_route.route_type) }}
                     />
                     <div className='flex-1'>
-                      <h3 className='text-lg font-medium text-gray-900'>
+                      <h3 className='text-lg font-medium text-gray-900 dark:text-slate-100'>
                         {dive.selected_route.name}
                       </h3>
                       <div className='flex items-center gap-2 mt-1'>

@@ -17,6 +17,42 @@
   @apply bg-white text-gray-900;
 }
 
+/* Dark Mode Overrides */
+.dark .markdown-editor-wrapper .editor-toolbar {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark .markdown-editor-wrapper .editor-toolbar button {
+  color: #94a3b8 !important;
+}
+
+.dark .markdown-editor-wrapper .editor-toolbar button:hover,
+.dark .markdown-editor-wrapper .editor-toolbar button.active {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+.dark .markdown-editor-wrapper .CodeMirror {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark .markdown-editor-wrapper .CodeMirror-cursor {
+  border-left-color: #38bdf8 !important;
+}
+
+.dark .markdown-editor-wrapper .editor-preview {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark .markdown-editor-wrapper .editor-statusbar {
+  color: #94a3b8 !important;
+}
+
 /* Ensure toolbar doesn't overlap with sticky headers */
 .markdown-editor-wrapper .editor-toolbar {
   z-index: 10 !important;

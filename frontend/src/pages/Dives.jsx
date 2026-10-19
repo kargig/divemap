@@ -873,8 +873,8 @@ const Dives = () => {
                 {dives?.map((dive, index) => (
                   <React.Fragment key={`${dive.id}-${index}`}>
                     <div
-                      className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
-                        dive.is_private ? 'bg-purple-50/30' : 'bg-white'
+                      className={`dive-item rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
+                        dive.is_private ? 'bg-purple-50/30 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-800'
                       }`}
                     >
                       <div className='flex flex-col space-y-1.5 sm:space-y-4'>
@@ -882,23 +882,23 @@ const Dives = () => {
                         <div className='flex items-start justify-between gap-2'>
                           <div className='flex-1 min-w-0'>
                             {/* Compact Title & Site combo */}
-                            <h3 className='font-semibold text-gray-900 leading-tight text-base sm:text-xl'>
+                            <h3 className='font-semibold text-gray-900 dark:text-slate-100 leading-tight text-base sm:text-xl'>
                               <Link
                                 to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                                 state={{ from: location.pathname + location.search }}
-                                className='hover:text-blue-600 transition-colors'
+                                className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
                               >
                                 {dive.name || `Dive #${dive.id}`}
                               </Link>
                               {dive.dive_site?.name && (
-                                <span className='text-xs sm:text-sm font-medium text-blue-500 ml-1.5 opacity-80'>
+                                <span className='text-xs sm:text-sm font-medium text-blue-500 dark:text-blue-400 ml-1.5 opacity-80'>
                                   @ {dive.dive_site.name}
                                 </span>
                               )}
                             </h3>
 
                             {/* Meta Byline - Single line on mobile */}
-                            <div className='mt-0.5 text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 flex-wrap'>
+                            <div className='mt-0.5 text-xs sm:text-sm text-gray-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap'>
                               <Calendar className='w-3 h-3 text-gray-400' />
                               {formatDate(dive.dive_date, {
                                 day: 'numeric',
@@ -907,7 +907,7 @@ const Dives = () => {
                               })}
                               {dive.dive_time && (
                                 <span className='flex items-center gap-1'>
-                                  <span className='text-gray-300'>•</span>
+                                  <span className='text-gray-300 dark:text-slate-600'>•</span>
                                   {formatTime(dive.dive_time)}
                                 </span>
                               )}
@@ -922,7 +922,7 @@ const Dives = () => {
                                 alt='Rating'
                                 className='w-3.5 h-3.5 object-contain'
                               />
-                              <span className='text-sm sm:text-lg font-bold text-gray-900'>
+                              <span className='text-sm sm:text-lg font-bold text-gray-900 dark:text-slate-100'>
                                 {dive.user_rating}
                               </span>
                             </div>
@@ -930,11 +930,11 @@ const Dives = () => {
                         </div>
 
                         {/* STATS STRIP - Compact 1-liner */}
-                        <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50'>
+                        <div className='flex flex-wrap items-center gap-x-3 sm:gap-x-8 gap-y-1 py-1 sm:py-3 border-y border-gray-50 dark:border-slate-700/60'>
                           {dive.max_depth && (
                             <div className='flex items-center gap-1'>
                               <DepthIcon className='text-divemap-blue font-bold' size={15} />
-                              <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+                              <span className='text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-200'>
                                 {dive.max_depth}m
                               </span>
                             </div>
@@ -942,7 +942,7 @@ const Dives = () => {
                           {dive.duration && (
                             <div className='flex items-center gap-1'>
                               <Clock className='w-3 h-3 text-gray-400' />
-                              <span className='text-xs sm:text-sm font-semibold text-gray-700'>
+                              <span className='text-xs sm:text-sm font-semibold text-gray-700 dark:text-slate-200'>
                                 {dive.duration}m
                               </span>
                             </div>
@@ -999,7 +999,7 @@ const Dives = () => {
                           <Link
                             to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                             state={{ from: location.pathname + location.search }}
-                            className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+                            className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 dark:text-slate-300 rounded-lg transition-all group'
                             title='View Details'
                           >
                             <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />
@@ -1023,30 +1023,30 @@ const Dives = () => {
                 {dives?.map(dive => (
                   <div
                     key={dive.id}
-                    className={`dive-item rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
-                      dive.is_private ? 'bg-purple-50/30' : 'bg-white'
+                    className={`dive-item rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
+                      dive.is_private ? 'bg-purple-50/30 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-800'
                     }`}
                   >
                     <div className='p-5 flex flex-col h-full'>
                       {/* Header: Title & Site */}
                       <div className='mb-3'>
                         {dive.dive_site && (
-                          <div className='text-xs font-bold uppercase tracking-widest text-blue-600 mb-0.5 flex items-center gap-1'>
+                          <div className='text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-0.5 flex items-center gap-1'>
                             <MapPin className='w-2.5 h-2.5' />
                             {dive.dive_site.name}
                             {dive.dive_site.deleted_at && ' (Archived)'}
                           </div>
                         )}
-                        <h3 className='font-semibold text-gray-900 leading-snug line-clamp-1'>
+                        <h3 className='font-semibold text-gray-900 dark:text-slate-100 leading-snug line-clamp-1'>
                           <Link
                             to={`/dives/${dive.id}/${getDiveSlug(dive)}`}
                             state={{ from: location.pathname + location.search }}
-                            className='hover:text-blue-600 transition-colors'
+                            className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
                           >
                             {dive.name || `Dive #${dive.id}`}
                           </Link>
                         </h3>
-                        <div className='text-xs text-gray-500 mt-1 flex items-center gap-1.5'>
+                        <div className='text-xs text-gray-500 dark:text-slate-400 mt-1 flex items-center gap-1.5'>
                           <Calendar className='w-3 h-3' />
                           {formatDate(dive.dive_date, {
                             day: 'numeric',
@@ -1066,14 +1066,14 @@ const Dives = () => {
                       </div>
 
                       {/* Stats Grid (Simplified for Grid layout) */}
-                      <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 mb-4'>
+                      <div className='grid grid-cols-2 gap-4 py-3 border-y border-gray-50 dark:border-slate-700/60 mb-4'>
                         <div className='flex items-center gap-2'>
                           <DepthIcon className='text-divemap-blue font-bold' size={18} />
                           <div>
                             <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                               Depth
                             </p>
-                            <p className='text-sm font-semibold text-gray-700'>{dive.max_depth}m</p>
+                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>{dive.max_depth}m</p>
                           </div>
                         </div>
                         <div className='flex items-center gap-2'>
@@ -1082,7 +1082,7 @@ const Dives = () => {
                             <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                               Time
                             </p>
-                            <p className='text-sm font-semibold text-gray-700'>{dive.duration}m</p>
+                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>{dive.duration}m</p>
                           </div>
                         </div>
                       </div>

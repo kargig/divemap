@@ -358,7 +358,7 @@ const Login = () => {
                     onVerify={handleTurnstileVerify}
                     onExpire={handleTurnstileExpire}
                     onError={handleTurnstileError}
-                    theme='light'
+                    theme='auto'
                     size='normal'
                     className='flex justify-center'
                   />
