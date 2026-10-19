@@ -94,7 +94,7 @@ const DivingTagsPage = () => {
                             to={`/dives?tag_ids=${tag.id}`}
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${getTagColor(
                               tag.name
-                            )} opacity-80 transition-transform hover:scale-105 active:scale-95`}
+                            )} transition-transform hover:scale-105 active:scale-95`}
                             title={`View ${tag.dive_count} dive logs tagged with ${tag.name}`}
                           >
                             <Notebook className='h-3 w-3 mr-1' />
