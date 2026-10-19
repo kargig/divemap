@@ -147,17 +147,17 @@ const FuzzySearchInput = ({
 
     return (
       <div className='flex flex-col w-full'>
-        <div className='font-medium text-gray-900'>
+        <div className='font-medium text-gray-900 dark:text-slate-100'>
           {renderHighlightedText(displayText, suggestion.matches)}
         </div>
         {suggestion.item.country && (
-          <div className='text-xs text-gray-500'>
+          <div className='text-xs text-gray-500 dark:text-slate-400'>
             {suggestion.item.country}
             {suggestion.item.region && `, ${suggestion.item.region}`}
           </div>
         )}
         {suggestion.item.description && (
-          <div className='text-xs text-gray-400 line-clamp-1 mt-0.5'>
+          <div className='text-xs text-gray-400 dark:text-slate-400 line-clamp-1 mt-0.5'>
             {decodeHtmlEntities(suggestion.item.description)}
           </div>
         )}

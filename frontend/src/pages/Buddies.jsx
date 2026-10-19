@@ -72,16 +72,18 @@ const Buddies = () => {
         <div className='mb-6 px-4 sm:px-0'>
           <Link
             to='/profile'
-            className='inline-flex items-center text-blue-600 hover:text-blue-700 mb-4'
+            className='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-4'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Back to Profile
           </Link>
           <div className='flex items-center gap-3'>
-            <Users className='h-8 w-8 text-blue-600' />
-            <h1 className='text-3xl font-bold text-gray-900'>My Buddies</h1>
+            <Users className='h-8 w-8 text-blue-600 dark:text-blue-400' />
+            <h1 className='text-3xl font-bold text-gray-900 dark:text-slate-100'>My Buddies</h1>
           </div>
-          <p className='text-gray-600 mt-2'>Manage your dive buddies and friendship requests.</p>
+          <p className='text-gray-600 dark:text-slate-400 mt-2'>
+            Manage your dive buddies and friendship requests.
+          </p>
         </div>
 
         <div className='space-y-6 sm:space-y-8'>
@@ -91,9 +93,11 @@ const Buddies = () => {
           </section>
 
           {/* Accepted Buddies Section */}
-          <section className='bg-white sm:rounded-lg shadow-md overflow-hidden'>
-            <div className='p-4 sm:p-6 border-b border-gray-200'>
-              <h2 className='text-xl font-semibold text-gray-900'>Current Buddies</h2>
+          <section className='bg-white dark:bg-slate-800 sm:rounded-lg shadow-md border border-gray-100 dark:border-slate-700 overflow-hidden'>
+            <div className='p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700'>
+              <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100'>
+                Current Buddies
+              </h2>
             </div>
 
             <div className='p-3 sm:p-6'>
@@ -105,9 +109,11 @@ const Buddies = () => {
                 <div className='text-center py-8 text-red-600'>{error}</div>
               ) : buddies.length === 0 ? (
                 <div className='text-center py-12'>
-                  <Users className='h-12 w-12 text-gray-400 mx-auto mb-4' />
-                  <p className='text-gray-500'>You don't have any buddies yet.</p>
-                  <p className='text-sm text-gray-400 mt-2'>
+                  <Users className='h-12 w-12 text-gray-400 dark:text-slate-500 mx-auto mb-4' />
+                  <p className='text-gray-500 dark:text-slate-300'>
+                    You don't have any buddies yet.
+                  </p>
+                  <p className='text-sm text-gray-400 dark:text-slate-500 mt-2'>
                     Find divers on their profile pages and send them a buddy request!
                   </p>
                 </div>
@@ -126,7 +132,7 @@ const Buddies = () => {
                     return (
                       <div
                         key={friendship.id}
-                        className='flex items-center justify-between p-3 sm:p-4 border border-gray-100 sm:border-gray-200 rounded-lg hover:border-blue-300 transition-colors bg-white'
+                        className='flex items-center justify-between p-3 sm:p-4 border border-gray-100 sm:border-gray-200 dark:border-slate-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-500 transition-colors bg-white dark:bg-slate-800'
                       >
                         <Link
                           to={`/users/${buddyUser.username}`}
@@ -139,11 +145,13 @@ const Buddies = () => {
                             fallbackText={buddyUser.username}
                           />
                           <div className='flex-1 min-w-0'>
-                            <p className='text-sm font-medium text-gray-900 group-hover:text-blue-600 truncate'>
+                            <p className='text-sm font-medium text-gray-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate'>
                               {buddyUser.username}
                             </p>
                             {buddyUser.name && (
-                              <p className='text-xs text-gray-500 truncate'>{buddyUser.name}</p>
+                              <p className='text-xs text-gray-500 dark:text-slate-400 truncate'>
+                                {buddyUser.name}
+                              </p>
                             )}
                           </div>
                         </Link>

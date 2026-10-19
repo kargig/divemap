@@ -97,11 +97,11 @@ const GlobalSearchBar = ({
     const { item, icon } = option;
     return (
       <div className='flex items-start space-x-3 w-full py-0.5'>
-        <div className='mt-0.5 text-gray-400'>{icon}</div>
+        <div className='mt-0.5 text-gray-400 dark:text-slate-400'>{icon}</div>
         <div className='flex-1 min-w-0'>
-          <div className='font-medium text-gray-900 truncate'>{item.name}</div>
+          <div className='font-medium text-gray-900 dark:text-slate-100 truncate'>{item.name}</div>
           {item.metadata && (
-            <div className='text-xs text-gray-500 mt-0.5'>
+            <div className='text-xs text-gray-500 dark:text-slate-400 mt-0.5'>
               {item.metadata.country && <span>{item.metadata.country}</span>}
               {item.metadata.region && item.metadata.country && (
                 <span>, {item.metadata.region}</span>

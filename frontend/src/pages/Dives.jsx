@@ -874,7 +874,9 @@ const Dives = () => {
                   <React.Fragment key={`${dive.id}-${index}`}>
                     <div
                       className={`dive-item rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] p-3 sm:p-6 hover:shadow-md transition-all duration-200 ${
-                        dive.is_private ? 'bg-purple-50/30 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-800'
+                        dive.is_private
+                          ? 'bg-purple-50/30 dark:bg-purple-950/20'
+                          : 'bg-white dark:bg-slate-800'
                       }`}
                     >
                       <div className='flex flex-col space-y-1.5 sm:space-y-4'>
@@ -1024,7 +1026,9 @@ const Dives = () => {
                   <div
                     key={dive.id}
                     className={`dive-item rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 border-l-4 border-l-[rgb(0,114,178)] flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-200 ${
-                      dive.is_private ? 'bg-purple-50/30 dark:bg-purple-950/20' : 'bg-white dark:bg-slate-800'
+                      dive.is_private
+                        ? 'bg-purple-50/30 dark:bg-purple-950/20'
+                        : 'bg-white dark:bg-slate-800'
                     }`}
                   >
                     <div className='p-5 flex flex-col h-full'>
@@ -1073,7 +1077,9 @@ const Dives = () => {
                             <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                               Depth
                             </p>
-                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>{dive.max_depth}m</p>
+                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>
+                              {dive.max_depth}m
+                            </p>
                           </div>
                         </div>
                         <div className='flex items-center gap-2'>
@@ -1082,7 +1088,9 @@ const Dives = () => {
                             <p className='text-xs text-gray-400 uppercase font-medium leading-none mb-0.5'>
                               Time
                             </p>
-                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>{dive.duration}m</p>
+                            <p className='text-sm font-semibold text-gray-700 dark:text-slate-200'>
+                              {dive.duration}m
+                            </p>
                           </div>
                         </div>
                       </div>

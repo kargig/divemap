@@ -112,43 +112,43 @@
   /* Dark mode container support for tag colors */
   .dark .tag-color-okabe-blue {
     background-color: rgba(0, 77, 122, 0.25);
-    color: #93c5fd;
+    color: #bfdbfe;
     border: 1px solid rgba(147, 197, 253, 0.3);
   }
 
   .dark .tag-color-okabe-orange {
     background-color: rgba(154, 52, 18, 0.25);
-    color: #fdba74;
+    color: #fed7aa;
     border: 1px solid rgba(253, 186, 116, 0.3);
   }
 
   .dark .tag-color-okabe-green {
     background-color: rgba(4, 120, 87, 0.25);
-    color: #6ee7b7;
+    color: #a7f3d0;
     border: 1px solid rgba(110, 231, 183, 0.3);
   }
 
   .dark .tag-color-okabe-vermillion {
     background-color: rgba(185, 28, 28, 0.25);
-    color: #fca5a5;
+    color: #fecaca;
     border: 1px solid rgba(252, 165, 165, 0.3);
   }
 
   .dark .tag-color-okabe-purple {
     background-color: rgba(112, 26, 117, 0.25);
-    color: #f0abfc;
+    color: #f5d0fe;
     border: 1px solid rgba(240, 171, 252, 0.3);
   }
 
   .dark .tag-color-okabe-yellow {
     background-color: rgba(133, 77, 14, 0.25);
-    color: #fde047;
+    color: #fef08a;
     border: 1px solid rgba(254, 240, 138, 0.3);
   }
 
   .dark .tag-color-okabe-sky {
     background-color: rgba(3, 105, 161, 0.25);
-    color: #7dd3fc;
+    color: #bae6fd;
     border: 1px solid rgba(125, 211, 252, 0.3);
   }
 

@@ -24,7 +24,7 @@ const LeaderboardTable = ({
         if (rank === 1) return <Trophy className='w-5 h-5 text-yellow-500' />;
         if (rank === 2) return <Medal className='w-5 h-5 text-gray-400' />;
         if (rank === 3) return <Medal className='w-5 h-5 text-amber-600' />;
-        return <span className='font-medium text-gray-500'>{rank}</span>;
+        return <span className='font-medium text-gray-500 dark:text-slate-400'>{rank}</span>;
       },
     },
     {
@@ -41,7 +41,7 @@ const LeaderboardTable = ({
             <Avatar src={imgUrl} alt={name} size='sm' fallbackText={name} className='shrink-0' />
             <Link
               to={linkTo}
-              className='font-semibold text-blue-600 inline-block truncate max-w-[100px] sm:max-w-[180px] md:max-w-[110px] lg:max-w-[120px] xl:max-w-[180px] hover:text-blue-800 transition-colors'
+              className='font-semibold text-blue-600 dark:text-sky-400 inline-block truncate max-w-[100px] sm:max-w-[180px] md:max-w-[110px] lg:max-w-[120px] xl:max-w-[180px] hover:text-blue-800 dark:hover:text-sky-300 transition-colors'
               title={name}
             >
               {name}
@@ -54,7 +54,7 @@ const LeaderboardTable = ({
       header: metricLabel,
       accessorKey: 'count',
       cell: info => (
-        <span className='font-bold' style={{ color: '#0072B2' }}>
+        <span className='font-bold text-sky-600 dark:text-sky-400'>
           {info.getValue().toLocaleString()}
         </span>
       ),
@@ -76,13 +76,17 @@ const LeaderboardTable = ({
   }
 
   if (data.length === 0) {
-    return <div className='text-center py-8 text-gray-500 text-sm italic'>No entries yet</div>;
+    return (
+      <div className='text-center py-8 text-gray-500 dark:text-slate-400 text-sm italic'>
+        No entries yet
+      </div>
+    );
   }
 
   return (
     <div className='overflow-hidden w-full'>
-      <table className='min-w-full divide-y divide-gray-200'>
-        <thead className='bg-gray-50'>
+      <table className='min-w-full divide-y divide-gray-200 dark:divide-slate-700'>
+        <thead className='bg-gray-50 dark:bg-slate-700/80'>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header, index) => {
@@ -94,7 +98,7 @@ const LeaderboardTable = ({
                 return (
                   <th
                     key={header.id}
-                    className={`px-1.5 sm:px-3 py-2.5 ${alignClass} ${widthClass} text-xs font-medium text-gray-500 uppercase tracking-wider`}
+                    className={`px-1.5 sm:px-3 py-2.5 ${alignClass} ${widthClass} text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wider`}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </th>
@@ -103,16 +107,19 @@ const LeaderboardTable = ({
             </tr>
           ))}
         </thead>
-        <tbody className='bg-white divide-y divide-gray-200'>
+        <tbody className='bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-slate-700'>
           {table.getRowModel().rows.map(row => (
-            <tr key={row.id} className='hover:bg-blue-50 transition-colors'>
+            <tr
+              key={row.id}
+              className='hover:bg-blue-50 dark:hover:bg-slate-700/60 transition-colors'
+            >
               {row.getVisibleCells().map((cell, index) => {
                 let alignClass = 'text-left';
                 if (index === 0 || index === 2) alignClass = 'text-center';
                 return (
                   <td
                     key={cell.id}
-                    className={`px-1.5 py-2.5 whitespace-nowrap text-sm text-gray-900 ${alignClass}`}
+                    className={`px-1.5 py-2.5 whitespace-nowrap text-sm text-gray-900 dark:text-slate-100 ${alignClass}`}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

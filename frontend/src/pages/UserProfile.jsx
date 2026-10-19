@@ -390,19 +390,28 @@ const UserProfile = () => {
 
   const StatCard = ({ icon, value, label, link, color, isSmall = false }) => {
     const colorClasses = {
-      blue: 'bg-blue-50 text-blue-600',
-      green: 'bg-green-50 text-green-600',
-      purple: 'bg-purple-50 text-purple-600',
-      orange: 'bg-orange-50 text-orange-600',
-      yellow: 'bg-yellow-50 text-yellow-600',
-      indigo: 'bg-indigo-50 text-indigo-600',
-      teal: 'bg-teal-50 text-teal-600',
-      cyan: 'bg-cyan-50 text-cyan-600',
-      rose: 'bg-rose-50 text-rose-600',
-      amber: 'bg-amber-50 text-amber-600',
-      emerald: 'bg-emerald-50 text-emerald-600',
-      violet: 'bg-violet-50 text-violet-600',
-      fuchsia: 'bg-fuchsia-50 text-fuchsia-600',
+      blue: 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40',
+      green:
+        'bg-green-50 dark:bg-emerald-950/40 text-green-600 dark:text-emerald-300 border border-green-100 dark:border-emerald-900/40',
+      purple:
+        'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 border border-purple-100 dark:border-purple-900/40',
+      orange:
+        'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-300 border border-orange-100 dark:border-orange-900/40',
+      yellow:
+        'bg-yellow-50 dark:bg-amber-950/40 text-yellow-600 dark:text-yellow-300 border border-yellow-100 dark:border-yellow-900/40',
+      indigo:
+        'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40',
+      teal: 'bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-300 border border-teal-100 dark:border-teal-900/40',
+      cyan: 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 border border-cyan-100 dark:border-cyan-900/40',
+      rose: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-100 dark:border-rose-900/40',
+      amber:
+        'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-300 border border-amber-100 dark:border-amber-900/40',
+      emerald:
+        'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 border border-emerald-100 dark:border-emerald-900/40',
+      violet:
+        'bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-300 border border-violet-100 dark:border-violet-900/40',
+      fuchsia:
+        'bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-600 dark:text-fuchsia-300 border border-fuchsia-100 dark:border-fuchsia-900/40',
     };
 
     const content = (
@@ -416,7 +425,7 @@ const UserProfile = () => {
           {value}
         </div>
         <div
-          className={`${isSmall ? 'text-[9px]' : 'text-sm'} text-gray-600 ${isSmall ? 'mt-0' : 'mt-1'} uppercase tracking-tighter opacity-70`}
+          className={`${isSmall ? 'text-[9px]' : 'text-sm'} text-gray-600 dark:text-slate-300 ${isSmall ? 'mt-0' : 'mt-1'} uppercase tracking-tighter opacity-70`}
         >
           {label}
         </div>
@@ -476,11 +485,11 @@ const UserProfile = () => {
         className={
           isEmbedded
             ? 'mt-4 lg:mt-0'
-            : 'bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'
+            : 'bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100 dark:border-slate-700'
         }
       >
         {!isEmbedded && (
-          <h2 className='text-xl font-semibold text-gray-900 mb-4 uppercase tracking-tight'>
+          <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-4 uppercase tracking-tight'>
             Certification Level Overview
           </h2>
         )}
@@ -542,7 +551,7 @@ const UserProfile = () => {
       />
       <div className='max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8'>
         {/* Header */}
-        <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-100 dark:border-slate-700'>
           <div className='flex flex-col sm:flex-row items-center sm:items-start sm:space-x-6 w-full text-center sm:text-left gap-4'>
             <div className='shrink-0'>
               <Avatar
@@ -556,11 +565,11 @@ const UserProfile = () => {
             <div className='flex-1 min-w-0 w-full'>
               <div className='flex flex-col lg:flex-row justify-between items-center lg:items-start w-full gap-6 mb-4'>
                 <div className='flex-1 min-w-0 text-center sm:text-left'>
-                  <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 truncate mb-2'>
+                  <h1 className='text-3xl sm:text-4xl font-bold text-gray-900 dark:text-slate-100 truncate mb-2'>
                     {profile.username}
                   </h1>
 
-                  <div className='flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-2 text-gray-600 text-sm mb-4'>
+                  <div className='flex flex-wrap justify-center sm:justify-start items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm mb-4'>
                     <div className='flex items-center space-x-1'>
                       <Notebook className='h-4 w-4 text-blue-500' />
                       <span className='font-semibold'>{totalDives} dives</span>
@@ -582,7 +591,7 @@ const UserProfile = () => {
                     {profile.stats.total_points > 0 && (
                       <div className='flex items-center space-x-1'>
                         <Trophy className='h-4 w-4 text-yellow-500' />
-                        <span className='font-bold text-blue-600'>
+                        <span className='font-bold text-blue-600 dark:text-sky-400'>
                           {profile.stats.total_points.toLocaleString()} points
                         </span>
                       </div>
@@ -606,7 +615,7 @@ const UserProfile = () => {
                           href={link.url}
                           target='_blank'
                           rel='noopener noreferrer nofollow'
-                          className='group flex items-center bg-gray-50 hover:bg-white border border-gray-200 rounded-full px-3 py-1.5 transition-all shadow-sm hover:shadow-md'
+                          className='group flex items-center bg-gray-50 dark:bg-slate-700/60 hover:bg-white dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-full px-3 py-1.5 transition-all shadow-sm hover:shadow-md'
                           title={link.platform}
                         >
                           <div className='group-hover:scale-110 transition-transform mr-1.5'>
@@ -615,7 +624,7 @@ const UserProfile = () => {
                               className: 'w-4 h-4',
                             })}
                           </div>
-                          <span className='font-bold text-xs text-gray-700 capitalize'>
+                          <span className='font-bold text-xs text-gray-700 dark:text-slate-200 capitalize'>
                             {link.platform}
                           </span>
                         </a>
@@ -677,8 +686,8 @@ const UserProfile = () => {
           {/* Sidebar - Order 1 on mobile, Order 2 on desktop */}
           <div className='space-y-4 sm:space-y-6 order-1 lg:order-2'>
             {/* Quick Stats */}
-            <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+            <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
+              <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2'>
                 <Gauge className='h-5 w-5 text-gray-400' />
                 Community Impact
               </h3>
@@ -686,17 +695,19 @@ const UserProfile = () => {
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Notebook size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Total Dives:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Total Dives:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>{totalDives}</span>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
+                    {totalDives}
+                  </span>
                 </div>
                 {profile.stats.total_points > 0 && (
                   <div className='flex justify-between items-center'>
                     <div className='flex items-center gap-2'>
                       <Trophy size={16} className='text-yellow-500' />
-                      <span className='text-gray-600'>Total Points:</span>
+                      <span className='text-gray-600 dark:text-slate-300'>Total Points:</span>
                     </div>
-                    <span className='font-bold text-blue-600 flex-1 text-right'>
+                    <span className='font-bold text-blue-600 dark:text-blue-400 flex-1 text-right'>
                       {profile.stats.total_points.toLocaleString()}
                     </span>
                   </div>
@@ -704,13 +715,13 @@ const UserProfile = () => {
                 {profile.stats.leaderboard_rank && (
                   <div className='flex justify-between items-center'>
                     <div className='flex items-center gap-2'>
-                      <Medal size={16} className='text-amber-600' />
-                      <span className='text-gray-600'>Leaderboard Rank:</span>
+                      <Medal size={16} className='text-amber-600 dark:text-amber-400' />
+                      <span className='text-gray-600 dark:text-slate-300'>Leaderboard Rank:</span>
                     </div>
                     <div className='flex-1 text-right'>
                       <Link
                         to='/leaderboard'
-                        className='font-semibold text-blue-600 hover:underline'
+                        className='font-semibold text-blue-600 dark:text-sky-400 hover:underline'
                       >
                         #{profile.stats.leaderboard_rank}
                       </Link>
@@ -720,109 +731,115 @@ const UserProfile = () => {
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Activity size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dives Created:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dives Created:</span>
                   </div>
                   <div className='flex-1 text-right'>
                     {profile.stats.dives_created > 0 ? (
                       <Link
                         to={`/dives?username=${profile.username}`}
-                        className='text-blue-600 hover:underline font-semibold'
+                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
                       >
                         {profile.stats.dives_created}
                       </Link>
                     ) : (
-                      <span className='font-semibold'>{profile.stats.dives_created}</span>
+                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
+                        {profile.stats.dives_created}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Users size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dives as Buddy:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dives as Buddy:</span>
                   </div>
                   <div className='flex-1 text-right'>
                     {profile.stats.buddy_dives_count > 0 ? (
                       <Link
                         to={`/dives?buddy_username=${profile.username}`}
-                        className='text-blue-600 hover:underline font-semibold'
+                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
                       >
                         {profile.stats.buddy_dives_count}
                       </Link>
                     ) : (
-                      <span className='font-semibold'>{profile.stats.buddy_dives_count}</span>
+                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
+                        {profile.stats.buddy_dives_count}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Map size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive sites visited:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dive sites visited:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
                     {profile.stats.unique_dive_sites_logged || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Globe size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Countries visited:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Countries visited:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
                     {profile.stats.countries_visited_count || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <MapPin size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive Sites Created:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dive Sites Created:</span>
                   </div>
                   <div className='flex-1 text-right'>
                     {profile.stats.dive_sites_created > 0 ? (
                       <Link
                         to={`/dive-sites?created_by_username=${profile.username}`}
-                        className='text-blue-600 hover:underline font-semibold'
+                        className='text-blue-600 dark:text-sky-400 hover:underline font-semibold'
                       >
                         {profile.stats.dive_sites_created}
                       </Link>
                     ) : (
-                      <span className='font-semibold'>{profile.stats.dive_sites_created}</span>
+                      <span className='font-semibold text-gray-900 dark:text-slate-100'>
+                        {profile.stats.dive_sites_created}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Star size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive Site Ratings:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dive Site Ratings:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
                     {profile.stats.site_ratings_count}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <MessageSquare size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Dive Site Comments:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Dive Site Comments:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
                     {profile.stats.site_comments_count}
                   </span>
                 </div>
                 <div className='flex justify-between items-center'>
                   <div className='flex items-center gap-2'>
                     <Building2 size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Diving Centers Owned:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Diving Centers Owned:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
                     {profile.stats.diving_centers_owned}
                   </span>
                 </div>
-                <div className='flex justify-between items-center border-t pt-2 mt-2'>
+                <div className='flex justify-between items-center border-t dark:border-slate-700 pt-2 mt-2'>
                   <div className='flex items-center gap-2'>
                     <CalendarIcon size={16} className='text-gray-400' />
-                    <span className='text-gray-600'>Member Since:</span>
+                    <span className='text-gray-600 dark:text-slate-300'>Member Since:</span>
                   </div>
-                  <span className='font-semibold flex-1 text-right'>
-                    {formatDate(profile.member_since)}
+                  <span className='font-semibold flex-1 text-right text-gray-900 dark:text-slate-100'>
+                    {formatDate(profile.member_since, { month: 'short', year: 'numeric' })}
                   </span>
                 </div>
               </div>
@@ -830,8 +847,8 @@ const UserProfile = () => {
 
             {/* Certifications in Sidebar for Desktop */}
             {profile.certifications && profile.certifications.length > 0 && (
-              <div className='hidden lg:block bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-                <h2 className='text-lg font-bold text-gray-900 mb-4 uppercase tracking-tight flex items-center gap-2'>
+              <div className='hidden lg:block bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
+                <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 uppercase tracking-tight flex items-center gap-2'>
                   <Award className='h-5 w-5 text-gray-400' />
                   Certifications
                 </h2>
@@ -888,9 +905,13 @@ const UserProfile = () => {
 
             {/* No certifications message */}
             {(!profile.certifications || profile.certifications.length === 0) && (
-              <div className='bg-white rounded-lg shadow-md p-6 border border-gray-100'>
-                <h3 className='text-lg font-semibold text-gray-900 mb-2'>Certifications</h3>
-                <p className='text-gray-600 text-sm'>No certifications listed yet.</p>
+              <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 border border-gray-100 dark:border-slate-700'>
+                <h3 className='text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2'>
+                  Certifications
+                </h3>
+                <p className='text-gray-600 dark:text-slate-400 text-sm'>
+                  No certifications listed yet.
+                </p>
               </div>
             )}
           </div>
@@ -899,16 +920,16 @@ const UserProfile = () => {
           <div className='lg:col-span-2 space-y-4 sm:space-y-6 order-2 lg:order-1'>
             {/* Hero Stats */}
             {profile.diving_stats && (
-              <div className='bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-100'>
-                <h2 className='text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2'>
-                  <Notebook className='h-5 w-5 text-blue-600' />
+              <div className='bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-100 dark:border-slate-700'>
+                <h2 className='text-xl font-semibold text-gray-900 dark:text-slate-100 mb-6 flex items-center gap-2'>
+                  <Notebook className='h-5 w-5 text-blue-600 dark:text-blue-400' />
                   Diving Logbook Summary
                 </h2>
                 <Row gutter={[12, 12]}>
                   <Col xs={12} md={8}>
                     <Card
                       variant='borderless'
-                      className='bg-blue-50 text-center hover:shadow-sm transition-shadow'
+                      className='bg-blue-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
                       styles={{ body: { padding: '12px 8px' } }}
                     >
                       <Statistic
@@ -928,7 +949,7 @@ const UserProfile = () => {
                   <Col xs={12} md={8}>
                     <Card
                       variant='borderless'
-                      className='bg-indigo-50 text-center hover:shadow-sm transition-shadow'
+                      className='bg-indigo-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
                       styles={{ body: { padding: '12px 8px' } }}
                     >
                       <Statistic
@@ -947,7 +968,7 @@ const UserProfile = () => {
                   <Col xs={24} md={8}>
                     <Card
                       variant='borderless'
-                      className='bg-teal-50 text-center hover:shadow-sm transition-shadow'
+                      className='bg-teal-50 dark:bg-slate-700/60 text-center hover:shadow-sm transition-shadow'
                       styles={{ body: { padding: '12px 8px' } }}
                     >
                       <Statistic
@@ -961,7 +982,7 @@ const UserProfile = () => {
                         prefix={<Clock className='h-3.5 w-3.5 inline mr-1 text-teal-500' />}
                         styles={{ content: { fontSize: '18px', fontWeight: 'bold' } }}
                       />
-                      <div className='text-[10px] text-gray-500 mt-1 opacity-70 uppercase tracking-tighter'>
+                      <div className='text-[10px] text-gray-500 dark:text-slate-400 mt-1 opacity-70 uppercase tracking-tighter'>
                         ≈ {Math.round((profile.diving_stats.total_bottom_time_minutes || 0) / 60)}{' '}
                         hours
                       </div>
@@ -969,12 +990,12 @@ const UserProfile = () => {
                   </Col>
                 </Row>
 
-                <Divider />
+                <Divider className='dark:border-slate-700' />
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8'>
                   {/* Favorite Sites */}
                   <div>
-                    <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
+                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 mb-4 flex items-center gap-2'>
                       <MapPin className='h-4 w-4 text-blue-500' />
                       Favorite Dive Sites
                     </h3>
@@ -987,7 +1008,7 @@ const UserProfile = () => {
                           >
                             <Link
                               to={`/dive-sites/${site.id}`}
-                              className='text-blue-600 hover:underline font-medium'
+                              className='text-blue-600 dark:text-blue-400 hover:underline font-medium'
                             >
                               {index + 1}. {site.name}
                             </Link>
@@ -1005,7 +1026,7 @@ const UserProfile = () => {
 
                   {/* Suit & Gear Preferences */}
                   <div>
-                    <h3 className='text-lg font-medium text-gray-800 mb-4 flex items-center gap-2'>
+                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 mb-4 flex items-center gap-2'>
                       <Shirt className='h-4 w-4 text-blue-500' />
                       Suit & Gear Preferences
                     </h3>
@@ -1030,10 +1051,12 @@ const UserProfile = () => {
                               return (
                                 <div key={suit}>
                                   <div className='flex justify-between mb-1 text-sm'>
-                                    <span className='text-gray-600 font-medium'>
+                                    <span className='text-gray-600 dark:text-slate-200 font-medium'>
                                       {labelMap[suit] || suit}
                                     </span>
-                                    <span className='text-gray-400'>{count} dives</span>
+                                    <span className='text-gray-400 dark:text-slate-400'>
+                                      {count} dives
+                                    </span>
                                   </div>
                                   <Progress
                                     percent={percent}
@@ -1050,7 +1073,7 @@ const UserProfile = () => {
                       {/* Gear Stats */}
                       {Object.keys(profile.diving_stats.gear_preferences || {}).length > 0 && (
                         <div className='space-y-3'>
-                          <span className='text-[10px] font-bold text-gray-400 uppercase tracking-widest'>
+                          <span className='text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest'>
                             Tanks
                           </span>
                           {Object.entries(profile.diving_stats.gear_preferences).map(
@@ -1076,9 +1099,13 @@ const UserProfile = () => {
                                         className='h-3.5 w-3.5 object-contain opacity-70'
                                         alt=''
                                       />
-                                      <span className='text-gray-600 font-medium'>{gear}</span>
+                                      <span className='text-gray-600 dark:text-slate-200 font-medium'>
+                                        {gear}
+                                      </span>
                                     </div>
-                                    <span className='text-gray-400'>{count} dives</span>
+                                    <span className='text-gray-400 dark:text-slate-400'>
+                                      {count} dives
+                                    </span>
                                   </div>
                                   <Progress
                                     percent={percent}
@@ -1105,12 +1132,12 @@ const UserProfile = () => {
                   </div>
                 </div>
 
-                <Divider />
+                <Divider className='dark:border-slate-700' />
 
                 {/* Activity Heatmap */}
                 <div>
                   <div className='flex justify-between items-center mb-4'>
-                    <h3 className='text-lg font-medium text-gray-800 flex items-center gap-2 m-0'>
+                    <h3 className='text-lg font-medium text-gray-800 dark:text-slate-100 flex items-center gap-2 m-0'>
                       <CalendarIcon className='h-4 w-4 text-blue-500' />
                       Diving Activity (Last 365 Days)
                     </h3>
@@ -1223,8 +1250,8 @@ const UserProfile = () => {
 
             {/* Mobile Certifications (hidden on lg) */}
             {profile.certifications && profile.certifications.length > 0 && (
-              <div className='lg:hidden bg-white rounded-lg shadow-md p-4 border border-gray-100 mt-6'>
-                <h2 className='text-lg font-bold text-gray-900 mb-4 uppercase tracking-tight'>
+              <div className='lg:hidden bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 border border-gray-100 dark:border-slate-700 mt-6'>
+                <h2 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 uppercase tracking-tight'>
                   Certifications
                 </h2>
                 <div className='space-y-3'>

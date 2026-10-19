@@ -755,8 +755,10 @@ const Profile = () => {
       />
       <div className='w-full lg:max-w-[95vw] xl:max-w-[1600px] mx-auto px-0 sm:px-4 lg:px-6 xl:px-8 py-3 sm:py-6 lg:py-8 overflow-x-hidden'>
         <div className='mb-6 sm:mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
-          <p className='text-sm sm:text-base text-gray-600'>
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-slate-100 mb-2'>
+            Profile
+          </h1>
+          <p className='text-sm sm:text-base text-gray-600 dark:text-slate-400'>
             Manage your account settings and diving information
           </p>
         </div>
@@ -764,15 +766,15 @@ const Profile = () => {
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8'>
           {/* Profile Information */}
           <div className='lg:col-span-2'>
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700'>
               {/* Avatar Section */}
-              <div className='flex flex-col sm:flex-row items-center gap-6 pb-6 mb-6 border-b border-gray-100'>
+              <div className='flex flex-col sm:flex-row items-center gap-6 pb-6 mb-6 border-b border-gray-100 dark:border-slate-700'>
                 <div className='relative group'>
                   <Avatar
                     src={getFullAvatarUrl(user)}
                     alt={user.username}
                     size='xl'
-                    className='w-24 h-24 sm:w-32 sm:h-32 border-4 border-white shadow-md'
+                    className='w-24 h-24 sm:w-32 sm:h-32 border-4 border-white dark:border-slate-700 shadow-md'
                     username={user.username}
                   />
                   <button
@@ -784,12 +786,14 @@ const Profile = () => {
                 </div>
                 <div className='text-center sm:text-left flex-1'>
                   <div className='flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2'>
-                    <h1 className='text-2xl font-bold text-gray-900'>{user.username}</h1>
-                    <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+                    <h1 className='text-2xl font-bold text-gray-900 dark:text-slate-100'>
+                      {user.username}
+                    </h1>
+                    <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60'>
                       {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'Diver'}
                     </span>
                   </div>
-                  <p className='text-gray-500 text-sm mb-4'>
+                  <p className='text-gray-500 dark:text-slate-400 text-sm mb-4'>
                     Member since {formatDate(user.created_at)}
                   </p>
                   <div className='flex flex-wrap justify-center sm:justify-start gap-2'>
@@ -807,7 +811,7 @@ const Profile = () => {
               </div>
 
               <div className='flex items-center justify-between mb-4 sm:mb-6'>
-                <h2 className='text-lg sm:text-xl font-semibold text-gray-900 uppercase tracking-tight'>
+                <h2 className='text-lg sm:text-xl font-semibold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                   Account Information
                 </h2>
                 <Button
@@ -935,61 +939,63 @@ const Profile = () => {
               ) : (
                 <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5 sm:gap-y-4'>
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <User className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <User className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div className='min-w-0'>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Username
                       </span>
-                      <p className='text-gray-900 font-semibold truncate'>{user.username}</p>
+                      <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
+                        {user.username}
+                      </p>
                     </div>
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <User className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <User className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div className='min-w-0'>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Full Name
                       </span>
-                      <p className='text-gray-900 font-semibold truncate'>
+                      <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
                         {user.name || 'Not set'}
                       </p>
                     </div>
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <Mail className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Mail className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div className='min-w-0'>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Email
                       </span>
-                      <p className='text-gray-900 font-semibold truncate'>
+                      <p className='text-gray-900 dark:text-slate-100 font-semibold truncate'>
                         <MaskedEmail email={user.email} />
                       </p>
                     </div>
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <Activity className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Activity className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div className='min-w-0'>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Total Dives
                       </span>
                       <div className='flex items-baseline gap-2'>
-                        <p className='text-gray-900 font-bold text-base sm:text-lg leading-tight'>
+                        <p className='text-gray-900 dark:text-slate-100 font-bold text-base sm:text-lg leading-tight'>
                           {(user?.number_of_dives || 0) +
                             (userStats?.dives_created || 0) +
                             (userStats?.buddy_dives_count || 0)}
                         </p>
                       </div>
-                      <p className='text-[9px] leading-tight text-gray-400 mt-0.5'>
+                      <p className='text-[9px] leading-tight text-gray-400 dark:text-slate-400 mt-0.5'>
                         {user?.number_of_dives || 0} prof. + {userStats?.dives_created || 0} built +{' '}
                         {userStats?.buddy_dives_count || 0} buddy
                       </p>
@@ -997,18 +1003,22 @@ const Profile = () => {
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <Shield className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Shield className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Buddy Visibility
                       </span>
-                      <p className='text-gray-900'>
+                      <p className='text-gray-900 dark:text-slate-100'>
                         {(user.buddy_visibility || 'public') === 'public' ? (
-                          <span className='text-green-600 font-bold text-sm'>Public</span>
+                          <span className='text-green-600 dark:text-emerald-400 font-bold text-sm'>
+                            Public
+                          </span>
                         ) : (
-                          <span className='text-gray-600 font-bold text-sm'>Private</span>
+                          <span className='text-gray-600 dark:text-slate-400 font-bold text-sm'>
+                            Private
+                          </span>
                         )}
                       </p>
                     </div>
@@ -1016,11 +1026,11 @@ const Profile = () => {
 
                   {ownedDivingCenters && ownedDivingCenters.length > 0 && (
                     <div className='flex items-start'>
-                      <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                        <Building2 className='h-4 w-4 text-blue-600' />
+                      <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                        <Building2 className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                       </div>
                       <div className='flex-1 min-w-0'>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                        <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                           Owned Centers
                         </span>
                         <div className='flex flex-wrap gap-1.5 mt-1'>
@@ -1028,7 +1038,7 @@ const Profile = () => {
                             <Link
                               key={center.id}
                               to={`/diving-centers/${center.id}/${slugify(center.name)}`}
-                              className='inline-block px-2 py-0.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-xs font-medium transition-colors border border-blue-100'
+                              className='inline-block px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded text-xs font-medium transition-colors border border-blue-100 dark:border-blue-800'
                             >
                               {center.name}
                             </Link>
@@ -1039,28 +1049,28 @@ const Profile = () => {
                   )}
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <Calendar className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Calendar className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Member Since
                       </span>
-                      <p className='text-gray-900 font-semibold text-sm'>
+                      <p className='text-gray-900 dark:text-slate-100 font-semibold text-sm'>
                         {formatDate(user.created_at)}
                       </p>
                     </div>
                   </div>
 
                   <div className='flex items-start'>
-                    <div className='bg-gray-100 p-1.5 rounded-lg mr-3 shrink-0'>
-                      <Shield className='h-4 w-4 text-blue-600' />
+                    <div className='bg-gray-100 dark:bg-slate-700 p-1.5 rounded-lg mr-3 shrink-0'>
+                      <Shield className='h-4 w-4 text-blue-600 dark:text-blue-400' />
                     </div>
                     <div>
-                      <span className='text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-0.5'>
+                      <span className='text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5'>
                         Role
                       </span>
-                      <p className='text-gray-900 font-semibold text-sm'>
+                      <p className='text-gray-900 dark:text-slate-100 font-semibold text-sm'>
                         {user.is_admin ? 'Administrator' : user.is_moderator ? 'Moderator' : 'User'}
                       </p>
                     </div>
@@ -1070,9 +1080,9 @@ const Profile = () => {
             </div>
 
             {/* Social Media Links Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
-                <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                   Social Media Links
                 </h2>
                 <button
@@ -1218,9 +1228,9 @@ const Profile = () => {
             </div>
 
             {/* My Curated Lists Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
-                <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight flex items-center gap-2'>
+                <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight flex items-center gap-2'>
                   <Bookmark className='h-5 w-5 text-blue-600' />
                   My Curated Lists
                 </h2>
@@ -1339,35 +1349,37 @@ const Profile = () => {
                     <Link
                       key={lst.id}
                       to={`/users/${user?.username}/lists/${lst.id}/${lst.slug}`}
-                      className='block p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all group bg-gray-50/10'
+                      className='block p-4 border border-gray-200 dark:border-slate-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-sm transition-all group bg-gray-50/10 dark:bg-slate-700/30'
                     >
                       <div className='flex justify-between items-start gap-2 mb-1'>
-                        <span className='font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-sm sm:text-base'>
+                        <span className='font-bold text-gray-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm sm:text-base'>
                           {lst.title}
                         </span>
                         <div className='flex gap-1 flex-shrink-0'>
                           {lst.system_type && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-tighter'>
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase tracking-tighter'>
                               SYSTEM
                             </span>
                           )}
                           {!lst.is_public && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-tighter gap-0.5'>
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800 uppercase tracking-tighter gap-0.5'>
                               <Lock size={8} /> PRIVATE
                             </span>
                           )}
                           {lst.is_collaborator && (
-                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100 uppercase tracking-tighter gap-0.5'>
+                            <span className='inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800 uppercase tracking-tighter gap-0.5'>
                               <Users size={8} /> SHARED
                             </span>
                           )}
                         </div>
                       </div>
                       {lst.description && (
-                        <p className='text-xs text-gray-500 line-clamp-2 mb-3'>{lst.description}</p>
+                        <p className='text-xs text-gray-500 dark:text-slate-400 line-clamp-2 mb-3'>
+                          {lst.description}
+                        </p>
                       )}
-                      <div className='flex items-center justify-between mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700/50'>
-                        <div className='flex items-center gap-4 text-[11px] text-gray-400 font-medium'>
+                      <div className='flex items-center justify-between mt-2.5 pt-2 border-t border-gray-100 dark:border-slate-700'>
+                        <div className='flex items-center gap-4 text-[11px] text-gray-400 dark:text-slate-400 font-medium'>
                           <span className='flex items-center gap-0.5'>
                             <FolderHeart className='h-3.5 w-3.5 text-blue-500' />
                             {lst.items?.length || 0} sites
@@ -1379,7 +1391,7 @@ const Profile = () => {
                         </div>
                         {lst.is_collaborator && (
                           <label
-                            className='flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-white dark:bg-gray-800 border dark:border-gray-700 rounded px-2 py-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700'
+                            className='flex items-center gap-1.5 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded px-2 py-0.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700'
                             onClick={e => {
                               e.stopPropagation();
                             }}
@@ -1409,9 +1421,9 @@ const Profile = () => {
               )}
             </div>
             {/* Certifications Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6'>
-                <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                   Diving Certifications
                 </h2>
                 <button
@@ -1761,17 +1773,17 @@ const Profile = () => {
             </div>
 
             {/* Diving Gear & Equipment Configurations Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                 <div className='flex items-start gap-3'>
-                  <div className='p-2.5 bg-blue-50 text-blue-600 rounded-xl mt-0.5 shrink-0'>
+                  <div className='p-2.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl mt-0.5 shrink-0'>
                     <Gauge className='h-6 w-6' />
                   </div>
                   <div>
-                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                       Diving Gear Configurations
                     </h2>
-                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400 mt-1 max-w-xl'>
                       Manage tailored equipment profiles, cylinder preferences, wetsuit sizing, and
                       ballast weights for tropical, cold water, or technical dives.
                     </p>
@@ -1788,17 +1800,17 @@ const Profile = () => {
             </div>
 
             {/* My Dive Bookings Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                 <div className='flex items-start gap-3'>
-                  <div className='p-2.5 bg-indigo-50 text-indigo-600 rounded-xl mt-0.5 shrink-0'>
+                  <div className='p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl mt-0.5 shrink-0'>
                     <Ticket className='h-6 w-6' />
                   </div>
                   <div>
-                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                       My Dive Bookings
                     </h2>
-                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400 mt-1 max-w-xl'>
                       View upcoming reservations, access digital vouchers with QR check-in, and
                       download pre-dive safety briefings.
                     </p>
@@ -1815,17 +1827,17 @@ const Profile = () => {
             </div>
 
             {/* Annual Medical Declaration Section */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md mt-6'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700 mt-6'>
               <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
                 <div className='flex items-start gap-3'>
-                  <div className='p-2.5 bg-red-50 text-red-600 rounded-xl mt-0.5 shrink-0'>
+                  <div className='p-2.5 bg-red-50 dark:bg-rose-950/60 text-red-600 dark:text-rose-400 rounded-xl mt-0.5 shrink-0'>
                     <HeartPulse className='h-6 w-6' />
                   </div>
                   <div>
-                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 uppercase tracking-tight'>
+                    <h2 className='text-lg sm:text-xl font-bold text-gray-900 dark:text-slate-100 uppercase tracking-tight'>
                       Medical Self-Declaration (DMSC 2020)
                     </h2>
-                    <p className='text-sm text-gray-500 mt-1 max-w-xl'>
+                    <p className='text-sm text-gray-500 dark:text-slate-400 mt-1 max-w-xl'>
                       Manage your 1-year annual medical screening, upload physician certificates,
                       and review diving center approvals. Protected by GDPR Article 9 encryption.
                     </p>
@@ -1845,18 +1857,18 @@ const Profile = () => {
           {/* Sidebar */}
           <div className='space-y-4 sm:space-y-6'>
             {/* Account Stats */}
-            <div className='bg-white p-6 rounded-lg shadow-md'>
-              <h3 className='text-lg font-bold text-gray-900 mb-4 border-b pb-2 uppercase tracking-tight flex items-center gap-2'>
+            <div className='bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700'>
+              <h3 className='text-lg font-bold text-gray-900 dark:text-slate-100 mb-4 border-b border-gray-100 dark:border-slate-700 pb-2 uppercase tracking-tight flex items-center gap-2'>
                 <Gauge className='h-5 w-5 text-gray-400' />
                 Account Stats
               </h3>
               <div className='space-y-3'>
                 <div className='flex justify-between items-center font-bold pb-1'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
-                    <Notebook size={16} className='text-blue-600 shrink-0' />
-                    <span className='text-gray-900 truncate'>Total Dives</span>
+                    <Notebook size={16} className='text-blue-600 dark:text-blue-400 shrink-0' />
+                    <span className='text-gray-900 dark:text-slate-100 truncate'>Total Dives</span>
                   </div>
-                  <span className='text-blue-600 bg-blue-50 px-2 py-0.5 rounded shrink-0'>
+                  <span className='text-blue-600 dark:text-sky-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded shrink-0'>
                     {(user?.number_of_dives || 0) +
                       (userStats?.dives_created || 0) +
                       (userStats?.buddy_dives_count || 0)}
@@ -1865,21 +1877,25 @@ const Profile = () => {
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <User size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dives from Profile</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dives from Profile
+                    </span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
+                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
                     {user?.number_of_dives || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Activity size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dives Created</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dives Created
+                    </span>
                   </div>
                   <div className='shrink-0'>
                     <Link
                       to='/dives?my_dives=true'
-                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                      className='font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-4'
                     >
                       {userStats?.dives_created || 0}
                     </Link>
@@ -1888,30 +1904,36 @@ const Profile = () => {
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Users size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dives Participated</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dives Participated
+                    </span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
+                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
                     {userStats?.buddy_dives_count || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Map size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dive Sites Visited</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dive Sites Visited
+                    </span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
+                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
                     {userStats?.unique_dive_sites_logged || 0}
                   </span>
                 </div>
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <MapPin size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dive Sites Created</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dive Sites Created
+                    </span>
                   </div>
                   <div className='shrink-0'>
                     <Link
                       to='/dive-sites?my_dive_sites=true'
-                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                      className='font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-4'
                     >
                       {userStats?.dive_sites_created || 0}
                     </Link>
@@ -1920,12 +1942,14 @@ const Profile = () => {
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Star size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Dive Site Rated</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Dive Site Rated
+                    </span>
                   </div>
                   <div className='shrink-0'>
                     <Link
                       to='/profile/ratings'
-                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                      className='font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-4'
                     >
                       {userStats?.dive_sites_rated || 0}
                     </Link>
@@ -1934,12 +1958,14 @@ const Profile = () => {
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <MessageSquare size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Comments Posted</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Comments Posted
+                    </span>
                   </div>
                   <div className='shrink-0'>
                     <Link
                       to='/profile/comments'
-                      className='font-semibold text-blue-600 hover:text-blue-800 underline decoration-blue-200 underline-offset-4'
+                      className='font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-800 dark:hover:text-sky-300 underline decoration-blue-200 dark:decoration-blue-800 underline-offset-4'
                     >
                       {userStats?.comments_posted || 0}
                     </Link>
@@ -1948,9 +1974,11 @@ const Profile = () => {
                 <div className='flex justify-between items-center text-sm'>
                   <div className='flex items-center gap-2 min-w-0 flex-1 mr-2'>
                     <Award size={16} className='text-gray-400 shrink-0' />
-                    <span className='text-gray-600 truncate'>Certifications</span>
+                    <span className='text-gray-600 dark:text-slate-400 truncate'>
+                      Certifications
+                    </span>
                   </div>
-                  <span className='font-semibold text-gray-900 shrink-0'>
+                  <span className='font-semibold text-gray-900 dark:text-slate-100 shrink-0'>
                     {certifications.filter(c => c.is_active).length}
                   </span>
                 </div>
@@ -1958,55 +1986,55 @@ const Profile = () => {
             </div>
 
             {/* Profile Actions */}
-            <div className='bg-white p-4 sm:p-6 rounded-lg shadow-md'>
-              <h3 className='text-md font-bold text-gray-900 mb-4 border-b pb-1 uppercase tracking-wider'>
+            <div className='bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-md border border-gray-100 dark:border-slate-700'>
+              <h3 className='text-md font-bold text-gray-900 dark:text-slate-100 mb-4 border-b border-gray-100 dark:border-slate-700 pb-1 uppercase tracking-wider'>
                 Account
               </h3>
               <div className='space-y-1'>
                 <Link
                   to={`/users/${user.username}`}
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <ExternalLink size={18} className='mr-3 text-gray-400' />
                   Public Profile
                 </Link>
                 <Link
                   to='/buddies'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Users size={18} className='mr-3 text-gray-400' />
                   My Buddies
                 </Link>
                 <Link
                   to='/ai-chat-history'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <MessageSquare size={18} className='mr-3 text-gray-400' />
                   Chat History
                 </Link>
                 <button
                   onClick={() => setIsChangingPassword(true)}
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Lock size={18} className='mr-3 text-gray-400' />
                   Password
                 </button>
               </div>
 
-              <h3 className='text-md font-bold text-gray-900 mb-4 mt-6 border-b pb-1 uppercase tracking-wider'>
+              <h3 className='text-md font-bold text-gray-900 dark:text-slate-100 mb-4 mt-6 border-b border-gray-100 dark:border-slate-700 pb-1 uppercase tracking-wider'>
                 Privacy & API
               </h3>
               <div className='space-y-1'>
                 <Link
                   to='/notifications'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Bell size={18} className='mr-3 text-gray-400' />
                   Notifications
                 </Link>
                 <Link
                   to='/notifications/preferences'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Settings size={18} className='mr-3 text-gray-400' />
                   Preferences
@@ -2023,7 +2051,7 @@ const Profile = () => {
                 {pushStatus === 'supported' && (
                   <button
                     onClick={handleEnablePush}
-                    className='flex items-center w-full px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors font-medium border border-blue-100'
+                    className='flex items-center w-full px-3 py-2 text-blue-600 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-md transition-colors font-medium border border-blue-100 dark:border-blue-900/40'
                   >
                     <Smartphone size={18} className='mr-3' />
                     Enable Device Notifications
@@ -2031,21 +2059,21 @@ const Profile = () => {
                 )}
 
                 {pushStatus === 'granted' && (
-                  <div className='flex items-center w-full px-3 py-2 text-green-600 bg-green-50 rounded-md border border-green-100'>
+                  <div className='flex items-center w-full px-3 py-2 text-green-600 dark:text-emerald-300 bg-green-50 dark:bg-emerald-950/40 rounded-md border border-green-100 dark:border-emerald-800/60'>
                     <Smartphone size={18} className='mr-3' />
                     <span className='font-medium'>Device Notifications Active</span>
                   </div>
                 )}
 
                 {pushStatus === 'denied' && (
-                  <div className='flex items-center w-full px-3 py-2 text-red-600 bg-red-50 rounded-md border border-red-100'>
+                  <div className='flex items-center w-full px-3 py-2 text-red-600 dark:text-rose-300 bg-red-50 dark:bg-rose-950/40 rounded-md border border-red-100 dark:border-rose-800/60'>
                     <Smartphone size={18} className='mr-3' />
                     <span className='font-medium'>Notifications Blocked</span>
                   </div>
                 )}
 
                 {pushStatus === 'unsupported' && (
-                  <div className='flex items-center w-full px-3 py-2 text-gray-500 bg-gray-50 rounded-md border border-gray-100'>
+                  <div className='flex items-center w-full px-3 py-2 text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-700/60 rounded-md border border-gray-100 dark:border-slate-600'>
                     <Smartphone size={18} className='mr-3' />
                     <span className='text-xs italic'>
                       Notifications not supported (Requires HTTPS)
@@ -2055,7 +2083,7 @@ const Profile = () => {
 
                 <Link
                   to='/profile/bookings'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Ticket size={18} className='mr-3 text-gray-400' />
                   My Bookings
@@ -2063,7 +2091,7 @@ const Profile = () => {
 
                 <Link
                   to='/profile/gear'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Gauge size={18} className='mr-3 text-gray-400' />
                   Gear Configurations
@@ -2071,7 +2099,7 @@ const Profile = () => {
 
                 <Link
                   to='/profile/medical'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <HeartPulse size={18} className='mr-3 text-gray-400' />
                   Medical Declaration
@@ -2079,7 +2107,7 @@ const Profile = () => {
 
                 <Link
                   to='/profile/pats'
-                  className='flex items-center w-full px-3 py-2.5 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors text-sm font-medium'
+                  className='flex items-center w-full px-3 py-2.5 text-gray-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 rounded-md transition-colors text-sm font-medium'
                 >
                   <Key size={18} className='mr-3 text-gray-400' />
                   API Tokens

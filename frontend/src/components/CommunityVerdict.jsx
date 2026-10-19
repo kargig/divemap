@@ -115,7 +115,7 @@ const CommunityVerdict = ({ diveSite, onRate, isSubmitting, compact = false }) =
           <div
             className={`hidden md:flex flex-col items-end min-w-[180px] ${!compact ? 'border-l border-gray-100 dark:border-slate-700 pl-6' : 'ml-4'}`}
           >
-            <span className='text-[11px] text-gray-400 dark:text-slate-400 mb-1.5 font-medium uppercase tracking-wider'>
+            <span className='text-[11px] text-gray-500 dark:text-slate-300 mb-1.5 font-medium uppercase tracking-wider'>
               {!user ? 'Log in to rate' : user_rating ? 'Your Rating' : "What's your verdict?"}
             </span>
             <div className='relative'>

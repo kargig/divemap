@@ -85,7 +85,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
           <Grid columns={2} gap={16}>
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                   Difficulty
                 </span>
                 <div className='flex items-center mt-0.5'>
@@ -100,7 +100,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                   Date & Time
                 </span>
                 <div className='flex items-center gap-1.5'>
@@ -119,14 +119,16 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                   Max Depth
                 </span>
                 <div className='flex items-center gap-1.5'>
                   <DepthIcon className='text-divemap-blue' size={18} />
                   <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                     {dive.max_depth || '-'}
-                    <span className='text-xs font-normal text-gray-400 ml-0.5'>m</span>
+                    <span className='text-xs font-normal text-gray-500 dark:text-slate-300 ml-0.5'>
+                      m
+                    </span>
                   </span>
                 </div>
               </div>
@@ -134,14 +136,16 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                   Duration
                 </span>
                 <div className='flex items-center gap-1.5'>
                   <Clock className='w-4 h-4 text-indigo-500' />
                   <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                     {dive.duration || '-'}
-                    <span className='text-xs font-normal text-gray-400 ml-0.5'>min</span>
+                    <span className='text-xs font-normal text-gray-500 dark:text-slate-300 ml-0.5'>
+                      min
+                    </span>
                   </span>
                 </div>
               </div>
@@ -150,12 +154,14 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
             {dive.gases && (
               <Grid.Item>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Gases
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Wind className='w-4 h-4 text-green-500' />
-                    <span className='text-sm font-medium'>{formatGases(dive.gases)}</span>
+                    <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                      {formatGases(dive.gases)}
+                    </span>
                   </div>
                 </div>
               </Grid.Item>
@@ -164,12 +170,12 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
             {dive.gas_bottles_used && (
               <Grid.Item>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Tanks
                   </span>
                   <div className='flex items-center gap-1.5'>
                     {renderTankIcon(dive.gas_bottles_used)}
-                    <span className='text-sm font-medium'>
+                    <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
                       {formatGasDisplay(dive.gas_bottles_used)}
                     </span>
                   </div>
@@ -180,12 +186,14 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
             {dive.visibility_rating && (
               <Grid.Item>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Visibility
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Eye size={15} className='text-cyan-500' />
-                    <span className='text-sm font-medium'>{dive.visibility_rating}/5</span>
+                    <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                      {dive.visibility_rating}/5
+                    </span>
                   </div>
                 </div>
               </Grid.Item>
@@ -194,7 +202,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
             {dive.user_rating && (
               <Grid.Item>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Rating
                   </span>
                   <div className='flex items-center gap-1.5'>
@@ -203,7 +211,9 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                       alt='Rating'
                       className='w-5 h-5 object-contain'
                     />
-                    <span className='text-sm font-medium'>{dive.user_rating}/5</span>
+                    <span className='text-sm font-medium text-gray-900 dark:text-slate-100'>
+                      {dive.user_rating}/5
+                    </span>
                   </div>
                 </div>
               </Grid.Item>
@@ -211,7 +221,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
             <Grid.Item span={2}>
               <div className='flex flex-col'>
-                <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                   Tags
                 </span>
                 {dive.tags && dive.tags.length > 0 ? (
@@ -239,7 +249,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
             <Row gutter={[32, 16]}>
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Difficulty
                   </span>
                   <div className='flex items-center mt-0.5'>
@@ -254,14 +264,16 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Max Depth
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <DepthIcon className='text-divemap-blue' size={18} />
                     <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                       {dive.max_depth || '-'}
-                      <span className='text-xs font-normal text-gray-400 dark:text-slate-500 ml-0.5'>m</span>
+                      <span className='text-xs font-normal text-gray-500 dark:text-slate-300 ml-0.5'>
+                        m
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -269,14 +281,16 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Duration
                   </span>
                   <div className='flex items-center gap-1.5'>
                     <Clock className='w-4 h-4 text-indigo-500' />
                     <span className='text-sm font-bold text-gray-900 dark:text-slate-100'>
                       {dive.duration || '-'}
-                      <span className='text-xs font-normal text-gray-400 dark:text-slate-500 ml-0.5'>min</span>
+                      <span className='text-xs font-normal text-gray-500 dark:text-slate-300 ml-0.5'>
+                        min
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -284,7 +298,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Date & Time
                   </span>
                   <div className='flex items-center gap-1.5'>
@@ -303,7 +317,7 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
 
               <Col flex='auto'>
                 <div className='flex flex-col'>
-                  <span className='text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-0.5'>
+                  <span className='text-[10px] font-medium text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                     Tags
                   </span>
                   {dive.tags && dive.tags.length > 0 ? (
@@ -331,8 +345,10 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
                     <Wind size={15} className='text-green-500' />
-                    <span className='text-sm text-gray-600'>Gases:</span>
-                    <span className='font-medium'>{formatGases(dive.gases)}</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Gases:</span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
+                      {formatGases(dive.gases)}
+                    </span>
                   </div>
                 </Col>
               )}
@@ -341,8 +357,10 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
                     {renderTankIcon(dive.gas_bottles_used)}
-                    <span className='text-sm text-gray-600'>Tanks:</span>
-                    <span className='font-medium'>{formatGasDisplay(dive.gas_bottles_used)}</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Tanks:</span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
+                      {formatGasDisplay(dive.gas_bottles_used)}
+                    </span>
                   </div>
                 </Col>
               )}
@@ -351,8 +369,10 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
                     <DepthIcon size={18} className='text-divemap-blue' />
-                    <span className='text-sm text-gray-600'>Avg Depth:</span>
-                    <span className='font-medium'>{dive.average_depth}m</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Avg Depth:</span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
+                      {dive.average_depth}m
+                    </span>
                   </div>
                 </Col>
               )}
@@ -361,8 +381,10 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                 <Col xs={24} sm={12} md={6}>
                   <div className='flex items-center gap-2'>
                     <Eye size={15} className='text-cyan-500' />
-                    <span className='text-sm text-gray-600'>Visibility:</span>
-                    <span className='font-medium'>{dive.visibility_rating}/5</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Visibility:</span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
+                      {dive.visibility_rating}/5
+                    </span>
                   </div>
                 </Col>
               )}
@@ -375,8 +397,10 @@ const DiveInfoGrid = ({ dive, hasDeco, isMobile, formatDate, formatTime }) => {
                       alt='Rating'
                       className='w-5 h-5 object-contain'
                     />
-                    <span className='text-sm text-gray-600'>Rating:</span>
-                    <span className='font-medium'>{dive.user_rating}/5</span>
+                    <span className='text-sm text-gray-600 dark:text-slate-300'>Rating:</span>
+                    <span className='font-medium text-gray-900 dark:text-slate-100'>
+                      {dive.user_rating}/5
+                    </span>
                   </div>
                 </Col>
               )}

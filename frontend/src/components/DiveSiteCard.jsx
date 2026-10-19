@@ -85,7 +85,7 @@ export const DiveSiteListCard = ({
               {/* BODY: Description - Completely removed on mobile view */}
               {!isMobile && site.description && (
                 <div
-                  className={`text-gray-600 leading-snug line-clamp-2 mb-1.5 ${compactLayout ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}
+                  className={`text-gray-600 dark:text-slate-300 leading-snug line-clamp-2 mb-1.5 ${compactLayout ? 'text-xs sm:text-sm' : 'text-xs sm:text-sm'}`}
                 >
                   {renderTextWithLinks(decodeHtmlEntities(site.description), {
                     shorten: true,
@@ -95,11 +95,11 @@ export const DiveSiteListCard = ({
               )}
 
               {/* STATS STRIP - Moved inside to avoid clearance gap with thumbnail */}
-              <div className='flex flex-wrap items-center gap-x-3 gap-y-1 py-1 sm:py-1.5 border-t border-gray-50'>
+              <div className='flex flex-wrap items-center gap-x-3 gap-y-1 py-1 sm:py-1.5 border-t border-gray-50 dark:border-slate-700/60'>
                 {site.max_depth && (
                   <div className='flex items-center gap-1'>
                     <DepthIcon className='text-divemap-blue font-bold' size={15} />
-                    <span className='text-xs sm:text-sm font-bold text-gray-900'>
+                    <span className='text-xs sm:text-sm font-bold text-gray-900 dark:text-slate-100'>
                       {site.max_depth}m
                     </span>
                   </div>
@@ -108,7 +108,9 @@ export const DiveSiteListCard = ({
                 {site.route_count > 0 && (
                   <div className='flex items-center gap-1'>
                     <Route className='w-3 h-3 text-blue-400' />
-                    <span className='text-xs font-bold text-gray-700'>{site.route_count}</span>
+                    <span className='text-xs font-bold text-gray-700 dark:text-slate-300'>
+                      {site.route_count}
+                    </span>
                   </div>
                 )}
               </div>
@@ -118,7 +120,7 @@ export const DiveSiteListCard = ({
             {site.thumbnail && (
               <Link
                 to={getMediaLink(site)}
-                className='sm:hidden shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-gray-100 mt-1'
+                className='sm:hidden shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-slate-700 mt-1'
               >
                 <img
                   src={getThumbnailUrl(site)}
@@ -143,7 +145,7 @@ export const DiveSiteListCard = ({
                 </span>
               ))}
               {site.tags?.length > (isMobile ? 3 : 5) && (
-                <span className='text-xs text-gray-400'>
+                <span className='text-xs text-gray-400 dark:text-slate-500'>
                   +{site.tags.length - (isMobile ? 3 : 5)}
                 </span>
               )}
@@ -152,7 +154,7 @@ export const DiveSiteListCard = ({
             <Link
               to={`/dive-sites/${site.id}/${getDiveSiteSlug(site)}`}
               state={{ from: location.pathname + location.search }}
-              className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-600 rounded-lg transition-all group'
+              className='w-8 h-8 ml-auto inline-flex items-center justify-center bg-gray-50 dark:bg-slate-700 hover:bg-gray-100 dark:hover:bg-slate-600 text-gray-400 dark:text-slate-300 rounded-lg transition-all group'
               title='View Details'
             >
               <ChevronRight className='w-4 h-4 transition-transform group-hover:translate-x-0.5 flex-shrink-0' />

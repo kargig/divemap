@@ -70,22 +70,26 @@ const DiveSiteSpecsCard = ({ diveSite }) => {
 
       <div className='grid grid-cols-2 gap-3 text-xs'>
         {/* Max Depth */}
-        <div className='p-2.5 rounded-lg bg-gray-50/70 dark:bg-gray-750/50 border border-gray-100/80 dark:border-gray-700/50'>
-          <span className='block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1'>
+        <div className='p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/60 border border-gray-100/80 dark:border-slate-600/50'>
+          <span className='block text-[10px] font-bold text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-1'>
             Max Depth
           </span>
-          <div className='flex items-center gap-1.5 font-bold text-gray-900 dark:text-gray-100 text-sm'>
-            <DepthIcon depth={diveSite.max_depth || 0} size={16} className='text-blue-600' />
+          <div className='flex items-center gap-1.5 font-bold text-gray-900 dark:text-slate-100 text-sm'>
+            <DepthIcon
+              depth={diveSite.max_depth || 0}
+              size={16}
+              className='text-blue-600 dark:text-blue-400'
+            />
             <span>{diveSite.max_depth ? `${diveSite.max_depth}m` : 'N/A'}</span>
           </div>
         </div>
 
         {/* Water Entry */}
-        <div className='p-2.5 rounded-lg bg-gray-50/70 dark:bg-gray-750/50 border border-gray-100/80 dark:border-gray-700/50'>
-          <span className='block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1'>
+        <div className='p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/60 border border-gray-100/80 dark:border-slate-600/50'>
+          <span className='block text-[10px] font-bold text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-1'>
             Entry Type
           </span>
-          <div className='flex items-center gap-1.5 font-bold text-gray-900 dark:text-gray-100 text-sm'>
+          <div className='flex items-center gap-1.5 font-bold text-gray-900 dark:text-slate-100 text-sm'>
             <Anchor className='w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0' />
             <span className='truncate'>{entryLabel}</span>
           </div>
@@ -93,12 +97,12 @@ const DiveSiteSpecsCard = ({ diveSite }) => {
 
         {/* Coordinates */}
         {hasCoords && (
-          <div className='col-span-2 p-2.5 rounded-lg bg-gray-50/70 dark:bg-gray-750/50 border border-gray-100/80 dark:border-gray-700/50 flex items-center justify-between'>
+          <div className='col-span-2 p-2.5 rounded-lg bg-gray-50/70 dark:bg-slate-700/60 border border-gray-100/80 dark:border-slate-600/50 flex items-center justify-between'>
             <div>
-              <span className='block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5'>
+              <span className='block text-[10px] font-bold text-gray-500 dark:text-slate-300 uppercase tracking-wider mb-0.5'>
                 Coordinates
               </span>
-              <div className='flex items-center gap-1.5 font-mono font-medium text-gray-800 dark:text-gray-200 text-xs'>
+              <div className='flex items-center gap-1.5 font-mono font-medium text-gray-800 dark:text-slate-200 text-xs'>
                 <Navigation className='w-3.5 h-3.5 text-blue-500 shrink-0' />
                 <span>
                   {latStr}, {lonStr}
@@ -108,7 +112,7 @@ const DiveSiteSpecsCard = ({ diveSite }) => {
             <button
               type='button'
               onClick={handleCopyCoords}
-              className='p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-600/50 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors'
+              className='p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-slate-600 text-gray-500 hover:text-gray-800 dark:hover:text-slate-200 transition-colors'
               aria-label='Copy coordinates'
               title='Copy coordinates'
             >

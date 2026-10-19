@@ -9,7 +9,7 @@ const Breadcrumbs = ({ items }) => {
     <nav className='flex flex-wrap items-center text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 gap-x-1 sm:gap-x-0 gap-y-1 sm:gap-y-2'>
       <Link
         to='/'
-        className='flex items-center hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
+        className='flex items-center text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
       >
         <Home className='h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1' />
         <span className='leading-tight mt-0.5 sm:mt-1'>Home</span>
@@ -21,12 +21,12 @@ const Breadcrumbs = ({ items }) => {
           {item.to ? (
             <Link
               to={item.to}
-              className='hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center'
+              className='text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center'
             >
               <span className='leading-tight mt-0.5 sm:mt-1'>{item.label}</span>
             </Link>
           ) : (
-            <span className='font-bold sm:font-medium text-gray-900 dark:text-slate-200 leading-tight mt-0.5 sm:mt-1'>
+            <span className='font-bold sm:font-medium text-gray-900 dark:text-slate-100 leading-tight mt-0.5 sm:mt-1'>
               {item.label}
             </span>
           )}

@@ -118,7 +118,7 @@ const Help = () => {
   );
 
   const StepGuide = ({ steps }) => (
-    <div className='bg-gray-50 p-6 rounded-lg border border-gray-100 h-full'>
+    <div className='bg-gray-50 dark:bg-slate-800/80 p-6 rounded-lg border border-gray-100 dark:border-slate-700 h-full'>
       {screens.xs ? (
         <MobileSteps
           orientation='vertical'
@@ -127,7 +127,7 @@ const Help = () => {
             description: <Text type='secondary'>{step.description}</Text>,
             status: 'wait',
             icon: (
-              <div className='bg-white border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
+              <div className='bg-white dark:bg-slate-700 border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
                 {index + 1}
               </div>
             ),
@@ -142,7 +142,7 @@ const Help = () => {
             title: <Text strong>{step.title}</Text>,
             content: <Text type='secondary'>{step.description}</Text>,
             icon: (
-              <div className='bg-white border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
+              <div className='bg-white dark:bg-slate-700 border-2 border-blue-500 text-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold'>
                 {index + 1}
               </div>
             ),
@@ -164,7 +164,7 @@ const Help = () => {
         <Space orientation='vertical' size='large' className='w-full py-4'>
           <div className='text-center max-w-4xl mx-auto mb-8'>
             <Title level={2}>Welcome to Divemap</Title>
-            <Paragraph className='text-lg text-gray-600'>
+            <Paragraph className='text-lg text-gray-600 dark:text-slate-300'>
               The all-in-one platform for scuba divers to discover sites, log adventures, plan
               technical dives, and connect with the community.
             </Paragraph>
@@ -175,7 +175,7 @@ const Help = () => {
               <Card
                 title='Quick Start Guide'
                 variant='borderless'
-                className='h-full bg-blue-50 shadow-sm'
+                className='h-full bg-blue-50 dark:bg-slate-800 shadow-sm border border-transparent dark:border-slate-700'
               >
                 <StepGuide
                   steps={[
@@ -1348,19 +1348,19 @@ const Help = () => {
         title='Help Center & User Guide | Divemap'
         description='Learn how to use Divemap. Read guides on finding dive sites, logging dives, using the interactive map, and tracking your scuba certifications.'
       />
-      <div className='min-h-screen bg-gray-50 pt-20 pb-12'>
+      <div className='min-h-screen bg-gray-50 dark:bg-slate-900 pt-20 pb-12'>
         <div className='max-w-6xl mx-auto'>
           <div className='text-center mb-10'>
-            <Title level={1} className='mb-2'>
+            <Title level={1} className='mb-2 dark:text-slate-100'>
               Help & Documentation
             </Title>
-            <Paragraph className='text-lg text-gray-500 max-w-2xl mx-auto'>
+            <Paragraph className='text-lg text-gray-500 dark:text-slate-400 max-w-2xl mx-auto'>
               Master the Divemap platform. Comprehensive guides for all features and tools.
             </Paragraph>
           </div>
 
           {screens.xs ? (
-            <div className='bg-white rounded-xl shadow-sm overflow-hidden'>
+            <div className='bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden'>
               <Collapse accordion defaultActiveKey={activeTab} onChange={handleTabChange}>
                 {items.map(item => (
                   <Collapse.Panel title={item.label} key={item.key}>
@@ -1376,7 +1376,7 @@ const Help = () => {
               items={items}
               size='large'
               type='line'
-              className='bg-white rounded-xl shadow-sm p-6 prose prose-blue dark:prose-invert max-w-none'
+              className='bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-sm p-6 prose prose-blue dark:prose-invert max-w-none'
             />
           )}
 

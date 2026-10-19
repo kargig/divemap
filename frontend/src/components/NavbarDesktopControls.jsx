@@ -242,8 +242,6 @@ const NavbarDesktopControls = () => {
           </button>
         </Dropdown>
 
-        <ThemeToggle variant='desktop' />
-
         {user ? (
           <div className='flex items-center space-x-4'>
             <ChatDropdown />
@@ -275,6 +273,8 @@ const NavbarDesktopControls = () => {
             >
               <LogOut className='h-6 w-6' />
             </button>
+
+            <ThemeToggle variant='desktop' />
           </div>
         ) : (
           <div className='flex items-center space-x-4'>
@@ -289,6 +289,8 @@ const NavbarDesktopControls = () => {
             <Button to='/register' variant='white' size='md'>
               Register
             </Button>
+
+            <ThemeToggle variant='desktop' />
           </div>
         )}
       </div>

@@ -271,8 +271,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('wrecks')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Wreck dives'
+                    }`}
+                    title='Wreck dives'
                   >
                     🚢 <span className='hidden sm:inline'>Wreck</span>
                   </button>
@@ -282,8 +282,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('reefs')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Reef dives'
+                    }`}
+                    title='Reef dives'
                   >
                     🐠 <span className='hidden sm:inline'>Reef</span>
                   </button>
@@ -293,8 +293,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Boat dives'
+                    }`}
+                    title='Boat dives'
                   >
                     🚤 <span className='hidden sm:inline'>Boat</span>
                   </button>
@@ -304,8 +304,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Shore dives'
+                    }`}
+                    title='Shore dives'
                   >
                     🏖️ <span className='hidden sm:inline'>Shore</span>
                   </button>
@@ -319,8 +319,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('wrecks')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Wreck dive sites'
+                    }`}
+                    title='Wreck dive sites'
                   >
                     🚢 <span className='hidden sm:inline'>Wreck</span>
                   </button>
@@ -330,8 +330,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('reefs')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Reef dive sites'
+                    }`}
+                    title='Reef dive sites'
                   >
                     🐠 <span className='hidden sm:inline'>Reef</span>
                   </button>
@@ -341,8 +341,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('boat_dive')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Boat dive sites'
+                    }`}
+                    title='Boat dive sites'
                   >
                     🚤 <span className='hidden sm:inline'>Boat</span>
                   </button>
@@ -352,8 +352,8 @@ const ResponsiveFilterBar = ({
                       quickFilters.includes('shore_dive')
                         ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-sm'
                         : 'bg-gray-50 dark:bg-slate-700/60 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-700 active:bg-gray-200'
-                      }`}
-                      title='Shore dive sites'
+                    }`}
+                    title='Shore dive sites'
                   >
                     🏖️ <span className='hidden sm:inline'>Shore</span>
                   </button>
@@ -474,7 +474,9 @@ const ResponsiveFilterBar = ({
             <div className='flex items-center gap-3'>
               {/* View Mode Selection */}
               <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>View:</label>
+                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  View:
+                </label>
                 <div className='flex rounded-md shadow-sm' data-testid='view-mode-toggle'>
                   <button
                     onClick={() => onViewModeChange('list')}
@@ -507,7 +509,9 @@ const ResponsiveFilterBar = ({
 
               {/* Display Options */}
               <div className='flex items-center gap-2'>
-                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>Display:</label>
+                <label className='text-sm font-medium text-gray-700 dark:text-slate-300'>
+                  Display:
+                </label>
                 <div className='flex items-center gap-2'>
                   <label className='flex items-center gap-1 text-sm text-gray-700 dark:text-slate-300'>
                     <input
@@ -526,7 +530,7 @@ const ResponsiveFilterBar = ({
 
         {/* Desktop: Expandable Filters Section */}
         {showFilters && (
-          <div className='border-t border-gray-200 bg-gray-50'>
+          <div className='border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/90'>
             <div className='p-3 sm:p-4'>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3'>
                 {/* Difficulty Level Filter */}
@@ -545,23 +549,25 @@ const ResponsiveFilterBar = ({
                         .map(opt => ({ value: opt.value, label: opt.label })),
                     ]}
                   />
-                  <label className='flex items-center mt-2'>
+                  <label className='flex items-center mt-2 cursor-pointer'>
                     <input
                       type='checkbox'
                       checked={filters.exclude_unspecified_difficulty ?? false}
                       onChange={e =>
                         onFilterChange('exclude_unspecified_difficulty', e.target.checked)
                       }
-                      className='mr-2'
+                      className='mr-2 rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500'
                     />
-                    <span className='text-xs text-gray-600'>Exclude Unspecified</span>
+                    <span className='text-xs text-gray-600 dark:text-slate-300'>
+                      Exclude Unspecified
+                    </span>
                   </label>
                 </div>
 
                 {/* Min Rating Filter - Only show for dive-sites and dives, not dive-trips */}
                 {pageType !== 'dive-trips' && (
                   <div>
-                    <label className='block text-sm font-medium text-gray-700 mb-1.5'>
+                    <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5'>
                       Min Rating (≥)
                     </label>
                     <input
@@ -577,10 +583,10 @@ const ResponsiveFilterBar = ({
                           e.preventDefault();
                         }
                       }}
-                      className={`w-full px-3 py-1.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                      className={`w-full px-3 py-1.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 ${
                         filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5)
                           ? 'border-red-500 ring-1 ring-red-500'
-                          : 'border-gray-300'
+                          : 'border-gray-300 dark:border-slate-600'
                       }`}
                     />
                     {filters.min_rating && (filters.min_rating < 0 || filters.min_rating > 5) && (
@@ -745,7 +751,9 @@ const ResponsiveFilterBar = ({
                 {/* Tags Filter */}
                 {filters.availableTags && filters.availableTags.length > 0 && (
                   <div className='md:col-span-2 lg:col-span-4'>
-                    <label className='block text-sm font-medium text-gray-700 mb-1.5'>Tags</label>
+                    <label className='block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5'>
+                      Tags
+                    </label>
                     <div className='flex flex-wrap gap-1.5'>
                       {filters.availableTags.map(tag => (
                         <button
@@ -774,16 +782,16 @@ const ResponsiveFilterBar = ({
               </div>
 
               {/* Desktop Action Bar */}
-              <div className='mt-4 flex justify-between items-center border-t border-gray-200 pt-3'>
+              <div className='mt-4 flex justify-between items-center border-t border-gray-200 dark:border-slate-700 pt-3'>
                 <button
                   onClick={onClearFilters}
-                  className='text-sm text-gray-500 hover:text-gray-800 transition-colors'
+                  className='text-sm text-gray-500 dark:text-slate-400 hover:text-gray-800 dark:hover:text-white transition-colors'
                 >
                   Clear Filters
                 </button>
                 <button
                   onClick={onToggleFilters}
-                  className='text-sm px-4 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg flex items-center gap-1.5 transition-colors font-medium'
+                  className='text-sm px-4 py-1.5 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-800 dark:text-slate-200 rounded-lg flex items-center gap-1.5 transition-colors font-medium'
                 >
                   <ChevronUp className='w-4 h-4' />
                   Hide Filters

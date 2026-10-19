@@ -4,7 +4,7 @@
 
 **Goal:** Implement a first-class, accessible dark theme alongside the existing light theme with a three-way user choice (`system`, `light`, `dark`), persistent `localStorage` caching, zero FOUC, Ant Design & `antd-mobile` synchronization, dark basemap tiles, and high-contrast WCAG AA/AAA data visualizations.
 
-**Architecture:** A lightweight `ThemeContext` manages the user preference and resolved theme, synchronizing `document.documentElement` (`class="dark"` and `data-prefers-color-scheme="dark"`). An inline `<script>` in `index.html` prevents white flashes before React hydrates. Both desktop Ant Design (`theme.darkAlgorithm`) and `antd-mobile` are kept in lockstep. Interactive maps default to CartoDB Dark Matter under dark theme with full layer-switcher freedom.
+**Architecture:** A lightweight `ThemeContext` manages the user preference and resolved theme, synchronizing `document.documentElement` (`class="dark"` and `data-prefers-color-scheme="dark"`). An inline `<script>` in `index.html` prevents white flashes before React hydrates. Both desktop Ant Design (`theme.darkAlgorithm`) and `antd-mobile` are kept in lockstep. Interactive maps default to ESRI Dark Gray Canvas under dark theme with full layer-switcher freedom.
 
 **Tech Stack:** React 18, Tailwind CSS v3 (`darkMode: 'class'`), Ant Design (`antd`), Ant Design Mobile (`antd-mobile`), Leaflet / React-Leaflet, Recharts, Vitest.
 
@@ -40,23 +40,23 @@
 - Produces: `useTheme() -> { theme: 'system'|'light'|'dark', resolvedTheme: 'light'|'dark', setTheme: (theme) => void }`
 - Produces: `ThemeProvider` wrapping the React application root.
 
-- [ ] **Step 1: Write unit tests for `ThemeContext`**
+- [x] **Step 1: Write unit tests for `ThemeContext`**
   Cover initial state from `localStorage`, fallback to `'system'`, media query listener changes, setting new theme, and updating DOM attributes (`classList.add('dark')` and `setAttribute('data-prefers-color-scheme', 'dark')`).
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
   Run: `cd frontend && npm test -- run src/contexts/ThemeContext.test.jsx`
   Expected: FAIL with "Cannot find module './ThemeContext'".
 
-- [ ] **Step 3: Implement `ThemeContext.jsx`**
+- [x] **Step 3: Implement `ThemeContext.jsx`**
   Implement `ThemeContext`, `ThemeProvider`, and `useTheme()`. Listen to `(prefers-color-scheme: dark)` changes when `theme === 'system'`.
 
-- [ ] **Step 4: Update `index.html` with zero-flicker script**
+- [x] **Step 4: Update `index.html` with zero-flicker script**
   Add inline `<script>` in `<head>` setting `classList.add('dark')` and `setAttribute('data-prefers-color-scheme', 'dark')` before React mounts.
 
-- [ ] **Step 5: Integrate `ThemeProvider` and Ant Design `ConfigProvider` in `App.jsx`**
+- [x] **Step 5: Integrate `ThemeProvider` and Ant Design `ConfigProvider` in `App.jsx`**
   Wrap `AppContent` with `ThemeProvider` and dynamic Ant Design `<ConfigProvider theme={{ algorithm: resolvedTheme === 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm, token: ... }}>`. Add `dark:bg-slate-900` to the root container.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
   Run: `cd frontend && npm test -- run src/contexts/ThemeContext.test.jsx`
   Expected: PASS
 
@@ -75,23 +75,23 @@
 - Consumes: `useTheme` from `../contexts/ThemeContext`
 - Produces: `ThemeToggle` desktop dropdown button and mobile segmented pill.
 
-- [ ] **Step 1: Write unit tests for `ThemeToggle`**
+- [x] **Step 1: Write unit tests for `ThemeToggle`**
   Verify clicking options updates `setTheme('light')`, `setTheme('dark')`, `setTheme('system')` and renders correct active checkmark.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
   Run: `cd frontend && npm test -- run src/components/ThemeToggle.test.jsx`
   Expected: FAIL.
 
-- [ ] **Step 3: Implement `ThemeToggle.jsx`**
+- [x] **Step 3: Implement `ThemeToggle.jsx`**
   Build desktop adaptive icon dropdown (Sun / Moon / Monitor) with Lucide icons. Build mobile 3-way segmented pill.
 
-- [ ] **Step 4: Embed `ThemeToggle` in `NavbarDesktopControls.jsx` and `NavbarMobileControls.jsx`**
-  Mount compact button next to `NotificationBell` on desktop. Mount segmented pill in the mobile drawer.
+- [x] **Step 4: Embed `ThemeToggle` in `NavbarDesktopControls.jsx` and `NavbarMobileControls.jsx`**
+  Mount compact button next to `NotificationBell` on desktop (subsequently moved to the right of logout). Mount segmented pill in the mobile drawer.
 
-- [ ] **Step 5: Add Appearance card to `Profile.jsx`**
-  Add Appearance card under Account Settings with radio selection cards.
+- [x] **Step 5: Add Appearance card to `Profile.jsx`**
+  Add Appearance card under Account Settings with segmented toggle control.
 
-- [ ] **Step 6: Run tests and verify**
+- [x] **Step 6: Run tests and verify**
   Run: `cd frontend && npm test -- run src/components/ThemeToggle.test.jsx`
   Expected: PASS
 
@@ -109,19 +109,19 @@
 **Interfaces:**
 - Consumes: `useTheme` from `../contexts/ThemeContext`
 
-- [ ] **Step 1: Update `Turnstile.jsx` to dynamically track `resolvedTheme`**
+- [x] **Step 1: Update `Turnstile.jsx` to dynamically track `resolvedTheme`**
   Support `theme='auto'`, synchronizing with `resolvedTheme`. Style verified container with `dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300`.
 
-- [ ] **Step 2: Update `Login.jsx` and `Register.jsx` Turnstile calls**
+- [x] **Step 2: Update `Login.jsx` and `Register.jsx` Turnstile calls**
   Pass dynamic `theme={resolvedTheme}`.
 
-- [ ] **Step 3: Update `ChatRoom.jsx` Emoji-Mart Picker**
-  Pass dynamic `theme={resolvedTheme}` to `<Picker ... />` on line 389.
+- [x] **Step 3: Update `ChatRoom.jsx` Emoji-Mart Picker**
+  Pass dynamic `theme={resolvedTheme}` to `<Picker ... />`.
 
-- [ ] **Step 4: Add EasyMDE dark overrides in `MarkdownEditor.css`**
+- [x] **Step 4: Add EasyMDE dark overrides in `MarkdownEditor.css`**
   Add `.dark .editor-toolbar`, `.dark .CodeMirror`, `.dark .editor-preview` styled with `bg-slate-800 text-slate-100 border-slate-700`.
 
-- [ ] **Step 5: Verify via `make lint-frontend`**
+- [x] **Step 5: Verify via `make lint-frontend`**
   Run: `make lint-frontend`
   Expected: PASS with 0 lint errors.
 
@@ -132,23 +132,25 @@
 **Files:**
 - Modify: `frontend/src/components/MapLayersPanel.jsx:5-45`
 - Modify: `frontend/src/components/LeafletMapView.jsx:760-800, 1320-1340`
+- Modify: `frontend/src/components/MiniMap.jsx`
+- Modify: `frontend/src/pages/IndependentMapView.jsx`
 - Modify: `frontend/src/index.css:1700-1760`
 
 **Interfaces:**
 - Consumes: `useTheme` from `../contexts/ThemeContext`
-- Produces: `cartocdn.com/dark_all` tile layer and Leaflet dark UI rules.
+- Produces: ESRI Dark Gray Canvas tile layer and Leaflet dark UI rules.
 
-- [ ] **Step 1: Add CartoDB Dark Matter layer to `MapLayersPanel.jsx`**
-  Add `{ id: 'dark', name: 'Dark Matter', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', ... }`.
+- [x] **Step 1: Add ESRI Dark Canvas layer to `MapLayersPanel.jsx`**
+  Add `{ id: 'dark', name: 'Dark Gray Canvas', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', ... }`.
 
-- [ ] **Step 2: Implement theme-aware basemap default in `LeafletMapView.jsx`**
+- [x] **Step 2: Implement theme-aware basemap default in `LeafletMapView.jsx` and `MiniMap.jsx`**
   Default to `'dark'` when `resolvedTheme === 'dark'` unless user explicitly selected another layer during session.
 
-- [ ] **Step 3: Add Leaflet dark CSS overrides in `index.css`**
+- [x] **Step 3: Add Leaflet dark CSS overrides in `index.css`**
   Add `.dark .leaflet-popup-content-wrapper`, `.dark .leaflet-popup-tip`, `.dark .leaflet-bar a`, and attribution overrides.
 
-- [ ] **Step 4: Verify Greek dive maps (Attica, Cyclades, Crete) in browser**
-  Navigate to `/map` and `/dive-sites/184` via Chrome DevTools MCP. Verify coastlines and markers on Dark Matter.
+- [x] **Step 4: Verify Greek dive maps (Attica, Cyclades, Crete) in browser**
+  Navigate to `/map` and `/dive-sites/6` via Chrome DevTools MCP. Verify coastlines and markers on ESRI Dark Canvas.
 
 ---
 
@@ -163,36 +165,45 @@
 **Interfaces:**
 - Produces: `chartThemeTokens` for light/dark grids, axes, tooltips, and export backgrounds.
 
-- [ ] **Step 1: Create `chartTheme.js`**
+- [x] **Step 1: Create `chartTheme.js`**
   Export theme color constants for grid, axis, tooltip background/border/text, and cursor fill.
 
-- [ ] **Step 2: Update `AdvancedDiveProfileChart.jsx`**
+- [x] **Step 2: Update `AdvancedDiveProfileChart.jsx`**
   Use dynamic grid/axis colors and dark tooltip. Ensure `html2canvas` export sets explicit background matching theme.
 
-- [ ] **Step 3: Update `AdvancedAnalytics.jsx` and `TissueSaturationChart.jsx`**
+- [x] **Step 3: Update `AdvancedAnalytics.jsx` and `TissueSaturationChart.jsx`**
   Replace hardcoded white tooltips and light gridlines with dynamic theme tokens.
 
 ---
 
-### Task 6: Surface Theming, Contrast Audits & Verification
+### Task 6: Surface Theming, Contrast Audits & Detail Pages
 
 **Files:**
-- Modify: `frontend/src/pages/DiveSites.jsx:730-760`
-- Modify: `frontend/src/pages/Dives.jsx:650-680`
-- Modify: `frontend/src/pages/DivingTagsPage.jsx:30-70`
-- Modify: `frontend/src/components/PageHeader.jsx`
+- Modify: `frontend/src/pages/DiveSites.jsx`
+- Modify: `frontend/src/pages/Dives.jsx`
+- Modify: `frontend/src/pages/DiveDetail.jsx`
+- Modify: `frontend/src/pages/DiveSiteDetail.jsx`
+- Modify: `frontend/src/pages/DivingCenterDetail.jsx`
+- Modify: `frontend/src/pages/RouteDetail.jsx`
+- Modify: `frontend/src/pages/UserProfile.jsx`
+- Modify: `frontend/src/pages/Profile.jsx`
+- Modify: `frontend/src/pages/Buddies.jsx`
+- Modify: `frontend/src/pages/LeaderboardPage.jsx`
+- Modify: `frontend/src/pages/EditDiveSite.jsx`
+- Modify: `frontend/src/pages/Help.jsx`
+- Modify: `frontend/src/pages/API.jsx`
+- Modify: `frontend/src/pages/Changelog.jsx`
+- Modify: `frontend/src/pages/About.jsx`
+- Modify: `frontend/src/pages/Privacy.jsx`
 
-- [ ] **Step 1: Apply standardized dark surface tokens to high-traffic pages**
+- [x] **Step 1: Apply standardized dark surface tokens to high-traffic and detail pages**
   Update page wrappers to `dark:bg-slate-900`, cards to `dark:bg-slate-800 dark:border-slate-700`, headings to `dark:text-slate-100`.
 
-- [ ] **Step 2: Run all unit tests**
-  Run: `cd frontend && npm test -- run`
-  Expected: PASS.
+- [x] **Step 2: Contrast audits across all core views**
+  Audit WCAG 2.1 AA/AAA contrast ratios (>4.5:1 text, >3:1 UI elements) using Chrome DevTools MCP script evaluation. Remediate low-contrast tags, badge text, muted labels, and cURL code snippets.
 
-- [ ] **Step 3: Verify pages in Chrome DevTools MCP under Light and Dark themes**
-  Visit `/`, `/dive-sites`, `/dives`, `/resources/tags`, `/map`.
-  Check console messages: 0 errors.
-  Verify WCAG AA contrast ratio (>4.5:1 text, >3:1 UI components) on all cards and badges.
+- [x] **Step 3: Reposition navbar theme toggle**
+  Place `ThemeToggle` to the right of the `Logout` button on desktop.
 
-- [ ] **Step 4: Prepare commit message**
-  Review `git diff` and write `commit-message.txt`.
+- [x] **Step 4: Run all unit tests and linting**
+  `make lint-frontend` (0 errors) and Vitest suite (13/13 passing).

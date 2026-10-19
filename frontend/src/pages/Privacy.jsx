@@ -29,7 +29,7 @@ const Privacy = () => {
         description='Read the Divemap Privacy Policy to understand how we collect, use, and protect your personal data, dive logs, and location information.'
       />
       <div className='max-w-4xl mx-auto'>
-        <div className='bg-white rounded-lg shadow-lg p-8'>
+        <div className='bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-100 dark:border-slate-700 p-8'>
           <div className='prose prose-blue dark:prose-invert max-w-none'>
             <div className='text-center mb-8 not-prose'>
               <div className='flex justify-center items-center mb-4'>

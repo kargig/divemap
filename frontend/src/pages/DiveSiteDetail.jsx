@@ -777,7 +777,7 @@ const DiveSiteDetail = () => {
         </div>
 
         {/* Divider */}
-        <div className='my-3 sm:my-4 border-t border-gray-100' />
+        <div className='my-3 sm:my-4 border-t border-gray-100 dark:border-slate-700' />
 
         {/* Sub-Header Strip */}
         <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
@@ -790,10 +790,10 @@ const DiveSiteDetail = () => {
                 alt='Rating'
                 className='w-3.5 h-3.5 sm:w-4 sm:h-4 object-contain opacity-80'
               />
-              <span className='text-xs sm:text-sm font-bold text-gray-900 leading-none'>
+              <span className='text-xs sm:text-sm font-bold text-gray-900 dark:text-slate-100 leading-none'>
                 {diveSite.average_rating ? Number(diveSite.average_rating).toFixed(1) : '-'}
               </span>
-              <span className='text-[10px] text-gray-400 font-medium ml-0.5 leading-none'>
+              <span className='text-[10px] text-gray-400 dark:text-slate-400 font-medium ml-0.5 leading-none'>
                 ({diveSite.total_ratings || 0})
               </span>
             </div>
@@ -814,12 +814,14 @@ const DiveSiteDetail = () => {
 
             {/* Aliases */}
             {diveSite.aliases && diveSite.aliases.length > 0 && (
-              <div className='flex flex-wrap items-center gap-1.5 text-xs text-gray-500'>
-                <span className='text-[11px] text-gray-400 font-medium'>AKA:</span>
+              <div className='flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400'>
+                <span className='text-[11px] text-gray-400 dark:text-slate-500 font-medium'>
+                  AKA:
+                </span>
                 {diveSite.aliases.map(alias => (
                   <span
                     key={alias.id}
-                    className='px-2 py-0.5 text-[11px] font-medium rounded-full bg-blue-50 text-blue-600 border border-blue-100'
+                    className='px-2 py-0.5 text-[11px] font-medium rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-100 dark:border-blue-800'
                   >
                     {alias.alias}
                   </span>
@@ -1326,19 +1328,19 @@ const DiveSiteDetail = () => {
                     <div className='flex flex-col sm:flex-row sm:items-center gap-1.5'>
                       <RouterLink
                         to={`/users/${comment.username}`}
-                        className='font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs sm:text-sm'
+                        className='font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-xs sm:text-sm'
                       >
                         {comment.username}
                       </RouterLink>
                       {(comment.user_diving_certification || comment.user_number_of_dives) && (
-                        <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500'>
+                        <div className='flex flex-wrap items-center gap-1.5 text-[10px] text-gray-500 dark:text-slate-400'>
                           {comment.user_diving_certification && (
-                            <span className='bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 font-medium'>
+                            <span className='bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded border border-blue-100 dark:border-blue-800 font-medium'>
                               {comment.user_diving_certification}
                             </span>
                           )}
                           {comment.user_number_of_dives > 0 && (
-                            <span className='bg-green-50 text-green-700 px-1.5 py-0.5 rounded border border-green-100 font-medium'>
+                            <span className='bg-green-50 dark:bg-emerald-950/60 text-green-700 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-green-100 dark:border-emerald-800 font-medium'>
                               {comment.user_number_of_dives} dives
                             </span>
                           )}

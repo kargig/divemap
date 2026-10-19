@@ -89,7 +89,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
   // Legacy Text Mode Rendering
   if (!isStructured) {
     return (
-      <div className='text-gray-600'>
+      <div className='text-gray-600 dark:text-slate-300'>
         {gasData.split('\n').map((line, index) => (
           <div key={index} className={index > 0 ? 'mt-1' : ''}>
             {line.trim()}
@@ -265,7 +265,7 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
         <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} flex-wrap`}>
           {!isMobile && (
             <span
-              className={`text-sm font-semibold text-gray-700 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
+              className={`text-sm font-semibold text-gray-700 dark:text-slate-300 ${isMobile ? 'min-w-[60px]' : 'min-w-[70px]'}`}
             >
               {label}:
             </span>
@@ -284,18 +284,27 @@ const GasTanksDisplay = ({ gasData, averageDepth, duration, profileData }) => {
           {sacData && (
             <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'}`}>
               <div
-                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-gray-100 text-gray-600 rounded-md border border-gray-200 flex items-center gap-1`}
+                className={`${isMobile ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-200 rounded-md border border-gray-200 dark:border-slate-600 flex items-center gap-1`}
               >
                 {!isMobile && <span className='font-semibold'>SAC:</span>}
                 {!isMobile && (
                   <>
-                    <span className='hidden sm:inline text-xs text-gray-400 ml-1'>Ideal</span>
+                    <span className='hidden sm:inline text-xs text-gray-400 dark:text-slate-400 ml-1'>
+                      Ideal
+                    </span>
                     <span>{sacData.ideal}</span>
-                    <span className='text-gray-400 text-xs mx-0.5'>/</span>
+                    <span className='text-gray-400 dark:text-slate-400 text-xs mx-0.5'>/</span>
                   </>
                 )}
-                {!isMobile && <span className='hidden sm:inline text-xs text-gray-400'>Real</span>}
-                <span className='text-gray-500 font-bold' title='Real Gas SAC (Subsurface style)'>
+                {!isMobile && (
+                  <span className='hidden sm:inline text-xs text-gray-400 dark:text-slate-400'>
+                    Real
+                  </span>
+                )}
+                <span
+                  className='text-gray-500 dark:text-slate-300 font-bold'
+                  title='Real Gas SAC (Subsurface style)'
+                >
                   {sacData.real} L/min
                 </span>
               </div>
