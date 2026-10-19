@@ -1364,7 +1364,7 @@ const LeafletMapView = ({
       </MapContainer>
 
       {/* Zoom level indicator - top left (matching DiveSiteMap style) */}
-      <div className='absolute top-2 left-12 sm:top-4 sm:left-16 z-50 bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200'>
+      <div className='absolute top-2 left-12 sm:top-4 sm:left-16 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-gray-800 dark:text-slate-200 text-[10px] sm:text-xs font-medium px-1.5 py-0.5 sm:px-2 sm:py-1 rounded shadow-sm border border-gray-200 dark:border-slate-700'>
         Zoom: {(mapMetadata?.zoom || viewport?.zoom || 8).toFixed(1)}
       </div>
 
@@ -1373,7 +1373,7 @@ const LeafletMapView = ({
         windOverlayEnabled &&
         mapMetadata?.zoom >= 10 &&
         (isLoadingWind || isFetchingWind) && (
-          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 text-gray-800 px-4 py-3 rounded-lg shadow-lg border border-gray-300 flex items-center gap-3'>
+          <div className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] bg-white/95 dark:bg-slate-800/95 text-gray-800 dark:text-slate-100 px-4 py-3 rounded-lg shadow-lg border border-gray-300 dark:border-slate-700 flex items-center gap-3'>
             <div className='animate-spin'>
               <svg
                 className='w-5 h-5 text-blue-600'

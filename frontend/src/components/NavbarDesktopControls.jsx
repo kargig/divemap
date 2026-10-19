@@ -63,6 +63,55 @@ const NavbarDesktopControls = () => {
     navigate('/');
   };
 
+  const infoDropdown = (
+    <Dropdown
+      menu={{
+        items: [
+          {
+            key: 'about',
+            label: 'About',
+            icon: <Info className='h-4 w-4' />,
+            onClick: () => navigate('/about'),
+          },
+          {
+            key: 'api-docs',
+            label: 'API',
+            icon: <Code className='h-4 w-4' />,
+            onClick: () => navigate('/api-docs'),
+          },
+          {
+            key: 'changelog',
+            label: 'Changelog',
+            icon: <FileText className='h-4 w-4' />,
+            onClick: () => navigate('/changelog'),
+          },
+          {
+            key: 'help',
+            label: 'Help',
+            icon: <HelpCircle className='h-4 w-4' />,
+            onClick: () => navigate('/help'),
+          },
+          {
+            key: 'privacy',
+            label: 'Privacy',
+            icon: <Shield className='h-4 w-4' />,
+            onClick: () => navigate('/privacy'),
+          },
+        ],
+      }}
+      trigger={['click']}
+      placement='bottomRight'
+    >
+      <button
+        className='flex items-center text-white hover:text-blue-200 transition-colors'
+        title='Info'
+        aria-label='Info'
+      >
+        <Info className='h-6 w-6' />
+      </button>
+    </Dropdown>
+  );
+
   return (
     <>
       {/* Desktop Search Bar */}
@@ -78,28 +127,31 @@ const NavbarDesktopControls = () => {
       <div className='hidden md:flex items-center space-x-6'>
         <Link
           to='/'
-          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+          className='flex items-center text-white hover:text-blue-200 transition-colors'
+          title='Home'
+          aria-label='Home'
         >
           <Home className='h-6 w-6' />
-          <span className='text-sm'>Home</span>
         </Link>
 
         {primaryCenter && (
           <Link
             to={`/diving-centers/${primaryCenter.id}/${slugify(primaryCenter.name)}/manage`}
-            className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors font-bold'
+            className='flex items-center text-white hover:text-blue-200 transition-colors'
+            title={`My Diving Center (${primaryCenter.name})`}
+            aria-label='My Diving Center'
           >
             <Building className='h-6 w-6 text-yellow-300' />
-            <span className='text-sm'>My Diving Center</span>
           </Link>
         )}
 
         <Link
           to='/map'
-          className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+          className='flex items-center text-white hover:text-blue-200 transition-colors'
+          title='Map'
+          aria-label='Map'
         >
           <Map className='h-6 w-6' />
-          <span className='text-sm'>Map</span>
         </Link>
 
         <Dropdown
@@ -158,10 +210,13 @@ const NavbarDesktopControls = () => {
           trigger={['click']}
           placement='bottomRight'
         >
-          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
+          <button
+            className='flex items-center text-white hover:text-blue-200 transition-colors'
+            title='Dive / Explore'
+            aria-label='Dive / Explore'
+          >
             <Compass className='h-6 w-6' />
-            <span className='text-sm'>Dive / Explore</span>
-            <ChevronDown className='h-4 w-4' />
+            <ChevronDown className='h-3.5 w-3.5 ml-0.5 opacity-80' />
           </button>
         </Dropdown>
 
@@ -189,56 +244,13 @@ const NavbarDesktopControls = () => {
           trigger={['click']}
           placement='bottomRight'
         >
-          <button className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'>
-            <Users className='h-6 w-6' />
-            <span className='text-sm'>Community</span>
-            <ChevronDown className='h-4 w-4' />
-          </button>
-        </Dropdown>
-
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'about',
-                label: 'About',
-                icon: <Info className='h-4 w-4' />,
-                onClick: () => navigate('/about'),
-              },
-              {
-                key: 'api-docs',
-                label: 'API',
-                icon: <Code className='h-4 w-4' />,
-                onClick: () => navigate('/api-docs'),
-              },
-              {
-                key: 'changelog',
-                label: 'Changelog',
-                icon: <FileText className='h-4 w-4' />,
-                onClick: () => navigate('/changelog'),
-              },
-              {
-                key: 'help',
-                label: 'Help',
-                icon: <HelpCircle className='h-4 w-4' />,
-                onClick: () => navigate('/help'),
-              },
-              {
-                key: 'privacy',
-                label: 'Privacy',
-                icon: <Shield className='h-4 w-4' />,
-                onClick: () => navigate('/privacy'),
-              },
-            ],
-          }}
-          trigger={['click']}
-          placement='bottomRight'
-        >
           <button
             className='flex items-center text-white hover:text-blue-200 transition-colors'
-            title='Info'
+            title='Community'
+            aria-label='Community'
           >
-            <Info className='h-6 w-6' />
+            <Users className='h-6 w-6' />
+            <ChevronDown className='h-3.5 w-3.5 ml-0.5 opacity-80' />
           </button>
         </Dropdown>
 
@@ -250,11 +262,11 @@ const NavbarDesktopControls = () => {
             {user.is_admin && (
               <button
                 onClick={() => navigate('/admin')}
-                className='flex items-center space-x-1 text-white hover:text-blue-200 transition-colors'
+                className='flex items-center text-white hover:text-blue-200 transition-colors'
                 title='Admin Panel'
+                aria-label='Admin Panel'
               >
-                <Shield className='h-6 w-6' />
-                <span className='text-sm'>Admin Panel</span>
+                <Settings className='h-6 w-6' />
               </button>
             )}
 
@@ -266,9 +278,11 @@ const NavbarDesktopControls = () => {
               <span className='text-sm'>{user.username}</span>
             </Link>
 
+            {infoDropdown}
+
             <button
               onClick={handleLogout}
-              className='flex items-center text-white hover:text-blue-200 transition-colors ml-2'
+              className='flex items-center text-white hover:text-blue-200 transition-colors'
               title='Logout'
             >
               <LogOut className='h-6 w-6' />
@@ -278,6 +292,8 @@ const NavbarDesktopControls = () => {
           </div>
         ) : (
           <div className='flex items-center space-x-4'>
+            {infoDropdown}
+
             <Button
               to='/login'
               variant='primary'
